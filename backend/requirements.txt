@@ -9,3 +9,4 @@ python-jose
 pytest-env
 boto3
 moto[s3]
+mercadopago

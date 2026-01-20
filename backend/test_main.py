@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from moto import mock_s3
+from unittest.mock import patch, MagicMock
 from ..backend.database import Base, get_db
 from ..backend.main import app
 from ..backend.security import create_access_token
@@ -53,7 +54,59 @@ def test_read_root():
     assert response.status_code == 200
     assert response.json() == {"message": "BaseCommerce API is running"}
 
-# ... (existing auth tests)
+def test_register_user_success():
+    response = client.post(
+        "/auth/register",
+        json={"email": "test@example.com", "password": "password123", "full_name": "Test User"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["email"] == "test@example.com"
+    assert "id" in data
+    # The returned model should not include the password
+    assert "hashed_password" not in data
+
+def test_register_user_duplicate_email():
+    # First user
+    client.post(
+        "/auth/register",
+        json={"email": "test@example.com", "password": "password123", "full_name": "Test User"},
+    )
+    # Second user with same email
+    response = client.post(
+        "/auth/register",
+        json={"email": "test@example.com", "password": "password456", "full_name": "Another User"},
+    )
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Email already registered"}
+
+def test_login_success():
+    # First, register a user
+    client.post(
+        "/auth/register",
+        json={"email": "login@example.com", "password": "password123", "full_name": "Login User"},
+    )
+    # Then, log in
+    response = client.post(
+        "/auth/login",
+        data={"username": "login@example.com", "password": "password123"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+
+def test_login_incorrect_password():
+    client.post(
+        "/auth/register",
+        json={"email": "login@example.com", "password": "password123", "full_name": "Login User"},
+    )
+    response = client.post(
+        "/auth/login",
+        data={"username": "login@example.com", "password": "wrongpassword"},
+    )
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Incorrect email or password"}
 
 def test_create_product_success():
     # Register and get auth headers
@@ -70,7 +123,27 @@ def test_create_product_success():
     assert data["name"] == "Test Product"
     assert data["price"] == 9.99
 
-# ... (existing product tests)
+def test_create_product_unauthenticated():
+    response = client.post(
+        "/products",
+        json={"name": "Test Product", "description": "A great product", "price": 9.99, "stock": 100},
+    )
+    assert response.status_code == 401 # Unauthorized
+
+def test_read_products_by_owner():
+    # Register user and create products
+    client.post("/auth/register", json={"email": "owner@example.com", "password": "password123"})
+    headers = get_auth_headers("owner@example.com")
+    client.post("/products", headers=headers, json={"name": "Product 1", "price": 10, "stock": 10})
+    client.post("/products", headers=headers, json={"name": "Product 2", "price": 20, "stock": 20})
+
+    # List products
+    response = client.get("/products", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["name"] == "Product 1"
+    assert data[1]["name"] == "Product 2"
 
 @mock_s3
 def test_create_upload_url_success():
@@ -90,7 +163,10 @@ def test_create_upload_url_success():
         params={"file_type": "image/jpeg"},
     )
     assert response.status_code == 200
-    # ... (rest of the test)
+    data = response.json()
+    assert "url" in data
+    assert "fields" in data
+    assert data["fields"]["key"].startswith("uploads/")
     del os.environ["S3_BUCKET_NAME"]
 
 
@@ -146,3 +222,49 @@ def test_create_order_product_not_found():
 
     assert response.status_code == 404
     assert "not found" in response.json()["detail"]
+
+# --- Payment Tests ---
+
+@patch("backend.payment_service.sdk.preference")
+def test_create_payment_preference_success(mock_preference_sdk):
+    mock_preference_sdk.create.return_value = {
+        "response": {"id": "mock_preference_id", "init_point": "http://mock.mercadopago.com/init"}
+    }
+
+    # Register user (owner of product)
+    client.post("/auth/register", json={"email": "owner@example.com", "password": "password123"})
+    owner_headers = get_auth_headers("owner@example.com")
+    
+    # Create product
+    product_res = client.post("/products", headers=owner_headers, json={"name": "Test Product MP", "price": 10.0, "stock": 50})
+    product_id = product_res.json()["id"]
+
+    # Register customer and create order
+    client.post("/auth/register", json={"email": "customer_mp@example.com", "password": "password123"})
+    customer_headers = get_auth_headers("customer_mp@example.com")
+    order_payload = {"items": [{"product_id": product_id, "quantity": 1}]}
+    order_res = client.post("/orders", headers=customer_headers, json=order_payload)
+    order_id = order_res.json()["id"]
+
+    response = client.post(
+        f"/payments/create-preference/{order_id}",
+        headers=customer_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["preference_id"] == "mock_preference_id"
+    assert data["init_point"] == "http://mock.mercadopago.com/init"
+    mock_preference_sdk.create.assert_called_once()
+
+def test_mercadopago_webhook_payment_received():
+    response = client.post("/payments/webhook?topic=payment&id=123456789")
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    assert "Payment notification for ID 123456789 received and processed (dummy)" in response.json()["message"]
+
+def test_mercadopago_webhook_invalid_notification():
+    response = client.post("/payments/webhook")
+    assert response.status_code == 400
+    assert response.json()["status"] == "error"
+    assert "Invalid notification format" in response.json()["message"]

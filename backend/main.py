@@ -1,10 +1,11 @@
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import List
+import uuid
 
-from . import crud, models, schemas, security, s3_service
+from . import crud, models, schemas, security, s3_service, payment_service
 from .database import SessionLocal, engine, get_db
 
 # Create all tables in the database.
@@ -84,6 +85,52 @@ def create_order(
     current_user: models.User = Depends(security.get_current_user),
 ):
     return crud.create_order(db=db, order=order, customer_id=current_user.id)
+
+
+# --- Payment Endpoints (Mercado Pago) ---
+
+@app.post("/payments/create-preference/{order_id}")
+def create_payment_preference(
+    order_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    try:
+        preference = payment_service.create_mp_preference(db, order_id, current_user.email)
+        return {"preference_id": preference["id"], "init_point": preference["init_point"]}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating payment preference: {e}")
+
+@app.post("/payments/webhook")
+async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
+    # Mercado Pago sends notifications as query parameters and/or POST body
+    # For now, we'll focus on the 'topic' and 'id' in query params as per MP docs
+    topic = request.query_params.get("topic")
+    payment_id = request.query_params.get("id")
+
+    if not topic or not payment_id:
+        # Also check for body for different notification types if needed
+        # For 'payment' topic, usually 'id' is enough to fetch details
+        return {"status": "error", "message": "Invalid notification format"}, 400
+
+    if topic == "payment":
+        # Fetch payment details from Mercado Pago API
+        # This requires the MP SDK to fetch payment details using the payment_id
+        # For simplicity, we are not implementing the full MP SDK fetch here.
+        # In a real app, you would fetch the payment and update your order status.
+        print(f"Received payment notification for ID: {payment_id}")
+        # Example: Update order status in DB based on payment_id/external_reference
+        # db_order = db.query(models.Order).filter(models.Order.mercadopago_id == payment_id).first()
+        # if db_order:
+        #    db_order.status = "paid" if payment_status == "approved" else "failed"
+        #    db.commit()
+
+        # For now, we'll just log and return success
+        return {"status": "success", "message": f"Payment notification for ID {payment_id} received and processed (dummy)"}
+    
+    return {"status": "success", "message": f"Webhook received for topic {topic}, ID {payment_id} (ignored)"}
 
 
 # --- Root Endpoint ---
