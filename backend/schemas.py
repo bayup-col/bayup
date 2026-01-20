@@ -103,3 +103,24 @@ class Plan(PlanBase):
 # For updating a user's plan
 class UserUpdatePlan(BaseModel):
     plan_id: uuid.UUID
+
+# --- Page Schemas ---
+from typing import Dict, Any
+
+class PageBase(BaseModel):
+    slug: str
+    title: str | None = None
+    content: Dict[str, Any] | None = None # Flexible JSON content
+
+class PageCreate(PageBase):
+    pass
+
+class PageUpdate(PageBase):
+    pass # For now, same as base, but allows for partial updates
+
+class Page(PageBase):
+    id: uuid.UUID
+    owner_id: uuid.UUID
+
+    class Config:
+        orm_mode = True

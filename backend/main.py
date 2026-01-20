@@ -281,3 +281,77 @@ def read_plans(
 ):
     plans = db.query(models.Plan).offset(skip).limit(limit).all()
     return plans
+
+
+# --- Page Endpoints (Protected for owners) ---
+
+@app.post("/pages", response_model=schemas.Page)
+def create_page(
+    page: schemas.PageCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    # Check for duplicate slug for this owner
+    existing_page = crud.get_page_by_slug(db, slug=page.slug, owner_id=current_user.id)
+    if existing_page:
+        raise HTTPException(status_code=400, detail="Page with this slug already exists for your store.")
+    return crud.create_page(db=db, page=page, owner_id=current_user.id)
+
+@app.get("/pages", response_model=List[schemas.Page])
+def read_pages(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    pages = crud.get_pages_by_owner(db, owner_id=current_user.id, skip=skip, limit=limit)
+    return pages
+
+@app.get("/pages/{page_id}", response_model=schemas.Page)
+def read_page(
+    page_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    page = crud.get_page(db, page_id=page_id, owner_id=current_user.id)
+    if page is None:
+        raise HTTPException(status_code=404, detail="Page not found or does not belong to your store.")
+    return page
+
+@app.put("/pages/{page_id}", response_model=schemas.Page)
+def update_page(
+    page_id: uuid.UUID,
+    page_update: schemas.PageUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_page = crud.get_page(db, page_id=page_id, owner_id=current_user.id)
+    if db_page is None:
+        raise HTTPException(status_code=404, detail="Page not found or does not belong to your store.")
+    return crud.update_page(db=db, db_page=db_page, page_update=page_update)
+
+@app.delete("/pages/{page_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_page(
+    page_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_page = crud.get_page(db, page_id=page_id, owner_id=current_user.id)
+    if db_page is None:
+        raise HTTPException(status_code=404, detail="Page not found or does not belong to your store.")
+    crud.delete_page(db=db, db_page=db_page)
+    return {"ok": True}
+
+
+# --- Public Page Endpoints (for customers) ---
+
+@app.get("/public/stores/{tenant_id}/pages/{page_slug}", response_model=schemas.Page)
+def read_public_page_by_slug(
+    tenant_id: uuid.UUID,
+    page_slug: str,
+    db: Session = Depends(get_db),
+):
+    page = crud.get_page_by_slug(db, slug=page_slug, owner_id=tenant_id)
+    if page is None:
+        raise HTTPException(status_code=404, detail="Page not found for this store.")
+    return page

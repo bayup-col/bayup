@@ -1,9 +1,10 @@
 # backend/models.py
 import uuid
 import datetime
-from sqlalchemy import Column, String, Float, Integer, ForeignKey, DateTime, Boolean
+from sqlalchemy import Column, String, Float, Integer, ForeignKey, DateTime, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.types import JSON # For storing JSON content
 from .database import Base
 
 class Plan(Base):
@@ -31,6 +32,7 @@ class User(Base):
 
     products = relationship("Product", back_populates="owner")
     orders = relationship("Order", back_populates="customer", foreign_keys="[Order.customer_id]")
+    pages = relationship("Page", back_populates="owner")
 
 class Product(Base):
     __tablename__ = "products"
@@ -74,3 +76,16 @@ class OrderItem(Base):
 
     order = relationship("Order", back_populates="items")
     product = relationship("Product", back_populates="order_items")
+
+class Page(Base):
+    __tablename__ = "pages"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    slug = Column(String, nullable=False, index=True) # e.g., "home", "about-us"
+    title = Column(String, nullable=True)
+    content = Column(JSON, nullable=True) # Stores the JSON structure of the page
+    
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    owner = relationship("User", back_populates="pages")
+
+    __table_args__ = (UniqueConstraint("slug", "owner_id", name="_owner_id_slug_uc"),)

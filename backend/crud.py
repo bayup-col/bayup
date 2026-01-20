@@ -134,3 +134,33 @@ def get_orders_by_customer(db: Session, customer_id: uuid.UUID, skip: int = 0, l
         .limit(limit)
         .all()
     )
+
+# --- Page CRUD ---
+
+def get_page(db: Session, page_id: uuid.UUID, owner_id: uuid.UUID) -> models.Page | None:
+    return db.query(models.Page).filter(models.Page.id == page_id, models.Page.owner_id == owner_id).first()
+
+def get_page_by_slug(db: Session, slug: str, owner_id: uuid.UUID) -> models.Page | None:
+    return db.query(models.Page).filter(models.Page.slug == slug, models.Page.owner_id == owner_id).first()
+
+def get_pages_by_owner(db: Session, owner_id: uuid.UUID, skip: int = 0, limit: int = 100) -> list[models.Page]:
+    return db.query(models.Page).filter(models.Page.owner_id == owner_id).offset(skip).limit(limit).all()
+
+def create_page(db: Session, page: schemas.PageCreate, owner_id: uuid.UUID) -> models.Page:
+    db_page = models.Page(**page.dict(), owner_id=owner_id)
+    db.add(db_page)
+    db.commit()
+    db.refresh(db_page)
+    return db_page
+
+def update_page(db: Session, db_page: models.Page, page_update: schemas.PageUpdate) -> models.Page:
+    for key, value in page_update.dict(exclude_unset=True).items():
+        setattr(db_page, key, value)
+    db.add(db_page)
+    db.commit()
+    db.refresh(db_page)
+    return db_page
+
+def delete_page(db: Session, db_page: models.Page):
+    db.delete(db_page)
+    db.commit()
