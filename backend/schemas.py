@@ -82,3 +82,24 @@ class Order(OrderBase):
 # --- Clerk Integration Schemas ---
 class ClerkLoginRequest(BaseModel):
     clerk_token: str
+
+# --- Plan Schemas ---
+class PlanBase(BaseModel):
+    name: str
+    description: str | None = None
+    commission_rate: float
+    monthly_fee: float
+    is_default: bool = False
+
+class PlanCreate(PlanBase):
+    pass
+
+class Plan(PlanBase):
+    id: uuid.UUID
+
+    class Config:
+        orm_mode = True
+
+# For updating a user's plan
+class UserUpdatePlan(BaseModel):
+    plan_id: uuid.UUID

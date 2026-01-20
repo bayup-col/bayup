@@ -15,6 +15,31 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="BaseCommerce API")
 
+# Startup event to ensure a default plan exists
+@app.on_event("startup")
+def create_default_plan():
+    db = SessionLocal()
+    try:
+        if not crud.get_default_plan(db):
+            print("Creating default plan...")
+            crud.create_plan(
+                db=db,
+                plan=schemas.PlanCreate(
+                    name="Free Tier",
+                    description="Default free plan with basic features.",
+                    commission_rate=0.10, # 10% commission
+                    monthly_fee=0.0,
+                    is_default=True,
+                ),
+            )
+            db.commit()
+            print("Default plan created.")
+    except Exception as e:
+        print(f"Error creating default plan: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
 
 # --- Authentication Endpoints ---
 
@@ -72,8 +97,7 @@ async def clerk_login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-# --- Product Endpoints ---
-# Endpoints requiring authentication (for store owners)
+# --- Protected Product Endpoints ---
 
 @app.post("/products", response_model=schemas.Product)
 def create_product(
@@ -174,30 +198,59 @@ def create_payment_preference(
 
 @app.post("/payments/webhook")
 async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
-    # Mercado Pago sends notifications as query parameters and/or POST body
-    # For now, we'll focus on the 'topic' and 'id' in query params as per MP docs
     topic = request.query_params.get("topic")
     payment_id = request.query_params.get("id")
 
     if not topic or not payment_id:
-        # Also check for body for different notification types if needed
-        # For 'payment' topic, usually 'id' is enough to fetch details
         return {"status": "error", "message": "Invalid notification format"}, 400
 
     if topic == "payment":
-        # Fetch payment details from Mercado Pago API
-        # This requires the MP SDK to fetch payment details using the payment_id
-        # For simplicity, we are not implementing the full MP SDK fetch here.
-        # In a real app, you would fetch the payment and update your order status.
-        print(f"Received payment notification for ID: {payment_id}")
-        # Example: Update order status in DB based on payment_id/external_reference
-        # db_order = db.query(models.Order).filter(models.Order.mercadopago_id == payment_id).first()
-        # if db_order:
-        #    db_order.status = "paid" if payment_status == "approved" else "failed"
-        #    db.commit()
+        # In a real scenario, you'd fetch payment details from MP API using payment_id
+        # For this MVP, we will simulate fetching the order and applying commission.
+        # We need the external_reference (our order ID) from the payment details.
+        # Let's assume we can get this from the notification or from an MP API call.
 
-        # For now, we'll just log and return success
-        return {"status": "success", "message": f"Payment notification for ID {payment_id} received and processed (dummy)"}
+        # For MVP, simulate fetching the order based on a hypothetical external_reference from MP
+        # In a full implementation, you'd parse MP's full notification body or call their API
+        
+        # --- Simulate fetching payment details and metadata from Mercado Pago ---
+        # If we had the actual preference object or full notification, we'd get metadata.
+        # For now, let's just use the order.id from external_reference for lookup
+        
+        # In a real scenario, you would fetch payment data from MP
+        # payment_info = payment_service.sdk.payment().get(payment_id)
+        # external_reference = payment_info["response"]["external_reference"]
+        # tenant_id_from_mp = payment_info["response"]["metadata"]["tenant_id"] if "metadata" in payment_info["response"] else None
+        
+        # For simplicity, let's assume external_reference is available and tenant_id
+        # is also somehow recoverable or tied to the order.
+        
+        # Find the order by payment_id as external_reference (this needs to be adjusted in a real scenario)
+        order = db.query(models.Order).filter(models.Order.id == uuid.UUID(payment_id)).first() # Simplification
+        if not order:
+            print(f"Order not found for payment ID: {payment_id}")
+            raise HTTPException(status_code=404, detail="Order not found for this payment")
+
+        # Get the tenant's plan
+        tenant = db.query(models.User).filter(models.User.id == order.tenant_id).options(joinedload(models.User.plan)).first()
+        if not tenant or not tenant.plan:
+            print(f"Tenant or tenant's plan not found for order {order.id}")
+            raise HTTPException(status_code=500, detail="Tenant or tenant's plan not found")
+
+        commission_rate = tenant.plan.commission_rate
+        platform_commission = order.total_price * commission_rate
+        net_to_tenant = order.total_price - platform_commission
+
+        # Update order status (simulated as "completed" for approved payments)
+        order.status = "completed" # Assuming payment was approved
+        db.add(order)
+        db.commit()
+        db.refresh(order)
+
+        print(f"Payment notification for Order ID: {order.id} received. Status updated to 'completed'.")
+        print(f"Order Total: {order.total_price:.2f}, Commission Rate: {commission_rate:.2%}, Platform Commission: {platform_commission:.2f}, Net to Tenant: {net_to_tenant:.2f}")
+
+        return {"status": "success", "message": f"Payment notification for ID {payment_id} processed for order {order.id}"}
     
     return {"status": "success", "message": f"Webhook received for topic {topic}, ID {payment_id} (ignored)"}
 
@@ -207,3 +260,24 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
 @app.get("/")
 def read_root():
     return {"message": "Welcome to BaseCommerce API. Please use /public/stores/{tenant_id}/products or /dashboard."}
+
+
+# --- Plan Endpoints ---
+@app.post("/plans", response_model=schemas.Plan)
+def create_plan(
+    plan: schemas.PlanCreate,
+    db: Session = Depends(get_db),
+    # For MVP, no admin check yet. In future: Depends(security.get_super_admin_user)
+):
+    db_plan = crud.create_plan(db=db, plan=plan)
+    return db_plan
+
+@app.get("/plans", response_model=List[schemas.Plan])
+def read_plans(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    # For MVP, no admin check yet. In future: Depends(security.get_super_admin_user)
+):
+    plans = db.query(models.Plan).offset(skip).limit(limit).all()
+    return plans

@@ -5,6 +5,21 @@ from typing import Optional
 from . import models, schemas, security
 from fastapi import HTTPException, status
 
+# --- Plan CRUD ---
+
+def get_plan(db: Session, plan_id: uuid.UUID) -> models.Plan | None:
+    return db.query(models.Plan).filter(models.Plan.id == plan_id).first()
+
+def get_default_plan(db: Session) -> models.Plan | None:
+    return db.query(models.Plan).filter(models.Plan.is_default == True).first()
+
+def create_plan(db: Session, plan: schemas.PlanCreate) -> models.Plan:
+    db_plan = models.Plan(**plan.dict())
+    db.add(db_plan)
+    db.commit()
+    db.refresh(db_plan)
+    return db_plan
+
 # --- User CRUD ---
 
 def get_user_by_email(db: Session, email: str) -> models.User | None:
@@ -12,10 +27,17 @@ def get_user_by_email(db: Session, email: str) -> models.User | None:
 
 def create_user(db: Session, user: schemas.UserCreate) -> models.User:
     hashed_password = security.get_password_hash(user.password)
+    
+    # Assign default plan to new users
+    default_plan = get_default_plan(db)
+    if not default_plan:
+        raise HTTPException(status_code=500, detail="No default plan configured. Please create a default plan.")
+
     db_user = models.User(
         email=user.email,
         full_name=user.full_name,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        plan_id=default_plan.id
     )
     db.add(db_user)
     db.commit()

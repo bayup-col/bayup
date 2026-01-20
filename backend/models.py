@@ -1,10 +1,22 @@
 # backend/models.py
 import uuid
 import datetime
-from sqlalchemy import Column, String, Float, Integer, ForeignKey, DateTime
+from sqlalchemy import Column, String, Float, Integer, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from .database import Base
+
+class Plan(Base):
+    __tablename__ = "plans"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(String, nullable=True)
+    commission_rate = Column(Float, nullable=False, default=0.0) # e.g., 0.05 for 5%
+    monthly_fee = Column(Float, nullable=False, default=0.0)
+    is_default = Column(Boolean, default=False) # A default plan for new users
+
+    users = relationship("User", back_populates="plan")
 
 class User(Base):
     __tablename__ = "users"
@@ -14,8 +26,11 @@ class User(Base):
     full_name = Column(String, nullable=True)
     hashed_password = Column(String, nullable=False)
     
+    plan_id = Column(UUID(as_uuid=True), ForeignKey("plans.id"), nullable=True)
+    plan = relationship("Plan", back_populates="users")
+
     products = relationship("Product", back_populates="owner")
-    orders = relationship("Order", back_populates="customer")
+    orders = relationship("Order", back_populates="customer", foreign_keys="[Order.customer_id]")
 
 class Product(Base):
     __tablename__ = "products"

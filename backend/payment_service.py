@@ -15,6 +15,10 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
     if not order:
         raise ValueError("Order not found")
 
+    tenant = crud.get_user_by_email(db, email=order.tenant.email) # Assuming tenant_id points to a User
+    if not tenant or not tenant.plan:
+        raise ValueError("Tenant or tenant's plan not found.")
+
     # For MVP, we use fixed back_urls and notification_url
     # In a real app, these would be dynamic and properly configured
     BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000") # TODO: use actual backend URL
@@ -44,7 +48,8 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
         "external_reference": str(order.id), # Link payment to our order ID
         "notification_url": f"{BACKEND_URL}/payments/webhook",
         "metadata": {
-            "tenant_id": str(tenant_id)
+            "tenant_id": str(tenant_id),
+            "commission_rate": tenant.plan.commission_rate
         }
     }
 
