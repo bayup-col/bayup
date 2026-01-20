@@ -40,8 +40,11 @@ class Order(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     customer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    customer = relationship("User", back_populates="orders")
-    
+    customer = relationship("User", foreign_keys=[customer_id], back_populates="orders")
+
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    tenant = relationship("User", foreign_keys=[tenant_id]) # The owner of the store
+
     items = relationship("OrderItem", back_populates="order")
 
 class OrderItem(Base):

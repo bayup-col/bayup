@@ -70,6 +70,7 @@ class OrderCreate(OrderBase):
 class Order(OrderBase):
     id: uuid.UUID
     customer_id: uuid.UUID
+    tenant_id: uuid.UUID # New field
     total_price: float
     status: str
     created_at: datetime.datetime

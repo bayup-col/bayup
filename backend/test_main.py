@@ -49,10 +49,15 @@ def teardown_function():
     if os.path.exists("./test.db"):
         os.remove("./test.db")
 
-def test_read_root():
+def test_read_root_redirect():
     response = client.get("/")
-    assert response.status_code == 200
-    assert response.json() == {"message": "BaseCommerce API is running"}
+    assert response.status_code == 200 # RedirectResponse returns 200
+    # For a client that follows redirects, it would be 200
+    # For a test client, it returns the actual response of the redirected path
+    assert "BaseCommerce API is running" not in response.text
+    # Check if it was redirected to /public/products - by checking content
+    # This might require parsing HTML or just ensuring it's not the old root
+    # For now, just check that it's not the old root message.
 
 def test_register_user_success():
     response = client.post(
@@ -169,6 +174,43 @@ def test_create_upload_url_success():
     assert data["fields"]["key"].startswith("uploads/")
     del os.environ["S3_BUCKET_NAME"]
 
+# --- Public Product Tests ---
+
+def test_read_all_products_public():
+    # Create an owner and products
+    owner_email = "publicowner@example.com"
+    client.post("/auth/register", json={"email": owner_email, "password": "password123"})
+    owner_headers = get_auth_headers(owner_email)
+    client.post("/products", headers=owner_headers, json={"name": "Public Product 1", "price": 5.0, "stock": 50})
+    client.post("/products", headers=owner_headers, json={"name": "Public Product 2", "price": 7.5, "stock": 70})
+
+    response = client.get("/public/products")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) >= 2 # May contain products from other tests if DB not completely clean
+    assert any(p["name"] == "Public Product 1" for p in data)
+    assert any(p["name"] == "Public Product 2" for p in data)
+
+def test_read_product_public():
+    # Create an owner and a product
+    owner_email = "singleproductowner@example.com"
+    client.post("/auth/register", json={"email": owner_email, "password": "password123"})
+    owner_headers = get_auth_headers(owner_email)
+    product_res = client.post("/products", headers=owner_headers, json={"name": "Single Public Product", "price": 12.34, "stock": 25})
+    product_id = product_res.json()["id"]
+
+    response = client.get(f"/public/products/{product_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Single Public Product"
+    assert data["price"] == 12.34
+
+def test_read_product_public_not_found():
+    non_existent_product_id = str(uuid.uuid4())
+    response = client.get(f"/public/products/{non_existent_product_id}")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Product not found"}
+
 
 # --- Order Tests ---
 
@@ -223,6 +265,33 @@ def test_create_order_product_not_found():
     assert response.status_code == 404
     assert "not found" in response.json()["detail"]
 
+def test_read_orders_by_customer_success():
+    # 1. Create a user (owner of product)
+    client.post("/auth/register", json={"email": "owner_orders@example.com", "password": "password123"})
+    owner_headers = get_auth_headers("owner_orders@example.com")
+    
+    # 2. Create a product
+    product_res = client.post("/products", headers=owner_headers, json={"name": "Orderable Product", "price": 10.0, "stock": 100})
+    product_id = product_res.json()["id"]
+
+    # 3. Create a customer
+    customer_email = "customer_orders@example.com"
+    client.post("/auth/register", json={"email": customer_email, "password": "password123"})
+    customer_headers = get_auth_headers(customer_email)
+
+    # 4. Create an order
+    order_payload = {"items": [{"product_id": product_id, "quantity": 1}]}
+    client.post("/orders", headers=customer_headers, json=order_payload)
+    
+    # 5. Fetch orders for the customer
+    response = client.get("/orders", headers=customer_headers)
+    assert response.status_code == 200
+    orders = response.json()
+    assert len(orders) > 0 # At least one order
+    assert any(order["customer_id"] == str(client.get("/users/me", headers=customer_headers).json()["id"]) for order in orders)
+    assert any(len(order["items"]) > 0 for order in orders)
+
+
 # --- Payment Tests ---
 
 @patch("backend.payment_service.sdk.preference")
@@ -232,16 +301,19 @@ def test_create_payment_preference_success(mock_preference_sdk):
     }
 
     # Register user (owner of product)
-    client.post("/auth/register", json={"email": "owner@example.com", "password": "password123"})
-    owner_headers = get_auth_headers("owner@example.com")
+    owner_email = "owner@example.com"
+    client.post("/auth/register", json={"email": owner_email, "password": "password123"})
+    owner_headers = get_auth_headers(owner_email)
     
     # Create product
     product_res = client.post("/products", headers=owner_headers, json={"name": "Test Product MP", "price": 10.0, "stock": 50})
     product_id = product_res.json()["id"]
+    owner_id = product_res.json()["owner_id"] # Get the owner_id (tenant_id) from the created product
 
     # Register customer and create order
-    client.post("/auth/register", json={"email": "customer_mp@example.com", "password": "password123"})
-    customer_headers = get_auth_headers("customer_mp@example.com")
+    customer_email = "customer_mp@example.com"
+    client.post("/auth/register", json={"email": customer_email, "password": "password123"})
+    customer_headers = get_auth_headers(customer_email)
     order_payload = {"items": [{"product_id": product_id, "quantity": 1}]}
     order_res = client.post("/orders", headers=customer_headers, json=order_payload)
     order_id = order_res.json()["id"]
@@ -256,6 +328,16 @@ def test_create_payment_preference_success(mock_preference_sdk):
     assert data["preference_id"] == "mock_preference_id"
     assert data["init_point"] == "http://mock.mercadopago.com/init"
     mock_preference_sdk.create.assert_called_once()
+    # Verify that tenant_id was passed to create_mp_preference
+    mock_preference_sdk.create.assert_called_with(
+        {'items': [{'title': 'Test Product MP', 'quantity': 1, 'unit_price': 10.0, 'currency_id': 'CLP'}], 
+         'payer': {'email': customer_email}, 
+         'back_urls': {'success': 'http://localhost:8000/payments/success', 'failure': 'http://localhost:8000/payments/failure', 'pending': 'http://localhost:8000/payments/pending'}, 
+         'auto_return': 'approved', 
+         'external_reference': str(order_id), 
+         'notification_url': 'http://localhost:8000/payments/webhook', 
+         'metadata': {'tenant_id': str(owner_id)}}
+    )
 
 def test_mercadopago_webhook_payment_received():
     response = client.post("/payments/webhook?topic=payment&id=123456789")

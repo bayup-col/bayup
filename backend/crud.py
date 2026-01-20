@@ -44,10 +44,11 @@ def create_product(db: Session, product: schemas.ProductCreate, owner_id: uuid.U
 def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID) -> models.Order:
     total_price = 0
     order_items = []
+    tenant_id_for_order = None
     
     # Start a transaction
     try:
-        # Validate products and calculate total price
+        # Validate products, determine tenant_id, and calculate total price
         for item_in in order.items:
             product = get_product(db, item_in.product_id)
             if not product:
@@ -55,11 +56,20 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
             if product.stock < item_in.quantity:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Not enough stock for product {product.name}")
             
+            # Ensure all products in the order belong to the same tenant
+            if tenant_id_for_order is None:
+                tenant_id_for_order = product.owner_id
+            elif tenant_id_for_order != product.owner_id:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="All products in an order must belong to the same store.")
+            
             total_price += product.price * item_in.quantity
             order_items.append({"product": product, "quantity": item_in.quantity})
 
+        if not tenant_id_for_order:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No products in order to determine tenant.")
+
         # Create the order
-        db_order = models.Order(total_price=total_price, customer_id=customer_id)
+        db_order = models.Order(total_price=total_price, customer_id=customer_id, tenant_id=tenant_id_for_order)
         db.add(db_order)
         db.flush() # Use flush to get the order ID before creating items
 

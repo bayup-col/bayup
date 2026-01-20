@@ -128,7 +128,12 @@ def create_payment_preference(
     current_user: models.User = Depends(security.get_current_user),
 ):
     try:
-        preference = payment_service.create_mp_preference(db, order_id, current_user.email)
+        # Fetch the order to get its tenant_id
+        order = db.query(models.Order).filter(models.Order.id == order_id).first()
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        
+        preference = payment_service.create_mp_preference(db, order_id, current_user.email, order.tenant_id)
         return {"preference_id": preference["id"], "init_point": preference["init_point"]}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
