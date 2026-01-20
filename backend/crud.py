@@ -26,6 +26,9 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
 def get_product(db: Session, product_id: uuid.UUID) -> models.Product | None:
     return db.query(models.Product).filter(models.Product.id == product_id).first()
 
+def get_all_products(db: Session, skip: int = 0, limit: int = 100) -> list[models.Product]:
+    return db.query(models.Product).offset(skip).limit(limit).all()
+
 def get_products_by_owner(db: Session, owner_id: uuid.UUID, skip: int = 0, limit: int = 100) -> list[models.Product]:
     return db.query(models.Product).filter(models.Product.owner_id == owner_id).offset(skip).limit(limit).all()
 

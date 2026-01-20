@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import List
 import uuid
+from starlette.responses import RedirectResponse
 
 from . import crud, models, schemas, security, s3_service, payment_service
 from .database import SessionLocal, engine, get_db
@@ -43,7 +44,7 @@ def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-# --- Product Endpoints ---
+# --- Protected Product Endpoints ---
 
 @app.post("/products", response_model=schemas.Product)
 def create_product(
@@ -63,6 +64,27 @@ def read_products(
 ):
     products = crud.get_products_by_owner(db, owner_id=current_user.id, skip=skip, limit=limit)
     return products
+
+
+# --- Public Product Endpoints ---
+@app.get("/public/products", response_model=List[schemas.Product])
+def read_all_products(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+):
+    products = crud.get_all_products(db, skip=skip, limit=limit)
+    return products
+
+@app.get("/public/products/{product_id}", response_model=schemas.Product)
+def read_product(
+    product_id: uuid.UUID,
+    db: Session = Depends(get_db),
+):
+    product = crud.get_product(db, product_id=product_id)
+    if product is None:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product
 
 
 # --- S3 Upload Endpoint ---
@@ -147,4 +169,4 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/")
 def read_root():
-    return {"message": "BaseCommerce API is running"}
+    return RedirectResponse(url="/public/products")
