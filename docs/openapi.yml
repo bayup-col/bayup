@@ -1,0 +1,249 @@
+openapi: 3.0.3
+info:
+  title: BaseCommerce API - MVP
+  version: 1.0.0
+  description: |
+    Definición de la API para el Producto Mínimo Viable (Hito 1) de la plataforma BaseCommerce.
+    Se enfoca en las funcionalidades core para que un solo tenant pueda vender.
+
+paths:
+  /auth/register:
+    post:
+      summary: Registrar un nuevo dueño de tienda
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegister'
+      responses:
+        '201':
+          description: Usuario creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  
+  /auth/login:
+    post:
+      summary: Iniciar sesión
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+                    example: bearer
+
+  /products:
+    get:
+      summary: Listar productos de la tienda
+      tags: [Products]
+      responses:
+        '200':
+          description: Lista de productos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+    post:
+      summary: Crear un nuevo producto
+      tags: [Products]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '201':
+          description: Producto creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+  /products/{productId}:
+    get:
+      summary: Obtener un producto por su ID
+      tags: [Products]
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalles del producto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+    put:
+      summary: Actualizar un producto
+      tags: [Products]
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '200':
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+  /orders:
+    post:
+      summary: Crear una nueva orden (Checkout)
+      tags: [Orders]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreate'
+      responses:
+        '201':
+          description: Orden creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+
+components:
+  schemas:
+    UserRegister:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        full_name:
+          type: string
+      required: [email, password, full_name]
+
+    UserLogin:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+      required: [email, password]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+
+    ProductCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: 'T-Shirt'
+        description:
+          type: string
+          example: 'A comfortable cotton t-shirt.'
+        price:
+          type: number
+          format: float
+          example: 19.99
+        stock:
+          type: integer
+          example: 100
+      required: [name, price, stock]
+      
+    Product:
+      allOf:
+        - $ref: '#/components/schemas/ProductCreate'
+        - type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            created_at:
+              type: string
+              format: date-time
+
+    OrderItem:
+      type: object
+      properties:
+        product_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          example: 2
+      required: [product_id, quantity]
+
+    OrderCreate:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+      required: [items]
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        total_price:
+          type: number
+          format: float
+        status:
+          type: string
+          enum: [pending, completed, shipped, cancelled]
+          default: pending
+        created_at:
+          type: string
+          format: date-time
