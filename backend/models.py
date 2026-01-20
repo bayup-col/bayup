@@ -1,6 +1,7 @@
 # backend/models.py
 import uuid
-from sqlalchemy import Column, String, Float, Integer, ForeignKey
+import datetime
+from sqlalchemy import Column, String, Float, Integer, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from .database import Base
@@ -14,6 +15,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     
     products = relationship("Product", back_populates="owner")
+    orders = relationship("Order", back_populates="customer")
 
 class Product(Base):
     __tablename__ = "products"
@@ -27,3 +29,30 @@ class Product(Base):
     
     owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     owner = relationship("User", back_populates="products")
+    order_items = relationship("OrderItem", back_populates="product")
+
+class Order(Base):
+    __tablename__ = "orders"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    total_price = Column(Float, nullable=False)
+    status = Column(String, nullable=False, default="pending")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    customer = relationship("User", back_populates="orders")
+    
+    items = relationship("OrderItem", back_populates="order")
+
+class OrderItem(Base):
+    __tablename__ = "order_items"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    quantity = Column(Integer, nullable=False)
+    price_at_purchase = Column(Float, nullable=False)
+
+    order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"))
+    product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"))
+
+    order = relationship("Order", back_populates="items")
+    product = relationship("Product", back_populates="order_items")

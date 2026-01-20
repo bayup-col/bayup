@@ -2,6 +2,7 @@
 from sqlalchemy.orm import Session
 import uuid
 from . import models, schemas, security
+from fastapi import HTTPException, status
 
 # --- User CRUD ---
 
@@ -22,6 +23,9 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
 
 # --- Product CRUD ---
 
+def get_product(db: Session, product_id: uuid.UUID) -> models.Product | None:
+    return db.query(models.Product).filter(models.Product.id == product_id).first()
+
 def get_products_by_owner(db: Session, owner_id: uuid.UUID, skip: int = 0, limit: int = 100) -> list[models.Product]:
     return db.query(models.Product).filter(models.Product.owner_id == owner_id).offset(skip).limit(limit).all()
 
@@ -31,3 +35,50 @@ def create_product(db: Session, product: schemas.ProductCreate, owner_id: uuid.U
     db.commit()
     db.refresh(db_product)
     return db_product
+
+# --- Order CRUD ---
+
+def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID) -> models.Order:
+    total_price = 0
+    order_items = []
+    
+    # Start a transaction
+    try:
+        # Validate products and calculate total price
+        for item_in in order.items:
+            product = get_product(db, item_in.product_id)
+            if not product:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product with id {item_in.product_id} not found")
+            if product.stock < item_in.quantity:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Not enough stock for product {product.name}")
+            
+            total_price += product.price * item_in.quantity
+            order_items.append({"product": product, "quantity": item_in.quantity})
+
+        # Create the order
+        db_order = models.Order(total_price=total_price, customer_id=customer_id)
+        db.add(db_order)
+        db.flush() # Use flush to get the order ID before creating items
+
+        # Create order items and update stock
+        for item_data in order_items:
+            product = item_data["product"]
+            quantity = item_data["quantity"]
+            
+            db_order_item = models.OrderItem(
+                order_id=db_order.id,
+                product_id=product.id,
+                quantity=quantity,
+                price_at_purchase=product.price
+            )
+            db.add(db_order_item)
+            
+            # Decrease stock
+            product.stock -= quantity
+
+        db.commit()
+        db.refresh(db_order)
+        return db_order
+    except Exception as e:
+        db.rollback()
+        raise e

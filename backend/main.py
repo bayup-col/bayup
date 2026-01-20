@@ -75,6 +75,17 @@ def create_upload_url(
     return presigned_url_data
 
 
+# --- Order Endpoints ---
+
+@app.post("/orders", response_model=schemas.Order)
+def create_order(
+    order: schemas.OrderCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    return crud.create_order(db=db, order=order, customer_id=current_user.id)
+
+
 # --- Root Endpoint ---
 
 @app.get("/")

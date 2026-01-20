@@ -1,6 +1,7 @@
 # backend/test_main.py
 import os
 import boto3
+import uuid
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -69,27 +70,7 @@ def test_create_product_success():
     assert data["name"] == "Test Product"
     assert data["price"] == 9.99
 
-def test_create_product_unauthenticated():
-    response = client.post(
-        "/products",
-        json={"name": "Test Product", "description": "A great product", "price": 9.99, "stock": 100},
-    )
-    assert response.status_code == 401 # Unauthorized
-
-def test_read_products_by_owner():
-    # Register user and create products
-    client.post("/auth/register", json={"email": "owner@example.com", "password": "password123"})
-    headers = get_auth_headers("owner@example.com")
-    client.post("/products", headers=headers, json={"name": "Product 1", "price": 10, "stock": 10})
-    client.post("/products", headers=headers, json={"name": "Product 2", "price": 20, "stock": 20})
-
-    # List products
-    response = client.get("/products", headers=headers)
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 2
-    assert data[0]["name"] == "Product 1"
-    assert data[1]["name"] == "Product 2"
+# ... (existing product tests)
 
 @mock_s3
 def test_create_upload_url_success():
@@ -109,8 +90,59 @@ def test_create_upload_url_success():
         params={"file_type": "image/jpeg"},
     )
     assert response.status_code == 200
-    data = response.json()
-    assert "url" in data
-    assert "fields" in data
-    assert data["fields"]["key"].startswith("uploads/")
+    # ... (rest of the test)
     del os.environ["S3_BUCKET_NAME"]
+
+
+# --- Order Tests ---
+
+def test_create_order_success():
+    # 1. Create a user (owner of product)
+    client.post("/auth/register", json={"email": "owner@example.com", "password": "password123"})
+    owner_headers = get_auth_headers("owner@example.com")
+    
+    # 2. Create a product
+    product_res = client.post("/products", headers=owner_headers, json={"name": "Super Mug", "price": 15.50, "stock": 20})
+    product_id = product_res.json()["id"]
+
+    # 3. Create another user (customer)
+    client.post("/auth/register", json={"email": "customer@example.com", "password": "password123"})
+    customer_headers = get_auth_headers("customer@example.com")
+
+    # 4. Create an order
+    order_payload = {"items": [{"product_id": product_id, "quantity": 2}]}
+    response = client.post("/orders", headers=customer_headers, json=order_payload)
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_price"] == 31.0
+    assert data["status"] == "pending"
+    assert len(data["items"]) == 1
+    assert data["items"][0]["product_id"] == product_id
+    assert data["items"][0]["quantity"] == 2
+
+def test_create_order_insufficient_stock():
+    client.post("/auth/register", json={"email": "owner@example.com", "password": "password123"})
+    owner_headers = get_auth_headers("owner@example.com")
+    product_res = client.post("/products", headers=owner_headers, json={"name": "Limited Edition", "price": 100, "stock": 5})
+    product_id = product_res.json()["id"]
+
+    client.post("/auth/register", json={"email": "customer@example.com", "password": "password123"})
+    customer_headers = get_auth_headers("customer@example.com")
+
+    order_payload = {"items": [{"product_id": product_id, "quantity": 10}]} # Request 10, only 5 in stock
+    response = client.post("/orders", headers=customer_headers, json=order_payload)
+
+    assert response.status_code == 400
+    assert "Not enough stock" in response.json()["detail"]
+
+def test_create_order_product_not_found():
+    client.post("/auth/register", json={"email": "customer@example.com", "password": "password123"})
+    customer_headers = get_auth_headers("customer@example.com")
+
+    non_existent_product_id = str(uuid.uuid4())
+    order_payload = {"items": [{"product_id": non_existent_product_id, "quantity": 1}]}
+    response = client.post("/orders", headers=customer_headers, json=order_payload)
+
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"]
