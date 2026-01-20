@@ -7,3 +7,5 @@ flake8
 passlib[bcrypt]
 python-jose
 pytest-env
+boto3
+moto[s3]
