@@ -43,6 +43,30 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 >
                   Orders
                 </Link>
+                <Link
+                  href="/dashboard/pages"
+                  className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                >
+                  Pages
+                </Link>
+                <Link
+                  href="/dashboard/settings/taxes"
+                  className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                >
+                  Taxes
+                </Link>
+                <Link
+                  href="/dashboard/settings/shipping"
+                  className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                >
+                  Shipping
+                </Link>
+                <Link
+                  href="/dashboard/super-admin"
+                  className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                >
+                  Super Admin
+                </Link>
               </div>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:items-center">

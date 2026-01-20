@@ -1,30 +1,44 @@
 "use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../context/auth-context';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useAuth } from '../../../../context/auth-context';
 import { v4 as uuidv4 } from 'uuid'; // For unique keys for variants
 
-interface VariantInput {
-  id: string; // Unique ID for React keys
+interface ProductVariant {
+  id: string;
   name: string;
   sku: string;
   price_adjustment: number;
   stock: number;
-  imageFile: File | null;
-  imageUrl: string | null;
+  image_url: string | null;
 }
 
-export default function NewProductPage() {
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image_url: string | null;
+  variants: ProductVariant[];
+}
+
+interface VariantInput extends ProductVariant {
+  imageFile?: File | null; // For new image upload
+}
+
+export default function EditProductPage() {
+  const params = useParams();
+  const productId = params.id as string;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [basePrice, setBasePrice] = useState<number>(0); // Base price for the product
+  const [basePrice, setBasePrice] = useState<number>(0);
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
-  const [variants, setVariants] = useState<VariantInput[]>([
-    { id: uuidv4(), name: 'Default', sku: '', price_adjustment: 0, stock: 0, imageFile: null, imageUrl: null },
-  ]);
+  const [mainImageUrl, setMainImageUrl] = useState<string | null>(null);
+  const [variants, setVariants] = useState<VariantInput[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const router = useRouter();
   const { token } = useAuth();
 
@@ -42,10 +56,16 @@ export default function NewProductPage() {
     );
   };
 
+  const handleVariantImageFileChange = (id: string, file: File | null) => {
+    setVariants((prevVariants) =>
+      prevVariants.map((variant) => (variant.id === id ? { ...variant, imageFile: file } : variant))
+    );
+  };
+
   const addVariant = () => {
     setVariants((prevVariants) => [
       ...prevVariants,
-      { id: uuidv4(), name: '', sku: '', price_adjustment: 0, stock: 0, imageFile: null, imageUrl: null },
+      { id: uuidv4(), name: '', sku: '', price_adjustment: 0, stock: 0, image_url: null, imageFile: null },
     ]);
   };
 
@@ -90,30 +110,63 @@ export default function NewProductPage() {
     return imageUrl;
   };
 
+  useEffect(() => {
+    if (!token || !productId) return;
+
+    const fetchProduct = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(`http://localhost:8000/products/${productId}`, { // TODO: Implement GET /products/{id} in backend
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch product');
+        }
+
+        const data: Product = await response.json();
+        setName(data.name);
+        setDescription(data.description || '');
+        setBasePrice(data.price);
+        setMainImageUrl(data.image_url);
+        setVariants(data.variants.map(v => ({ ...v, imageFile: null }))); // Initialize imageFile to null
+      } catch (err: any) {
+        setError(err.message || 'An error occurred while fetching the product.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [token, productId]);
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
+    setSaving(true);
 
     if (!token) {
       setError('Authentication token not found.');
-      setLoading(false);
+      setSaving(false);
       return;
     }
 
     try {
-      let mainImageUrl: string | null = null;
+      let currentMainImageUrl = mainImageUrl;
       if (mainImageFile) {
-        mainImageUrl = await uploadImageToS3(mainImageFile, mainImageFile.type);
+        currentMainImageUrl = await uploadImageToS3(mainImageFile, mainImageFile.type);
       }
 
       const variantsWithUrls = await Promise.all(
         variants.map(async (variant) => {
-          let variantImageUrl: string | null = variant.imageUrl;
+          let variantImageUrl: string | null = variant.image_url;
           if (variant.imageFile) {
             variantImageUrl = await uploadImageToS3(variant.imageFile, variant.imageFile.type);
           }
           return {
+            id: variant.id, // Keep ID for updates
             name: variant.name,
             sku: variant.sku,
             price_adjustment: variant.price_adjustment,
@@ -126,13 +179,13 @@ export default function NewProductPage() {
       const productPayload = {
         name,
         description,
-        price: basePrice, // Base price for the product
-        image_url: mainImageUrl,
+        price: basePrice,
+        image_url: currentMainImageUrl,
         variants: variantsWithUrls,
       };
 
-      const response = await fetch('http://localhost:8000/products', {
-        method: 'POST',
+      const response = await fetch(`http://localhost:8000/products/${productId}`, { // TODO: Implement PUT /products/{id} in backend
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -142,20 +195,23 @@ export default function NewProductPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to create product');
+        throw new Error(errorData.detail || 'Failed to update product');
       }
 
       router.push('/dashboard/products');
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred while creating the product.');
+      setError(err.message || 'An unexpected error occurred while updating the product.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
+  if (loading) return <p className="max-w-3xl mx-auto p-8">Loading product...</p>;
+  if (error) return <p className="text-red-500 max-w-3xl mx-auto p-8">Error: {error}</p>;
+
   return (
     <div className="max-w-3xl mx-auto p-8 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Add New Product</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Edit Product: {name}</h2>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Main Product Details */}
         <section className="border p-4 rounded-md">
@@ -211,6 +267,10 @@ export default function NewProductPage() {
               className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
               onChange={handleMainImageFileChange}
             />
+            {mainImageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={mainImageUrl} alt="Main Product Preview" className="h-20 w-20 object-cover rounded-md mt-2" />
+            )}
           </div>
         </section>
 
@@ -251,7 +311,7 @@ export default function NewProductPage() {
                     type="text"
                     id={`variant-sku-${variant.id}`}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                    value={variant.sku}
+                    value={variant.sku || ''} // Use || '' for null/undefined
                     onChange={(e) => handleVariantChange(variant.id, 'sku', e.target.value)}
                   />
                 </div>
@@ -291,11 +351,11 @@ export default function NewProductPage() {
                     id={`variant-image-${variant.id}`}
                     accept="image/*"
                     className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                    onChange={(e) => handleVariantChange(variant.id, 'imageFile', e.target.files ? e.target.files[0] : null)}
+                    onChange={(e) => handleVariantImageFileChange(variant.id, e.target.files ? e.target.files[0] : null)}
                   />
-                  {variant.imageUrl && (
+                  {variant.image_url && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={variant.imageUrl} alt="Variant Preview" className="h-20 w-20 object-cover rounded-md mt-2" />
+                    <img src={variant.image_url} alt="Variant Preview" className="h-20 w-20 object-cover rounded-md mt-2" />
                   )}
                 </div>
               </div>
@@ -316,9 +376,9 @@ export default function NewProductPage() {
         <button
           type="submit"
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          disabled={loading}
+          disabled={saving}
         >
-          {loading ? 'Creating...' : 'Create Product'}
+          {saving ? 'Saving...' : 'Save Product'}
         </button>
       </form>
     </div>

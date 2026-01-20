@@ -4,13 +4,22 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../../context/auth-context';
 
+interface ProductVariant {
+  id: string;
+  name: string;
+  sku: string | null;
+  price_adjustment: number;
+  stock: number;
+  image_url: string | null;
+}
+
 interface Product {
   id: string;
   name: string;
   description: string;
-  price: number;
-  stock: number;
+  price: number; // Base price
   image_url: string | null;
+  variants: ProductVariant[];
 }
 
 export default function ProductsPage() {
@@ -46,6 +55,33 @@ export default function ProductsPage() {
     }
   }, [isAuthenticated, token]);
 
+  const handleDeleteProduct = async (productId: string) => {
+    if (!window.confirm('Are you sure you want to delete this product and all its variants?')) {
+      return;
+    }
+    if (!isAuthenticated || !token) {
+      setError('Authentication token not found.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/products/${productId}`, { // TODO: Implement DELETE /products/{id} in backend
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete product');
+      }
+
+      setProducts((prevProducts) => prevProducts.filter((p) => p.id !== productId));
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while deleting the product.');
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
@@ -74,15 +110,34 @@ export default function ProductsPage() {
               )}
               <h2 className="text-xl font-semibold text-gray-800">{product.name}</h2>
               <p className="text-gray-600 mt-2">{product.description}</p>
-              <div className="mt-4 flex justify-between items-center">
-                <span className="text-lg font-bold text-gray-900">${product.price.toFixed(2)}</span>
-                <span className="text-gray-500">Stock: {product.stock}</span>
+              <p className="text-gray-500">Base Price: ${product.price.toFixed(2)}</p>
+              
+              <div className="mt-4">
+                <h3 className="text-lg font-medium text-gray-700">Variants:</h3>
+                {product.variants.length === 0 ? (
+                    <p className="text-gray-600 text-sm">No variants defined.</p>
+                ) : (
+                    <ul className="mt-2 text-sm text-gray-600 list-disc pl-5">
+                    {product.variants.map(variant => (
+                        <li key={variant.id}>
+                            {variant.name} (SKU: {variant.sku || 'N/A'}) - 
+                            ${(product.price + variant.price_adjustment).toFixed(2)} (Stock: {variant.stock})
+                        </li>
+                    ))}
+                    </ul>
+                )}
               </div>
+
               <div className="mt-4 flex space-x-2">
                 <Link href={`/dashboard/products/${product.id}/edit`} className="text-indigo-600 hover:text-indigo-900 text-sm">
                   Edit
                 </Link>
-                {/* Delete functionality will be added later */}
+                <button
+                  onClick={() => handleDeleteProduct(product.id)}
+                  className="text-red-600 hover:text-red-900 text-sm"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           ))}
