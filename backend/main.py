@@ -86,6 +86,16 @@ def create_order(
 ):
     return crud.create_order(db=db, order=order, customer_id=current_user.id)
 
+@app.get("/orders", response_model=List[schemas.Order])
+def read_orders(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    orders = crud.get_orders_by_customer(db, customer_id=current_user.id, skip=skip, limit=limit)
+    return orders
+
 
 # --- Payment Endpoints (Mercado Pago) ---
 

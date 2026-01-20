@@ -1,5 +1,5 @@
 # backend/crud.py
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 import uuid
 from . import models, schemas, security
 from fastapi import HTTPException, status
@@ -82,3 +82,13 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
     except Exception as e:
         db.rollback()
         raise e
+
+def get_orders_by_customer(db: Session, customer_id: uuid.UUID, skip: int = 0, limit: int = 100) -> list[models.Order]:
+    return (
+        db.query(models.Order)
+        .filter(models.Order.customer_id == customer_id)
+        .options(joinedload(models.Order.items)) # Eagerly load order items
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
