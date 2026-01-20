@@ -6,7 +6,7 @@ from typing import List
 import uuid
 from starlette.responses import RedirectResponse
 
-from . import crud, models, schemas, security, s3_service, payment_service
+from . import crud, models, schemas, security, s3_service, payment_service, clerk_auth_service
 from .database import SessionLocal, engine, get_db
 
 # Create all tables in the database.
@@ -37,6 +37,34 @@ def login_for_access_token(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = security.create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.post("/auth/clerk-login")
+async def clerk_login_for_access_token(
+    request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)
+):
+    clerk_user_info = await clerk_auth_service.verify_clerk_token(request.clerk_token)
+    
+    # Try to find user in our DB by email
+    user = crud.get_user_by_email(db, email=clerk_user_info["email"])
+
+    if not user:
+        # If user doesn't exist, create a new one (without password, as Clerk handles it)
+        # Note: A real implementation might require a more robust user linking strategy.
+        user = crud.create_user(
+            db=db,
+            user=schemas.UserCreate(
+                email=clerk_user_info["email"],
+                full_name=clerk_user_info.get("full_name"),
+                password=str(uuid.uuid4()) # Dummy password, not used for login directly
+            )
+        )
+    
     access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires

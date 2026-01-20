@@ -78,3 +78,7 @@ class Order(OrderBase):
 
     class Config:
         orm_mode = True
+
+# --- Clerk Integration Schemas ---
+class ClerkLoginRequest(BaseModel):
+    clerk_token: str

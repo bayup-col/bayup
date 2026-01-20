@@ -113,6 +113,56 @@ def test_login_incorrect_password():
     assert response.status_code == 401
     assert response.json() == {"detail": "Incorrect email or password"}
 
+def test_clerk_login_new_user_success():
+    with patch("backend.clerk_auth_service.verify_clerk_token") as mock_verify_clerk_token:
+        mock_verify_clerk_token.return_value = {
+            "id": "user_clerk_new",
+            "email": "clerk_new@example.com",
+            "full_name": "New Clerk User"
+        }
+        response = client.post("/auth/clerk-login", json={"clerk_token": "mock_clerk_valid_token"})
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+        # Verify user was created in our DB
+        db = TestingSessionLocal()
+        user = db.query(models.User).filter(models.User.email == "clerk_new@example.com").first()
+        assert user is not None
+        db.close()
+
+def test_clerk_login_existing_user_success():
+    # Register user first with our system
+    client.post("/auth/register", json={"email": "clerk_existing@example.com", "password": "password123", "full_name": "Existing Clerk User"})
+
+    with patch("backend.clerk_auth_service.verify_clerk_token") as mock_verify_clerk_token:
+        mock_verify_clerk_token.return_value = {
+            "id": "user_clerk_existing",
+            "email": "clerk_existing@example.com",
+            "full_name": "Existing Clerk User"
+        }
+        response = client.post("/auth/clerk-login", json={"clerk_token": "mock_clerk_valid_token"})
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+        # Verify user was not duplicated
+        db = TestingSessionLocal()
+        users_count = db.query(models.User).filter(models.User.email == "clerk_existing@example.com").count()
+        assert users_count == 1
+        db.close()
+
+def test_clerk_login_invalid_token():
+    with patch("backend.clerk_auth_service.verify_clerk_token") as mock_verify_clerk_token:
+        mock_verify_clerk_token.side_effect = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Clerk token",
+        )
+        response = client.post("/auth/clerk-login", json={"clerk_token": "invalid_clerk_token"})
+        assert response.status_code == 401
+        assert response.json() == {"detail": "Invalid Clerk token"}
+
+
 def test_create_product_success():
     # Register and get auth headers
     client.post("/auth/register", json={"email": "productuser@example.com", "password": "password123"})
