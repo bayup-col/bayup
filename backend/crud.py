@@ -1,6 +1,7 @@
 # backend/crud.py
 from sqlalchemy.orm import Session, joinedload
 import uuid
+from typing import Optional
 from . import models, schemas, security
 from fastapi import HTTPException, status
 
@@ -23,11 +24,17 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
 
 # --- Product CRUD ---
 
-def get_product(db: Session, product_id: uuid.UUID) -> models.Product | None:
-    return db.query(models.Product).filter(models.Product.id == product_id).first()
+def get_product(db: Session, product_id: uuid.UUID, tenant_id: Optional[uuid.UUID] = None) -> models.Product | None:
+    query = db.query(models.Product).filter(models.Product.id == product_id)
+    if tenant_id:
+        query = query.filter(models.Product.owner_id == tenant_id)
+    return query.first()
 
-def get_all_products(db: Session, skip: int = 0, limit: int = 100) -> list[models.Product]:
-    return db.query(models.Product).offset(skip).limit(limit).all()
+def get_all_products(db: Session, tenant_id: Optional[uuid.UUID] = None, skip: int = 0, limit: int = 100) -> list[models.Product]:
+    query = db.query(models.Product)
+    if tenant_id:
+        query = query.filter(models.Product.owner_id == tenant_id)
+    return query.offset(skip).limit(limit).all()
 
 def get_products_by_owner(db: Session, owner_id: uuid.UUID, skip: int = 0, limit: int = 100) -> list[models.Product]:
     return db.query(models.Product).filter(models.Product.owner_id == owner_id).offset(skip).limit(limit).all()

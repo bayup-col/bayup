@@ -72,7 +72,8 @@ async def clerk_login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-# --- Protected Product Endpoints ---
+# --- Product Endpoints ---
+# Endpoints requiring authentication (for store owners)
 
 @app.post("/products", response_model=schemas.Product)
 def create_product(
@@ -94,24 +95,27 @@ def read_products(
     return products
 
 
-# --- Public Product Endpoints ---
-@app.get("/public/products", response_model=List[schemas.Product])
-def read_all_products(
+# --- Public Store Endpoints (for customers) ---
+
+@app.get("/public/stores/{tenant_id}/products", response_model=List[schemas.Product])
+def read_all_tenant_products(
+    tenant_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    products = crud.get_all_products(db, skip=skip, limit=limit)
+    products = crud.get_all_products(db, tenant_id=tenant_id, skip=skip, limit=limit)
     return products
 
-@app.get("/public/products/{product_id}", response_model=schemas.Product)
-def read_product(
+@app.get("/public/stores/{tenant_id}/products/{product_id}", response_model=schemas.Product)
+def read_tenant_product(
+    tenant_id: uuid.UUID,
     product_id: uuid.UUID,
     db: Session = Depends(get_db),
 ):
-    product = crud.get_product(db, product_id=product_id)
+    product = crud.get_product(db, product_id=product_id, tenant_id=tenant_id)
     if product is None:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise HTTPException(status_code=404, detail="Product not found or does not belong to this store")
     return product
 
 
@@ -202,4 +206,4 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/")
 def read_root():
-    return RedirectResponse(url="/public/products")
+    return {"message": "Welcome to BaseCommerce API. Please use /public/stores/{tenant_id}/products or /dashboard."}
