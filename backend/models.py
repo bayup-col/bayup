@@ -40,13 +40,27 @@ class Product(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, index=True, nullable=False)
     description = Column(String, nullable=True)
-    price = Column(Float, nullable=False)
-    stock = Column(Integer, nullable=False)
-    image_url = Column(String, nullable=True)
+    price = Column(Float, nullable=False) # Base price, variants can adjust
+    image_url = Column(String, nullable=True) # Main product image
     
     owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     owner = relationship("User", back_populates="products")
-    order_items = relationship("OrderItem", back_populates="product")
+    
+    variants = relationship("ProductVariant", back_populates="product", cascade="all, delete-orphan")
+
+class ProductVariant(Base):
+    __tablename__ = "product_variants"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False)
+    name = Column(String, nullable=False) # e.g., "Red, Large"
+    sku = Column(String, unique=True, index=True, nullable=True) # Stock Keeping Unit
+    price_adjustment = Column(Float, nullable=False, default=0.0) # Adjustment to base product price
+    stock = Column(Integer, nullable=False)
+    image_url = Column(String, nullable=True) # Variant specific image
+
+    product = relationship("Product", back_populates="variants")
+    order_items = relationship("OrderItem", back_populates="product_variant")
 
 class Order(Base):
     __tablename__ = "orders"
@@ -72,10 +86,10 @@ class OrderItem(Base):
     price_at_purchase = Column(Float, nullable=False)
 
     order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"))
-    product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"))
+    product_variant_id = Column(UUID(as_uuid=True), ForeignKey("product_variants.id"), nullable=False)
 
     order = relationship("Order", back_populates="items")
-    product = relationship("Product", back_populates="order_items")
+    product_variant = relationship("ProductVariant", back_populates="order_items")
 
 class Page(Base):
     __tablename__ = "pages"

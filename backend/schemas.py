@@ -28,19 +28,36 @@ class UserInDB(UserBase):
 
 # --- Product Schemas ---
 
+class ProductVariantBase(BaseModel):
+    name: str # e.g., "Red, Large"
+    sku: str | None = None
+    price_adjustment: float = 0.0 # Adjustment to base product price
+    stock: int
+    image_url: str | None = None
+
+class ProductVariantCreate(ProductVariantBase):
+    pass
+
+class ProductVariant(ProductVariantBase):
+    id: uuid.UUID
+    product_id: uuid.UUID
+
+    class Config:
+        orm_mode = True
+
 class ProductBase(BaseModel):
     name: str
     description: str | None = None
-    price: float
-    stock: int
+    price: float # Base price, variants can adjust
+    image_url: str | None = None # Main product image
 
 class ProductCreate(ProductBase):
-    pass
+    variants: List[ProductVariantCreate] # Variants are created along with the product
 
 class Product(ProductBase):
     id: uuid.UUID
     owner_id: uuid.UUID
-    image_url: str | None = None
+    variants: List[ProductVariant] = [] # List of associated variants
 
     class Config:
         orm_mode = True
@@ -48,7 +65,7 @@ class Product(ProductBase):
 # --- Order Schemas ---
 
 class OrderItemBase(BaseModel):
-    product_id: uuid.UUID
+    product_variant_id: uuid.UUID # Reference variant instead of product
     quantity: int
 
 class OrderItemCreate(OrderItemBase):
@@ -56,7 +73,9 @@ class OrderItemCreate(OrderItemBase):
 
 class OrderItem(OrderItemBase):
     id: uuid.UUID
-    price_at_purchase: float
+    price_at_purchase: float # Price at the time of purchase
+    # You might want to include product variant details here for historical data
+    # product_variant: ProductVariant # Eager load for full details
 
     class Config:
         orm_mode = True
