@@ -357,6 +357,32 @@ def test_read_tenant_product_public_with_variants():
     assert len(data["variants"]) == 1
     assert data["variants"][0]["name"] == "Color A"
 
+def test_read_tenant_product_not_found_or_wrong_tenant():
+    db = TestingSessionLocal()
+    owner_email = "tenantprod1@example.com"
+    client.post("/auth/register", json={"email": owner_email, "password": "password123"})
+    owner_user1 = crud.get_user_by_email(db, owner_email)
+    owner_headers1 = get_auth_headers(owner_email)
+    product_res = client.post("/products", headers=owner_headers1, json={"name": "Product for Tenant 1", "price": 10.0, "variants": [{"name": "Var1", "stock": 10}]})
+    product_id_tenant1 = product_res.json()["id"]
+
+    owner_email2 = "tenantprod2@example.com"
+    client.post("/auth/register", json={"email": owner_email2, "password": "password123"})
+    owner_user2 = crud.get_user_by_email(db, owner_email2)
+    db.close()
+
+    # Attempt to get product of tenant1 using tenant2's ID
+    response = client.get(f"/public/stores/{owner_user2.id}/products/{product_id_tenant1}")
+    assert response.status_code == 404
+    assert "Product not found or does not belong to this store" in response.json()["detail"]
+
+    # Attempt to get non-existent product
+    non_existent_product_id = str(uuid.uuid4())
+    response = client.get(f"/public/stores/{owner_user1.id}/products/{non_existent_product_id}")
+    assert response.status_code == 404
+    assert "Product not found or does not belong to this store" in response.json()["detail"]
+
+
 # --- Order Tests ---
 
 def test_create_order_success_with_variants():

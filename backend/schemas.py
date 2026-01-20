@@ -89,7 +89,11 @@ class OrderCreate(OrderBase):
 class Order(OrderBase):
     id: uuid.UUID
     customer_id: uuid.UUID
-    tenant_id: uuid.UUID # New field
+    tenant_id: uuid.UUID
+    tax_rate_id: uuid.UUID | None = None
+    tax_rate_snapshot: float | None = None
+    shipping_option_id: uuid.UUID | None = None
+    shipping_cost_snapshot: float | None = None
     total_price: float
     status: str
     created_at: datetime.datetime
@@ -134,10 +138,54 @@ class PageBase(BaseModel):
 class PageCreate(PageBase):
     pass
 
-class PageUpdate(PageBase):
-    pass # For now, same as base, but allows for partial updates
+class PageUpdate(BaseBase): # PageUpdate might not need slug or title, just content or partial update
+    slug: str | None = None
+    title: str | None = None
+    content: Dict[str, Any] | None = None
 
 class Page(PageBase):
+    id: uuid.UUID
+    owner_id: uuid.UUID
+
+    class Config:
+        orm_mode = True
+
+# --- TaxRate Schemas ---
+class TaxRateBase(BaseModel):
+    name: str
+    rate: float
+    is_default: bool = False
+
+class TaxRateCreate(TaxRateBase):
+    pass
+
+class TaxRateUpdate(TaxRateBase):
+    name: str | None = None
+    rate: float | None = None
+    is_default: bool | None = None
+
+class TaxRate(TaxRateBase):
+    id: uuid.UUID
+    owner_id: uuid.UUID
+
+    class Config:
+        orm_mode = True
+
+# --- ShippingOption Schemas ---
+class ShippingOptionBase(BaseModel):
+    name: str
+    cost: float
+    min_order_total: float | None = None
+
+class ShippingOptionCreate(ShippingOptionBase):
+    pass
+
+class ShippingOptionUpdate(ShippingOptionBase):
+    name: str | None = None
+    cost: float | None = None
+    min_order_total: float | None = None
+
+class ShippingOption(ShippingOptionBase):
     id: uuid.UUID
     owner_id: uuid.UUID
 

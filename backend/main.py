@@ -159,10 +159,18 @@ def create_upload_url(
 @app.post("/orders", response_model=schemas.Order)
 def create_order(
     order: schemas.OrderCreate,
+    tax_rate_id: uuid.UUID | None = None,
+    shipping_option_id: uuid.UUID | None = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user),
 ):
-    return crud.create_order(db=db, order=order, customer_id=current_user.id)
+    return crud.create_order(
+        db=db,
+        order=order,
+        customer_id=current_user.id,
+        tax_rate_id=tax_rate_id,
+        shipping_option_id=shipping_option_id,
+    )
 
 @app.get("/orders", response_model=List[schemas.Order])
 def read_orders(

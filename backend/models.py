@@ -76,6 +76,12 @@ class Order(Base):
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     tenant = relationship("User", foreign_keys=[tenant_id]) # The owner of the store
 
+    tax_rate_id = Column(UUID(as_uuid=True), ForeignKey("tax_rates.id"), nullable=True) # Tax applied to this order
+    tax_rate_snapshot = Column(Float, nullable=True) # Snapshot of tax rate at time of order
+
+    shipping_option_id = Column(UUID(as_uuid=True), ForeignKey("shipping_options.id"), nullable=True)
+    shipping_cost_snapshot = Column(Float, nullable=True) # Snapshot of shipping cost at time of order
+
     items = relationship("OrderItem", back_populates="order")
 
 class OrderItem(Base):
@@ -103,3 +109,31 @@ class Page(Base):
     owner = relationship("User", back_populates="pages")
 
     __table_args__ = (UniqueConstraint("slug", "owner_id", name="_owner_id_slug_uc"),)
+
+
+class TaxRate(Base):
+    __tablename__ = "tax_rates"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False) # e.g., "IVA 19%"
+    rate = Column(Float, nullable=False) # e.g., 0.19 for 19%
+    is_default = Column(Boolean, default=False)
+    
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    owner = relationship("User")
+
+    __table_args__ = (UniqueConstraint("name", "owner_id", name="_owner_id_tax_name_uc"),)
+
+
+class ShippingOption(Base):
+    __tablename__ = "shipping_options"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False) # e.g., "Standard Shipping"
+    cost = Column(Float, nullable=False)
+    min_order_total = Column(Float, nullable=True) # Minimum order total for this option to apply
+
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    owner = relationship("User")
+
+    __table_args__ = (UniqueConstraint("name", "owner_id", name="_owner_id_shipping_name_uc"),)
