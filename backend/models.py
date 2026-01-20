@@ -26,6 +26,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     full_name = Column(String, nullable=True)
     hashed_password = Column(String, nullable=False)
+    role = Column(String, default="user") # e.g., "user", "admin", "super_admin"
     
     plan_id = Column(UUID(as_uuid=True), ForeignKey("plans.id"), nullable=True)
     plan = relationship("Plan", back_populates="users")

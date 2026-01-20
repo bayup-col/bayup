@@ -18,6 +18,7 @@ class UserCreate(UserBase):
 # Properties to return to client
 class User(UserBase):
     id: uuid.UUID
+    role: str # Add role field
 
     class Config:
         orm_mode = True

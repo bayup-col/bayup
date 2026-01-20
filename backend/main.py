@@ -1,8 +1,8 @@
 from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from datetime import timedelta
-from typing import List
+from typing import List, Optional
 import uuid
 from starlette.responses import RedirectResponse
 
@@ -275,7 +275,7 @@ def read_root():
 def create_plan(
     plan: schemas.PlanCreate,
     db: Session = Depends(get_db),
-    # For MVP, no admin check yet. In future: Depends(security.get_super_admin_user)
+    current_user: models.User = Depends(security.get_super_admin_user), # Protected
 ):
     db_plan = crud.create_plan(db=db, plan=plan)
     return db_plan
@@ -285,7 +285,7 @@ def read_plans(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    # For MVP, no admin check yet. In future: Depends(security.get_super_admin_user)
+    current_user: models.User = Depends(security.get_super_admin_user), # Protected
 ):
     plans = db.query(models.Plan).offset(skip).limit(limit).all()
     return plans
@@ -363,3 +363,151 @@ def read_public_page_by_slug(
     if page is None:
         raise HTTPException(status_code=404, detail="Page not found for this store.")
     return page
+
+
+# --- Tax Rate Endpoints (Protected for owners) ---
+
+@app.post("/taxes", response_model=schemas.TaxRate)
+def create_tax_rate(
+    tax_rate: schemas.TaxRateCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    return crud.create_tax_rate(db=db, tax_rate=tax_rate, owner_id=current_user.id)
+
+@app.get("/taxes", response_model=List[schemas.TaxRate])
+def read_tax_rates(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    tax_rates = crud.get_all_tax_rates_by_owner(db, owner_id=current_user.id, skip=skip, limit=limit)
+    return tax_rates
+
+@app.get("/taxes/{tax_rate_id}", response_model=schemas.TaxRate)
+def read_tax_rate(
+    tax_rate_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    tax_rate = crud.get_tax_rate(db, tax_rate_id=tax_rate_id, owner_id=current_user.id)
+    if tax_rate is None:
+        raise HTTPException(status_code=404, detail="Tax rate not found or does not belong to your store.")
+    return tax_rate
+
+@app.put("/taxes/{tax_rate_id}", response_model=schemas.TaxRate)
+def update_tax_rate(
+    tax_rate_id: uuid.UUID,
+    tax_rate_update: schemas.TaxRateUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_tax_rate = crud.get_tax_rate(db, tax_rate_id=tax_rate_id, owner_id=current_user.id)
+    if db_tax_rate is None:
+        raise HTTPException(status_code=404, detail="Tax rate not found or does not belong to your store.")
+    return crud.update_tax_rate(db=db, db_tax_rate=db_tax_rate, tax_rate_update=tax_rate_update)
+
+@app.delete("/taxes/{tax_rate_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_tax_rate(
+    tax_rate_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_tax_rate = crud.get_tax_rate(db, tax_rate_id=tax_rate_id, owner_id=current_user.id)
+    if db_tax_rate is None:
+        raise HTTPException(status_code=404, detail="Tax rate not found or does not belong to your store.")
+    crud.delete_tax_rate(db=db, db_tax_rate=db_tax_rate)
+    return {"ok": True}
+
+
+# --- Public Tax Rate Endpoints (for customers) ---
+
+@app.get("/public/stores/{tenant_id}/taxes", response_model=List[schemas.TaxRate])
+def read_public_tax_rates(
+    tenant_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+):
+    tax_rates = crud.get_all_tax_rates_by_owner(db, owner_id=tenant_id, skip=skip, limit=limit)
+    return tax_rates
+
+@app.get("/public/stores/{tenant_id}/taxes/default", response_model=schemas.TaxRate)
+def read_public_default_tax_rate(
+    tenant_id: uuid.UUID,
+    db: Session = Depends(get_db),
+):
+    tax_rate = crud.get_default_tax_rate_by_owner(db, owner_id=tenant_id)
+    if tax_rate is None:
+        raise HTTPException(status_code=404, detail="Default tax rate not found for this store.")
+    return tax_rate
+
+
+# --- Shipping Option Endpoints (Protected for owners) ---
+
+@app.post("/shipping", response_model=schemas.ShippingOption)
+def create_shipping_option(
+    shipping_option: schemas.ShippingOptionCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    return crud.create_shipping_option(db=db, shipping_option=shipping_option, owner_id=current_user.id)
+
+@app.get("/shipping", response_model=List[schemas.ShippingOption])
+def read_shipping_options(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    shipping_options = crud.get_all_shipping_options_by_owner(db, owner_id=current_user.id, skip=skip, limit=limit)
+    return shipping_options
+
+@app.get("/shipping/{shipping_option_id}", response_model=schemas.ShippingOption)
+def read_shipping_option(
+    shipping_option_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    shipping_option = crud.get_shipping_option(db, shipping_option_id=shipping_option_id, owner_id=current_user.id)
+    if shipping_option is None:
+        raise HTTPException(status_code=404, detail="Shipping option not found or does not belong to your store.")
+    return shipping_option
+
+@app.put("/shipping/{shipping_option_id}", response_model=schemas.ShippingOption)
+def update_shipping_option(
+    shipping_option_id: uuid.UUID,
+    shipping_option_update: schemas.ShippingOptionUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_shipping_option = crud.get_shipping_option(db, shipping_option_id=shipping_option_id, owner_id=current_user.id)
+    if db_shipping_option is None:
+        raise HTTPException(status_code=404, detail="Shipping option not found or does not belong to your store.")
+    return crud.update_shipping_option(db=db, db_shipping_option=db_shipping_option, shipping_option_update=shipping_option_update)
+
+@app.delete("/shipping/{shipping_option_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_shipping_option(
+    shipping_option_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_shipping_option = crud.get_shipping_option(db, shipping_option_id=shipping_option_id, owner_id=current_user.id)
+    if db_shipping_option is None:
+        raise HTTPException(status_code=404, detail="Shipping option not found or does not belong to your store.")
+    crud.delete_shipping_option(db=db, db_shipping_option=db_shipping_option)
+    return {"ok": True}
+
+
+# --- Public Shipping Option Endpoints (for customers) ---
+
+@app.get("/public/stores/{tenant_id}/shipping", response_model=List[schemas.ShippingOption])
+def read_public_shipping_options(
+    tenant_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+):
+    shipping_options = crud.get_all_shipping_options_by_owner(db, owner_id=tenant_id, skip=skip, limit=limit)
+    return shipping_options
