@@ -5,7 +5,7 @@ from sqlalchemy import Column, String, Float, Integer, ForeignKey, DateTime, Boo
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.types import JSON # For storing JSON content
-from .database import Base
+from database import Base
 
 class Plan(Base):
     __tablename__ = "plans"

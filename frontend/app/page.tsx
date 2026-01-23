@@ -1,30 +1,77 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Navbar from '../components/Navbar'; // Adjust path if Navbar is in a different location
 
 export default function HomePage() {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) { // Detect scroll after 10px
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold tracking-tight text-gray-900 sm:text-7xl">
-          Welcome to BaseCommerce!
-        </h1>
-        <p className="mt-6 text-xl leading-8 text-gray-700">
-          Your ultimate multi-tenant e-commerce platform.
-        </p>
-        <div className="mt-10 flex items-center justify-center gap-x-6">
-          <Link
-            href="/login"
-            className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-          >
-            Login to your Admin Dashboard
-          </Link>
-          {/* TODO: Add a link to a sample public store, e.g., /shop/sample-tenant-id */}
-          {/* <Link href="/shop/your-sample-store-id" className="text-sm font-semibold leading-6 text-gray-900">
-            Visit a Sample Store <span aria-hidden="true">→</span>
-          </Link> */}
+    <div className="bg-gray-50 min-h-screen">
+      <Navbar isScrolled={isScrolled} />
+
+      {/* Hero Section */}
+      <main className="relative flex min-h-screen flex-col items-center justify-center p-4 sm:p-8 md:p-12 lg:p-24 text-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight">
+            <span className="block text-gray-700">Bienvenido a</span>
+            <span className="block mt-2">
+              <span className="text-red-600">Bayup</span>
+            </span>
+          </h1>
+          <p className="mt-4 text-lg sm:text-xl md:text-2xl leading-relaxed text-gray-500 max-w-2xl mx-auto">
+            Your ultimate multi-tenant e-commerce platform.
+          </p>
+
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+            {/* Primary Button */}
+            <Link
+              href="/login"
+              className="w-full sm:w-auto flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+            >
+              LOGIN TO YOUR ADMIN DASHBOARD
+            </Link>
+            {/* Secondary Button */}
+            <Link
+              href="/shop/[tenantId]" as="/shop/sample-tenant-id" // Placeholder for sample tenant ID
+              className="w-full sm:w-auto flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-lg text-white bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-600 transition-colors duration-200"
+            >
+              VIEW DEMO
+            </Link>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+
+      {/* Temporary Scrollable Content to test Navbar effect */}
+      <section className="bg-white p-20 shadow-inner">
+        <div className="max-w-7xl mx-auto text-gray-700">
+          <h2 className="text-3xl font-bold mb-4">Scroll Down to See Navbar Effect!</h2>
+          <p className="mb-4">
+            This is some placeholder content to ensure the page is scrollable.
+            You should see the navigation bar at the top change its appearance
+            (become glassmorphic) when you scroll down.
+          </p>
+          <div className="h-[1000px] bg-gradient-to-b from-gray-100 to-gray-300 rounded-lg flex items-center justify-center text-gray-500 font-bold text-4xl">
+            SCROLLABLE AREA
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }

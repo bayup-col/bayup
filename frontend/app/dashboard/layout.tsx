@@ -10,14 +10,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    }
+    // if (!isAuthenticated) {
+    //   router.push('/login');
+    // }
   }, [isAuthenticated, router]);
 
-  if (!isAuthenticated) {
-    return null; // or a loading spinner
-  }
+  // if (!isAuthenticated) {
+  //   return null; // or a loading spinner
+  // }
 
   return (
     <div className="min-h-screen bg-gray-100">

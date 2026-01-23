@@ -6,7 +6,7 @@ from typing import List, Optional
 import uuid
 from starlette.responses import RedirectResponse
 
-from . import crud, models, schemas, security, s3_service, payment_service, clerk_auth_service
+import crud, models, schemas, security, s3_service, payment_service, clerk_auth_service
 from .database import SessionLocal, engine, get_db
 
 # Create all tables in the database.
