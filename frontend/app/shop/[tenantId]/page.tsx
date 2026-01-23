@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import PageRenderer from '../../../../components/PageRenderer'; // Adjust path as needed
+import PageRenderer from '../../../components/PageRenderer'; // Adjust path as needed
 
 interface PageContent {
   sections: any[]; // Define a more specific type if needed

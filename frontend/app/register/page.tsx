@@ -37,11 +37,11 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold text-center text-gray-900">Register</h2>
+        <h2 className="text-2xl font-bold text-center text-gray-900">Registro</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-              Full Name
+              Nombre Completo
             </label>
             <input
               type="text"
@@ -54,7 +54,7 @@ export default function RegisterPage() {
           </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email
+              Correo Electrónico
             </label>
             <input
               type="email"
@@ -67,7 +67,7 @@ export default function RegisterPage() {
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Password
+              Contraseña
             </label>
             <input
               type="password"
@@ -81,15 +81,15 @@ export default function RegisterPage() {
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
           >
-            Register
+            Registro
           </button>
         </form>
         <p className="text-center text-sm text-gray-600">
-          Already have an account?{' '}
-          <a href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-            Login
+          ¿Ya tienes una cuenta?{' '}
+          <a href="/login" className="font-medium text-purple-600 hover:text-purple-500">
+            Inicia sesión
           </a>
         </p>
       </div>

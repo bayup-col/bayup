@@ -4,7 +4,7 @@ import os
 import uuid
 
 from sqlalchemy.orm import Session
-from . import crud, models, schemas
+import crud, models, schemas
 
 # Initialize Mercado Pago SDK
 # TODO: Move MP_ACCESS_TOKEN to environment variable and retrieve securely

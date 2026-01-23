@@ -3,18 +3,26 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface NavbarProps {
   isScrolled: boolean;
 }
 
 export default function Navbar({ isScrolled }: NavbarProps) {
+  const router = useRouter();
+
+  const handleLoginClick = () => {
+    router.push('/register');
+  };
+
   return (
     <nav
       className={`fixed w-full z-50 transition-all duration-300 ease-in-out
+        backdrop-blur-lg bg-black/40 border-b border-white/10
         ${isScrolled
-          ? 'bg-black/80 backdrop-blur-md border-b border-white/10'
-          : 'bg-gray-900'
+          ? 'bg-black/60 shadow-lg'
+          : 'bg-black/40'
         }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -22,7 +30,7 @@ export default function Navbar({ isScrolled }: NavbarProps) {
           {/* Left: Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="text-white text-2xl font-bold">
-              BASECOMMERCE
+              BAYUP
             </Link>
           </div>
 
@@ -43,11 +51,12 @@ export default function Navbar({ isScrolled }: NavbarProps) {
             
             {/* Action Button */}
             <button
+              onClick={handleLoginClick}
               className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-md shadow-md
                          hover:bg-red-700 transition-colors duration-200 ease-in-out
                          focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
             >
-              AGENDAR DEMO
+              INICIAR SESIÓN
             </button>
 
             {/* Mobile menu button (optional, not implemented for this scope) */}

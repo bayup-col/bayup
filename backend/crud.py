@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Session, joinedload
 import uuid
 from typing import Optional, List
-from . import models, schemas, security
+import models, schemas, security
 from fastapi import HTTPException, status
 
 # --- Plan CRUD ---

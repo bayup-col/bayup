@@ -139,7 +139,7 @@ class PageBase(BaseModel):
 class PageCreate(PageBase):
     pass
 
-class PageUpdate(BaseBase): # PageUpdate might not need slug or title, just content or partial update
+class PageUpdate(PageBase): # PageUpdate might not need slug or title, just content or partial update
     slug: str | None = None
     title: str | None = None
     content: Dict[str, Any] | None = None

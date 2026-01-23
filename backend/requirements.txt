@@ -10,3 +10,6 @@ pytest-env
 boto3
 moto[s3]
 mercadopago
+email-validator
+pydantic[email]
+python-multipart

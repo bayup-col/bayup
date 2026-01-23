@@ -1,5 +1,6 @@
 from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
 from datetime import timedelta
 from typing import List, Optional
@@ -7,13 +8,22 @@ import uuid
 from starlette.responses import RedirectResponse
 
 import crud, models, schemas, security, s3_service, payment_service, clerk_auth_service
-from .database import SessionLocal, engine, get_db
+from database import SessionLocal, engine, get_db
 
 # Create all tables in the database.
 # This is simple for now. For production, you would use Alembic migrations.
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="BaseCommerce API")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins (for development)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Startup event to ensure a default plan exists
 @app.on_event("startup")
