@@ -33,17 +33,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const getLinkStyles = (path: string, type: 'admin' | 'super' = 'admin', isSubItem = false) => {
     const active = isActive(path);
-    const baseClasses = `block rounded-xl transition-all duration-200 backdrop-blur-sm border transform ${isSubItem ? 'px-4 py-2 text-sm ml-4' : 'px-4 py-3'} `;
+    const baseClasses = `block rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] ${isSubItem ? 'px-4 py-2 text-sm ml-4' : 'px-4 py-2.5'} `;
     
     if (type === 'super') {
       return baseClasses + (active 
-        ? 'bg-red-50 text-red-700 border-red-100 scale-[1.02] shadow-sm font-semibold' 
-        : 'text-slate-700 hover:bg-white/30 hover:text-red-700 border-transparent hover:border-white/40 hover:scale-[1.02]');
+        ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' 
+        : 'text-slate-500 hover:bg-gray-50 hover:text-red-600 border border-transparent hover:shadow-sm');
     }
 
     return baseClasses + (active 
-      ? 'bg-purple-100/80 text-purple-800 border-purple-200/50 scale-[1.02] shadow-sm font-semibold' 
-      : 'text-slate-700 hover:bg-white/30 hover:text-purple-700 border-transparent hover:border-white/40 hover:scale-[1.02]');
+      ? 'bg-purple-50 text-purple-700 font-bold border border-purple-100/50 shadow-sm' 
+      : 'text-slate-500 hover:bg-gray-50 hover:text-purple-600 border border-transparent hover:shadow-sm');
   };
 
   // --- MODAL: CONFIGURACIÓN DE USUARIO ---
@@ -120,6 +120,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   // --- CONTENEDOR MAESTRO ---
   const MainLayout = ({ sidebar }: { sidebar: ReactNode }) => (
     <div className="h-screen w-full bg-gray-50 flex overflow-hidden">
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: transparent;
+          border-radius: 10px;
+          transition: background 0.3s ease;
+        }
+        .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+          background: rgba(0, 0, 0, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 0, 0, 0.1);
+        }
+      `}</style>
       <aside className="w-64 flex-shrink-0 m-4 rounded-2xl backdrop-blur-md bg-white border border-gray-200/50 shadow-2xl flex flex-col overflow-y-auto custom-scrollbar z-20">{sidebar}</aside>
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
@@ -154,34 +173,101 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <MainLayout sidebar={
       <>
-        <div className="p-6 border-b border-gray-100"><Link href="/dashboard" className="text-2xl font-black bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Dashboard</Link></div>
-        <nav className="flex-1 px-4 py-6 space-y-2">
-          <div className="pb-4 mb-2 border-b border-gray-100">
-            <Link href="/dashboard/my-store" className={`block px-4 py-3 rounded-xl transition-all duration-200 border flex items-center justify-between group transform hover:scale-[1.05] ${pathname === '/dashboard/my-store' ? 'bg-purple-600 text-white border-purple-500 shadow-lg scale-[1.05]' : 'bg-purple-100/50 text-purple-900 border-purple-200/30 hover:bg-purple-200/50'}`}><span className="font-bold text-sm">🏪 Mi Tienda</span><span className={`text-lg transition-opacity ${pathname === '/dashboard/my-store' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>↗</span></Link>
+        {/* Bloque de Tienda */}
+        <div className="p-6 border-b border-gray-100/50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-xl bg-purple-600 flex items-center justify-center text-white shadow-lg shadow-purple-200">
+              <span className="text-xl font-bold">B</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-gray-900 leading-tight">Mi Tienda</span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Activa</span>
+              </div>
+            </div>
           </div>
-          <Link href="/dashboard" className={getLinkStyles('/dashboard')}>🏠 Inicio</Link>
-          <Link href="/dashboard/orders" className={getLinkStyles('/dashboard/orders')}>📦 Pedidos</Link>
+          <Link href="/dashboard/my-store" className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition-all ${pathname === '/dashboard/my-store' ? 'bg-purple-50 text-purple-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
+            Ver tienda online
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+          </Link>
+        </div>
+
+        <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar">
+          {/* Categoría: Operación */}
           <div>
-              <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
-                  <span className="flex items-center gap-2 text-sm">🛍️ Productos</span>
-                  <svg className={`w-4 h-4 transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-              </button>
-              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen ? 'max-h-56 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}><div className="space-y-1"><Link href="/dashboard/products" className={getLinkStyles('/dashboard/products', 'admin', true)}>🏷️ Todos los productos</Link><Link href="/dashboard/collections" className={getLinkStyles('/dashboard/collections', 'admin', true)}>📂 Colecciones</Link><Link href="/dashboard/inventory" className={getLinkStyles('/dashboard/inventory', 'admin', true)}>📋 Inventario</Link><Link href="/dashboard/catalogs" className={getLinkStyles('/dashboard/catalogs', 'admin', true)}>📱 Catálogos WhatsApp</Link></div></div>
+            <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Operación</p>
+            <div className="space-y-1">
+              <Link href="/dashboard" className={getLinkStyles('/dashboard')}>🏠 Inicio</Link>
+              <Link href="/dashboard/orders" className={getLinkStyles('/dashboard/orders')}>📦 Pedidos</Link>
+              <div>
+                  <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
+                      <span className="flex items-center gap-2 text-sm font-medium">🛍️ Productos</span>
+                      <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen ? 'max-h-56 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                    <div className="space-y-1">
+                      <Link href="/dashboard/products" className={getLinkStyles('/dashboard/products', 'admin', true)}>Todos los productos</Link>
+                      <Link href="/dashboard/collections" className={getLinkStyles('/dashboard/collections', 'admin', true)}>Colecciones</Link>
+                      <Link href="/dashboard/inventory" className={getLinkStyles('/dashboard/inventory', 'admin', true)}>Inventario</Link>
+                      <Link href="/dashboard/catalogs" className={getLinkStyles('/dashboard/catalogs', 'admin', true)}>Catálogos WhatsApp</Link>
+                    </div>
+                  </div>
+              </div>
+              <Link href="/dashboard/chats" className={getLinkStyles('/dashboard/chats')}>💬 Mensajes</Link>
+              <Link href="/dashboard/customers" className={getLinkStyles('/dashboard/customers')}>👥 Clientes</Link>
+            </div>
           </div>
-          <Link href="/dashboard/chats" className={getLinkStyles('/dashboard/chats')}>💬 Mensajes</Link>
-          <Link href="/dashboard/customers" className={getLinkStyles('/dashboard/customers')}>👥 Clientes</Link>
-          <Link href="/dashboard/marketing" className={getLinkStyles('/dashboard/marketing')}>📢 Marketing</Link>
-          <Link href="/dashboard/discounts" className={getLinkStyles('/dashboard/discounts')}>🏷️ Descuentos</Link>
-          <Link href="/dashboard/reports" className={getLinkStyles('/dashboard/reports')}>📊 Informes</Link>
+
+          {/* Categoría: Crecimiento */}
           <div>
-              <button onClick={() => setSettingsOpen(!settingsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/settings')}`}>
-                  <span className="flex items-center gap-2 text-sm">⚙️ Config. Tienda</span>
-                  <svg className={`w-4 h-4 transition-transform duration-200 ${settingsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-              </button>
-              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${settingsOpen ? 'max-h-60 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}><div className="space-y-1"><Link href="/dashboard/settings/general" className={getLinkStyles('/dashboard/settings/general', 'admin', true)}>ℹ️ Info General</Link><Link href="/dashboard/settings/plan" className={getLinkStyles('/dashboard/settings/plan', 'admin', true)}>💎 Mi Plan</Link><Link href="/dashboard/settings/billing" className={getLinkStyles('/dashboard/settings/billing', 'admin', true)}>💳 Facturación</Link><Link href="/dashboard/settings/users" className={getLinkStyles('/dashboard/settings/users', 'admin', true)}>👥 Usuarios / Staff</Link></div></div>
+            <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Crecimiento</p>
+            <div className="space-y-1">
+              <Link href="/dashboard/marketing" className={getLinkStyles('/dashboard/marketing')}>📢 Marketing</Link>
+              <Link href="/dashboard/discounts" className={getLinkStyles('/dashboard/discounts')}>🏷️ Descuentos</Link>
+              
+              {/* Nuevos items de Crecimiento */}
+              <div className="group relative">
+                <div className="flex items-center justify-between px-4 py-3 text-gray-400 cursor-not-allowed">
+                  <span className="text-sm font-medium">🤖 Automatizaciones</span>
+                  <span className="text-[9px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-md">PROX.</span>
+                </div>
+              </div>
+              <div className="group relative">
+                <div className="flex items-center justify-between px-4 py-3 text-gray-400 cursor-not-allowed">
+                  <span className="text-sm font-medium">✨ Asistente IA</span>
+                  <span className="text-[9px] font-bold bg-purple-50 text-purple-500 px-1.5 py-0.5 rounded-md">BETA</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Categoría: Gestión */}
+          <div>
+            <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Gestión</p>
+            <div className="space-y-1">
+              <Link href="/dashboard/reports" className={getLinkStyles('/dashboard/reports')}>📊 Informes</Link>
+              <div>
+                  <button onClick={() => setSettingsOpen(!settingsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/settings')}`}>
+                      <span className="flex items-center gap-2 text-sm font-medium">⚙️ Config. Tienda</span>
+                      <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${settingsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${settingsOpen ? 'max-h-60 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                    <div className="space-y-1">
+                      <Link href="/dashboard/settings/general" className={getLinkStyles('/dashboard/settings/general', 'admin', true)}>Info General</Link>
+                      <Link href="/dashboard/settings/plan" className={getLinkStyles('/dashboard/settings/plan', 'admin', true)}>Mi Plan</Link>
+                      <Link href="/dashboard/settings/billing" className={getLinkStyles('/dashboard/settings/billing', 'admin', true)}>Facturación</Link>
+                      <Link href="/dashboard/settings/users" className={getLinkStyles('/dashboard/settings/users', 'admin', true)}>Staff</Link>
+                    </div>
+                  </div>
+              </div>
+            </div>
           </div>
         </nav>
-        <div className="p-4 mt-auto text-center"><span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none block">Bayup Admin</span><span className="text-[8px] text-gray-300 font-medium">Powered by Bayup</span></div>
+        
+        <div className="p-6 mt-auto text-center border-t border-gray-50">
+          <span className="text-[10px] text-gray-300 font-bold uppercase tracking-widest leading-none block">Bayup Admin</span>
+        </div>
       </>
     } />
   );

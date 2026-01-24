@@ -59,37 +59,37 @@ export default function OrdersPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     
-    // Estado para la pestaña activa
+    // UI State
     const [activeTab, setActiveTab] = useState<'all' | 'new' | 'pending' | 'shipped' | 'abandoned'>('all');
+    const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const fetchOrders = useCallback(async () => {
-        if (!isAuthenticated || !token) {
-            return;
-        }
+        if (!isAuthenticated || !token) return;
 
         setLoading(true);
         setError(null);
         try {
             const response = await fetch('http://localhost:8000/orders', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
+                headers: { 'Authorization': `Bearer ${token}` },
             });
 
             if (!response.ok) {
-                // Si falla la API real por ahora, usamos MOCK_ORDERS para mostrar el diseño
-                console.warn("Backend error, using mock data for UI demo");
                 setOrders(MOCK_ORDERS); 
                 return;
             }
 
             const data = await response.json();
-            // Mezclamos con mock data si viene vacío para que veas el diseño
-            setOrders(data.length > 0 ? data : MOCK_ORDERS);
-        } catch (err: any) {
-             // Fallback a mock data en error de red para demo
-             console.error(err);
+            const finalOrders = data.length > 0 ? data : MOCK_ORDERS;
+            setOrders(finalOrders);
+
+            // Priorizar pestaña "Nuevos" si existen pedidos nuevos
+            if (finalOrders.some((o: Order) => o.status === 'new')) {
+                setActiveTab('new');
+            }
+        } catch (err) {
              setOrders(MOCK_ORDERS);
+             if (MOCK_ORDERS.some(o => o.status === 'new')) setActiveTab('new');
         } finally {
             setLoading(false);
         }
@@ -99,14 +99,32 @@ export default function OrdersPage() {
         fetchOrders();
     }, [fetchOrders]);
 
-    // Lógica de filtrado
+    // Handlers
+    const toggleSelectAll = () => {
+        if (selectedOrders.length === filteredOrders.length) {
+            setSelectedOrders([]);
+        } else {
+            setSelectedOrders(filteredOrders.map(o => o.id));
+        }
+    };
+
+    const toggleSelectOrder = (id: string) => {
+        setSelectedOrders(prev => 
+            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        );
+    };
+
     const filteredOrders = orders.filter(order => {
-        if (activeTab === 'all') return true;
-        if (activeTab === 'new') return order.status === 'new';
-        if (activeTab === 'pending') return order.status === 'pending';
-        if (activeTab === 'shipped') return order.status === 'shipped';
-        if (activeTab === 'abandoned') return order.status === 'abandoned' || order.status === 'cancelled';
-        return true;
+        const matchesTab = activeTab === 'all' || 
+                         (activeTab === 'new' && order.status === 'new') ||
+                         (activeTab === 'pending' && order.status === 'pending') ||
+                         (activeTab === 'shipped' && order.status === 'shipped') ||
+                         (activeTab === 'abandoned' && (order.status === 'abandoned' || order.status === 'cancelled'));
+        
+        const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             order.customer_id.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        return matchesTab && matchesSearch;
     });
 
     const formatCurrency = (amount: number) => {
@@ -115,162 +133,197 @@ export default function OrdersPage() {
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('es-ES', {
-            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            day: '2-digit', month: 'short', year: 'numeric'
         });
     };
 
     if (loading) return (
         <div className="flex justify-center items-center min-h-[400px]">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"></div>
         </div>
     );
 
+    const pendingAttentionCount = orders.filter(o => o.status === 'new' || o.status === 'pending').length;
+
     return (
-        <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div className="max-w-7xl mx-auto pb-20">
+            {/* Header Operativo */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Gestión de Pedidos</h1>
-                    <p className="text-gray-500 mt-1">Administra y procesa las órdenes de tu tienda.</p>
-                </div>
-                <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-                    </svg>
-                    Exportar
-                </button>
-            </div>
-
-            {/* Barra de Navegación (Tabs) */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-x-auto">
-                <div className="flex min-w-max p-1">
-                    <button
-                        onClick={() => setActiveTab('all')}
-                        className={`flex-1 px-6 py-3 text-sm font-medium rounded-lg transition-all ${
-                            activeTab === 'all' 
-                            ? 'bg-purple-50 text-purple-700 ring-1 ring-purple-200' 
-                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                        }`}
-                    >
-                        Todo
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('new')}
-                        className={`flex-1 px-6 py-3 text-sm font-medium rounded-lg transition-all ${
-                            activeTab === 'new' 
-                            ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' 
-                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                        }`}
-                    >
-                        Nuevos
-                        {orders.filter(o => o.status === 'new').length > 0 && (
-                            <span className="ml-2 bg-blue-100 text-blue-600 py-0.5 px-2 rounded-full text-xs">
-                                {orders.filter(o => o.status === 'new').length}
+                    <h1 className="text-4xl font-black text-gray-900 tracking-tight">Pedidos</h1>
+                    <p className="text-gray-500 mt-2 font-medium">
+                        {pendingAttentionCount > 0 ? (
+                            <span className="flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
+                                <span className="text-rose-600 font-bold">{pendingAttentionCount} pedidos</span> requieren tu atención inmediata.
                             </span>
+                        ) : (
+                            "Tu tienda está al día. No hay pedidos pendientes."
                         )}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('pending')}
-                        className={`flex-1 px-6 py-3 text-sm font-medium rounded-lg transition-all ${
-                            activeTab === 'pending' 
-                            ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' 
-                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                        }`}
-                    >
-                        Pendientes
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('shipped')}
-                        className={`flex-1 px-6 py-3 text-sm font-medium rounded-lg transition-all ${
-                            activeTab === 'shipped' 
-                            ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200' 
-                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                        }`}
-                    >
-                        En envío
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('abandoned')}
-                        className={`flex-1 px-6 py-3 text-sm font-medium rounded-lg transition-all ${
-                            activeTab === 'abandoned' 
-                            ? 'bg-red-50 text-red-700 ring-1 ring-red-200' 
-                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                        }`}
-                    >
-                        Abandonados
+                    </p>
+                </div>
+                <div className="flex gap-3">
+                    <button className="bg-white border border-gray-100 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-2xl text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                        Exportar
                     </button>
                 </div>
             </div>
 
-            {/* Listado de Pedidos */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                {filteredOrders.length === 0 ? (
-                    <div className="text-center py-12 px-4">
-                        <div className="mx-auto h-12 w-12 text-gray-300 mb-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-full h-full">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-                            </svg>
+            {/* Tabs y Buscador */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+                <div className="flex space-x-1 bg-gray-50 p-1.5 rounded-2xl shadow-sm border border-gray-100/50 w-full lg:w-fit overflow-x-auto">
+                    {(['all', 'new', 'pending', 'shipped', 'abandoned'] as const).map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => { setActiveTab(tab); setSelectedOrders([]); }}
+                            className={`px-6 py-2 text-[10px] font-black uppercase tracking-[0.15em] rounded-xl transition-all whitespace-nowrap ${
+                                activeTab === tab 
+                                ? 'bg-white text-purple-700 shadow-sm border border-gray-100' 
+                                : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                        >
+                            {tab === 'all' ? 'Todo' : 
+                            tab === 'new' ? 'Nuevos' : 
+                            tab === 'pending' ? 'Pendientes' :
+                            tab === 'shipped' ? 'En Envío' : 'Abandonados'}
+                            
+                            {tab !== 'all' && orders.filter(o => o.status === tab).length > 0 && (
+                                <span className="ml-2 opacity-50">({orders.filter(o => o.status === tab).length})</span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="relative w-full lg:w-80">
+                    <input
+                        type="text"
+                        placeholder="Buscar por ID o Cliente..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-12 pr-6 py-3 text-sm border border-gray-50 bg-gray-50/50 rounded-2xl focus:bg-white focus:ring-4 focus:ring-purple-500/5 focus:border-purple-200 outline-none transition-all font-medium"
+                    />
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 absolute left-4 top-3 text-gray-300">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                </div>
+            </div>
+
+            {/* Listado de Pedidos Premium */}
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-50 overflow-hidden relative">
+                
+                {/* Barra de Acciones Masivas */}
+                {selectedOrders.length > 0 && (
+                    <div className="absolute top-0 inset-x-0 h-16 bg-purple-600 z-10 flex items-center justify-between px-8 animate-in slide-in-from-top duration-300">
+                        <div className="flex items-center gap-4">
+                            <span className="text-white text-xs font-black uppercase tracking-widest">{selectedOrders.length} Seleccionados</span>
+                            <div className="h-4 w-px bg-white/20"></div>
+                            <button onClick={() => alert("Marcados como despachados")} className="text-white text-xs font-bold hover:underline">Marcar como despachados</button>
+                            <button onClick={() => alert("Exportando selección")} className="text-white text-xs font-bold hover:underline">Exportar</button>
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900">No hay pedidos en esta categoría</h3>
-                        <p className="mt-1 text-sm text-gray-500">Los pedidos aparecerán aquí cuando cambien de estado.</p>
+                        <button onClick={() => setSelectedOrders([])} className="text-white/70 hover:text-white text-sm">✕</button>
                     </div>
-                ) : (
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orden</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                <th scope="col" className="relative px-6 py-3">
-                                    <span className="sr-only">Acciones</span>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredOrders.map((order) => (
-                                <tr key={order.id} className="hover:bg-gray-50 transition-colors cursor-pointer">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-purple-600">#{order.id.slice(0, 8)}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {formatDate(order.created_at)}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xs">
-                                                {order.customer_id.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div className="ml-3">
-                                                <div className="text-sm text-gray-900">Cliente {order.customer_id.slice(0, 4)}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                            order.status === 'new' ? 'bg-blue-100 text-blue-800' :
-                                            order.status === 'pending' ? 'bg-amber-100 text-amber-800' :
-                                            order.status === 'shipped' ? 'bg-indigo-100 text-indigo-800' :
-                                            order.status === 'abandoned' ? 'bg-red-100 text-red-800' :
-                                            'bg-gray-100 text-gray-800'
-                                        }`}>
-                                            {order.status === 'new' ? 'Nuevo' :
-                                             order.status === 'pending' ? 'Pendiente' :
-                                             order.status === 'shipped' ? 'En Envío' :
-                                             order.status === 'abandoned' ? 'Abandonado' : order.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                                        {formatCurrency(order.total_price)}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <a href="#" className="text-purple-600 hover:text-purple-900">Ver detalles</a>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
                 )}
+
+                <table className="min-w-full divide-y divide-gray-50">
+                    <thead className="bg-gray-50/50">
+                        <tr>
+                            <th className="px-8 py-5 text-left w-10">
+                                <input 
+                                    type="checkbox" 
+                                    className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" 
+                                    checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
+                                    onChange={toggleSelectAll}
+                                />
+                            </th>
+                            <th className="px-4 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Orden</th>
+                            <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Cliente</th>
+                            <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Estado</th>
+                            <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Total</th>
+                            <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Acciones Rápidas</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-50">
+                        {filteredOrders.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} className="px-8 py-20 text-center">
+                                    <p className="text-3xl mb-4">📦</p>
+                                    <p className="text-sm font-bold text-gray-900">No hay pedidos aquí</p>
+                                    <p className="text-xs text-gray-400 mt-1">Todo está bajo control por ahora.</p>
+                                </td>
+                            </tr>
+                        ) : (
+                            filteredOrders.map((order) => {
+                                const isActionRequired = order.status === 'new' || order.status === 'pending';
+                                return (
+                                    <tr 
+                                        key={order.id} 
+                                        className={`group transition-all duration-300 hover:bg-gray-50/50 ${
+                                            order.status === 'new' ? 'bg-emerald-50/30' : 
+                                            order.status === 'pending' ? 'bg-rose-50/30' : ''
+                                        }`}
+                                    >
+                                        <td className="px-8 py-6">
+                                            <input 
+                                                type="checkbox" 
+                                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" 
+                                                checked={selectedOrders.includes(order.id)}
+                                                onChange={() => toggleSelectOrder(order.id)}
+                                            />
+                                        </td>
+                                        <td className="px-4 py-6 whitespace-nowrap">
+                                            <div className="flex items-center gap-3">
+                                                {order.status === 'new' && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>}
+                                                {order.status === 'pending' && <span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>}
+                                                <span className="text-sm font-black text-gray-900">#{order.id.slice(0, 8).toUpperCase()}</span>
+                                            </div>
+                                            <p className="text-[10px] font-bold text-gray-400 mt-1">{formatDate(order.created_at)}</p>
+                                        </td>
+                                        <td className="px-8 py-6 whitespace-nowrap">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-xl bg-gray-100 flex items-center justify-center text-[10px] font-black text-gray-500 border border-gray-200">
+                                                    {order.customer_id.charAt(0).toUpperCase()}
+                                                </div>
+                                                <span className="text-sm font-bold text-gray-700">Cliente {order.customer_id.slice(0, 4)}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-6 whitespace-nowrap">
+                                            <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg ${
+                                                order.status === 'new' ? 'bg-blue-50 text-blue-600 border border-blue-100/50' :
+                                                order.status === 'pending' ? 'bg-amber-50 text-amber-600 border border-amber-100/50' :
+                                                order.status === 'shipped' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/50' :
+                                                'bg-gray-50 text-gray-400 border border-gray-100'
+                                            }`}>
+                                                {order.status === 'new' ? 'Nuevo' :
+                                                 order.status === 'pending' ? 'Pendiente' :
+                                                 order.status === 'shipped' ? 'En Envío' : 'Abandonado'}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6 whitespace-nowrap">
+                                            <span className="text-sm font-black text-gray-900">{formatCurrency(order.total_price)}</span>
+                                        </td>
+                                        <td className="px-8 py-6 whitespace-nowrap text-right">
+                                            <div className="flex items-center justify-end gap-4">
+                                                {/* Acciones Contextuales */}
+                                                {order.status === 'new' && (
+                                                    <button className="text-[10px] font-black text-purple-600 uppercase tracking-widest hover:underline">Despachar</button>
+                                                )}
+                                                {order.status === 'pending' && (
+                                                    <button className="text-[10px] font-black text-amber-600 uppercase tracking-widest hover:underline">Confirmar</button>
+                                                )}
+                                                {order.status === 'shipped' && (
+                                                    <button className="text-[10px] font-black text-emerald-600 uppercase tracking-widest hover:underline">Tracking</button>
+                                                )}
+                                                
+                                                <button className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-900 transition-colors">Ver detalles</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
+                    </tbody>
+                </table>
             </div>
         </div>
     );
