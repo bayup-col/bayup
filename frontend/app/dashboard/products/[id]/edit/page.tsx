@@ -116,14 +116,14 @@ export default function EditProductPage() {
     const fetchProduct = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`http://localhost:8000/products/${productId}`, { // TODO: Implement GET /products/{id} in backend
+        const response = await fetch(`http://localhost:8000/products/${productId}`, { // TODO: Implementar GET /products/{id} en backend
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch product');
+          throw new Error('Error al cargar el producto');
         }
 
         const data: Product = await response.json();
@@ -131,9 +131,9 @@ export default function EditProductPage() {
         setDescription(data.description || '');
         setBasePrice(data.price);
         setMainImageUrl(data.image_url);
-        setVariants(data.variants.map(v => ({ ...v, imageFile: null }))); // Initialize imageFile to null
+        setVariants(data.variants.map(v => ({ ...v, imageFile: null }))); // Inicializar imageFile a nulo
       } catch (err: any) {
-        setError(err.message || 'An error occurred while fetching the product.');
+        setError(err.message || 'Ocurrió un error al cargar el producto.');
       } finally {
         setLoading(false);
       }
@@ -148,7 +148,7 @@ export default function EditProductPage() {
     setSaving(true);
 
     if (!token) {
-      setError('Authentication token not found.');
+      setError('Token de autenticación no encontrado.');
       setSaving(false);
       return;
     }
@@ -166,7 +166,7 @@ export default function EditProductPage() {
             variantImageUrl = await uploadImageToS3(variant.imageFile, variant.imageFile.type);
           }
           return {
-            id: variant.id, // Keep ID for updates
+            id: variant.id, // Mantener ID para actualizaciones
             name: variant.name,
             sku: variant.sku,
             price_adjustment: variant.price_adjustment,
@@ -184,7 +184,7 @@ export default function EditProductPage() {
         variants: variantsWithUrls,
       };
 
-      const response = await fetch(`http://localhost:8000/products/${productId}`, { // TODO: Implement PUT /products/{id} in backend
+      const response = await fetch(`http://localhost:8000/products/${productId}`, { // TODO: Implementar PUT /products/{id} en backend
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -195,30 +195,30 @@ export default function EditProductPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to update product');
+        throw new Error(errorData.detail || 'Error al actualizar el producto');
       }
 
       router.push('/dashboard/products');
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred while updating the product.');
+      setError(err.message || 'Ocurrió un error inesperado al actualizar el producto.');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <p className="max-w-3xl mx-auto p-8">Loading product...</p>;
+  if (loading) return <p className="max-w-3xl mx-auto p-8">Cargando producto...</p>;
   if (error) return <p className="text-red-500 max-w-3xl mx-auto p-8">Error: {error}</p>;
 
   return (
     <div className="max-w-3xl mx-auto p-8 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Edit Product: {name}</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Editar Producto: {name}</h2>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Main Product Details */}
         <section className="border p-4 rounded-md">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">Product Details</h3>
+          <h3 className="text-xl font-semibold text-gray-800 mb-4">Detalles del Producto</h3>
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-              Product Name
+              Nombre del Producto
             </label>
             <input
               type="text"
@@ -231,7 +231,7 @@ export default function EditProductPage() {
           </div>
           <div className="mt-4">
             <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-              Description
+              Descripción
             </label>
             <textarea
               id="description"
@@ -243,7 +243,7 @@ export default function EditProductPage() {
           </div>
           <div className="mt-4">
             <label htmlFor="basePrice" className="block text-sm font-medium text-gray-700">
-              Base Price (for product, variants adjust from this)
+              Precio Base (para el producto, las variantes se ajustan a partir de este)
             </label>
             <input
               type="number"
@@ -258,7 +258,7 @@ export default function EditProductPage() {
           </div>
           <div className="mt-4">
             <label htmlFor="mainImage" className="block text-sm font-medium text-gray-700">
-              Main Product Image
+              Imagen Principal del Producto
             </label>
             <input
               type="file"
@@ -269,7 +269,7 @@ export default function EditProductPage() {
             />
             {mainImageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={mainImageUrl} alt="Main Product Preview" className="h-20 w-20 object-cover rounded-md mt-2" />
+                <img src={mainImageUrl} alt="Previsualización del producto principal" className="h-20 w-20 object-cover rounded-md mt-2" />
             )}
           </div>
         </section>
@@ -277,13 +277,13 @@ export default function EditProductPage() {
         {/* Product Variants Section */}
         <section className="border p-4 rounded-md mt-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold text-gray-800">Product Variants</h3>
+            <h3 className="text-xl font-semibold text-gray-800">Variantes del Producto</h3>
             <button
               type="button"
               onClick={addVariant}
               className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
             >
-              Add Variant
+              Añadir Variante
             </button>
           </div>
 
@@ -292,7 +292,7 @@ export default function EditProductPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor={`variant-name-${variant.id}`} className="block text-sm font-medium text-gray-700">
-                    Variant Name
+                    Nombre de la Variante
                   </label>
                   <input
                     type="text"
@@ -305,19 +305,19 @@ export default function EditProductPage() {
                 </div>
                 <div>
                   <label htmlFor={`variant-sku-${variant.id}`} className="block text-sm font-medium text-gray-700">
-                    SKU (Optional)
+                    SKU (Opcional)
                   </label>
                   <input
                     type="text"
                     id={`variant-sku-${variant.id}`}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                    value={variant.sku || ''} // Use || '' for null/undefined
+                    value={variant.sku || ''} // Usar || '' para nulo/indefinido
                     onChange={(e) => handleVariantChange(variant.id, 'sku', e.target.value)}
                   />
                 </div>
                 <div>
                   <label htmlFor={`variant-price-adj-${variant.id}`} className="block text-sm font-medium text-gray-700">
-                    Price Adjustment (e.g., +5.00)
+                    Ajuste de Precio (por ejemplo, +5.00)
                   </label>
                   <input
                     type="number"
@@ -344,7 +344,7 @@ export default function EditProductPage() {
                 </div>
                 <div className="col-span-full">
                   <label htmlFor={`variant-image-${variant.id}`} className="block text-sm font-medium text-gray-700">
-                    Variant Image (Optional)
+                    Imagen de la Variante (Opcional)
                   </label>
                   <input
                     type="file"
@@ -355,7 +355,7 @@ export default function EditProductPage() {
                   />
                   {variant.image_url && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={variant.image_url} alt="Variant Preview" className="h-20 w-20 object-cover rounded-md mt-2" />
+                    <img src={variant.image_url} alt="Previsualización de variante" className="h-20 w-20 object-cover rounded-md mt-2" />
                   )}
                 </div>
               </div>
@@ -365,7 +365,7 @@ export default function EditProductPage() {
                   onClick={() => removeVariant(variant.id)}
                   className="mt-4 px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700"
                 >
-                  Remove Variant
+                  Eliminar Variante
                 </button>
               )}
             </div>
@@ -378,7 +378,7 @@ export default function EditProductPage() {
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           disabled={saving}
         >
-          {saving ? 'Saving...' : 'Save Product'}
+          {saving ? 'Guardando...' : 'Guardar Producto'}
         </button>
       </form>
     </div>

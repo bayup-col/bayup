@@ -19,13 +19,13 @@ export default function NewTaxRatePage() {
     setLoading(true);
 
     if (!token) {
-      setError('Authentication token not found.');
+      setError('Token de autenticación no encontrado.');
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:8000/taxes', { // TODO: Use env variable
+      const response = await fetch('http://localhost:8000/taxes', { // TODO: Usar variable de entorno
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,12 +36,12 @@ export default function NewTaxRatePage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to create tax rate');
+        throw new Error(errorData.detail || 'Error al crear la tasa de impuesto');
       }
 
       router.push('/dashboard/settings/taxes');
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred while creating the tax rate.');
+      setError(err.message || 'Ocurrió un error inesperado al crear la tasa de impuesto.');
     } finally {
       setLoading(false);
     }
@@ -49,11 +49,11 @@ export default function NewTaxRatePage() {
 
   return (
     <div className="max-w-xl mx-auto p-8 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Add New Tax Rate</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Añadir Nueva Tasa de Impuesto</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-            Tax Name (e.g., IVA 19%)
+            Nombre del Impuesto (por ejemplo, IVA 19%)
           </label>
           <input
             type="text"
@@ -66,7 +66,7 @@ export default function NewTaxRatePage() {
         </div>
         <div>
           <label htmlFor="rate" className="block text-sm font-medium text-gray-700">
-            Rate (e.g., 0.19 for 19%)
+            Tasa (por ejemplo, 0.19 para el 19%)
           </label>
           <input
             type="number"
@@ -89,7 +89,7 @@ export default function NewTaxRatePage() {
             onChange={(e) => setIsDefault(e.target.checked)}
           />
           <label htmlFor="isDefault" className="ml-2 block text-sm text-gray-900">
-            Set as default tax rate
+            Establecer como tasa de impuesto predeterminada
           </label>
         </div>
 
@@ -99,7 +99,7 @@ export default function NewTaxRatePage() {
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           disabled={loading}
         >
-          {loading ? 'Creating...' : 'Create Tax Rate'}
+          {loading ? 'Creando...' : 'Crear Tasa de Impuesto'}
         </button>
       </form>
     </div>

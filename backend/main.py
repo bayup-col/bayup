@@ -44,8 +44,60 @@ def create_default_plan():
             )
             db.commit()
             print("Default plan created.")
+        
+        # Create default product types
+        product_types = [
+            {
+                "name": "Tecnología",
+                "description": "Productos electrónicos y de tecnología",
+                "attributes": [
+                    {"name": "Marca", "attribute_type": "select", "options": ["Apple", "Samsung", "LG", "Sony", "Otro"]},
+                    {"name": "Capacidad", "attribute_type": "select", "options": ["64GB", "128GB", "256GB", "512GB", "1TB"]},
+                    {"name": "Color", "attribute_type": "select", "options": ["Negro", "Blanco", "Plata", "Oro", "Azul", "Rojo"]},
+                ]
+            },
+            {
+                "name": "Ropa",
+                "description": "Prendas de vestir y accesorios",
+                "attributes": [
+                    {"name": "Talla", "attribute_type": "select", "options": ["XS", "S", "M", "L", "XL", "2XL", "3XL"]},
+                    {"name": "Color", "attribute_type": "select", "options": ["Negro", "Blanco", "Azul", "Rojo", "Verde", "Amarillo", "Rosa"]},
+                    {"name": "Material", "attribute_type": "select", "options": ["Algodón", "Poliéster", "Lana", "Seda", "Mezcla"]},
+                ]
+            },
+            {
+                "name": "Otro",
+                "description": "Otros tipos de productos",
+                "attributes": [
+                    {"name": "Variante", "attribute_type": "text", "options": None},
+                ]
+            }
+        ]
+        
+        for product_type_data in product_types:
+            if not crud.get_product_type_by_name(db, product_type_data["name"]):
+                print(f"Creating product type: {product_type_data['name']}")
+                db_product_type = models.ProductType(
+                    name=product_type_data["name"],
+                    description=product_type_data["description"]
+                )
+                db.add(db_product_type)
+                db.flush()
+                
+                for attr_data in product_type_data["attributes"]:
+                    db_attribute = models.ProductAttribute(
+                        product_type_id=db_product_type.id,
+                        name=attr_data["name"],
+                        attribute_type=attr_data["attribute_type"],
+                        options=attr_data["options"]
+                    )
+                    db.add(db_attribute)
+                
+                db.commit()
+                print(f"Product type {product_type_data['name']} created with attributes.")
+        
     except Exception as e:
-        print(f"Error creating default plan: {e}")
+        print(f"Error during startup: {e}")
         db.rollback()
     finally:
         db.close()
@@ -508,6 +560,64 @@ def delete_shipping_option(
         raise HTTPException(status_code=404, detail="Shipping option not found or does not belong to your store.")
     crud.delete_shipping_option(db=db, db_shipping_option=db_shipping_option)
     return {"ok": True}
+
+
+# --- ProductType Endpoints ---
+
+@app.get("/product-types", response_model=List[schemas.ProductType])
+def get_product_types(db: Session = Depends(get_db)):
+    """Get all product types with their attributes"""
+    return crud.get_all_product_types(db)
+
+@app.get("/product-types/{product_type_id}", response_model=schemas.ProductType)
+def get_product_type(product_type_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Get a specific product type with its attributes"""
+    db_product_type = crud.get_product_type(db, product_type_id=product_type_id)
+    if db_product_type is None:
+        raise HTTPException(status_code=404, detail="Product type not found")
+    return db_product_type
+
+
+# --- Admin Endpoints ---
+
+@app.post("/admin/update-role")
+def update_user_role(
+    email: str = None,
+    new_role: str = None,
+    db: Session = Depends(get_db)
+):
+    """Update user role - for development/admin purposes"""
+    if not email or not new_role:
+        raise HTTPException(status_code=400, detail="email and new_role are required")
+    
+    user = crud.get_user_by_email(db, email=email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Validate role
+    valid_roles = ["user", "admin", "super_admin"]
+    if new_role not in valid_roles:
+        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {valid_roles}")
+    
+    user.role = new_role
+    db.commit()
+    db.refresh(user)
+    return {"message": f"User role updated to {new_role}", "user": {"email": user.email, "id": str(user.id), "role": user.role}}
+
+
+@app.get("/admin/users", response_model=List[schemas.User])
+def get_all_users(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: schemas.User = Depends(security.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all users - only accessible by super_admin"""
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Only super admins can access this endpoint")
+    
+    users = crud.get_all_users(db, skip=skip, limit=limit)
+    return users
 
 
 # --- Public Shipping Option Endpoints (for customers) ---

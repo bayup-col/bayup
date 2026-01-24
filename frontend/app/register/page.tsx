@@ -15,7 +15,7 @@ export default function RegisterPage() {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/auth/register', { // TODO: Use env variable for backend URL
+      const response = await fetch('http://localhost:8000/auth/register', { // TODO: Usar variable de entorno para URL del backend
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -25,12 +25,12 @@ export default function RegisterPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Registration failed');
+        throw new Error(errorData.detail || 'Error al registrarse');
       }
 
-      router.push('/login'); // Redirect to login page on successful registration
+      router.push('/login'); // Redirigir a la página de login después del registro exitoso
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+      setError(err.message || 'Ocurrió un error inesperado');
     }
   };
 

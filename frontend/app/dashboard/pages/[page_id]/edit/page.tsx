@@ -29,7 +29,7 @@ export default function EditPagePage() {
     const fetchPage = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`http://localhost:8000/pages/${pageId}`, { // TODO: Use env variable
+        const response = await fetch(`http://localhost:8000/pages/${pageId}`, { // TODO: Usar variable de entorno
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -58,14 +58,14 @@ export default function EditPagePage() {
     setSaving(true);
 
     if (!token) {
-      setError('Authentication token not found.');
+      setError('Token de autenticación no encontrado.');
       setSaving(false);
       return;
     }
 
     try {
       const parsedContent = JSON.parse(content);
-      const response = await fetch(`http://localhost:8000/pages/${pageId}`, { // TODO: Use env variable
+      const response = await fetch(`http://localhost:8000/pages/${pageId}`, { // TODO: Usar variable de entorno
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -76,27 +76,27 @@ export default function EditPagePage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to update page');
+        throw new Error(errorData.detail || 'Error al actualizar la página');
       }
 
       router.push('/dashboard/pages');
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred while updating the page. Make sure your JSON is valid.');
+      setError(err.message || 'Ocurrió un error inesperado al actualizar la página. Asegúrate de que tu JSON sea válido.');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <p className="max-w-xl mx-auto p-8">Loading page...</p>;
+  if (loading) return <p className="max-w-xl mx-auto p-8">Cargando página...</p>;
   if (error) return <p className="text-red-500 max-w-xl mx-auto p-8">Error: {error}</p>;
 
   return (
     <div className="max-w-xl mx-auto p-8 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Edit Page: {title}</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Editar Página: {title}</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-            Page Title
+            Título de la Página
           </label>
           <input
             type="text"
@@ -109,7 +109,7 @@ export default function EditPagePage() {
         </div>
         <div>
           <label htmlFor="slug" className="block text-sm font-medium text-gray-700">
-            Page Slug (e.g., home, about-us)
+            Slug de la Página (por ejemplo, inicio, acerca-de)
           </label>
           <input
             type="text"
@@ -122,7 +122,7 @@ export default function EditPagePage() {
         </div>
         <div>
           <label htmlFor="content" className="block text-sm font-medium text-gray-700">
-            Page Content (JSON)
+            Contenido de la Página (JSON)
           </label>
           <textarea
             id="content"
@@ -140,7 +140,7 @@ export default function EditPagePage() {
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           disabled={saving}
         >
-          {saving ? 'Saving...' : 'Save Page'}
+          {saving ? 'Guardando...' : 'Guardar Página'}
         </button>
       </form>
     </div>

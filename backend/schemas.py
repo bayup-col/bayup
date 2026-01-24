@@ -35,6 +35,7 @@ class ProductVariantBase(BaseModel):
     price_adjustment: float = 0.0 # Adjustment to base product price
     stock: int
     image_url: str | None = None
+    attributes: dict | None = None # Dynamic attributes based on product type
 
 class ProductVariantCreate(ProductVariantBase):
     pass
@@ -51,6 +52,7 @@ class ProductBase(BaseModel):
     description: str | None = None
     price: float # Base price, variants can adjust
     image_url: str | None = None # Main product image
+    product_type_id: uuid.UUID | None = None # Product type determines available attributes
 
 class ProductCreate(ProductBase):
     variants: List[ProductVariantCreate] # Variants are created along with the product
@@ -189,6 +191,36 @@ class ShippingOptionUpdate(ShippingOptionBase):
 class ShippingOption(ShippingOptionBase):
     id: uuid.UUID
     owner_id: uuid.UUID
+
+    class Config:
+        orm_mode = True
+
+# --- ProductType Schemas ---
+class ProductAttributeBase(BaseModel):
+    name: str # e.g., "Size", "Color"
+    attribute_type: str # e.g., "select", "text"
+    options: list[str] | None = None # e.g., ["S", "M", "L"]
+
+class ProductAttributeCreate(ProductAttributeBase):
+    pass
+
+class ProductAttribute(ProductAttributeBase):
+    id: uuid.UUID
+    product_type_id: uuid.UUID
+
+    class Config:
+        orm_mode = True
+
+class ProductTypeBase(BaseModel):
+    name: str
+    description: str | None = None
+
+class ProductTypeCreate(ProductTypeBase):
+    pass
+
+class ProductType(ProductTypeBase):
+    id: uuid.UUID
+    attributes: List[ProductAttribute] = []
 
     class Config:
         orm_mode = True

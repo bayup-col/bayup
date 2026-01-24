@@ -44,6 +44,9 @@ class Product(Base):
     price = Column(Float, nullable=False) # Base price, variants can adjust
     image_url = Column(String, nullable=True) # Main product image
     
+    product_type_id = Column(UUID(as_uuid=True), ForeignKey("product_types.id"), nullable=True)
+    product_type = relationship("ProductType")
+    
     owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     owner = relationship("User", back_populates="products")
     
@@ -59,6 +62,7 @@ class ProductVariant(Base):
     price_adjustment = Column(Float, nullable=False, default=0.0) # Adjustment to base product price
     stock = Column(Integer, nullable=False)
     image_url = Column(String, nullable=True) # Variant specific image
+    attributes = Column(JSON, nullable=True, default={}) # Dynamic attributes based on product type
 
     product = relationship("Product", back_populates="variants")
     order_items = relationship("OrderItem", back_populates="product_variant")
@@ -138,3 +142,28 @@ class ShippingOption(Base):
     owner = relationship("User")
 
     __table_args__ = (UniqueConstraint("name", "owner_id", name="_owner_id_shipping_name_uc"),)
+
+
+class ProductType(Base):
+    __tablename__ = "product_types"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False, unique=True) # e.g., "Clothing", "Electronics", "Other"
+    description = Column(String, nullable=True)
+
+    attributes = relationship("ProductAttribute", back_populates="product_type", cascade="all, delete-orphan")
+
+
+class ProductAttribute(Base):
+    __tablename__ = "product_attributes"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    product_type_id = Column(UUID(as_uuid=True), ForeignKey("product_types.id"), nullable=False)
+    name = Column(String, nullable=False) # e.g., "Size", "Color", "Memory"
+    attribute_type = Column(String, nullable=False) # e.g., "select", "text", "number"
+    # Values are stored as JSON array for select types: ["S", "M", "L", "XL"]
+    options = Column(JSON, nullable=True)
+
+    product_type = relationship("ProductType", back_populates="attributes")
+
+    __table_args__ = (UniqueConstraint("product_type_id", "name", name="_product_type_id_name_uc"),)

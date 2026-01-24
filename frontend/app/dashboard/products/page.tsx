@@ -36,36 +36,36 @@ export default function ProductsPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:8000/products', { // TODO: Use env variable
+      const response = await fetch('http://localhost:8000/products', { // TODO: Usar variable de entorno
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch products');
+        throw new Error('Error al cargar los productos');
       }
 
       const data = await response.json();
       setProducts(data);
     } catch (err: any) {
-      setError(err.message || 'An error occurred while fetching products.');
+      setError(err.message || 'Ocurrió un error al cargar los productos.');
     } finally {
       setLoading(false);
     }
   }, [isAuthenticated, token]);
 
   const handleDeleteProduct = async (productId: string) => {
-    if (!window.confirm('Are you sure you want to delete this product and all its variants?')) {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar este producto y todas sus variantes?')) {
       return;
     }
     if (!isAuthenticated || !token) {
-      setError('Authentication token not found.');
+      setError('Token de autenticación no encontrado.');
       return;
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/products/${productId}`, { // TODO: Implement DELETE /products/{id} in backend
+      const response = await fetch(`http://localhost:8000/products/${productId}`, { // TODO: Implementar DELETE /products/{id} en backend
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -73,12 +73,12 @@ export default function ProductsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete product');
+        throw new Error('Error al eliminar el producto');
       }
 
       setProducts((prevProducts) => prevProducts.filter((p) => p.id !== productId));
     } catch (err: any) {
-      setError(err.message || 'An error occurred while deleting the product.');
+      setError(err.message || 'Ocurrió un error al eliminar el producto.');
     }
   };
 
@@ -86,20 +86,20 @@ export default function ProductsPage() {
     fetchProducts();
   }, [fetchProducts]);
 
-  if (loading) return <p>Loading products...</p>;
+  if (loading) return <p>Cargando productos...</p>;
   if (error) return <p className="text-red-500">Error: {error}</p>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Your Products</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Tus Productos</h1>
         <Link href="/dashboard/products/new" className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-          Add New Product
+          Añadir Nuevo Producto
         </Link>
       </div>
 
       {products.length === 0 ? (
-        <p className="text-gray-600">You haven't added any products yet.</p>
+        <p className="text-gray-600">Aún no has añadido ningún producto.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
@@ -110,12 +110,12 @@ export default function ProductsPage() {
               )}
               <h2 className="text-xl font-semibold text-gray-800">{product.name}</h2>
               <p className="text-gray-600 mt-2">{product.description}</p>
-              <p className="text-gray-500">Base Price: ${product.price.toFixed(2)}</p>
+              <p className="text-gray-500">Precio Base: ${product.price.toFixed(2)}</p>
               
               <div className="mt-4">
-                <h3 className="text-lg font-medium text-gray-700">Variants:</h3>
+                <h3 className="text-lg font-medium text-gray-700">Variantes:</h3>
                 {product.variants.length === 0 ? (
-                    <p className="text-gray-600 text-sm">No variants defined.</p>
+                    <p className="text-gray-600 text-sm">No hay variantes definidas.</p>
                 ) : (
                     <ul className="mt-2 text-sm text-gray-600 list-disc pl-5">
                     {product.variants.map(variant => (
@@ -130,13 +130,13 @@ export default function ProductsPage() {
 
               <div className="mt-4 flex space-x-2">
                 <Link href={`/dashboard/products/${product.id}/edit`} className="text-indigo-600 hover:text-indigo-900 text-sm">
-                  Edit
+                  Editar
                 </Link>
                 <button
                   onClick={() => handleDeleteProduct(product.id)}
                   className="text-red-600 hover:text-red-900 text-sm"
                 >
-                  Delete
+                  Eliminar
                 </button>
               </div>
             </div>

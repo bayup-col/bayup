@@ -19,7 +19,7 @@ export default function NewShippingOptionPage() {
     setLoading(true);
 
     if (!token) {
-      setError('Authentication token not found.');
+      setError('Token de autenticación no encontrado.');
       setLoading(false);
       return;
     }
@@ -28,10 +28,10 @@ export default function NewShippingOptionPage() {
       const payload = {
         name,
         cost,
-        min_order_total: minOrderTotal !== null ? minOrderTotal : undefined, // Send as undefined if null
+        min_order_total: minOrderTotal !== null ? minOrderTotal : undefined, // Enviar como undefined si es nulo
       };
 
-      const response = await fetch('http://localhost:8000/shipping', { // TODO: Use env variable
+      const response = await fetch('http://localhost:8000/shipping', { // TODO: Usar variable de entorno
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,12 +42,12 @@ export default function NewShippingOptionPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to create shipping option');
+        throw new Error(errorData.detail || 'Error al crear la opción de envío');
       }
 
       router.push('/dashboard/settings/shipping');
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred while creating the shipping option.');
+      setError(err.message || 'Ocurrió un error inesperado al crear la opción de envío.');
     } finally {
       setLoading(false);
     }
@@ -55,11 +55,11 @@ export default function NewShippingOptionPage() {
 
   return (
     <div className="max-w-xl mx-auto p-8 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Add New Shipping Option</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Añadir Nueva Opción de Envío</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-            Option Name (e.g., Standard, Express)
+            Nombre de la Opción (por ejemplo, Estándar, Expresión)
           </label>
           <input
             type="text"
@@ -72,7 +72,7 @@ export default function NewShippingOptionPage() {
         </div>
         <div>
           <label htmlFor="cost" className="block text-sm font-medium text-gray-700">
-            Cost
+            Costo
           </label>
           <input
             type="number"
@@ -87,7 +87,7 @@ export default function NewShippingOptionPage() {
         </div>
         <div>
           <label htmlFor="minOrderTotal" className="block text-sm font-medium text-gray-700">
-            Minimum Order Total (Optional)
+            Total Mínimo del Pedido (Opcional)
           </label>
           <input
             type="number"
@@ -106,7 +106,7 @@ export default function NewShippingOptionPage() {
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           disabled={loading}
         >
-          {loading ? 'Creating...' : 'Create Shipping Option'}
+          {loading ? 'Creando...' : 'Crear Opción de Envío'}
         </button>
       </form>
     </div>

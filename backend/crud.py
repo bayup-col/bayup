@@ -25,6 +25,10 @@ def create_plan(db: Session, plan: schemas.PlanCreate) -> models.Plan:
 def get_user_by_email(db: Session, email: str) -> models.User | None:
     return db.query(models.User).filter(models.User.email == email).first()
 
+def get_all_users(db: Session, skip: int = 0, limit: int = 100) -> List[models.User]:
+    """Get all users in the system"""
+    return db.query(models.User).offset(skip).limit(limit).all()
+
 def create_user(db: Session, user: schemas.UserCreate) -> models.User:
     hashed_password = security.get_password_hash(user.password)
     
@@ -301,3 +305,22 @@ def update_shipping_option(db: Session, db_shipping_option: models.ShippingOptio
 def delete_shipping_option(db: Session, db_shipping_option: models.ShippingOption):
     db.delete(db_shipping_option)
     db.commit()
+
+# --- ProductType CRUD ---
+
+def get_all_product_types(db: Session) -> List[models.ProductType]:
+    """Get all product types"""
+    return db.query(models.ProductType).all()
+
+def get_product_type(db: Session, product_type_id: uuid.UUID) -> models.ProductType | None:
+    return db.query(models.ProductType).filter(models.ProductType.id == product_type_id).first()
+
+def get_product_type_by_name(db: Session, name: str) -> models.ProductType | None:
+    return db.query(models.ProductType).filter(models.ProductType.name == name).first()
+
+def create_product_type(db: Session, product_type: schemas.ProductTypeCreate) -> models.ProductType:
+    db_product_type = models.ProductType(**product_type.dict())
+    db.add(db_product_type)
+    db.commit()
+    db.refresh(db_product_type)
+    return db_product_type

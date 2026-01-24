@@ -26,11 +26,7 @@ export default function SuperAdminPage() {
             setLoading(true);
             setError(null);
             try {
-                // For MVP, this endpoint doesn't exist yet, it's illustrative.
-                // In a real scenario, this would be a protected /admin/users endpoint
-                // that only super_admins can access.
-                // For now, it will return an error as no such endpoint is implemented.
-                const response = await fetch('http://localhost:8000/admin/users', { // TODO: Implement admin endpoints
+                const response = await fetch('http://localhost:8000/admin/users', {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                     },
@@ -48,34 +44,33 @@ export default function SuperAdminPage() {
                 setLoading(false);
             }
         };
-        // fetchUsers(); // Don't call this for now as endpoint doesn't exist
-        setLoading(false); // Manually set loading to false for placeholder
-        setError("Super Admin endpoint not yet implemented on backend. This page is a placeholder.");
+
+        fetchUsers();
     }, [isAuthenticated, token]);
 
-    if (loading) return <p>Loading Super Admin data...</p>;
+    if (loading) return <p>Cargando datos del Super Admin...</p>;
     if (error) return <p className="text-red-500">Error: {error}</p>;
 
     return (
         <div className="max-w-4xl mx-auto p-8 bg-white rounded-lg shadow-md">
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">Super Admin Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">Panel de Super Admin</h1>
             <p className="text-gray-600 mb-4">
-                This area is for platform administrators to manage users, plans, and other system-wide settings.
-                Functionality for this section is currently a placeholder.
+                Esta área es para que los administradores de la plataforma gestionen usuarios, planes y otras configuraciones del sistema.
             </p>
 
-            {/* Placeholder for User List */}
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">All Users (Placeholder)</h2>
+            {/* Lista de Usuarios */}
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Todos los Usuarios</h2>
             {users.length === 0 ? (
-                <p className="text-gray-600">No users found or endpoint not implemented.</p>
+                <p className="text-gray-600">No se encontraron usuarios.</p>
             ) : (
                 <div className="space-y-4">
                     {users.map(user => (
                         <div key={user.id} className="border p-4 rounded-md bg-gray-50">
-                            <p><strong>Email:</strong> {user.email}</p>
-                            <p><strong>Role:</strong> {user.role}</p>
+                            <p><strong>Correo:</strong> {user.email}</p>
+                            <p><strong>Nombre:</strong> {user.full_name || 'N/A'}</p>
+                            <p><strong>Rol:</strong> {user.role}</p>
                             <p><strong>Plan ID:</strong> {user.plan_id || 'N/A'}</p>
-                            {/* Actions like change role/plan could go here */}
+                            {/* Las acciones de cambiar rol/plan podrían ir aquí */}
                         </div>
                     ))}
                 </div>
