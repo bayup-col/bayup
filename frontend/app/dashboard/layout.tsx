@@ -10,27 +10,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   
-  // Estado para el nombre de la empresa (Dinámico)
-  const [storeName, setStoreName] = useState("Mi Empresa");
-
   // Estados para submenús y modales
   const [productsOpen, setProductsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
 
-  // Simulación de carga de nombre de empresa (esto vendría de una API o Contexto)
-  useEffect(() => {
-    // Por ahora lo tomamos de la primera parte del email o un valor guardado
-    const savedName = localStorage.getItem('storeName');
-    if (savedName) {
-        setStoreName(savedName);
-    } else {
-        setStoreName(userEmail?.split('@')[0] || "Mi Empresa");
-    }
-  }, [userEmail]);
-
-  // Auto-expandir menús según la ruta
+  // Auto-expandir menús según la ruta actual
   useEffect(() => {
     if (pathname.includes('/dashboard/products') || pathname.includes('/dashboard/collections') || pathname.includes('/dashboard/inventory') || pathname.includes('/dashboard/catalogs')) {
       setProductsOpen(true);
@@ -97,7 +83,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const DashboardHeader = () => (
     <header className="h-16 flex-shrink-0 bg-white/70 backdrop-blur-lg border-b border-white/20 flex items-center justify-between px-8 sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{storeName}</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Plataforma</span>
             <span className="text-gray-300">/</span>
             <span className="text-xs font-bold text-gray-600 capitalize">{pathname.split('/').pop()?.replace('-', ' ')}</span>
         </div>
@@ -151,9 +137,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="p-6 border-b border-white/10"><Link href="/dashboard/super-admin" className="text-2xl font-black bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">Super Admin</Link></div>
           <nav className="flex-1 px-4 py-6 space-y-2">
             <Link href="/dashboard/super-admin" className={getLinkStyles('/dashboard/super-admin', 'super')}>📊 Dashboard</Link>
+            <Link href="/dashboard/super-admin/comercial" className={getLinkStyles('/dashboard/super-admin/comercial', 'super')}>📊 Comercial</Link>
             <Link href="/dashboard/super-admin/clientes" className={getLinkStyles('/dashboard/super-admin/clientes', 'super')}>👥 Clientes</Link>
             <Link href="/dashboard/super-admin/ventas" className={getLinkStyles('/dashboard/super-admin/ventas', 'super')}>💰 Ventas</Link>
-            <Link href="/dashboard/super-admin/roles" className={getLinkStyles('/dashboard/super-admin/roles', 'super')}>Usuarios</Link>
+            <Link href="/dashboard/super-admin/afiliados" className={getLinkStyles('/dashboard/super-admin/afiliados', 'super')}>🤝 Afiliados</Link>
+            <Link href="/dashboard/super-admin/roles" className={getLinkStyles('/dashboard/super-admin/roles', 'super')}>🔐 Usuarios</Link>
+            <Link href="/dashboard/super-admin/reports" className={getLinkStyles('/dashboard/super-admin/reports', 'super')}>📈 Informes</Link>
           </nav>
           <div className="p-4 mt-auto text-center"><span className="text-[10px] text-gray-400 font-bold uppercase">Bayup Admin v1.0</span></div>
         </>
@@ -165,11 +154,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <MainLayout sidebar={
       <>
-        <div className="p-6 border-b border-gray-100">
-          <Link href="/dashboard" className="text-2xl font-black bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent truncate block">
-            {storeName}
-          </Link>
-        </div>
+        <div className="p-6 border-b border-gray-100"><Link href="/dashboard" className="text-2xl font-black bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Dashboard</Link></div>
         <nav className="flex-1 px-4 py-6 space-y-2">
           <div className="pb-4 mb-2 border-b border-gray-100">
             <Link href="/dashboard/my-store" className={`block px-4 py-3 rounded-xl transition-all duration-200 border flex items-center justify-between group transform hover:scale-[1.05] ${pathname === '/dashboard/my-store' ? 'bg-purple-600 text-white border-purple-500 shadow-lg scale-[1.05]' : 'bg-purple-100/50 text-purple-900 border-purple-200/30 hover:bg-purple-200/50'}`}><span className="font-bold text-sm">🏪 Mi Tienda</span><span className={`text-lg transition-opacity ${pathname === '/dashboard/my-store' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>↗</span></Link>
@@ -196,7 +181,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <div className={`overflow-hidden transition-all duration-300 ease-in-out ${settingsOpen ? 'max-h-60 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}><div className="space-y-1"><Link href="/dashboard/settings/general" className={getLinkStyles('/dashboard/settings/general', 'admin', true)}>ℹ️ Info General</Link><Link href="/dashboard/settings/plan" className={getLinkStyles('/dashboard/settings/plan', 'admin', true)}>💎 Mi Plan</Link><Link href="/dashboard/settings/billing" className={getLinkStyles('/dashboard/settings/billing', 'admin', true)}>💳 Facturación</Link><Link href="/dashboard/settings/users" className={getLinkStyles('/dashboard/settings/users', 'admin', true)}>👥 Usuarios / Staff</Link></div></div>
           </div>
         </nav>
-        <div className="p-4 mt-auto text-center"><span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none block">{storeName}</span><span className="text-[8px] text-gray-300 font-medium">Powered by Bayup</span></div>
+        <div className="p-4 mt-auto text-center"><span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none block">Bayup Admin</span><span className="text-[8px] text-gray-300 font-medium">Powered by Bayup</span></div>
       </>
     } />
   );

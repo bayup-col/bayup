@@ -3,166 +3,162 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../../context/auth-context';
 
-interface User {
-    id: string;
-    email: string;
-    full_name: string | null;
-    role: string;
-    plan_id: string | null;
-}
-
-export default function SuperAdminPage() {
+export default function SuperAdminDashboard() {
     const { token, isAuthenticated } = useAuth();
-    const [users, setUsers] = useState<User[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    // Datos financieros estáticos (Mock)
-    const financialData = {
-        balance: 125050.00,
-        expenses: 42300.00
+    
+    // Mock Data Financiera
+    const financialStats = {
+        totalDeposits: 854200.00,
+        totalWithdrawals: 320150.00,
+        netBalance: 534050.00,
+        revenueToday: 12450.00,
+        activeCompanies: 42,
+        trends: {
+            deposits: +12.5,
+            withdrawals: -2.1,
+            balance: +8.4,
+            revenue: +15.2,
+            companies: +3
+        }
     };
+
+    const recentMovements = [
+        { id: '1', shop: 'Nike Store', type: 'deposito', amount: 4500, time: 'hace 5 min', status: 'completado' },
+        { id: '2', shop: 'Tech Hub', type: 'retiro', amount: 12000, time: 'hace 24 min', status: 'pendiente' },
+        { id: '3', shop: 'Boutique Maria', type: 'deposito', amount: 850, time: 'hace 1 hora', status: 'completado' },
+        { id: '4', shop: 'Electro Express', type: 'deposito', amount: 3200, time: 'hace 2 horas', status: 'completado' },
+    ];
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
     };
 
-    useEffect(() => {
-        if (!isAuthenticated || !token) {
-            return;
-        }
-
-        const fetchUsers = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const response = await fetch('http://localhost:8000/admin/users', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch users or unauthorized access');
-                }
-
-                const data = await response.json();
-                setUsers(data);
-            } catch (err: any) {
-                setError(err.message || 'An error occurred while fetching users.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchUsers();
-    }, [isAuthenticated, token]);
+    const StatCard = ({ title, value, trend, isCurrency = true }: any) => (
+        <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
+            <div className="absolute top-4 left-4">
+                {trend > 0 ? (
+                    <span className="text-green-500 flex items-center text-[10px] font-bold bg-green-50 px-1.5 py-0.5 rounded-md">
+                        ↑ {Math.abs(trend)}%
+                    </span>
+                ) : (
+                    <span className="text-rose-500 flex items-center text-[10px] font-bold bg-rose-50 px-1.5 py-0.5 rounded-md">
+                        ↓ {Math.abs(trend)}%
+                    </span>
+                )}
+            </div>
+            <div className="mt-4 text-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">{title}</p>
+                <h3 className={`text-xl font-black ${title.includes('Retiros') ? 'text-rose-600' : 'text-gray-900'}`}>
+                    {isCurrency ? formatCurrency(value) : value}
+                </h3>
+            </div>
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-50 group-hover:bg-purple-500 transition-all duration-500"></div>
+        </div>
+    );
 
     return (
-        <div className="max-w-6xl mx-auto p-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Panel de Control</h1>
-                <p className="text-gray-500">Visión general del rendimiento de la plataforma.</p>
-            </div>
-
-            {/* --- SECCIÓN 1: INDICADORES SUPERIORES --- */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {/* Card Balance Total */}
-                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500 mb-1">Balance Total</p>
-                        <h2 className="text-3xl font-bold text-emerald-600">{formatCurrency(financialData.balance)}</h2>
-                        <p className="text-xs text-emerald-600 mt-2 flex items-center font-medium">
-                            +12.5% <span className="text-gray-400 ml-1 font-normal">vs mes anterior</span>
-                        </p>
-                    </div>
-                    <div className="p-4 bg-emerald-50 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-emerald-600">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                        </svg>
-                    </div>
+        <div className="max-w-7xl mx-auto space-y-10 pb-20 animate-in fade-in duration-700">
+            
+            {/* 1. Header Logístico */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight italic">Global Logistics Control</h1>
+                    <p className="text-gray-500 mt-1 font-medium">Resumen financiero y operativo de toda la red Bayup.</p>
                 </div>
-
-                {/* Card Egresos */}
-                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500 mb-1">Egresos & Deudas</p>
-                        <h2 className="text-3xl font-bold text-rose-600">{formatCurrency(financialData.expenses)}</h2>
-                        <p className="text-xs text-rose-600 mt-2 flex items-center font-medium">
-                            +2.1% <span className="text-gray-400 ml-1 font-normal">vs mes anterior</span>
-                        </p>
-                    </div>
-                    <div className="p-4 bg-rose-50 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-rose-600">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
-                        </svg>
-                    </div>
+                <div className="flex gap-3">
+                    <button className="px-5 py-2.5 bg-gray-900 text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all shadow-xl">Auditoría Completa</button>
                 </div>
             </div>
 
-            {/* --- SECCIÓN 2: GESTIÓN DE USUARIOS --- */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-8">
-                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                    <h2 className="text-lg font-semibold text-gray-800">Gestión de Usuarios</h2>
-                    <span className="text-xs text-gray-500 bg-white border px-2 py-1 rounded">Total: {users.length}</span>
-                </div>
+            {/* 2. Grid de Cards Financieras (Top) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <StatCard title="Depósitos Mes" value={financialStats.totalDeposits} trend={financialStats.trends.deposits} />
+                <StatCard title="Retiros Mes" value={financialStats.totalWithdrawals} trend={financialStats.trends.withdrawals} />
+                <StatCard title="Saldo Neto" value={financialStats.netBalance} trend={financialStats.trends.balance} />
+                <StatCard title="Ingreso Hoy" value={financialStats.revenueToday} trend={financialStats.trends.revenue} />
+                <StatCard title="Empresas Activas" value={financialStats.activeCompanies} trend={financialStats.trends.companies} isCurrency={false} />
+            </div>
+
+            {/* 3. Panel de Control Secundario */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
-                <div className="p-0">
-                    {loading ? (
-                        <div className="flex justify-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                {/* Columna Izquierda: Movimientos en Tiempo Real */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
+                            <h2 className="text-lg font-bold text-gray-800">Flujo de Caja en Vivo</h2>
+                            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
                         </div>
-                    ) : error ? (
-                        <p className="text-red-500 text-center py-4">{error}</p>
-                    ) : users.length === 0 ? (
-                        <p className="text-gray-500 text-center py-4">No se encontraron usuarios.</p>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {users.map(user => (
-                                        <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center">
-                                                    <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
-                                                        {user.full_name ? user.full_name.charAt(0) : user.email.charAt(0).toUpperCase()}
-                                                    </div>
-                                                    <div className="ml-3">
-                                                        <div className="text-sm font-medium text-gray-900">{user.full_name || 'Sin nombre'}</div>
-                                                        <div className="text-xs text-gray-500">{user.email}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                    user.role === 'super_admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-                                                }`}>
-                                                    {user.role}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {user.plan_id || 'Free'}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <span className="text-green-600 flex items-center gap-1 text-xs">
-                                                    <span className="h-1.5 w-1.5 rounded-full bg-green-500"></span>
-                                                    Activo
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className="divide-y divide-gray-50">
+                            {recentMovements.map((move) => (
+                                <div key={move.id} className="p-6 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-xl shadow-inner ${move.type === 'deposito' ? 'bg-green-50 text-green-600' : 'bg-rose-50 text-rose-600'}`}>
+                                            {move.type === 'deposito' ? '📥' : '📤'}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-black text-gray-900">{move.shop}</p>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{move.time} • {move.type}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className={`text-sm font-black ${move.type === 'deposito' ? 'text-green-600' : 'text-rose-600'}`}>
+                                            {move.type === 'deposito' ? '+' : '-'}{formatCurrency(move.amount)}
+                                        </p>
+                                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${move.status === 'pendiente' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+                                            {move.status}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    )}
+                        <button className="w-full py-4 text-[10px] font-black uppercase tracking-widest text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all">Ver todas las transacciones →</button>
+                    </div>
+                </div>
+
+                {/* Columna Derecha: Alertas y Salud del Sistema */}
+                <div className="space-y-8">
+                    
+                    {/* Sección de Aprobaciones */}
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
+                        <h2 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">Pendiente de Aprobación</h2>
+                        <div className="space-y-4">
+                            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex flex-col gap-3">
+                                <div className="flex justify-between items-start">
+                                    <span className="text-xs font-bold text-amber-800">Solicitud de Retiro</span>
+                                    <span className="text-[10px] font-black text-amber-600">ID #9284</span>
+                                </div>
+                                <p className="text-lg font-black text-gray-900">$15,400.00</p>
+                                <div className="flex gap-2">
+                                    <button className="flex-1 bg-white text-gray-900 py-2 rounded-xl text-[10px] font-black uppercase border border-amber-200">Revisar</button>
+                                    <button className="flex-1 bg-gray-900 text-white py-2 rounded-xl text-[10px] font-black uppercase shadow-lg">Aprobar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Salud del Sistema */}
+                    <div className="bg-gray-900 p-8 rounded-[2.5rem] text-white space-y-6 shadow-2xl">
+                        <h2 className="text-xs font-black text-purple-400 uppercase tracking-[0.2em]">Estado de Infraestructura</h2>
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-gray-400">Servidores API</span>
+                                <span className="text-[10px] font-black text-green-400 uppercase">Óptimo (99.9%)</span>
+                            </div>
+                            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                                <div className="bg-green-400 h-full w-[99%]"></div>
+                            </div>
+                            <div className="flex justify-between items-center pt-2">
+                                <span className="text-xs font-bold text-gray-400">Procesamiento Pagos</span>
+                                <span className="text-[10px] font-black text-green-400 uppercase">Activo</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-2">
+                                <span className="text-xs font-bold text-gray-400">Amazon S3 (Imágenes)</span>
+                                <span className="text-[10px] font-black text-green-400 uppercase">Conectado</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
