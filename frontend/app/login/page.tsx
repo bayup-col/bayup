@@ -33,8 +33,28 @@ export default function LoginPage() {
       }
 
       const data = await response.json();
-      login(data.access_token, email); // Guardar token y correo
-      router.push('/dashboard'); // Redirigir al dashboard
+      
+      // Obtener el rol del usuario desde el backend
+      const userResponse = await fetch('http://localhost:8000/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${data.access_token}`,
+        },
+      });
+      
+      let userRole = 'admin_tienda'; // Default
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        userRole = userData.role || 'admin_tienda';
+      }
+      
+      login(data.access_token, email, userRole); // Guardar token, correo y rol
+      
+      // Redirigir según el rol
+      if (userRole === 'super_admin') {
+        router.push('/dashboard/super-admin');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');
     }

@@ -41,6 +41,7 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
         email=user.email,
         full_name=user.full_name,
         hashed_password=hashed_password,
+        role="admin_tienda",  # Asignar automáticamente el rol de administrador de tienda
         plan_id=default_plan.id
     )
     db.add(db_user)

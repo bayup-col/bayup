@@ -131,6 +131,14 @@ def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+@app.get("/auth/me", response_model=schemas.User)
+def get_current_user_info(
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Get current user information including role"""
+    return current_user
+
+
 @app.post("/auth/clerk-login")
 async def clerk_login_for_access_token(
     request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)
@@ -595,7 +603,7 @@ def update_user_role(
         raise HTTPException(status_code=404, detail="User not found")
     
     # Validate role
-    valid_roles = ["user", "admin", "super_admin"]
+    valid_roles = ["admin_tienda", "super_admin"]
     if new_role not in valid_roles:
         raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {valid_roles}")
     
