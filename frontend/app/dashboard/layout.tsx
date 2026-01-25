@@ -6,6 +6,27 @@ import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { DashboardHeader } from '@/components/dashboard/Header';
 import { SupportWidget } from '@/components/dashboard/SupportWidget';
+import { 
+  LayoutDashboard, 
+  Bot, 
+  FileText, 
+  Package, 
+  Truck, 
+  Globe, 
+  MessageSquare, 
+  Link2, 
+  Users, 
+  ShieldCheck, 
+  TrendingUp, 
+  Gem, 
+  Tag, 
+  Settings,
+  Users2,
+  BarChart3,
+  Store,
+  ChevronDown,
+  Pencil
+} from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, logout, userEmail, userRole } = useAuth();
@@ -52,14 +73,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return baseClasses + (active ? 'bg-purple-50 text-purple-700 font-bold border border-purple-100/50 shadow-sm' : 'text-slate-500 hover:bg-gray-50 hover:text-purple-600 border border-transparent hover:shadow-sm');
   };
 
-  const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: string, id: string, isSub?: boolean }) => {
+  const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
     const isHidden = hiddenModules.includes(id);
     if (isHidden && !isEditingMenu) return null;
 
     return (
         <div className="relative group/item flex items-center">
             <Link href={href} className={`flex-1 ${getLinkStyles(href, 'admin', isSub)} ${isHidden ? 'opacity-30 grayscale' : ''}`}>
-                {label}
+                <span className="flex items-center">{label}</span>
             </Link>
             {isEditingMenu && (
                 <button 
@@ -79,13 +100,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <>
               <div className="p-6 border-b border-white/10"><Link href="/dashboard/super-admin" className="text-2xl font-black bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">Super Admin</Link></div>
               <nav className="flex-1 px-4 py-6 space-y-2">
-                <Link href="/dashboard/super-admin" className={getLinkStyles('/dashboard/super-admin', 'super')}>📊 Dashboard</Link>
-                <Link href="/dashboard/super-admin/comercial" className={getLinkStyles('/dashboard/super-admin/comercial', 'super')}>📊 Comercial</Link>
-                <Link href="/dashboard/super-admin/clientes" className={getLinkStyles('/dashboard/super-admin/clientes', 'super')}>👥 Clientes</Link>
-                <Link href="/dashboard/super-admin/ventas" className={getLinkStyles('/dashboard/super-admin/ventas', 'super')}>💰 Ventas</Link>
-                <Link href="/dashboard/super-admin/afiliados" className={getLinkStyles('/dashboard/super-admin/afiliados', 'super')}>🤝 Afiliados</Link>
-                <Link href="/dashboard/super-admin/roles" className={getLinkStyles('/dashboard/super-admin/roles', 'super')}>🔐 Usuarios</Link>
-                <Link href="/dashboard/super-admin/reports" className={getLinkStyles('/dashboard/super-admin/reports', 'super')}>📈 Informes</Link>
+                <Link href="/dashboard/super-admin" className={getLinkStyles('/dashboard/super-admin', 'super')}><BarChart3 size={16} className="inline mr-2" /> Dashboard</Link>
+                <Link href="/dashboard/super-admin/comercial" className={getLinkStyles('/dashboard/super-admin/comercial', 'super')}><TrendingUp size={16} className="inline mr-2" /> Comercial</Link>
+                <Link href="/dashboard/super-admin/clientes" className={getLinkStyles('/dashboard/super-admin/clientes', 'super')}><Users size={16} className="inline mr-2" /> Clientes</Link>
+                <Link href="/dashboard/super-admin/ventas" className={getLinkStyles('/dashboard/super-admin/ventas', 'super')}><Package size={16} className="inline mr-2" /> Ventas</Link>
+                <Link href="/dashboard/super-admin/afiliados" className={getLinkStyles('/dashboard/super-admin/afiliados', 'super')}><Users2 size={16} className="inline mr-2" /> Afiliados</Link>
+                <Link href="/dashboard/super-admin/roles" className={getLinkStyles('/dashboard/super-admin/roles', 'super')}><ShieldCheck size={16} className="inline mr-2" /> Usuarios</Link>
+                <Link href="/dashboard/super-admin/reports" className={getLinkStyles('/dashboard/super-admin/reports', 'super')}><FileText size={16} className="inline mr-2" /> Informes</Link>
               </nav>
             </>
         );
@@ -109,7 +130,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     </div>
                     <Link href="/dashboard/my-store" className="flex items-center justify-center gap-2 w-full py-2 bg-white border border-purple-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-purple-600 hover:bg-purple-600 hover:text-white transition-all shadow-sm active:scale-95 group/store">
                         <span>Ver tienda online</span>
-                        <svg className="w-3 h-3 group-hover/store:translate-x-0.5 group-hover/store:-translate-y-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                        <Globe size={12} className="group-hover/store:translate-x-0.5 group-hover/store:-translate-y-0.5 transition-transform" />
                     </Link>
                 </div>
             </div>
@@ -118,19 +139,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <div>
                     <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Operación</p>
                     <div className="space-y-1">
-                        <MenuItem href="/dashboard" label="🏠 Inicio" id="m_inicio" />
-                        <MenuItem href="/dashboard/ai-assistants" label="🤖 Asistentes IA" id="m_ai_assistants" />
-                        <MenuItem href="/dashboard/invoicing" label="🧾 Facturación" id="m_facturacion" />
-                        <MenuItem href="/dashboard/orders" label="📦 Pedidos" id="m_pedidos" />
-                        <MenuItem href="/dashboard/shipping" label="🚚 Envíos" id="m_envios" />
+                        <MenuItem href="/dashboard" label={<><LayoutDashboard size={16} className="mr-2" /> Inicio</>} id="m_inicio" />
+                        <MenuItem href="/dashboard/ai-assistants" label={<><Bot size={16} className="mr-2" /> Asistentes IA</>} id="m_ai_assistants" />
+                        <MenuItem href="/dashboard/invoicing" label={<><FileText size={16} className="mr-2" /> Facturación</>} id="m_facturacion" />
+                        <MenuItem href="/dashboard/orders" label={<><Package size={16} className="mr-2" /> Pedidos</>} id="m_pedidos" />
+                        <MenuItem href="/dashboard/shipping" label={<><Truck size={16} className="mr-2" /> Envíos</>} id="m_envios" />
                         
                         {!hiddenModules.includes('m_productos') || isEditingMenu ? (
                             <div className={hiddenModules.includes('m_productos') ? 'opacity-30' : ''}>
                                 <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
-                                    <span className="flex items-center gap-2 text-sm font-medium">🛍️ Productos</span>
+                                    <span className="flex items-center gap-2 text-sm font-medium"><Store size={16} /> Productos</span>
                                     <div className="flex items-center gap-2">
                                         {isEditingMenu && <div onClick={(e) => { e.stopPropagation(); toggleModule('m_productos'); }} className={`h-4 w-4 rounded-full border-2 ${hiddenModules.includes('m_productos') ? 'bg-purple-600 border-purple-600' : 'bg-white border-gray-200'}`}></div>}
-                                        <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                        <ChevronDown size={14} className={`transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} />
                                     </div>
                                 </button>
                                 <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
@@ -147,36 +168,36 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             </div>
                         ) : null}
 
-                        <MenuItem href="/dashboard/multiventa" label="🌐 Multiventa" id="m_multiventa" />
-                        <MenuItem href="/dashboard/chats" label="💬 Mensajes" id="m_mensajes" />
-                        <MenuItem href="/dashboard/links" label="🔗 Link de pago" id="m_links" />
-                        <MenuItem href="/dashboard/customers" label="👥 Clientes" id="m_clientes" />
-                        <MenuItem href="/dashboard/returns" label="🛡️ Garantías" id="m_garantias" />
+                        <MenuItem href="/dashboard/multiventa" label={<><Globe size={16} className="mr-2" /> Multiventa</>} id="m_multiventa" />
+                        <MenuItem href="/dashboard/chats" label={<><MessageSquare size={16} className="mr-2" /> Mensajes</>} id="m_mensajes" />
+                        <MenuItem href="/dashboard/links" label={<><Link2 size={16} className="mr-2" /> Link de pago</>} id="m_links" />
+                        <MenuItem href="/dashboard/customers" label={<><Users size={16} className="mr-2" /> Clientes</>} id="m_clientes" />
+                        <MenuItem href="/dashboard/returns" label={<><ShieldCheck size={16} className="mr-2" /> Garantías</>} id="m_garantias" />
                     </div>
                 </div>
 
                 <div>
                     <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Crecimiento</p>
                     <div className="space-y-1">
-                        <MenuItem href="/dashboard/marketing" label="📢 Marketing" id="m_marketing" />
-                        <MenuItem href="/dashboard/loyalty" label="💎 Club de Puntos" id="m_loyalty" />
-                        <MenuItem href="/dashboard/discounts" label="🏷️ Descuentos" id="m_discounts" />
-                        <MenuItem href="/dashboard/automations" label="⚙️ Automatizaciones" id="m_automations" />
+                        <MenuItem href="/dashboard/marketing" label={<><TrendingUp size={16} className="mr-2" /> Marketing</>} id="m_marketing" />
+                        <MenuItem href="/dashboard/loyalty" label={<><Gem size={16} className="mr-2" /> Club de Puntos</>} id="m_loyalty" />
+                        <MenuItem href="/dashboard/discounts" label={<><Tag size={16} className="mr-2" /> Descuentos</>} id="m_discounts" />
+                        <MenuItem href="/dashboard/automations" label={<><Settings size={16} className="mr-2" /> Automatizaciones</>} id="m_automations" />
                     </div>
                 </div>
 
                 <div>
                     <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Gestión</p>
                     <div className="space-y-1">
-                        <MenuItem href="/dashboard/payroll" label="👥 Nómina" id="m_payroll" />
+                        <MenuItem href="/dashboard/payroll" label={<><Users2 size={16} className="mr-2" /> Nómina</>} id="m_payroll" />
                         
                         {!hiddenModules.includes('m_informes') || isEditingMenu ? (
                             <div className={hiddenModules.includes('m_informes') ? 'opacity-30' : ''}>
                                 <button onClick={() => setReportsOpen(!reportsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/reports')}`}>
-                                    <span className="flex items-center gap-2 text-sm font-medium">📊 Informes</span>
+                                    <span className="flex items-center gap-2 text-sm font-medium"><BarChart3 size={16} /> Informes</span>
                                     <div className="flex items-center gap-2">
                                         {isEditingMenu && <div onClick={(e) => { e.stopPropagation(); toggleModule('m_informes'); }} className={`h-4 w-4 rounded-full border-2 ${hiddenModules.includes('m_informes') ? 'bg-purple-600 border-purple-600' : 'bg-white border-gray-200'}`}></div>}
-                                        <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${reportsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                                        <ChevronDown size={14} className={`transition-transform duration-200 ${reportsOpen ? 'rotate-180' : ''}`} />
                                     </div>
                                 </button>
                                 <div className={`overflow-hidden transition-all duration-300 ease-in-out ${reportsOpen ? 'max-h-80 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
@@ -194,8 +215,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                         <div>
                             <button onClick={() => setSettingsOpen(!settingsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/settings')}`}>
-                                <span className="flex items-center gap-2 text-sm font-medium">⚙️ Config. Tienda</span>
-                                <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${settingsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                                <span className="flex items-center gap-2 text-sm font-medium"><Settings size={16} /> Config. Tienda</span>
+                                <ChevronDown size={14} className={`transition-transform duration-200 ${settingsOpen ? 'rotate-180' : ''}`} />
                             </button>
                             <div className={`overflow-hidden transition-all duration-300 ease-in-out ${settingsOpen ? 'max-h-60 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                                 <div className="space-y-1">
@@ -231,7 +252,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             className={`h-7 w-7 flex items-center justify-center rounded-lg transition-all ${isEditingMenu ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-300 hover:text-purple-600 opacity-50 hover:opacity-100'}`}
             title="Personalizar Menú"
           >
-            ✎
+            <Pencil size={12} />
           </button>
         </div>
       </aside>

@@ -7,8 +7,14 @@ from typing import List, Optional
 import uuid
 from starlette.responses import RedirectResponse
 
-import crud, models, schemas, security, s3_service, payment_service, clerk_auth_service
 from database import SessionLocal, engine, get_db
+import crud
+import models
+import schemas
+import security
+import s3_service
+import payment_service
+import clerk_auth_service
 
 # Create all tables in the database.
 # This is simple for now. For production, you would use Alembic migrations.

@@ -66,3 +66,20 @@ export const assistantService = {
             token 
         }),
 };
+
+export const pageService = {
+    getAll: (token: string) => apiRequest<any[]>('/pages', { token }),
+    getById: (token: string, id: string) => apiRequest<any>(`/pages/${id}`, { token }),
+    create: (token: string, data: any) => 
+        apiRequest('/pages', { 
+            method: 'POST', 
+            token, 
+            body: JSON.stringify(data) 
+        }),
+    update: (token: string, id: string, data: any) => 
+        apiRequest(`/pages/${id}`, { 
+            method: 'PUT', 
+            token, 
+            body: JSON.stringify(data) 
+        }),
+};
