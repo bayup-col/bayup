@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '../../../context/auth-context';
+import { useAuth } from "@/context/auth-context";
 
 interface Collection {
   id: string;

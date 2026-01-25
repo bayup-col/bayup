@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '../../context/auth-context';
+import { useAuth } from "@/context/auth-context";
 
 // --- COMPONENTES AUXILIARES ---
 

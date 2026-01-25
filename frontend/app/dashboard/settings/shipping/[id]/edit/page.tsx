@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useAuth } from '../../../../context/auth-context';
+import { useAuth } from "@/context/auth-context";
 
 interface ShippingOption {
   id: string;

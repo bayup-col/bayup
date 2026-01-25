@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../../../context/auth-context';
+import { useAuth } from "@/context/auth-context";
 
 interface WhatsAppLine {
     id: string;
@@ -195,16 +195,16 @@ export default function GeneralSettings() {
                             className={`p-6 rounded-[2rem] border transition-all flex items-center justify-between group ${social.color} ${connections[social.id as keyof typeof connections] ? 'bg-purple-50 border-purple-200' : 'bg-white border-gray-100'}`}
                         >
                             <div className="flex items-center gap-4">
-                                <span className={`text-2xl transition-all ${connections[social.id as keyof typeof social.id] ? '' : 'grayscale'}`}>{social.icon}</span>
+                                <span className={`text-2xl transition-all ${connections[social.id as keyof typeof connections] ? '' : 'grayscale'}`}>{social.icon}</span>
                                 <div className="text-left">
                                     <p className="text-sm font-black text-gray-900">{social.label}</p>
-                                    <p className={`text-[9px] font-black uppercase mt-1 ${connections[social.id as keyof typeof social.id] ? 'text-purple-600' : 'text-gray-400'}`}>
-                                        {connections[social.id as keyof typeof social.id] ? 'Vinculado' : 'Desconectado'}
+                                    <p className={`text-[9px] font-black uppercase mt-1 ${connections[social.id as keyof typeof connections] ? 'text-purple-600' : 'text-gray-400'}`}>
+                                        {connections[social.id as keyof typeof connections] ? 'Vinculado' : 'Desconectado'}
                                     </p>
                                 </div>
                             </div>
-                            <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${connections[social.id as keyof typeof social.id] ? 'bg-purple-600 border-purple-600' : 'border-gray-100'}`}>
-                                {connections[social.id as keyof typeof social.id] && <span className="text-white text-[10px]">✓</span>}
+                            <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${connections[social.id as keyof typeof connections] ? 'bg-purple-600 border-purple-600' : 'border-gray-100'}`}>
+                                {connections[social.id as keyof typeof connections] && <span className="text-white text-[10px]">✓</span>}
                             </div>
                         </button>
                     ))}

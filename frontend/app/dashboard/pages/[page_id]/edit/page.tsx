@@ -70,7 +70,7 @@ export default function VisualEditor({ params }: { params: { page_id: string } }
         announcement: { show: true, bg: '#111827', color: '#ffffff', style: 'solid' as any, padding: 10, speed: 3, messages: [{ id: '1', text: 'Envíos gratis por compras superiores a $150.000' }] },
         header: {
             logo_type: 'text' as any, logo_text: 'BAYUP STORE', logo_image: null as any, logo_font: 'Syncopate', logo_effect: 'none' as any, logo_width: 150, logo_position: 'left' as any, logo_color: '#111827',
-            nav_items: [{ id: '1', label: 'Inicio', href: '/', type: 'url' }, { id: '2', label: 'Catálogo', href: '/shop', type: 'url' }],
+            nav_items: [{ id: '1', label: 'Inicio', href: '/', type: 'url' }, { id: '2', label: 'Catálogo', href: '/shop', type: 'url' }] as NavItem[],
             nav_font: 'Inter', nav_font_size: 10, nav_spacing: 32, nav_color: '#94a3b8', nav_alignment: 'center' as any,
             bar_style: 'solid' as any, bar_bg: '#ffffff', bar_height: 80, bar_border_weight: 1, 
             shortcuts: [{ id: 'sc1', type: 'search', icon: '🔍', href: '#', style: 'minimal' }, { id: 'sc2', type: 'cart', icon: '👜', href: '/cart', style: 'minimal' }] as ShortcutIcon[], icon_color: '#111827'

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '../../../context/auth-context';
+import { useAuth } from "@/context/auth-context";
 
 export default function SuperAdminDashboard() {
     const { token, isAuthenticated } = useAuth();

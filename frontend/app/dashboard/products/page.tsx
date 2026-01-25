@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../context/auth-context';
+import { useAuth } from "@/context/auth-context";
 
 // --- CONFIGURACIÓN DE SUGERENCIAS ---
 const CATEGORIES = [

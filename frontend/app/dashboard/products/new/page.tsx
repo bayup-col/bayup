@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../../context/auth-context';
+import { useAuth } from "@/context/auth-context";
 import { v4 as uuidv4 } from 'uuid';
 
 interface VariantInput {

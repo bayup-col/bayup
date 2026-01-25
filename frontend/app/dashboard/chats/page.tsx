@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../../../context/auth-context';
+import { useAuth } from "@/context/auth-context";
 
 interface Message {
     id: string;

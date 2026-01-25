@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useAuth } from '../../../../context/auth-context';
+import { useAuth } from "@/context/auth-context";
 import { v4 as uuidv4 } from 'uuid'; // For unique keys for variants
 
 interface ProductVariant {

@@ -2,6 +2,7 @@
 "use client";
 
 import React from 'react';
+import Link from 'next/link';
 
 // Define types for your JSON sections
 interface HeaderSection {
@@ -53,7 +54,7 @@ const componentMap: Record<string, React.ComponentType<any>> = {
       md: 'text-base',
       lg: 'text-lg',
     };
-    return <p className={`p-4 ${sizeClasses[textSize]} ${textColor}`}>{content}</p>;
+    return <p className={`p-4 ${sizeClasses[textSize as keyof typeof sizeClasses]} ${textColor}`}>{content}</p>;
   },
   hero: ({ title, subtitle, imageUrl, buttonText, buttonLink }) => (
     <div className="relative bg-gray-900 text-white py-20 px-4 text-center">

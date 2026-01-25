@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../../../../context/auth-context';
+import { useAuth } from "@/context/auth-context";
 
 interface MonthData {
     month: string;
@@ -66,6 +66,16 @@ export default function VendedoresPage() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
     const [filterMonth, setFilterMonth] = useState('Enero');
+
+    const [formData, setFormData] = useState({
+        name: '',
+        role: 'Asesor de Ventas',
+        branch: 'Tienda Principal',
+        web: false,
+        social: true,
+        separados: true,
+        in_store: true
+    });
 
     // Cargar y sincronizar vendedores
     useEffect(() => {

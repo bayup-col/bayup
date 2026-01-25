@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useAuth } from '../../../../context/auth-context';
+import { useAuth } from "@/context/auth-context";
 
 // --- CONFIGURACIÓN DE LÍNEAS DE WHATSAPP ---
 const WHATSAPP_LINES = [
