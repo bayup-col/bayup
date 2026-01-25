@@ -27,6 +27,9 @@ class User(Base):
     full_name = Column(String, nullable=True)
     hashed_password = Column(String, nullable=False)
     role = Column(String, default="admin_tienda") # e.g., "admin_tienda", "super_admin"
+    bank_accounts = Column(JSON, nullable=True, default=[]) # New: store wallet info
+    social_links = Column(JSON, nullable=True, default={}) # New: store social media links
+    whatsapp_lines = Column(JSON, nullable=True, default=[]) # New: store multiple WhatsApp lines
     
     plan_id = Column(UUID(as_uuid=True), ForeignKey("plans.id"), nullable=True)
     plan = relationship("Plan", back_populates="users")

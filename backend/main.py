@@ -139,6 +139,42 @@ def get_current_user_info(
     return current_user
 
 
+@app.put("/auth/update-bank-accounts")
+def update_bank_accounts(
+    data: schemas.BankAccountsUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Update current user's bank accounts"""
+    current_user.bank_accounts = data.bank_accounts
+    db.commit()
+    return {"message": "Bank accounts updated successfully", "bank_accounts": current_user.bank_accounts}
+
+
+@app.put("/auth/update-social-links")
+def update_social_links(
+    data: schemas.SocialLinksUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Update current user's social media links"""
+    current_user.social_links = data.social_links
+    db.commit()
+    return {"message": "Social links updated successfully", "social_links": current_user.social_links}
+
+
+@app.put("/auth/update-whatsapp-lines")
+def update_whatsapp_lines(
+    data: schemas.WhatsAppLinesUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Update current user's WhatsApp lines"""
+    current_user.whatsapp_lines = data.whatsapp_lines
+    db.commit()
+    return {"message": "WhatsApp lines updated successfully", "whatsapp_lines": current_user.whatsapp_lines}
+
+
 @app.post("/auth/clerk-login")
 async def clerk_login_for_access_token(
     request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)

@@ -1,194 +1,146 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 interface Campaign {
     id: string;
     name: string;
-    type: 'email' | 'automation' | 'social';
+    type: 'email' | 'automation' | 'social' | 'remarketing';
     status: 'active' | 'scheduled' | 'draft' | 'completed';
     sent: number;
-    open_rate: number; // Porcentaje
-    click_rate: number; // Porcentaje
+    open_rate: number; 
+    click_rate: number; 
     revenue: number;
     date: string;
 }
 
+interface RemarketingClient {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    last_purchase: string;
+    category: 'inactive' | 'abandoned' | 'vip';
+    selected: boolean;
+}
+
 const MOCK_CAMPAIGNS: Campaign[] = [
-    {
-        id: "camp_1", name: "Lanzamiento Verano 2024", type: 'email', status: 'completed',
-        sent: 1250, open_rate: 45.2, click_rate: 12.5, revenue: 15400.00, date: "2024-06-01"
-    },
-    {
-        id: "camp_2", name: "Recuperación de Carrito", type: 'automation', status: 'active',
-        sent: 340, open_rate: 62.0, click_rate: 28.4, revenue: 8900.50, date: "Siempre activo"
-    },
-    {
-        id: "camp_3", name: "Flash Sale Fin de Mes", type: 'email', status: 'scheduled',
-        sent: 0, open_rate: 0, click_rate: 0, revenue: 0, date: "2024-07-30"
-    },
-    {
-        id: "camp_4", name: "Bienvenida Nuevos Usuarios", type: 'automation', status: 'active',
-        sent: 850, open_rate: 78.5, click_rate: 35.0, revenue: 4200.00, date: "Siempre activo"
-    }
+    { id: "camp_1", name: "Lanzamiento Verano 2024", type: 'email', status: 'completed', sent: 1250, open_rate: 45.2, click_rate: 12.5, revenue: 15400.00, date: "2024-06-01" },
+    { id: "camp_2", name: "Recuperación de Carrito", type: 'automation', status: 'active', sent: 340, open_rate: 62.0, click_rate: 28.4, revenue: 8900.50, date: "Siempre activo" }
+];
+
+const MOCK_REMARKETING_CLIENTS: RemarketingClient[] = [
+    { id: 'c1', name: 'Juan Pérez', email: 'juan@mail.com', phone: '+57 300 111 2233', last_purchase: 'Hace 45 días', category: 'inactive', selected: false },
+    { id: 'c2', name: 'Maria López', email: 'maria@mail.com', phone: '+57 310 222 3344', last_purchase: 'Hace 2 días', category: 'abandoned', selected: false },
+    { id: 'c3', name: 'Carlos Ruiz', email: 'carlos@mail.com', phone: '+57 320 444 5566', last_purchase: 'Hace 10 días', category: 'vip', selected: false },
+    { id: 'c4', name: 'Ana Beltrán', email: 'ana@mail.com', phone: '+57 315 777 8899', last_purchase: 'Hace 60 días', category: 'inactive', selected: false },
 ];
 
 export default function MarketingPage() {
     const [activeTab, setActiveTab] = useState<'overview' | 'email' | 'automations'>('overview');
+    const [isRemarketingModalOpen, setIsRemarketingModalOpen] = useState(false);
+    const [selectedSegment, setSelectedSegment] = useState<'all' | 'inactive' | 'abandoned' | 'vip'>('all');
+    const [clients, setClients] = useState<RemarketingClient[]>(MOCK_REMARKETING_CLIENTS);
+    const [isSending, setIsSending] = useState(false);
+    const [remarketingMessage, setRemarketingMessage] = useState("¡Hola! Te extrañamos en la tienda. Usa el código VOLVER10 para un 10% de descuento en tu próxima compra.");
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
+        return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD' }).format(amount).replace('$', '$ ');
+    };
+
+    const filteredClients = useMemo(() => {
+        return clients.filter(c => selectedSegment === 'all' || c.category === selectedSegment);
+    }, [selectedSegment, clients]);
+
+    const handleSelectAll = (checked: boolean) => {
+        const visibleIds = filteredClients.map(c => c.id);
+        setClients(clients.map(c => visibleIds.includes(c.id) ? { ...c, selected: checked } : c));
+    };
+
+    const handleToggleClient = (id: string) => {
+        setClients(clients.map(c => c.id === id ? { ...c, selected: !c.selected } : c));
+    };
+
+    const handleStartRemarketing = (method: 'whatsapp' | 'email') => {
+        const selectedCount = clients.filter(c => c.selected).length;
+        if (selectedCount === 0) return alert("Selecciona al menos un cliente.");
+        
+        setIsSending(true);
+        setTimeout(() => {
+            setIsSending(false);
+            setIsRemarketingModalOpen(false);
+            alert(`Campaña de Remarketing enviada con éxito a ${selectedCount} clientes vía ${method}.`);
+            setClients(clients.map(c => ({ ...c, selected: false })));
+        }, 2000);
     };
 
     return (
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto space-y-10 pb-20">
             {/* Cabecera */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Marketing & Campañas</h1>
-                    <p className="text-gray-500 mt-1">Crea, automatiza y mide tus estrategias para vender más.</p>
+                    <h1 className="text-4xl font-black text-gray-900 tracking-tight">Marketing & Campañas</h1>
+                    <p className="text-gray-500 mt-2 font-medium italic">Transforma datos en ventas con estrategias inteligentes.</p>
                 </div>
-                <button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                    Crear Campaña
-                </button>
-            </div>
-
-            {/* KPIs Rápidos */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">Ventas por Marketing</p>
-                        <h3 className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(28500.50)}</h3>
-                        <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full mt-2 inline-block">+12% vs mes anterior</span>
-                    </div>
-                    <div className="p-3 bg-indigo-50 rounded-full text-indigo-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                        </svg>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">Tasa de Conversión</p>
-                        <h3 className="text-2xl font-bold text-gray-900 mt-1">3.8%</h3>
-                        <span className="text-xs text-gray-400 font-medium mt-2 inline-block">Promedio de la industria: 2.5%</span>
-                    </div>
-                    <div className="p-3 bg-purple-50 rounded-full text-purple-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 10.5H5.25m1.591-5.833l1.59 1.591M6 18h12a3 3 0 003-3V9a3 3 0 00-3-3H6a3 3 0 00-3 3v6a3 3 0 003 3z" />
-                        </svg>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">Emails Enviados</p>
-                        <h3 className="text-2xl font-bold text-gray-900 mt-1">2,450</h3>
-                        <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-full mt-2 inline-block">98% entregabilidad</span>
-                    </div>
-                    <div className="p-3 bg-blue-50 rounded-full text-blue-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                        </svg>
-                    </div>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => setIsRemarketingModalOpen(true)}
+                        className="bg-white border-2 border-purple-600 text-purple-600 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-50 transition-all shadow-lg shadow-purple-100 flex items-center gap-2"
+                    >
+                        🚀 Campaña de Recuperación
+                    </button>
+                    <button className="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center gap-2">
+                        + Crear Campaña
+                    </button>
                 </div>
             </div>
 
-            {/* Sección Principal */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                {/* Tabs */}
-                <div className="border-b border-gray-200 px-6 pt-4 flex gap-6">
-                    <button 
-                        onClick={() => setActiveTab('overview')}
-                        className={`pb-4 text-sm font-medium transition-all ${activeTab === 'overview' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Resumen de Campañas
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('automations')}
-                        className={`pb-4 text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'automations' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-                        </svg>
-                        Automatizaciones (Flows)
-                    </button>
-                    <button 
-                        className={`pb-4 text-sm font-medium transition-all text-gray-400 cursor-not-allowed`}
-                        title="Próximamente"
-                    >
-                        Anuncios (Ads)
-                    </button>
-                </div>
+            {/* KPIs */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                    { label: 'Ventas por Marketing', val: 2850000, trend: '+12%', color: 'bg-emerald-50 text-emerald-600' },
+                    { label: 'Tasa de Conversión', val: '3.8%', trend: 'Superior al promedio', color: 'bg-purple-50 text-purple-600' },
+                    { label: 'Impactos Realizados', val: '2,450', trend: '98% Efectividad', color: 'bg-blue-50 text-blue-600' },
+                ].map((kpi, i) => (
+                    <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-gray-50 shadow-sm flex items-center justify-between group hover:border-purple-100 transition-all">
+                        <div>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p>
+                            <h3 className="text-2xl font-black text-gray-900 mt-1">{typeof kpi.val === 'number' ? formatCurrency(kpi.val) : kpi.val}</h3>
+                            <span className="text-[9px] font-bold text-emerald-500 mt-2 block">{kpi.trend}</span>
+                        </div>
+                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-xl ${kpi.color} shadow-inner`}>✨</div>
+                    </div>
+                ))}
+            </div>
 
-                {/* Contenido de la Tabla */}
+            {/* Tabla de Campañas */}
+            <div className="bg-white rounded-[3rem] border border-gray-50 shadow-sm overflow-hidden">
+                <div className="border-b border-gray-50 px-8 pt-6 flex gap-8">
+                    {['overview', 'automations'].map((tab) => (
+                        <button key={tab} onClick={() => setActiveTab(tab as any)} className={`pb-6 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'text-purple-600 border-b-4 border-purple-600' : 'text-gray-400 hover:text-gray-600'}`}>
+                            {tab === 'overview' ? 'Mis Campañas' : 'Flujos Automáticos'}
+                        </button>
+                    ))}
+                </div>
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-gray-50">
+                        <thead className="bg-gray-50/50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campaña</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enviados</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aperturas / Clics</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ingresos</th>
-                                <th className="relative px-6 py-3"><span className="sr-only">Editar</span></th>
+                                <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Campaña</th>
+                                <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Estado</th>
+                                <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Impactos</th>
+                                <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Rendimiento</th>
+                                <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Retorno</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {MOCK_CAMPAIGNS.filter(c => activeTab === 'overview' ? true : c.type === (activeTab === 'automations' ? 'automation' : 'email')).map((campaign) => (
-                                <tr key={campaign.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium text-gray-900">{campaign.name}</span>
-                                            <span className="text-xs text-gray-500 flex items-center gap-1">
-                                                {campaign.type === 'email' ? '📧 Email Marketing' : '⚡ Automatización'}
-                                                <span className="text-gray-300">•</span>
-                                                {campaign.date}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                            campaign.status === 'active' ? 'bg-green-100 text-green-800' :
-                                            campaign.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
-                                            campaign.status === 'completed' ? 'bg-gray-100 text-gray-800' :
-                                            'bg-yellow-100 text-yellow-800'
-                                        }`}>
-                                            {campaign.status === 'active' ? 'Activa' :
-                                             campaign.status === 'scheduled' ? 'Programada' :
-                                             campaign.status === 'completed' ? 'Completada' : 'Borrador'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {campaign.sent > 0 ? campaign.sent.toLocaleString() : '-'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex flex-col gap-1">
-                                            <div className="flex items-center justify-between text-xs w-32">
-                                                <span className="text-gray-500">Open:</span>
-                                                <span className="font-medium text-gray-900">{campaign.open_rate}%</span>
-                                            </div>
-                                            <div className="w-32 bg-gray-100 rounded-full h-1.5">
-                                                <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${campaign.open_rate}%` }}></div>
-                                            </div>
-                                            
-                                            <div className="flex items-center justify-between text-xs w-32 mt-1">
-                                                <span className="text-gray-500">Click:</span>
-                                                <span className="font-medium text-gray-900">{campaign.click_rate}%</span>
-                                            </div>
-                                            <div className="w-32 bg-gray-100 rounded-full h-1.5">
-                                                <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: `${campaign.click_rate}%` }}></div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {formatCurrency(campaign.revenue)}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <a href="#" className="text-indigo-600 hover:text-indigo-900">Reporte</a>
-                                    </td>
+                        <tbody className="divide-y divide-gray-50">
+                            {MOCK_CAMPAIGNS.map((c) => (
+                                <tr key={c.id} className="hover:bg-gray-50/50 transition-colors cursor-pointer">
+                                    <td className="px-8 py-6"><p className="text-sm font-black text-gray-900">{c.name}</p><p className="text-[9px] font-bold text-gray-400 uppercase">{c.type}</p></td>
+                                    <td className="px-8 py-6"><span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase">{c.status}</span></td>
+                                    <td className="px-8 py-6 text-sm font-bold text-gray-600">{c.sent.toLocaleString()}</td>
+                                    <td className="px-8 py-6"><div className="flex items-center gap-2"><div className="w-24 bg-gray-100 rounded-full h-1.5 overflow-hidden"><div className="bg-purple-600 h-full" style={{ width: `${c.open_rate}%` }}></div></div><span className="text-[10px] font-black text-gray-900">{c.open_rate}%</span></div></td>
+                                    <td className="px-8 py-6 text-right font-black text-sm text-purple-600">{formatCurrency(c.revenue)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -196,32 +148,102 @@ export default function MarketingPage() {
                 </div>
             </div>
 
-            {/* Sugerencias de Automatización */}
-            {activeTab === 'automations' && (
-                <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="border border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center text-center hover:bg-gray-50 transition-colors cursor-pointer group">
-                        <div className="h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-white group-hover:shadow-sm">
-                            <span className="text-2xl">🎂</span>
+            {/* MODAL REMARKETING */}
+            {isRemarketingModalOpen && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-5xl max-h-[90vh] rounded-[3rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="p-8 border-b border-gray-50 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-2xl font-black text-gray-900 tracking-tight">Remarketing Inteligente</h2>
+                                <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Segmenta y recupera ventas perdidas</p>
+                            </div>
+                            <button onClick={() => setIsRemarketingModalOpen(false)} className="h-12 w-12 flex items-center justify-center rounded-2xl hover:bg-gray-50 text-gray-400 text-xl transition-colors">✕</button>
                         </div>
-                        <h3 className="font-medium text-gray-900">Cumpleaños</h3>
-                        <p className="text-sm text-gray-500 mt-1">Envía un regalo automático.</p>
-                        <button className="mt-4 text-purple-600 text-sm font-medium hover:underline">Activar</button>
-                    </div>
-                    <div className="border border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center text-center hover:bg-gray-50 transition-colors cursor-pointer group">
-                        <div className="h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-white group-hover:shadow-sm">
-                            <span className="text-2xl">👋</span>
+
+                        <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
+                            {/* Panel Izquierdo: Selección de Clientes */}
+                            <div className="flex-1 overflow-y-auto p-10 space-y-8 border-r border-gray-50 custom-scrollbar">
+                                <div className="flex flex-wrap gap-2">
+                                    {[
+                                        { id: 'all', label: 'Todos', icon: '👥' },
+                                        { id: 'inactive', label: 'Inactivos (30d+)', icon: '💤' },
+                                        { id: 'abandoned', label: 'Carritos Abandonados', icon: '🛒' },
+                                        { id: 'vip', label: 'Clientes VIP', icon: '⭐' }
+                                    ].map(seg => (
+                                        <button 
+                                            key={seg.id} 
+                                            onClick={() => setSelectedSegment(seg.id as any)}
+                                            className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${selectedSegment === seg.id ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-400 border-gray-100 hover:border-purple-200'}`}
+                                        >
+                                            {seg.icon} {seg.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between px-4 pb-2 border-b border-gray-50">
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" onChange={(e) => handleSelectAll(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Seleccionar Filtrados</span>
+                                        </label>
+                                        <span className="text-[10px] font-black text-gray-400 uppercase">{filteredClients.length} Clientes</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {filteredClients.map(client => (
+                                            <div key={client.id} onClick={() => handleToggleClient(client.id)} className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${client.selected ? 'bg-purple-50 border-purple-200 shadow-sm' : 'bg-white border-gray-100 hover:bg-gray-50'}`}>
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-black text-xs ${client.category === 'vip' ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'}`}>{client.name.substr(0,2)}</div>
+                                                    <div>
+                                                        <p className="text-sm font-black text-gray-900">{client.name}</p>
+                                                        <p className="text-[10px] font-bold text-gray-400 uppercase">Última compra: {client.last_purchase}</p>
+                                                    </div>
+                                                </div>
+                                                <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${client.selected ? 'bg-purple-600 border-purple-600' : 'border-gray-200'}`}>
+                                                    {client.selected && <span className="text-white text-[10px]">✓</span>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Panel Derecho: Configuración de Mensaje */}
+                            <div className="w-full lg:w-[400px] bg-gray-50 p-10 flex flex-col justify-between">
+                                <div className="space-y-8">
+                                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Configurar Mensaje</h3>
+                                    <div className="space-y-4">
+                                        <textarea 
+                                            value={remarketingMessage}
+                                            onChange={(e) => setRemarketingMessage(e.target.value)}
+                                            rows={6} 
+                                            className="w-full p-5 bg-white border border-gray-200 rounded-[2rem] outline-none text-sm font-medium leading-relaxed focus:ring-4 focus:ring-purple-500/5 transition-all shadow-inner"
+                                        />
+                                        <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100 flex items-start gap-3">
+                                            <span className="text-xl">✨</span>
+                                            <p className="text-[10px] text-purple-700 font-medium leading-relaxed">Tip IA: Incluir un cupón de descuento aumenta la conversión de recuperación en un **24%**.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-10 space-y-4">
+                                    <button 
+                                        onClick={() => handleStartRemarketing('whatsapp')}
+                                        disabled={isSending}
+                                        className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 transition-all flex items-center justify-center gap-3"
+                                    >
+                                        {isSending ? 'Procesando...' : <><span>📱</span> Enviar por WhatsApp</>}
+                                    </button>
+                                    <button 
+                                        onClick={() => handleStartRemarketing('email')}
+                                        disabled={isSending}
+                                        className="w-full py-4 bg-gray-900 hover:bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3"
+                                    >
+                                        {isSending ? 'Procesando...' : <><span>✉️</span> Enviar por Correo</>}
+                                    </button>
+                                    <p className="text-[9px] text-center text-gray-400 font-bold uppercase tracking-tighter">Se enviará de forma individual para evitar spam.</p>
+                                </div>
+                            </div>
                         </div>
-                        <h3 className="font-medium text-gray-900">Recuperación de Cliente</h3>
-                        <p className="text-sm text-gray-500 mt-1">Para quienes llevan 90 días sin comprar.</p>
-                        <button className="mt-4 text-purple-600 text-sm font-medium hover:underline">Activar</button>
-                    </div>
-                    <div className="border border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center text-center hover:bg-gray-50 transition-colors cursor-pointer group">
-                        <div className="h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-white group-hover:shadow-sm">
-                            <span className="text-2xl">⭐</span>
-                        </div>
-                        <h3 className="font-medium text-gray-900">Solicitud de Reseña</h3>
-                        <p className="text-sm text-gray-500 mt-1">Pide opinión 7 días tras la entrega.</p>
-                        <button className="mt-4 text-purple-600 text-sm font-medium hover:underline">Activar</button>
                     </div>
                 </div>
             )}

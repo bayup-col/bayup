@@ -1,116 +1,82 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../../context/auth-context';
+import Link from 'next/link';
 
-export default function NewPagePage() {
-  const [slug, setSlug] = useState('');
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState(`{
-  "sections": [
-    {
-      "type": "hero",
-      "settings": {
-        "title": "¡Bienvenido a tu nueva tienda!",
-        "subtitle": "Personaliza el contenido de tu página aquí."
-      }
-    }
-  ]
-}`);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { token } = useAuth();
+interface Template {
+    id: string;
+    name: string;
+    category: string;
+    image: string;
+    description: string;
+    color: string;
+}
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
+const TEMPLATES: Template[] = [
+    { id: 't1', name: 'Minimal Luxe', category: 'Fashion', image: '👗', description: 'Diseño limpio con tipografías serif elegantes. Ideal para marcas de lujo.', color: 'bg-slate-900' },
+    { id: 't2', name: 'Tech Dynamic', category: 'Electrónica', image: '📱', description: 'Alto contraste, modo oscuro y grids futuristas para gadgets.', color: 'bg-blue-600' },
+    { id: 't3', name: 'Organic Fresh', category: 'Belleza / Salud', image: '🌿', description: 'Tonos pasteles y bordes redondeados. Transmite calma y confianza.', color: 'bg-emerald-500' },
+    { id: 't4', name: 'Street Vibe', category: 'Urbano', image: '🛹', description: 'Estilo tipográfico agresivo y layouts asimétricos.', color: 'bg-orange-500' },
+    { id: 't5', name: 'Corporate Pro', category: 'B2B', image: '🏢', description: 'Estructura sólida enfocada en servicios y confianza empresarial.', color: 'bg-indigo-900' },
+    { id: 't6', name: 'Kids Playground', category: 'Infantil', image: '🎨', description: 'Colores vibrantes y elementos lúdicos para jugueterías.', color: 'bg-pink-400' },
+];
 
-    if (!token) {
-      setError('Token de autenticación no encontrado.');
-      setLoading(false);
-      return;
-    }
+export default function NewPageTemplates() {
+    const [selectedCat, setSelectedCategory] = useState('Todos');
 
-    try {
-      const parsedContent = JSON.parse(content);
-      const response = await fetch('http://localhost:8000/pages', { // TODO: Usar variable de entorno
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ slug, title, content: parsedContent }),
-      });
+    return (
+        <div className="max-w-7xl mx-auto pb-20 space-y-12">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <h1 className="text-4xl font-black text-gray-900 tracking-tight">Biblioteca de Plantillas</h1>
+                    <p className="text-gray-500 mt-2 font-medium italic">Selecciona un punto de partida para tu nueva página.</p>
+                </div>
+                <Link href="/dashboard/pages" className="px-6 py-3 bg-gray-50 text-gray-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all">← Volver al Dashboard</Link>
+            </div>
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Error al crear la página');
-      }
+            {/* Filtros de Categoría */}
+            <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                {['Todos', 'Fashion', 'Electrónica', 'Belleza / Salud', 'Urbano', 'B2B'].map(cat => (
+                    <button 
+                        key={cat} 
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap ${selectedCat === cat ? 'bg-gray-900 text-white border-gray-900 shadow-lg' : 'bg-white text-gray-400 border-gray-100 hover:border-purple-200'}`}
+                    >
+                        {cat}
+                    </button>
+                ))}
+            </div>
 
-      router.push('/dashboard/pages');
-    } catch (err: any) {
-      setError(err.message || 'Ocurrió un error inesperado al crear la página. Asegúrate de que tu JSON sea válido.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="max-w-xl mx-auto p-8 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Crear Nueva Página</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-            Título de la Página
-          </label>
-          <input
-            type="text"
-            id="title"
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
+            {/* Grid de Plantillas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                {TEMPLATES.filter(t => selectedCat === 'Todos' || t.category === selectedCat).map((t) => (
+                    <div key={t.id} className="group cursor-pointer">
+                        <div className="relative aspect-[4/3] bg-gray-50 rounded-[2.5rem] border border-gray-100 overflow-hidden shadow-sm group-hover:shadow-2xl group-hover:-translate-y-2 transition-all duration-500">
+                            <div className={`absolute inset-0 ${t.color} opacity-5 group-hover:opacity-10 transition-opacity`}></div>
+                            <div className="absolute inset-0 flex items-center justify-center text-7xl group-hover:scale-110 transition-transform duration-700">
+                                {t.image}
+                            </div>
+                            {/* Overlay de Acción */}
+                            <div className="absolute inset-0 bg-gray-900/0 group-hover:bg-gray-900/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center">
+                                <Link 
+                                    href={`/dashboard/pages/${t.id}/edit`}
+                                    className="bg-white text-gray-900 px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl transform scale-90 group-hover:scale-100 transition-all duration-500"
+                                >
+                                    Usar esta Plantilla
+                                </Link>
+                            </div>
+                        </div>
+                        <div className="mt-6 px-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-xl font-black text-gray-900 tracking-tight">{t.name}</h3>
+                                <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-2 py-1 rounded-md uppercase tracking-tighter">{t.category}</span>
+                            </div>
+                            <p className="text-xs text-gray-400 font-medium leading-relaxed line-clamp-2">{t.description}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
-        <div>
-          <label htmlFor="slug" className="block text-sm font-medium text-gray-700">
-            Slug de la Página (por ejemplo, inicio, acerca-de)
-          </label>
-          <input
-            type="text"
-            id="slug"
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="content" className="block text-sm font-medium text-gray-700">
-            Contenido de la Página (JSON)
-          </label>
-          <textarea
-            id="content"
-            rows={10}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-mono"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-          ></textarea>
-        </div>
-
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <button
-          type="submit"
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          disabled={loading}
-        >
-          {loading ? 'Creando...' : 'Crear Página'}
-        </button>
-      </form>
-    </div>
-  );
+    );
 }

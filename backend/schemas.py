@@ -19,9 +19,21 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: uuid.UUID
     role: str = "admin_tienda" # e.g., "admin_tienda", "super_admin"
+    bank_accounts: List[dict] | None = []
+    social_links: dict | None = {}
+    whatsapp_lines: List[dict] | None = []
 
     class Config:
         orm_mode = True
+
+class BankAccountsUpdate(BaseModel):
+    bank_accounts: List[dict]
+
+class SocialLinksUpdate(BaseModel):
+    social_links: dict
+
+class WhatsAppLinesUpdate(BaseModel):
+    whatsapp_lines: List[dict]
 
 # Properties stored in DB
 class UserInDB(UserBase):
