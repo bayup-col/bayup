@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from "@/context/auth-context";
 
 interface Customer {
@@ -11,244 +11,241 @@ interface Customer {
   status: 'active' | 'blocked';
   total_orders: number;
   total_spent: number;
-  join_date: string; // ISO String
-  last_active: string; // ISO String
+  join_date: string;
+  last_active: string;
 }
 
-// Datos Mock Inteligentes
 const MOCK_CUSTOMERS: Customer[] = [
     {
-        id: "c1", full_name: "Ana García", email: "ana.garcia@gmail.com", phone: "+52 555 123 4567",
-        status: 'active', total_orders: 15, total_spent: 15400.50, 
-        join_date: "2023-01-15T10:00:00Z", last_active: new Date().toISOString() // Activa hoy
+        id: "c1", full_name: "Ana García", email: "ana.garcia@gmail.com", phone: "+57 300 123 4567",
+        status: 'active', total_orders: 15, total_spent: 1540000, 
+        join_date: "2023-01-15T10:00:00Z", last_active: new Date().toISOString()
     },
     {
-        id: "c2", full_name: "Carlos López", email: "carlos.lopez@hotmail.com", phone: null,
-        status: 'active', total_orders: 1, total_spent: 450.00, 
-        join_date: new Date(Date.now() - 86400000 * 5).toISOString(), // Se unió hace 5 días (Nuevo)
+        id: "c2", full_name: "Carlos López", email: "carlos.lopez@hotmail.com", phone: "+57 310 987 6543",
+        status: 'active', total_orders: 1, total_spent: 45000, 
+        join_date: new Date(Date.now() - 86400000 * 5).toISOString(),
         last_active: new Date().toISOString()
     },
     {
-        id: "c3", full_name: "María Rodriguez", email: "mrodriguez@outlook.com", phone: "+52 333 987 6543",
-        status: 'active', total_orders: 0, total_spent: 0, 
-        join_date: "2023-08-20T10:00:00Z", 
-        last_active: new Date(Date.now() - 86400000 * 100).toISOString() // Inactiva hace 100 días
-    },
-    {
-        id: "c4", full_name: "Usuario Bloqueado", email: "spam@bot.com", phone: null,
-        status: 'blocked', total_orders: 0, total_spent: 0, 
-        join_date: "2024-01-01T10:00:00Z", last_active: "2024-01-02T10:00:00Z"
-    },
-    {
-        id: "c5", full_name: "Roberto VIP", email: "robert@empresa.com", phone: "+52 818 777 9999",
-        status: 'active', total_orders: 42, total_spent: 85000.00, 
+        id: "c5", full_name: "Roberto VIP", email: "robert@empresa.com", phone: "+57 320 777 9999",
+        status: 'active', total_orders: 42, total_spent: 8500000, 
         join_date: "2022-05-10T10:00:00Z", last_active: new Date().toISOString()
     }
 ];
 
 export default function CustomersPage() {
-  const { token, isAuthenticated } = useAuth();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  // Filtros
-  const [activeTab, setActiveTab] = useState<'all' | 'new' | 'vip' | 'inactive'>('all');
+  const { token } = useAuth();
+  const [customers, setCustomers] = useState<Customer[]>(MOCK_CUSTOMERS);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'new' | 'vip'>('all');
   const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-    // Simulación de fetch
-    const fetchCustomers = async () => {
-        setLoading(true);
-        // Aquí iría el fetch real al backend
-        setTimeout(() => {
-            setCustomers(MOCK_CUSTOMERS);
-            setLoading(false);
-        }, 600);
-    };
-
-    if (isAuthenticated) fetchCustomers();
-  }, [isAuthenticated]);
-
-  // Lógica de Filtrado Avanzada
-  const filteredCustomers = customers.filter(customer => {
-    // 1. Filtro por Texto (Buscador)
-    const matchesSearch = 
-        customer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        customer.email.toLowerCase().includes(searchTerm.toLowerCase());
-
-    if (!matchesSearch) return false;
-
-    // 2. Filtro por Pestañas (Lógica de Negocio)
-    const now = new Date();
-    const joinDate = new Date(customer.join_date);
-    const lastActive = new Date(customer.last_active);
-    const daysSinceJoin = (now.getTime() - joinDate.getTime()) / (1000 * 3600 * 24);
-    const daysSinceActive = (now.getTime() - lastActive.getTime()) / (1000 * 3600 * 24);
-
-    if (activeTab === 'all') return true;
-    
-    if (activeTab === 'new') {
-        // Clientes unidos en los últimos 30 días
-        return daysSinceJoin <= 30;
-    }
-    
-    if (activeTab === 'vip') {
-        // Clientes con más de 5 pedidos o más de $10,000 gastados
-        return customer.total_orders > 5 || customer.total_spent > 10000;
-    }
-
-    if (activeTab === 'inactive') {
-        // Clientes inactivos por más de 90 días
-        return daysSinceActive > 90;
-    }
-
-    return true;
-  });
+  
+  // Modales
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
-      return new Date(dateString).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+  const handleAddCustomer = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const newCustomer: Customer = {
+        id: `c${Date.now()}`,
+        full_name: formData.get('name') as string,
+        email: formData.get('email') as string,
+        phone: formData.get('phone') as string,
+        status: 'active',
+        total_orders: 0,
+        total_spent: 0,
+        join_date: new Date().toISOString(),
+        last_active: new Date().toISOString()
+    };
+    setCustomers([newCustomer, ...customers]);
+    setIsAddModalOpen(false);
+    alert("Cliente registrado con éxito. ✨");
   };
 
-  if (loading) return (
-    <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-    </div>
-  );
+  const handleExport = () => {
+    alert("Preparando descarga de CSV con la base de datos de clientes...");
+  };
+
+  const handleContact = (customer: Customer) => {
+    const message = `Hola ${customer.full_name}, te contactamos de Bayup Store...`;
+    alert(`Iniciando chat con ${customer.phone || customer.email}\n\nMensaje: ${message}`);
+  };
+
+  const filteredCustomers = useMemo(() => {
+    return customers.filter(c => {
+        const matchesSearch = c.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || c.email.toLowerCase().includes(searchTerm.toLowerCase());
+        if (activeTab === 'new') return matchesSearch && c.total_orders === 0;
+        if (activeTab === 'vip') return matchesSearch && c.total_spent > 1000000;
+        return matchesSearch;
+    });
+  }, [customers, searchTerm, activeTab]);
 
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* Cabecera */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <div className="max-w-7xl mx-auto space-y-10 pb-20 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Cartera de Clientes</h1>
-            <p className="text-gray-500 mt-1">Administra tus usuarios, revisa su historial y fidelización.</p>
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Cartera de Clientes</h1>
+          <p className="text-gray-500 mt-2 font-medium">Gestiona tu audiencia y analiza su comportamiento de compra.</p>
         </div>
-        <button className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-            </svg>
-            Exportar CSV
-        </button>
+        <div className="flex gap-3">
+            <button onClick={handleExport} className="px-6 py-4 bg-white border border-gray-100 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50 transition-all shadow-sm">
+                Exportar CSV
+            </button>
+            <button onClick={() => setIsAddModalOpen(true)} className="px-8 py-4 bg-gray-900 text-white rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95">
+                + Nuevo Cliente
+            </button>
+        </div>
       </div>
 
-      {/* Tabs y Buscador */}
-      <div className="bg-white rounded-t-xl border border-gray-200 border-b-0 p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg overflow-x-auto max-w-full">
-            <button
-                onClick={() => setActiveTab('all')}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap ${
-                    activeTab === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
-            >
-                Todos
-            </button>
-            <button
-                onClick={() => setActiveTab('new')}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap flex items-center gap-2 ${
-                    activeTab === 'new' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
-            >
-                Nuevos
-                <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded-full">30d</span>
-            </button>
-            <button
-                onClick={() => setActiveTab('vip')}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap flex items-center gap-2 ${
-                    activeTab === 'vip' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
-            >
-                VIP / Recurrentes
-                <span className="bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0.5 rounded-full">★</span>
-            </button>
-            <button
-                onClick={() => setActiveTab('inactive')}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap ${
-                    activeTab === 'inactive' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
-            >
-                Inactivos
-            </button>
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="flex p-1 bg-gray-100 rounded-2xl w-full md:w-auto">
+              {['all', 'new', 'vip'].map((tab) => (
+                  <button 
+                    key={tab} 
+                    onClick={() => setActiveTab(tab as any)}
+                    className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                      {tab === 'all' ? 'Todos' : tab === 'new' ? 'Nuevos' : 'VIP'}
+                  </button>
+              ))}
           </div>
-
-          <div className="relative w-full sm:w-64">
-            <input
-                type="text"
-                placeholder="Buscar por nombre o correo..."
+          <div className="relative w-full md:w-80">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+              <input 
+                type="text" 
+                placeholder="Buscar cliente..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-            />
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 absolute left-3 top-2.5 text-gray-400">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
+                className="w-full pl-12 pr-6 py-4 bg-white border border-gray-100 rounded-[1.5rem] outline-none text-xs font-bold focus:ring-2 focus:ring-purple-200 transition-all"
+              />
           </div>
       </div>
 
-      {/* Tabla de Clientes */}
-      <div className="bg-white border border-gray-200 rounded-b-xl overflow-hidden shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-                <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pedidos</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gasto Total</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registrado</th>
-                    <th className="relative px-6 py-3"><span className="sr-only">Ver</span></th>
-                </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCustomers.length === 0 ? (
-                    <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                            No se encontraron clientes en esta sección.
-                        </td>
-                    </tr>
-                ) : (
-                    filteredCustomers.map((customer) => (
-                        <tr key={customer.id} className="hover:bg-gray-50 transition-colors cursor-pointer">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                                        {customer.full_name.charAt(0)}
-                                    </div>
-                                    <div className="ml-4">
-                                        <div className="text-sm font-medium text-gray-900">{customer.full_name}</div>
-                                        <div className="text-xs text-gray-500">{customer.email}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                    customer.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                }`}>
-                                    {customer.status === 'active' ? 'Activo' : 'Bloqueado'}
-                                </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {customer.total_orders} órdenes
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {formatCurrency(customer.total_spent)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {formatDate(customer.join_date)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button className="text-indigo-600 hover:text-indigo-900 font-medium">
-                                    Ver perfil
-                                </button>
-                            </td>
-                        </tr>
-                    ))
-                )}
-            </tbody>
+      <div className="bg-white rounded-[3rem] border border-gray-50 shadow-sm overflow-hidden">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="bg-gray-50/50 border-b border-gray-50">
+              <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Cliente</th>
+              <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Estado</th>
+              <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Pedidos</th>
+              <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Inversión Total</th>
+              <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {filteredCustomers.map((c) => (
+              <tr key={c.id} className="hover:bg-gray-50/50 transition-colors group">
+                <td className="px-8 py-6">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 bg-gradient-to-tr from-purple-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center font-black text-sm">
+                        {c.full_name.charAt(0)}
+                    </div>
+                    <div>
+                        <p className="text-sm font-black text-gray-900">{c.full_name}</p>
+                        <p className="text-[10px] font-bold text-gray-400">{c.email}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-8 py-6">
+                    <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase ${c.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                        {c.status === 'active' ? 'Activo' : 'Bloqueado'}
+                    </span>
+                </td>
+                <td className="px-8 py-6 text-center text-sm font-black text-gray-900">{c.total_orders}</td>
+                <td className="px-8 py-6 text-sm font-black text-purple-600">{formatCurrency(c.total_spent)}</td>
+                <td className="px-8 py-6 text-right">
+                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => setSelectedCustomer(c)} className="h-9 w-9 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center hover:bg-purple-100 transition-colors" title="Ver Historial">📋</button>
+                        <button onClick={() => handleContact(c)} className="h-9 w-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center hover:bg-emerald-100 transition-colors" title="Contactar">💬</button>
+                    </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
+
+      {/* Modal: Nuevo Cliente */} 
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                <div className="p-8 border-b border-gray-50 flex justify-between items-center">
+                    <h2 className="text-xl font-black text-gray-900">Registrar Cliente</h2>
+                    <button onClick={() => setIsAddModalOpen(false)} className="text-gray-400">✕</button>
+                </div>
+                <form onSubmit={handleAddCustomer} className="p-8 space-y-6">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label>
+                            <input name="name" required className="w-full mt-1 p-3 bg-gray-50 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-purple-200" />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email</label>
+                            <input name="email" type="email" required className="w-full mt-1 p-3 bg-gray-50 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-purple-200" />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Teléfono</label>
+                            <input name="phone" className="w-full mt-1 p-3 bg-gray-50 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-purple-200" placeholder="+57 ..." />
+                        </div>
+                    </div>
+                    <button type="submit" className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg">Crear Cliente</button>
+                </form>
+            </div>
+        </div>
+      )}
+
+      {/* Modal: Detalle / Historial */} 
+      {selectedCustomer && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                <div className="p-10 bg-gray-900 text-white relative">
+                    <button onClick={() => setSelectedCustomer(null)} className="absolute top-8 right-8 text-white/50 hover:text-white">✕</button>
+                    <div className="flex items-center gap-6">
+                        <div className="h-20 w-20 bg-purple-600 rounded-[1.5rem] flex items-center justify-center text-3xl font-black">{selectedCustomer.full_name.charAt(0)}</div>
+                        <div>
+                            <h2 className="text-2xl font-black tracking-tight">{selectedCustomer.full_name}</h2>
+                            <p className="text-purple-400 text-xs font-bold uppercase tracking-widest mt-1">Cliente desde {new Date(selectedCustomer.join_date).getFullYear()}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-10 space-y-8">
+                    <div className="grid grid-cols-3 gap-6">
+                        <div className="bg-gray-50 p-6 rounded-2xl text-center">
+                            <p className="text-[9px] font-black text-gray-400 uppercase">Compras</p>
+                            <p className="text-2xl font-black text-gray-900">{selectedCustomer.total_orders}</p>
+                        </div>
+                        <div className="bg-gray-50 p-6 rounded-2xl text-center">
+                            <p className="text-[9px] font-black text-gray-400 uppercase">Invertido</p>
+                            <p className="text-lg font-black text-purple-600">{formatCurrency(selectedCustomer.total_spent)}</p>
+                        </div>
+                        <div className="bg-gray-50 p-6 rounded-2xl text-center">
+                            <p className="text-[9px] font-black text-gray-400 uppercase">Ticket Prom.</p>
+                            <p className="text-lg font-black text-gray-900">{formatCurrency(selectedCustomer.total_spent / (selectedCustomer.total_orders || 1))}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-4">Últimas Actividades</h3>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                                <span className="text-xs font-bold text-gray-600">Pedido #8241</span>
+                                <span className="text-[10px] font-black text-emerald-600 uppercase">Completado</span>
+                            </div>
+                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                                <span className="text-xs font-bold text-gray-600">Pedido #7912</span>
+                                <span className="text-[10px] font-black text-emerald-600 uppercase">Completado</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 }

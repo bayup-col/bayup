@@ -51,3 +51,15 @@ export interface WhatsAppLine {
     number: string;
     status: string;
 }
+
+export interface AIAssistant {
+    id: string;
+    name: string;
+    description: string;
+    type: 'appointment_setter' | 'cart_recovery' | 'customer_reengagement' | 'custom';
+    status: 'active' | 'inactive';
+    last_run: string | null;
+    total_actions: number;
+    success_rate: number;
+    config: any; // Parámetros específicos de n8n
+}

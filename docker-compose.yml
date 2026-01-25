@@ -3,49 +3,42 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: basecommerce_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=secret
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=basecommerce
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d basecommerce"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: basecommerce_api
-    ports:
-      - "8000:8000"
+  backend:
+    build: ./backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      - DATABASE_URL=postgresql://admin:secret@db/basecommerce
-
-  app:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: basecommerce_app
     ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/basecommerce
     depends_on:
-      - api
+      - db
+
+  # --- NUEVO: n8n para tus asistentes IA ---
+  n8n:
+    image: n8nio/n8n:latest
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=bayup_secure_pass
+      - N8N_HOST=localhost
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
 
 volumes:
   postgres_data:
+  n8n_data:

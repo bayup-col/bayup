@@ -325,3 +325,29 @@ def create_product_type(db: Session, product_type: schemas.ProductTypeCreate) ->
     db.commit()
     db.refresh(db_product_type)
     return db_product_type
+
+# --- AIAssistant CRUD ---
+
+def get_assistant(db: Session, assistant_id: uuid.UUID, owner_id: uuid.UUID) -> models.AIAssistant | None:
+    return db.query(models.AIAssistant).filter(models.AIAssistant.id == assistant_id, models.AIAssistant.owner_id == owner_id).first()
+
+def get_assistants_by_owner(db: Session, owner_id: uuid.UUID, skip: int = 0, limit: int = 100) -> List[models.AIAssistant]:
+    return db.query(models.AIAssistant).filter(models.AIAssistant.owner_id == owner_id).offset(skip).limit(limit).all()
+
+def create_assistant(db: Session, assistant: schemas.AIAssistantCreate, owner_id: uuid.UUID) -> models.AIAssistant:
+    db_assistant = models.AIAssistant(**assistant.dict(), owner_id=owner_id)
+    db.add(db_assistant)
+    db.commit()
+    db.refresh(db_assistant)
+    return db_assistant
+
+def update_assistant_status(db: Session, db_assistant: models.AIAssistant, status: str) -> models.AIAssistant:
+    db_assistant.status = status
+    db.add(db_assistant)
+    db.commit()
+    db.refresh(db_assistant)
+    return db_assistant
+
+def delete_assistant(db: Session, db_assistant: models.AIAssistant):
+    db.delete(db_assistant)
+    db.commit()

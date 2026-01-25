@@ -46,3 +46,23 @@ export const userService = {
             body: JSON.stringify({ whatsapp_lines: lines }) 
         }),
 };
+
+export const assistantService = {
+    getAll: (token: string) => apiRequest<any[]>('/ai-assistants', { token }),
+    create: (token: string, data: any) => 
+        apiRequest('/ai-assistants', { 
+            method: 'POST', 
+            token, 
+            body: JSON.stringify(data) 
+        }),
+    toggleStatus: (token: string, id: string, status: string) => 
+        apiRequest(`/ai-assistants/${id}/status?status=${status}`, { 
+            method: 'PUT', 
+            token 
+        }),
+    delete: (token: string, id: string) => 
+        apiRequest(`/ai-assistants/${id}`, { 
+            method: 'DELETE', 
+            token 
+        }),
+};

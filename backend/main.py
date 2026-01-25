@@ -675,3 +675,48 @@ def read_public_shipping_options(
 ):
     shipping_options = crud.get_all_shipping_options_by_owner(db, owner_id=tenant_id, skip=skip, limit=limit)
     return shipping_options
+
+# --- AIAssistant Endpoints ---
+
+@app.post("/ai-assistants", response_model=schemas.AIAssistant)
+def create_assistant(
+    assistant: schemas.AIAssistantCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_assistant = crud.create_assistant(db=db, assistant=assistant, owner_id=current_user.id)
+    return db_assistant
+
+@app.get("/ai-assistants", response_model=List[schemas.AIAssistant])
+def read_assistants(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    assistants = crud.get_assistants_by_owner(db, owner_id=current_user.id, skip=skip, limit=limit)
+    return assistants
+
+@app.put("/ai-assistants/{assistant_id}/status", response_model=schemas.AIAssistant)
+def update_assistant_status(
+    assistant_id: uuid.UUID,
+    status: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_assistant = crud.get_assistant(db, assistant_id=assistant_id, owner_id=current_user.id)
+    if not db_assistant:
+        raise HTTPException(status_code=404, detail="Assistant not found")
+    return crud.update_assistant_status(db, db_assistant=db_assistant, status=status)
+
+@app.delete("/ai-assistants/{assistant_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_assistant(
+    assistant_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_assistant = crud.get_assistant(db, assistant_id=assistant_id, owner_id=current_user.id)
+    if not db_assistant:
+        raise HTTPException(status_code=404, detail="Assistant not found")
+    crud.delete_assistant(db, db_assistant=db_assistant)
+    return {"ok": True}

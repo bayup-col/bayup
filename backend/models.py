@@ -118,6 +118,28 @@ class Page(Base):
 
     __table_args__ = (UniqueConstraint("slug", "owner_id", name="_owner_id_slug_uc"),)
 
+class AIAssistant(Base):
+    __tablename__ = "ai_assistants"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    assistant_type = Column(String, nullable=False) # e.g., "appointment_setter", "cart_recovery", "custom"
+    status = Column(String, default="active")
+    
+    # n8n & Logic Configuration
+    n8n_webhook_url = Column(String, nullable=True)
+    system_prompt = Column(String, nullable=True)
+    config = Column(JSON, nullable=True, default={}) # Extra parameters
+    
+    # Metrics
+    total_actions = Column(Integer, default=0)
+    success_rate = Column(Float, default=0.0)
+    last_run = Column(DateTime, nullable=True)
+
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    owner = relationship("User")
+
 
 class TaxRate(Base):
     __tablename__ = "tax_rates"

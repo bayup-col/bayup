@@ -236,3 +236,26 @@ class ProductType(ProductTypeBase):
 
     class Config:
         orm_mode = True
+
+# --- AIAssistant Schemas ---
+class AIAssistantBase(BaseModel):
+    name: str
+    description: str | None = None
+    assistant_type: str
+    status: str = "active"
+    n8n_webhook_url: str | None = None
+    system_prompt: str | None = None
+    config: Dict[str, Any] | None = {}
+
+class AIAssistantCreate(AIAssistantBase):
+    pass
+
+class AIAssistant(AIAssistantBase):
+    id: uuid.UUID
+    owner_id: uuid.UUID
+    total_actions: int
+    success_rate: float
+    last_run: datetime.datetime | None = None
+
+    class Config:
+        orm_mode = True

@@ -119,6 +119,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Operación</p>
                     <div className="space-y-1">
                         <MenuItem href="/dashboard" label="🏠 Inicio" id="m_inicio" />
+                        <MenuItem href="/dashboard/ai-assistants" label="🤖 Asistentes IA" id="m_ai_assistants" />
                         <MenuItem href="/dashboard/invoicing" label="🧾 Facturación" id="m_facturacion" />
                         <MenuItem href="/dashboard/orders" label="📦 Pedidos" id="m_pedidos" />
                         <MenuItem href="/dashboard/shipping" label="🚚 Envíos" id="m_envios" />
