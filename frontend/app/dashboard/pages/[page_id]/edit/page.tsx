@@ -2,10 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-
-interface NavItem { id: string; label: string; href: string; type: 'url' | 'anchor'; target_id?: string; }
-interface ShortcutIcon { id: string; type: 'search' | 'cart' | 'user' | 'custom'; icon: string; href: string; style: 'minimal' | 'bold' | 'circle'; }
-interface Announcement { id: string; text: string; }
+import { NavItem, ShortcutIcon, Announcement } from '@/lib/types';
 
 // --- CONSTANTES MAESTRAS ---
 const FONTS = [

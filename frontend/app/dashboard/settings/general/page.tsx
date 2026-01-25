@@ -2,13 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from "@/context/auth-context";
-
-interface WhatsAppLine {
-    id: string;
-    name: string;
-    number: string;
-    status: string;
-}
+import { WhatsAppLine } from '@/lib/types';
+import { userService } from '@/lib/api';
 
 export default function GeneralSettings() {
     const { token, isAuthenticated } = useAuth();
@@ -35,11 +30,8 @@ export default function GeneralSettings() {
         if (!isAuthenticated || !token) return;
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:8000/auth/me', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (response.ok) {
-                const userData = await response.json();
+            const userData: any = await userService.getMe(token);
+            if (userData) {
                 setStoreEmail(userData.email || "");
                 setWhatsappLines(userData.whatsapp_lines || []);
                 
@@ -79,29 +71,21 @@ export default function GeneralSettings() {
     };
 
     const handleSave = async () => {
+        if (!token) return;
         setIsSaving(true);
         try {
             localStorage.setItem('storeName', storeName);
             window.dispatchEvent(new Event('storage'));
 
-            // Guardar todo en el backend
-            await fetch('http://localhost:8000/auth/update-social-links', {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ social_links: connections })
-            });
+            // Guardar todo en el backend usando el servicio centralizado
+            await userService.updateSocialLinks(token, connections);
+            await userService.updateWhatsAppLines(token, whatsappLines);
 
-            const response = await fetch('http://localhost:8000/auth/update-whatsapp-lines', {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ whatsapp_lines: whatsappLines })
-            });
-
-            if (response.ok) {
-                setShowSuccess(true);
-                setTimeout(() => setShowSuccess(false), 3000);
-            }
-        } catch (err) { alert("Error al sincronizar."); } finally { setIsSaving(false); }
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 3000);
+        } catch (err) { 
+            alert(err instanceof Error ? err.message : "Error al sincronizar."); 
+        } finally { setIsSaving(false); }
     };
 
     if (loading) return <div className="flex justify-center items-center min-h-[400px]"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"></div></div>;

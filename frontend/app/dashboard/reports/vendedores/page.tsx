@@ -2,30 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from "@/context/auth-context";
-
-interface MonthData {
-    month: string;
-    amount: number;
-}
-
-interface Seller {
-    id: string;
-    name: string;
-    role: string;
-    branch: string;
-    total_sales: number;
-    sales_today: number;
-    sales_month: number;
-    last_month_sales: number;
-    channels: {
-        web: boolean;
-        social: boolean;
-        separados: boolean;
-        in_store: boolean;
-    };
-    history: MonthData[];
-    avatar: string;
-}
+import { Seller, MonthData } from '@/lib/types';
 
 const MONTHS_LIST = ['Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre', 'Enero'];
 

@@ -1,77 +1,11 @@
 "use client";
 
-import { ReactNode, useEffect, useState, useCallback } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from "@/context/auth-context";
-
-// --- COMPONENTES AUXILIARES ---
-
-const DashboardHeader = ({ pathname, userEmail, userRole, userMenuOpen, setUserMenuOpen, logout, setIsUserSettingsOpen }: any) => (
-    <header className="h-16 flex-shrink-0 bg-white/70 backdrop-blur-lg border-b border-white/20 flex items-center justify-between px-8 sticky top-0 z-30 shadow-sm">
-        <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Plataforma</span>
-            <span className="text-gray-300">/</span>
-            <span className="text-xs font-bold text-gray-600 capitalize">{pathname.split('/').pop()?.replace('-', ' ')}</span>
-        </div>
-        <div className="flex items-center gap-6">
-            <button className="relative p-2 text-gray-400 hover:text-purple-600 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" /></svg>
-                <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-            </button>
-            <div className="relative">
-                <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="flex items-center gap-3 pl-4 border-l border-gray-100 group">
-                    <div className="text-right hidden sm:block">
-                        <p className="text-xs font-black text-gray-900 leading-none">{userEmail?.split('@')[0]}</p>
-                        <p className="text-[10px] font-bold text-purple-500 mt-1 uppercase tracking-tighter italic">{userRole === 'super_admin' ? 'Super Admin' : 'Plan Empresa'}</p>
-                    </div>
-                    <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white text-sm font-black shadow-lg group-hover:scale-105 transition-transform">
-                        {userEmail?.charAt(0).toUpperCase()}
-                    </div>
-                </button>
-                {userMenuOpen && (
-                    <>
-                        <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)}></div>
-                        <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-                            <button onClick={() => { setUserMenuOpen(false); setIsUserSettingsOpen(true); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-colors font-bold text-left"><span className="text-lg">👤</span> Usuario</button>
-                            <div className="h-px bg-gray-50 my-1 mx-2"></div>
-                            <button onClick={() => { setUserMenuOpen(false); logout(); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-600 hover:bg-rose-50 transition-colors font-bold text-left"><span className="text-lg">🚪</span> Cerrar Sesión</button>
-                        </div>
-                    </>
-                )}
-            </div>
-        </div>
-    </header>
-);
-
-const SupportWidget = ({ isSupportOpen, setIsSupportOpen, supportMessages }: any) => (
-    <div className="fixed bottom-8 right-8 z-[200] flex flex-col items-end">
-        {isSupportOpen && (
-            <div className="mb-4 w-80 bg-white rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 duration-500">
-                <div className="bg-gray-900 p-6 text-white flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 bg-purple-600 rounded-xl flex items-center justify-center text-sm">🎧</div>
-                        <div><p className="text-xs font-black tracking-tight">Soporte Bayup</p><div className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span><span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">En línea</span></div></div>
-                    </div>
-                    <button onClick={() => setIsSupportOpen(false)} className="text-gray-500 hover:text-white transition-colors">✕</button>
-                </div>
-                <div className="h-80 overflow-y-auto p-6 space-y-4 bg-gray-50/30 custom-scrollbar">
-                    {supportMessages.map((m: any) => (
-                        <div key={m.id} className={`flex ${m.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[85%] p-3.5 rounded-2xl text-xs font-medium ${m.sender === 'me' ? 'bg-purple-600 text-white rounded-tr-none' : 'bg-white text-gray-700 rounded-tl-none border border-gray-100 shadow-sm'}`}>{m.text}</div>
-                        </div>
-                    ))}
-                </div>
-                <div className="p-4 bg-white border-t border-gray-100 flex gap-2">
-                    <input type="text" placeholder="Escribe tu duda..." className="flex-1 bg-gray-50 border-none rounded-xl px-4 py-2 text-xs focus:ring-2 focus:ring-purple-500 outline-none transition-all" /><button className="h-8 w-8 bg-purple-600 text-white rounded-lg flex items-center justify-center hover:bg-purple-700 transition-all shadow-lg">✈️</button>
-                </div>
-            </div>
-        )}
-        <button onClick={() => setIsSupportOpen(!isSupportOpen)} className={`h-14 w-14 rounded-full flex items-center justify-center text-2xl shadow-2xl transition-all hover:scale-110 active:scale-95 ${isSupportOpen ? 'bg-gray-900 text-white rotate-90' : 'bg-purple-600 text-white shadow-purple-200'}`}>{isSupportOpen ? '✕' : '💬'}</button>
-    </div>
-);
-
-// --- COMPONENTE PRINCIPAL ---
+import { useAuth } from '@/context/auth-context';
+import { DashboardHeader } from '@/components/dashboard/Header';
+import { SupportWidget } from '@/components/dashboard/SupportWidget';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, logout, userEmail, userRole } = useAuth();
@@ -86,7 +20,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [supportMessages] = useState([{ id: 1, text: "¡Hola! 👋 Soy el asistente de soporte de Bayup. ¿En qué puedo ayudarte hoy?", sender: 'bot' }]);
 
-  // --- NUEVOS ESTADOS: PERSONALIZACIÓN MENÚ ---
   const [isEditingMenu, setIsEditingMenu] = useState(false);
   const [hiddenModules, setHiddenModules] = useState<string[]>([]);
 
@@ -161,7 +94,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return (
         <>
             <div className="p-4 border-b border-white/10 relative">
-                {/* BLOQUE IDENTIDAD PREMIUM */}
                 <div className="bg-white/10 backdrop-blur-md p-4 rounded-[2rem] border border-white/30 shadow-sm">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="h-10 w-10 rounded-2xl bg-purple-600 flex items-center justify-center text-white shadow-lg shadow-purple-200">
@@ -304,9 +236,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <DashboardHeader pathname={pathname} userEmail={userEmail} userRole={userRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} />
+        <DashboardHeader 
+            pathname={pathname} 
+            userEmail={userEmail} 
+            userRole={userRole} 
+            userMenuOpen={userMenuOpen} 
+            setUserMenuOpen={setUserMenuOpen} 
+            logout={logout} 
+            setIsUserSettingsOpen={setIsUserSettingsOpen} 
+        />
         <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar">{children}</main>
-        <SupportWidget isSupportOpen={isSupportOpen} setIsSupportOpen={setIsSupportOpen} supportMessages={supportMessages} />
+        <SupportWidget 
+            isSupportOpen={isSupportOpen} 
+            setIsSupportOpen={setIsSupportOpen} 
+            supportMessages={supportMessages} 
+        />
       </div>
 
       {isUserSettingsOpen && (
@@ -322,7 +266,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <div className="p-8 space-y-6">
                     <div className="space-y-4">
                         <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label><input type="text" defaultValue={userEmail?.split('@')[0]} className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500" /></div>
-                        <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Correo Electrónico</label><input type="email" value={userEmail || ''} disabled className="w-full mt-1 p-3 bg-gray-100 border border-gray-100 rounded-xl text-sm text-gray-400 cursor-not-allowed" /></div>
+                        <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Correo Electrónico</label><input type="email" value={userEmail || ''} disabled className="w-full mt-1 p-3 bg-gray-100 border border-gray-100 rounded-xl text-sm text-gray-400 cursor-not-allowed italic" /></div>
                     </div>
                     <div className="p-8 pt-0"><button onClick={() => setIsUserSettingsOpen(false)} className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg">Guardar Cambios</button></div>
                 </div>
