@@ -9,7 +9,7 @@ export const productSchema = z.object({
   category: z.string().min(1, "Selecciona una categoría"),
   status: z.enum(["active", "draft", "out_of_stock"]),
   sku: z.string().min(3, "El SKU es obligatorio"),
-  add_gateway_fee: z.boolean().default(false),
+  add_gateway_fee: z.boolean(),
   commission_rate: z.number().optional(),
   images: z.array(z.string()).optional(),
 });

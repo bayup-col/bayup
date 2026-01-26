@@ -30,8 +30,19 @@ export default function EditProductPage() {
   const fetchProduct = useCallback(async () => {
     if (!token || !productId) return;
     try {
-      const data = await apiRequest<ProductFormData>(`/products/${productId}`, { token });
-      reset(data);
+      const data = await apiRequest<any>(`/products/${productId}`, { token });
+      // Ensure data matches ProductFormData structure
+      reset({
+        name: data.name || '',
+        description: data.description || '',
+        price: data.price || 0,
+        stock: data.variants?.[0]?.stock || 0,
+        category: data.category || 'General',
+        status: data.status || 'active',
+        sku: data.variants?.[0]?.sku || '',
+        add_gateway_fee: !!data.add_gateway_fee,
+        cost: data.cost || 0,
+      });
     } catch (err) {
       setError("No se pudo cargar el producto.");
     } finally {
@@ -50,7 +61,10 @@ export default function EditProductPage() {
       await apiRequest(`/products/${productId}`, {
         method: 'PUT',
         token,
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          variants: [{ name: 'Estándar', sku: data.sku, stock: data.stock }]
+        }),
       });
       
       alert("¡Producto actualizado correctamente! 🔄");

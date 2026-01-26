@@ -52,6 +52,17 @@ export default function AIAssistantsPage() {
         }
     };
 
+    const handleDelete = async (id: string) => {
+        if (!confirm("¿Seguro que deseas eliminar este asistente?")) return;
+        try {
+            await assistantService.delete(token!, id);
+            setAssistants(prev => prev.filter(a => a.id !== id));
+            alert("Asistente eliminado.");
+        } catch (err) {
+            alert("No se pudo eliminar el asistente.");
+        }
+    };
+
     const copyApiKey = () => {
         navigator.clipboard.writeText(apiKey);
         alert("¡Llave copiada con éxito! Ahora pégala en n8n.");
@@ -141,7 +152,7 @@ export default function AIAssistantsPage() {
                                             <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-black ${ (a as any).is_byoa ? 'bg-emerald-50 text-emerald-600' : 'bg-purple-50 text-purple-600'}`}>
                                                 {(a as any).is_byoa ? <Zap size={16} /> : <Bot size={16} />}
                                             </div>
-                                            <div><p className="text-sm font-black text-gray-900">{a.name}</p><p className="text-[10px] font-bold text-gray-400 uppercase">{a.assistant_type}</p></div>
+                                            <div><p className="text-sm font-black text-gray-900">{a.name}</p><p className="text-[10px] font-bold text-gray-400 uppercase">{a.type}</p></div>
                                         </div>
                                     </td>
                                     <td className="px-8 py-6 text-right">
