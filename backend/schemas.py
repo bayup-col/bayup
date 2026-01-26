@@ -132,6 +132,7 @@ class Shipment(ShipmentBase):
         orm_mode = True
 
 class DashboardSummary(BaseModel):
+    pass
 
 # --- Clerk Integration Schemas ---
 class ClerkLoginRequest(BaseModel):

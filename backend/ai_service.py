@@ -18,6 +18,16 @@ def get_detailed_analytics(db: Session, owner_id: uuid.UUID):
     # Aquí iría lógica más compleja de SQL
     return "Tus ventas han crecido un 15% este mes. El producto más vendido es 'Camiseta Algodón' y tus clientes suelen comprar más los martes a las 6pm."
 
+def get_full_dashboard_report(db: Session, owner_id: uuid.UUID):
+    """Placeholder para reporte completo de dashboard"""
+    return {
+        "total_sales": 0,
+        "total_orders": 0,
+        "active_products": 0,
+        "low_stock_alerts": 0,
+        "message": "Reporte generado (Versión resumida)"
+    }
+
 def generate_image_placeholder(prompt):
     """Simulación de generación de imagen (DALL-E)"""
     return f"https://image.pollinations.ai/prompt/{prompt.replace(' ', '%20')}"
