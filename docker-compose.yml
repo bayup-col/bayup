@@ -21,29 +21,17 @@ services:
   backend:
     build: ./backend
     container_name: basecommerce-backend
+    env_file:
+      - ./backend/.env
     volumes:
       - ./backend:/app
     ports:
-      - "8001:8000"
+      - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/basecommerce
     depends_on:
       db:
         condition: service_healthy
-
-  frontend:
-    build: ./frontend
-    container_name: basecommerce-frontend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8001
-    depends_on:
-      - backend
 
   n8n:
     image: n8nio/n8n:latest
@@ -57,6 +45,9 @@ services:
       - N8N_BASIC_AUTH_PASSWORD=bayup_secure_pass
     volumes:
       - n8n_data:/home/node/.n8n
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:

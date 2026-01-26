@@ -65,6 +65,8 @@ export const assistantService = {
             method: 'DELETE', 
             token 
         }),
+    getLogs: (token: string, id: string) => 
+        apiRequest<any[]>(`/ai-assistants/${id}/logs`, { token }),
 };
 
 export const pageService = {
@@ -82,4 +84,11 @@ export const pageService = {
             token, 
             body: JSON.stringify(data) 
         }),
+};
+
+export const publicService = {
+    getStorePage: (tenantId: string, slug: string) => 
+        apiRequest<any>(`/public/stores/${tenantId}/pages/${slug}`),
+    getStoreProducts: (tenantId: string) => 
+        apiRequest<any[]>(`/public/stores/${tenantId}/products`),
 };

@@ -25,8 +25,10 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String, unique=True, index=True, nullable=False)
     full_name = Column(String, nullable=True)
+    nickname = Column(String, nullable=True) # Nombre tierno que Bayt recordará
     hashed_password = Column(String, nullable=False)
     role = Column(String, default="admin_tienda") # e.g., "admin_tienda", "super_admin"
+    api_key = Column(String, unique=True, default=lambda: uuid.uuid4().hex) # Llave para n8n
     bank_accounts = Column(JSON, nullable=True, default=[]) # New: store wallet info
     social_links = Column(JSON, nullable=True, default={}) # New: store social media links
     whatsapp_lines = Column(JSON, nullable=True, default=[]) # New: store multiple WhatsApp lines
@@ -91,6 +93,23 @@ class Order(Base):
     shipping_cost_snapshot = Column(Float, nullable=True) # Snapshot of shipping cost at time of order
 
     items = relationship("OrderItem", back_populates="order")
+    shipment = relationship("Shipment", back_populates="order", uselist=False)
+
+class Shipment(Base):
+    __tablename__ = "shipments"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"), unique=True)
+    status = Column(String, default="pending_packing") # pending_packing, ready_to_ship, in_transit, delivered, exception
+    recipient_name = Column(String)
+    destination_address = Column(String)
+    carrier = Column(String, nullable=True)
+    tracking_number = Column(String, nullable=True)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+
+    order = relationship("Order", back_populates="shipment")
+    owner = relationship("User")
 
 class OrderItem(Base):
     __tablename__ = "order_items"
@@ -126,6 +145,7 @@ class AIAssistant(Base):
     description = Column(String, nullable=True)
     assistant_type = Column(String, nullable=False) # e.g., "appointment_setter", "cart_recovery", "custom"
     status = Column(String, default="active")
+    is_byoa = Column(Boolean, default=False) # True si usa el n8n del cliente
     
     # n8n & Logic Configuration
     n8n_webhook_url = Column(String, nullable=True)
@@ -192,3 +212,31 @@ class ProductAttribute(Base):
     product_type = relationship("ProductType", back_populates="attributes")
 
     __table_args__ = (UniqueConstraint("product_type_id", "name", name="_product_type_id_name_uc"),)
+
+class AIAssistantLog(Base):
+    __tablename__ = "ai_assistant_logs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    assistant_id = Column(UUID(as_uuid=True), ForeignKey("ai_assistants.id"))
+    action_type = Column(String) 
+    detail = Column(String)
+    status = Column(String) 
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class Expense(Base):
+    __tablename__ = "expenses"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    description = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    due_date = Column(DateTime, nullable=False)
+    status = Column(String, default="pending") # pending, paid
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
+class Receivable(Base):
+    __tablename__ = "receivables"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    client_name = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    due_date = Column(DateTime, nullable=False)
+    status = Column(String, default="pending") # pending, collected
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)

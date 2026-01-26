@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { DashboardHeader } from '@/components/dashboard/Header';
-import { SupportWidget } from '@/components/dashboard/SupportWidget';
+import { BaytAssistant } from '@/components/dashboard/BaytAssistant';
 import { 
   LayoutDashboard, 
   Bot, 
@@ -140,7 +140,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Operación</p>
                     <div className="space-y-1">
                         <MenuItem href="/dashboard" label={<><LayoutDashboard size={16} className="mr-2" /> Inicio</>} id="m_inicio" />
-                        <MenuItem href="/dashboard/ai-assistants" label={<><Bot size={16} className="mr-2" /> Asistentes IA</>} id="m_ai_assistants" />
                         <MenuItem href="/dashboard/invoicing" label={<><FileText size={16} className="mr-2" /> Facturación</>} id="m_facturacion" />
                         <MenuItem href="/dashboard/orders" label={<><Package size={16} className="mr-2" /> Pedidos</>} id="m_pedidos" />
                         <MenuItem href="/dashboard/shipping" label={<><Truck size={16} className="mr-2" /> Envíos</>} id="m_envios" />
@@ -183,6 +182,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         <MenuItem href="/dashboard/loyalty" label={<><Gem size={16} className="mr-2" /> Club de Puntos</>} id="m_loyalty" />
                         <MenuItem href="/dashboard/discounts" label={<><Tag size={16} className="mr-2" /> Descuentos</>} id="m_discounts" />
                         <MenuItem href="/dashboard/automations" label={<><Settings size={16} className="mr-2" /> Automatizaciones</>} id="m_automations" />
+                        <MenuItem href="/dashboard/ai-assistants" label={<><Bot size={16} className="mr-2" /> Asistentes IA</>} id="m_ai_assistants" />
                     </div>
                 </div>
 
@@ -268,11 +268,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             setIsUserSettingsOpen={setIsUserSettingsOpen} 
         />
         <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar">{children}</main>
-        <SupportWidget 
-            isSupportOpen={isSupportOpen} 
-            setIsSupportOpen={setIsSupportOpen} 
-            supportMessages={supportMessages} 
-        />
+        <BaytAssistant />
       </div>
 
       {isUserSettingsOpen && (

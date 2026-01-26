@@ -2,14 +2,16 @@
 from pydantic import BaseModel, EmailStr
 import uuid
 import datetime
-from typing import List
+from typing import List, Optional
 
 # --- User Schemas ---
 
 # Shared properties
 class UserBase(BaseModel):
     email: EmailStr
-    full_name: str | None = None
+    full_name: Optional[str] = None
+    nickname: Optional[str] = None
+    role: Optional[str] = "admin_tienda"
 
 # Properties to receive via API on creation
 class UserCreate(UserBase):
@@ -103,19 +105,33 @@ class OrderCreate(OrderBase):
 
 class Order(OrderBase):
     id: uuid.UUID
-    customer_id: uuid.UUID
-    tenant_id: uuid.UUID
-    tax_rate_id: uuid.UUID | None = None
-    tax_rate_snapshot: float | None = None
-    shipping_option_id: uuid.UUID | None = None
-    shipping_cost_snapshot: float | None = None
-    total_price: float
     status: str
-    created_at: datetime.datetime
+    created_at: datetime
     items: List[OrderItem] = []
 
     class Config:
         orm_mode = True
+
+class ShipmentBase(BaseModel):
+    order_id: uuid.UUID
+    status: str
+    recipient_name: str
+    destination_address: str
+    carrier: Optional[str] = None
+    tracking_number: Optional[str] = None
+
+class ShipmentCreate(ShipmentBase):
+    pass
+
+class Shipment(ShipmentBase):
+    id: uuid.UUID
+    updated_at: datetime
+    tenant_id: uuid.UUID
+
+    class Config:
+        orm_mode = True
+
+class DashboardSummary(BaseModel):
 
 # --- Clerk Integration Schemas ---
 class ClerkLoginRequest(BaseModel):

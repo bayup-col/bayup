@@ -15,6 +15,7 @@ import security
 import s3_service
 import payment_service
 import clerk_auth_service
+import ai_service
 
 # Create all tables in the database.
 # This is simple for now. For production, you would use Alembic migrations.
@@ -25,7 +26,7 @@ app = FastAPI(title="BaseCommerce API")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins (for development)
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -715,6 +716,59 @@ def update_assistant_status(
         raise HTTPException(status_code=404, detail="Assistant not found")
     return crud.update_assistant_status(db, db_assistant=db_assistant, status=status)
 
+# --- Shipment Endpoints ---
+
+@app.get("/shipments", response_model=List[schemas.Shipment])
+def read_shipments(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    return crud.get_shipments_by_owner(db, current_user.id)
+
+@app.put("/shipments/{shipment_id}/status", response_model=schemas.Shipment)
+def update_shipment_status(
+    shipment_id: uuid.UUID,
+    status: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_shipment = crud.get_shipment(db, shipment_id, current_user.id)
+    if not db_shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+    return crud.update_shipment_status(db, db_shipment, status)
+
+@app.put("/orders/{order_id}/status", response_model=schemas.Order)
+def update_order_status(
+    order_id: uuid.UUID,
+    status: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_order = db.query(models.Order).filter(models.Order.id == order_id, models.Order.tenant_id == current_user.id).first()
+    if not db_order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    db_order.status = status
+    
+    # Automatización: Si el pedido se marca como pagado, crear el envío automáticamente
+    if status == "paid":
+        # Verificar si ya existe un envío para este pedido
+        existing_shipment = db.query(models.Shipment).filter(models.Shipment.order_id == order_id).first()
+        if not existing_shipment:
+            # En un caso real, obtendríamos los datos de envío de la orden o el cliente
+            new_shipment = models.Shipment(
+                order_id=order_id,
+                status="pending_packing",
+                recipient_name=current_user.full_name or "Cliente",
+                destination_address="Dirección de prueba", # Esto debería venir de la orden
+                tenant_id=current_user.id
+            )
+            db.add(new_shipment)
+            
+    db.commit()
+    db.refresh(db_order)
+    return db_order
+
 @app.delete("/ai-assistants/{assistant_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_assistant(
     assistant_id: uuid.UUID,
@@ -726,3 +780,27 @@ def delete_assistant(
         raise HTTPException(status_code=404, detail="Assistant not found")
     crud.delete_assistant(db, db_assistant=db_assistant)
     return {"ok": True}
+
+@app.post("/ai/chat")
+async def chat_with_bayt(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    messages = payload.get("messages", [])
+    response = ai_service.process_bayt_chat(db, messages, current_user.id)
+    return {"response": response}
+
+@app.get("/ai-assistants/{assistant_id}/logs")
+def read_assistant_logs(
+    assistant_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    # Verificar que el asistente pertenezca al usuario
+    assistant = crud.get_assistant(db, assistant_id=assistant_id, owner_id=current_user.id)
+    if not assistant:
+        raise HTTPException(status_code=404, detail="Assistant not found")
+    
+    return crud.get_assistant_logs(db, assistant_id=assistant_id)
+    

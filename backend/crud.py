@@ -49,6 +49,14 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
     db.refresh(db_user)
     return db_user
 
+def update_user_nickname(db: Session, user_id: uuid.UUID, nickname: str) -> models.User:
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if db_user:
+        db_user.nickname = nickname
+        db.commit()
+        db.refresh(db_user)
+    return db_user
+
 # --- Product CRUD ---
 
 def get_product(db: Session, product_id: uuid.UUID, tenant_id: Optional[uuid.UUID] = None) -> models.Product | None:
@@ -295,6 +303,28 @@ def create_shipping_option(db: Session, shipping_option: schemas.ShippingOptionC
     db.refresh(db_shipping_option)
     return db_shipping_option
 
+# --- Shipment CRUD ---
+
+def get_shipment(db: Session, shipment_id: uuid.UUID, owner_id: uuid.UUID) -> models.Shipment | None:
+    return db.query(models.Shipment).filter(models.Shipment.id == shipment_id, models.Shipment.tenant_id == owner_id).first()
+
+def get_shipments_by_owner(db: Session, owner_id: uuid.UUID) -> List[models.Shipment]:
+    return db.query(models.Shipment).filter(models.Shipment.tenant_id == owner_id).all()
+
+def create_shipment(db: Session, shipment: schemas.ShipmentCreate, owner_id: uuid.UUID) -> models.Shipment:
+    db_shipment = models.Shipment(**shipment.dict(), tenant_id=owner_id)
+    db.add(db_shipment)
+    db.commit()
+    db.refresh(db_shipment)
+    return db_shipment
+
+def update_shipment_status(db: Session, db_shipment: models.Shipment, status: str) -> models.Shipment:
+    db_shipment.status = status
+    db.add(db_shipment)
+    db.commit()
+    db.refresh(db_shipment)
+    return db_shipment
+
 def update_shipping_option(db: Session, db_shipping_option: models.ShippingOption, shipping_option_update: schemas.ShippingOptionUpdate) -> models.ShippingOption:
     for key, value in shipping_option_update.dict(exclude_unset=True).items():
         setattr(db_shipping_option, key, value)
@@ -351,3 +381,24 @@ def update_assistant_status(db: Session, db_assistant: models.AIAssistant, statu
 def delete_assistant(db: Session, db_assistant: models.AIAssistant):
     db.delete(db_assistant)
     db.commit()
+
+# --- AIAssistantLog CRUD ---
+
+def get_assistant_logs(db: Session, assistant_id: uuid.UUID, limit: int = 50) -> List[models.AIAssistantLog]:
+    return db.query(models.AIAssistantLog)\
+             .filter(models.AIAssistantLog.assistant_id == assistant_id)\
+             .order_by(models.AIAssistantLog.created_at.desc())\
+             .limit(limit)\
+             .all()
+
+def create_assistant_log(db: Session, assistant_id: uuid.UUID, action_type: str, detail: str, status: str = "success") -> models.AIAssistantLog:
+    db_log = models.AIAssistantLog(
+        assistant_id=assistant_id,
+        action_type=action_type,
+        detail=detail,
+        status=status
+    )
+    db.add(db_log)
+    db.commit()
+    db.refresh(db_log)
+    return db_log

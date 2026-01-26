@@ -3,13 +3,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  webpack: (config, { isServer }) => {
-    config.watchOptions = {
-      poll: 1000,
-      aggregateTimeout: 300,
-    };
-    return config;
-  },
+  // Eliminamos el polling de webpack que ralentiza el modo local en Windows
 };
 
 export default nextConfig;

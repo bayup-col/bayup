@@ -13,3 +13,5 @@ mercadopago
 email-validator
 pydantic[email]
 python-multipart
+clerk-sdk-python
+openai
