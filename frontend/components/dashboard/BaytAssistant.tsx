@@ -11,7 +11,9 @@ import {
   Sparkles, 
   FileSpreadsheet, 
   ArrowRight,
-  Users
+  Users,
+  AlertCircle,
+  Package
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
@@ -22,11 +24,7 @@ interface Message {
     sender: 'user' | 'bayt';
     type?: 'text' | 'action' | 'report';
     imageUrl?: string;
-}
-
-interface BaytAssistantProps {
-    isOpen: boolean;
-    setIsOpen: (open: boolean) => void;
+    reportData?: any;
 }
 
 export const BaytAssistant = ({ isOpen, setIsOpen }: BaytAssistantProps) => {
@@ -77,6 +75,8 @@ export const BaytAssistant = ({ isOpen, setIsOpen }: BaytAssistantProps) => {
                 id: Date.now() + 1, 
                 text: response, 
                 sender: 'bayt',
+                type: action === 'report' ? 'report' : 'text',
+                reportData: action === 'report' ? actionData : undefined,
                 imageUrl: action === 'image' ? actionData : undefined
             };
             
@@ -129,14 +129,57 @@ export const BaytAssistant = ({ isOpen, setIsOpen }: BaytAssistantProps) => {
                                 : 'bg-white text-gray-700 rounded-tl-none border border-gray-100 shadow-sm font-medium'
                             }`}>
                                 {m.text}
+
+                                {m.type === 'report' && m.reportData && (
+                                    <div className="mt-5 grid grid-cols-2 gap-3">
+                                        <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="h-7 w-7 bg-purple-600 rounded-lg flex items-center justify-center text-white shadow-sm">
+                                                    <Sparkles size={14} />
+                                                </div>
+                                                <span className="text-[9px] font-black text-purple-600 uppercase tracking-widest">Ventas</span>
+                                            </div>
+                                            <p className="text-lg font-black text-gray-900">${m.reportData.total_sales}</p>
+                                        </div>
+                                        <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="h-7 w-7 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
+                                                    <Package size={14} />
+                                                </div>
+                                                <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Pedidos</span>
+                                            </div>
+                                            <p className="text-lg font-black text-gray-900">{m.reportData.total_orders}</p>
+                                        </div>
+                                        <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="h-7 w-7 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-sm">
+                                                    <FileSpreadsheet size={14} />
+                                                </div>
+                                                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Activos</span>
+                                            </div>
+                                            <p className="text-lg font-black text-gray-900">{m.reportData.active_products}</p>
+                                        </div>
+                                        <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="h-7 w-7 bg-rose-600 rounded-lg flex items-center justify-center text-white shadow-sm">
+                                                    <AlertCircle size={14} />
+                                                </div>
+                                                <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest">Stock Bajo</span>
+                                            </div>
+                                            <p className="text-lg font-black text-gray-900">{m.reportData.low_stock_alerts}</p>
+                                        </div>
+                                        <div className="col-span-2 bg-gray-900 p-4 rounded-2xl mt-1">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[9px] font-black text-purple-400 uppercase tracking-[0.2em]">Estado General</span>
+                                                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                            </div>
+                                            <p className="text-xs text-gray-400 mt-2 font-medium italic">"{m.reportData.message || 'Reporte generado correctamente.'}"</p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {m.imageUrl && (
                                     <img src={m.imageUrl} alt="AI Generated" className="mt-3 rounded-2xl w-full h-auto shadow-md border border-gray-100" />
-                                )}
-                                {m.type === 'report' && (
-                                    <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-3">
-                                        <FileSpreadsheet className="text-emerald-600" size={20} />
-                                        <span className="text-[10px] font-black text-gray-400 uppercase">ventas_enero.xlsx</span>
-                                    </div>
                                 )}
                             </div>
                         </div>

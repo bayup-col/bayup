@@ -788,8 +788,7 @@ async def chat_with_bayt(
     current_user: models.User = Depends(security.get_current_user),
 ):
     messages = payload.get("messages", [])
-    response = ai_service.process_bayt_chat(db, messages, current_user.id)
-    return {"response": response}
+    return ai_service.process_bayt_chat(db, messages, current_user.id)
 
 @app.get("/ai-assistants/{assistant_id}/logs")
 def read_assistant_logs(

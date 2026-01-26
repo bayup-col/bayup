@@ -35,72 +35,65 @@ import {
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { isAuthenticated, logout, userEmail, userRole } = useAuth();
+  const { userEmail: authEmail, userRole: authRole, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   
-  const [productsOpen, setProductsOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [reportsOpen, setReportsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
-  
-  // Estado para el panel lateral de Bayt
-  const [isBaytOpen, setIsBaytOpen] = useState(false);
-
+  const [productsOpen, setProductsOpen] = useState(true);
+  const [reportsOpen, setReportsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [isEditingMenu, setIsEditingMenu] = useState(false);
   const [hiddenModules, setHiddenModules] = useState<string[]>([]);
-
-  // Estados para el rediseño de ajustes de cuenta
+  const [isBaytOpen, setIsBaytOpen] = useState(false);
+  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'prefs'>('profile');
 
-  useEffect(() => {
-    const saved = localStorage.getItem('hidden_modules');
-    if (saved) setHiddenModules(JSON.parse(saved));
-  }, []);
-
-  useEffect(() => {
-    if (pathname.includes('/dashboard/products') || pathname.includes('/dashboard/collections') || pathname.includes('/dashboard/inventory') || pathname.includes('/dashboard/catalogs')) { setProductsOpen(true); }
-    if (pathname.includes('/dashboard/settings')) { setSettingsOpen(true); }
-    if (pathname.includes('/dashboard/reports')) { setReportsOpen(true); }
-  }, [pathname]);
+  const userEmail = authEmail || 'usuario@ejemplo.com';
+  const userRole = authRole || 'admin';
 
   const toggleModule = (id: string) => {
-    const next = hiddenModules.includes(id) ? hiddenModules.filter(m => m !== id) : [...hiddenModules, id];
-    setHiddenModules(next);
-    localStorage.setItem('hidden_modules', JSON.stringify(next));
+    setHiddenModules(prev => 
+      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
+    );
   };
 
-  const isActive = (path: string) => {
-    if (path === '/dashboard') return pathname === '/dashboard';
-    return pathname.startsWith(path);
-  };
-
-  const getLinkStyles = (path: string, type: 'admin' | 'super' = 'admin', isSubItem = false) => {
-    const active = isActive(path);
-    const baseClasses = `block rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] ${isSubItem ? 'px-4 py-2 text-sm ml-4' : 'px-4 py-2.5'} `;
-    if (type === 'super') return baseClasses + (active ? 'bg-red-50 text-red-700 font-bold border border-red-100/50 shadow-sm' : 'text-slate-500 hover:bg-gray-50 hover:text-red-600 border border-transparent hover:shadow-sm');
-    return baseClasses + (active ? 'bg-purple-50 text-purple-700 font-bold border border-purple-100/50 shadow-sm' : 'text-slate-500 hover:bg-gray-50 hover:text-purple-600 border border-transparent hover:shadow-sm');
+  const getLinkStyles = (path: string, type: 'admin' | 'super' = 'admin', isSub = false) => {
+    const isActive = pathname === path || (path !== '/dashboard' && pathname?.startsWith(path));
+    const base = `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 `;
+    const subBase = `flex items-center gap-3 px-4 py-2 ml-9 rounded-xl text-xs font-bold transition-all duration-300 `;
+    
+    if (type === 'super') {
+      return (isSub ? subBase : base) + (isActive 
+        ? 'bg-red-50 text-red-600 shadow-sm' 
+        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900');
+    }
+    
+    return (isSub ? subBase : base) + (isActive 
+      ? 'bg-purple-50 text-purple-600 shadow-sm' 
+      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900');
   };
 
   const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
-    const isHidden = hiddenModules.includes(id);
-    if (isHidden && !isEditingMenu) return null;
-
+    if (hiddenModules.includes(id) && !isEditingMenu) return null;
+    
     return (
-        <div className="relative group/item flex items-center">
-            <Link href={href} className={`flex-1 ${getLinkStyles(href, 'admin', isSub)} ${isHidden ? 'opacity-30 grayscale' : ''}`}>
-                <span className="flex items-center">{label}</span>
-            </Link>
-            {isEditingMenu && (
-                <button 
-                    onClick={(e) => { e.preventDefault(); toggleModule(id); }}
-                    className={`absolute right-2 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${isHidden ? 'bg-purple-600 border-purple-600' : 'bg-white border-gray-200'}`}
-                >
-                    {isHidden && <span className="text-white text-[8px]">✕</span>}
-                </button>
-            )}
-        </div>
+      <div className="relative group">
+        <Link 
+          href={href} 
+          className={`${getLinkStyles(href, 'admin', isSub)} ${hiddenModules.includes(id) ? 'opacity-40' : ''}`}
+        >
+          {label}
+        </Link>
+        {isEditingMenu && (
+          <button 
+            onClick={(e) => { e.preventDefault(); toggleModule(id); }}
+            className={`absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${hiddenModules.includes(id) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-200 text-transparent'}`}
+          >
+            <div className="h-1.5 w-1.5 rounded-full bg-current"></div>
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -108,15 +101,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     if (userRole === 'super_admin') {
         return (
             <>
-              <div className="p-6 border-b border-white/10"><Link href="/dashboard/super-admin" className="text-2xl font-black bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">Super Admin</Link></div>
+              <div className="p-6 border-b border-white/10">
+                <Link href="/dashboard/super-admin" className="text-2xl font-black bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
+                  Super Admin
+                </Link>
+              </div>
               <nav className="flex-1 px-4 py-6 space-y-2">
-                <Link href="/dashboard/super-admin" className={getLinkStyles('/dashboard/super-admin', 'super')}><BarChart3 size={16} className="inline mr-2" /> Dashboard</Link>
-                <Link href="/dashboard/super-admin/comercial" className={getLinkStyles('/dashboard/super-admin/comercial', 'super')}><TrendingUp size={16} className="inline mr-2" /> Comercial</Link>
-                <Link href="/dashboard/super-admin/clientes" className={getLinkStyles('/dashboard/super-admin/clientes', 'super')}><Users size={16} className="inline mr-2" /> Clientes</Link>
-                <Link href="/dashboard/super-admin/ventas" className={getLinkStyles('/dashboard/super-admin/ventas', 'super')}><Package size={16} className="inline mr-2" /> Ventas</Link>
-                <Link href="/dashboard/super-admin/afiliados" className={getLinkStyles('/dashboard/super-admin/afiliados', 'super')}><Users2 size={16} className="inline mr-2" /> Afiliados</Link>
-                <Link href="/dashboard/super-admin/roles" className={getLinkStyles('/dashboard/super-admin/roles', 'super')}><ShieldCheck size={16} className="inline mr-2" /> Usuarios</Link>
-                <Link href="/dashboard/super-admin/reports" className={getLinkStyles('/dashboard/super-admin/reports', 'super')}><FileText size={16} className="inline mr-2" /> Informes</Link>
+                <Link href="/dashboard/super-admin" className={getLinkStyles('/dashboard/super-admin', 'super')}><BarChart3 size={16} /> Dashboard</Link>
+                <Link href="/dashboard/super-admin/comercial" className={getLinkStyles('/dashboard/super-admin/comercial', 'super')}><TrendingUp size={16} /> Comercial</Link>
+                <Link href="/dashboard/super-admin/clientes" className={getLinkStyles('/dashboard/super-admin/clientes', 'super')}><Users size={16} /> Clientes</Link>
+                <Link href="/dashboard/super-admin/ventas" className={getLinkStyles('/dashboard/super-admin/ventas', 'super')}><Package size={16} /> Ventas</Link>
+                <Link href="/dashboard/super-admin/afiliados" className={getLinkStyles('/dashboard/super-admin/afiliados', 'super')}><Users2 size={16} /> Afiliados</Link>
+                <Link href="/dashboard/super-admin/roles" className={getLinkStyles('/dashboard/super-admin/roles', 'super')}><ShieldCheck size={16} /> Usuarios</Link>
+                <Link href="/dashboard/super-admin/reports" className={getLinkStyles('/dashboard/super-admin/reports', 'super')}><FileText size={16} /> Informes</Link>
               </nav>
             </>
         );
@@ -154,7 +151,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         <MenuItem href="/dashboard/orders" label={<><Package size={16} className="mr-2" /> Pedidos</>} id="m_pedidos" />
                         <MenuItem href="/dashboard/shipping" label={<><Truck size={16} className="mr-2" /> Envíos</>} id="m_envios" />
                         
-                        {!hiddenModules.includes('m_productos') || isEditingMenu ? (
+                        {(!hiddenModules.includes('m_productos') || isEditingMenu) && (
                             <div className={hiddenModules.includes('m_productos') ? 'opacity-30' : ''}>
                                 <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
                                     <span className="flex items-center gap-2 text-sm font-medium"><Store size={16} /> Productos</span>
@@ -175,7 +172,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     </div>
                                 </div>
                             </div>
-                        ) : null}
+                        )}
 
                         <MenuItem href="/dashboard/multiventa" label={<><Globe size={16} className="mr-2" /> Multiventa</>} id="m_multiventa" />
                         <MenuItem href="/dashboard/chats" label={<><MessageSquare size={16} className="mr-2" /> Mensajes</>} id="m_mensajes" />
@@ -201,7 +198,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <div className="space-y-1">
                         <MenuItem href="/dashboard/payroll" label={<><Users2 size={16} className="mr-2" /> Nómina</>} id="m_payroll" />
                         
-                        {!hiddenModules.includes('m_informes') || isEditingMenu ? (
+                        {(!hiddenModules.includes('m_informes') || isEditingMenu) && (
                             <div className={hiddenModules.includes('m_informes') ? 'opacity-30' : ''}>
                                 <button onClick={() => setReportsOpen(!reportsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/reports')}`}>
                                     <span className="flex items-center gap-2 text-sm font-medium"><BarChart3 size={16} /> Informes</span>
@@ -221,7 +218,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     </div>
                                 </div>
                             </div>
-                        ) : null}
+                        )}
 
                         <div>
                             <button onClick={() => setSettingsOpen(!settingsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/settings')}`}>
@@ -281,14 +278,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         />
         <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar">{children}</main>
         
-        {/* BaytAssistant ahora como Sidebar controlado */}
         <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />
       </div>
 
       {isUserSettingsOpen && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
             <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl border border-gray-100 overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 max-h-[90vh]">
-                {/* Header Premium */}
                 <div className="bg-gray-900 p-10 text-white relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
                         <User size={150} />
@@ -316,7 +311,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     </div>
                 </div>
 
-                {/* Tabs de Navegación */}
                 <div className="flex px-10 bg-gray-50 border-b border-gray-100">
                     {[
                         { id: 'profile', label: 'Mi Perfil', icon: <User size={14}/> },
@@ -335,7 +329,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     ))}
                 </div>
 
-                {/* Contenido Dinámico */}
                 <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-white">
                     {activeTab === 'profile' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -374,10 +367,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex gap-3">
-                                <ShieldCheck className="text-amber-600 shrink-0" size={20} />
-                                <p className="text-[10px] text-amber-700 font-bold uppercase leading-relaxed">Te recomendamos usar al menos 12 caracteres mezclando letras, números y símbolos.</p>
-                            </div>
                         </div>
                     )}
 
@@ -408,20 +397,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                         <div className="h-4 w-4 bg-white rounded-full shadow-sm translate-x-0"></div>
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Idioma del Panel</label>
-                                    <select className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all appearance-none">
-                                        <option value="es">Español (Latinoamérica)</option>
-                                        <option value="en">English (United States)</option>
-                                        <option value="pt">Português</option>
-                                    </select>
-                                </div>
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Footer Modal */}
                 <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
                     <button onClick={() => setIsUserSettingsOpen(false)} className="text-[10px] font-black uppercase text-gray-400 hover:text-gray-900 tracking-[0.2em] transition-colors">Descartar</button>
                     <button onClick={() => setIsUserSettingsOpen(false)} className="bg-purple-600 hover:bg-purple-700 text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-purple-100 active:scale-95 transition-all">Guardar Ajustes</button>

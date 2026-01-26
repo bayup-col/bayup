@@ -20,14 +20,17 @@ export default function LoginPage() {
     console.log("🚀 [Paso 1] Iniciando intento de login...");
 
     try {
-      // Usamos localhost que es el estándar para desarrollo
-      const response = await fetch('http://localhost:8000/auth/login', {
+      // Auto-detección de la URL del servidor
+      const apiHost = window.location.hostname;
+      const apiBase = `http://${apiHost}:8000`;
+      
+      const response = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ username: email, password: password }),
       });
 
-      console.log("📥 [Paso 2] Respuesta de login recibida. Status:", response.status);
+      console.log(`📥 [Paso 2] Respuesta de login desde ${apiBase} recibida. Status:`, response.status);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -38,7 +41,7 @@ export default function LoginPage() {
       console.log("🔑 [Paso 3] Token obtenido con éxito.");
       
       // Obtener info del usuario directamente con fetch
-      const userResponse = await fetch('http://localhost:8000/auth/me', {
+      const userResponse = await fetch(`${apiBase}/auth/me`, {
         headers: { 'Authorization': `Bearer ${data.access_token}` }
       });
 

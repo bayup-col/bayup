@@ -183,7 +183,10 @@ def process_bayt_chat(db: Session, messages: list, owner_id: uuid.UUID):
                     function_response = f"He generado esta imagen para ti: {action_data}"
 
                 elif function_name == "get_full_dashboard_report":
-                    function_response = json.dumps(get_full_dashboard_report(db, owner_id))
+                    report_data = get_full_dashboard_report(db, owner_id)
+                    action = "report"
+                    action_data = report_data
+                    function_response = f"Aquí tienes el informe detallado que solicitaste."
                 
                 elif function_name == "add_expense":
                     expense_data = schemas.ExpenseCreate(
