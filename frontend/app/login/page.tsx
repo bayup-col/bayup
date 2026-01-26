@@ -20,8 +20,8 @@ export default function LoginPage() {
     console.log("🚀 [Paso 1] Iniciando intento de login...");
 
     try {
-      // Usamos 127.0.0.1 que es más estable que localhost en Windows
-      const response = await fetch('http://127.0.0.1:8000/auth/login', {
+      // Usamos localhost que es el estándar para desarrollo
+      const response = await fetch('http://localhost:8000/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ username: email, password: password }),
@@ -37,8 +37,8 @@ export default function LoginPage() {
       const data = await response.json();
       console.log("🔑 [Paso 3] Token obtenido con éxito.");
       
-      // Obtener info del usuario directamente con fetch para evitar dependencias
-      const userResponse = await fetch('http://127.0.0.1:8000/auth/me', {
+      // Obtener info del usuario directamente con fetch
+      const userResponse = await fetch('http://localhost:8000/auth/me', {
         headers: { 'Authorization': `Bearer ${data.access_token}` }
       });
 
