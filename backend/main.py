@@ -803,4 +803,37 @@ def read_assistant_logs(
         raise HTTPException(status_code=404, detail="Assistant not found")
     
     return crud.get_assistant_logs(db, assistant_id=assistant_id)
+
+# --- Collection Endpoints ---
+
+@app.post("/collections", response_model=schemas.Collection)
+def create_collection(
+    collection: schemas.CollectionCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    return crud.create_collection(db=db, collection=collection, owner_id=current_user.id)
+
+@app.get("/collections", response_model=List[schemas.Collection])
+def read_collections(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    collections = crud.get_collections_by_owner(db, owner_id=current_user.id)
+    # Enrich with product count
+    for col in collections:
+        col.product_count = len(col.products)
+    return collections
+
+@app.delete("/collections/{collection_id}")
+def delete_collection(
+    collection_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_collection = crud.get_collection(db, collection_id=collection_id, owner_id=current_user.id)
+    if not db_collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    crud.delete_collection(db, db_collection=db_collection)
+    return {"ok": True}
     

@@ -1,7 +1,7 @@
 # backend/schemas.py
 from pydantic import BaseModel, EmailStr
 import uuid
-import datetime
+from datetime import datetime
 from typing import List, Optional
 
 # --- User Schemas ---
@@ -133,6 +133,54 @@ class Shipment(ShipmentBase):
 
 class DashboardSummary(BaseModel):
     pass
+
+# --- Finance Schemas ---
+class ExpenseBase(BaseModel):
+    description: str
+    amount: float
+    due_date: datetime
+    status: str = "pending"
+
+class ExpenseCreate(ExpenseBase):
+    pass
+
+class Expense(ExpenseBase):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    class Config:
+        orm_mode = True
+
+class IncomeBase(BaseModel):
+    description: str
+    amount: float
+    category: str | None = None
+
+class IncomeCreate(IncomeBase):
+    pass
+
+class Income(IncomeBase):
+    id: uuid.UUID
+    created_at: datetime
+    tenant_id: uuid.UUID
+    class Config:
+        orm_mode = True
+
+# --- Collection Schemas ---
+class CollectionBase(BaseModel):
+    title: str
+    description: str | None = None
+    image_url: str | None = None
+    status: str = "active"
+
+class CollectionCreate(CollectionBase):
+    pass
+
+class Collection(CollectionBase):
+    id: uuid.UUID
+    owner_id: uuid.UUID
+    product_count: int = 0
+    class Config:
+        orm_mode = True
 
 # --- Clerk Integration Schemas ---
 class ClerkLoginRequest(BaseModel):
@@ -268,11 +316,17 @@ class AIAssistantCreate(AIAssistantBase):
     pass
 
 class AIAssistant(AIAssistantBase):
+
     id: uuid.UUID
+
     owner_id: uuid.UUID
+
     total_actions: int
+
     success_rate: float
-    last_run: datetime.datetime | None = None
+
+    last_run: datetime | None = None
 
     class Config:
+
         orm_mode = True

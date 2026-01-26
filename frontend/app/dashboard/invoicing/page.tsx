@@ -55,8 +55,6 @@ const CHANNELS = {
     pos: { icon: '🏪', label: 'Tienda Física', color: 'bg-gray-900 text-white' }
 };
 
-const CATEGORIES = ['Todos', 'Ropa', 'Calzado', 'Accesorios', 'Tecnología'];
-
 export default function InvoicingPage() {
     const { token, isAuthenticated } = useAuth();
     const [isManualModalOpen, setIsManualModalOpen] = useState(false);
@@ -65,6 +63,7 @@ export default function InvoicingPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [history, setHistory] = useState<PastInvoice[]>([]);
     const [sellers, setSellers] = useState<string[]>([]);
+    const [categories, setCategories] = useState<string[]>(['Todos']);
     
     // Estados de Filtros
     const [historySearch, setHistorySearch] = useState('');
@@ -83,6 +82,7 @@ export default function InvoicingPage() {
 
     // 1. CARGAR TODO EL ECOSISTEMA
     const loadEcosystem = useCallback(async () => {
+        if (!token) return;
         // Cargar Productos Reales
         try {
             const res = await fetch('http://localhost:8000/products', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -91,6 +91,16 @@ export default function InvoicingPage() {
                 setProducts(data);
             }
         } catch (e) { console.error("Error loading products"); }
+
+        // Cargar Colecciones (Categorías) Reales
+        try {
+            const res = await fetch('http://localhost:8000/collections', { headers: { 'Authorization': `Bearer ${token}` } });
+            if (res.ok) {
+                const data = await res.json();
+                const titles = data.map((c: any) => c.title);
+                setCategories(['Todos', ...titles]);
+            }
+        } catch (e) { console.error("Error loading collections"); }
 
         // Cargar Vendedores Sincronizados
         const savedSellers = localStorage.getItem('business_sellers');
@@ -341,7 +351,7 @@ export default function InvoicingPage() {
                                             <h3 className="text-lg font-black text-gray-900 uppercase tracking-widest text-[11px]">Catálogo en Stock</h3>
                                         </div>
                                         <div className="flex gap-2">
-                                            {CATEGORIES.slice(0, 4).map(cat => (
+                                            {categories.slice(0, 5).map(cat => (
                                                 <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${selectedCategory === cat ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-400 border-gray-100 hover:border-purple-200'}`}>{cat}</button>
                                             ))}
                                         </div>

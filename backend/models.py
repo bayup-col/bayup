@@ -40,6 +40,18 @@ class User(Base):
     orders = relationship("Order", back_populates="customer", foreign_keys="[Order.customer_id]")
     pages = relationship("Page", back_populates="owner")
 
+class Collection(Base):
+    __tablename__ = "collections"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    image_url = Column(String, nullable=True)
+    status = Column(String, default="active") # active, hidden
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    
+    owner = relationship("User")
+    products = relationship("Product", back_populates="collection")
+
 class Product(Base):
     __tablename__ = "products"
 
@@ -52,6 +64,9 @@ class Product(Base):
     product_type_id = Column(UUID(as_uuid=True), ForeignKey("product_types.id"), nullable=True)
     product_type = relationship("ProductType")
     
+    collection_id = Column(UUID(as_uuid=True), ForeignKey("collections.id"), nullable=True)
+    collection = relationship("Collection", back_populates="products")
+
     owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     owner = relationship("User", back_populates="products")
     
@@ -239,4 +254,13 @@ class Receivable(Base):
     amount = Column(Float, nullable=False)
     due_date = Column(DateTime, nullable=False)
     status = Column(String, default="pending") # pending, collected
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
+class Income(Base):
+    __tablename__ = "incomes"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    description = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    category = Column(String, nullable=True) # e.g., "Venta Directa", "Inversión"
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)

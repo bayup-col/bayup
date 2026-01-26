@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from "@/context/auth-context";
+import { apiRequest } from '@/lib/api';
 
 interface Collection {
   id: string;
@@ -13,46 +14,42 @@ interface Collection {
   status: 'active' | 'hidden';
 }
 
-// Datos Mock para demostración (Backend pendiente)
-const MOCK_COLLECTIONS: Collection[] = [
-    {
-        id: "col_1", title: "Novedades Verano", description: "Lo último en moda para esta temporada.", image_url: null, product_count: 24, status: 'active'
-    },
-    {
-        id: "col_2", title: "Ofertas Flash", description: "Descuentos por tiempo limitado.", image_url: null, product_count: 5, status: 'active'
-    },
-    {
-        id: "col_3", title: "Ropa de Invierno (Borrador)", description: "Preparando la próxima estación.", image_url: null, product_count: 0, status: 'hidden'
-    }
-];
-
 export default function CollectionsPage() {
-  const { token, isAuthenticated } = useAuth();
+  const { token } = useAuth();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Simulación de carga de datos
-  useEffect(() => {
-    const fetchCollections = async () => {
-      setLoading(true);
-      // Aquí iría el fetch real: await fetch('http://localhost:8000/collections'...)
-      // Por ahora usamos un timeout para simular la red
-      setTimeout(() => {
-        setCollections(MOCK_COLLECTIONS);
-        setLoading(false);
-      }, 600);
-    };
-
-    if (isAuthenticated) {
-        fetchCollections();
+  const fetchCollections = useCallback(async () => {
+    if (!token) {
+      setLoading(false);
+      return;
     }
-  }, [isAuthenticated, token]);
+    setLoading(true);
+    try {
+      const data = await apiRequest<Collection[]>('/collections', { token });
+      setCollections(data || []);
+    } catch (err) {
+      console.error("Error al cargar colecciones");
+      setCollections([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  useEffect(() => {
+    fetchCollections();
+  }, [fetchCollections]);
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('¿Estás seguro de eliminar esta colección?')) {
-        setCollections(prev => prev.filter(c => c.id !== id));
+    if (!confirm('¿Estás seguro de eliminar esta colección?')) return;
+    
+    try {
+      await apiRequest(`/collections/${id}`, { method: 'DELETE', token });
+      setCollections(prev => prev.filter(c => c.id !== id));
+    } catch (err) {
+      alert("Error al eliminar la colección.");
     }
   };
 

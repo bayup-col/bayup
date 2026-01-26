@@ -87,6 +87,46 @@ tools = [
                 "required": ["prompt"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "add_expense",
+            "description": "Registrar un nuevo gasto en la tienda.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "description": {"type": "string", "description": "Concepto del gasto"},
+                    "amount": {"type": "number", "description": "Monto del gasto"},
+                    "category": {"type": "string", "description": "Categoría opcional"}
+                },
+                "required": ["description", "amount"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "add_income",
+            "description": "Registrar un nuevo ingreso o venta manual.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "description": {"type": "string", "description": "Concepto del ingreso"},
+                    "amount": {"type": "number", "description": "Monto del ingreso"},
+                    "category": {"type": "string", "description": "Categoría opcional"}
+                },
+                "required": ["description", "amount"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_inventory_status",
+            "description": "Consultar productos con stock bajo o agotados.",
+            "parameters": {"type": "object", "properties": {}}
+        }
     }
 ]
 
@@ -145,7 +185,36 @@ def process_bayt_chat(db: Session, messages: list, owner_id: uuid.UUID):
                 elif function_name == "get_full_dashboard_report":
                     function_response = json.dumps(get_full_dashboard_report(db, owner_id))
                 
-                # ... resto de funciones ...
+                elif function_name == "add_expense":
+                    expense_data = schemas.ExpenseCreate(
+                        description=function_args.get("description"),
+                        amount=function_args.get("amount"),
+                        due_date=datetime.utcnow(),
+                        status="paid"
+                    )
+                    crud.create_expense(db, expense_data, owner_id)
+                    function_response = f"He registrado tu gasto de {function_args.get('amount')} por '{function_args.get('description')}'."
+
+                elif function_name == "add_income":
+                    income_data = schemas.IncomeCreate(
+                        description=function_args.get("description"),
+                        amount=function_args.get("amount"),
+                        category=function_args.get("category")
+                    )
+                    crud.create_income(db, income_data, owner_id)
+                    function_response = f"¡Genial! Registré un ingreso de {function_args.get('amount')} por '{function_args.get('description')}'."
+
+                elif function_name == "get_inventory_status":
+                    low_stock = db.query(models.ProductVariant).join(models.Product).filter(
+                        models.Product.owner_id == owner_id,
+                        models.ProductVariant.stock <= 5
+                    ).all()
+                    if low_stock:
+                        items = [f"{v.product.name} ({v.name}): {v.stock} unid." for v in low_stock]
+                        function_response = "Tienes estos productos con stock bajo: " + ", ".join(items)
+                    else:
+                        function_response = "¡Todo bien! No tienes productos con stock crítico."
+
                 else:
                     function_response = "Acción procesada."
 

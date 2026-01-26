@@ -25,7 +25,13 @@ import {
   BarChart3,
   Store,
   ChevronDown,
-  Pencil
+  Pencil,
+  User,
+  Lock,
+  Bell,
+  Globe2,
+  Camera,
+  X
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -38,11 +44,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [reportsOpen, setReportsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
-  const [isSupportOpen, setIsSupportOpen] = useState(false);
-  const [supportMessages] = useState([{ id: 1, text: "¡Hola! 👋 Soy el asistente de soporte de Bayup. ¿En qué puedo ayudarte hoy?", sender: 'bot' }]);
+  
+  // Estado para el panel lateral de Bayt
+  const [isBaytOpen, setIsBaytOpen] = useState(false);
 
   const [isEditingMenu, setIsEditingMenu] = useState(false);
   const [hiddenModules, setHiddenModules] = useState<string[]>([]);
+
+  // Estados para el rediseño de ajustes de cuenta
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'prefs'>('profile');
 
   useEffect(() => {
     const saved = localStorage.getItem('hidden_modules');
@@ -265,28 +275,156 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             userMenuOpen={userMenuOpen} 
             setUserMenuOpen={setUserMenuOpen} 
             logout={logout} 
-            setIsUserSettingsOpen={setIsUserSettingsOpen} 
+            setIsUserSettingsOpen={setIsUserSettingsOpen}
+            isBaytOpen={isBaytOpen}
+            setIsBaytOpen={setIsBaytOpen}
         />
         <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar">{children}</main>
-        <BaytAssistant />
+        
+        {/* BaytAssistant ahora como Sidebar controlado */}
+        <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />
       </div>
 
       {isUserSettingsOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
-                <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-8 text-white relative">
-                    <button onClick={() => setIsUserSettingsOpen(false)} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">✕</button>
-                    <div className="flex items-center gap-4">
-                        <div className="h-14 w-14 bg-white/10 rounded-2xl flex items-center justify-center text-2xl border border-white/10">👤</div>
-                        <div><h2 className="text-xl font-black tracking-tight">Mi Cuenta</h2><p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Ajustes Personales</p></div>
+        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl border border-gray-100 overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 max-h-[90vh]">
+                {/* Header Premium */}
+                <div className="bg-gray-900 p-10 text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
+                        <User size={150} />
+                    </div>
+                    <button onClick={() => setIsUserSettingsOpen(false)} className="absolute top-8 right-8 h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all z-10">
+                        <X size={20} />
+                    </button>
+                    
+                    <div className="relative z-10 flex items-center gap-8">
+                        <div className="relative group">
+                            <div className="h-24 w-24 rounded-[2rem] bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-4xl font-black shadow-2xl border-4 border-white/10">
+                                {userEmail?.charAt(0).toUpperCase()}
+                            </div>
+                            <button className="absolute -bottom-2 -right-2 h-10 w-10 bg-white text-gray-900 rounded-2xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform active:scale-95">
+                                <Camera size={18} />
+                            </button>
+                        </div>
+                        <div>
+                            <h2 className="text-3xl font-black tracking-tight">{userEmail?.split('@')[0]}</h2>
+                            <div className="flex items-center gap-3 mt-2">
+                                <span className="bg-purple-600 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">{userRole?.replace('_', ' ')}</span>
+                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest italic">{userEmail}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div className="p-8 space-y-6">
-                    <div className="space-y-4">
-                        <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label><input type="text" defaultValue={userEmail?.split('@')[0]} className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500" /></div>
-                        <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Correo Electrónico</label><input type="email" value={userEmail || ''} disabled className="w-full mt-1 p-3 bg-gray-100 border border-gray-100 rounded-xl text-sm text-gray-400 cursor-not-allowed italic" /></div>
-                    </div>
-                    <div className="p-8 pt-0"><button onClick={() => setIsUserSettingsOpen(false)} className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg">Guardar Cambios</button></div>
+
+                {/* Tabs de Navegación */}
+                <div className="flex px-10 bg-gray-50 border-b border-gray-100">
+                    {[
+                        { id: 'profile', label: 'Mi Perfil', icon: <User size={14}/> },
+                        { id: 'security', label: 'Seguridad', icon: <Lock size={14}/> },
+                        { id: 'prefs', label: 'Preferencias', icon: <Globe2 size={14}/> }
+                    ].map((tab) => (
+                        <button 
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`flex items-center gap-2 px-6 py-5 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab.id ? 'text-purple-600' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                            {tab.icon}
+                            {tab.label}
+                            {activeTab === tab.id && <div className="absolute bottom-0 left-0 right-0 h-1 bg-purple-600 rounded-t-full"></div>}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Contenido Dinámico */}
+                <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-white">
+                    {activeTab === 'profile' && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Público</label>
+                                    <input type="text" defaultValue={userEmail?.split('@')[0]} className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Cargo / Rol</label>
+                                    <input type="text" value={userRole === 'admin' ? 'Administrador de Tienda' : 'Super Administrador'} disabled className="w-full p-4 bg-gray-100 border border-gray-100 text-gray-400 rounded-2xl outline-none text-sm font-bold italic" />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Biografía Breve</label>
+                                <textarea rows={3} placeholder="Cuéntanos un poco sobre ti..." className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-medium transition-all resize-none" />
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'security' && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Contraseña Actual</label>
+                                    <input type="password" placeholder="••••••••" className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all" />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nueva Contraseña</label>
+                                        <input type="password" placeholder="••••••••" className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Confirmar Nueva Contraseña</label>
+                                        <input type="password" placeholder="••••••••" className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex gap-3">
+                                <ShieldCheck className="text-amber-600 shrink-0" size={20} />
+                                <p className="text-[10px] text-amber-700 font-bold uppercase leading-relaxed">Te recomendamos usar al menos 12 caracteres mezclando letras, números y símbolos.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'prefs' && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                    <div className="flex items-center gap-3">
+                                        <Bell size={18} className="text-purple-600" />
+                                        <div>
+                                            <p className="text-xs font-black text-gray-900 uppercase tracking-widest">Notificaciones Email</p>
+                                            <p className="text-[10px] text-gray-500 font-bold uppercase mt-0.5">Alertas de ventas y stock</p>
+                                        </div>
+                                    </div>
+                                    <div className="h-6 w-11 bg-purple-600 rounded-full relative flex items-center px-1 cursor-pointer">
+                                        <div className="h-4 w-4 bg-white rounded-full shadow-sm translate-x-5"></div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                    <div className="flex items-center gap-3">
+                                        <MessageSquare size={18} className="text-emerald-600" />
+                                        <div>
+                                            <p className="text-xs font-black text-gray-900 uppercase tracking-widest">Alertas WhatsApp</p>
+                                            <p className="text-[10px] text-gray-500 font-bold uppercase mt-0.5">Notificaciones en tiempo real</p>
+                                        </div>
+                                    </div>
+                                    <div className="h-6 w-11 bg-gray-200 rounded-full relative flex items-center px-1 cursor-pointer">
+                                        <div className="h-4 w-4 bg-white rounded-full shadow-sm translate-x-0"></div>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Idioma del Panel</label>
+                                    <select className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all appearance-none">
+                                        <option value="es">Español (Latinoamérica)</option>
+                                        <option value="en">English (United States)</option>
+                                        <option value="pt">Português</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer Modal */}
+                <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                    <button onClick={() => setIsUserSettingsOpen(false)} className="text-[10px] font-black uppercase text-gray-400 hover:text-gray-900 tracking-[0.2em] transition-colors">Descartar</button>
+                    <button onClick={() => setIsUserSettingsOpen(false)} className="bg-purple-600 hover:bg-purple-700 text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-purple-100 active:scale-95 transition-all">Guardar Ajustes</button>
                 </div>
             </div>
         </div>

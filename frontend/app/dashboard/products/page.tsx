@@ -119,13 +119,14 @@ const AttributeField = ({ label, category, value, suggestions, onAdd, onRemove }
 };
 
 export default function ProductsPage() {
-  const { token } = useAuth();
+  const { token, logout, isAuthenticated } = useAuth();
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS_EXTRA);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'draft' | 'archived'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);  
   const [importFile, setImportFile] = useState<File | null>(null);    
+  const [availableCategories, setAvailableCategories] = useState<{name: string, icon: string}[]>(CATEGORIES);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -181,14 +182,27 @@ export default function ProductsPage() {
     }
   }, [token]);
 
+  const fetchCollections = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await apiRequest<any[]>('/collections', { token });
+      if (data && Array.isArray(data) && data.length > 0) {
+          setAvailableCategories(data.map(c => ({ name: c.title, icon: '📦' })));
+      }
+    } catch (err) {
+      console.error("Error fetching collections");
+    }
+  }, [token]);
+
   useEffect(() => {
     fetchProducts();
+    fetchCollections();
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setIsModalOpen(false); setIsImportModalOpen(false); resetForm(); } };
     const handleClickOutside = (e: MouseEvent) => { if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) setIsCategoryDropdownOpen(false); };
     window.addEventListener('keydown', handleEsc);
     document.addEventListener('mousedown', handleClickOutside);       
     return () => { window.removeEventListener('keydown', handleEsc); document.removeEventListener('mousedown', handleClickOutside); };       
-  }, [fetchProducts]);
+  }, [fetchProducts, fetchCollections]);
 
   const handleEditClick = (product: Product) => {
     setIsEditMode(true);
@@ -329,7 +343,7 @@ export default function ProductsPage() {
                                 <div className="relative" ref={categoryRef}>
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Categoría</label> 
                                     <button type="button" onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)} className="w-full mt-2 p-4 bg-gray-50 border border-transparent hover:bg-white hover:border-purple-100 rounded-2xl outline-none text-sm font-bold text-gray-700 flex items-center justify-between transition-all"><span>{newProduct.category ? newProduct.category : 'Seleccionar categoría'}</span></button>
-                                    {isCategoryDropdownOpen && (<div className="absolute z-[120] top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2">{CATEGORIES.map((cat, i) => (<button key={i} type="button" onClick={() => { setNewProduct({...newProduct, category: cat.name}); setIsCategoryDropdownOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${newProduct.category === cat.name ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-50'}`}>{cat.name}</button>))}</div>)}
+                                    {isCategoryDropdownOpen && (<div className="absolute z-[120] top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2">{availableCategories.map((cat, i) => (<button key={i} type="button" onClick={() => { setNewProduct({...newProduct, category: cat.name}); setIsCategoryDropdownOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${newProduct.category === cat.name ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-50'}`}>{cat.name}</button>))}</div>)}
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Estado</label>    

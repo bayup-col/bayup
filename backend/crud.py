@@ -402,3 +402,38 @@ def create_assistant_log(db: Session, assistant_id: uuid.UUID, action_type: str,
     db.commit()
     db.refresh(db_log)
     return db_log
+
+# --- Finance CRUD ---
+
+def create_expense(db: Session, expense: schemas.ExpenseCreate, tenant_id: uuid.UUID) -> models.Expense:
+    db_expense = models.Expense(**expense.dict(), tenant_id=tenant_id)
+    db.add(db_expense)
+    db.commit()
+    db.refresh(db_expense)
+    return db_expense
+
+def create_income(db: Session, income: schemas.IncomeCreate, tenant_id: uuid.UUID) -> models.Income:
+    db_income = models.Income(**income.dict(), tenant_id=tenant_id)
+    db.add(db_income)
+    db.commit()
+    db.refresh(db_income)
+    return db_income
+
+# --- Collection CRUD ---
+
+def get_collection(db: Session, collection_id: uuid.UUID, owner_id: uuid.UUID) -> models.Collection | None:
+    return db.query(models.Collection).filter(models.Collection.id == collection_id, models.Collection.owner_id == owner_id).first()
+
+def get_collections_by_owner(db: Session, owner_id: uuid.UUID) -> list[models.Collection]:
+    return db.query(models.Collection).filter(models.Collection.owner_id == owner_id).all()
+
+def create_collection(db: Session, collection: schemas.CollectionCreate, owner_id: uuid.UUID) -> models.Collection:
+    db_collection = models.Collection(**collection.dict(), owner_id=owner_id)
+    db.add(db_collection)
+    db.commit()
+    db.refresh(db_collection)
+    return db_collection
+
+def delete_collection(db: Session, db_collection: models.Collection):
+    db.delete(db_collection)
+    db.commit()
