@@ -1,132 +1,148 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/context/auth-context';
-import { apiRequest } from '@/lib/api';
+import { useAuth } from '../../../context/auth-context';
+
+interface ProductVariant {
+  id: string;
+  name: string;
+  sku: string | null;
+  price_adjustment: number;
+  stock: number;
+  image_url: string | null;
+}
 
 interface Product {
   id: string;
   name: string;
-  sku: string;
-  price: number;
-  stock: number;
-  category: string;
-  status: 'active' | 'draft' | 'out_of_stock';
+  description: string;
+  price: number; // Base price
+  image_url: string | null;
+  variants: ProductVariant[];
 }
 
 export default function ProductsPage() {
-  const { token } = useAuth();
+  const { token, isAuthenticated } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const fetchProducts = useCallback(async () => {
-    if (!token) return;
+    if (!isAuthenticated || !token) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
     try {
-      const data = await apiRequest<Product[]>('/products', { token });
+      const response = await fetch('http://localhost:8000/products', { // TODO: Use env variable
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+
+      const data = await response.json();
       setProducts(data);
-    } catch (err) {
-      console.error("Error al cargar productos");
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while fetching products.');
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [isAuthenticated, token]);
+
+  const handleDeleteProduct = async (productId: string) => {
+    if (!window.confirm('Are you sure you want to delete this product and all its variants?')) {
+      return;
+    }
+    if (!isAuthenticated || !token) {
+      setError('Authentication token not found.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/products/${productId}`, { // TODO: Implement DELETE /products/{id} in backend
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete product');
+      }
+
+      setProducts((prevProducts) => prevProducts.filter((p) => p.id !== productId));
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while deleting the product.');
+    }
+  };
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Seguro que deseas eliminar este producto?")) return;
-    try {
-      await apiRequest(`/products/${id}`, { method: 'DELETE', token });
-      setProducts(products.filter(p => p.id !== id));
-      alert("Producto eliminado.");
-    } catch (err) {
-      alert("No se pudo eliminar el producto.");
-    }
-  };
-
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(amount);
-  };
+  if (loading) return <p>Loading products...</p>;
+  if (error) return <p className="text-red-500">Error: {error}</p>;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10 pb-20 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Inventario</h1>
-          <p className="text-gray-500 mt-2 font-medium">Gestiona tus productos y niveles de stock en tiempo real.</p>
-        </div>
-        <Link href="/dashboard/products/new" className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-purple-100 transition-all active:scale-95 text-center">
-          + Nuevo Producto
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Your Products</h1>
+        <Link href="/dashboard/products/new" className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          Add New Product
         </Link>
       </div>
 
-      <div className="bg-white p-4 rounded-[2.5rem] shadow-sm border border-gray-50 flex items-center px-8">
-        <span className="text-xl mr-4">🔍</span>
-        <input 
-          type="text" 
-          placeholder="Buscar por nombre o SKU..." 
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 py-4 bg-transparent outline-none text-sm font-medium text-gray-600"
-        />
-      </div>
+      {products.length === 0 ? (
+        <p className="text-gray-600">You haven't added any products yet.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map((product) => (
+            <div key={product.id} className="bg-white rounded-lg shadow-md p-6">
+              {product.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={product.image_url} alt={product.name} className="w-full h-48 object-cover rounded-md mb-4" />
+              )}
+              <h2 className="text-xl font-semibold text-gray-800">{product.name}</h2>
+              <p className="text-gray-600 mt-2">{product.description}</p>
+              <p className="text-gray-500">Base Price: ${product.price.toFixed(2)}</p>
+              
+              <div className="mt-4">
+                <h3 className="text-lg font-medium text-gray-700">Variants:</h3>
+                {product.variants.length === 0 ? (
+                    <p className="text-gray-600 text-sm">No variants defined.</p>
+                ) : (
+                    <ul className="mt-2 text-sm text-gray-600 list-disc pl-5">
+                    {product.variants.map(variant => (
+                        <li key={variant.id}>
+                            {variant.name} (SKU: {variant.sku || 'N/A'}) - 
+                            ${(product.price + variant.price_adjustment).toFixed(2)} (Stock: {variant.stock})
+                        </li>
+                    ))}
+                    </ul>
+                )}
+              </div>
 
-      <div className="bg-white rounded-[3rem] border border-gray-50 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50/50 border-b border-gray-50">
-                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Producto</th>
-                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">SKU</th>
-                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Stock</th>
-                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Precio</th>
-                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading ? (
-                <tr><td colSpan={5} className="px-8 py-20 text-center text-gray-400 font-bold">Cargando inventario...</td></tr>
-              ) : filteredProducts.length === 0 ? (
-                <tr><td colSpan={5} className="px-8 py-20 text-center text-gray-400 font-bold">No se encontraron productos.</td></tr>
-              ) : filteredProducts.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50/50 transition-colors group">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 bg-purple-50 rounded-2xl flex items-center justify-center text-xl">📦</div>
-                      <div>
-                        <p className="text-sm font-black text-gray-900">{product.name}</p>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{product.category}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-xs font-bold text-gray-500 uppercase">{product.sku}</td>
-                  <td className="px-8 py-6">
-                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${product.stock < 5 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                      {product.stock} unidades
-                    </span>
-                  </td>
-                  <td className="px-8 py-6 text-sm font-black text-gray-900">{formatCurrency(product.price)}</td>
-                  <td className="px-8 py-6 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Link href={`/dashboard/products/${product.id}/edit`} className="p-2 text-gray-400 hover:text-purple-600 transition-colors">✎</Link>
-                      <button onClick={() => handleDelete(product.id)} className="p-2 text-gray-400 hover:text-rose-600 transition-colors">✕</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              <div className="mt-4 flex space-x-2">
+                <Link href={`/dashboard/products/${product.id}/edit`} className="text-indigo-600 hover:text-indigo-900 text-sm">
+                  Edit
+                </Link>
+                <button
+                  onClick={() => handleDeleteProduct(product.id)}
+                  className="text-red-600 hover:text-red-900 text-sm"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }
