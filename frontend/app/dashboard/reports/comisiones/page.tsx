@@ -26,15 +26,52 @@ const INITIAL_RULES: CommissionRule[] = [
 ];
 
 export default function ComisionesPage() {
-    const [records, setRecords] = useState<CommissionRecord[]>([
-        { id: 'c1', seller_name: 'Lorena Gómez', total_sold: 45000000, commission_rate: 3, earned: 1350000, status: 'pending' },
-        { id: 'c2', seller_name: 'Andrés Felipe', total_sold: 12000000, commission_rate: 2, earned: 240000, status: 'pending' },
-        { id: 'c3', seller_name: 'Marta Lucía', total_sold: 28000000, commission_rate: 2.5, earned: 700000, status: 'liquidated' },
-    ]);
-    
-    const [rules, setRules] = useState<CommissionRule[]>(INITIAL_RULES);
+    const [records, setRecords] = useState<CommissionRecord[]>([]);
+    const [rules, setRules] = useState<CommissionRule[]>([]);
     const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
     const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+
+    // --- SINCRONIZACIÓN CON EL EQUIPO REAL ---
+    useEffect(() => {
+        const savedSellers = localStorage.getItem('business_sellers');
+        const savedRules = localStorage.getItem('commission_rules');
+        
+        if (savedSellers) {
+            const sellers = JSON.parse(savedSellers);
+            const currentRules = savedRules ? JSON.parse(savedRules) : [];
+            
+            // 1. Asegurar que cada vendedor tenga una regla de comisión
+            const updatedRules: CommissionRule[] = sellers.map((s: any) => {
+                const existingRule = currentRules.find((r: any) => r.id === s.id);
+                return existingRule || {
+                    id: s.id,
+                    seller_name: s.name,
+                    rate: 2.5, // Tasa por defecto
+                    goal: 10000000,
+                    is_active: true
+                };
+            });
+            setRules(updatedRules);
+            localStorage.setItem('commission_rules', JSON.stringify(updatedRules));
+
+            // 2. Generar registros de liquidación basados en ventas reales de los vendedores
+            const updatedRecords: CommissionRecord[] = sellers.map((s: any) => {
+                const rule = updatedRules.find(r => r.id === s.id);
+                const rate = rule ? rule.rate : 2.5;
+                const total_sold = s.sales_month || 0;
+                
+                return {
+                    id: `c_${s.id}`,
+                    seller_name: s.name,
+                    total_sold: total_sold,
+                    commission_rate: rate,
+                    earned: (total_sold * rate) / 100,
+                    status: 'pending'
+                };
+            });
+            setRecords(updatedRecords);
+        }
+    }, []);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD' }).format(amount).replace('$', '$ ');
@@ -47,7 +84,17 @@ export default function ComisionesPage() {
     };
 
     const updateRule = (id: string, field: keyof CommissionRule, value: any) => {
-        setRules(rules.map(r => r.id === id ? { ...r, [field]: value } : r));
+        const updated = rules.map(r => r.id === id ? { ...r, [field]: value } : r);
+        setRules(updated);
+        localStorage.setItem('commission_rules', JSON.stringify(updated));
+    };
+
+    const formatNumberInput = (val: number) => {
+        return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    };
+
+    const unformatNumberInput = (val: string) => {
+        return parseFloat(val.replace(/\./g, '')) || 0;
     };
 
     const totalPending = records.filter(r => r.status === 'pending').reduce((a, b) => a + b.earned, 0);
@@ -161,7 +208,17 @@ export default function ComisionesPage() {
                                         <tr key={rule.id}>
                                             <td className="px-6 py-6"><p className="text-sm font-black text-gray-900">{rule.seller_name}</p></td>
                                             <td className="px-6 py-6"><input type="number" value={rule.rate} onChange={(e) => updateRule(rule.id, 'rate', parseFloat(e.target.value))} className="w-20 p-2 bg-gray-50 rounded-lg text-sm font-black text-purple-600 outline-none focus:bg-white border-transparent transition-all" /></td>
-                                            <td className="px-6 py-6"><input type="number" value={rule.goal} onChange={(e) => updateRule(rule.id, 'goal', parseFloat(e.target.value))} className="w-40 p-2 bg-gray-50 rounded-lg text-sm font-black text-gray-700 outline-none focus:bg-white border-transparent transition-all" /></td>
+                                            <td className="px-6 py-6">
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">$</span>
+                                                    <input 
+                                                        type="text" 
+                                                        value={formatNumberInput(rule.goal)} 
+                                                        onChange={(e) => updateRule(rule.id, 'goal', unformatNumberInput(e.target.value))} 
+                                                        className="w-40 pl-6 p-2 bg-gray-50 rounded-lg text-sm font-black text-gray-700 outline-none focus:bg-white border-transparent transition-all" 
+                                                    />
+                                                </div>
+                                            </td>
                                             <td className="px-6 py-6 text-right"><button onClick={() => updateRule(rule.id, 'is_active', !rule.is_active)} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${rule.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>{rule.is_active ? 'Activo' : 'Pausado'}</button></td>
                                         </tr>
                                     ))}

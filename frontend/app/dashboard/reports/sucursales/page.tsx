@@ -1,7 +1,22 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { 
+  Plus, 
+  Trash2, 
+  Store, 
+  MapPin, 
+  Globe, 
+  Smartphone, 
+  ChevronRight, 
+  X, 
+  AlertTriangle,
+  CheckCircle2,
+  Loader2
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "@/context/auth-context";
+import { useToast } from '@/context/toast-context';
 
 interface Branch {
     id: string;
@@ -31,9 +46,33 @@ const DEFAULT_BRANCH: Branch = {
 
 export default function SucursalesPage() {
     const { token } = useAuth();
-    const [branches, setBranches] = useState<Branch[]>([DEFAULT_BRANCH]);
+    const { showToast } = useToast();
+    const [branches, setBranches] = useState<Branch[]>([]);
     const [isCreateModalOpen, setIsManualModalOpen] = useState(false);
     const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+    const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    // --- CARGA Y PERSISTENCIA ---
+    useEffect(() => {
+        const saved = localStorage.getItem('business_branches');
+        if (saved) {
+            setBranches(JSON.parse(saved));
+        } else {
+            setBranches([DEFAULT_BRANCH]);
+            localStorage.setItem('business_branches', JSON.stringify([DEFAULT_BRANCH]));
+        }
+        setLoading(false);
+    }, []);
+
+    const confirmDelete = () => {
+        if (!branchToDelete) return;
+        const updated = branches.filter(b => b.id !== branchToDelete.id);
+        setBranches(updated);
+        localStorage.setItem('business_branches', JSON.stringify(updated));
+        setBranchToDelete(null);
+        showToast("Sucursal eliminada del sistema", "success");
+    };
 
     // Formulario Nueva Sucursal
     const [formData, setFormData] = useState({
@@ -59,7 +98,11 @@ export default function SucursalesPage() {
             },
             stats: { revenueToday: 0, lossToday: 0, growth: 0 }
         };
-        setBranches([...branches, newBranch]);
+        
+        const updatedBranches = [...branches, newBranch];
+        setBranches(updatedBranches);
+        localStorage.setItem('business_branches', JSON.stringify(updatedBranches));
+        
         setIsManualModalOpen(false);
         setFormData({ name: '', responsible: '', location: '', independentWeb: false, independentSocial: false, onlyLocal: true });
     };
@@ -88,6 +131,14 @@ export default function SucursalesPage() {
                         onClick={() => setSelectedBranch(branch)}
                         className="bg-white p-8 rounded-[3rem] border border-gray-50 shadow-sm hover:shadow-xl transition-all cursor-pointer group relative overflow-hidden"
                     >
+                        {/* Botón Eliminar Flotante */}
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setBranchToDelete(branch); }}
+                            className="absolute top-6 right-6 h-10 w-10 bg-white border border-gray-100 rounded-xl flex items-center justify-center text-gray-300 hover:text-rose-500 hover:border-rose-100 hover:shadow-lg transition-all opacity-0 group-hover:opacity-100 z-20"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+
                         <div className="relative z-10 space-y-6">
                             <div className="flex justify-between items-start">
                                 <div className="h-14 w-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">🏢</div>
@@ -193,6 +244,40 @@ export default function SucursalesPage() {
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Modal de Confirmación de Eliminación */}
+            {branchToDelete && (
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center relative overflow-hidden"
+                    >
+                        <div className="h-20 w-20 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <AlertTriangle size={40} />
+                        </div>
+                        <h3 className="text-xl font-black text-gray-900 tracking-tight">¿Eliminar Sucursal?</h3>
+                        <p className="text-gray-500 text-sm mt-3 font-medium leading-relaxed">
+                            Vas a eliminar <span className="font-bold text-gray-900">{branchToDelete.name}</span>. Esta acción es irreversible y afectará los reportes históricos.
+                        </p>
+                        
+                        <div className="flex flex-col gap-3 mt-10">
+                            <button 
+                                onClick={confirmDelete} 
+                                className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-100 hover:bg-rose-700 transition-all active:scale-95"
+                            >
+                                Confirmar Eliminación
+                            </button>
+                            <button 
+                                onClick={() => setBranchToDelete(null)} 
+                                className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </motion.div>
                 </div>
             )}
         </div>

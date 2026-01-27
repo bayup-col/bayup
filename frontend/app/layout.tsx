@@ -3,8 +3,11 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "BaseCommerce Store",
-  description: "A store powered by BaseCommerce",
+  title: "Bayup | E-commerce Intelligence",
+  description: "A business operating system powered by Bayup",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({

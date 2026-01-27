@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
+import { userService } from '@/lib/api';
 import { DashboardHeader } from '@/components/dashboard/Header';
 import { BaytAssistant } from '@/components/dashboard/BaytAssistant';
 import { 
@@ -35,7 +36,7 @@ import {
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { userEmail: authEmail, userRole: authRole, logout } = useAuth();
+  const { userEmail: authEmail, userRole: authRole, token, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   
@@ -48,6 +49,24 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isBaytOpen, setIsBaytOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'prefs'>('profile');
+
+  // Cargar Permisos Reales del Usuario
+  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const fetchPerms = async () => {
+        if (!token) return;
+        try {
+            const rolesData = await userService.getRoles(token);
+            // Si el usuario es staff, buscamos los permisos de su rol
+            const myRole = rolesData.find((r: any) => r.name === authRole || r.id === authRole);
+            if (myRole?.permissions) setPermissions(myRole.permissions);
+        } catch (e) {
+            console.error("Error loading permissions");
+        }
+    };
+    if (token) fetchPerms();
+  }, [pathname, authRole, token]);
 
   const userEmail = authEmail || 'usuario@ejemplo.com';
   const userRole = authRole || 'admin';
@@ -75,6 +94,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
+    // BLOQUEO REAL: Si el permiso está en false, no renderizamos el componente
+    const permissionKey = id.replace('m_', ''); // convertimos m_facturacion a facturacion
+    if (permissions[permissionKey] === false && !isEditingMenu) return null;
+    
     if (hiddenModules.includes(id) && !isEditingMenu) return null;
     
     return (
@@ -229,7 +252,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                 <div className="space-y-1">
                                     <Link href="/dashboard/settings/general" className={getLinkStyles('/dashboard/settings/general', 'admin', true)}>Info General</Link>
                                     <Link href="/dashboard/settings/plan" className={getLinkStyles('/dashboard/settings/plan', 'admin', true)}>Mi Plan</Link>
-                                    <Link href="/dashboard/settings/billing" className={getLinkStyles('/dashboard/settings/billing', 'admin', true)}>Facturación</Link>
+                                    <Link href="/dashboard/settings/billing" className={getLinkStyles('/dashboard/settings/billing', 'admin', true)}>Finanzas</Link>
                                     <Link href="/dashboard/settings/users" className={getLinkStyles('/dashboard/settings/users', 'admin', true)}>Staff</Link>
                                 </div>
                             </div>
@@ -250,7 +273,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.1); }
       `}</style>
       
-      <aside className="w-64 flex-shrink-0 m-4 rounded-[2.5rem] backdrop-blur-3xl bg-white/20 border border-white/50 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] flex flex-col overflow-y-auto custom-scrollbar z-20 transition-all duration-500 hover:bg-white/30">
+      <aside className="w-64 flex-shrink-0 m-4 rounded-[2.5rem] backdrop-blur-3xl bg-white/20 border border-white/50 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] flex flex-col overflow-y-auto custom-scrollbar z-0 transition-all duration-500 hover:bg-white/30">
         {renderSidebar()}
         <div className="p-6 mt-auto flex items-center justify-between border-t border-white/10 bg-transparent">
           <span className="text-[10px] text-gray-300 font-bold uppercase tracking-widest leading-none block">Bayup Admin</span>
@@ -264,7 +287,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="flex-1 flex flex-col min-w-0">
         <DashboardHeader 
             pathname={pathname} 
             userEmail={userEmail} 

@@ -60,7 +60,7 @@ export const DashboardHeader = ({
     };
 
     return (
-        <header className="h-16 flex-shrink-0 bg-white/70 backdrop-blur-lg border-b border-white/20 flex items-center justify-between px-8 sticky top-0 z-30 shadow-sm">
+        <header className="h-16 flex-shrink-0 bg-white/70 backdrop-blur-lg border-b border-white/20 flex items-center justify-between px-8 sticky top-0 z-[50] shadow-sm">
             <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Plataforma</span>
                 <span className="text-gray-300">/</span>
@@ -137,7 +137,7 @@ export const DashboardHeader = ({
                             <p className="text-xs font-black text-gray-900 leading-none">{userEmail?.split('@')[0]}</p>
                             <p className="text-[10px] font-bold text-purple-500 mt-1 uppercase tracking-tighter italic">{userRole === 'super_admin' ? 'Super Admin' : 'Plan Empresa'}</p>
                         </div>
-                        <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white text-sm font-black shadow-lg group-hover:scale-105 transition-transform">
+                        <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white text-sm font-black shadow-lg group-hover:scale-105 transition-transform overflow-hidden">
                             {userEmail?.charAt(0).toUpperCase()}
                         </div>
                     </button>

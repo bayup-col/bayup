@@ -41,7 +41,8 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
         email=user.email,
         full_name=user.full_name,
         hashed_password=hashed_password,
-        role="admin_tienda",  # Asignar automáticamente el rol de administrador de tienda
+        role=user.role or "admin_tienda",
+        status=user.status or "Activo",
         plan_id=default_plan.id
     )
     db.add(db_user)
@@ -173,6 +174,9 @@ def create_order(
             tax_rate_snapshot=tax_rate_snapshot,
             shipping_option_id=shipping_option_id,
             shipping_cost_snapshot=shipping_cost_snapshot,
+            customer_name=order.customer_name,
+            customer_email=order.customer_email,
+            seller_name=order.seller_name
         )
         db.add(db_order)
         db.flush() # Use flush to get the order ID before creating items
@@ -437,3 +441,28 @@ def create_collection(db: Session, collection: schemas.CollectionCreate, owner_i
 def delete_collection(db: Session, db_collection: models.Collection):
     db.delete(db_collection)
     db.commit()
+
+# --- Custom Role CRUD ---
+def get_custom_roles(db: Session, owner_id: uuid.UUID):
+    return db.query(models.CustomRole).filter(models.CustomRole.owner_id == owner_id).all()
+
+def create_custom_role(db: Session, role_in: schemas.CustomRoleCreate, owner_id: uuid.UUID):
+    db_role = models.CustomRole(
+        id=uuid.uuid4(),
+        name=role_in.name,
+        permissions=role_in.permissions,
+        owner_id=owner_id
+    )
+    db.add(db_role)
+    db.commit()
+    db.refresh(db_role)
+    return db_role
+
+def update_custom_role(db: Session, role_id: uuid.UUID, role_in: schemas.CustomRoleCreate, owner_id: uuid.UUID):
+    db_role = db.query(models.CustomRole).filter(models.CustomRole.id == role_id, models.CustomRole.owner_id == owner_id).first()
+    if db_role:
+        db_role.name = role_in.name
+        db_role.permissions = role_in.permissions
+        db.commit()
+        db.refresh(db_role)
+    return db_role

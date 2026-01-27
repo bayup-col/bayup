@@ -2,20 +2,21 @@
 from pydantic import BaseModel, EmailStr
 import uuid
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 # --- User Schemas ---
 
 # Shared properties
 class UserBase(BaseModel):
-    email: EmailStr
-    full_name: Optional[str] = None
-    nickname: Optional[str] = None
-    role: Optional[str] = "admin_tienda"
+    email: str
+    full_name: str | None = None
+    nickname: str | None = None
+    status: str | None = "Activo" # New: Active, Invited, Suspended
 
 # Properties to receive via API on creation
 class UserCreate(UserBase):
     password: str
+    role: str | None = "admin_tienda" # New: allow setting role during creation
 
 # Properties to return to client
 class User(UserBase):
@@ -24,6 +25,7 @@ class User(UserBase):
     bank_accounts: List[dict] | None = []
     social_links: dict | None = {}
     whatsapp_lines: List[dict] | None = []
+    permissions: Optional[Dict[str, bool]] = {} # Permisos de módulos
 
     class Config:
         orm_mode = True
@@ -67,6 +69,7 @@ class ProductBase(BaseModel):
     price: float # Base price, variants can adjust
     image_url: str | None = None # Main product image
     product_type_id: uuid.UUID | None = None # Product type determines available attributes
+    collection_id: uuid.UUID | None = None # Vínculo con la colección
 
 class ProductCreate(ProductBase):
     variants: List[ProductVariantCreate] # Variants are created along with the product
@@ -98,7 +101,9 @@ class OrderItem(OrderItemBase):
         orm_mode = True
 
 class OrderBase(BaseModel):
-    pass
+    customer_name: Optional[str] = None
+    customer_email: Optional[str] = None
+    seller_name: Optional[str] = None
 
 class OrderCreate(OrderBase):
     items: List[OrderItemCreate]
@@ -107,6 +112,7 @@ class Order(OrderBase):
     id: uuid.UUID
     status: str
     created_at: datetime
+    total_price: float # Asegurar que total_price se devuelva
     items: List[OrderItem] = []
 
     class Config:
@@ -329,4 +335,19 @@ class AIAssistant(AIAssistantBase):
 
     class Config:
 
+        orm_mode = True
+
+# --- Custom Role Schemas ---
+class CustomRoleBase(BaseModel):
+    name: str
+    permissions: Dict[str, bool]
+
+class CustomRoleCreate(CustomRoleBase):
+    pass
+
+class CustomRole(CustomRoleBase):
+    id: uuid.UUID
+    owner_id: uuid.UUID
+
+    class Config:
         orm_mode = True

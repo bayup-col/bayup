@@ -1,7 +1,28 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
+import { 
+  Users, 
+  UserPlus, 
+  Shield, 
+  Smartphone, 
+  Trash2, 
+  Edit3, 
+  Check, 
+  X, 
+  Store, 
+  Package, 
+  LayoutDashboard, 
+  Globe, 
+  Briefcase,
+  MapPin,
+  CheckCircle2,
+  AlertTriangle,
+  ChevronDown
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "@/context/auth-context";
+import { useToast } from '@/context/toast-context';
 import { Seller, MonthData } from '@/lib/types';
 
 const MONTHS_LIST = ['Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre', 'Enero'];
@@ -39,10 +60,25 @@ const INITIAL_SELLERS: Seller[] = [
 
 export default function VendedoresPage() {
     const { token } = useAuth();
+    const { showToast } = useToast();
     const [sellers, setSellers] = useState<Seller[]>([]);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+    const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false);
     const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
     const [filterMonth, setFilterMonth] = useState('Enero');
+    const [availableBranches, setAvailableBranches] = useState<string[]>(['Tienda Principal']);
+    const [userToDelete, setUserToDelete] = useState<Seller | null>(null);
+
+    // --- SINCRONIZACIÓN DE SUCURSALES REALES ---
+    useEffect(() => {
+        const savedBranches = localStorage.getItem('business_branches');
+        if (savedBranches) {
+            const parsed = JSON.parse(savedBranches);
+            setAvailableBranches(parsed.map((b: any) => b.name));
+        }
+    }, []);
+
 
     const [formData, setFormData] = useState({
         name: '',
@@ -78,7 +114,7 @@ export default function VendedoresPage() {
     };
 
     const handleCreate = () => {
-        if (!formData.name) return alert("Escribe el nombre del asesor.");
+        if (!formData.name) return showToast("Escribe el nombre del asesor.", "error");
         const newSeller: Seller = {
             id: `s_${Math.random().toString(36).substr(2, 9)}`,
             name: formData.name,
@@ -102,6 +138,16 @@ export default function VendedoresPage() {
         localStorage.setItem('business_sellers', JSON.stringify(updated));
         setIsCreateModalOpen(false);
         setFormData({ name: '', role: 'Asesor de Ventas', branch: 'Tienda Principal', web: false, social: true, separados: true, in_store: true });
+        showToast("Asesor registrado con éxito", "success");
+    };
+
+    const confirmDelete = () => {
+        if (!userToDelete) return;
+        const updated = sellers.filter(s => s.id !== userToDelete.id);
+        setSellers(updated);
+        localStorage.setItem('business_sellers', JSON.stringify(updated));
+        setUserToDelete(null);
+        showToast("Asesor eliminado del sistema", "success");
     };
 
     const TrendIndicator = ({ current, previous }: { current: number, previous: number }) => {
@@ -135,9 +181,17 @@ export default function VendedoresPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {sellers.map((seller) => (
                     <div key={seller.id} onClick={() => setSelectedSeller(seller)} className="bg-white p-8 rounded-[3rem] border border-gray-50 shadow-sm hover:shadow-xl transition-all cursor-pointer group relative overflow-hidden">
+                        {/* Botón Eliminar Flotante */}
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setUserToDelete(seller); }}
+                            className="absolute top-6 right-6 h-10 w-10 bg-white border border-gray-100 rounded-xl flex items-center justify-center text-gray-300 hover:text-rose-500 hover:border-rose-100 hover:shadow-lg transition-all opacity-0 group-hover:opacity-100 z-20"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+
                         <div className="relative z-10 flex flex-col items-center text-center">
-                            <div className="h-20 w-20 bg-purple-50 rounded-3xl flex items-center justify-center text-2xl font-black text-purple-600 mb-4 shadow-inner">{seller.avatar}</div>
-                            <h3 className="text-xl font-black text-gray-900">{seller.name}</h3>
+                            <div className="h-20 w-20 bg-purple-50 rounded-3xl flex items-center justify-center text-2xl font-black text-purple-600 mb-4 shadow-inner group-hover:scale-110 transition-transform duration-500">{seller.avatar}</div>
+                            <h3 className="text-xl font-black text-gray-900 group-hover:text-purple-600 transition-colors">{seller.name}</h3>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">{seller.role}</p>
                             <div className="w-full mt-8 pt-6 border-t border-gray-50 grid grid-cols-2 gap-4">
                                 <div className="text-left"><p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Este Mes</p><p className="text-sm font-black text-gray-900">{formatCurrency(seller.sales_month)}</p><TrendIndicator current={seller.sales_month} previous={seller.last_month_sales} /></div>
@@ -282,6 +336,194 @@ export default function VendedoresPage() {
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
+            {/* MODAL REGISTRAR ASESOR - DISEÑO PREMIUM */}
+            {isCreateModalOpen && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl overflow-visible relative"
+                    >
+                        {/* Header Oscuro Glass */}
+                        <div className="bg-gray-900 p-8 text-white relative rounded-t-[3rem]">
+                            <button onClick={() => setIsCreateModalOpen(false)} className="absolute top-6 right-6 h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center hover:bg-rose-500 transition-all active:scale-90">
+                                <X size={20} />
+                            </button>
+                            <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 bg-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/20">
+                                    <UserPlus size={24} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-black tracking-tight">Nuevo Asesor</h2>
+                                    <p className="text-purple-400 text-[10px] font-black uppercase tracking-widest mt-1">Sincronización de Equipo</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-10 space-y-8 overflow-visible">
+                            <div className="space-y-6 overflow-visible">
+                                {/* Nombre */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label>
+                                    <div className="relative group">
+                                        <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-purple-600 transition-colors" size={18} />
+                                        <input 
+                                            type="text" 
+                                            value={formData.name} 
+                                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                            placeholder="Ej: Carolina Herrera"
+                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all shadow-inner"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Cargo y Sucursal */}
+                                <div className="grid grid-cols-2 gap-6 overflow-visible">
+                                    <div className="space-y-2 relative">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Cargo / Rol</label>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                                            className="w-full flex items-center justify-between p-4 bg-gray-50 border-2 border-transparent hover:border-purple-100 rounded-2xl outline-none text-xs font-bold transition-all appearance-none cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <Briefcase size={16} className="text-purple-600" />
+                                                {formData.role}
+                                            </div>
+                                            <ChevronDown size={14} className={`text-gray-400 transition-transform ${isRoleDropdownOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        
+                                        {isRoleDropdownOpen && (
+                                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-[1100] max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200">
+                                                {['Asesor de Ventas', 'Líder de Tienda', 'Gestor de Inventario'].map((role) => (
+                                                    <button 
+                                                        key={role}
+                                                        type="button"
+                                                        onClick={() => { setFormData({...formData, role}); setIsRoleDropdownOpen(false); }}
+                                                        className="w-full px-5 py-3 text-left text-[11px] font-black uppercase text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                                                    >
+                                                        {role}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2 relative">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sucursal</label>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setIsBranchDropdownOpen(!isBranchDropdownOpen)}
+                                            className="w-full flex items-center justify-between p-4 bg-gray-50 border-2 border-transparent hover:border-purple-100 rounded-2xl outline-none text-xs font-bold transition-all appearance-none cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <MapPin size={16} className="text-purple-600" />
+                                                {formData.branch}
+                                            </div>
+                                            <ChevronDown size={14} className={`text-gray-400 transition-transform ${isBranchDropdownOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        
+                                        {isBranchDropdownOpen && (
+                                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-[1100] max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200">
+                                                {availableBranches.map((branch) => (
+                                                    <button 
+                                                        key={branch}
+                                                        type="button"
+                                                        onClick={() => { setFormData({...formData, branch}); setIsBranchDropdownOpen(false); }}
+                                                        className="w-full px-5 py-3 text-left text-[11px] font-black uppercase text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-colors flex items-center gap-2"
+                                                    >
+                                                        <MapPin size={12} className="opacity-30" />
+                                                        {branch}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Canales de Venta */}
+                                <div className="space-y-4">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Canales Permitidos</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {[
+                                            { id: 'web', label: 'Venta Web', icon: <Globe size={14}/> },
+                                            { id: 'social', label: 'Redes Sociales', icon: <Smartphone size={14}/> },
+                                            { id: 'separados', label: 'Separados (IA)', icon: <Package size={14}/> },
+                                            { id: 'in_store', label: 'Venta en Sala', icon: <Store size={14}/> }
+                                        ].map((canal) => {
+                                            const isActive = formData[canal.id as keyof typeof formData] as boolean;
+                                            return (
+                                                <button 
+                                                    key={canal.id}
+                                                    type="button"
+                                                    onClick={() => setFormData({...formData, [canal.id]: !isActive})}
+                                                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${isActive ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white border-gray-100 text-gray-400 grayscale opacity-60'}`}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        {canal.icon}
+                                                        <span className="text-[10px] font-black uppercase tracking-tighter">{canal.label}</span>
+                                                    </div>
+                                                    <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${isActive ? 'bg-purple-600 border-purple-600' : 'border-gray-200'}`}>
+                                                        {isActive && <Check size={10} className="text-white" />}
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 pt-4">
+                                <button 
+                                    onClick={() => setIsCreateModalOpen(false)}
+                                    className="flex-1 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    onClick={handleCreate}
+                                    className="flex-[2] py-5 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-purple-100 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <CheckCircle2 size={16} />
+                                    Confirmar Registro
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+            {/* Modal de Confirmación de Eliminación */}
+            {userToDelete && (
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center relative overflow-hidden"
+                    >
+                        <div className="h-20 w-20 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <AlertTriangle size={40} />
+                        </div>
+                        <h3 className="text-xl font-black text-gray-900 tracking-tight">¿Eliminar Asesor?</h3>
+                        <p className="text-gray-500 text-sm mt-3 font-medium leading-relaxed">
+                            Vas a eliminar a <span className="font-bold text-gray-900">{userToDelete.name}</span>. Esta acción borrará sus registros de comisiones y metas.
+                        </p>
+                        
+                        <div className="flex flex-col gap-3 mt-10">
+                            <button 
+                                onClick={confirmDelete} 
+                                className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-100 hover:bg-rose-700 transition-all active:scale-95"
+                            >
+                                Confirmar Eliminación
+                            </button>
+                            <button 
+                                onClick={() => setUserToDelete(null)} 
+                                className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </motion.div>
                 </div>
             )}
         </div>

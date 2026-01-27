@@ -120,13 +120,13 @@ const AttributeField = ({ label, category, value, suggestions, onAdd, onRemove }
 
 export default function ProductsPage() {
   const { token, logout, isAuthenticated } = useAuth();
-  const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS_EXTRA);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'draft' | 'archived'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);  
   const [importFile, setImportFile] = useState<File | null>(null);    
-  const [availableCategories, setAvailableCategories] = useState<{name: string, icon: string}[]>(CATEGORIES);
+  const [availableCategories, setAvailableCategories] = useState<{id: string, name: string, icon: string}[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -137,14 +137,14 @@ export default function ProductsPage() {
   const categoryRef = useRef<HTMLDivElement>(null);
 
   const [newProduct, setNewProduct] = useState({
-    name: '', status: 'active' as 'active' | 'draft' | 'archived', category: '', description: '', cost: '', price: '', stock: '', sku: '',   
+    name: '', status: 'active' as 'active' | 'draft' | 'archived', category: '', collection_id: '' as string | null, description: '', cost: '', price: '', stock: '', sku: '',   
     images: [] as { file?: File, preview: string }[],
     attributes: { tallas: [] as string[], colores: [] as string[], marcas: [] as string[], materiales: [] as string[], estilos: [] as string[], generos: [] as string[], otros: [] as string[] }
   });
 
   const resetForm = () => {
     setNewProduct({
-        name: '', status: 'active', category: '', description: '', cost: '', price: '', stock: '', sku: '',
+        name: '', status: 'active', category: '', collection_id: null, description: '', cost: '', price: '', stock: '', sku: '',
         images: [],
         attributes: { tallas: [], colores: [], marcas: [], materiales: [], estilos: [], generos: [], otros: [] }
     });
@@ -163,20 +163,14 @@ export default function ProductsPage() {
     try {
       const data = await apiRequest<any[]>('/products', { token });
       if (data && Array.isArray(data)) {
-          setProducts([
-            ...data.map((p: any) => ({ 
-              ...p, 
-              status: p.status || (p.variants?.every((v:any) => v.stock === 0) ? 'archived' : 'active'), 
-              category: p.category || 'General' 
-            })), 
-            ...MOCK_PRODUCTS_EXTRA
-          ]);
-      } else {
-          setProducts(MOCK_PRODUCTS_EXTRA);
+          setProducts(data.map((p: any) => ({ 
+            ...p, 
+            status: p.status || (p.variants?.every((v:any) => v.stock === 0) ? 'archived' : 'active'), 
+            category: p.category || 'General' 
+          })));
       }
     } catch (err) { 
       console.error("Error fetching products:", err);
-      setProducts(MOCK_PRODUCTS_EXTRA);
     } finally { 
       setLoading(false); 
     }
@@ -187,7 +181,7 @@ export default function ProductsPage() {
     try {
       const data = await apiRequest<any[]>('/collections', { token });
       if (data && Array.isArray(data) && data.length > 0) {
-          setAvailableCategories(data.map(c => ({ name: c.title, icon: '📦' })));
+          setAvailableCategories(data.map(c => ({ id: c.id, name: c.title, icon: '📦' })));
       }
     } catch (err) {
       console.error("Error fetching collections");
@@ -276,15 +270,26 @@ export default function ProductsPage() {
             description: newProduct.description,
             price: parseFloat(newProduct.price) || 0,
             image_url: newProduct.images.length > 0 ? newProduct.images[0].preview : null,
-            variants: [{ name: "Estándar", sku: newProduct.sku || null, price_adjustment: 0, stock: parseInt(newProduct.stock) || 0, attributes: newProduct.attributes }]
+            product_type_id: null, // El backend espera este campo aunque sea null
+            collection_id: newProduct.collection_id, // Enviamos el ID real de la colección
+            variants: [{ 
+                name: "Estándar", 
+                sku: newProduct.sku || null, 
+                price_adjustment: 0, 
+                stock: parseInt(newProduct.stock) || 0, 
+                attributes: newProduct.attributes 
+            }]
         };
         const url = isEditMode ? `/products/${currentProductId}` : '/products';
         await apiRequest(url, { method: isEditMode ? 'PUT' : 'POST', token, body: JSON.stringify(productData) });
-        alert(isEditMode ? "¡Producto actualizado!" : "¡Producto guardado!");
+        
         setIsModalOpen(false);
         resetForm();
         fetchProducts();
-    } catch (err) { alert("Error al guardar el producto."); }
+    } catch (err: any) { 
+        console.error("Error al guardar:", err);
+        alert(`Error al guardar: ${err.message || "Verifica los datos e intenta de nuevo"}`); 
+    }
   };
 
   const costVal = parseFloat(newProduct.cost) || 0;
@@ -319,11 +324,35 @@ export default function ProductsPage() {
             <div className="flex justify-center items-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"></div></div>
         ) : (
             <table className="min-w-full divide-y divide-gray-50">        
-                <thead className="bg-gray-50/50"><tr><th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] w-[40%]">Producto</th><th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Estado</th><th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Stock</th><th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Categoría</th><th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Acciones</th></tr></thead>      
+                <thead className="bg-gray-50/50"><tr><th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] w-[40%]">Producto</th><th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Estado</th><th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Stock</th><th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Colección</th><th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Acciones</th></tr></thead>      
                 <tbody className="bg-white divide-y divide-gray-50">      
                     {(products || []).filter(p => (activeTab === 'all' || p.status === activeTab) && (p.name || '').toLowerCase().includes(searchTerm.toLowerCase())).map((product) => {
                         const totalStock = product.variants?.reduce((acc, v) => acc + (v.stock || 0), 0) || 0;
-                        return (<tr key={product.id} className="hover:bg-gray-50/50 group transition-all duration-300"><td className="px-8 py-6"><div className="flex items-center gap-5"><div className="h-14 w-14 flex-shrink-0 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center overflow-hidden shadow-sm group-hover:scale-110 transition-transform duration-500">{product.image_url ? <img src={product.image_url} alt="" className="h-full w-full object-cover" /> : <span className="text-xl">📦</span>}</div><div><div className="text-sm font-black text-gray-900 group-hover:text-purple-600 transition-colors tracking-tight">{product.name}</div><div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1.5 flex items-center gap-2">{product.variants?.length || 0} variantes <span className="h-1 w-1 rounded-full bg-gray-300"></span> {product.category}</div></div></div></td><td className="px-8 py-6 whitespace-nowrap"><span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border ${product.status === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100/50' : product.status === 'draft' ? 'bg-amber-50 text-amber-600 border-amber-100/50' : 'bg-gray-50 text-gray-400 border-gray-100'}`}>{product.status === 'active' ? 'Activo' : product.status === 'draft' ? 'Borrador' : 'Archivado'}</span></td><td className="px-8 py-6 whitespace-nowrap"><p className={`text-sm font-black ${totalStock <= 5 ? 'text-rose-600' : 'text-gray-900'}`}>{totalStock} <span className="text-[10px] text-gray-400 uppercase ml-1">en stock</span></p></td><td className="px-8 py-6 whitespace-nowrap"><span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{product.category}</span></td><td className="px-8 py-6 whitespace-nowrap text-right"><div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0"><button type="button" onClick={() => handleEditClick(product)} className="text-[10px] font-black text-purple-600 uppercase tracking-widest hover:underline">Editar</button><button type="button" onClick={(e) => { e.stopPropagation(); if (confirm('¿Eliminar?')) setProducts(products.filter(p => p.id !== product.id)); }} className="text-[10px] font-black text-rose-600 uppercase tracking-widest hover:underline">Eliminar</button></div></td></tr>);
+                                                return (
+                                                    <tr key={product.id} className="hover:bg-gray-50/50 group transition-all duration-300">
+                                                        <td className="px-8 py-6">
+                                                            <div className="flex items-center gap-5">
+                                                                <div className="h-14 w-14 flex-shrink-0 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center overflow-hidden shadow-sm group-hover:scale-110 transition-transform duration-500">
+                                                                    {product.image_url && !product.image_url.includes('undefined') ? (
+                                                                        <img 
+                                                                            src={product.image_url} 
+                                                                            alt={product.name}
+                                                                            className="h-full w-full object-cover" 
+                                                                            onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
+                                                                        />
+                                                                    ) : (
+                                                                        <span className="text-xl">📦</span>
+                                                                    )}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-sm font-black text-gray-900 group-hover:text-purple-600 transition-colors tracking-tight">{product.name}</div>
+                                                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1.5 flex items-center gap-2">
+                                                                        {product.variants?.length || 0} variantes <span className="h-1 w-1 rounded-full bg-gray-300"></span> {product.category}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                        <td className="px-8 py-6 whitespace-nowrap"><span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border ${product.status === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100/50' : product.status === 'draft' ? 'bg-amber-50 text-amber-600 border-amber-100/50' : 'bg-gray-50 text-gray-400 border-gray-100'}`}>{product.status === 'active' ? 'Activo' : product.status === 'draft' ? 'Borrador' : 'Archivado'}</span></td><td className="px-8 py-6 whitespace-nowrap"><p className={`text-sm font-black ${totalStock <= 5 ? 'text-rose-600' : 'text-gray-900'}`}>{totalStock} <span className="text-[10px] text-gray-400 uppercase ml-1">en stock</span></p></td><td className="px-8 py-6 whitespace-nowrap"><span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{product.category}</span></td><td className="px-8 py-6 whitespace-nowrap text-right"><div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0"><button type="button" onClick={() => handleEditClick(product)} className="text-[10px] font-black text-purple-600 uppercase tracking-widest hover:underline">Editar</button><button type="button" onClick={(e) => { e.stopPropagation(); if (confirm('¿Eliminar?')) setProducts(products.filter(p => p.id !== product.id)); }} className="text-[10px] font-black text-rose-600 uppercase tracking-widest hover:underline">Eliminar</button></div></td></tr>);
                     })}
                 </tbody>
             </table>
@@ -341,9 +370,9 @@ export default function ProductsPage() {
                             <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre del producto *</label><input type="text" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} placeholder="Ej: Camiseta de Algodón Pima" className="w-full mt-2 p-4 bg-gray-50 border border-transparent focus:bg-white rounded-2xl outline-none text-sm font-bold" /></div>
                             <div className="grid grid-cols-2 gap-6">  
                                 <div className="relative" ref={categoryRef}>
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Categoría</label> 
-                                    <button type="button" onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)} className="w-full mt-2 p-4 bg-gray-50 border border-transparent hover:bg-white hover:border-purple-100 rounded-2xl outline-none text-sm font-bold text-gray-700 flex items-center justify-between transition-all"><span>{newProduct.category ? newProduct.category : 'Seleccionar categoría'}</span></button>
-                                    {isCategoryDropdownOpen && (<div className="absolute z-[120] top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2">{availableCategories.map((cat, i) => (<button key={i} type="button" onClick={() => { setNewProduct({...newProduct, category: cat.name}); setIsCategoryDropdownOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${newProduct.category === cat.name ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-50'}`}>{cat.name}</button>))}</div>)}
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Colección</label> 
+                                    <button type="button" onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)} className="w-full mt-2 p-4 bg-gray-50 border border-transparent hover:bg-white hover:border-purple-100 rounded-2xl outline-none text-sm font-bold text-gray-700 flex items-center justify-between transition-all"><span>{newProduct.category ? newProduct.category : 'Seleccionar colección'}</span></button>
+                                    {isCategoryDropdownOpen && (<div className="absolute z-[120] top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2">{availableCategories.map((cat, i) => (<button key={i} type="button" onClick={() => { setNewProduct({...newProduct, category: cat.name, collection_id: cat.id}); setIsCategoryDropdownOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${newProduct.category === cat.name ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-50'}`}>{cat.name}</button>))}</div>)}
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Estado</label>    
@@ -362,7 +391,19 @@ export default function ProductsPage() {
                         <label className="border-2 border-dashed border-gray-100 rounded-[2rem] p-12 text-center hover:bg-gray-50 hover:border-purple-200 transition-all cursor-pointer group flex flex-col items-center justify-center relative"><input type="file" multiple accept="image/*" className="hidden" onChange={handleFileUpload} /><p className="text-sm font-bold text-gray-900 mt-4">Sube archivos</p></label>
                         {newProduct.images.length > 0 && (
                             <div className="flex flex-wrap gap-4 mt-8">
-                                {newProduct.images.map((img, i) => (<div key={i} className="h-24 w-24 rounded-2xl border border-gray-100 bg-gray-50 relative overflow-hidden group"><img src={img.preview} className="h-full w-full object-cover" alt="" /><button type="button" onClick={() => { const imgs = [...newProduct.images]; imgs.splice(i, 1); setNewProduct({...newProduct, images: imgs}); }} className="absolute top-1 right-1 h-5 w-5 bg-white/90 rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 z-10 shadow-sm">✕</button>{i === 0 && <span className="absolute bottom-1 left-1 bg-purple-600 text-white text-[6px] font-black uppercase px-1.5 py-0.5 rounded shadow-lg">Principal</span>}</div>))}
+                                {newProduct.images.map((img, i) => (<div key={i} className="h-24 w-24 rounded-2xl border border-gray-100 bg-gray-50 relative overflow-hidden group">
+    <img 
+        src={img.preview} 
+        className="h-full w-full object-cover" 
+        alt="" 
+        onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+        }}
+    />
+    <button type="button" onClick={() => { const imgs = [...newProduct.images]; imgs.splice(i, 1); setNewProduct({...newProduct, images: imgs}); }} className="absolute top-1 right-1 h-5 w-5 bg-white/90 rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 z-10 shadow-sm">✕</button>
+    {i === 0 && <span className="absolute bottom-1 left-1 bg-purple-600 text-white text-[6px] font-black uppercase px-1.5 py-0.5 rounded shadow-lg">Principal</span>}
+</div>))}
                             </div>
                         )}
                     </div>

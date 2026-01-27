@@ -631,41 +631,96 @@ def get_product_type(product_type_id: uuid.UUID, db: Session = Depends(get_db)):
 
 # --- Admin Endpoints ---
 
-@app.post("/admin/update-role")
-def update_user_role(
-    email: str = None,
-    new_role: str = None,
-    db: Session = Depends(get_db)
+@app.post("/admin/update-user")
+def update_user_details(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
 ):
-    """Update user role - for development/admin purposes"""
-    if not email or not new_role:
-        raise HTTPException(status_code=400, detail="email and new_role are required")
+    """Update user details - accessible by admins"""
+    if current_user.role not in ["super_admin", "admin_tienda"]:
+        raise HTTPException(status_code=403, detail="No tienes permisos para modificar usuarios")
+
+    email = payload.get("email")
+    new_role = payload.get("new_role")
+    full_name = payload.get("full_name")
+    status = payload.get("status")
+    social_links = payload.get("social_links")
+    whatsapp_lines = payload.get("whatsapp_lines")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="El email es obligatorio")
     
     user = crud.get_user_by_email(db, email=email)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="El usuario no existe")
     
-    # Validate role
-    valid_roles = ["admin_tienda", "super_admin"]
-    if new_role not in valid_roles:
-        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {valid_roles}")
+    if new_role: user.role = new_role
+    if full_name: user.full_name = full_name
+    if status: user.status = status
+    if social_links is not None: user.social_links = social_links
+    if whatsapp_lines is not None: user.whatsapp_lines = whatsapp_lines
     
-    user.role = new_role
     db.commit()
     db.refresh(user)
-    return {"message": f"User role updated to {new_role}", "user": {"email": user.email, "id": str(user.id), "role": user.role}}
+    return {"message": "Usuario actualizado correctamente"}
+
+@app.delete("/admin/users/{user_id}")
+def delete_user(
+    user_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Delete a user - accessible by super_admin and admin_tienda"""
+    if current_user.role not in ["super_admin", "admin_tienda"]:
+        raise HTTPException(status_code=403, detail="No tienes permisos para eliminar usuarios")
+    
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    db.delete(user)
+    db.commit()
+    return {"message": "Usuario eliminado correctamente"}
+
+
+@app.post("/admin/users", response_model=schemas.User)
+def admin_create_user(
+    user_in: schemas.UserCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Create a new user - only accessible by super_admin or admin_tienda"""
+    if current_user.role not in ["super_admin", "admin_tienda"]:
+        raise HTTPException(status_code=403, detail="No tienes permisos para crear staff")
+    
+    db_user = crud.get_user_by_email(db, email=user_in.email)
+    if db_user:
+        raise HTTPException(status_code=400, detail=f"El correo {user_in.email} ya está registrado")
+    
+    try:
+        # Forzamos los valores por defecto si vienen nulos
+        if not user_in.status: user_in.status = "Activo"
+        if not user_in.role: user_in.role = "vendedor"
+        
+        return crud.create_user(db=db, user=user_in)
+    except Exception as e:
+        db.rollback()
+        error_msg = str(e)
+        print(f"DEBUG ERROR CREACION: {error_msg}")
+        raise HTTPException(status_code=400, detail=f"Error al crear: {error_msg}")
 
 
 @app.get("/admin/users", response_model=List[schemas.User])
 def get_all_users(
     skip: int = 0,
     limit: int = 100,
-    current_user: schemas.User = Depends(security.get_current_user),
+    current_user: models.User = Depends(security.get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all users - only accessible by super_admin"""
-    if current_user.role != "super_admin":
-        raise HTTPException(status_code=403, detail="Only super admins can access this endpoint")
+    """Get all users - accessible by super_admin and admin_tienda"""
+    if current_user.role not in ["super_admin", "admin_tienda"]:
+        raise HTTPException(status_code=403, detail="No tienes permisos para ver el staff")
     
     users = crud.get_all_users(db, skip=skip, limit=limit)
     return users
@@ -811,7 +866,10 @@ def create_collection(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(security.get_current_user),
 ):
-    return crud.create_collection(db=db, collection=collection, owner_id=current_user.id)
+    try:
+        return crud.create_collection(db=db, collection=collection, owner_id=current_user.id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/collections", response_model=List[schemas.Collection])
 def read_collections(
@@ -835,4 +893,32 @@ def delete_collection(
         raise HTTPException(status_code=404, detail="Collection not found")
     crud.delete_collection(db, db_collection=db_collection)
     return {"ok": True}
+
+# --- Custom Role Endpoints ---
+@app.get("/admin/roles", response_model=List[schemas.CustomRole])
+def read_custom_roles(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    return crud.get_custom_roles(db, owner_id=current_user.id)
+
+@app.post("/admin/roles", response_model=schemas.CustomRole)
+def create_custom_role(
+    role_in: schemas.CustomRoleCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    return crud.create_custom_role(db, role_in=role_in, owner_id=current_user.id)
+
+@app.put("/admin/roles/{role_id}", response_model=schemas.CustomRole)
+def update_custom_role(
+    role_id: uuid.UUID,
+    role_in: schemas.CustomRoleCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_role = crud.update_custom_role(db, role_id=role_id, role_in=role_in, owner_id=current_user.id)
+    if not db_role:
+        raise HTTPException(status_code=404, detail="Rol no encontrado")
+    return db_role
     

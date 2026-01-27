@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAuth } from "@/context/auth-context";
 
 interface Customer {
@@ -36,52 +36,89 @@ const MOCK_CUSTOMERS: Customer[] = [
 
 export default function CustomersPage() {
   const { token } = useAuth();
-  const [customers, setCustomers] = useState<Customer[]>(MOCK_CUSTOMERS);
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'new' | 'vip'>('all');
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'all' | 'new' | 'vip' | 'tienda'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   
   // Modales
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
+  const fetchRealCustomers = useCallback(async () => {
+    if (!token) return;
+    try {
+        setLoading(true);
+        const res = await fetch('http://localhost:8000/orders', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) {
+            const orders = await res.json();
+            
+            // Extraer clientes únicos de las órdenes
+            const customerMap: Record<string, Customer> = {};
+            
+            orders.forEach((o: any) => {
+                const email = o.customer_email || `sin-email-${o.id}`;
+                if (!customerMap[email]) {
+                    customerMap[email] = {
+                        id: o.id,
+                        full_name: o.customer_name || o.customer_email?.split('@')[0] || 'Cliente POS',
+                        email: o.customer_email || 'No registrado',
+                        phone: null,
+                        status: 'active',
+                        total_orders: 0,
+                        total_spent: 0,
+                        join_date: o.created_at,
+                        last_active: o.created_at,
+                        is_pos: !!o.customer_name // Marcamos como cliente de tienda si tiene nombre manual
+                    } as any;
+                }
+                customerMap[email].total_orders += 1;
+                customerMap[email].total_spent += o.total_price || 0;
+                if (new Date(o.created_at) > new Date(customerMap[email].last_active)) {
+                    customerMap[email].last_active = o.created_at;
+                }
+            });
+
+            setCustomers(Object.values(customerMap));
+        }
+    } catch (e) {
+        console.error("Error al cargar clientes");
+    } finally {
+        setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchRealCustomers(); }, [fetchRealCustomers]);
+
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(amount);
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
   };
 
   const handleAddCustomer = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const newCustomer: Customer = {
-        id: `c${Date.now()}`,
-        full_name: formData.get('name') as string,
-        email: formData.get('email') as string,
-        phone: formData.get('phone') as string,
-        status: 'active',
-        total_orders: 0,
-        total_spent: 0,
-        join_date: new Date().toISOString(),
-        last_active: new Date().toISOString()
-    };
-    setCustomers([newCustomer, ...customers]);
+    alert("Función de registro manual en desarrollo. Usa el módulo de Facturación para registrar clientes reales.");
     setIsAddModalOpen(false);
-    alert("Cliente registrado con éxito. ✨");
   };
 
   const handleExport = () => {
-    alert("Preparando descarga de CSV con la base de datos de clientes...");
+    alert("Preparando descarga de CSV con la base de datos de clientes sincronizada...");
   };
 
   const handleContact = (customer: Customer) => {
     const message = `Hola ${customer.full_name}, te contactamos de Bayup Store...`;
-    alert(`Iniciando chat con ${customer.phone || customer.email}\n\nMensaje: ${message}`);
+    if (customer.phone) {
+        window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+    } else {
+        alert(`Iniciando contacto vía email con ${customer.email}\n\nMensaje: ${message}`);
+    }
   };
 
   const filteredCustomers = useMemo(() => {
     return customers.filter(c => {
         const matchesSearch = c.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || c.email.toLowerCase().includes(searchTerm.toLowerCase());
-        if (activeTab === 'new') return matchesSearch && c.total_orders === 0;
+        if (activeTab === 'new') return matchesSearch && c.total_orders <= 1;
         if (activeTab === 'vip') return matchesSearch && c.total_spent > 1000000;
+        if (activeTab === 'tienda') return matchesSearch && (c as any).is_pos;
         return matchesSearch;
     });
   }, [customers, searchTerm, activeTab]);
@@ -104,14 +141,14 @@ export default function CustomersPage() {
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="flex p-1 bg-gray-100 rounded-2xl w-full md:w-auto">
-              {['all', 'new', 'vip'].map((tab) => (
+          <div className="flex p-1 bg-gray-100 rounded-2xl w-full md:w-auto overflow-x-auto">
+              {['all', 'new', 'vip', 'tienda'].map((tab) => (
                   <button 
                     key={tab} 
                     onClick={() => setActiveTab(tab as any)}
                     className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                   >
-                      {tab === 'all' ? 'Todos' : tab === 'new' ? 'Nuevos' : 'VIP'}
+                      {tab === 'all' ? 'Todos' : tab === 'new' ? 'Nuevos' : tab === 'vip' ? 'VIP' : 'Tienda'}
                   </button>
               ))}
           </div>
@@ -127,48 +164,61 @@ export default function CustomersPage() {
           </div>
       </div>
 
-      <div className="bg-white rounded-[3rem] border border-gray-50 shadow-sm overflow-hidden">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="bg-gray-50/50 border-b border-gray-50">
-              <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Cliente</th>
-              <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Estado</th>
-              <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Pedidos</th>
-              <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Inversión Total</th>
-              <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {filteredCustomers.map((c) => (
-              <tr key={c.id} className="hover:bg-gray-50/50 transition-colors group">
-                <td className="px-8 py-6">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 bg-gradient-to-tr from-purple-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center font-black text-sm">
-                        {c.full_name.charAt(0)}
-                    </div>
-                    <div>
-                        <p className="text-sm font-black text-gray-900">{c.full_name}</p>
-                        <p className="text-[10px] font-bold text-gray-400">{c.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-8 py-6">
-                    <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase ${c.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                        {c.status === 'active' ? 'Activo' : 'Bloqueado'}
-                    </span>
-                </td>
-                <td className="px-8 py-6 text-center text-sm font-black text-gray-900">{c.total_orders}</td>
-                <td className="px-8 py-6 text-sm font-black text-purple-600">{formatCurrency(c.total_spent)}</td>
-                <td className="px-8 py-6 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => setSelectedCustomer(c)} className="h-9 w-9 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center hover:bg-purple-100 transition-colors" title="Ver Historial">📋</button>
-                        <button onClick={() => handleContact(c)} className="h-9 w-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center hover:bg-emerald-100 transition-colors" title="Contactar">💬</button>
-                    </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="bg-white rounded-[3rem] border border-gray-50 shadow-sm overflow-hidden min-h-[400px]">
+        {loading ? (
+            <div className="flex flex-col items-center justify-center py-40 text-gray-400">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600 mb-4"></div>
+                <p className="text-[10px] font-black uppercase tracking-widest">Sincronizando audiencia...</p>
+            </div>
+        ) : filteredCustomers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-40 text-gray-300">
+                <p className="text-sm font-bold uppercase tracking-widest">No se encontraron clientes</p>
+            </div>
+        ) : (
+            <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                    <thead>
+                        <tr className="bg-gray-50/50 border-b border-gray-50">
+                        <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Cliente</th>
+                        <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Estado</th>
+                        <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Pedidos</th>
+                        <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Inversión Total</th>
+                        <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                        {filteredCustomers.map((c) => (
+                        <tr key={c.id} className="hover:bg-gray-50/50 transition-colors group">
+                            <td className="px-8 py-6">
+                            <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 bg-gradient-to-tr from-purple-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center font-black text-sm">
+                                    {c.full_name.charAt(0)}
+                                </div>
+                                <div>
+                                    <p className="text-sm font-black text-gray-900">{c.full_name}</p>
+                                    <p className="text-[10px] font-bold text-gray-400">{c.email}</p>
+                                </div>
+                            </div>
+                            </td>
+                            <td className="px-8 py-6">
+                                <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase ${c.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                    {c.status === 'active' ? 'Activo' : 'Bloqueado'}
+                                </span>
+                            </td>
+                            <td className="px-8 py-6 text-center text-sm font-black text-gray-900">{c.total_orders}</td>
+                            <td className="px-8 py-6 text-sm font-black text-purple-600">{formatCurrency(c.total_spent)}</td>
+                            <td className="px-8 py-6 text-right">
+                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => setSelectedCustomer(c)} className="h-9 w-9 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center hover:bg-purple-100 transition-colors" title="Ver Historial">📋</button>
+                                    <button onClick={() => handleContact(c)} className="h-9 w-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center hover:bg-emerald-100 transition-colors" title="Contactar">💬</button>
+                                </div>
+                            </td>
+                        </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        )}
       </div>
 
       {/* Modal: Nuevo Cliente */} 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import { apiRequest } from '@/lib/api';
+import { collectionService } from '@/lib/api';
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 
@@ -14,7 +14,8 @@ export default function NewCollectionPage() {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        status: 'active'
+        status: 'active',
+        image_url: null // Aseguramos que se envíe como nulo para evitar errores de validación
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -23,15 +24,12 @@ export default function NewCollectionPage() {
 
         setLoading(true);
         try {
-            await apiRequest('/collections', {
-                method: 'POST',
-                token,
-                body: JSON.stringify(formData)
-            });
+            await collectionService.create(token, formData);
             alert("Colección creada con éxito.");
             router.push('/dashboard/collections');
-        } catch (err) {
-            alert("Error al crear la colección.");
+        } catch (err: any) {
+            console.error("Error al crear colección:", err);
+            alert(`Error al crear la colección: ${err.message || "Verifica los datos"}`);
         } finally {
             setLoading(false);
         }

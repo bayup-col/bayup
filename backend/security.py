@@ -12,7 +12,7 @@ from database import get_db
 # --- Configuration ---
 SECRET_KEY = "a_very_secret_key_that_should_be_in_env_var"  # TODO: Move to environment variable
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 480 # 8 Horas
 
 # --- Security Schemes ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -32,7 +32,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt

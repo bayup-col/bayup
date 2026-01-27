@@ -27,8 +27,10 @@ class User(Base):
     full_name = Column(String, nullable=True)
     nickname = Column(String, nullable=True) # Nombre tierno que Bayt recordará
     hashed_password = Column(String, nullable=False)
-    role = Column(String, default="admin_tienda") # e.g., "admin_tienda", "super_admin"
-    api_key = Column(String, unique=True, default=lambda: uuid.uuid4().hex) # Llave para n8n
+    role = Column(String, default="admin_tienda")
+    status = Column(String, default="Activo") # Nuevo: Estado del usuario
+    api_key = Column(String, unique=True, default=lambda: uuid.uuid4().hex)
+    # Llave para n8n
     bank_accounts = Column(JSON, nullable=True, default=[]) # New: store wallet info
     social_links = Column(JSON, nullable=True, default={}) # New: store social media links
     whatsapp_lines = Column(JSON, nullable=True, default=[]) # New: store multiple WhatsApp lines
@@ -39,6 +41,15 @@ class User(Base):
     products = relationship("Product", back_populates="owner")
     orders = relationship("Order", back_populates="customer", foreign_keys="[Order.customer_id]")
     pages = relationship("Page", back_populates="owner")
+
+class CustomRole(Base):
+    __tablename__ = "custom_roles"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    permissions = Column(JSON, nullable=False, default={}) # ej: {"facturacion": true, "inventario": false}
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    
+    owner = relationship("User")
 
 class Collection(Base):
     __tablename__ = "collections"
@@ -94,6 +105,10 @@ class Order(Base):
     total_price = Column(Float, nullable=False)
     status = Column(String, nullable=False, default="pending")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    customer_name = Column(String, nullable=True) # Para ventas manuales/POS
+    customer_email = Column(String, nullable=True) # Para registro de cliente en POS
+    seller_name = Column(String, nullable=True) # Para registrar al vendedor responsable
     
     customer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     customer = relationship("User", foreign_keys=[customer_id], back_populates="orders")
