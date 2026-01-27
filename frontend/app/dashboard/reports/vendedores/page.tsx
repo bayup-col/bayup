@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Users, 
   UserPlus, 
@@ -18,7 +18,9 @@ import {
   MapPin,
   CheckCircle2,
   AlertTriangle,
-  ChevronDown
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "@/context/auth-context";
@@ -62,6 +64,7 @@ export default function VendedoresPage() {
     const { token } = useAuth();
     const { showToast } = useToast();
     const [sellers, setSellers] = useState<Seller[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
     const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false);
@@ -69,16 +72,19 @@ export default function VendedoresPage() {
     const [filterMonth, setFilterMonth] = useState('Enero');
     const [availableBranches, setAvailableBranches] = useState<string[]>(['Tienda Principal']);
     const [userToDelete, setUserToDelete] = useState<Seller | null>(null);
+    
+    // PAGINACIÓN
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
 
-    // --- SINCRONIZACIÓN DE SUCURSALES REALES ---
-    useEffect(() => {
-        const savedBranches = localStorage.getItem('business_branches');
-        if (savedBranches) {
-            const parsed = JSON.parse(savedBranches);
-            setAvailableBranches(parsed.map((b: any) => b.name));
-        }
-    }, []);
-
+    // --- LÓGICA DE ORDENAMIENTO Y PAGINACIÓN ---
+    const { filteredSellers, totalPages } = useMemo(() => {
+        // En este caso el backend devuelve los IDs, invertimos para que el más nuevo esté arriba
+        const sorted = [...sellers].reverse();
+        const total = Math.ceil(sorted.length / itemsPerPage);
+        const sliced = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+        return { filteredSellers: sliced, totalPages: total };
+    }, [sellers, currentPage]);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -90,64 +96,70 @@ export default function VendedoresPage() {
         in_store: true
     });
 
-    // Cargar y sincronizar vendedores
-    useEffect(() => {
-        const saved = localStorage.getItem('business_sellers');
-        if (saved) {
-            try {
-                const parsedSellers = JSON.parse(saved).map((s: any) => ({
+    const loadData = useCallback(async () => {
+        if (!token) return;
+        setIsLoading(true);
+        try {
+            const res = await fetch('http://localhost:8000/sellers', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSellers(data.map((s: any) => ({
                     ...s,
-                    history: s.history || MONTHS_LIST.map(m => ({ month: m, amount: 0 })) // Asegurar historial
-                }));
-                setSellers(parsedSellers);
-            } catch (e) {
-                setSellers(INITIAL_SELLERS);
+                    avatar: s.name.substr(0,2).toUpperCase(),
+                    total_sales: 0, sales_today: 0, sales_month: 0, last_month_sales: 0,
+                    channels: { web: true, social: true, separados: true, in_store: true },
+                    history: MONTHS_LIST.map(m => ({ month: m, amount: 0 }))
+                })));
             }
-        } else {
-            setSellers(INITIAL_SELLERS);
-            localStorage.setItem('business_sellers', JSON.stringify(INITIAL_SELLERS));
-        }
-    }, []);
+        } catch (e) { console.error(e); }
+        finally { setIsLoading(false); }
+    }, [token]);
+
+    useEffect(() => { loadData(); }, [loadData]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD' }).format(amount).replace('$', '$ ');
     };
 
-    const handleCreate = () => {
-        if (!formData.name) return showToast("Escribe el nombre del asesor.", "error");
-        const newSeller: Seller = {
-            id: `s_${Math.random().toString(36).substr(2, 9)}`,
-            name: formData.name,
-            role: formData.role,
-            branch: formData.branch,
-            total_sales: 0, 
-            sales_today: 0, 
-            sales_month: 0, 
-            last_month_sales: 0,
-            channels: { 
-                web: formData.web, 
-                social: formData.social, 
-                separados: formData.separados, 
-                in_store: formData.in_store 
-            },
-            history: MONTHS_LIST.map(m => ({ month: m, amount: 0 })),
-            avatar: formData.name.split(' ').map(n => n[0]).join('').toUpperCase().substr(0, 2)
-        };
-        const updated = [newSeller, ...sellers];
-        setSellers(updated);
-        localStorage.setItem('business_sellers', JSON.stringify(updated));
-        setIsCreateModalOpen(false);
-        setFormData({ name: '', role: 'Asesor de Ventas', branch: 'Tienda Principal', web: false, social: true, separados: true, in_store: true });
-        showToast("Asesor registrado con éxito", "success");
+    const handleCreate = async () => {
+        if (!formData.name) return showToast("Escribe el nombre.", "error");
+        try {
+            const res = await fetch('http://localhost:8000/sellers', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+            if (res.ok) {
+                showToast("Asesor registrado con éxito", "success");
+                await loadData();
+                setIsCreateModalOpen(false);
+                setFormData({ name: '', role: 'Asesor de Ventas', branch: 'Tienda Principal', web: false, social: true, separados: true, in_store: true });
+            }
+        } catch (e) { showToast("Error al conectar", "error"); }
     };
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (!userToDelete) return;
-        const updated = sellers.filter(s => s.id !== userToDelete.id);
-        setSellers(updated);
-        localStorage.setItem('business_sellers', JSON.stringify(updated));
-        setUserToDelete(null);
-        showToast("Asesor eliminado del sistema", "success");
+        try {
+            const res = await fetch(`http://localhost:8000/sellers/${userToDelete.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                const updated = sellers.filter(s => s.id !== userToDelete.id);
+                setSellers(updated);
+                showToast("Asesor eliminado del sistema", "success");
+            } else {
+                showToast("Error al eliminar asesor", "error");
+            }
+        } catch (error) {
+            showToast("Error de conexión", "error");
+        } finally {
+            setUserToDelete(null);
+        }
     };
 
     const TrendIndicator = ({ current, previous }: { current: number, previous: number }) => {
@@ -179,7 +191,7 @@ export default function VendedoresPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {sellers.map((seller) => (
+                {filteredSellers.map((seller) => (
                     <div key={seller.id} onClick={() => setSelectedSeller(seller)} className="bg-white p-8 rounded-[3rem] border border-gray-50 shadow-sm hover:shadow-xl transition-all cursor-pointer group relative overflow-hidden">
                         {/* Botón Eliminar Flotante */}
                         <button 
@@ -201,6 +213,29 @@ export default function VendedoresPage() {
                     </div>
                 ))}
             </div>
+
+            {/* Controles de Paginación */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between bg-white p-6 rounded-[2.5rem] border border-gray-50 shadow-sm">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Página {currentPage} de {totalPages}</p>
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                            className="px-6 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-purple-600 disabled:opacity-30 transition-all"
+                        >
+                            <ChevronLeft size={14} className="inline mr-1"/> Anterior
+                        </button>
+                        <button 
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage === totalPages}
+                            className="px-6 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-purple-600 disabled:opacity-30 transition-all"
+                        >
+                            Siguiente <ChevronRight size={14} className="inline ml-1"/>
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* 3. Comparativa Brutal (Ranking) */}
             <div className="bg-white p-12 rounded-[3rem] border border-gray-50 shadow-sm space-y-10">

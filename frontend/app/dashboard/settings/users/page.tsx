@@ -50,6 +50,22 @@ export default function UserStaffSettings() {
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<StaffMember | null>(null);
 
+    // PAGINACIÓN
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
+
+    // LÓGICA DE FILTRADO Y PAGINACIÓN
+    const { filteredStaff, totalPages } = useMemo(() => {
+        // En este caso el backend no devuelve fecha exacta, pero los IDs UUID suelen venir ordenados o podemos invertir el array
+        // Si el backend devuelve los más viejos primero, invertimos para que el más nuevo esté arriba
+        const sorted = [...staff].reverse(); 
+        
+        const total = Math.ceil(sorted.length / itemsPerPage);
+        const sliced = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+        return { filteredStaff: sliced, totalPages: total };
+    }, [staff, currentPage]);
+
     // ESTADO DEL FORMULARIO (Definido antes de ser usado)
     const [formData, setFormData] = useState({
         name: '',
@@ -283,7 +299,7 @@ export default function UserStaffSettings() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {staff.map((user) => (
+                                {filteredStaff.map((user) => (
                                     <tr key={user.id} className="hover:bg-gray-50/50 transition-all group">
                                         <td className="px-10 py-6">
                                             <div className="flex items-center gap-5">
@@ -317,6 +333,29 @@ export default function UserStaffSettings() {
                                 ))}
                             </tbody>
                         </table>
+
+                        {/* Controles de Paginación */}
+                        {totalPages > 1 && (
+                            <div className="p-8 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Página {currentPage} de {totalPages}</p>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-6 py-3 bg-white border border-gray-100 rounded-[1.2rem] text-[10px] font-black uppercase text-gray-400 hover:text-purple-600 disabled:opacity-30 transition-all shadow-sm"
+                                    >
+                                        Anterior
+                                    </button>
+                                    <button 
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-6 py-3 bg-white border border-gray-100 rounded-[1.2rem] text-[10px] font-black uppercase text-gray-400 hover:text-purple-600 disabled:opacity-30 transition-all shadow-sm"
+                                    >
+                                        Siguiente
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

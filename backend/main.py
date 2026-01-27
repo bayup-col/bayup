@@ -2,6 +2,7 @@ from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
+import datetime
 from datetime import timedelta
 from typing import List, Optional
 import uuid
@@ -294,6 +295,242 @@ def read_orders(
 ):
     orders = crud.get_orders_by_customer(db, customer_id=current_user.id, skip=skip, limit=limit)
     return orders
+
+# --- Expense Endpoints ---
+@app.get("/expenses", response_model=List[schemas.Expense])
+def read_expenses(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    return db.query(models.Expense).filter(models.Expense.tenant_id == current_user.id).all()
+
+@app.post("/expenses", response_model=schemas.Expense)
+def create_expense(
+    expense_in: schemas.ExpenseCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    try:
+        db_expense = models.Expense(
+            id=uuid.uuid4(),
+            description=expense_in.description,
+            amount=expense_in.amount,
+            due_date=expense_in.due_date,
+            category=expense_in.category or "diario",
+            invoice_num=expense_in.invoice_num,
+            items=expense_in.items,
+            description_detail=expense_in.description_detail,
+            tenant_id=current_user.id
+        )
+        db.add(db_expense)
+        db.commit()
+        db.refresh(db_expense)
+        return db_expense
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating expense: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/receivables", response_model=List[schemas.Receivable])
+def read_receivables(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    return db.query(models.Receivable).filter(models.Receivable.tenant_id == current_user.id).all()
+
+@app.post("/receivables", response_model=schemas.Receivable)
+def create_receivable(
+    rec_in: schemas.ReceivableCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    try:
+        db_rec = models.Receivable(
+            id=uuid.uuid4(),
+            client_name=rec_in.client_name,
+            amount=rec_in.amount,
+            due_date=rec_in.due_date,
+            status=rec_in.status or "pending",
+            invoice_num=rec_in.invoice_num,
+            items=rec_in.items,
+            description_detail=rec_in.description_detail,
+            tenant_id=current_user.id
+        )
+        db.add(db_rec)
+        db.commit()
+        db.refresh(db_rec)
+        return db_rec
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+# --- Finance Update/Delete Endpoints ---
+
+@app.put("/expenses/{expense_id}", response_model=schemas.Expense)
+def update_expense(
+    expense_id: uuid.UUID,
+    expense_in: schemas.ExpenseCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_expense = db.query(models.Expense).filter(models.Expense.id == expense_id, models.Expense.tenant_id == current_user.id).first()
+    if not db_expense: raise HTTPException(status_code=404, detail="Gasto no encontrado")
+    for field, value in expense_in.dict(exclude_unset=True).items():
+        setattr(db_expense, field, value)
+    db.commit()
+    db.refresh(db_expense)
+    return db_expense
+
+@app.delete("/expenses/{expense_id}")
+def delete_expense(expense_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    db_expense = db.query(models.Expense).filter(models.Expense.id == expense_id, models.Expense.tenant_id == current_user.id).first()
+    if not db_expense: raise HTTPException(status_code=404, detail="Gasto no encontrado")
+    db.delete(db_expense)
+    db.commit()
+    return {"status": "success"}
+
+@app.put("/receivables/{rec_id}", response_model=schemas.Receivable)
+def update_receivable(
+    rec_id: uuid.UUID,
+    rec_in: schemas.ReceivableCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_rec = db.query(models.Receivable).filter(models.Receivable.id == rec_id, models.Receivable.tenant_id == current_user.id).first()
+    if not db_rec: raise HTTPException(status_code=404, detail="Cuenta no encontrada")
+    for field, value in rec_in.dict(exclude_unset=True).items():
+        setattr(db_rec, field, value)
+    db.commit()
+    db.refresh(db_rec)
+    return db_rec
+
+@app.delete("/receivables/{rec_id}")
+def delete_receivable(rec_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    db_rec = db.query(models.Receivable).filter(models.Receivable.id == rec_id, models.Receivable.tenant_id == current_user.id).first()
+    if not db_rec: raise HTTPException(status_code=404, detail="Cuenta no encontrada")
+    db.delete(db_rec)
+    db.commit()
+    return {"status": "success"}
+
+# --- Payroll Endpoints ---
+
+@app.get("/payroll/employees", response_model=List[schemas.PayrollEmployee])
+def read_payroll_employees(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    return db.query(models.PayrollEmployee).filter(models.PayrollEmployee.tenant_id == current_user.id).all()
+
+@app.get("/payroll/staff-sync")
+def sync_payroll_staff(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    # 1. Traer todos los usuarios del staff
+    staff_users = db.query(models.User).filter(models.User.id != current_user.id).all()
+    
+    # 2. Traer todos los vendedores registrados
+    sellers = db.query(models.Seller).filter(models.Seller.tenant_id == current_user.id).all()
+    
+    payroll_data = []
+    
+    # Procesar Staff (Usuarios)
+    for member in staff_users:
+        payroll_record = db.query(models.PayrollEmployee).filter(models.PayrollEmployee.user_id == member.id).first()
+        payroll_data.append({
+            "id": str(member.id),
+            "name": member.full_name or member.nickname or member.email,
+            "role": payroll_record.role if payroll_record else member.role or "Asesor",
+            "base_salary": payroll_record.base_salary if payroll_record else 0,
+            "is_configured": True if payroll_record else False,
+            "type": "staff"
+        })
+        
+    # Procesar Vendedores (Si no están ya como usuarios)
+    existing_ids = [p["id"] for p in payroll_data]
+    for s in sellers:
+        if str(s.id) not in existing_ids:
+            payroll_record = db.query(models.PayrollEmployee).filter(models.PayrollEmployee.seller_id == s.id).first()
+            payroll_data.append({
+                "id": str(s.id),
+                "name": s.name,
+                "role": payroll_record.role if payroll_record else "Asesor de Ventas",
+                "base_salary": payroll_record.base_salary if payroll_record else 0,
+                "is_configured": True if payroll_record else False,
+                "type": "vendedor"
+            })
+    
+    return payroll_data
+
+@app.post("/payroll/configure")
+def configure_payroll(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    target_id = data.get("user_id")
+    user_type = data.get("type", "staff") # 'staff' or 'vendedor'
+
+    payroll_record = None
+    if user_type == "vendedor":
+        payroll_record = db.query(models.PayrollEmployee).filter(models.PayrollEmployee.seller_id == target_id).first()
+    else:
+        payroll_record = db.query(models.PayrollEmployee).filter(models.PayrollEmployee.user_id == target_id).first()
+    
+    if payroll_record:
+        payroll_record.base_salary = data.get("base_salary")
+        payroll_record.role = data.get("role")
+    else:
+        payroll_record = models.PayrollEmployee(
+            id=uuid.uuid4(),
+            name=data.get("name"),
+            role=data.get("role", "Asesor"),
+            base_salary=data.get("base_salary", 0),
+            tenant_id=current_user.id
+        )
+        if user_type == "vendedor":
+            payroll_record.seller_id = target_id
+        else:
+            payroll_record.user_id = target_id
+            
+        db.add(payroll_record)
+    
+    db.commit()
+    return {"status": "success"}
+
+# --- Seller Endpoints ---
+
+@app.get("/sellers")
+def read_sellers(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    return db.query(models.Seller).filter(models.Seller.tenant_id == current_user.id).all()
+
+@app.post("/sellers")
+def create_seller(data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    db_seller = models.Seller(
+        id=uuid.uuid4(),
+        name=data.get("name"),
+        role=data.get("role", "Asesor de Ventas"),
+        branch=data.get("branch"),
+        tenant_id=current_user.id
+    )
+    db.add(db_seller)
+    db.commit()
+    db.refresh(db_seller)
+    return db_seller
+
+@app.delete("/sellers/{seller_id}")
+def delete_seller(
+    seller_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    db_seller = db.query(models.Seller).filter(models.Seller.id == seller_id, models.Seller.tenant_id == current_user.id).first()
+    if not db_seller:
+        raise HTTPException(status_code=404, detail="Vendedor no encontrado")
+    
+    # Eliminar también de nómina si existe
+    db.query(models.PayrollEmployee).filter(models.PayrollEmployee.seller_id == seller_id).delete()
+    
+    db.delete(db_seller)
+    db.commit()
+    return {"status": "success", "message": "Vendedor eliminado"}
 
 
 # --- Payment Endpoints (Mercado Pago) ---
@@ -921,4 +1158,116 @@ def update_custom_role(
     if not db_role:
         raise HTTPException(status_code=404, detail="Rol no encontrado")
     return db_role
+
+# --- Purchase Order Endpoints ---
+
+@app.post("/purchase-orders", response_model=schemas.PurchaseOrder)
+def create_purchase_order(
+    order_in: schemas.PurchaseOrderCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    try:
+        # 1. Crear la Orden de Compra
+        db_order = models.PurchaseOrder(
+            id=uuid.uuid4(),
+            product_name=order_in.product_name,
+            quantity=order_in.quantity,
+            items=order_in.items,
+            total_amount=order_in.total_amount,
+            provider_name=order_in.provider_name,
+            status=order_in.status,
+            sending_method=order_in.sending_method,
+            scheduled_at=order_in.scheduled_at,
+            tenant_id=current_user.id
+        )
+        db.add(db_order)
+        
+        # 2. INTEGRACIÓN AUTOMÁTICA: Crear Gasto Pendiente
+        db_expense = models.Expense(
+            id=uuid.uuid4(),
+            description=f"Compra de Inventario: {order_in.product_name} ({order_in.quantity} uds)",
+            amount=order_in.total_amount,
+            due_date=datetime.datetime.utcnow() + datetime.timedelta(days=7), # 7 días para pagar
+            status="pending",
+            category="inventario",
+            tenant_id=current_user.id,
+            description_detail=f"Generado automáticamente desde Orden de Compra Inteligente. Proveedor: {order_in.provider_name}"
+        )
+        db.add(db_expense)
+        
+        db.commit()
+        db.refresh(db_order)
+        return db_order
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/purchase-orders", response_model=List[schemas.PurchaseOrder])
+def read_purchase_orders(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    return db.query(models.PurchaseOrder).filter(models.PurchaseOrder.tenant_id == current_user.id).all()
+
+@app.put("/purchase-orders/{order_id}", response_model=schemas.PurchaseOrder)
+def update_purchase_order(
+    order_id: uuid.UUID,
+    order_in: schemas.PurchaseOrderCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_order = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.id == order_id, models.PurchaseOrder.tenant_id == current_user.id).first()
+    if not db_order:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+    
+    for field, value in order_in.dict().items():
+        setattr(db_order, field, value)
+    
+    db.commit()
+    db.refresh(db_order)
+    return db_order
+
+@app.delete("/purchase-orders/{order_id}")
+def delete_purchase_order(
+    order_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    db_order = db.query(models.PurchaseOrder).filter(models.PurchaseOrder.id == order_id, models.PurchaseOrder.tenant_id == current_user.id).first()
+    if not db_order:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+    
+    db.delete(db_order)
+    db.commit()
+    return {"status": "success"}
+
+# --- Provider Endpoints ---
+
+@app.get("/providers", response_model=List[schemas.Provider])
+def read_providers(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    return db.query(models.Provider).filter(models.Provider.tenant_id == current_user.id).all()
+
+@app.post("/providers", response_model=schemas.Provider)
+def create_provider(
+    provider_in: schemas.ProviderCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user),
+):
+    try:
+        db_provider = models.Provider(
+            id=uuid.uuid4(),
+            **provider_in.dict(),
+            tenant_id=current_user.id
+        )
+        db.add(db_provider)
+        db.commit()
+        db.refresh(db_provider)
+        return db_provider
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
     

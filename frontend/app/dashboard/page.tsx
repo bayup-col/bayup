@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from "@/context/auth-context";
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Search, Sparkles, Users } from 'lucide-react';
+import { Activity, Search, Sparkles, Users, LayoutDashboard, CheckCircle2 } from 'lucide-react';
 
 export default function DashboardPage() {
   const { userEmail } = useAuth();
@@ -18,6 +18,40 @@ export default function DashboardPage() {
   ]);
 
   const [isTipsModalOpen, setIsTipsModalOpen] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<any>(null);
+  const [pendingCollection, setPendingCollection] = useState<any>(null);
+  const { token } = useAuth();
+
+  useEffect(() => {
+    const fetchFinances = async () => {
+        if (!token) return;
+        try {
+            const [expRes, recRes] = await Promise.all([
+                fetch('http://localhost:8000/expenses', { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch('http://localhost:8000/receivables', { headers: { 'Authorization': `Bearer ${token}` } })
+            ]);
+
+            if (expRes.ok) {
+                const exps = await expRes.json();
+                // Filtramos SOLO pendientes y ordenamos por fecha más cercana (futura o hoy)
+                const pending = exps
+                    .filter((e: any) => e.status === 'pending')
+                    .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
+                setPendingPayment(pending);
+            }
+
+            if (recRes.ok) {
+                const recs = await recRes.json();
+                // Filtramos SOLO pendientes
+                const pending = recs
+                    .filter((r: any) => r.status === 'pending')
+                    .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
+                setPendingCollection(pending);
+            }
+        } catch (e) { console.error("Error loading dashboard finance cards"); }
+    };
+    fetchFinances();
+  }, [token]);
 
   const growthTips = [
     { module: 'Facturación', icon: '💳', tip: 'Ofrecer pagos en cuotas aumenta la tasa de conversión en un 35% en productos de alto valor.' },
@@ -292,6 +326,79 @@ export default function DashboardPage() {
             </div>
         </div>
 
+      </div>
+
+      {/* 4. SECCIÓN: COMPROMISOS FINANCIEROS PRÓXIMOS */}
+      <div className="pt-10 border-t border-gray-100">
+        <h2 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-3">
+            Compromisos Financieros
+            <span className="h-1.5 w-1.5 rounded-full bg-purple-600 animate-pulse"></span>
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Card Cuentas por Pagar */}
+            <div className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all duration-500">
+                <div className="flex justify-between items-start mb-6">
+                    <div className="h-12 w-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                        <Activity size={24} />
+                    </div>
+                    <span className="px-3 py-1 bg-rose-50 text-rose-600 text-[8px] font-black uppercase rounded-lg border border-rose-100 tracking-widest">Gasto Próximo</span>
+                </div>
+                {pendingPayment ? (
+                    <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Debes pagar por:</p>
+                        <h3 className="text-xl font-black text-gray-900 tracking-tight">{pendingPayment.description}</h3>
+                        <div className="mt-6 flex justify-between items-end">
+                            <div>
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Fecha Límite</p>
+                                <p className="text-sm font-bold text-gray-700">{new Date(pendingPayment.due_date).toLocaleDateString()}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Monto</p>
+                                <p className="text-2xl font-black text-rose-600 tracking-tighter">${pendingPayment.amount.toLocaleString('de-DE')}</p>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="py-6 flex flex-col items-center justify-center text-gray-300 gap-2">
+                        <CheckCircle2 size={32} strokeWidth={1} />
+                        <p className="text-[10px] font-black uppercase tracking-widest text-center">No hay cuentas por pagar <br/> programadas próximamente</p>
+                    </div>
+                )}
+                <div className="absolute -right-6 -bottom-6 text-8xl opacity-[0.03] group-hover:rotate-12 transition-transform">💸</div>
+            </div>
+
+            {/* Card Cuentas por Cobrar */}
+            <div className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all duration-500">
+                <div className="flex justify-between items-start mb-6">
+                    <div className="h-12 w-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                        <Users size={24} />
+                    </div>
+                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase rounded-lg border border-emerald-100 tracking-widest">Pendiente de Cobro</span>
+                </div>
+                {pendingCollection ? (
+                    <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Debes cobrarle a:</p>
+                        <h3 className="text-xl font-black text-gray-900 tracking-tight">{pendingCollection.client_name}</h3>
+                        <div className="mt-6 flex justify-between items-end">
+                            <div>
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Fecha Esperada</p>
+                                <p className="text-sm font-bold text-gray-700">{new Date(pendingCollection.due_date).toLocaleDateString()}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Saldo Pendiente</p>
+                                <p className="text-2xl font-black text-emerald-600 tracking-tighter">${pendingCollection.amount.toLocaleString('de-DE')}</p>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="py-6 flex flex-col items-center justify-center text-gray-300 gap-2">
+                        <Sparkles size={32} strokeWidth={1} />
+                        <p className="text-[10px] font-black uppercase tracking-widest text-center">Cartera totalmente al día <br/> No hay cuentas por cobrar</p>
+                    </div>
+                )}
+                <div className="absolute -right-6 -bottom-6 text-8xl opacity-[0.03] group-hover:-rotate-12 transition-transform">💰</div>
+            </div>
+        </div>
       </div>
 
       {/* MODAL: BIBLIOTECA DE CRECIMIENTO (Diseño Libro) */}

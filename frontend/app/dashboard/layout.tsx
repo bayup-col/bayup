@@ -208,6 +208,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <div>
                     <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Crecimiento</p>
                     <div className="space-y-1">
+                        <MenuItem href="/dashboard/web-analytics" label={<><BarChart3 size={16} className="mr-2" /> Estadísticas Web</>} id="m_web_analytics" />
                         <MenuItem href="/dashboard/marketing" label={<><TrendingUp size={16} className="mr-2" /> Marketing</>} id="m_marketing" />
                         <MenuItem href="/dashboard/loyalty" label={<><Gem size={16} className="mr-2" /> Club de Puntos</>} id="m_loyalty" />
                         <MenuItem href="/dashboard/discounts" label={<><Tag size={16} className="mr-2" /> Descuentos</>} id="m_discounts" />
@@ -233,6 +234,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                 <div className={`overflow-hidden transition-all duration-300 ease-in-out ${reportsOpen ? 'max-h-80 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                                     <div className="space-y-1">
                                         <MenuItem href="/dashboard/reports" label="Análisis General" id="s_reports_gen" isSub />
+                                        <MenuItem href="/dashboard/reports/purchase-orders" label="Órdenes de Compra" id="s_purchase_orders" isSub />
                                         <MenuItem href="/dashboard/reports/sucursales" label="Sucursales" id="s_sucursales" isSub />
                                         <MenuItem href="/dashboard/reports/vendedores" label="Vendedores" id="s_vendedores" isSub />
                                         <MenuItem href="/dashboard/reports/cuentas" label="Cuentas y Cartera" id="s_cuentas" isSub />

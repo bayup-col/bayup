@@ -1,0 +1,517 @@
+%PDF-1.3
+%ºß¬à
+3 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 835
+>>
+stream
+0.5670000000000001 w
+0 G
+0.07 0.09 0.15 rg
+0. 841.8899999999999864 595.2755905511811534 -841.8897637795276978 re
+f
+BT
+/F2 40 Tf
+46. TL
+1. g
+56.6929133858267775 671.8112598425196893 Td
+(BAYUP) Tj
+ET
+BT
+/F2 20 Tf
+23. TL
+0.576 0.2 0.918 rg
+56.6929133858267775 615.1183464566928478 Td
+(Guía Maestra de Estructura) Tj
+ET
+BT
+/F2 20 Tf
+23. TL
+0.576 0.2 0.918 rg
+56.6929133858267775 572.5986614173227736 Td
+(y Diseño de Plantillas Pro) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.588 g
+56.6929133858267775 501.7325196850393354 Td
+(Visión: Futurista, Elegante y Data-Driven) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.588 g
+56.6929133858267775 473.3860629921259147 Td
+(Versión 1.0 - 2026) Tj
+ET
+BT
+/F2 8 Tf
+9.1999999999999993 TL
+0.706 g
+368.5039370078740717 34.0159842519684616 Td
+(Confidencial - Propiedad de Bayup E-commerce Ecosystem) Tj
+ET
+endstream
+endobj
+5 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 6 0 R
+>>
+endobj
+6 0 obj
+<<
+/Length 1321
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 18 Tf
+20.6999999999999993 TL
+0.067 0.094 0.153 rg
+56.6929133858267775 756.8506299212598378 Td
+(1. Filosofía Visual \(The Glass Look\)) Tj
+ET
+BT
+/F2 11 Tf
+12.6499999999999986 TL
+0.314 g
+56.6929133858267775 714.3309448818897636 Td
+(Todas las plantillas deben seguir el concepto de 'Glassmorphism' que define a Bayup:) Tj
+ET
+BT
+/F2 11 Tf
+12.6499999999999986 TL
+0.314 g
+70.8661417322834666 671.8112598425196893 Td
+(- Fondos translúcidos con desenfoque \(backdrop-blur\).) Tj
+ET
+BT
+/F2 11 Tf
+12.6499999999999986 TL
+0.314 g
+70.8661417322834666 643.4648031496062686 Td
+(- Bordes ultra-redondeados \(3.5rem o 40px\) para paneles principales.) Tj
+ET
+BT
+/F2 11 Tf
+12.6499999999999986 TL
+0.314 g
+70.8661417322834666 615.1183464566928478 Td
+(- Sombras suaves y profundas \(shadow-2xl\) para generar jerarquía.) Tj
+ET
+BT
+/F2 11 Tf
+12.6499999999999986 TL
+0.314 g
+70.8661417322834666 586.7718897637794271 Td
+(- Tipografía: Títulos en 'Black' \(900\) y cuerpos en 'Medium' \(500\).) Tj
+ET
+BT
+/F2 11 Tf
+12.6499999999999986 TL
+0.314 g
+70.8661417322834666 558.42543307086612 Td
+(- Colores: Base Gray-900 con acentos Púrpura \(600\) y Esmeralda \(500\).) Tj
+ET
+BT
+/F2 8 Tf
+9.1999999999999993 TL
+0.706 g
+368.5039370078740717 34.0159842519684616 Td
+(Confidencial - Propiedad de Bayup E-commerce Ecosystem) Tj
+ET
+endstream
+endobj
+7 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 8 0 R
+>>
+endobj
+8 0 obj
+<<
+/Length 1557
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 11 Tf
+12.6499999999999986 TL
+0.314 g
+56.6929133858267775 756.8506299212598378 Td
+(2. Estructura Quirúrgica de la Página Web) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+56.6929133858267775 714.3309448818897636 Td
+(El orden de las secciones no es estético, es estratégico para el Funnel de Ventas:) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+70.8661417322834666 671.8112598425196893 Td
+(1. Header Glass: Navegación flotante con acceso directo a Carrito y Perfil.) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+70.8661417322834666 637.7955118110235162 Td
+(2. Hero Impact: Propuesta de valor clara + Call to Action \(CTA\) gigante.) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+70.8661417322834666 603.7797637795274568 Td
+(3. Social Proof: Logos de marcas o testimonios en scroll infinito suave.) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+70.8661417322834666 569.7640157480313974 Td
+(4. Grid de Productos \(Dinámico\): Conectado a la DB de Bayup con filtros pro.) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+70.8661417322834666 535.748267716535338 Td
+(5. Bloque de Beneficios: Iconografía lineal \(Envío gratis, Garantía, Puntos\).) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+70.8661417322834666 501.7325196850393354 Td
+(6. Newsletter de Rescate: Captura de leads con incentivo \(Bono 10%\).) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+70.8661417322834666 467.716771653543276 Td
+(7. Footer Minimal: Información legal, redes y métodos de pago.) Tj
+ET
+BT
+/F2 8 Tf
+9.1999999999999993 TL
+0.706 g
+368.5039370078740717 34.0159842519684616 Td
+(Confidencial - Propiedad de Bayup E-commerce Ecosystem) Tj
+ET
+endstream
+endobj
+9 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 10 0 R
+>>
+endobj
+10 0 obj
+<<
+/Length 1199
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+56.6929133858267775 756.8506299212598378 Td
+(3. Plantillas de Correo \(Email Marketing Pro\)) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+56.6929133858267775 714.3309448818897636 Td
+(Los correos deben ser una extensión de la web, no algo separado:) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+70.8661417322834666 671.8112598425196893 Td
+(- Cabecera centrada con el logo de la tienda en alta resolución.) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+70.8661417322834666 643.4648031496062686 Td
+(- Botones redondeados \(CTA\) que imiten el diseño de la plataforma.) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+70.8661417322834666 615.1183464566928478 Td
+(- Uso de tarjetas blancas sobre fondo gris muy claro \(F9FAFB\).) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+70.8661417322834666 586.7718897637794271 Td
+(- Pie de página con link de 'Unsubscribe' y redes sociales visibles.) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.314 g
+70.8661417322834666 558.42543307086612 Td
+(- Personalización: Siempre incluir el nombre del cliente y sus puntos actuales.) Tj
+ET
+BT
+/F2 8 Tf
+9.1999999999999993 TL
+0.706 g
+368.5039370078740717 34.0159842519684616 Td
+(Confidencial - Propiedad de Bayup E-commerce Ecosystem) Tj
+ET
+endstream
+endobj
+1 0 obj
+<</Type /Pages
+/Kids [3 0 R 5 0 R 7 0 R 9 0 R ]
+/Count 4
+>>
+endobj
+11 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+12 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+13 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+14 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+15 0 obj
+<<
+/Type /Font
+/BaseFont /Courier
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+16 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+17 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+18 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+19 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Roman
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+20 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+21 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Italic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+22 0 obj
+<<
+/Type /Font
+/BaseFont /Times-BoldItalic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+23 0 obj
+<<
+/Type /Font
+/BaseFont /ZapfDingbats
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+24 0 obj
+<<
+/Type /Font
+/BaseFont /Symbol
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+2 0 obj
+<<
+/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+/Font <<
+/F1 11 0 R
+/F2 12 0 R
+/F3 13 0 R
+/F4 14 0 R
+/F5 15 0 R
+/F6 16 0 R
+/F7 17 0 R
+/F8 18 0 R
+/F9 19 0 R
+/F10 20 0 R
+/F11 21 0 R
+/F12 22 0 R
+/F13 23 0 R
+/F14 24 0 R
+>>
+/XObject <<
+>>
+>>
+endobj
+25 0 obj
+<<
+/Producer (jsPDF 4.0.0)
+/CreationDate (D:20260127124825-05'00')
+>>
+endobj
+26 0 obj
+<<
+/Type /Catalog
+/Pages 1 0 R
+/OpenAction [3 0 R /FitH null]
+/PageLayout /OneColumn
+>>
+endobj
+xref
+0 27
+0000000000 65535 f 
+0000005684 00000 n 
+0000007524 00000 n 
+0000000015 00000 n 
+0000000152 00000 n 
+0000001038 00000 n 
+0000001175 00000 n 
+0000002548 00000 n 
+0000002685 00000 n 
+0000004294 00000 n 
+0000004432 00000 n 
+0000005759 00000 n 
+0000005885 00000 n 
+0000006016 00000 n 
+0000006150 00000 n 
+0000006288 00000 n 
+0000006412 00000 n 
+0000006541 00000 n 
+0000006673 00000 n 
+0000006809 00000 n 
+0000006937 00000 n 
+0000007064 00000 n 
+0000007193 00000 n 
+0000007326 00000 n 
+0000007428 00000 n 
+0000007777 00000 n 
+0000007863 00000 n 
+trailer
+<<
+/Size 27
+/Root 26 0 R
+/Info 25 0 R
+/ID [ <28463E66ECFAF569C9F140DFB51D440B> <28463E66ECFAF569C9F140DFB51D440B> ]
+>>
+startxref
+7967
+%%EOF

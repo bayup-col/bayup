@@ -146,11 +146,47 @@ class ExpenseBase(BaseModel):
     amount: float
     due_date: datetime
     status: str = "pending"
+    category: str = "diario"
+    invoice_num: str | None = None
+    items: List[Dict] | None = None
+    description_detail: str | None = None
 
 class ExpenseCreate(ExpenseBase):
     pass
 
 class Expense(ExpenseBase):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    class Config:
+        orm_mode = True
+
+class ReceivableBase(BaseModel):
+    client_name: str
+    amount: float
+    due_date: datetime
+    status: str = "pending"
+    invoice_num: str | None = None
+    items: List[Dict] | None = None
+    description_detail: str | None = None
+
+class ReceivableCreate(ReceivableBase):
+    pass
+
+class Receivable(ReceivableBase):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    class Config:
+        orm_mode = True
+
+class PayrollEmployeeBase(BaseModel):
+    name: str
+    role: str
+    base_salary: float
+
+class PayrollEmployeeCreate(PayrollEmployeeBase):
+    pass
+
+class PayrollEmployee(PayrollEmployeeBase):
     id: uuid.UUID
     tenant_id: uuid.UUID
     class Config:
@@ -348,6 +384,46 @@ class CustomRoleCreate(CustomRoleBase):
 class CustomRole(CustomRoleBase):
     id: uuid.UUID
     owner_id: uuid.UUID
+
+    class Config:
+        orm_mode = True
+
+# --- Purchase Order Schemas ---
+class PurchaseOrderBase(BaseModel):
+    product_name: str
+    quantity: int
+    items: Optional[List[Dict[str, Any]]] = None
+    total_amount: float
+    provider_name: Optional[str] = None
+    status: str = "sent"
+    sending_method: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+
+class PurchaseOrderCreate(PurchaseOrderBase):
+    pass
+
+class PurchaseOrder(PurchaseOrderBase):
+    id: uuid.UUID
+    created_at: datetime
+    tenant_id: uuid.UUID
+
+    class Config:
+        orm_mode = True
+
+# --- Provider Schemas ---
+class ProviderBase(BaseModel):
+    name: str
+    contact_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    category: str = "General"
+
+class ProviderCreate(ProviderBase):
+    pass
+
+class Provider(ProviderBase):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
 
     class Config:
         orm_mode = True

@@ -256,10 +256,14 @@ class AIAssistantLog(Base):
 class Expense(Base):
     __tablename__ = "expenses"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    description = Column(String, nullable=False)
+    description = Column(String, nullable=False) # Nombre/Concepto
     amount = Column(Float, nullable=False)
     due_date = Column(DateTime, nullable=False)
     status = Column(String, default="pending") # pending, paid
+    category = Column(String, default="diario") # Nuevo: fijo o diario
+    invoice_num = Column(String, nullable=True) # Nuevo: # de factura
+    items = Column(JSON, nullable=True) # Nuevo: Lista de productos [{name, qty}]
+    description_detail = Column(String, nullable=True) # Nuevo: Notas largas
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
 class Receivable(Base):
@@ -269,6 +273,30 @@ class Receivable(Base):
     amount = Column(Float, nullable=False)
     due_date = Column(DateTime, nullable=False)
     status = Column(String, default="pending") # pending, collected
+    invoice_num = Column(String, nullable=True)
+    items = Column(JSON, nullable=True)
+    description_detail = Column(String, nullable=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
+class PayrollEmployee(Base):
+    __tablename__ = "payroll_employees"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    role = Column(String, nullable=False)
+    base_salary = Column(Float, nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    seller_id = Column(UUID(as_uuid=True), ForeignKey("sellers.id"), nullable=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    
+    user = relationship("User", foreign_keys=[user_id])
+    seller = relationship("Seller", foreign_keys=[seller_id])
+
+class Seller(Base):
+    __tablename__ = "sellers"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    role = Column(String, nullable=False)
+    branch = Column(String, nullable=True)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
 class Income(Base):
@@ -279,3 +307,31 @@ class Income(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     category = Column(String, nullable=True) # e.g., "Venta Directa", "Inversión"
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
+class PurchaseOrder(Base):
+    __tablename__ = "purchase_orders"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    product_name = Column(String, nullable=False) # Resumen: "Varios productos" o el primero
+    quantity = Column(Integer, nullable=False) # Cantidad total de unidades
+    items = Column(JSON, nullable=True) # Detalle: [{"name": "X", "qty": 10}, ...]
+    total_amount = Column(Float, nullable=False)
+    status = Column(String, default="sent") # sent, confirmed, delivered, scheduled
+    provider_name = Column(String, nullable=True)
+    sending_method = Column(String, nullable=True) # email, whatsapp, reminder
+    scheduled_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    
+    tenant = relationship("User")
+
+class Provider(Base):
+    __tablename__ = "providers"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    contact_name = Column(String, nullable=True)
+    email = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    category = Column(String, default="General")
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    
+    tenant = relationship("User")

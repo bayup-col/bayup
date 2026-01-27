@@ -1,52 +1,110 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from "@/context/auth-context";
+import { useToast } from '@/context/toast-context';
+import { Loader2 } from 'lucide-react';
 
 interface Expense {
     id: string;
     category: 'fijo' | 'diario';
-    name: string;
-    amount: number;
-    date: string;
     description: string;
+    amount: number;
+    due_date: string;
+    status: string;
 }
 
 export default function GastosPage() {
-    const [expenses, setExpenses] = useState<Expense[]>([
-        { id: '1', category: 'fijo', name: 'Arriendo Local', amount: 2500000, date: '2024-01-05', description: 'Pago sede norte' },
-        { id: '2', category: 'fijo', name: 'Nómina Lorena', amount: 1800000, date: '2024-01-15', description: 'Mes de Enero' },
-        { id: '3', category: 'diario', name: 'Transporte Mensajería', amount: 15000, date: '2024-01-24', description: 'Entrega pedido #5001' },
-        { id: '4', category: 'diario', name: 'Cafetería y Aseo', amount: 45000, date: '2024-01-24', description: 'Insumos oficina' },
-    ]);
+    const { token } = useAuth();
+    const { showToast } = useToast();
+    const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
     const [isFixedModalOpen, setIsFixedModalOpen] = useState(false);
     const [isDailyModalOpen, setIsDailyModalOpen] = useState(false);
 
     // Form states
-    const [formData, setFormData] = useState({ name: '', amount: '', desc: '', date: new Date().toISOString().split('T')[0] });
+    const [formData, setFormData] = useState({ name: '', amount: 0, desc: '', date: new Date().toISOString().split('T')[0] });
+
+    const fetchExpenses = useCallback(async () => {
+        if (!token) return;
+        try {
+            setIsLoading(true);
+            const res = await fetch('http://localhost:8000/expenses', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                // Filtramos solo gastos operativos (fijos y diarios)
+                setExpenses(data.filter((e: any) => e.category === 'operativo_fijo' || e.category === 'operativo_diario'));
+            }
+        } catch (e) {
+            showToast("No se pudieron cargar los gastos", "error");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [token, showToast]);
+
+    useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD' }).format(amount).replace('$', '$ ');
     };
 
-    const handleAddExpense = (category: 'fijo' | 'diario') => {
-        if (!formData.name || !formData.amount) return alert("Completa los datos obligatorios.");
-        const newEx: Expense = {
-            id: Math.random().toString(),
-            category,
-            name: formData.name,
-            amount: parseFloat(formData.amount),
-            date: formData.date,
-            description: formData.desc
-        };
-        setExpenses([newEx, ...expenses]);
-        setIsFixedModalOpen(false);
-        setIsDailyModalOpen(false);
-        setFormData({ name: '', amount: '', desc: '', date: new Date().toISOString().split('T')[0] });
+    const formatNumberInput = (val: number) => {
+        if (!val) return "";
+        return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     };
 
-    const totalFixed = expenses.filter(e => e.category === 'fijo').reduce((a, b) => a + b.amount, 0);
-    const totalDaily = expenses.filter(e => e.category === 'diario').reduce((a, b) => a + b.amount, 0);
+    const unformatNumberInput = (val: string) => {
+        return parseFloat(val.replace(/\./g, '')) || 0;
+    };
+
+    const handleAddExpense = async (category: 'fijo' | 'diario') => {
+        if (!formData.name || formData.amount <= 0) {
+            return showToast("Completa los datos obligatorios", "error");
+        }
+        
+        setIsSaving(true);
+        try {
+            const payload = {
+                description: formData.name.trim(),
+                amount: Number(formData.amount),
+                due_date: new Date(formData.date).toISOString(),
+                category: category === 'fijo' ? 'operativo_fijo' : 'operativo_diario',
+                status: "paid" // Marcamos como pagado por defecto al registrar
+            };
+
+            const res = await fetch('http://localhost:8000/expenses', {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                showToast("Gasto registrado correctamente", "success");
+                await fetchExpenses();
+                setIsFixedModalOpen(false);
+                setIsDailyModalOpen(false);
+                setFormData({ name: '', amount: 0, desc: '', date: new Date().toISOString().split('T')[0] });
+            } else {
+                const errData = await res.json();
+                showToast(errData.detail || "Error en el servidor", "error");
+            }
+        } catch (e) {
+            console.error("DEBUG ERROR GASTOS:", e);
+            showToast("Error de conexión con el servidor", "error");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const totalFixed = expenses.filter(e => e.category === 'operativo_fijo').reduce((a, b) => a + b.amount, 0);
+    const totalDaily = expenses.filter(e => e.category === 'operativo_diario').reduce((a, b) => a + b.amount, 0);
 
     return (
         <div className="max-w-7xl mx-auto space-y-12 pb-20">
@@ -74,9 +132,9 @@ export default function GastosPage() {
                         <div className="h-12 w-12 bg-gray-50 rounded-2xl flex items-center justify-center text-xl">🏛️</div>
                     </div>
                     <div className="flex-1 space-y-4">
-                        {expenses.filter(e => e.category === 'fijo').map(e => (
+                        {expenses.filter(e => e.category === 'operativo_fijo').map(e => (
                             <div key={e.id} className="flex justify-between items-center p-4 bg-gray-50/50 rounded-2xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100">
-                                <div><p className="text-sm font-black text-gray-900">{e.name}</p><p className="text-[10px] font-bold text-gray-400 uppercase">{e.date}</p></div>
+                                <div><p className="text-sm font-black text-gray-900">{e.description}</p><p className="text-[10px] font-bold text-gray-400 uppercase">{new Date(e.due_date).toLocaleDateString()}</p></div>
                                 <p className="text-sm font-black text-gray-900">{formatCurrency(e.amount)}</p>
                             </div>
                         ))}
@@ -97,9 +155,9 @@ export default function GastosPage() {
                         <div className="h-12 w-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center text-xl">💸</div>
                     </div>
                     <div className="flex-1 space-y-4">
-                        {expenses.filter(e => e.category === 'diario').map(e => (
+                        {expenses.filter(e => e.category === 'operativo_diario').map(e => (
                             <div key={e.id} className="flex justify-between items-center p-4 bg-gray-50/50 rounded-2xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100">
-                                <div><p className="text-sm font-black text-gray-900">{e.name}</p><p className="text-[10px] font-bold text-gray-400 uppercase italic">"{e.description}"</p></div>
+                                <div><p className="text-sm font-black text-gray-900">{e.description}</p><p className="text-[10px] font-bold text-gray-400 uppercase italic">{new Date(e.due_date).toLocaleDateString()}</p></div>
                                 <p className="text-sm font-black text-purple-600">{formatCurrency(e.amount)}</p>
                             </div>
                         ))}
@@ -139,10 +197,10 @@ export default function GastosPage() {
                         </div>
                         <div className="p-10 space-y-6">
                             <div><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Concepto</label><input type="text" placeholder="Ej: Arriendo, Internet, Nómina..." value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full mt-2 p-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold transition-all shadow-inner" /></div>
-                            <div><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Monto Mensual</label><input type="number" placeholder="0.00" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} className="w-full mt-2 p-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-black transition-all shadow-inner" /></div>
+                            <div><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Monto Mensual</label><input type="text" placeholder="0" value={formatNumberInput(formData.amount)} onChange={(e) => setFormData({...formData, amount: unformatNumberInput(e.target.value)})} className="w-full mt-2 p-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-black transition-all shadow-inner" /></div>
                             <div><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Día de Pago</label><input type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full mt-2 p-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold transition-all shadow-inner" /></div>
                         </div>
-                        <div className="p-10 pt-0"><button onClick={() => handleAddExpense('fijo')} className="w-full bg-gray-900 text-white py-5 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl">Registrar Costo Fijo</button></div>
+                        <div className="p-10 pt-0"><button disabled={isSaving} onClick={() => handleAddExpense('fijo')} className="w-full bg-gray-900 text-white py-5 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl disabled:opacity-50">{isSaving ? 'Registrando...' : 'Registrar Costo Fijo'}</button></div>
                     </div>
                 </div>
             )}
@@ -157,10 +215,10 @@ export default function GastosPage() {
                         </div>
                         <div className="p-10 space-y-6">
                             <div><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Descripción Rápida</label><input type="text" placeholder="Ej: Pago taxi, Almuerzo, Cinta adhesiva..." value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full mt-2 p-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold transition-all shadow-inner" /></div>
-                            <div><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Monto Pagado</label><input type="number" placeholder="0.00" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} className="w-full mt-2 p-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-black transition-all shadow-inner" /></div>
+                            <div><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Monto Pagado</label><input type="text" placeholder="0" value={formatNumberInput(formData.amount)} onChange={(e) => setFormData({...formData, amount: unformatNumberInput(e.target.value)})} className="w-full mt-2 p-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-black transition-all shadow-inner" /></div>
                             <div><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Nota adicional</label><input type="text" placeholder="¿Para qué fue este gasto?" value={formData.desc} onChange={(e) => setFormData({...formData, desc: e.target.value})} className="w-full mt-2 p-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-medium transition-all shadow-inner" /></div>
                         </div>
-                        <div className="p-10 pt-0"><button onClick={() => handleAddExpense('diario')} className="w-full bg-purple-600 text-white py-5 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-purple-100 transition-all">Registrar en Caja</button></div>
+                        <div className="p-10 pt-0"><button disabled={isSaving} onClick={() => handleAddExpense('diario')} className="w-full bg-purple-600 text-white py-5 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-purple-100 transition-all disabled:opacity-50">{isSaving ? 'Registrando...' : 'Registrar en Caja'}</button></div>
                     </div>
                 </div>
             )}
