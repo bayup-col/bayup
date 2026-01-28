@@ -15,13 +15,11 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function WebAnalyticsPage() {
-    const { token, userEmail } = useAuth();
+    const { token } = useAuth();
     const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState<'overview' | 'traffic' | 'conversion' | 'audience' | 'inventory' | 'marketing'>('overview');
     
     // UI States
-    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-    const [isOptimizationModalOpen, setIsOptimizationModalOpen] = useState(false);
     const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
     const [isProductHistoryModalOpen, setIsProductHistoryModalOpen] = useState(false);
     const [selectedCoupon, setSelectedCoupon] = useState<any>(null);
@@ -110,7 +108,6 @@ export default function WebAnalyticsPage() {
         setTimeout(() => {
             showToast("Plan Estratégico desplegado al 100% 🚀", "success");
             setIsExecutingStrategy(false);
-            
             const today = new Date().toISOString().split('T')[0];
             const updated = { ...executedToday, [selectedInventoryCategory]: today };
             setExecutedToday(updated);
@@ -188,7 +185,7 @@ export default function WebAnalyticsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[ { label: 'Ventas Hoy', val: 3450000, trend: '+18.5%', up: true, h: 'Dinero real generado hoy.' }, { label: 'Ticket Promedio', val: 124000, trend: '+5.2%', up: true, h: 'Gasto promedio por cliente.' }, { label: 'Pedidos Hoy', val: 42, trend: '-2.1%', up: false, h: 'Órdenes procesadas hoy.' }, { label: 'Tasa Conversión', val: '4.8%', trend: '+0.4%', up: true, h: 'Visitas que terminan en compra.' }, ].map((kpi, i) => (
-                    <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-gray-50 shadow-sm relative group cursor-help transition-all hover:shadow-xl">
+                    <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm relative group cursor-help transition-all hover:shadow-xl">
                         <div className="flex justify-between items-start"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p><Info size={14} className="text-gray-200 group-hover:text-purple-400" /></div>
                         <div className="flex items-end gap-2 mt-2"><h3 className="text-2xl font-black text-gray-900">{typeof kpi.val === 'number' ? formatCurrency(kpi.val) : kpi.val}</h3><div className={`flex items-center text-[10px] font-black mb-1 ${kpi.up ? 'text-emerald-500' : 'text-rose-500'}`}>{kpi.trend}</div></div>
                         <div className="absolute inset-0 bg-gray-900/95 p-8 flex items-center justify-center text-center opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-[2.5rem] z-20"><p className="text-white text-xs font-medium leading-relaxed">{kpi.h}</p></div>
@@ -333,109 +330,54 @@ export default function WebAnalyticsPage() {
                         <div className="space-y-6">
                             <div className="flex justify-between items-center">
                                 <div className="h-12 w-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform"><Trophy size={24} /></div>
-                                <div className="text-right">
-                                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full">Top Revenue</span>
-                                </div>
+                                <div className="text-right"><span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full">Top Revenue</span></div>
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">Ganadores</h3>
-                                <p className="text-[11px] text-gray-400 font-bold uppercase mt-1 tracking-[0.2em]">Escalabilidad detectada</p>
-                            </div>
-                            <div className="flex items-end gap-2">
-                                <span className="text-3xl font-black text-gray-900">+$124M</span>
-                                <span className="text-[10px] font-black text-emerald-500 mb-1.5 flex items-center gap-1"><TrendingUp size={12}/> +18%</span>
-                            </div>
+                            <div><h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">Ganadores</h3><p className="text-[11px] text-gray-400 font-bold uppercase mt-1 tracking-[0.2em]">Escalabilidad detectada</p></div>
+                            <div className="flex items-end gap-2"><span className="text-3xl font-black text-gray-900">+$124M</span><span className="text-[10px] font-black text-emerald-500 mb-1.5 flex items-center gap-1"><TrendingUp size={12}/> +18%</span></div>
                         </div>
-                        <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between">
-                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover:text-emerald-600 transition-colors">Analizar Potencial de Escala</span>
-                            <div className="h-8 w-8 bg-gray-900 rounded-xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                                <ArrowRight size={16} />
-                            </div>
-                        </div>
+                        <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between"><span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover:text-emerald-600 transition-colors">Analizar Potencial de Escala</span><div className="h-8 w-8 bg-gray-900 rounded-xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0"><ArrowRight size={16} /></div></div>
                     </div>
                 </div>
-
                 <div onClick={() => setSelectedInventoryCategory('reorder')} className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(59,130,246,0.15)] transition-all duration-500 cursor-pointer overflow-hidden">
                     <div className="absolute -right-4 -top-4 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors"></div>
                     <div className="relative z-10 flex flex-col h-full justify-between">
                         <div className="space-y-6">
                             <div className="flex justify-between items-center">
                                 <div className="h-12 w-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform"><Zap size={24} /></div>
-                                <div className="text-right">
-                                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-full">Alerta Stock</span>
-                                </div>
+                                <div className="text-right"><span className="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-full">Alerta Stock</span></div>
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">Reabastecer</h3>
-                                <p className="text-[11px] text-gray-400 font-bold uppercase mt-1 tracking-[0.2em]">Pérdida inminente</p>
-                            </div>
-                            <div className="flex items-end gap-2">
-                                <span className="text-3xl font-black text-rose-600">-$8.4M</span>
-                                <span className="text-[10px] font-black text-gray-400 mb-1.5 italic">Riesgo / Semana</span>
-                            </div>
+                            <div><h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">Reabastecer</h3><p className="text-[11px] text-gray-400 font-bold uppercase mt-1 tracking-[0.2em]">Pérdida inminente</p></div>
+                            <div className="flex items-end gap-2"><span className="text-3xl font-black text-rose-600">-$8.4M</span><span className="text-[10px] font-black text-gray-400 mb-1.5 italic">Riesgo / Semana</span></div>
                         </div>
-                        <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between">
-                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors">Evitar Quiebre de Stock</span>
-                            <div className="h-8 w-8 bg-gray-900 rounded-xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                                <ArrowRight size={16} />
-                            </div>
-                        </div>
+                        <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between"><span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors">Evitar Quiebre de Stock</span><div className="h-8 w-8 bg-gray-900 rounded-xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0"><ArrowRight size={16} /></div></div>
                     </div>
                 </div>
-
                 <div onClick={() => setSelectedInventoryCategory('stuck')} className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(244,63,94,0.15)] transition-all duration-500 cursor-pointer overflow-hidden">
                     <div className="absolute -right-4 -top-4 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl group-hover:bg-rose-500/10 transition-colors"></div>
                     <div className="relative z-10 flex flex-col h-full justify-between">
                         <div className="space-y-6">
                             <div className="flex justify-between items-center">
                                 <div className="h-12 w-12 bg-rose-50 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-rose-200 group-hover:scale-110 transition-transform"><AlertTriangle size={24} /></div>
-                                <div className="text-right">
-                                    <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest bg-rose-50 px-3 py-1 rounded-full">Capital Pegado</span>
-                                </div>
+                                <div className="text-right"><span className="text-[10px] font-black text-rose-600 uppercase tracking-widest bg-rose-50 px-3 py-1 rounded-full">Capital Pegado</span></div>
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">Estancado</h3>
-                                <p className="text-[11px] text-gray-400 font-bold uppercase mt-1 tracking-[0.2em]">Flujo de caja bloqueado</p>
-                            </div>
-                            <div className="flex items-end gap-2">
-                                <span className="text-3xl font-black text-gray-900">$24.5M</span>
-                                <span className="text-[10px] font-black text-rose-500 mb-1.5 italic">Inactivo</span>
-                            </div>
+                            <div><h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">Estancado</h3><p className="text-[11px] text-gray-400 font-bold uppercase mt-1 tracking-[0.2em]">Flujo de caja bloqueado</p></div>
+                            <div className="flex items-end gap-2"><span className="text-3xl font-black text-gray-900">$24.5M</span><span className="text-[10px] font-black text-rose-500 mb-1.5 italic">Inactivo</span></div>
                         </div>
-                        <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between">
-                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover:text-rose-600 transition-colors">Liberar Capital Ahora</span>
-                            <div className="h-8 w-8 bg-gray-900 rounded-xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                                <ArrowRight size={16} />
-                            </div>
-                        </div>
+                        <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between"><span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover:text-rose-600 transition-colors">Liberar Capital Ahora</span><div className="h-8 w-8 bg-gray-900 rounded-xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0"><ArrowRight size={16} /></div></div>
                     </div>
                 </div>
-
                 <div onClick={() => setSelectedInventoryCategory('decline')} className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(245,158,11,0.15)] transition-all duration-500 cursor-pointer overflow-hidden">
                     <div className="absolute -right-4 -top-4 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-colors"></div>
                     <div className="relative z-10 flex flex-col h-full justify-between">
                         <div className="space-y-6">
                             <div className="flex justify-between items-center">
                                 <div className="h-12 w-12 bg-amber-50 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-200 group-hover:scale-110 transition-transform"><TrendingDown size={24} /></div>
-                                <div className="text-right">
-                                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full">Curva Baja</span>
-                                </div>
+                                <div className="text-right"><span className="text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full">Curva Baja</span></div>
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">En Declive</h3>
-                                <p className="text-[11px] text-gray-400 font-bold uppercase mt-1 tracking-[0.2em]">Salida estratégica</p>
-                            </div>
-                            <div className="flex items-end gap-2">
-                                <span className="text-3xl font-black text-gray-900">-42%</span>
-                                <span className="text-[10px] font-black text-amber-600 mb-1.5 italic">Vs. Mes Anterior</span>
-                            </div>
+                            <div><h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">En Declive</h3><p className="text-[11px] text-gray-400 font-bold uppercase mt-1 tracking-[0.2em]">Salida estratégica</p></div>
+                            <div className="flex items-end gap-2"><span className="text-3xl font-black text-gray-900">-42%</span><span className="text-[10px] font-black text-amber-600 mb-1.5 italic">Vs. Mes Anterior</span></div>
                         </div>
-                        <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between">
-                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover:text-amber-600 transition-colors">Ver Plan de Evacuación</span>
-                            <div className="h-8 w-8 bg-gray-900 rounded-xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                                <ArrowRight size={16} />
-                            </div>
-                        </div>
+                        <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between"><span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover:text-amber-600 transition-colors">Ver Plan de Evacuación</span><div className="h-8 w-8 bg-gray-900 rounded-xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0"><ArrowRight size={16} /></div></div>
                     </div>
                 </div>
             </div>
@@ -664,458 +606,203 @@ export default function WebAnalyticsPage() {
                                                     <p className="text-[10px] font-bold text-gray-400 uppercase">Impacto Proyectado: <span className="text-emerald-400">Excelente</span></p>
                                                 </div>
                                             </div>
-                                                                            </div>
-                                        
-                                                                            {/* NUEVO CARD: Hoja de Ruta Operativa */}
-                                                                            <div className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-8 mt-10">
-                                                                                <div className="flex items-center justify-between border-b border-gray-50 pb-6">
-                                                                                    <div>
-                                                                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
-                                                                                            <Layers size={18} className="text-purple-600" /> Hoja de Ruta Operativa
-                                                                                        </h4>
-                                                                                        <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Secuencia de ejecución automatizada por Bayt</p>
-                                                                                    </div>
-                                                                                    <div className="h-10 w-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
-                                                                                        <ZapIcon size={20} />
-                                                                                    </div>
-                                                                                </div>
-                                                                                
-                                                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                                                                    {selectedInventoryCategory && strategyDetails[selectedInventoryCategory].map((step, idx) => (
-                                                                                        <div key={idx} className="relative p-6 bg-gray-50 rounded-[2rem] border border-transparent hover:border-purple-100 transition-all group">
-                                                                                            <div className="absolute -top-3 -left-3 h-8 w-8 bg-gray-900 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-lg">
-                                                                                                {idx + 1}
-                                                                                            </div>
-                                                                                            <h5 className="text-xs font-black text-gray-900 uppercase mb-2 mt-2">{step.step}</h5>
-                                                                                            <p className="text-[10px] text-gray-500 font-medium leading-relaxed">{step.desc}</p>
-                                                                                        </div>
-                                                                                    ))}
-                                                                                </div>
-                                                                            </div>
-                                        
-                                                                                                                    <div className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-8 mt-10">
-                                        
-                                                                                                                                                                    {selectedInventoryCategory === 'winners' ? (
-                                        
-                                                                                                                                                                        <>
-                                        
-                                                                                                                                                                            <div className="flex items-center justify-between border-b border-gray-50 pb-6">
-                                        
-                                                                                                                                                                                <div>
-                                        
-                                                                                                                                                                                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
-                                        
-                                                                                                                                                                                        <Trophy size={18} className="text-emerald-500" /> Ranking de Rentabilidad Crítica (80/20)
-                                        
-                                                                                                                                                                                    </h4>
-                                        
-                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Productos 'Ancla' que generan el 80% de tu utilidad neta</p>
-                                        
-                                                                                                                                                                                </div>
-                                        
-                                                                                                                                                                                <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-3 py-1 rounded-full uppercase italic">Core Business Assets</span>
-                                        
-                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                            <div className="grid grid-cols-1 gap-4">
-                                        
-                                                                                                                                                                                {[
-                                        
-                                                                                                                                                                                    { rank: 1, name: "Tabletas Purificadoras X", margin: "68%", contribution: 124500000, efficiency: "Alta", label: "Ancla Principal" },
-                                        
-                                                                                                                                                                                    { rank: 2, name: "Kit Supervivencia 360", margin: "52%", contribution: 88400000, efficiency: "Máxima", label: "Multiplicador de Margen" },
-                                        
-                                                                                                                                                                                    { rank: 3, name: "Filtro de Carbón Pro", margin: "45%", contribution: 72000000, efficiency: "Estable", label: "Generador de Flujo" },
-                                        
-                                                                                                                                                                                    { rank: 4, name: "Botella Térmica Bayup", margin: "42%", contribution: 45000000, efficiency: "Media", label: "Activo de Retención" },
-                                        
-                                                                                                                                                                                    { rank: 5, name: "Linterna Solar Pro", margin: "38%", contribution: 36000000, efficiency: "Escalable", label: "Potencial de Crecimiento" }
-                                        
-                                                                                                                                                                                ].map((product, idx) => (
-                                        
-                                                                                                                                                                                    <div key={idx} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2.5rem] hover:bg-white hover:shadow-xl hover:scale-[1.02] transition-all border border-transparent hover:border-gray-100 group">
-                                        
-                                                                                                                                                                                        <div className="flex items-center gap-8">
-                                        
-                                                                                                                                                                                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${
-                                        
-                                                                                                                                                                                                idx === 0 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200' :
-                                        
-                                                                                                                                                                                                idx === 1 ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' :
-                                        
-                                                                                                                                                                                                idx === 2 ? 'bg-gray-900 text-white' : 'bg-white text-gray-400 border border-gray-200'
-                                        
-                                                                                                                                                                                            }`}>
-                                        
-                                                                                                                                                                                                {idx + 1}
-                                        
-                                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                                            <div>
-                                        
-                                                                                                                                                                                                <div className="flex items-center gap-2">
-                                        
-                                                                                                                                                                                                    <p className="text-sm font-black text-gray-900 uppercase italic">{product.name}</p>
-                                        
-                                                                                                                                                                                                    <span className="text-[7px] font-black bg-gray-900 text-white px-2 py-0.5 rounded-full uppercase tracking-tighter">{product.label}</span>
-                                        
-                                                                                                                                                                                                </div>
-                                        
-                                                                                                                                                                                                <div className="flex items-center gap-4 mt-1">
-                                        
-                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Margen Neto: <span className="text-emerald-600">{product.margin}</span></p>
-                                        
-                                                                                                                                                                                                    <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
-                                        
-                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Eficiencia: <span className="text-gray-900">{product.efficiency}</span></p>
-                                        
-                                                                                                                                                                                                </div>
-                                        
-                                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                                        </div>
-                                        
-                                                                                                                                                                                        <div className="text-right">
-                                        
-                                                                                                                                                                                            <p className="text-xs font-black text-gray-900">+{formatCurrency(product.contribution)}</p>
-                                        
-                                                                                                                                                                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Contribución a Utilidad</p>
-                                        
-                                                                                                                                                                                        </div>
-                                        
-                                                                                                                                                                                    </div>
-                                        
-                                                                                                                                                                                ))}
-                                        
-                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                                                                        </>
-                                        
-                                                                                                                                                                                                                    ) : selectedInventoryCategory === 'stuck' ? (
-                                        
-                                                                                                                                                                                                                        <>
-                                        
-                                                                                                                                                                                                                            <div className="flex items-center justify-between border-b border-gray-50 pb-6">
-                                        
-                                                                                                                                                                                                                                <div>
-                                        
-                                                                                                                                                                                                                                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
-                                        
-                                                                                                                                                                                                                                        <DollarSign size={18} className="text-rose-500" /> Ranking de Rescate de Liquidez
-                                        
-                                                                                                                                                                                                                                    </h4>
-                                        
-                                                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Capital 'Secuestrado': libéralo para reinvertir en activos de alto ROI</p>
-                                        
-                                                                                                                                                                                                                                </div>
-                                        
-                                                                                                                                                                                                                                <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-3 py-1 rounded-full uppercase italic animate-pulse">High Holding Cost</span>
-                                        
-                                                                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                                                                            <div className="grid grid-cols-1 gap-4">
-                                        
-                                                                                                                                                                                                                                {[
-                                        
-                                                                                                                                                                                                                                    { rank: 1, name: "Fundas Silicona Pro", capital: 8500000, opportunity: 4200000, discount: "25%", aging: "92 días" },
-                                        
-                                                                                                                                                                                                                                    { rank: 2, name: "Protector Pantalla X", capital: 6200000, opportunity: 3100000, discount: "30%", aging: "120 días" },
-                                        
-                                                                                                                                                                                                                                    { rank: 3, name: "Cables USB-C Braided", capital: 4800000, opportunity: 2400000, discount: "20%", aging: "75 días" },
-                                        
-                                                                                                                                                                                                                                    { rank: 4, name: "Soporte Coche MagSafe", capital: 3200000, opportunity: 1600000, discount: "15%", aging: "60 días" },
-                                        
-                                                                                                                                                                                                                                    { rank: 5, name: "Adaptador Audio Jack", capital: 1800000, opportunity: 900000, discount: "40%", aging: "150 días" }
-                                        
-                                                                                                                                                                                                                                ].map((product, idx) => (
-                                        
-                                                                                                                                                                                                                                    <div key={idx} className="flex items-center justify-between p-6 bg-rose-50/20 rounded-[2.5rem] hover:bg-white hover:shadow-xl hover:scale-[1.02] transition-all border border-transparent hover:border-rose-100 group">
-                                        
-                                                                                                                                                                                                                                        <div className="flex items-center gap-8">
-                                        
-                                                                                                                                                                                                                                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${
-                                        
-                                                                                                                                                                                                                                                idx === 0 ? 'bg-rose-600 text-white shadow-lg' :
-                                        
-                                                                                                                                                                                                                                                'bg-white text-rose-400 border border-rose-100'
-                                        
-                                                                                                                                                                                                                                            }`}>
-                                        
-                                                                                                                                                                                                                                                {idx + 1}
-                                        
-                                                                                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                                                                                            <div>
-                                        
-                                                                                                                                                                                                                                                <p className="text-sm font-black text-gray-900 uppercase italic">{product.name}</p>
-                                        
-                                                                                                                                                                                                                                                <div className="flex items-center gap-4 mt-1">
-                                        
-                                                                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Antigüedad: <span className="text-rose-600">{product.aging}</span></p>
-                                        
-                                                                                                                                                                                                                                                    <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
-                                        
-                                                                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Descuento Sugerido: <span className="text-gray-900 font-black">{product.discount}</span></p>
-                                        
-                                                                                                                                                                                                                                                </div>
-                                        
-                                                                                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                                                                                        </div>
-                                        
-                                                                                                                                                                                                                                        <div className="text-right">
-                                        
-                                                                                                                                                                                                                                            <p className="text-xs font-black text-rose-600">{formatCurrency(product.capital)}</p>
-                                        
-                                                                                                                                                                                                                                            <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mt-0.5">Potencial de Reinversión: +{formatCurrency(product.opportunity)}</p>
-                                        
-                                                                                                                                                                                                                                        </div>
-                                        
-                                                                                                                                                                                                                                    </div>
-                                        
-                                                                                                                                                                                                                                ))}
-                                        
-                                                                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                                                                                                                        </>
-                                        
-                                                                                                                                                                                                                                                                    ) : selectedInventoryCategory === 'decline' ? (
-                                        
-                                                                                                                                                                                                                                                                        <>
-                                        
-                                                                                                                                                                                                                                                                            <div className="flex items-center justify-between border-b border-gray-50 pb-6">
-                                        
-                                                                                                                                                                                                                                                                                <div>
-                                        
-                                                                                                                                                                                                                                                                                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
-                                        
-                                                                                                                                                                                                                                                                                        <TrendingDown size={18} className="text-amber-500" /> Ranking de Salida Estratégica (Bundles AI)
-                                        
-                                                                                                                                                                                                                                                                                    </h4>
-                                        
-                                                                                                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Evacuación de inventario: recupera inversión antes de obsolescencia</p>
-                                        
-                                                                                                                                                                                                                                                                                </div>
-                                        
-                                                                                                                                                                                                                                                                                <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-3 py-1 rounded-full uppercase italic">Inventory Liquidation Phase</span>
-                                        
-                                                                                                                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                                                                                                                            <div className="grid grid-cols-1 gap-4">
-                                        
-                                                                                                                                                                                                                                                                                {[
-                                        
-                                                                                                                                                                                                                                                                                    { rank: 1, name: "Cargador Solar 1.0", drop: "-62%", residual: 4200000, bundle: "Tabletas Purificadoras X", units: "45 uds" },
-                                        
-                                                                                                                                                                                                                                                                                    { rank: 2, name: "Brújula Clásica Pro", drop: "-45%", residual: 2800000, bundle: "Kit Supervivencia 360", units: "32 uds" },
-                                        
-                                                                                                                                                                                                                                                                                    { rank: 3, name: "Cantimplora Basic", drop: "-38%", residual: 1500000, bundle: "Botella Térmica Bayup", units: "115 uds" },
-                                        
-                                                                                                                                                                                                                                                                                    { rank: 4, name: "Cuerda Paracord (Azul)", drop: "-24%", residual: 950000, bundle: "Mochila Pro-Tactical", units: "210 uds" }
-                                        
-                                                                                                                                                                                                                                                                                ].map((product, idx) => (
-                                        
-                                                                                                                                                                                                                                                                                    <div key={idx} className="flex items-center justify-between p-6 bg-amber-50/30 rounded-[2.5rem] hover:bg-white hover:shadow-xl hover:scale-[1.02] transition-all border border-transparent hover:border-amber-100 group">
-                                        
-                                                                                                                                                                                                                                                                                        <div className="flex items-center gap-8">
-                                        
-                                                                                                                                                                                                                                                                                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${
-                                        
-                                                                                                                                                                                                                                                                                                idx === 0 ? 'bg-amber-500 text-white shadow-lg' :
-                                        
-                                                                                                                                                                                                                                                                                                'bg-white text-amber-400 border border-amber-100'
-                                        
-                                                                                                                                                                                                                                                                                            }`}>
-                                        
-                                                                                                                                                                                                                                                                                                {idx + 1}
-                                        
-                                                                                                                                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                                                                                                                                            <div>
-                                        
-                                                                                                                                                                                                                                                                                                <p className="text-sm font-black text-gray-900 uppercase italic">{product.name}</p>
-                                        
-                                                                                                                                                                                                                                                                                                <div className="flex items-center gap-4 mt-1">
-                                        
-                                                                                                                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Caída Demanda: <span className="text-rose-500 font-black">{product.drop}</span></p>
-                                        
-                                                                                                                                                                                                                                                                                                    <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
-                                        
-                                                                                                                                                                                                                                                                                                    <p className="text-[10px] text-purple-600 font-black uppercase tracking-widest">Bundle Sugerido: <span className="text-gray-900">{product.bundle}</span></p>
-                                        
-                                                                                                                                                                                                                                                                                                </div>
-                                        
-                                                                                                                                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                                                                                                                                        </div>
-                                        
-                                                                                                                                                                                                                                                                                        <div className="text-right">
-                                        
-                                                                                                                                                                                                                                                                                            <p className="text-xs font-black text-amber-600">{formatCurrency(product.residual)}</p>
-                                        
-                                                                                                                                                                                                                                                                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Valor Residual en Riesgo</p>
-                                        
-                                                                                                                                                                                                                                                                                        </div>
-                                        
-                                                                                                                                                                                                                                                                                    </div>
-                                        
-                                                                                                                                                                                                                                                                                ))}
-                                        
-                                                                                                                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                                                                                                                        </>
-                                        
-                                                                                                                                                                                                                                                                    ) : selectedInventoryCategory === 'reorder' ? (
-                                        
-                                                                                                                                                                        <>
-                                        
-                                                                                                                                                                            <div className="flex items-center justify-between border-b border-gray-50 pb-6">
-                                        
-                                                                                                                                                                                <div>
-                                        
-                                                                                                                                                                                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
-                                        
-                                                                                                                                                                                        <AlertCircle size={18} className="text-rose-500" /> Ranking de Emergencia Operativa
-                                        
-                                                                                                                                                                                    </h4>
-                                        
-                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Ventas en fuga: cada minuto sin stock regala clientes al rival</p>
-                                        
-                                                                                                                                                                                </div>
-                                        
-                                                                                                                                                                                <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-3 py-1 rounded-full uppercase italic animate-pulse">Critical Stockout Risk</span>
-                                        
-                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                            <div className="grid grid-cols-1 gap-4">
-                                        
-                                                                                                                                                                                {[
-                                        
-                                                                                                                                                                                    { rank: 1, name: "PowerBank Solar 20k", lost: 1200000, churn: "Muy Alto", stock: "0 uds", time: "AGOTADO" },
-                                        
-                                                                                                                                                                                    { rank: 2, name: "Hamaca Ultra-Light", lost: 850000, churn: "Alto", stock: "2 uds", time: "4 horas" },
-                                        
-                                                                                                                                                                                    { rank: 3, name: "Navaja Multi-Tool", lost: 450000, churn: "Medio", stock: "5 uds", time: "12 horas" },
-                                        
-                                                                                                                                                                                    { rank: 4, name: "Mochila Pro-Tactical", lost: 320000, churn: "Bajo", stock: "8 uds", time: "1.5 días" }
-                                        
-                                                                                                                                                                                ].map((product, idx) => (
-                                        
-                                                                                                                                                                                    <div key={idx} className="flex items-center justify-between p-6 bg-rose-50/30 rounded-[2.5rem] hover:bg-white hover:shadow-xl hover:scale-[1.02] transition-all border border-transparent hover:border-rose-100 group">
-                                        
-                                                                                                                                                                                        <div className="flex items-center gap-8">
-                                        
-                                                                                                                                                                                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${
-                                        
-                                                                                                                                                                                                idx === 0 ? 'bg-rose-600 text-white shadow-lg shadow-rose-200 animate-pulse' :
-                                        
-                                                                                                                                                                                                idx === 1 ? 'bg-rose-500 text-white shadow-md' :
-                                        
-                                                                                                                                                                                                'bg-white text-rose-400 border border-rose-100'
-                                        
-                                                                                                                                                                                            }`}>
-                                        
-                                                                                                                                                                                                {idx + 1}
-                                        
-                                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                                            <div>
-                                        
-                                                                                                                                                                                                <p className="text-sm font-black text-gray-900 uppercase italic">{product.name}</p>
-                                        
-                                                                                                                                                                                                <div className="flex items-center gap-4 mt-1">
-                                        
-                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Stock Actual: <span className="text-rose-600 font-black">{product.stock}</span></p>
-                                        
-                                                                                                                                                                                                    <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
-                                        
-                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Tiempo para Stockout: <span className="text-gray-900">{product.time}</span></p>
-                                        
-                                                                                                                                                                                                </div>
-                                        
-                                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                                        </div>
-                                        
-                                                                                                                                                                                        <div className="text-right">
-                                        
-                                                                                                                                                                                            <p className="text-xs font-black text-rose-600">-{formatCurrency(product.lost)}/día</p>
-                                        
-                                                                                                                                                                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Venta Perdida Proyectada</p>
-                                        
-                                                                                                                                                                                        </div>
-                                        
-                                                                                                                                                                                    </div>
-                                        
-                                                                                                                                                                                ))}
-                                        
-                                                                                                                                                                            </div>
-                                        
-                                                                                                                                                                        </>
-                                        
-                                                                                                                                                                    ) : (
-                                        
-                                                                                                                            <>
-                                        
-                                                                                                                                <div className="flex items-center justify-between">
-                                        
-                                                                                                                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Desglose de Inventario Crítico</h4>
-                                        
-                                                                                                                                    <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-3 py-1 rounded-full uppercase">Acción Recomendada por Referencia</span>
-                                        
-                                                                                                                                </div>
-                                        
-                                                                                                                                <div className="grid grid-cols-1 gap-4">
-                                        
-                                                                                                                                    {[1, 2, 3].map((item) => (
-                                        
-                                                                                                                                        <div key={item} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2rem] hover:bg-gray-100 transition-all border border-transparent hover:border-gray-200 group">
-                                        
-                                                                                                                                            <div className="flex items-center gap-6">
-                                        
-                                                                                                                                                <div className="h-14 w-14 bg-white rounded-2xl shadow-inner flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">📦</div>
-                                        
-                                                                                                                                                <div>
-                                        
-                                                                                                                                                    <p className="text-sm font-black text-gray-900 uppercase tracking-tight italic">Ref: SKU-{item}42-PRO</p>
-                                        
-                                                                                                                                                    <div className="flex items-center gap-2 mt-1">
-                                        
-                                                                                                                                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                                        
-                                                                                                                                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Unidades en Riesgo: {15 * item}</p>
-                                        
-                                                                                                                                                    </div>
-                                        
-                                                                                                                                                </div>
-                                        
-                                                                                                                                            </div>
-                                        
-                                                                                                                                            <div className="flex items-center gap-4">
-                                        
-                                                                                                                                                <div className="text-right hidden sm:block">
-                                        
-                                                                                                                                                    <p className="text-[10px] font-black text-gray-900 uppercase">Rentabilidad</p>
-                                        
-                                                                                                                                                    <p className="text-[10px] font-bold text-emerald-600 uppercase">+{25 + item}%</p>
-                                        
-                                                                                                                                                </div>
-                                        
-                                                                                                                                                <button className="h-12 px-8 bg-gray-900 hover:bg-purple-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl transition-all transform group-hover:scale-105 active:scale-95">Aplicar IA</button>
-                                        
-                                                                                                                                            </div>
-                                        
-                                                                                                                                        </div>
-                                        
-                                                                                                                                    ))}
-                                        
-                                                                                                                                </div>
-                                        
-                                                                                                                            </>
-                                        
-                                                                                                                        )}
-                                        
-                                                                                                                    </div>
+                                        </div>
+                                        
+                                        {/* NUEVO CARD: Hoja de Ruta Operativa */}
+                                        <div className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-8 mt-10">
+                                            <div className="flex items-center justify-between border-b border-gray-50 pb-6">
+                                                <div>
+                                                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                                                        <Layers size={18} className="text-purple-600" /> Hoja de Ruta Operativa
+                                                    </h4>
+                                                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Secuencia de ejecución automatizada por Bayt</p>
+                                                </div>
+                                                <div className="h-10 w-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
+                                                    <ZapIcon size={20} />
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                                {selectedInventoryCategory && strategyDetails[selectedInventoryCategory].map((step, idx) => (
+                                                    <div key={idx} className="relative p-6 bg-gray-50 rounded-[2rem] border border-transparent hover:border-purple-100 transition-all group">
+                                                        <div className="absolute -top-3 -left-3 h-8 w-8 bg-gray-900 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-lg">
+                                                            {idx + 1}
+                                                        </div>
+                                                        <h5 className="text-xs font-black text-gray-900 uppercase mb-2 mt-2">{step.step}</h5>
+                                                        <p className="text-[10px] text-gray-500 font-medium leading-relaxed">{step.desc}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-8 mt-10">
+                                            {selectedInventoryCategory === 'winners' ? (
+                                                <>
+                                                    <div className="flex items-center justify-between border-b border-gray-50 pb-6">
+                                                        <div>
+                                                            <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                                                                <Trophy size={18} className="text-emerald-500" /> Ranking de Rentabilidad Crítica (80/20)
+                                                            </h4>
+                                                            <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Productos 'Ancla' que generan el 80% de tu utilidad neta</p>
+                                                        </div>
+                                                        <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-3 py-1 rounded-full uppercase italic">Core Business Assets</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 gap-4">
+                                                        {[
+                                                            { rank: 1, name: "Tabletas Purificadoras X", margin: "68%", contribution: 124500000, efficiency: "Alta", label: "Ancla Principal" },
+                                                            { rank: 2, name: "Kit Supervivencia 360", margin: "52%", contribution: 88400000, efficiency: "Máxima", label: "Multiplicador de Margen" },
+                                                            { rank: 3, name: "Filtro de Carbón Pro", margin: "45%", contribution: 72000000, efficiency: "Estable", label: "Generador de Flujo" },
+                                                            { rank: 4, name: "Botella Térmica Bayup", margin: "42%", contribution: 45000000, efficiency: "Media", label: "Activo de Retención" },
+                                                            { rank: 5, name: "Linterna Solar Pro", margin: "38%", contribution: 36000000, efficiency: "Escalable", label: "Potencial de Crecimiento" }
+                                                        ].map((product, idx) => (
+                                                            <div key={idx} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2.5rem] hover:bg-white hover:shadow-xl hover:scale-[1.02] transition-all border border-transparent hover:border-gray-100 group">
+                                                                <div className="flex items-center gap-8">
+                                                                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${ idx === 0 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200' : idx === 1 ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' : idx === 2 ? 'bg-gray-900 text-white' : 'bg-white text-gray-400 border border-gray-200'}`}>
+                                                                        {idx + 1}
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <p className="text-sm font-black text-gray-900 uppercase italic">{product.name}</p>
+                                                                            <span className="text-[7px] font-black bg-gray-900 text-white px-2 py-0.5 rounded-full uppercase tracking-tighter">{product.label}</span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-4 mt-1">
+                                                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Margen Neto: <span className="text-emerald-600">{product.margin}</span></p>
+                                                                            <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
+                                                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Eficiencia: <span className="text-gray-900">{product.efficiency}</span></p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="text-xs font-black text-gray-900">+{formatCurrency(product.contribution)}</p>
+                                                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Contribución a Utilidad</p>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            ) : selectedInventoryCategory === 'stuck' ? (
+                                                <>
+                                                    <div className="flex items-center justify-between border-b border-gray-50 pb-6">
+                                                        <div>
+                                                            <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                                                                <DollarSign size={18} className="text-rose-500" /> Ranking de Rescate de Liquidez
+                                                            </h4>
+                                                            <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Capital 'Secuestrado': libéralo para reinvertir en activos de alto ROI</p>
+                                                        </div>
+                                                        <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-3 py-1 rounded-full uppercase italic animate-pulse">High Holding Cost</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 gap-4">
+                                                        {[
+                                                            { rank: 1, name: "Fundas Silicona Pro", capital: 8500000, opportunity: 4200000, discount: "25%", aging: "92 días" },
+                                                            { rank: 2, name: "Protector Pantalla X", capital: 6200000, opportunity: 3100000, discount: "30%", aging: "120 días" },
+                                                            { rank: 3, name: "Cables USB-C Braided", capital: 4800000, opportunity: 2400000, discount: "20%", aging: "75 días" },
+                                                            { rank: 4, name: "Soporte Coche MagSafe", capital: 3200000, opportunity: 1600000, discount: "15%", aging: "60 días" },
+                                                            { rank: 5, name: "Adaptador Audio Jack", capital: 1800000, opportunity: 900000, discount: "40%", aging: "150 días" }
+                                                        ].map((product, idx) => (
+                                                            <div key={idx} className="flex items-center justify-between p-6 bg-rose-50/20 rounded-[2.5rem] hover:bg-white hover:shadow-xl hover:scale-[1.02] transition-all border border-transparent hover:border-rose-100 group">
+                                                                <div className="flex items-center gap-8">
+                                                                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${ idx === 0 ? 'bg-rose-600 text-white shadow-lg' : 'bg-white text-rose-400 border border-rose-100'}`}>
+                                                                        {idx + 1}
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-sm font-black text-gray-900 uppercase italic">{product.name}</p>
+                                                                        <div className="flex items-center gap-4 mt-1">
+                                                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Antigüedad: <span className="text-rose-600">{product.aging}</span></p>
+                                                                            <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
+                                                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Descuento Sugerido: <span className="text-gray-900 font-black">{product.discount}</span></p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="text-xs font-black text-rose-600">{formatCurrency(product.capital)}</p>
+                                                                    <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mt-0.5">Potencial de Reinversión: +{formatCurrency(product.opportunity)}</p>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            ) : selectedInventoryCategory === 'decline' ? (
+                                                <>
+                                                    <div className="flex items-center justify-between border-b border-gray-50 pb-6">
+                                                        <div>
+                                                            <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                                                                <TrendingDown size={18} className="text-amber-500" /> Ranking de Salida Estratégica (Bundles AI)
+                                                            </h4>
+                                                            <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Evacuación de inventario: recupera inversión antes de obsolescencia</p>
+                                                        </div>
+                                                        <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-3 py-1 rounded-full uppercase italic">Inventory Liquidation Phase</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 gap-4">
+                                                        {[
+                                                            { rank: 1, name: "Cargador Solar 1.0", drop: "-62%", residual: 4200000, bundle: "Tabletas Purificadoras X", units: "45 uds" },
+                                                            { rank: 2, name: "Brújula Clásica Pro", drop: "-45%", residual: 2800000, bundle: "Kit Supervivencia 360", units: "32 uds" },
+                                                            { rank: 3, name: "Cantimplora Basic", drop: "-38%", residual: 1500000, bundle: "Botella Térmica Bayup", units: "115 uds" },
+                                                            { rank: 4, name: "Cuerda Paracord (Azul)", drop: "-24%", residual: 950000, bundle: "Mochila Pro-Tactical", units: "210 uds" }
+                                                        ].map((product, idx) => (
+                                                            <div key={idx} className="flex items-center justify-between p-6 bg-amber-50/30 rounded-[2.5rem] hover:bg-white hover:shadow-xl hover:scale-[1.02] transition-all border border-transparent hover:border-amber-100 group">
+                                                                <div className="flex items-center gap-8">
+                                                                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${ idx === 0 ? 'bg-amber-500 text-white shadow-lg' : 'bg-white text-amber-400 border border-amber-100'}`}>
+                                                                        {idx + 1}
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-sm font-black text-gray-900 uppercase italic">{product.name}</p>
+                                                                        <div className="flex items-center gap-4 mt-1">
+                                                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Caída Demanda: <span className="text-rose-500 font-black">{product.drop}</span></p>
+                                                                            <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
+                                                                            <p className="text-[10px] text-purple-600 font-black uppercase tracking-widest">Bundle Sugerido: <span className="text-gray-900">{product.bundle}</span></p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="text-xs font-black text-amber-600">{formatCurrency(product.residual)}</p>
+                                                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Valor Residual en Riesgo</p>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="flex items-center justify-between border-b border-gray-50 pb-6">
+                                                        <div>
+                                                            <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                                                                <AlertCircle size={18} className="text-rose-500" /> Ranking de Emergencia Operativa
+                                                            </h4>
+                                                            <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Ventas en fuga: cada minuto sin stock regala clientes al rival</p>
+                                                        </div>
+                                                        <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-3 py-1 rounded-full uppercase italic animate-pulse">Critical Stockout Risk</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 gap-4">
+                                                        {[
+                                                            { rank: 1, name: "PowerBank Solar 20k", lost: 1200000, churn: "Muy Alto", stock: "0 uds", time: "AGOTADO" },
+                                                            { rank: 2, name: "Hamaca Ultra-Light", lost: 850000, churn: "Alto", stock: "2 uds", time: "4 horas" },
+                                                            { rank: 3, name: "Navaja Multi-Tool", lost: 450000, churn: "Medio", stock: "5 uds", time: "12 horas" },
+                                                            { rank: 4, name: "Mochila Pro-Tactical", lost: 320000, churn: "Bajo", stock: "8 uds", time: "1.5 días" }
+                                                        ].map((product, idx) => (
+                                                            <div key={idx} className="flex items-center justify-between p-6 bg-rose-50/30 rounded-[2.5rem] hover:bg-white hover:shadow-xl hover:scale-[1.02] transition-all border border-transparent hover:border-rose-100 group">
+                                                                <div className="flex items-center gap-8">
+                                                                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${ idx === 0 ? 'bg-rose-600 text-white shadow-lg shadow-rose-200 animate-pulse' : idx === 1 ? 'bg-rose-500 text-white shadow-md' : 'bg-white text-rose-400 border border-rose-100'}`}>
+                                                                        {idx + 1}
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-sm font-black text-gray-900 uppercase italic">{product.name}</p>
+                                                                        <div className="flex items-center gap-4 mt-1">
+                                                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Stock Actual: <span className="text-rose-600 font-black">{product.stock}</span></p>
+                                                                            <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
+                                                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Tiempo para Stockout: <span className="text-gray-900">{product.time}</span></p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="text-xs font-black text-rose-600">-{formatCurrency(product.lost)}/día</p>
+                                                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Venta Perdida Proyectada</p>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                     </>
                                 )}
                             </div>
@@ -1144,14 +831,236 @@ export default function WebAnalyticsPage() {
                     </div>
                 )}
 
+                {isProductHistoryModalOpen && (
+                    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-4xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col max-h-[90vh]">
+                            <div className="bg-gray-900 p-8 text-white relative flex-shrink-0 overflow-hidden">
+                                <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
+                                    <Activity size={180} />
+                                </div>
+                                <button 
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setIsProductHistoryModalOpen(false);
+                                    }} 
+                                    className="absolute top-8 right-8 h-12 w-12 bg-white/10 hover:bg-rose-500 rounded-2xl flex items-center justify-center transition-all active:scale-90 z-[100] group/close"
+                                >
+                                    <X size={24} className="text-white group-hover/close:rotate-90 transition-transform duration-300" />
+                                </button>
+                                <div className="relative z-10 flex items-center gap-6">
+                                    <div className="h-16 w-16 bg-amber-500 rounded-2xl flex items-center justify-center text-3xl shadow-xl border-2 border-white/10">
+                                        💡
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-black tracking-tight uppercase italic text-white">Tabletas Purificadoras X</h2>
+                                        <p className="text-amber-400 text-[10px] font-black uppercase mt-1 tracking-widest">Historial Estratégico de Rendimiento</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-10 space-y-8 bg-gray-50/50 overflow-y-auto custom-scrollbar flex-1">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                    {[
+                                        { label: 'Ventas (Feb Pasado)', val: '1.240 uds', icon: <Package size={14}/>, color: 'text-gray-900' },
+                                        { label: 'Ingresos Netos', val: formatCurrency(32240000), icon: <DollarSign size={14}/>, color: 'text-emerald-600' },
+                                        { label: 'Nuevos Clientes', val: '185', icon: <Users size={14}/>, color: 'text-blue-600' },
+                                        { label: 'Tasa Conversión', val: '8.4%', icon: <Target size={14}/>, color: 'text-purple-600' },
+                                    ].map((stat, i) => (
+                                        <div key={i} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                                {stat.icon} {stat.label}
+                                            </p>
+                                            <p className={`text-xl font-black ${stat.color}`}>{stat.val}</p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
+                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest border-b border-gray-50 pb-4">Argumentación de Bayt AI</h4>
+                                        <div className="space-y-4">
+                                            {[
+                                                "Estacionalidad confirmada: Febrero representa el 22% de tus ventas anuales de este producto.",
+                                                "Adquisición de clientes: Este producto tiene un 40% más de probabilidad de atraer clientes nuevos que el resto del catálogo.",
+                                                "Rentabilidad: El margen neto por unidad es del 45% tras costos logísticos.",
+                                                "Fuga evitable: Perdiste aprox. $12M el año pasado por rotura de stock en la tercera semana de febrero."
+                                            ].map((text, i) => (
+                                                <div key={i} className="flex gap-4 items-start">
+                                                    <div className="h-5 w-5 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                                                        <CheckCircle2 size={12}/>
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 font-medium leading-relaxed">{text}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-gray-900 p-10 rounded-[3rem] text-white flex flex-col justify-between relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-8 opacity-5">
+                                            <TrendingUp size={120} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[9px] font-black text-purple-400 uppercase tracking-widest mb-4">Proyección de Venta (Feb 2026)</p>
+                                            <h4 className="text-3xl font-black italic tracking-tight">+$45.800.000</h4>
+                                            <p className="text-gray-400 text-xs mt-2 font-medium">Potencial de ingresos si se mantiene el stock recomendado.</p>
+                                        </div>
+                                        <div className="pt-6 border-t border-white/10 flex items-center gap-4">
+                                            <div className="h-10 w-10 bg-purple-600 rounded-xl flex items-center justify-center text-white">
+                                                <Bot size={20} />
+                                            </div>
+                                            <p className="text-[10px] font-bold text-gray-300 italic uppercase">Recomendación: Compra prioritaria de 450 unidades.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-8 bg-white border-t border-gray-100 flex gap-4 flex-shrink-0">
+                                <button onClick={() => setIsProductHistoryModalOpen(false)} className="flex-1 py-5 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-colors">
+                                    Cerrar Análisis
+                                </button>
+                                <button onClick={() => { setIsProductHistoryModalOpen(false); setIsOrderModalOpen(true); }} className="flex-[2] py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all">
+                                    Proceder con la Orden de Compra
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {isOrderModalOpen && (
+                    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col max-h-[90vh]">
+                            <div className="bg-gray-900 p-8 text-white flex-shrink-0 relative">
+                                <button onClick={() => setIsOrderModalOpen(false)} className="absolute top-6 right-6 h-10 w-10 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-rose-500 transition-all">
+                                    <X size={20} />
+                                </button>
+                                <div className="flex items-center gap-4">
+                                    <div className="h-14 w-14 bg-amber-500 rounded-[1.5rem] flex items-center justify-center shadow-lg">
+                                        <ShoppingCart size={28} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-black tracking-tight">Orden de Compra</h2>
+                                        <p className="text-amber-400 text-[10px] font-black uppercase mt-1">Bayt Sugerencia</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-10 space-y-8 bg-gray-50/30 custom-scrollbar">
+                                <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
+                                    <div className="flex justify-between items-center pb-4 border-b border-gray-50">
+                                        <span className="text-[10px] font-black uppercase text-gray-400">Producto</span>
+                                        <span className="text-sm font-black text-gray-900">{orderForm.productName}</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-gray-400 uppercase">Unidades</label>
+                                            <input 
+                                                type="text" 
+                                                value={formatNumber(orderForm.quantity)} 
+                                                onChange={(e) => setOrderForm({ ...orderForm, quantity: unformatNumber(e.target.value) })} 
+                                                className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold shadow-inner" 
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-gray-400 uppercase">Total</label>
+                                            <div className="w-full p-4 bg-gray-100 rounded-2xl font-black text-gray-500">{formatCurrency(orderForm.quantity * orderForm.pricePerUnit)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-4 relative">
+                                    <div className="flex justify-between items-end px-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Proveedor</label>
+                                        <button onClick={() => setIsRegisterProviderOpen(true)} className="text-[9px] font-black text-purple-600 uppercase underline">+ Registrar Nuevo</button>
+                                    </div>
+                                    <button onClick={() => setIsProviderDropdownOpen(!isProviderDropdownOpen)} className="w-full p-5 bg-white border border-gray-100 rounded-3xl text-sm font-black flex justify-between items-center shadow-sm">
+                                        {orderForm.provider || 'Selecciona un aliado...'}
+                                        <ChevronDown size={16} />
+                                    </button>
+                                    <AnimatePresence>
+                                        {isProviderDropdownOpen && (
+                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-[600] max-h-48 overflow-y-auto">
+                                                {providers.map((p) => (
+                                                    <button key={p.id} onClick={() => { setOrderForm({ ...orderForm, provider: p.name }); setIsProviderDropdownOpen(false); }} className="w-full px-6 py-4 text-left hover:bg-purple-50 transition-colors flex items-center justify-between">
+                                                        <span className="text-xs font-black uppercase text-gray-700">{p.name}</span>
+                                                        {orderForm.provider === p.name && <CheckCircle2 size={14} className="text-purple-600" />}
+                                                    </button>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Instrucciones o Notas del Pedido</label>
+                                    <textarea 
+                                        value={orderForm.notes} 
+                                        onChange={(e) => setOrderForm({ ...orderForm, notes: e.target.value })}
+                                        placeholder="Ej: Por favor incluir factura comercial, tallas surtidas según inventario anterior..."
+                                        rows={3}
+                                        className="w-full p-5 bg-white border border-gray-100 rounded-[2rem] outline-none text-sm font-medium shadow-sm focus:border-purple-200 transition-all resize-none"
+                                    />
+                                </div>
+                                <div className="space-y-6 pt-6 border-t border-gray-100">
+                                    <div className="grid grid-cols-3 gap-4">
+                                        {[{ id: 'whatsapp', label: 'WhatsApp', icon: <MessageSquare size={18}/> }, { id: 'email', label: 'Email', icon: <Mail size={18}/> }, { id: 'reminder', label: 'Programar', icon: <Clock size={18}/> }].map((method) => (
+                                            <div key={method.id} onClick={() => setOrderForm({ ...orderForm, sending_method: method.id as any })} className={`p-4 rounded-3xl border-2 cursor-pointer transition-all flex flex-col items-center gap-2 ${orderForm.sending_method === method.id ? 'bg-purple-50 border-purple-600 shadow-md' : 'bg-white border-gray-100 opacity-60'}`}>
+                                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${orderForm.sending_method === method.id ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                                    {method.icon}
+                                                </div>
+                                                <span className="text-[9px] font-black uppercase">{method.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-8 bg-white border-t border-gray-100 flex gap-4">
+                                <button onClick={() => setIsOrderModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cancelar</button>
+                                <button onClick={handleConfirmOrder} disabled={isSubmittingOrder} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] active:scale-95 transition-all">{isSubmittingOrder ? 'Cargando...' : 'Confirmar Pedido'}</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {isRegisterProviderOpen && (
+                    <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden relative border border-white/20">
+                            <div className="bg-gray-900 p-8 text-white">
+                                <h2 className="text-xl font-black tracking-tight flex items-center gap-3"><Users size={20}/> Nuevo Proveedor</h2>
+                            </div>
+                            <div className="p-10 space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase ml-1">Nombre Comercial</label>
+                                    <input value={newProvider.name} onChange={(e) => setNewProvider({ ...newProvider, name: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" placeholder="Ej: Distribuidora Tech S.A." />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase ml-2">WhatsApp</label>
+                                    <input value={newProvider.phone} onChange={(e) => setNewProvider({ ...newProvider, phone: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" placeholder="+57 300 000 0000" />
+                                </div>
+                            </div>
+                            <div className="p-8 bg-gray-50 flex gap-4">
+                                <button onClick={() => setIsRegisterProviderOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cancelar</button>
+                                <button onClick={handleCreateProvider} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg transition-all">Registrar Proveedor</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
                 {selectedCoupon && (
                     <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
                         <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-5xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col max-h-[90vh]">
-                            <div className="bg-gray-900 p-8 text-white relative flex-shrink-0">
-                                <button onClick={() => setSelectedCoupon(null)} className="absolute top-8 right-8 h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center hover:bg-rose-500 transition-all z-[100]">
-                                    <X size={20} />
+                            <div className="bg-gray-900 p-8 text-white relative flex-shrink-0 overflow-hidden">
+                                <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
+                                    <Tag size={200} />
+                                </div>
+                                <button 
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setSelectedCoupon(null);
+                                    }} 
+                                    className="absolute top-8 right-8 h-12 w-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-all active:scale-90 z-[100] group/close"
+                                >
+                                    <X size={24} className="text-white group-hover/close:rotate-90 transition-transform duration-300" />
                                 </button>
-                                <div className="flex items-center gap-8 relative z-10">
+                                <div className="relative z-10 flex items-center gap-8">
                                     <div className="h-20 w-20 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-[1.8rem] flex items-center justify-center shadow-2xl border-2 border-white/10">
                                         <Tag size={36} />
                                     </div>
@@ -1168,14 +1077,18 @@ export default function WebAnalyticsPage() {
                             </div>
 
                             <div className="p-10 space-y-10 bg-gray-50/50 overflow-y-auto custom-scrollbar flex-1">
-                                
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                    {[ { label: 'Ingresos Reales', val: formatCurrency(selectedCoupon.r), icon: <DollarSign size={14}/>, color: 'text-emerald-600' }, { label: 'Uso de Cupón', val: '452 / 1.000', icon: <Activity size={14}/>, color: 'text-purple-600' }, { label: 'Ticket Promedio', val: formatCurrency(158400), icon: <ShoppingCart size={14}/>, color: 'text-blue-600' }, { label: 'Rentabilidad (ROI)', val: selectedCoupon.roi, icon: <TrendingUp size={14}/>, color: 'text-emerald-500' }, ].map((kpi, i) => (
-                                        <div key={i} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+                                    {[
+                                        { label: 'Ingresos Reales', val: formatCurrency(selectedCoupon.r), icon: <DollarSign size={14}/>, color: 'text-emerald-600' },
+                                        { label: 'Uso de Cupón', val: '452 / 1.000', icon: <Activity size={14}/>, color: 'text-purple-600' },
+                                        { label: 'Ticket Promedio', val: formatCurrency(158400), icon: <ShoppingCart size={14}/>, color: 'text-blue-600' },
+                                        { label: 'Rentabilidad (ROI)', val: selectedCoupon.roi, icon: <TrendingUp size={14}/>, color: 'text-emerald-500' },
+                                    ].map((kpi, i) => (
+                                        <div key={i} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm transition-all hover:shadow-md group">
                                             <div className="flex items-center gap-2 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">
                                                 {kpi.icon} {kpi.label}
                                             </div>
-                                            <h4 className={`text-xl font-black ${kpi.color}`}>{kpi.val}</h4>
+                                            <h4 className={`text-xl font-black ${kpi.color} group-hover:scale-105 transition-transform origin-left`}>{kpi.val}</h4>
                                         </div>
                                     ))}
                                 </div>
@@ -1186,13 +1099,16 @@ export default function WebAnalyticsPage() {
                                             <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
                                                 <Users size={16} className="text-purple-600" /> Perfil de Audiencia
                                             </h4>
+                                            <div className="flex gap-2">
+                                                <span className="text-[10px] font-black text-gray-400 uppercase bg-gray-50 px-3 py-1 rounded-lg">65% Nuevos</span>
+                                                <span className="text-[10px] font-black text-gray-400 uppercase bg-gray-50 px-3 py-1 rounded-lg">35% Fieles</span>
+                                            </div>
                                         </div>
-                                        
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                             <div className="space-y-6">
                                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] border-b border-gray-50 pb-2">Distribución de Género</p>
                                                 <div className="space-y-4">
-                                                    {[ { g: 'Mujeres', p: '68%', c: 'bg-rose-400' }, { g: 'Hombres', p: '28%', c: 'bg-blue-400' } ].map((item, i) => (
+                                                    {[ { g: 'Mujeres', p: '68%', c: 'bg-rose-400' }, { g: 'Hombres', p: '28%', c: 'bg-blue-400' }, { g: 'Otros', p: '4%', c: 'bg-gray-300' } ].map((item, i) => (
                                                         <div key={i} className="space-y-2">
                                                             <div className="flex justify-between text-[10px] font-black uppercase"><span>{item.g}</span><span>{item.p}</span></div>
                                                             <div className="h-2 w-full bg-gray-50 rounded-full overflow-hidden">
@@ -1205,7 +1121,7 @@ export default function WebAnalyticsPage() {
                                             <div className="space-y-6">
                                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] border-b border-gray-50 pb-2">Rango de Edad</p>
                                                 <div className="space-y-4">
-                                                    {[ { r: '18-24', p: '45%', c: 'bg-purple-600' }, { r: '25-34', p: '38%', c: 'bg-purple-400' } ].map((item, i) => (
+                                                    {[ { r: '18-24', p: '45%', c: 'bg-purple-600' }, { r: '25-34', p: '38%', c: 'bg-purple-400' }, { r: '35+', p: '17%', c: 'bg-purple-200' } ].map((item, i) => (
                                                         <div key={i} className="space-y-2">
                                                             <div className="flex justify-between text-[10px] font-black uppercase"><span>{item.r} años</span><span>{item.p}</span></div>
                                                             <div className="h-2 w-full bg-gray-50 rounded-full overflow-hidden">
@@ -1219,20 +1135,70 @@ export default function WebAnalyticsPage() {
                                     </div>
 
                                     <div className="bg-gray-900 p-10 rounded-[3rem] text-white space-y-8 shadow-2xl relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
-                                            <Tag size={200} />
-                                        </div>
+                                        <div className="absolute -right-4 -bottom-4 text-7xl opacity-5 font-black uppercase pointer-events-none">TECH</div>
                                         <h4 className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Tecnología & Origen</h4>
-                                        <div className="flex justify-around items-center">
-                                            <div className="text-center">
-                                                <Smartphone size={24} className="mx-auto" />
-                                                <p className="text-lg font-black mt-2">82%</p>
-                                                <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Móvil</p>
+                                        <div className="space-y-10">
+                                            <div className="flex justify-around items-center">
+                                                <div className="text-center group">
+                                                    <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto group-hover:bg-purple-600 transition-colors">
+                                                        <Smartphone size={24} />
+                                                    </div>
+                                                    <p className="text-lg font-black mt-2">82%</p>
+                                                    <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Móvil</p>
+                                                </div>
+                                                <div className="text-center group">
+                                                    <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto group-hover:bg-blue-600 transition-colors">
+                                                        <Monitor size={24} />
+                                                    </div>
+                                                    <p className="text-lg font-black mt-2">18%</p>
+                                                    <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">PC / Tablet</p>
+                                                </div>
                                             </div>
-                                            <div className="text-center">
-                                                <Monitor size={24} className="mx-auto" />
-                                                <p className="text-lg font-black mt-2">18%</p>
-                                                <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Desktop</p>
+                                            <div className="space-y-4">
+                                                <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest text-center">Canales de Llegada</p>
+                                                <div className="space-y-3">
+                                                    {[ { s: 'Instagram', p: '55%', i: <Share2 size={10}/> }, { s: 'WhatsApp', p: '25%', i: <MessageSquare size={10}/> }, { s: 'Facebook', p: '15%', i: <Globe size={10}/> }, { s: 'Otros', p: '5%', i: <Search size={10}/> } ].map((item, i) => (
+                                                        <div key={i} className="flex items-center gap-3">
+                                                            <span className="w-16 text-[9px] font-bold text-gray-400 uppercase">{item.s}</span>
+                                                            <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-emerald-400" style={{ width: item.p }} /></div>
+                                                            <span className="w-8 text-[9px] font-black text-emerald-400 text-right">{item.p}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
+                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3"><Clock size={16} className="text-amber-500" /> Picos de Actividad</h4>
+                                        <div className="flex items-end justify-between h-40 pt-4 gap-2">
+                                            {[ 20, 35, 25, 60, 95, 80, 45, 30 ].map((h, i) => (
+                                                <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                                                    <div className="w-full bg-gray-50 rounded-t-xl relative overflow-hidden flex items-end h-full">
+                                                        <motion.div initial={{ height: 0 }} animate={{ height: `${h}%` }} className={`w-full ${h > 80 ? 'bg-amber-500' : 'bg-gray-200'} group-hover:bg-purple-600 transition-colors`} />
+                                                    </div>
+                                                    <span className="text-[8px] font-bold text-gray-400 uppercase">{['08h', '10h', '12h', '14h', '18h', '20h', '22h', '00h'][i]}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm grid grid-cols-2 gap-8">
+                                        <div className="space-y-6">
+                                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2 flex items-center gap-2"><Globe size={12} className="text-blue-500"/> Geografía</h4>
+                                            <div className="space-y-4">
+                                                {[ { l: 'Bogotá', p: '42%' }, { l: 'Medellín', p: '28%' }, { l: 'Cali', p: '12%' }, { l: 'Otras', p: '18%' } ].map((item, i) => (
+                                                    <div key={i} className="flex justify-between items-center group"><span className="text-[10px] font-bold text-gray-600 uppercase">{item.l}</span><span className="text-[10px] font-black text-gray-900">{item.p}</span></div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-6">
+                                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2 flex items-center gap-2"><Calendar size={12} className="text-emerald-500"/> Días Top</h4>
+                                            <div className="space-y-4">
+                                                {[ { d: 'Sábados', p: '35%' }, { d: 'Viernes', p: '25%' }, { d: 'Domingos', p: '20%' }, { d: 'Otros', p: '20%' } ].map((item, i) => (
+                                                    <div key={i} className="flex justify-between items-center group"><span className="text-[10px] font-bold text-gray-600 uppercase">{item.d}</span><span className="text-[10px] font-black text-gray-900">{item.p}</span></div>
+                                                ))}
                                             </div>
                                         </div>
                                     </div>
@@ -1242,164 +1208,43 @@ export default function WebAnalyticsPage() {
                                     <div className="relative z-10 flex items-start gap-8">
                                         <div className="h-16 w-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-4xl shadow-xl">🤖</div>
                                         <div className="flex-1 space-y-4">
-                                            <h4 className="text-xl font-black italic tracking-tight">Análisis Estratégico Bayt</h4>
-                                            <p className="text-purple-50 text-sm font-medium leading-relaxed max-w-2xl italic">
-                                                "Esta campaña ha sido altamente efectiva para atraer a un público joven. Se recomienda extender la vigencia por 15 días más dada la alta rentabilidad detectada."
-                                            </p>
+                                            <h4 className="text-xl font-black italic tracking-tight">Análisis Estratégico de Campaña</h4>
+                                            <p className="text-purple-50 text-sm font-medium leading-relaxed max-w-2xl italic">"Esta campaña ha sido altamente efectiva para atraer a un público joven mayoritariamente femenino. El rendimiento en dispositivos móviles es superior a la media. Se recomienda extender la vigencia por 15 días más dada la alta rentabilidad detectada."</p>
                                         </div>
                                     </div>
                                 </div>
-
                             </div>
                             
                             <div className="p-8 bg-white border-t border-gray-100">
-                                <button onClick={() => setSelectedCoupon(null)} className="w-full py-5 bg-gray-900 text-white rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95">
-                                    Cerrar Análisis de Campaña
+                                <button onClick={() => setSelectedCoupon(null)} className="w-full py-5 bg-gray-900 text-white rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3">
+                                    Cerrar Análisis de Campaña <ArrowRight size={14} />
                                 </button>
                             </div>
-                        </motion.div>
-                    </div>
-                )}
-
-                {isProductHistoryModalOpen && (
-                    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-4xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col max-h-[90vh]">
-                            <div className="bg-gray-900 p-8 text-white relative flex-shrink-0">
-                                <button onClick={() => setIsProductHistoryModalOpen(false)} className="absolute top-8 right-8 h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center hover:bg-rose-500 transition-all z-10">
-                                    <X size={20} />
-                                </button>
-                                <div className="relative z-10 flex items-center gap-6">
-                                    <div className="h-16 w-16 bg-amber-500 rounded-2xl flex items-center justify-center text-3xl shadow-xl">💡</div>
-                                    <div>
-                                        <h2 className="text-2xl font-black tracking-tight uppercase italic text-white">Tabletas Purificadoras X</h2>
-                                        <p className="text-amber-400 text-[10px] font-black uppercase mt-1 tracking-widest">Historial Estratégico</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="p-10 space-y-8 bg-gray-50/50 overflow-y-auto flex-1">
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                    {[ { l: 'Ventas Feb', v: '1.240' }, { l: 'Ingresos', v: '$32.2M' }, { l: 'Nuevos', v: '185' }, { l: 'Conv', v: '8.4%' } ].map((s, i) => (
-                                        <div key={i} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm text-center">
-                                            <p className="text-[9px] font-black text-gray-400 uppercase mb-2">{s.l}</p>
-                                            <p className="text-xl font-black text-gray-900">{s.v}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="p-8 bg-white border-t border-gray-100 flex gap-4">
-                                <button onClick={() => setIsProductHistoryModalOpen(false)} className="flex-1 py-5 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase">Cerrar</button>
-                                <button onClick={() => { setIsProductHistoryModalOpen(false); setIsOrderModalOpen(true); }} className="flex-[2] py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl">Montar Orden</button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-
-                {isOrderModalOpen && (
-                    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col max-h-[90vh]">
-                            <div className="bg-gray-900 p-8 text-white flex-shrink-0 relative">
-                                <button onClick={() => setIsOrderModalOpen(false)} className="absolute top-6 right-6 h-10 w-10 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-rose-500 transition-all">
-                                    <X size={20} />
-                                </button>
-                                <div className="flex items-center gap-4">
-                                    <div className="h-14 w-14 bg-amber-500 rounded-[1.5rem] flex items-center justify-center shadow-lg"><ShoppingCart size={28} /></div>
-                                    <div><h2 className="text-2xl font-black tracking-tight">Orden de Compra</h2><p className="text-amber-400 text-[10px] font-black uppercase mt-1">Bayt Sugerencia</p></div>
-                                </div>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-10 space-y-8 bg-gray-50/30 custom-scrollbar">
-                                <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
-                                    <div className="flex justify-between items-center pb-4 border-b border-gray-50"><span className="text-[10px] font-black uppercase text-gray-400">Producto</span><span className="text-sm font-black text-gray-900">{orderForm.productName}</span></div>
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase">Unidades</label><input type="text" value={formatNumber(orderForm.quantity)} onChange={(e) => setOrderForm({ ...orderForm, quantity: unformatNumber(e.target.value) })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold" /></div>
-                                        <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase">Total</label><div className="w-full p-4 bg-gray-100 rounded-2xl font-black text-gray-500">{formatCurrency(orderForm.quantity * orderForm.pricePerUnit)}</div></div>
-                                    </div>
-                                </div>
-                                <div className="space-y-4 relative">
-                                    <div className="flex justify-between items-end px-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Proveedor</label><button onClick={() => setIsRegisterProviderOpen(true)} className="text-[9px] font-black text-purple-600 uppercase underline">+ Nuevo</button></div>
-                                    <button onClick={() => setIsProviderDropdownOpen(!isProviderDropdownOpen)} className="w-full p-5 bg-white border border-gray-100 rounded-3xl text-sm font-black flex justify-between items-center shadow-sm">{orderForm.provider || 'Selecciona...'}<ChevronDown size={16} /></button>
-                                    {isProviderDropdownOpen && (
-                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-[600] max-h-48 overflow-y-auto">
-                                            {providers.map((p) => (
-                                                <button key={p.id} onClick={() => { setOrderForm({ ...orderForm, provider: p.name }); setIsProviderDropdownOpen(false); }} className="w-full px-6 py-4 text-left hover:bg-purple-50 flex items-center justify-between"><span className="text-xs font-black uppercase">{p.name}</span></button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="p-8 bg-white border-t border-gray-100 flex gap-4">
-                                <button onClick={() => setIsOrderModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cancelar</button>
-                                <button onClick={handleConfirmOrder} disabled={isSubmittingOrder} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl transition-all">{isSubmittingOrder ? 'Cargando...' : 'Confirmar Pedido'}</button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-
-                {isRegisterProviderOpen && (
-                    <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden relative border border-white/20">
-                            <div className="bg-gray-900 p-8 text-white"><h2 className="text-xl font-black tracking-tight">Nuevo Proveedor</h2></div>
-                            <div className="p-10 space-y-6">
-                                <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase">Nombre Comercial</label><input value={newProvider.name} onChange={(e) => setNewProvider({ ...newProvider, name: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" /></div>
-                            </div>
-                            <div className="p-8 bg-gray-50 flex gap-4"><button onClick={() => setIsRegisterProviderOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cancelar</button><button onClick={handleCreateProvider} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg transition-all">Registrar</button></div>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
 
-            {/* Banner Final Predictivo - Electric Cyber-Clean Card */}
-            <div className="max-w-6xl mx-auto mt-24 relative overflow-hidden rounded-[4rem] group shadow-[0_40px_80px_-15px_rgba(0,242,255,0.15)]">
-                
-                {/* Fondo Claro con Destellos Cian Eléctrico */}
+            {/* Banner Final Predictivo */}
+            <div className="max-w-6xl mx-auto mt-24 relative overflow-hidden rounded-[4rem] group shadow-2xl">
                 <div className="absolute inset-0 bg-white overflow-hidden">
                     <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[140%] bg-[radial-gradient(circle_at_center,_rgba(0,242,255,0.08)_0%,_transparent_60%)] animate-pulse"></div>
-                    <div className="absolute bottom-[-20%] left-[-10%] w-[70%] h-[140%] bg-[radial-gradient(circle_at_center,_rgba(147,51,234,0.05)_0%,_transparent_60%)] animate-pulse" style={{ animationDelay: '2s' }}></div>
-                    {/* Sutil textura de rejilla tecnológica */}
                     <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(#00F2FF 1px, transparent 1px), linear-gradient(90deg, #00F2FF 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
                 </div>
-
                 <div className="relative p-12 md:p-16 flex flex-col lg:flex-row items-center gap-12 border border-[#00F2FF]/20">
-                    
-                    {/* Icono de Bayt Pro con Aura Eléctrica */}
                     <div className="shrink-0 relative">
-                        <div className="h-28 w-28 bg-gray-900 rounded-[2.5rem] flex items-center justify-center shadow-2xl relative z-10 border-2 border-[#00F2FF]/50">
-                            <Bot size={56} className="text-[#00F2FF] drop-shadow-[0_0_15px_rgba(0,242,255,0.8)]" />
-                        </div>
-                        {/* Resplandor Cian */}
+                        <div className="h-28 w-28 bg-gray-900 rounded-[2.5rem] flex items-center justify-center shadow-2xl relative z-10 border-2 border-[#00F2FF]/50"><Bot size={56} className="text-[#00F2FF]" /></div>
                         <div className="absolute inset-0 bg-[#00F2FF]/30 rounded-[2.5rem] blur-3xl animate-pulse"></div>
                     </div>
-
-                    {/* Mensaje de Impacto con Tipografía Original 4xl */}
                     <div className="flex-1 space-y-6 text-center lg:text-left relative z-10">
-                        <div className="flex items-center gap-4 justify-center lg:justify-start">
-                            <span className="px-5 py-1.5 bg-[#00F2FF]/10 text-[#00E5F2] rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-[#00F2FF]/20">
-                                Inteligencia Predictiva
-                            </span>
-                            <div className="h-1 w-1 bg-gray-200 rounded-full"></div>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic font-mono">Status: Optimizando</span>
-                        </div>
-                        
-                        <h3 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight max-w-4xl">
-                            "Tu conversión móvil <span className="text-[#00B8C4] italic">ha bajado un 12%</span> porque la página de pago tarda <span className="text-purple-600 italic">3 segundos más</span> en cargar para usuarios de Android."
-                        </h3>
+                        <span className="px-5 py-1.5 bg-[#00F2FF]/10 text-[#00E5F2] rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-[#00F2FF]/20">Inteligencia Predictiva</span>
+                        <h3 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight italic">"Tu conversión móvil ha bajado un 12% porque la página de pago tarda 3 segundos más en cargar para usuarios de Android."</h3>
                     </div>
-
-                    {/* Bloque de Acción e Impacto Económico */}
                     <div className="shrink-0 flex items-center lg:items-end gap-8 relative z-10 lg:pl-12 lg:border-l lg:border-gray-100">
-                        <div className="text-center lg:text-right">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pérdida Mensual Evitable</p>
-                            <p className="text-4xl font-black text-gray-900 flex items-center gap-2">
-                                <span className="text-[#00F2FF]">$</span>2.450.000
-                            </p>
-                        </div>
-                        <button className="px-12 py-5 bg-gray-900 hover:bg-[#00F2FF] hover:text-gray-900 text-white rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl transition-all active:scale-95 flex items-center gap-3 group/btn">
-                            RESCATAR CAPITAL <ArrowRight size={20} className="group-hover/btn:translate-x-2 transition-transform" />
-                        </button>
+                        <div className="text-center lg:text-right"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pérdida Mensual Evitable</p><p className="text-4xl font-black text-gray-900 flex items-center gap-2"><span className="text-[#00F2FF]">$</span>2.450.000</p></div>
+                        <button className="px-12 py-5 bg-gray-900 hover:bg-[#00F2FF] hover:text-gray-900 text-white rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl transition-all active:scale-95 flex items-center gap-3">RESCATAR CAPITAL <ArrowRight size={20} /></button>
                     </div>
                 </div>
-                
-                {/* Línea de energía cian en el borde inferior */}
-                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#00F2FF] to-transparent opacity-50"></div>
             </div>
         </div>
     );
