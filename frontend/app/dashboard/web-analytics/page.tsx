@@ -242,21 +242,85 @@ export default function WebAnalyticsPage() {
         <div className="space-y-10 animate-in fade-in duration-500">
             <div className="bg-white p-16 rounded-[4rem] border border-gray-100 shadow-sm max-w-5xl mx-auto relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-600 via-indigo-500 to-emerald-500" />
-                <h3 className="text-center text-4xl font-black text-gray-900 tracking-tight italic mb-20">Embudo de Conversión Real</h3>
+                
+                <div className="text-center mb-20 space-y-2">
+                    <h3 className="text-4xl font-black text-gray-900 tracking-tight italic uppercase">Embudo de Conversión Real</h3>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em]">Auditoría Quirúrgica de Ventas</p>
+                </div>
+
                 <div className="space-y-4">
-                    {[ { step: 'Sesiones Totales', val: 12450, pct: 100, loss: 0 }, { step: 'Vieron Producto', val: 8420, pct: 67, loss: 33 }, { step: 'Agregaron Carrito', val: 2150, pct: 17, loss: 74 }, { step: 'Compra Finalizada', val: 524, pct: 4.2, loss: 37 } ].map((item, i) => (
+                    {[ 
+                        { step: 'Sesiones Totales', sub: 'Tráfico global calificado', val: 12450, pct: 100, loss: 0, money: 0, insight: 'Base de entrada mensual.' }, 
+                        { step: 'Visualización de Producto', sub: 'Interés real en el catálogo', val: 8420, pct: 67, loss: 33, money: 14200000, insight: 'Mejorar calidad de fotos.' }, 
+                        { step: 'Agregaron al Carrito', sub: 'Intención de compra detectada', val: 2150, pct: 17, loss: 74, money: 28500000, insight: 'Simplificar opciones de talla.' }, 
+                        { step: 'Compra Finalizada', sub: 'Conversión y cierre de caja', val: 524, pct: 4.2, loss: 37, money: 12400000, insight: 'Fuga por costos de envío.' } 
+                    ].map((item, i) => (
                         <div key={i} className="group relative">
                             <div className="flex items-center gap-12 py-10 px-10 hover:bg-gray-50 transition-all rounded-[3rem] border border-transparent hover:border-gray-100">
-                                <div className="w-16 h-16 bg-white border border-gray-50 rounded-[1.5rem] flex items-center justify-center text-purple-600 font-black shadow-sm">{i+1}</div>
-                                <div className="flex-1 space-y-4">
-                                    <div className="flex justify-between font-black uppercase text-[10px] text-gray-400"><span>{item.step}</span><span>{item.val.toLocaleString()} <span className="text-gray-300 ml-2">{item.pct}%</span></span></div>
-                                    <div className="h-5 bg-gray-50 rounded-full overflow-hidden shadow-inner"><motion.div initial={{ width: 0 }} animate={{ width: `${item.pct}%` }} className={`h-full ${i === 3 ? 'bg-emerald-500' : 'bg-purple-600'} rounded-full`} /></div>
+                                <div className="w-16 h-16 bg-white border border-gray-50 rounded-[1.5rem] flex items-center justify-center text-purple-600 font-black shadow-sm group-hover:scale-110 transition-transform">
+                                    {i+1}
                                 </div>
-                                <div className="w-32 text-right">{item.loss > 0 ? <p className="text-sm font-black text-rose-500">-{item.loss}% Fuga</p> : <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-lg">Base</p>}</div>
+                                
+                                <div className="flex-1 space-y-4">
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="font-black uppercase text-xs text-gray-900">{item.step}</span>
+                                                <span className="text-[8px] font-black text-purple-500 bg-purple-50 px-2 py-0.5 rounded-full uppercase italic">Bayt Insight: {item.insight}</span>
+                                            </div>
+                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">{item.sub}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-sm font-black text-gray-900">{item.val.toLocaleString()}</span>
+                                            <span className="text-[10px] font-black text-gray-300 ml-2 italic">{item.pct}%</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="h-4 bg-gray-50 rounded-full overflow-hidden shadow-inner p-0.5 border border-gray-100">
+                                        <motion.div 
+                                            initial={{ width: 0 }} 
+                                            animate={{ width: `${item.pct}%` }} 
+                                            className={`h-full ${i === 3 ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-purple-600'} rounded-full`} 
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="w-40 text-right">
+                                    {item.loss > 0 ? (
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-black text-rose-500">-{item.loss}% Fuga</p>
+                                            <p className="text-[9px] font-bold text-rose-300 uppercase italic">-{formatCurrency(item.money)} en riesgo</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-1">
+                                            <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-lg inline-block">Punto de Origen</p>
+                                            <p className="text-[8px] font-bold text-gray-300 uppercase block">100% Retención</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            {i < 3 && <div className="flex justify-center -my-4 relative z-10"><div className="bg-white p-2.5 rounded-full border border-gray-100 text-gray-300"><ChevronDown size={20}/></div></div>}
+                            {i < 3 && (
+                                <div className="flex justify-center -my-4 relative z-10">
+                                    <div className="bg-white p-2.5 rounded-full border border-gray-100 text-gray-300 shadow-sm">
+                                        <ChevronDown size={20} className="animate-bounce" />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ))}
+                </div>
+
+                <div className="mt-16 pt-10 border-t border-gray-50 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                            <Target size={20} />
+                        </div>
+                        <div>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Conversión Final</p>
+                            <p className="text-xl font-black text-gray-900 italic">4.2% <span className="text-xs text-emerald-500 font-bold ml-1">Excellent Performance</span></p>
+                        </div>
+                    </div>
+                    <button onClick={() => setActiveTab('marketing')} className="px-8 py-4 bg-gray-900 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-purple-600 transition-all shadow-xl">Activar Optimización AI</button>
                 </div>
             </div>
         </div>
@@ -264,32 +328,269 @@ export default function WebAnalyticsPage() {
 
     const renderAudience = () => (
         <div className="space-y-10 animate-in fade-in duration-500">
+            {/* Header de Fidelización & Composición */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="bg-white p-12 rounded-[3.5rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-10 italic">Fidelización</h4>
+                <div className="bg-white p-12 rounded-[3.5rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-600 to-indigo-600"></div>
+                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-10 italic">Composición de Audiencia</h4>
                     <div className="relative h-64 w-64 flex items-center justify-center">
-                        <div className="h-56 w-56 rounded-full border-[20px] border-purple-600 flex flex-col items-center justify-center bg-white shadow-2xl relative z-10"><p className="text-5xl font-black text-gray-900">24%</p><p className="text-[10px] font-black text-gray-400 uppercase mt-1">Recurrentes</p></div>
-                        <div className="absolute -top-4 -right-4 px-6 py-3 bg-gray-900 text-white rounded-2xl transform rotate-12 shadow-2xl"><p className="text-sm font-black italic">76% Nuevos</p></div>
+                        <div className="h-56 w-56 rounded-full border-[20px] border-[#004953] flex flex-col items-center justify-center bg-white shadow-[0_0_40px_rgba(0,73,83,0.1)] relative z-10 group-hover:scale-105 transition-transform duration-500">
+                            <p className="text-5xl font-black text-gray-900">35%</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase mt-1">Clientes Fieles</p>
+                        </div>
+                        <div className="absolute -top-4 -right-4 px-6 py-3 bg-emerald-500 text-white rounded-2xl transform rotate-12 shadow-2xl z-20">
+                            <p className="text-sm font-black italic">65% Nuevos</p>
+                        </div>
                     </div>
-                    <p className="text-[10px] text-gray-400 font-medium mt-10 leading-relaxed">"Tu LTV promedio es de <span className="text-purple-600 font-bold">$458.000</span>. Los clientes fieles compran 1.2 veces al año."</p>
+                    <p className="text-[10px] text-gray-400 font-medium mt-10 leading-relaxed max-w-[200px]">
+                        "Tu tasa de retención ha subido un <span className="text-emerald-500 font-bold">4.2%</span> este mes. Los clientes fieles generan el 58% de tus ingresos."
+                    </p>
                 </div>
 
                 <div className="lg:col-span-2 bg-white p-12 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-12">
-                    <div><h3 className="text-2xl font-black text-gray-900 tracking-tight italic">Edad & Conversión</h3><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Diferencia entre quién te ve y quién te paga.</p></div>
-                    <div className="space-y-10">
-                        {[ { range: '18 - 24 años', views: '45%', sales: '12%', color: 'bg-purple-400', tip: 'Mucho tráfico, baja conversión.' }, { range: '25 - 34 años', views: '38%', sales: '65%', color: 'bg-emerald-500', tip: 'Tu público objetivo real. Mayor poder de compra.' }, { range: '35 - 44 años', views: '12%', sales: '18%', color: 'bg-blue-500', tip: 'Clientes fieles con compras recurrentes.' }, ].map((age, i) => (
-                            <div key={i} className="grid grid-cols-1 md:grid-cols-4 items-center gap-6 group">
-                                <span className="text-sm font-black text-gray-800 uppercase tracking-tighter">{age.range}</span>
-                                <div className="md:col-span-2 space-y-2">
-                                    <div className="flex justify-between text-[9px] font-black uppercase text-gray-400"><span>Visitas ({age.views})</span><span>Ventas Reales ({age.sales})</span></div>
-                                    <div className="h-2 w-full bg-gray-50 rounded-full flex overflow-hidden shadow-inner">
-                                        <div className="bg-gray-200 h-full border-r border-white" style={{ width: age.views }} />
-                                        <div className={`${age.color} h-full`} style={{ width: age.sales }} />
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">Demografía Estratégica</h3>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Perfil biopsicosocial del comprador Bayup</p>
+                        </div>
+                        <div className="h-12 w-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 shadow-inner">
+                            <Users size={24} />
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+                        {/* Distribución de Género */}
+                        <div className="space-y-8">
+                            <div className="flex items-center gap-3 border-b border-gray-50 pb-4">
+                                <Layers size={14} className="text-purple-600" />
+                                <p className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Distribución de Género</p>
+                            </div>
+                            <div className="space-y-6">
+                                {[ 
+                                    { g: 'Mujeres', p: '68%', c: 'bg-rose-400' }, 
+                                    { g: 'Hombres', p: '28%', c: 'bg-blue-400' },
+                                    { g: 'Otros', p: '4%', c: 'bg-gray-300' }
+                                ].map((item, i) => (
+                                    <div key={i} className="space-y-2 group">
+                                        <div className="flex justify-between text-[10px] font-black uppercase">
+                                            <span className="text-gray-500 group-hover:text-gray-900 transition-colors">{item.g}</span>
+                                            <span className="text-gray-900">{item.p}</span>
+                                        </div>
+                                        <div className="h-2 w-full bg-gray-50 rounded-full overflow-hidden shadow-inner">
+                                            <motion.div initial={{ width: 0 }} animate={{ width: item.p }} className={`h-full ${item.c} rounded-full`} />
+                                        </div>
                                     </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Rango de Edad */}
+                        <div className="space-y-8">
+                            <div className="flex items-center gap-3 border-b border-gray-50 pb-4">
+                                <Timer size={14} className="text-purple-600" />
+                                <p className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Rango de Edad</p>
+                            </div>
+                            <div className="space-y-6">
+                                {[ 
+                                    { r: '18 - 24 años', p: '45%', c: 'bg-purple-600' }, 
+                                    { r: '25 - 34 años', p: '38%', c: 'bg-purple-400' },
+                                    { r: '35+ años', p: '17%', c: 'bg-purple-200' }
+                                ].map((item, i) => (
+                                    <div key={i} className="space-y-2 group">
+                                        <div className="flex justify-between text-[10px] font-black uppercase">
+                                            <span className="text-gray-500 group-hover:text-gray-900 transition-colors">{item.r}</span>
+                                            <span className="text-gray-900">{item.p}</span>
+                                        </div>
+                                        <div className="h-2 w-full bg-gray-50 rounded-full overflow-hidden shadow-inner">
+                                            <motion.div initial={{ width: 0 }} animate={{ width: item.p }} className={`h-full ${item.c} rounded-full`} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* NUEVA FILA: Edad & Conversión Comparativa */}
+            <div className="bg-white p-16 rounded-[4rem] border border-gray-100 shadow-sm relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-blue-500"></div>
+                <div className="flex justify-between items-start mb-16">
+                    <div>
+                        <h3 className="text-3xl font-black text-gray-900 tracking-tighter uppercase italic">Edad & Conversión Real</h3>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-2">Diferencia crítica entre quién te ve y quién te paga</p>
+                    </div>
+                    <div className="flex gap-6">
+                        <div className="flex items-center gap-2">
+                            <div className="h-3 w-3 bg-gray-200 rounded-full"></div>
+                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tráfico (Visitas)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="h-3 w-3 bg-purple-600 rounded-full shadow-[0_0_10px_rgba(147,51,234,0.5)]"></div>
+                            <span className="text-[9px] font-black text-purple-600 uppercase tracking-widest">Conversión (Ventas)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-12">
+                    {[
+                        { range: '18 - 24 años', views: '45%', sales: '12%', color: 'bg-purple-600', tip: 'Mucho tráfico curioso, pero conversión por debajo de la media.' },
+                        { range: '25 - 34 años', views: '38%', sales: '65%', color: 'bg-emerald-500', tip: 'Tu motor financiero real. Máxima eficiencia de compra.' },
+                        { range: '35 - 44 años', views: '12%', sales: '18%', color: 'bg-blue-500', tip: 'Público maduro con alto ticket promedio y lealtad de marca.' },
+                        { range: '45+ años', views: '5%', sales: '5%', color: 'bg-amber-500', tip: 'Nicho estable con comportamiento de compra predecible.' }
+                    ].map((age, i) => (
+                        <div key={i} className="grid grid-cols-1 md:grid-cols-4 items-center gap-10 group/row">
+                            <div className="space-y-1">
+                                <span className="text-lg font-black text-gray-900 italic uppercase tracking-tighter">{age.range}</span>
+                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Segmento {i+1}</p>
+                            </div>
+                            <div className="md:col-span-2 space-y-4">
+                                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                                    <span className="text-gray-400">Visitas ({age.views})</span>
+                                    <span className={i === 1 ? 'text-emerald-500' : 'text-purple-600'}>Ventas Reales ({age.sales})</span>
                                 </div>
-                                <p className="text-[9px] font-medium text-gray-400 italic leading-tight group-hover:text-purple-600 transition-colors">{age.tip}</p>
+                                <div className="h-3 w-full bg-gray-50 rounded-full flex overflow-hidden shadow-inner p-0.5 border border-gray-100">
+                                    <div className="bg-gray-200 h-full rounded-l-full border-r border-white" style={{ width: age.views }} />
+                                    <motion.div 
+                                        initial={{ width: 0 }} 
+                                        animate={{ width: age.sales }} 
+                                        className={`${age.color} h-full rounded-r-full shadow-lg relative`} 
+                                    />
+                                </div>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded-2xl border border-transparent group-hover/row:border-gray-100 transition-all">
+                                <p className="text-[9px] font-bold text-gray-500 italic leading-tight leading-relaxed">{age.tip}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Fila 2: Tecnología & Canales */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Tech & Origin */}
+                <div className="bg-gray-900 p-12 rounded-[3.5rem] text-white space-y-10 shadow-2xl relative overflow-hidden group">
+                    <div className="absolute -right-10 -bottom-10 text-[15rem] font-black text-white/5 pointer-events-none uppercase">TECH</div>
+                    <div className="flex justify-between items-center relative z-10">
+                        <h4 className="text-sm font-black uppercase tracking-[0.2em] italic text-purple-400">Tecnología & Origen</h4>
+                        <ZapIcon size={20} className="text-purple-400" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-12 relative z-10">
+                        <div className="text-center p-8 bg-white/5 rounded-[2.5rem] border border-white/10 hover:bg-white/10 transition-colors">
+                            <Smartphone size={40} className="mx-auto text-emerald-400 mb-4" />
+                            <p className="text-4xl font-black italic">82%</p>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-2">Tráfico Móvil</p>
+                        </div>
+                        <div className="text-center p-8 bg-white/5 rounded-[2.5rem] border border-white/10 hover:bg-white/10 transition-colors">
+                            <Monitor size={40} className="mx-auto text-blue-400 mb-4" />
+                            <p className="text-4xl font-black italic">18%</p>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-2">PC / Tablet</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Canales de Adquisición */}
+                <div className="bg-white p-12 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-10">
+                    <div className="flex justify-between items-center">
+                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                            <Share2 size={18} className="text-purple-600" /> Canales de Adquisición
+                        </h4>
+                        <span className="px-4 py-1.5 bg-gray-50 rounded-full text-[9px] font-black text-gray-400 uppercase tracking-widest border border-gray-100">Live Source Radar</span>
+                    </div>
+                    <div className="space-y-6">
+                        {[ 
+                            { s: 'Instagram', p: '55%', i: <Smartphone size={14}/>, color: 'bg-gradient-to-r from-purple-600 to-rose-500' },
+                            { s: 'WhatsApp', p: '25%', i: <MessageSquare size={14}/>, color: 'bg-emerald-500' },
+                            { s: 'Facebook', p: '15%', i: <Users size={14}/>, color: 'bg-blue-600' },
+                            { s: 'Otros', p: '5%', i: <Search size={14}/>, color: 'bg-gray-400' } 
+                        ].map((item, i) => (
+                            <div key={i} className="flex items-center gap-6 group">
+                                <span className="w-20 text-[10px] font-black text-gray-400 uppercase group-hover:text-gray-900 transition-colors">{item.s}</span>
+                                <div className="flex-1 h-3 bg-gray-50 rounded-full overflow-hidden shadow-inner p-0.5">
+                                    <motion.div initial={{ width: 0 }} animate={{ width: item.p }} className={`h-full ${item.color} rounded-full`} />
+                                </div>
+                                <span className="w-12 text-[11px] font-black text-gray-900 text-right">{item.p}</span>
                             </div>
                         ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Fila 3: Picos de Actividad & Geografía */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Picos Horarios */}
+                <div className="bg-white p-12 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-10">
+                    <div className="flex justify-between items-center">
+                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                            <Clock size={18} className="text-amber-500" /> Picos de Actividad
+                        </h4>
+                        <p className="text-[9px] font-black text-amber-500 bg-amber-50 px-3 py-1 rounded-full uppercase tracking-widest">Hora Pico: 20:00h</p>
+                    </div>
+                    <div className="flex items-end justify-between h-48 pt-4 gap-3">
+                        {[ 20, 35, 25, 60, 95, 80, 45, 30 ].map((h, i) => (
+                            <div key={i} className="flex-1 flex flex-col items-center gap-3 group">
+                                <div className="w-full bg-gray-50 rounded-t-2xl relative overflow-hidden flex items-end h-full shadow-inner group-hover:bg-gray-100 transition-all">
+                                    <motion.div 
+                                        initial={{ height: 0 }} 
+                                        animate={{ height: `${h}%` }} 
+                                        className={`w-full ${h > 80 ? 'bg-gray-900' : 'bg-purple-500/40'} group-hover:bg-purple-600 transition-colors rounded-t-xl`}
+                                    />
+                                </div>
+                                <span className="text-[9px] font-black text-gray-400 uppercase font-mono">
+                                    {['08h', '10h', '12h', '14h', '18h', '20h', '22h', '00h'][i]}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                    <p className="text-[10px] text-gray-400 font-medium italic text-center">"La conversión máxima ocurre a las <span className="font-bold text-gray-900">8:45 PM</span> los días de semana."</p>
+                </div>
+
+                {/* Geografía & Días Top */}
+                <div className="bg-white p-12 rounded-[3.5rem] border border-gray-100 shadow-sm grid grid-cols-2 gap-12 relative overflow-hidden">
+                    <div className="space-y-8">
+                        <h4 className="text-[11px] font-black text-gray-900 uppercase tracking-widest border-b border-gray-50 pb-4 flex items-center gap-2">
+                            <Globe size={14} className="text-blue-500"/> Geografía
+                        </h4>
+                        <div className="space-y-5">
+                            {[ { l: 'Bogotá', p: '42%' }, { l: 'Medellín', p: '28%' }, { l: 'Cali', p: '12%' }, { l: 'Otras', p: '18%' } ].map((item, i) => (
+                                <div key={i} className="flex justify-between items-center group">
+                                    <span className="text-[10px] font-black text-gray-400 uppercase group-hover:text-gray-900 transition-colors">{item.l}</span>
+                                    <span className="text-[11px] font-black text-gray-900 bg-gray-50 px-2 py-0.5 rounded-lg">{item.p}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="space-y-8">
+                        <h4 className="text-[11px] font-black text-gray-900 uppercase tracking-widest border-b border-gray-50 pb-4 flex items-center gap-2">
+                            <Calendar size={14} className="text-emerald-500"/> Días Top
+                        </h4>
+                        <div className="space-y-5">
+                            {[ { d: 'Sábados', p: '35%' }, { d: 'Viernes', p: '25%' }, { d: 'Domingos', p: '20%' }, { d: 'Otros', p: '20%' } ].map((item, i) => (
+                                <div key={i} className="flex justify-between items-center group">
+                                    <span className="text-[10px] font-black text-gray-400 uppercase group-hover:text-gray-900 transition-colors">{item.d}</span>
+                                    <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">{item.p}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Insight Final de Bayt */}
+            <div className="bg-gradient-to-r from-gray-900 to-indigo-950 p-12 rounded-[4rem] text-white shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                    <Bot size={180} />
+                </div>
+                <div className="relative z-10 flex items-start gap-10">
+                    <div className="h-20 w-20 bg-white/10 backdrop-blur-xl rounded-[2rem] flex items-center justify-center text-5xl shadow-2xl border border-white/20 animate-pulse">🤖</div>
+                    <div className="flex-1 space-y-6">
+                        <div>
+                            <h4 className="text-2xl font-black italic tracking-tight uppercase">Auditoría Demográfica Global</h4>
+                            <p className="text-purple-400 text-[10px] font-black uppercase mt-1 tracking-[0.3em]">Bayt AI Strategic Analysis</p>
+                        </div>
+                        <p className="text-gray-300 text-lg font-medium leading-relaxed max-w-4xl italic">
+                            "Tu audiencia dominante es <span className="text-white font-black underline italic">femenina (68%)</span>, joven (<span className="text-white font-black italic">18-24 años</span>) y altamente móvil. El <span className="text-emerald-400 font-black">82% de tus ventas</span> se cierran desde un smartphone, principalmente los sábados a las 8:45 PM. Estrategia recomendada: Reforzar pauta en Instagram Ads con formato vertical 'mobile-first' entre las 18h y las 22h para maximizar el ROI global."
+                        </p>
                     </div>
                 </div>
             </div>
