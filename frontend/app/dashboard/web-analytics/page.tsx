@@ -25,8 +25,38 @@ export default function WebAnalyticsPage() {
     const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
     const [isProductHistoryModalOpen, setIsProductHistoryModalOpen] = useState(false);
     const [selectedCoupon, setSelectedCoupon] = useState<any>(null);
+    const [selectedInventoryCategory, setSelectedInventoryCategory] = useState<'winners' | 'stuck' | 'decline' | 'reorder' | null>(null);
     const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+    const [isExecutingStrategy, setIsExecutingStrategy] = useState(false);
+
+    const handleExecuteStrategicPlan = async () => {
+        if (!selectedInventoryCategory) return;
+        setIsExecutingStrategy(true);
+        showToast(`Bayt: Iniciando despliegue estratégico para ${selectedInventoryCategory}...`, "info");
+        
+        await new Promise(resolve => setTimeout(resolve, 2500));
+        
+        let message = "";
+        switch(selectedInventoryCategory) {
+            case 'winners': 
+                message = "Estrategia desplegada: Precios dinámicos ajustados (+2%) y presupuesto de Ads reasignado a estos SKUs.";
+                break;
+            case 'stuck':
+                message = "Estrategia desplegada: Campaña de liquidación enviada a 150 clientes inactivos vía WhatsApp.";
+                break;
+            case 'decline':
+                message = "Estrategia desplegada: Bundles 'Smart-Mix' creados automáticamente en la tienda online.";
+                break;
+            case 'reorder':
+                message = "Estrategia desplegada: Borrador de Orden de Compra generado y enviado al proveedor.";
+                break;
+        }
+
+        showToast(message, "success");
+        setIsExecutingStrategy(false);
+        setSelectedInventoryCategory(null);
+    };
 
     // Form States
     const [orderForm, setOrderForm] = useState({ productName: "Tabletas Purificadoras X", quantity: 450, provider: "", pricePerUnit: 26000, sending_method: 'whatsapp', scheduled_at: '', notes: '' });
@@ -56,7 +86,7 @@ export default function WebAnalyticsPage() {
             const res = await fetch('http://localhost:8000/purchase-orders', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ product_name: orderForm.productName, quantity: orderForm.quantity, total_amount: orderForm.quantity * orderForm.pricePerUnit, provider_name: orderForm.provider, sending_method: orderForm.sending_method, status: orderForm.sending_method === 'reminder' ? 'scheduled' : 'sent' })
+                body: JSON.stringify({ product_name: orderForm.productName, quantity: orderForm.quantity, total_amount: orderForm.quantity * orderForm.pricePerUnit, provider_name: orderForm.provider, sending_method: orderForm.sending_method, status: orderForm.sending_method === 'reminder' ? 'scheduled' : 'sent', notes: orderForm.notes })
             });
             if (res.ok) { showToast("Pedido procesado con éxito 🚀", "success"); setIsOrderModalOpen(false); }
         } catch (e) { showToast("Error de conexión", "error"); }
@@ -220,6 +250,7 @@ export default function WebAnalyticsPage() {
 
     const renderInventory = () => (
         <div className="space-y-10 animate-in fade-in duration-500">
+            {/* Banner Principal de Alerta */}
             <div className="bg-amber-500 p-16 rounded-[4rem] text-white relative overflow-hidden flex flex-col md:flex-row items-center gap-16 shadow-2xl">
                 <div className="h-32 w-32 bg-white/20 rounded-[2.5rem] flex items-center justify-center text-6xl shadow-2xl relative z-10 animate-bounce border border-white/30 backdrop-blur-md">💡</div>
                 <div className="flex-1 relative z-10 space-y-6">
@@ -244,23 +275,150 @@ export default function WebAnalyticsPage() {
                 </div>
                 <div className="absolute -right-20 -bottom-20 text-[25rem] font-black opacity-[0.08] rotate-12 pointer-events-none uppercase">STOCK</div>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white p-12 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-10">
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><Trophy size={14} className="text-amber-500"/> Top Ventas (30d)</h4>
-                    <div className="space-y-6">
-                        {[ { name: 'iPhone 15 Pro Max', sales: 142, rev: 658000000, img: '📱', status: 'Saludable' }, { name: 'AirPods Pro 2', sales: 89, rev: 124500000, img: '🎧', status: 'Saludable' }, { name: 'Cargador 20W USB-C', sales: 45, rev: 45000000, img: '⚡', status: 'Bajo (8 uds)' } ].map((prod, i) => (
-                            <div key={i} className="flex items-center justify-between group hover:bg-gray-50/50 p-4 rounded-3xl transition-all">
-                                <div className="flex items-center gap-6"><div className="h-14 w-14 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">{prod.img}</div><div><p className="text-sm font-black text-gray-900">{prod.name}</p><p className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{prod.sales} uds vendidas</p></div></div>
-                                <div className="text-right"><p className="text-sm font-black text-emerald-600">{formatCurrency(prod.rev)}</p><span className={`text-[8px] font-black uppercase ${prod.status.includes('Bajo') ? 'text-rose-500' : 'text-emerald-500'}`}>{prod.status}</span></div>
+
+            {/* SECCIÓN INVENTARIO: Centro de Comando 2x2 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* 1. WINNERS: EL MOTOR DE CAJA */}
+                <div 
+                    onClick={() => setSelectedInventoryCategory('winners')}
+                    className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(16,185,129,0.15)] transition-all duration-500 cursor-pointer overflow-hidden"
+                >
+                    <div className="absolute -right-4 -top-4 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-colors"></div>
+                    <div className="relative z-10 flex flex-col h-full justify-between">
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center">
+                                <div className="h-12 w-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform">
+                                    <Trophy size={24} />
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full">Top Revenue</span>
+                                </div>
                             </div>
-                        ))}
+                            <div>
+                                <h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">Ganadores</h3>
+                                <p className="text-[11px] text-gray-400 font-bold uppercase mt-1 tracking-[0.2em]">Escalabilidad detectada</p>
+                            </div>
+                            <div className="flex items-end gap-2">
+                                <span className="text-3xl font-black text-gray-900">+$124M</span>
+                                <span className="text-[10px] font-black text-emerald-500 mb-1.5 flex items-center gap-1"><TrendingUp size={12}/> +18%</span>
+                            </div>
+                        </div>
+                        <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between">
+                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover:text-emerald-600 transition-colors">Analizar Potencial de Escala</span>
+                            <div className="h-8 w-8 bg-gray-900 rounded-xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                                <ArrowRight size={16} />
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div className="bg-gray-900 p-12 rounded-[3.5rem] text-white flex flex-col justify-center relative overflow-hidden min-h-[300px]">
-                    <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest relative z-10">Inteligencia Predictiva</p>
-                    <h4 className="text-xl font-black mt-4 relative z-10 leading-relaxed italic">"Tus 'Fundas Silicona' tienen un 40% más de stock de lo que el sistema proyecta vender este trimestre. Sugerimos un descuento dinámico del 15%."</h4>
-                    <div className="absolute right-[-20px] bottom-[-20px] text-[12rem] opacity-[0.03] rotate-12 font-black"><DollarSign size={150}/></div>
+
+                {/* 2. REORDER: LA FUGA DE VENTAS */}
+                <div 
+                    onClick={() => setSelectedInventoryCategory('reorder')}
+                    className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(59,130,246,0.15)] transition-all duration-500 cursor-pointer overflow-hidden"
+                >
+                    <div className="absolute -right-4 -top-4 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors"></div>
+                    <div className="relative z-10 flex flex-col h-full justify-between">
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center">
+                                <div className="h-12 w-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
+                                    <Zap size={24} />
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-full">Alerta Stock</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">Reabastecer</h3>
+                                <p className="text-[11px] text-gray-400 font-bold uppercase mt-1 tracking-[0.2em]">Pérdida inminente</p>
+                            </div>
+                            <div className="flex items-end gap-2">
+                                <span className="text-3xl font-black text-rose-600">-$8.4M</span>
+                                <span className="text-[10px] font-black text-gray-400 mb-1.5 italic">Riesgo / Semana</span>
+                            </div>
+                        </div>
+                        <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between">
+                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors">Evitar Quiebre de Stock</span>
+                            <div className="h-8 w-8 bg-gray-900 rounded-xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                                <ArrowRight size={16} />
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                {/* 3. STUCK: EL DINERO MUERTO */}
+                <div 
+                    onClick={() => setSelectedInventoryCategory('stuck')}
+                    className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(244,63,94,0.15)] transition-all duration-500 cursor-pointer overflow-hidden"
+                >
+                    <div className="absolute -right-4 -top-4 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl group-hover:bg-rose-500/10 transition-colors"></div>
+                    <div className="relative z-10 flex flex-col h-full justify-between">
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center">
+                                <div className="h-12 w-12 bg-rose-50 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-rose-200 group-hover:scale-110 transition-transform">
+                                    <AlertTriangle size={24} />
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest bg-rose-50 px-3 py-1 rounded-full">Capital Pegado</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">Estancado</h3>
+                                <p className="text-[11px] text-gray-400 font-bold uppercase mt-1 tracking-[0.2em]">Flujo de caja bloqueado</p>
+                            </div>
+                            <div className="flex items-end gap-2">
+                                <span className="text-3xl font-black text-gray-900">$24.5M</span>
+                                <span className="text-[10px] font-black text-rose-500 mb-1.5 italic">Inactivo</span>
+                            </div>
+                        </div>
+                        <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between">
+                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover:text-rose-600 transition-colors">Liberar Capital Ahora</span>
+                            <div className="h-8 w-8 bg-gray-900 rounded-xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                                <ArrowRight size={16} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4. DECLINE: LA SALIDA INTELIGENTE */}
+                <div 
+                    onClick={() => setSelectedInventoryCategory('decline')}
+                    className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(245,158,11,0.15)] transition-all duration-500 cursor-pointer overflow-hidden"
+                >
+                    <div className="absolute -right-4 -top-4 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-colors"></div>
+                    <div className="relative z-10 flex flex-col h-full justify-between">
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center">
+                                <div className="h-12 w-12 bg-amber-50 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-200 group-hover:scale-110 transition-transform">
+                                    <TrendingDown size={24} />
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full">Curva Baja</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">En Declive</h3>
+                                <p className="text-[11px] text-gray-400 font-bold uppercase mt-1 tracking-[0.2em]">Salida estratégica</p>
+                            </div>
+                            <div className="flex items-end gap-2">
+                                <span className="text-3xl font-black text-gray-900">-42%</span>
+                                <span className="text-[10px] font-black text-amber-600 mb-1.5 italic">Vs. Mes Anterior</span>
+                            </div>
+                        </div>
+                        <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between">
+                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover:text-amber-600 transition-colors">Ver Plan de Evacuación</span>
+                            <div className="h-8 w-8 bg-gray-900 rounded-xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                                <ArrowRight size={16} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-gray-900 p-12 rounded-[3.5rem] text-white flex flex-col justify-center relative overflow-hidden min-h-[300px]">
+                <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest relative z-10">Inteligencia Predictiva</p>
+                <h4 className="text-xl font-black mt-4 relative z-10 leading-relaxed italic">"Tus 'Fundas Silicona' tienen un 40% más de stock de lo que el sistema proyecta vender este trimestre. Sugerimos un descuento dinámico del 15%."</h4>
+                <div className="absolute right-[-20px] bottom-[-20px] text-[12rem] opacity-[0.03] rotate-12 font-black"><DollarSign size={150}/></div>
             </div>
         </div>
     );
@@ -376,6 +534,133 @@ export default function WebAnalyticsPage() {
 
             {/* MODALES PRO */}
             <AnimatePresence>
+                {selectedInventoryCategory && (
+                    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-5xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col max-h-[90vh]">
+                            <div className="bg-gray-900 p-8 text-white relative flex-shrink-0">
+                                <button onClick={() => setSelectedInventoryCategory(null)} className="absolute top-8 right-8 h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center hover:bg-rose-500 transition-all z-10">
+                                    <X size={20} />
+                                </button>
+                                <div className="flex items-center gap-6">
+                                    <div className={`h-16 w-16 rounded-2xl flex items-center justify-center text-3xl shadow-xl ${
+                                        selectedInventoryCategory === 'winners' ? 'bg-emerald-500 shadow-emerald-200' :
+                                        selectedInventoryCategory === 'stuck' ? 'bg-rose-500 shadow-rose-200' :
+                                        selectedInventoryCategory === 'decline' ? 'bg-amber-500 shadow-amber-200' : 'bg-blue-500 shadow-blue-200'
+                                    }`}>
+                                        {selectedInventoryCategory === 'winners' ? <Trophy size={32}/> :
+                                         selectedInventoryCategory === 'stuck' ? <AlertTriangle size={32}/> :
+                                         selectedInventoryCategory === 'decline' ? <TrendingDown size={32}/> : <Zap size={32}/>}
+                                    </div>
+                                    <div>
+                                        <h2 className="text-3xl font-black tracking-tight uppercase italic">
+                                            {selectedInventoryCategory === 'winners' ? 'Optimización de Motores de Caja' :
+                                             selectedInventoryCategory === 'stuck' ? 'Desbloqueo de Capital Muerto' :
+                                             selectedInventoryCategory === 'decline' ? 'Plan de Salida Estratégica' : 'Rescate de Ventas Perdidas'}
+                                        </h2>
+                                        <p className="text-purple-400 text-[10px] font-black uppercase mt-1 tracking-[0.2em] italic">Intelligence Business Bayt AI</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-10 space-y-10 bg-gray-50/50 overflow-y-auto custom-scrollbar flex-1">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest border-b border-gray-50 pb-4">Métricas de Alto Impacto</h4>
+                                        <div className="space-y-6">
+                                            {selectedInventoryCategory === 'winners' ? (
+                                                <>
+                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Profit Share</span><span className="text-xs text-gray-600 font-bold">Contribución neta total</span></div><span className="text-xl font-black text-emerald-600">65.4%</span></div>
+                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">LTV Ratio</span><span className="text-xs text-gray-600 font-bold">Valor de vida del cliente</span></div><span className="text-xl font-black text-purple-600">3.2x</span></div>
+                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Scaling Cap</span><span className="text-xs text-gray-600 font-bold">Potencial de escalado</span></div><span className="text-xl font-black text-gray-900">Alto</span></div>
+                                                </>
+                                            ) : selectedInventoryCategory === 'stuck' ? (
+                                                <>
+                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Dead Capital</span><span className="text-xs text-gray-600 font-bold">Dinero sin rotación</span></div><span className="text-xl font-black text-rose-600">$24.5M</span></div>
+                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Holding Cost</span><span className="text-xs text-gray-600 font-bold">Costo de inacción/mes</span></div><span className="text-xl font-black text-rose-500">$480.000</span></div>
+                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Inventory Aging</span><span className="text-xs text-gray-600 font-bold">Antigüedad promedio</span></div><span className="text-xl font-black text-gray-900">58 días</span></div>
+                                                </>
+                                            ) : selectedInventoryCategory === 'decline' ? (
+                                                <>
+                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Residue Risk</span><span className="text-xs text-gray-600 font-bold">Riesgo de obsolescencia</span></div><span className="text-xl font-black text-amber-600">Muy Alto</span></div>
+                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Demand Drop</span><span className="text-xs text-gray-600 font-bold">Caída vs. Trimestre ant.</span></div><span className="text-xl font-black text-rose-600">-48.2%</span></div>
+                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Evacuation Priority</span><span className="text-xs text-gray-600 font-bold">Nivel de urgencia</span></div><span className="text-xl font-black text-gray-900">Inmediata</span></div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Daily Lost Sales</span><span className="text-xs text-gray-600 font-bold">Ventas perdidas por día</span></div><span className="text-xl font-black text-rose-600">$1.2M</span></div>
+                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Customer Churn Risk</span><span className="text-xs text-gray-600 font-bold">Riesgo de fuga a competencia</span></div><span className="text-xl font-black text-blue-600">Alto (15%)</span></div>
+                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Time-to-Out</span><span className="text-xs text-gray-600 font-bold">Tiempo para stock cero</span></div><span className="text-xl font-black text-gray-900">48 horas</span></div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-gray-900 p-10 rounded-[3rem] text-white space-y-8 flex flex-col justify-center relative overflow-hidden shadow-2xl">
+                                        <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none uppercase font-black text-8xl">BI</div>
+                                        <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest italic relative z-10">Bayt Strategic Argumentation</p>
+                                        <p className="text-base text-gray-300 font-medium leading-relaxed italic relative z-10">
+                                            {selectedInventoryCategory === 'winners' ? '"Estos productos son el 20% de tu inventario que genera el 80% de tu rentabilidad. El argumento para actuar es simple: si duplicas la inversión aquí, tu margen neto crecerá exponencialmente sin aumentar costos fijos. No solo vendes un producto, vendes el ancla de tu negocio."' :
+                                             selectedInventoryCategory === 'stuck' ? '"Tener $24.5M en una bodega es perder dinero cada hora por inflación y costo de oportunidad. Si liberas este capital hoy con un descuento del 25%, podrías reinvertirlo en [GANADORES] y generar $15M adicionales en 30 días. El capital estancado es el cáncer de la liquidez."' :
+                                             selectedInventoryCategory === 'decline' ? '"La demanda del mercado ha mutado. Seguir manteniendo este stock a precio full es una batalla perdida. El plan es evacuar el inventario restante mediante Bundles con productos Top para limpiar la bodega y recuperar el 100% de la inversión inicial antes de que el valor residual caiga a cero."' : 
+                                             '"Cada minuto que el botón [Montar Orden] no es presionado, tu tienda está regalando clientes a la competencia. El costo de adquisición de un cliente nuevo es 5 veces mayor que retener a uno actual; no los dejes ir por falta de stock básico. Esta es una emergencia operativa."'}
+                                        </p>
+                                        <div className="h-px w-full bg-white/10 relative z-10"></div>
+                                        <div className="flex items-center gap-4 relative z-10">
+                                            <div className="h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center text-purple-400 border border-white/10 shadow-xl">🤖</div>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase">Impacto Proyectado: <span className="text-emerald-400">Excelente</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-8">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Desglose de Inventario Crítico</h4>
+                                        <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-3 py-1 rounded-full uppercase">Acción Recomendada por Referencia</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {[1, 2, 3].map((item) => (
+                                            <div key={item} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2rem] hover:bg-gray-100 transition-all border border-transparent hover:border-gray-200 group">
+                                                <div className="flex items-center gap-6">
+                                                    <div className="h-14 w-14 bg-white rounded-2xl shadow-inner flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">📦</div>
+                                                    <div>
+                                                        <p className="text-sm font-black text-gray-900 uppercase tracking-tight italic">Ref: SKU-{item}42-PRO</p>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                                            <p className="text-[10px] text-gray-400 font-bold uppercase">Unidades en Riesgo: {15 * item}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="text-right hidden sm:block">
+                                                        <p className="text-[10px] font-black text-gray-900 uppercase">Rentabilidad</p>
+                                                        <p className="text-[10px] font-bold text-emerald-600 uppercase">+{25 + item}%</p>
+                                                    </div>
+                                                    <button className="h-12 px-8 bg-gray-900 hover:bg-purple-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl transition-all transform group-hover:scale-105 active:scale-95">Aplicar IA</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-8 bg-white border-t border-gray-100 flex gap-6">
+                                <button onClick={() => setSelectedInventoryCategory(null)} className="flex-1 py-5 bg-gray-50 text-gray-400 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.2em] hover:text-gray-900 transition-colors">Posponer Análisis</button>
+                                <button 
+                                    onClick={handleExecuteStrategicPlan}
+                                    disabled={isExecutingStrategy}
+                                    className="flex-[2.5] py-5 bg-gray-900 hover:bg-black text-white rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 group disabled:opacity-50"
+                                >
+                                    {isExecutingStrategy ? (
+                                        <>Desplegando Estrategia... <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /></>
+                                    ) : (
+                                        <>Ejecutar Plan Estratégico Bayt <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" /></>
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
                 {selectedCoupon && (
                     <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
                         <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-5xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col max-h-[90vh]">
@@ -620,7 +905,7 @@ export default function WebAnalyticsPage() {
                                         💡
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl font-black tracking-tight uppercase italic">Tabletas Purificadoras X</h2>
+                                        <h2 className="text-2xl font-black tracking-tight uppercase italic text-white">Tabletas Purificadoras X</h2>
                                         <p className="text-amber-400 text-[10px] font-black uppercase mt-1 tracking-widest">Historial Estratégico de Rendimiento</p>
                                     </div>
                                 </div>
@@ -683,59 +968,130 @@ export default function WebAnalyticsPage() {
                             </div>
 
                             <div className="p-8 bg-white border-t border-gray-100 flex gap-4 flex-shrink-0">
-                                <button onClick={() => setIsProductHistoryModalOpen(false)} className="px-10 py-5 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-colors">
-                                    Cerrar
+                                <button onClick={() => setIsProductHistoryModalOpen(false)} className="flex-1 py-5 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-colors">
+                                    Cerrar Análisis
                                 </button>
-                                <button onClick={() => { setIsProductHistoryModalOpen(false); setIsOrderModalOpen(true); }} className="flex-1 py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all">
-                                    Proceder con la Orden
+                                <button onClick={() => { setIsProductHistoryModalOpen(false); setIsOrderModalOpen(true); }} className="flex-[2] py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all">
+                                    Proceder con la Orden de Compra
                                 </button>
                             </div>
                         </motion.div>
                     </div>
                 )}
-                                {isOrderModalOpen && (
-                                    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-                                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col max-h-[90vh]">
-                                            <div className="bg-gray-900 p-8 text-white flex-shrink-0 relative"><button onClick={() => setIsOrderModalOpen(false)} className="absolute top-6 right-6 h-10 w-10 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-rose-500 transition-all"><X size={20} /></button><div className="flex items-center gap-4"><div className="h-14 w-14 bg-amber-500 rounded-[1.5rem] flex items-center justify-center shadow-lg"><ShoppingCart size={28} /></div><div><h2 className="text-2xl font-black tracking-tight">Orden de Compra</h2><p className="text-amber-400 text-[10px] font-black uppercase mt-1">Bayt Sugerencia</p></div></div></div><div className="flex-1 overflow-y-auto p-10 space-y-8 bg-gray-50/30 custom-scrollbar"><div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6"><div className="flex justify-between items-center pb-4 border-b border-gray-50"><span className="text-[10px] font-black uppercase text-gray-400">Producto</span><span className="text-sm font-black text-gray-900">{orderForm.productName}</span></div><div className="grid grid-cols-2 gap-6"><div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase">Unidades</label><input type="text" value={formatNumber(orderForm.quantity)} onChange={(e) => setOrderForm({ ...orderForm, quantity: unformatNumber(e.target.value) })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold shadow-inner" /></div><div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase">Total</label><div className="w-full p-4 bg-gray-100 rounded-2xl font-black text-gray-500">{formatCurrency(orderForm.quantity * orderForm.pricePerUnit)}</div></div></div></div>                            <div className="space-y-4 relative">
-                                <div className="flex justify-between items-end px-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Proveedor</label>
-                                    <button onClick={() => setIsRegisterProviderOpen(true)} className="text-[9px] font-black text-purple-600 uppercase underline">+ Registrar Nuevo</button>
-                                </div>
-                                <button onClick={() => setIsProviderDropdownOpen(!isProviderDropdownOpen)} className="w-full p-5 bg-white border border-gray-100 rounded-3xl text-sm font-black flex justify-between items-center shadow-sm">
-                                    {orderForm.provider || 'Selecciona un aliado...'}
-                                    <ChevronDown size={16} />
+
+                {isOrderModalOpen && (
+                    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col max-h-[90vh]">
+                            <div className="bg-gray-900 p-8 text-white flex-shrink-0 relative">
+                                <button onClick={() => setIsOrderModalOpen(false)} className="absolute top-6 right-6 h-10 w-10 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-rose-500 transition-all">
+                                    <X size={20} />
                                 </button>
-                                <AnimatePresence>
-                                    {isProviderDropdownOpen && (
-                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-[600] max-h-48 overflow-y-auto">
-                                            {providers.map((p) => (
-                                                <button key={p.id} onClick={() => { setOrderForm({ ...orderForm, provider: p.name }); setIsProviderDropdownOpen(false); }} className="w-full px-6 py-4 text-left hover:bg-purple-50 transition-colors flex items-center justify-between">
-                                                    <span className="text-xs font-black uppercase text-gray-700">{p.name}</span>
-                                                    {orderForm.provider === p.name && <CheckCircle2 size={14} className="text-purple-600" />}
-                                                </button>
-                                            ))}
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+                                <div className="flex items-center gap-4">
+                                    <div className="h-14 w-14 bg-amber-500 rounded-[1.5rem] flex items-center justify-center shadow-lg">
+                                        <ShoppingCart size={28} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-black tracking-tight">Orden de Compra</h2>
+                                        <p className="text-amber-400 text-[10px] font-black uppercase mt-1">Bayt Sugerencia</p>
+                                    </div>
+                                </div>
                             </div>
-
-                            {/* Nuevo campo de Notas / Descripción */}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Instrucciones o Notas del Pedido</label>
-                                <textarea 
-                                    value={orderForm.notes} 
-                                    onChange={(e) => setOrderForm({ ...orderForm, notes: e.target.value })}
-                                    placeholder="Ej: Por favor incluir factura comercial, tallas surtidas según inventario anterior..."
-                                    rows={3}
-                                    className="w-full p-5 bg-white border border-gray-100 rounded-[2rem] outline-none text-sm font-medium shadow-sm focus:border-purple-200 transition-all resize-none"
-                                />
+                            <div className="flex-1 overflow-y-auto p-10 space-y-8 bg-gray-50/30 custom-scrollbar">
+                                <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
+                                    <div className="flex justify-between items-center pb-4 border-b border-gray-50">
+                                        <span className="text-[10px] font-black uppercase text-gray-400">Producto</span>
+                                        <span className="text-sm font-black text-gray-900">{orderForm.productName}</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-gray-400 uppercase">Unidades</label>
+                                            <input 
+                                                type="text" 
+                                                value={formatNumber(orderForm.quantity)} 
+                                                onChange={(e) => setOrderForm({ ...orderForm, quantity: unformatNumber(e.target.value) })} 
+                                                className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold shadow-inner" 
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-gray-400 uppercase">Total</label>
+                                            <div className="w-full p-4 bg-gray-100 rounded-2xl font-black text-gray-500">{formatCurrency(orderForm.quantity * orderForm.pricePerUnit)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-4 relative">
+                                    <div className="flex justify-between items-end px-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Proveedor</label>
+                                        <button onClick={() => setIsRegisterProviderOpen(true)} className="text-[9px] font-black text-purple-600 uppercase underline">+ Registrar Nuevo</button>
+                                    </div>
+                                    <button onClick={() => setIsProviderDropdownOpen(!isProviderDropdownOpen)} className="w-full p-5 bg-white border border-gray-100 rounded-3xl text-sm font-black flex justify-between items-center shadow-sm">
+                                        {orderForm.provider || 'Selecciona un aliado...'}
+                                        <ChevronDown size={16} />
+                                    </button>
+                                    <AnimatePresence>
+                                        {isProviderDropdownOpen && (
+                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-[600] max-h-48 overflow-y-auto">
+                                                {providers.map((p) => (
+                                                    <button key={p.id} onClick={() => { setOrderForm({ ...orderForm, provider: p.name }); setIsProviderDropdownOpen(false); }} className="w-full px-6 py-4 text-left hover:bg-purple-50 transition-colors flex items-center justify-between">
+                                                        <span className="text-xs font-black uppercase text-gray-700">{p.name}</span>
+                                                        {orderForm.provider === p.name && <CheckCircle2 size={14} className="text-purple-600" />}
+                                                    </button>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Instrucciones o Notas del Pedido</label>
+                                    <textarea 
+                                        value={orderForm.notes} 
+                                        onChange={(e) => setOrderForm({ ...orderForm, notes: e.target.value })}
+                                        placeholder="Ej: Por favor incluir factura comercial, tallas surtidas según inventario anterior..."
+                                        rows={3}
+                                        className="w-full p-5 bg-white border border-gray-100 rounded-[2rem] outline-none text-sm font-medium shadow-sm focus:border-purple-200 transition-all resize-none"
+                                    />
+                                </div>
+                                <div className="space-y-6 pt-6 border-t border-gray-100">
+                                    <div className="grid grid-cols-3 gap-4">
+                                        {[{ id: 'whatsapp', label: 'WhatsApp', icon: <MessageSquare size={18}/> }, { id: 'email', label: 'Email', icon: <Mail size={18}/> }, { id: 'reminder', label: 'Programar', icon: <Clock size={18}/> }].map((method) => (
+                                            <div key={method.id} onClick={() => setOrderForm({ ...orderForm, sending_method: method.id as any })} className={`p-4 rounded-3xl border-2 cursor-pointer transition-all flex flex-col items-center gap-2 ${orderForm.sending_method === method.id ? 'bg-purple-50 border-purple-600 shadow-md' : 'bg-white border-gray-100 opacity-60'}`}>
+                                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${orderForm.sending_method === method.id ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                                    {method.icon}
+                                                </div>
+                                                <span className="text-[9px] font-black uppercase">{method.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
-
-                            <div className="space-y-6 pt-6 border-t border-gray-100">
-<div className="grid grid-cols-3 gap-4">{[{ id: 'whatsapp', label: 'WhatsApp', icon: <MessageSquare size={18}/> }, { id: 'email', label: 'Email', icon: <Mail size={18}/> }, { id: 'reminder', label: 'Programar', icon: <Clock size={18}/> }].map((method) => (<div key={method.id} onClick={() => setOrderForm({ ...orderForm, sending_method: method.id as any })} className={`p-4 rounded-3xl border-2 cursor-pointer transition-all flex flex-col items-center gap-2 ${orderForm.sending_method === method.id ? 'bg-purple-50 border-purple-600 shadow-md' : 'bg-white border-gray-100 opacity-60'}`}><div className={`h-10 w-10 rounded-xl flex items-center justify-center ${orderForm.sending_method === method.id ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-400'}`}>{method.icon}</div><span className="text-[9px] font-black uppercase">{method.label}</span></div>))}</div></div></div><div className="p-8 bg-white border-t border-gray-50 flex gap-4"><button onClick={() => setIsOrderModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cancelar</button><button onClick={handleConfirmOrder} disabled={isSubmittingOrder} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] active:scale-95 transition-all">{isSubmittingOrder ? 'Cargando...' : 'Confirmar Pedido'}</button></div></motion.div></div>
+                            <div className="p-8 bg-white border-t border-gray-100 flex gap-4">
+                                <button onClick={() => setIsOrderModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cancelar</button>
+                                <button onClick={handleConfirmOrder} disabled={isSubmittingOrder} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] active:scale-95 transition-all">{isSubmittingOrder ? 'Cargando...' : 'Confirmar Pedido'}</button>
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
                 {isRegisterProviderOpen && (
-                    <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"><motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden relative border border-white/20"><div className="bg-gray-900 p-8 text-white"><h2 className="text-xl font-black tracking-tight flex items-center gap-3"><Users size={20}/> Nuevo Proveedor</h2></div><div className="p-10 space-y-6"><div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase ml-1">Nombre Comercial</label><input value={newProvider.name} onChange={(e) => setNewProvider({ ...newProvider, name: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" placeholder="Ej: Distribuidora Tech S.A." /></div><div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase ml-2">WhatsApp</label><input value={newProvider.phone} onChange={(e) => setNewProvider({ ...newProvider, phone: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" placeholder="+57 300 000 0000" /></div></div><div className="p-8 bg-gray-50 flex gap-4"><button onClick={() => setIsRegisterProviderOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cancelar</button><button onClick={handleCreateProvider} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg transition-all">Registrar Proveedor</button></div></motion.div></div>
+                    <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden relative border border-white/20">
+                            <div className="bg-gray-900 p-8 text-white">
+                                <h2 className="text-xl font-black tracking-tight flex items-center gap-3"><Users size={20}/> Nuevo Proveedor</h2>
+                            </div>
+                            <div className="p-10 space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase ml-1">Nombre Comercial</label>
+                                    <input value={newProvider.name} onChange={(e) => setNewProvider({ ...newProvider, name: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" placeholder="Ej: Distribuidora Tech S.A." />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase ml-2">WhatsApp</label>
+                                    <input value={newProvider.phone} onChange={(e) => setNewProvider({ ...newProvider, phone: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" placeholder="+57 300 000 0000" />
+                                </div>
+                            </div>
+                            <div className="p-8 bg-gray-50 flex gap-4">
+                                <button onClick={() => setIsRegisterProviderOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cancelar</button>
+                                <button onClick={handleCreateProvider} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg transition-all">Registrar Proveedor</button>
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
 
@@ -764,7 +1120,7 @@ export default function WebAnalyticsPage() {
                     {/* Mensaje de Impacto con Tipografía Original 4xl */}
                     <div className="flex-1 space-y-6 text-center lg:text-left relative z-10">
                         <div className="flex items-center gap-4 justify-center lg:justify-start">
-                            <span className="px-5 py-1.5 bg-[#00F2FF]/10 text-[#00B8C4] rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-[#00F2FF]/20">
+                            <span className="px-5 py-1.5 bg-[#00F2FF]/10 text-[#00E5F2] rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-[#00F2FF]/20">
                                 Inteligencia Predictiva
                             </span>
                             <div className="h-1 w-1 bg-gray-200 rounded-full"></div>
@@ -777,7 +1133,7 @@ export default function WebAnalyticsPage() {
                     </div>
 
                     {/* Bloque de Acción e Impacto Económico */}
-                    <div className="shrink-0 flex flex-col items-center lg:items-end gap-8 relative z-10 lg:pl-12 lg:border-l lg:border-gray-100">
+                    <div className="shrink-0 flex items-center lg:items-end gap-8 relative z-10 lg:pl-12 lg:border-l lg:border-gray-100">
                         <div className="text-center lg:text-right">
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pérdida Mensual Evitable</p>
                             <p className="text-4xl font-black text-gray-900 flex items-center gap-2">

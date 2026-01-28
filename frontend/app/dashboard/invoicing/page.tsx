@@ -24,6 +24,7 @@ import {
 interface InvoicingItem {
     id: string;
     name: string;
+    variant_id?: string; 
     price: number;
     quantity: number;
     sku: string;
