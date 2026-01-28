@@ -29,33 +29,93 @@ export default function WebAnalyticsPage() {
     const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
     const [isExecutingStrategy, setIsExecutingStrategy] = useState(false);
+    const [strategySteps, setStrategySteps] = useState<string[]>([]);
+    const [executedToday, setExecutedToday] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        const saved = localStorage.getItem('bayt_executed_strategies');
+        if (saved) setExecutedToday(JSON.parse(saved));
+    }, []);
+
+    const isAlreadyExecuted = (category: string) => {
+        const lastExec = executedToday[category];
+        if (!lastExec) return false;
+        return lastExec === new Date().toISOString().split('T')[0];
+    };
+
+    const strategyDetails = {
+        winners: [
+            { step: "Análisis de Elasticidad", desc: "Bayt calcula el punto máximo de precio sin sacrificar volumen de ventas." },
+            { step: "Sincronización de Ads", desc: "Ajuste automático de presupuesto en Meta/Google Ads hacia estos SKUs." },
+            { step: "Reserva de Inventario", desc: "Bloqueo preventivo de stock para pedidos de alta prioridad." },
+            { step: "Escalado de Margen", desc: "Implementación de reglas dinámicas de precios (+2% incremental)." }
+        ],
+        stuck: [
+            { step: "Segmentación de Audiencia", desc: "Identificación de clientes que compraron productos similares en el pasado." },
+            { step: "Generación de Ofertas AI", desc: "Creación de cupones de un solo uso con fecha de caducidad agresiva." },
+            { step: "Despliegue de WhatsApp", desc: "Envío programado a través de la API oficial para evitar bloqueos." },
+            { step: "Reporte de Liquidación", desc: "Monitorización en tiempo real del capital rescatado." }
+        ],
+        decline: [
+            { step: "Mapeo de Afinidad", desc: "Bayt busca qué productos 'Ganadores' suelen comprarse con estos SKUs." },
+            { step: "Creación de Bundles", desc: "Configuración automática de 'Combos' en el checkout para forzar salida." },
+            { step: "Optimización UI", desc: "Posicionamiento de estos combos en el 'Top of Page' de la tienda." },
+            { step: "Venta Sugerida", desc: "Activación de Pop-ups de Cross-selling en el carrito de compras." }
+        ],
+        reorder: [
+            { step: "Lead-time Sync", desc: "Cruce de datos de entrega histórica del proveedor vs. velocidad de venta." },
+            { step: "Draft de OC", desc: "Generación de PDF oficial con precios pactados y cantidades óptimas." },
+            { step: "Alerta Financiera", desc: "Notificación al área contable sobre el flujo de caja necesario." },
+            { step: "Confirmación de Envío", desc: "Seguimiento automático de la guía una vez el proveedor despache." }
+        ]
+    };
 
     const handleExecuteStrategicPlan = async () => {
         if (!selectedInventoryCategory) return;
         setIsExecutingStrategy(true);
-        showToast(`Bayt: Iniciando despliegue estratégico para ${selectedInventoryCategory}...`, "info");
+        setStrategySteps(["Inicializando protocolos Bayt..."]);
         
-        await new Promise(resolve => setTimeout(resolve, 2500));
-        
-        let message = "";
-        switch(selectedInventoryCategory) {
-            case 'winners': 
-                message = "Estrategia desplegada: Precios dinámicos ajustados (+2%) y presupuesto de Ads reasignado a estos SKUs.";
-                break;
-            case 'stuck':
-                message = "Estrategia desplegada: Campaña de liquidación enviada a 150 clientes inactivos vía WhatsApp.";
-                break;
-            case 'decline':
-                message = "Estrategia desplegada: Bundles 'Smart-Mix' creados automáticamente en la tienda online.";
-                break;
-            case 'reorder':
-                message = "Estrategia desplegada: Borrador de Orden de Compra generado y enviado al proveedor.";
-                break;
+        const steps = {
+            winners: [
+                "Analizando patrones de compra exitosos...",
+                "Configurando algoritmos de precios dinámicos (+2%)...",
+                "Reasignando presupuesto de marketing a SKUs ganadores...",
+                "Estrategia de escalado activada con éxito."
+            ],
+            stuck: [
+                "Identificando clientes con alta afinidad histórica...",
+                "Diseñando oferta de liquidación personalizada...",
+                "Preparando motor de envíos masivos vía WhatsApp...",
+                "Campaña de rescate de capital enviada con éxito."
+            ],
+            decline: [
+                "Analizando afinidad de productos para Bundles...",
+                "Generando ofertas combinadas 'Smart-Mix'...",
+                "Actualizando frontend de la tienda online...",
+                "Promoción de evacuación de stock activa."
+            ],
+            reorder: [
+                "Verificando tiempos de entrega del proveedor...",
+                "Generando borrador de Orden de Compra oficial...",
+                "Sincronizando con el módulo de finanzas...",
+                "Orden procesada y notificada al aliado."
+            ]
+        };
+
+        for (const step of steps[selectedInventoryCategory]) {
+            await new Promise(resolve => setTimeout(resolve, 800));
+            setStrategySteps(prev => [...prev, step]);
         }
 
-        showToast(message, "success");
-        setIsExecutingStrategy(false);
-        setSelectedInventoryCategory(null);
+        setTimeout(() => {
+            showToast("Plan Estratégico desplegado al 100% 🚀", "success");
+            setIsExecutingStrategy(false);
+            
+            const today = new Date().toISOString().split('T')[0];
+            const updated = { ...executedToday, [selectedInventoryCategory]: today };
+            setExecutedToday(updated);
+            localStorage.setItem('bayt_executed_strategies', JSON.stringify(updated));
+        }, 1000);
     };
 
     // Form States
@@ -127,12 +187,7 @@ export default function WebAnalyticsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                    { label: 'Ventas Hoy', val: 3450000, trend: '+18.5%', up: true, h: 'Dinero real generado hoy.' },
-                    { label: 'Ticket Promedio', val: 124000, trend: '+5.2%', up: true, h: 'Gasto promedio por cliente.' },
-                    { label: 'Pedidos Hoy', val: 42, trend: '-2.1%', up: false, h: 'Órdenes procesadas hoy.' },
-                    { label: 'Tasa Conversión', val: '4.8%', trend: '+0.4%', up: true, h: 'Visitas que terminan en compra.' },
-                ].map((kpi, i) => (
+                {[ { label: 'Ventas Hoy', val: 3450000, trend: '+18.5%', up: true, h: 'Dinero real generado hoy.' }, { label: 'Ticket Promedio', val: 124000, trend: '+5.2%', up: true, h: 'Gasto promedio por cliente.' }, { label: 'Pedidos Hoy', val: 42, trend: '-2.1%', up: false, h: 'Órdenes procesadas hoy.' }, { label: 'Tasa Conversión', val: '4.8%', trend: '+0.4%', up: true, h: 'Visitas que terminan en compra.' }, ].map((kpi, i) => (
                     <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-gray-50 shadow-sm relative group cursor-help transition-all hover:shadow-xl">
                         <div className="flex justify-between items-start"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p><Info size={14} className="text-gray-200 group-hover:text-purple-400" /></div>
                         <div className="flex items-end gap-2 mt-2"><h3 className="text-2xl font-black text-gray-900">{typeof kpi.val === 'number' ? formatCurrency(kpi.val) : kpi.val}</h3><div className={`flex items-center text-[10px] font-black mb-1 ${kpi.up ? 'text-emerald-500' : 'text-rose-500'}`}>{kpi.trend}</div></div>
@@ -225,11 +280,7 @@ export default function WebAnalyticsPage() {
                 <div className="lg:col-span-2 bg-white p-12 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-12">
                     <div><h3 className="text-2xl font-black text-gray-900 tracking-tight italic">Edad & Conversión</h3><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Diferencia entre quién te ve y quién te paga.</p></div>
                     <div className="space-y-10">
-                        {[
-                            { range: '18 - 24 años', views: '45%', sales: '12%', color: 'bg-purple-400', tip: 'Mucho tráfico, baja conversión.' },
-                            { range: '25 - 34 años', views: '38%', sales: '65%', color: 'bg-emerald-500', tip: 'Tu público objetivo real. Mayor poder de compra.' },
-                            { range: '35 - 44 años', views: '12%', sales: '18%', color: 'bg-blue-500', tip: 'Clientes fieles con compras recurrentes.' },
-                        ].map((age, i) => (
+                        {[ { range: '18 - 24 años', views: '45%', sales: '12%', color: 'bg-purple-400', tip: 'Mucho tráfico, baja conversión.' }, { range: '25 - 34 años', views: '38%', sales: '65%', color: 'bg-emerald-500', tip: 'Tu público objetivo real. Mayor poder de compra.' }, { range: '35 - 44 años', views: '12%', sales: '18%', color: 'bg-blue-500', tip: 'Clientes fieles con compras recurrentes.' }, ].map((age, i) => (
                             <div key={i} className="grid grid-cols-1 md:grid-cols-4 items-center gap-6 group">
                                 <span className="text-sm font-black text-gray-800 uppercase tracking-tighter">{age.range}</span>
                                 <div className="md:col-span-2 space-y-2">
@@ -249,8 +300,7 @@ export default function WebAnalyticsPage() {
     );
 
     const renderInventory = () => (
-        <div className="space-y-10 animate-in fade-in duration-500">
-            {/* Banner Principal de Alerta */}
+        <>
             <div className="bg-amber-500 p-16 rounded-[4rem] text-white relative overflow-hidden flex flex-col md:flex-row items-center gap-16 shadow-2xl">
                 <div className="h-32 w-32 bg-white/20 rounded-[2.5rem] flex items-center justify-center text-6xl shadow-2xl relative z-10 animate-bounce border border-white/30 backdrop-blur-md">💡</div>
                 <div className="flex-1 relative z-10 space-y-6">
@@ -276,20 +326,13 @@ export default function WebAnalyticsPage() {
                 <div className="absolute -right-20 -bottom-20 text-[25rem] font-black opacity-[0.08] rotate-12 pointer-events-none uppercase">STOCK</div>
             </div>
 
-            {/* SECCIÓN INVENTARIO: Centro de Comando 2x2 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* 1. WINNERS: EL MOTOR DE CAJA */}
-                <div 
-                    onClick={() => setSelectedInventoryCategory('winners')}
-                    className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(16,185,129,0.15)] transition-all duration-500 cursor-pointer overflow-hidden"
-                >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
+                <div onClick={() => setSelectedInventoryCategory('winners')} className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(16,185,129,0.15)] transition-all duration-500 cursor-pointer overflow-hidden">
                     <div className="absolute -right-4 -top-4 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-colors"></div>
                     <div className="relative z-10 flex flex-col h-full justify-between">
                         <div className="space-y-6">
                             <div className="flex justify-between items-center">
-                                <div className="h-12 w-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform">
-                                    <Trophy size={24} />
-                                </div>
+                                <div className="h-12 w-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform"><Trophy size={24} /></div>
                                 <div className="text-right">
                                     <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full">Top Revenue</span>
                                 </div>
@@ -312,18 +355,12 @@ export default function WebAnalyticsPage() {
                     </div>
                 </div>
 
-                {/* 2. REORDER: LA FUGA DE VENTAS */}
-                <div 
-                    onClick={() => setSelectedInventoryCategory('reorder')}
-                    className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(59,130,246,0.15)] transition-all duration-500 cursor-pointer overflow-hidden"
-                >
+                <div onClick={() => setSelectedInventoryCategory('reorder')} className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(59,130,246,0.15)] transition-all duration-500 cursor-pointer overflow-hidden">
                     <div className="absolute -right-4 -top-4 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors"></div>
                     <div className="relative z-10 flex flex-col h-full justify-between">
                         <div className="space-y-6">
                             <div className="flex justify-between items-center">
-                                <div className="h-12 w-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
-                                    <Zap size={24} />
-                                </div>
+                                <div className="h-12 w-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform"><Zap size={24} /></div>
                                 <div className="text-right">
                                     <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-full">Alerta Stock</span>
                                 </div>
@@ -346,18 +383,12 @@ export default function WebAnalyticsPage() {
                     </div>
                 </div>
 
-                {/* 3. STUCK: EL DINERO MUERTO */}
-                <div 
-                    onClick={() => setSelectedInventoryCategory('stuck')}
-                    className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(244,63,94,0.15)] transition-all duration-500 cursor-pointer overflow-hidden"
-                >
+                <div onClick={() => setSelectedInventoryCategory('stuck')} className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(244,63,94,0.15)] transition-all duration-500 cursor-pointer overflow-hidden">
                     <div className="absolute -right-4 -top-4 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl group-hover:bg-rose-500/10 transition-colors"></div>
                     <div className="relative z-10 flex flex-col h-full justify-between">
                         <div className="space-y-6">
                             <div className="flex justify-between items-center">
-                                <div className="h-12 w-12 bg-rose-50 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-rose-200 group-hover:scale-110 transition-transform">
-                                    <AlertTriangle size={24} />
-                                </div>
+                                <div className="h-12 w-12 bg-rose-50 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-rose-200 group-hover:scale-110 transition-transform"><AlertTriangle size={24} /></div>
                                 <div className="text-right">
                                     <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest bg-rose-50 px-3 py-1 rounded-full">Capital Pegado</span>
                                 </div>
@@ -380,18 +411,12 @@ export default function WebAnalyticsPage() {
                     </div>
                 </div>
 
-                {/* 4. DECLINE: LA SALIDA INTELIGENTE */}
-                <div 
-                    onClick={() => setSelectedInventoryCategory('decline')}
-                    className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(245,158,11,0.15)] transition-all duration-500 cursor-pointer overflow-hidden"
-                >
+                <div onClick={() => setSelectedInventoryCategory('decline')} className="group relative bg-white/40 backdrop-blur-2xl p-8 rounded-[3.5rem] border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(245,158,11,0.15)] transition-all duration-500 cursor-pointer overflow-hidden">
                     <div className="absolute -right-4 -top-4 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-colors"></div>
                     <div className="relative z-10 flex flex-col h-full justify-between">
                         <div className="space-y-6">
                             <div className="flex justify-between items-center">
-                                <div className="h-12 w-12 bg-amber-50 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-200 group-hover:scale-110 transition-transform">
-                                    <TrendingDown size={24} />
-                                </div>
+                                <div className="h-12 w-12 bg-amber-50 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-200 group-hover:scale-110 transition-transform"><TrendingDown size={24} /></div>
                                 <div className="text-right">
                                     <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full">Curva Baja</span>
                                 </div>
@@ -415,12 +440,12 @@ export default function WebAnalyticsPage() {
                 </div>
             </div>
 
-            <div className="bg-gray-900 p-12 rounded-[3.5rem] text-white flex flex-col justify-center relative overflow-hidden min-h-[300px]">
+            <div className="bg-gray-900 p-12 rounded-[3.5rem] text-white flex flex-col justify-center relative overflow-hidden min-h-[300px] mt-10">
                 <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest relative z-10">Inteligencia Predictiva</p>
                 <h4 className="text-xl font-black mt-4 relative z-10 leading-relaxed italic">"Tus 'Fundas Silicona' tienen un 40% más de stock de lo que el sistema proyecta vender este trimestre. Sugerimos un descuento dinámico del 15%."</h4>
                 <div className="absolute right-[-20px] bottom-[-20px] text-[12rem] opacity-[0.03] rotate-12 font-black"><DollarSign size={150}/></div>
             </div>
-        </div>
+        </>
     );
 
     const renderMarketing = () => (
@@ -505,14 +530,7 @@ export default function WebAnalyticsPage() {
             {/* Navegación Quirúrgica */}
             <div className="flex items-center justify-center pt-2">
                 <div className="flex bg-white/50 backdrop-blur-2xl p-2 rounded-[2.5rem] border border-gray-100 shadow-xl gap-2 w-full max-w-6xl overflow-x-auto custom-scrollbar">
-                    {[
-                        { id: 'overview', label: 'Resumen Estratégico', icon: <PieChart size={16}/> },
-                        { id: 'traffic', label: 'Ruta de Compradores', icon: <Globe size={16}/> },
-                        { id: 'conversion', label: 'Ventas & Embudo', icon: <Target size={16}/> },
-                        { id: 'audience', label: 'Perfil de Audiencia', icon: <Users size={16}/> },
-                        { id: 'inventory', label: 'Stock Inteligente', icon: <Package size={16}/> },
-                        { id: 'marketing', label: 'Marketing & ROI', icon: <Rocket size={16}/> },
-                    ].map(tab => (
+                    {[ { id: 'overview', label: 'Resumen Estratégico', icon: <PieChart size={16}/> }, { id: 'traffic', label: 'Ruta de Compradores', icon: <Globe size={16}/> }, { id: 'conversion', label: 'Ventas & Embudo', icon: <Target size={16}/> }, { id: 'audience', label: 'Perfil de Audiencia', icon: <Users size={16}/> }, { id: 'inventory', label: 'Stock Inteligente', icon: <Package size={16}/> }, { id: 'marketing', label: 'Marketing & ROI', icon: <Rocket size={16}/> }, ].map(tab => (
                         <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 flex items-center justify-center gap-3 px-8 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-gray-900 text-white shadow-2xl scale-[1.02] -translate-y-1' : 'text-gray-400 hover:text-gray-600 hover:bg-white/80'}`}>{tab.icon} {tab.label}</button>
                     ))}
                 </div>
@@ -542,20 +560,12 @@ export default function WebAnalyticsPage() {
                                     <X size={20} />
                                 </button>
                                 <div className="flex items-center gap-6">
-                                    <div className={`h-16 w-16 rounded-2xl flex items-center justify-center text-3xl shadow-xl ${
-                                        selectedInventoryCategory === 'winners' ? 'bg-emerald-500 shadow-emerald-200' :
-                                        selectedInventoryCategory === 'stuck' ? 'bg-rose-500 shadow-rose-200' :
-                                        selectedInventoryCategory === 'decline' ? 'bg-amber-500 shadow-amber-200' : 'bg-blue-500 shadow-blue-200'
-                                    }`}>
-                                        {selectedInventoryCategory === 'winners' ? <Trophy size={32}/> :
-                                         selectedInventoryCategory === 'stuck' ? <AlertTriangle size={32}/> :
-                                         selectedInventoryCategory === 'decline' ? <TrendingDown size={32}/> : <Zap size={32}/>}
+                                    <div className={`h-16 w-16 rounded-2xl flex items-center justify-center text-3xl shadow-xl ${ selectedInventoryCategory === 'winners' ? 'bg-emerald-500 shadow-emerald-200' : selectedInventoryCategory === 'stuck' ? 'bg-rose-500 shadow-rose-200' : selectedInventoryCategory === 'decline' ? 'bg-amber-500 shadow-amber-200' : 'bg-blue-500 shadow-blue-200'}`}>
+                                        {selectedInventoryCategory === 'winners' ? <Trophy size={32}/> : selectedInventoryCategory === 'stuck' ? <AlertTriangle size={32}/> : selectedInventoryCategory === 'decline' ? <TrendingDown size={32}/> : <Zap size={32}/>}
                                     </div>
                                     <div>
                                         <h2 className="text-3xl font-black tracking-tight uppercase italic">
-                                            {selectedInventoryCategory === 'winners' ? 'Optimización de Motores de Caja' :
-                                             selectedInventoryCategory === 'stuck' ? 'Desbloqueo de Capital Muerto' :
-                                             selectedInventoryCategory === 'decline' ? 'Plan de Salida Estratégica' : 'Rescate de Ventas Perdidas'}
+                                            {selectedInventoryCategory === 'winners' ? 'Optimización de Motores de Caja' : selectedInventoryCategory === 'stuck' ? 'Desbloqueo de Capital Muerto' : selectedInventoryCategory === 'decline' ? 'Plan de Salida Estratégica' : 'Rescate de Ventas Perdidas'}
                                         </h2>
                                         <p className="text-purple-400 text-[10px] font-black uppercase mt-1 tracking-[0.2em] italic">Intelligence Business Bayt AI</p>
                                     </div>
@@ -563,95 +573,306 @@ export default function WebAnalyticsPage() {
                             </div>
 
                             <div className="p-10 space-y-10 bg-gray-50/50 overflow-y-auto custom-scrollbar flex-1">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest border-b border-gray-50 pb-4">Métricas de Alto Impacto</h4>
-                                        <div className="space-y-6">
-                                            {selectedInventoryCategory === 'winners' ? (
-                                                <>
-                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Profit Share</span><span className="text-xs text-gray-600 font-bold">Contribución neta total</span></div><span className="text-xl font-black text-emerald-600">65.4%</span></div>
-                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">LTV Ratio</span><span className="text-xs text-gray-600 font-bold">Valor de vida del cliente</span></div><span className="text-xl font-black text-purple-600">3.2x</span></div>
-                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Scaling Cap</span><span className="text-xs text-gray-600 font-bold">Potencial de escalado</span></div><span className="text-xl font-black text-gray-900">Alto</span></div>
-                                                </>
-                                            ) : selectedInventoryCategory === 'stuck' ? (
-                                                <>
-                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Dead Capital</span><span className="text-xs text-gray-600 font-bold">Dinero sin rotación</span></div><span className="text-xl font-black text-rose-600">$24.5M</span></div>
-                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Holding Cost</span><span className="text-xs text-gray-600 font-bold">Costo de inacción/mes</span></div><span className="text-xl font-black text-rose-500">$480.000</span></div>
-                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Inventory Aging</span><span className="text-xs text-gray-600 font-bold">Antigüedad promedio</span></div><span className="text-xl font-black text-gray-900">58 días</span></div>
-                                                </>
-                                            ) : selectedInventoryCategory === 'decline' ? (
-                                                <>
-                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Residue Risk</span><span className="text-xs text-gray-600 font-bold">Riesgo de obsolescencia</span></div><span className="text-xl font-black text-amber-600">Muy Alto</span></div>
-                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Demand Drop</span><span className="text-xs text-gray-600 font-bold">Caída vs. Trimestre ant.</span></div><span className="text-xl font-black text-rose-600">-48.2%</span></div>
-                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Evacuation Priority</span><span className="text-xs text-gray-600 font-bold">Nivel de urgencia</span></div><span className="text-xl font-black text-gray-900">Inmediata</span></div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Daily Lost Sales</span><span className="text-xs text-gray-600 font-bold">Ventas perdidas por día</span></div><span className="text-xl font-black text-rose-600">$1.2M</span></div>
-                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Customer Churn Risk</span><span className="text-xs text-gray-600 font-bold">Riesgo de fuga a competencia</span></div><span className="text-xl font-black text-blue-600">Alto (15%)</span></div>
-                                                    <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Time-to-Out</span><span className="text-xs text-gray-600 font-bold">Tiempo para stock cero</span></div><span className="text-xl font-black text-gray-900">48 horas</span></div>
-                                                </>
-                                            )}
+                                {isExecutingStrategy ? (
+                                    <div className="flex flex-col items-center justify-center py-20 space-y-8 animate-in fade-in zoom-in duration-500">
+                                        <div className="relative">
+                                            <div className="h-32 w-32 bg-gray-900 rounded-[2.5rem] flex items-center justify-center shadow-2xl relative z-10 border-2 border-purple-500/30">
+                                                <Bot size={60} className="text-purple-400 animate-pulse" />
+                                            </div>
+                                            <div className="absolute inset-0 bg-purple-500 rounded-full blur-3xl opacity-20 animate-ping"></div>
                                         </div>
-                                    </div>
-
-                                    <div className="bg-gray-900 p-10 rounded-[3rem] text-white space-y-8 flex flex-col justify-center relative overflow-hidden shadow-2xl">
-                                        <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none uppercase font-black text-8xl">BI</div>
-                                        <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest italic relative z-10">Bayt Strategic Argumentation</p>
-                                        <p className="text-base text-gray-300 font-medium leading-relaxed italic relative z-10">
-                                            {selectedInventoryCategory === 'winners' ? '"Estos productos son el 20% de tu inventario que genera el 80% de tu rentabilidad. El argumento para actuar es simple: si duplicas la inversión aquí, tu margen neto crecerá exponencialmente sin aumentar costos fijos. No solo vendes un producto, vendes el ancla de tu negocio."' :
-                                             selectedInventoryCategory === 'stuck' ? '"Tener $24.5M en una bodega es perder dinero cada hora por inflación y costo de oportunidad. Si liberas este capital hoy con un descuento del 25%, podrías reinvertirlo en [GANADORES] y generar $15M adicionales en 30 días. El capital estancado es el cáncer de la liquidez."' :
-                                             selectedInventoryCategory === 'decline' ? '"La demanda del mercado ha mutado. Seguir manteniendo este stock a precio full es una batalla perdida. El plan es evacuar el inventario restante mediante Bundles con productos Top para limpiar la bodega y recuperar el 100% de la inversión inicial antes de que el valor residual caiga a cero."' : 
-                                             '"Cada minuto que el botón [Montar Orden] no es presionado, tu tienda está regalando clientes a la competencia. El costo de adquisición de un cliente nuevo es 5 veces mayor que retener a uno actual; no los dejes ir por falta de stock básico. Esta es una emergencia operativa."'}
-                                        </p>
-                                        <div className="h-px w-full bg-white/10 relative z-10"></div>
-                                        <div className="flex items-center gap-4 relative z-10">
-                                            <div className="h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center text-purple-400 border border-white/10 shadow-xl">🤖</div>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase">Impacto Proyectado: <span className="text-emerald-400">Excelente</span></p>
+                                        <div className="text-center space-y-2">
+                                            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter">Desplegando Táctica Bayt</h3>
+                                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest italic">Ejecución en tiempo real...</p>
                                         </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-8">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Desglose de Inventario Crítico</h4>
-                                        <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-3 py-1 rounded-full uppercase">Acción Recomendada por Referencia</span>
-                                    </div>
-                                    <div className="grid grid-cols-1 gap-4">
-                                        {[1, 2, 3].map((item) => (
-                                            <div key={item} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2rem] hover:bg-gray-100 transition-all border border-transparent hover:border-gray-200 group">
-                                                <div className="flex items-center gap-6">
-                                                    <div className="h-14 w-14 bg-white rounded-2xl shadow-inner flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">📦</div>
-                                                    <div>
-                                                        <p className="text-sm font-black text-gray-900 uppercase tracking-tight italic">Ref: SKU-{item}42-PRO</p>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                                                            <p className="text-[10px] text-gray-400 font-bold uppercase">Unidades en Riesgo: {15 * item}</p>
-                                                        </div>
+                                        <div className="w-full max-w-md bg-gray-900 rounded-3xl p-8 shadow-2xl space-y-4 border border-white/5">
+                                            {strategySteps.map((step, i) => (
+                                                <div key={i} className="flex gap-3 items-start animate-in slide-in-from-left-2 duration-300">
+                                                    <div className="h-4 w-4 rounded-full bg-purple-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                                        <div className="h-1.5 w-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]"></div>
                                                     </div>
+                                                    <p className="text-[11px] font-mono text-gray-300 leading-tight">{step}</p>
                                                 </div>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="text-right hidden sm:block">
-                                                        <p className="text-[10px] font-black text-gray-900 uppercase">Rentabilidad</p>
-                                                        <p className="text-[10px] font-bold text-emerald-600 uppercase">+{25 + item}%</p>
-                                                    </div>
-                                                    <button className="h-12 px-8 bg-gray-900 hover:bg-purple-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl transition-all transform group-hover:scale-105 active:scale-95">Aplicar IA</button>
+                                            ))}
+                                            <div className="h-4 w-1 bg-purple-500 animate-bounce ml-1.5 mt-2"></div>
+                                        </div>
+                                    </div>
+                                ) : strategySteps.length > 0 && !isExecutingStrategy ? (
+                                    <div className="flex flex-col items-center justify-center py-20 space-y-8 animate-in fade-in zoom-in duration-500">
+                                        <div className="h-32 w-32 bg-emerald-500 text-white rounded-[2.5rem] flex items-center justify-center shadow-2xl border-4 border-white">
+                                            <CheckCircle2 size={60} />
+                                        </div>
+                                        <div className="text-center space-y-4">
+                                            <h3 className="text-3xl font-black text-gray-900 italic">¡Operación Completada!</h3>
+                                            <p className="text-gray-500 text-sm font-medium max-w-md mx-auto leading-relaxed">
+                                                Bayt ha desplegado la estrategia con éxito. Los resultados empezarán a reflejarse en tus métricas de BI en las próximas horas.
+                                            </p>
+                                        </div>
+                                        <button 
+                                            onClick={() => { setSelectedInventoryCategory(null); setStrategySteps([]); }}
+                                            className="px-12 py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl hover:bg-black active:scale-95 transition-all"
+                                        >
+                                            Entendido, Volver al Dashboard
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                                                <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest border-b border-gray-50 pb-4">Métricas de Alto Impacto</h4>
+                                                <div className="space-y-6">
+                                                    {selectedInventoryCategory === 'winners' ? (
+                                                        <>
+                                                            <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Profit Share</span><span className="text-xs text-gray-600 font-bold">Contribución neta total</span></div><span className="text-xl font-black text-emerald-600">65.4%</span></div>
+                                                            <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">LTV Ratio</span><span className="text-xs text-gray-600 font-bold">Valor de vida del cliente</span></div><span className="text-xl font-black text-purple-600">3.2x</span></div>
+                                                            <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Scaling Cap</span><span className="text-xs text-gray-600 font-bold">Potencial de escalado</span></div><span className="text-xl font-black text-gray-900">Alto</span></div>
+                                                        </>
+                                                    ) : selectedInventoryCategory === 'stuck' ? (
+                                                        <>
+                                                            <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Dead Capital</span><span className="text-xs text-gray-600 font-bold">Dinero sin rotación</span></div><span className="text-xl font-black text-rose-600">$24.5M</span></div>
+                                                            <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Holding Cost</span><span className="text-xs text-gray-600 font-bold">Costo de inacción/mes</span></div><span className="text-xl font-black text-rose-500">$480.000</span></div>
+                                                            <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Inventory Aging</span><span className="text-xs text-gray-600 font-bold">Antigüedad promedio</span></div><span className="text-xl font-black text-gray-900">58 días</span></div>
+                                                        </>
+                                                    ) : selectedInventoryCategory === 'decline' ? (
+                                                        <>
+                                                            <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Residue Risk</span><span className="text-xs text-gray-600 font-bold">Riesgo de obsolescencia</span></div><span className="text-xl font-black text-amber-600">Muy Alto</span></div>
+                                                            <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Demand Drop</span><span className="text-xs text-gray-600 font-bold">Caída vs. Trimestre ant.</span></div><span className="text-xl font-black text-rose-600">-48.2%</span></div>
+                                                            <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Evacuation Priority</span><span className="text-xs text-gray-600 font-bold">Nivel de urgencia</span></div><span className="text-xl font-black text-gray-900">Inmediata</span></div>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Daily Lost Sales</span><span className="text-xs text-gray-600 font-bold">Ventas perdidas por día</span></div><span className="text-xl font-black text-rose-600">$1.2M</span></div>
+                                                            <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Customer Churn Risk</span><span className="text-xs text-gray-600 font-bold">Riesgo de fuga a competencia</span></div><span className="text-xl font-black text-blue-600">Alto (15%)</span></div>
+                                                            <div className="flex justify-between items-center group"><div className="space-y-1"><span className="text-[10px] text-gray-400 font-black uppercase block">Time-to-Out</span><span className="text-xs text-gray-600 font-bold">Tiempo para stock cero</span></div><span className="text-xl font-black text-gray-900">48 horas</span></div>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
+
+                                            <div className="bg-gray-900 p-10 rounded-[3rem] text-white space-y-8 flex flex-col justify-center relative overflow-hidden shadow-2xl">
+                                                <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none uppercase font-black text-8xl">BI</div>
+                                                <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest italic relative z-10">Bayt Strategic Argumentation</p>
+                                                <p className="text-base text-gray-300 font-medium leading-relaxed italic relative z-10">
+                                                    {selectedInventoryCategory === 'winners' ? '"Estos productos son el 20% de tu inventario que genera el 80% de tu rentabilidad. El argumento para actuar es simple: si duplicas la inversión aquí, tu margen neto crecerá exponencialmente sin aumentar costos fijos. No solo vendes un producto, vendes el ancla de tu negocio."' :
+                                                     selectedInventoryCategory === 'stuck' ? '"Tener $24.5M en una bodega es perder dinero cada hora por inflación y costo de oportunidad. Si liberas este capital hoy con un descuento del 25%, podrías reinvertirlo en [GANADORES] y generar $15M adicionales en 30 días. El capital estancado es el cáncer de la liquidez."' :
+                                                     selectedInventoryCategory === 'decline' ? '"La demanda del mercado ha mutado. Seguir manteniendo este stock a precio full es una batalla perdida. El plan es evacuar el inventario restante mediante Bundles con productos Top para limpiar la bodega y recuperar el 100% de la inversión inicial antes de que el valor residual caiga a cero."' :
+                                                     '"Cada minuto que el botón [Montar Orden] no es presionado, tu tienda está regalando clientes a la competencia. El costo de adquisición de un cliente nuevo es 5 veces mayor que retener a uno actual; no los dejes ir por falta de stock básico. Esta es una emergencia operativa."' }
+                                                </p>
+                                                <div className="h-px w-full bg-white/10 relative z-10"></div>
+                                                <div className="flex items-center gap-4 relative z-10">
+                                                    <div className="h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center text-purple-400 border border-white/10 shadow-xl">🤖</div>
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Impacto Proyectado: <span className="text-emerald-400">Excelente</span></p>
+                                                </div>
+                                            </div>
+                                                                            </div>
+                                        
+                                                                            {/* NUEVO CARD: Hoja de Ruta Operativa */}
+                                                                            <div className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-8 mt-10">
+                                                                                <div className="flex items-center justify-between border-b border-gray-50 pb-6">
+                                                                                    <div>
+                                                                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                                                                                            <Layers size={18} className="text-purple-600" /> Hoja de Ruta Operativa
+                                                                                        </h4>
+                                                                                        <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Secuencia de ejecución automatizada por Bayt</p>
+                                                                                    </div>
+                                                                                    <div className="h-10 w-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
+                                                                                        <ZapIcon size={20} />
+                                                                                    </div>
+                                                                                </div>
+                                                                                
+                                                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                                                                    {selectedInventoryCategory && strategyDetails[selectedInventoryCategory].map((step, idx) => (
+                                                                                        <div key={idx} className="relative p-6 bg-gray-50 rounded-[2rem] border border-transparent hover:border-purple-100 transition-all group">
+                                                                                            <div className="absolute -top-3 -left-3 h-8 w-8 bg-gray-900 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-lg">
+                                                                                                {idx + 1}
+                                                                                            </div>
+                                                                                            <h5 className="text-xs font-black text-gray-900 uppercase mb-2 mt-2">{step.step}</h5>
+                                                                                            <p className="text-[10px] text-gray-500 font-medium leading-relaxed">{step.desc}</p>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                        
+                                                                                                                    <div className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-8 mt-10">
+                                        
+                                                                                                                        {selectedInventoryCategory === 'winners' ? (
+                                        
+                                                                                                                                                                            <>
+                                        
+                                                                                                                                                                                <div className="flex items-center justify-between border-b border-gray-50 pb-6">
+                                        
+                                                                                                                                                                                    <div>
+                                        
+                                                                                                                                                                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                                        
+                                                                                                                                                                                            <Trophy size={18} className="text-emerald-500" /> Ranking de Rentabilidad Crítica (80/20)
+                                        
+                                                                                                                                                                                        </h4>
+                                        
+                                                                                                                                                                                        <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Productos 'Ancla' que generan el 80% de tu utilidad neta</p>
+                                        
+                                                                                                                                                                                    </div>
+                                        
+                                                                                                                                                                                    <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-3 py-1 rounded-full uppercase italic">Core Business Assets</span>
+                                        
+                                                                                                                                                                                </div>
+                                        
+                                                                                                                                                                                <div className="grid grid-cols-1 gap-4">
+                                        
+                                                                                                                                                                                    {[
+                                        
+                                                                                                                                                                                        { rank: 1, name: "Tabletas Purificadoras X", margin: "68%", contribution: 124500000, efficiency: "Alta", label: "Ancla Principal" },
+                                        
+                                                                                                                                                                                        { rank: 2, name: "Kit Supervivencia 360", margin: "52%", contribution: 88400000, efficiency: "Máxima", label: "Multiplicador de Margen" },
+                                        
+                                                                                                                                                                                        { rank: 3, name: "Filtro de Carbón Pro", margin: "45%", contribution: 72000000, efficiency: "Estable", label: "Generador de Flujo" },
+                                        
+                                                                                                                                                                                        { rank: 4, name: "Botella Térmica Bayup", margin: "42%", contribution: 45000000, efficiency: "Media", label: "Activo de Retención" },
+                                        
+                                                                                                                                                                                        { rank: 5, name: "Linterna Solar Pro", margin: "38%", contribution: 36000000, efficiency: "Escalable", label: "Potencial de Crecimiento" }
+                                        
+                                                                                                                                                                                    ].map((product, idx) => (
+                                        
+                                                                                                                                                                                        <div key={idx} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2.5rem] hover:bg-white hover:shadow-xl hover:scale-[1.02] transition-all border border-transparent hover:border-gray-100 group">
+                                        
+                                                                                                                                                                                            <div className="flex items-center gap-8">
+                                        
+                                                                                                                                                                                                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${
+                                        
+                                                                                                                                                                                                    idx === 0 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200' :
+                                        
+                                                                                                                                                                                                    idx === 1 ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' :
+                                        
+                                                                                                                                                                                                    idx === 2 ? 'bg-gray-900 text-white' : 'bg-white text-gray-400 border border-gray-200'
+                                        
+                                                                                                                                                                                                }`}>
+                                        
+                                                                                                                                                                                                    {idx + 1}
+                                        
+                                                                                                                                                                                                </div>
+                                        
+                                                                                                                                                                                                <div>
+                                        
+                                                                                                                                                                                                    <div className="flex items-center gap-2">
+                                        
+                                                                                                                                                                                                        <p className="text-sm font-black text-gray-900 uppercase italic">{product.name}</p>
+                                        
+                                                                                                                                                                                                        <span className="text-[7px] font-black bg-gray-900 text-white px-2 py-0.5 rounded-full uppercase tracking-tighter">{product.label}</span>
+                                        
+                                                                                                                                                                                                    </div>
+                                        
+                                                                                                                                                                                                    <div className="flex items-center gap-4 mt-1">
+                                        
+                                                                                                                                                                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Margen Neto: <span className="text-emerald-600">{product.margin}</span></p>
+                                        
+                                                                                                                                                                                                        <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
+                                        
+                                                                                                                                                                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Eficiencia: <span className="text-gray-900">{product.efficiency}</span></p>
+                                        
+                                                                                                                                                                                                    </div>
+                                        
+                                                                                                                                                                                                </div>
+                                        
+                                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                                            <div className="text-right">
+                                        
+                                                                                                                                                                                                <p className="text-xs font-black text-gray-900">+{formatCurrency(product.contribution)}</p>
+                                        
+                                                                                                                                                                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Contribución a Utilidad</p>
+                                        
+                                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                                        </div>
+                                        
+                                                                                                                                                                                    ))}
+                                        
+                                                                                                                                                                                </div>
+                                        
+                                                                                                                                                                            </>
+                                        
+                                                                                                                        ) : (
+                                        
+                                                                                                                            <>
+                                        
+                                                                                                                                <div className="flex items-center justify-between">
+                                        
+                                                                                                                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Desglose de Inventario Crítico</h4>
+                                        
+                                                                                                                                    <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-3 py-1 rounded-full uppercase">Acción Recomendada por Referencia</span>
+                                        
+                                                                                                                                </div>
+                                        
+                                                                                                                                <div className="grid grid-cols-1 gap-4">
+                                        
+                                                                                                                                    {[1, 2, 3].map((item) => (
+                                        
+                                                                                                                                        <div key={item} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2rem] hover:bg-gray-100 transition-all border border-transparent hover:border-gray-200 group">
+                                        
+                                                                                                                                            <div className="flex items-center gap-6">
+                                        
+                                                                                                                                                <div className="h-14 w-14 bg-white rounded-2xl shadow-inner flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">📦</div>
+                                        
+                                                                                                                                                <div>
+                                        
+                                                                                                                                                    <p className="text-sm font-black text-gray-900 uppercase tracking-tight italic">Ref: SKU-{item}42-PRO</p>
+                                        
+                                                                                                                                                    <div className="flex items-center gap-2 mt-1">
+                                        
+                                                                                                                                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                        
+                                                                                                                                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Unidades en Riesgo: {15 * item}</p>
+                                        
+                                                                                                                                                    </div>
+                                        
+                                                                                                                                                </div>
+                                        
+                                                                                                                                            </div>
+                                        
+                                                                                                                                            <div className="flex items-center gap-4">
+                                        
+                                                                                                                                                <div className="text-right hidden sm:block">
+                                        
+                                                                                                                                                    <p className="text-[10px] font-black text-gray-900 uppercase">Rentabilidad</p>
+                                        
+                                                                                                                                                    <p className="text-[10px] font-bold text-emerald-600 uppercase">+{25 + item}%</p>
+                                        
+                                                                                                                                                </div>
+                                        
+                                                                                                                                                <button className="h-12 px-8 bg-gray-900 hover:bg-purple-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl transition-all transform group-hover:scale-105 active:scale-95">Aplicar IA</button>
+                                        
+                                                                                                                                            </div>
+                                        
+                                                                                                                                        </div>
+                                        
+                                                                                                                                    ))}
+                                        
+                                                                                                                                </div>
+                                        
+                                                                                                                            </>
+                                        
+                                                                                                                        )}
+                                        
+                                                                                                                    </div>
+                                    </>
+                                )}
                             </div>
 
                             <div className="p-8 bg-white border-t border-gray-100 flex gap-6">
                                 <button onClick={() => setSelectedInventoryCategory(null)} className="flex-1 py-5 bg-gray-50 text-gray-400 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.2em] hover:text-gray-900 transition-colors">Posponer Análisis</button>
                                 <button 
                                     onClick={handleExecuteStrategicPlan}
-                                    disabled={isExecutingStrategy}
-                                    className="flex-[2.5] py-5 bg-gray-900 hover:bg-black text-white rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 group disabled:opacity-50"
+                                    disabled={isExecutingStrategy || (selectedInventoryCategory && isAlreadyExecuted(selectedInventoryCategory))}
+                                    className={`flex-[2.5] py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 group disabled:opacity-50 ${
+                                        selectedInventoryCategory && isAlreadyExecuted(selectedInventoryCategory) 
+                                        ? 'bg-emerald-500 text-white cursor-not-allowed' 
+                                        : 'bg-gray-900 hover:bg-black text-white'
+                                    }`}
                                 >
                                     {isExecutingStrategy ? (
                                         <>Desplegando Estrategia... <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /></>
+                                    ) : selectedInventoryCategory && isAlreadyExecuted(selectedInventoryCategory) ? (
+                                        <>Bayt ya está optimizando esto <CheckCircle2 size={16} /></>
                                     ) : (
                                         <>Ejecutar Plan Estratégico Bayt <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" /></>
                                     )}
@@ -664,22 +885,11 @@ export default function WebAnalyticsPage() {
                 {selectedCoupon && (
                     <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
                         <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-5xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col max-h-[90vh]">
-                            {/* Cabecera Premium */}
-                            <div className="bg-gray-900 p-8 text-white relative flex-shrink-0 overflow-hidden">
-                                <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
-                                    <Tag size={200} />
-                                </div>
-                                <button 
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setSelectedCoupon(null);
-                                    }} 
-                                    className="absolute top-8 right-8 h-12 w-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-all active:scale-90 z-[100] group/close"
-                                >
-                                    <X size={24} className="text-white group-hover:rotate-90 transition-transform duration-300" />
+                            <div className="bg-gray-900 p-8 text-white relative flex-shrink-0">
+                                <button onClick={() => setSelectedCoupon(null)} className="absolute top-8 right-8 h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center hover:bg-rose-500 transition-all z-[100]">
+                                    <X size={20} />
                                 </button>
-                                <div className="relative z-10 flex items-center gap-8">
+                                <div className="flex items-center gap-8 relative z-10">
                                     <div className="h-20 w-20 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-[1.8rem] flex items-center justify-center shadow-2xl border-2 border-white/10">
                                         <Tag size={36} />
                                     </div>
@@ -695,45 +905,32 @@ export default function WebAnalyticsPage() {
                                 </div>
                             </div>
 
-                            {/* Cuerpo con Scroll */}
                             <div className="p-10 space-y-10 bg-gray-50/50 overflow-y-auto custom-scrollbar flex-1">
                                 
-                                {/* KPIs de Impacto Inmediato */}
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                    {[
-                                        { label: 'Ingresos Reales', val: formatCurrency(selectedCoupon.r), icon: <DollarSign size={14}/>, color: 'text-emerald-600' },
-                                        { label: 'Uso de Cupón', val: '452 / 1.000', icon: <Activity size={14}/>, color: 'text-purple-600' },
-                                        { label: 'Ticket Promedio', val: formatCurrency(158400), icon: <ShoppingCart size={14}/>, color: 'text-blue-600' },
-                                        { label: 'Rentabilidad (ROI)', val: selectedCoupon.roi, icon: <TrendingUp size={14}/>, color: 'text-emerald-500' },
-                                    ].map((kpi, i) => (
-                                        <div key={i} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm transition-all hover:shadow-md group">
+                                    {[ { label: 'Ingresos Reales', val: formatCurrency(selectedCoupon.r), icon: <DollarSign size={14}/>, color: 'text-emerald-600' }, { label: 'Uso de Cupón', val: '452 / 1.000', icon: <Activity size={14}/>, color: 'text-purple-600' }, { label: 'Ticket Promedio', val: formatCurrency(158400), icon: <ShoppingCart size={14}/>, color: 'text-blue-600' }, { label: 'Rentabilidad (ROI)', val: selectedCoupon.roi, icon: <TrendingUp size={14}/>, color: 'text-emerald-500' }, ].map((kpi, i) => (
+                                        <div key={i} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
                                             <div className="flex items-center gap-2 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">
                                                 {kpi.icon} {kpi.label}
                                             </div>
-                                            <h4 className={`text-xl font-black ${kpi.color} group-hover:scale-105 transition-transform origin-left`}>{kpi.val}</h4>
+                                            <h4 className={`text-xl font-black ${kpi.color}`}>{kpi.val}</h4>
                                         </div>
                                     ))}
                                 </div>
 
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                    {/* Perfil Demográfico y Género */}
                                     <div className="lg:col-span-2 bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
                                         <div className="flex items-center justify-between">
                                             <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
                                                 <Users size={16} className="text-purple-600" /> Perfil de Audiencia
                                             </h4>
-                                            <div className="flex gap-2">
-                                                <span className="text-[10px] font-black text-gray-400 uppercase bg-gray-50 px-3 py-1 rounded-lg">65% Nuevos</span>
-                                                <span className="text-[10px] font-black text-gray-400 uppercase bg-gray-50 px-3 py-1 rounded-lg">35% Fieles</span>
-                                            </div>
                                         </div>
                                         
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                            {/* Género */}
                                             <div className="space-y-6">
                                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] border-b border-gray-50 pb-2">Distribución de Género</p>
                                                 <div className="space-y-4">
-                                                    {[ { g: 'Mujeres', p: '68%', c: 'bg-rose-400' }, { g: 'Hombres', p: '28%', c: 'bg-blue-400' }, { g: 'Otros', p: '4%', c: 'bg-gray-300' } ].map((item, i) => (
+                                                    {[ { g: 'Mujeres', p: '68%', c: 'bg-rose-400' }, { g: 'Hombres', p: '28%', c: 'bg-blue-400' } ].map((item, i) => (
                                                         <div key={i} className="space-y-2">
                                                             <div className="flex justify-between text-[10px] font-black uppercase"><span>{item.g}</span><span>{item.p}</span></div>
                                                             <div className="h-2 w-full bg-gray-50 rounded-full overflow-hidden">
@@ -743,11 +940,10 @@ export default function WebAnalyticsPage() {
                                                     ))}
                                                 </div>
                                             </div>
-                                            {/* Edad */}
                                             <div className="space-y-6">
                                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] border-b border-gray-50 pb-2">Rango de Edad</p>
                                                 <div className="space-y-4">
-                                                    {[ { r: '18-24', p: '45%', c: 'bg-purple-600' }, { r: '25-34', p: '38%', c: 'bg-purple-400' }, { r: '35+', p: '17%', c: 'bg-purple-200' } ].map((item, i) => (
+                                                    {[ { r: '18-24', p: '45%', c: 'bg-purple-600' }, { r: '25-34', p: '38%', c: 'bg-purple-400' } ].map((item, i) => (
                                                         <div key={i} className="space-y-2">
                                                             <div className="flex justify-between text-[10px] font-black uppercase"><span>{item.r} años</span><span>{item.p}</span></div>
                                                             <div className="h-2 w-full bg-gray-50 rounded-full overflow-hidden">
@@ -760,120 +956,33 @@ export default function WebAnalyticsPage() {
                                         </div>
                                     </div>
 
-                                    {/* Dispositivo y Canal */}
                                     <div className="bg-gray-900 p-10 rounded-[3rem] text-white space-y-8 shadow-2xl relative overflow-hidden">
-                                        <div className="absolute -right-4 -bottom-4 text-7xl opacity-5 font-black uppercase pointer-events-none">TECH</div>
+                                        <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
+                                            <Tag size={200} />
+                                        </div>
                                         <h4 className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Tecnología & Origen</h4>
-                                        <div className="space-y-10">
-                                            {/* Dispositivos */}
-                                            <div className="flex justify-around items-center">
-                                                <div className="text-center group">
-                                                    <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto group-hover:bg-purple-600 transition-colors">
-                                                        <Smartphone size={24} />
-                                                    </div>
-                                                    <p className="text-lg font-black mt-2">82%</p>
-                                                    <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Móvil</p>
-                                                </div>
-                                                <div className="text-center group">
-                                                    <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto group-hover:bg-blue-600 transition-colors">
-                                                        <Monitor size={24} />
-                                                    </div>
-                                                    <p className="text-lg font-black mt-2">18%</p>
-                                                    <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">PC / Tablet</p>
-                                                </div>
+                                        <div className="flex justify-around items-center">
+                                            <div className="text-center">
+                                                <Smartphone size={24} className="mx-auto" />
+                                                <p className="text-lg font-black mt-2">82%</p>
+                                                <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Móvil</p>
                                             </div>
-                                            {/* Canales */}
-                                            <div className="space-y-4">
-                                                <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest text-center">Canales de Llegada</p>
-                                                <div className="space-y-3">
-                                                    {[ 
-                                                        { s: 'Instagram', p: '55%', i: <Share2 size={10}/> },
-                                                        { s: 'WhatsApp', p: '25%', i: <MessageSquare size={10}/> },
-                                                        { s: 'Facebook', p: '15%', i: <Globe size={10}/> },
-                                                        { s: 'Otros', p: '5%', i: <Search size={10}/> } 
-                                                    ].map((item, i) => (
-                                                        <div key={i} className="flex items-center gap-3">
-                                                            <span className="w-16 text-[9px] font-bold text-gray-400 uppercase">{item.s}</span>
-                                                            <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                                                <div className="h-full bg-emerald-400" style={{ width: item.p }} />
-                                                            </div>
-                                                            <span className="w-8 text-[9px] font-black text-emerald-400 text-right">{item.p}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                            <div className="text-center">
+                                                <Monitor size={24} className="mx-auto" />
+                                                <p className="text-lg font-black mt-2">18%</p>
+                                                <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Desktop</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Comportamiento Temporal */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    {/* Picos Horarios */}
-                                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
-                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
-                                            <Clock size={16} className="text-amber-500" /> Picos de Actividad
-                                        </h4>
-                                        <div className="flex items-end justify-between h-40 pt-4 gap-2">
-                                            {[ 20, 35, 25, 60, 95, 80, 45, 30 ].map((h, i) => (
-                                                <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                                                    <div className="w-full bg-gray-50 rounded-t-xl relative overflow-hidden flex items-end h-full">
-                                                        <motion.div 
-                                                            initial={{ height: 0 }} 
-                                                            animate={{ height: `${h}%` }} 
-                                                            className={`w-full ${h > 80 ? 'bg-amber-500' : 'bg-gray-200'} group-hover:bg-purple-600 transition-colors`}
-                                                        />
-                                                    </div>
-                                                    <span className="text-[8px] font-bold text-gray-400 uppercase">
-                                                        {['08h', '10h', '12h', '14h', '18h', '20h', '22h', '00h'][i]}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <p className="text-[10px] text-gray-400 font-medium italic text-center">"La conversión máxima ocurre a las <span className="font-bold text-gray-900">8:45 PM</span> los días de semana."</p>
-                                    </div>
-
-                                    {/* Geografía y Días */}
-                                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm grid grid-cols-2 gap-8">
-                                        <div className="space-y-6">
-                                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2 flex items-center gap-2">
-                                                <Globe size={12} className="text-blue-500"/> Geografía
-                                            </h4>
-                                            <div className="space-y-4">
-                                                {[ { l: 'Bogotá', p: '42%' }, { l: 'Medellín', p: '28%' }, { l: 'Cali', p: '12%' }, { l: 'Otras', p: '18%' } ].map((item, i) => (
-                                                    <div key={i} className="flex justify-between items-center group">
-                                                        <span className="text-[10px] font-bold text-gray-600 uppercase">{item.l}</span>
-                                                        <span className="text-[10px] font-black text-gray-900">{item.p}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-6">
-                                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2 flex items-center gap-2">
-                                                <Calendar size={12} className="text-emerald-500"/> Días Top
-                                            </h4>
-                                            <div className="space-y-4">
-                                                {[ { d: 'Sábados', p: '35%' }, { d: 'Viernes', p: '25%' }, { d: 'Domingos', p: '20%' }, { d: 'Otros', p: '20%' } ].map((item, i) => (
-                                                    <div key={i} className="flex justify-between items-center group">
-                                                        <span className="text-[10px] font-bold text-gray-600 uppercase">{item.d}</span>
-                                                        <span className="text-[10px] font-black text-gray-900">{item.p}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Resumen Estratégico Bayt */}
                                 <div className="bg-gradient-to-r from-purple-600 to-indigo-700 p-10 rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
-                                        <Bot size={120} />
-                                    </div>
                                     <div className="relative z-10 flex items-start gap-8">
                                         <div className="h-16 w-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-4xl shadow-xl">🤖</div>
                                         <div className="flex-1 space-y-4">
-                                            <h4 className="text-xl font-black italic tracking-tight">Análisis Estratégico de Campaña</h4>
-                                            <p className="text-purple-50 text-sm font-medium leading-relaxed max-w-2xl">
-                                                "Esta campaña ha sido altamente efectiva para atraer a un público joven (<span className="text-white font-bold">18-24 años</span>) mayoritariamente <span className="text-white font-bold">femenino</span>. El rendimiento en dispositivos móviles es superior a la media, sugiriendo que el contenido compartido fue optimizado para vertical. Se recomienda extender la vigencia por 15 días más dada la alta rentabilidad detectada."
+                                            <h4 className="text-xl font-black italic tracking-tight">Análisis Estratégico Bayt</h4>
+                                            <p className="text-purple-50 text-sm font-medium leading-relaxed max-w-2xl italic">
+                                                "Esta campaña ha sido altamente efectiva para atraer a un público joven. Se recomienda extender la vigencia por 15 días más dada la alta rentabilidad detectada."
                                             </p>
                                         </div>
                                     </div>
@@ -881,99 +990,43 @@ export default function WebAnalyticsPage() {
 
                             </div>
                             
-                            {/* Botón de Cierre */}
-                            <div className="p-8 bg-white border-t border-gray-100 flex gap-4 flex-shrink-0">
-                                <button onClick={() => setSelectedCoupon(null)} className="w-full py-5 bg-gray-900 hover:bg-black text-white rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3">
-                                    Cerrar Análisis de Campaña <ArrowRight size={14} />
+                            <div className="p-8 bg-white border-t border-gray-100">
+                                <button onClick={() => setSelectedCoupon(null)} className="w-full py-5 bg-gray-900 text-white rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95">
+                                    Cerrar Análisis de Campaña
                                 </button>
                             </div>
                         </motion.div>
                     </div>
                 )}
+
                 {isProductHistoryModalOpen && (
                     <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
                         <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-4xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col max-h-[90vh]">
-                            <div className="bg-gray-900 p-8 text-white relative flex-shrink-0 overflow-hidden">
-                                <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
-                                    <Activity size={180} />
-                                </div>
+                            <div className="bg-gray-900 p-8 text-white relative flex-shrink-0">
                                 <button onClick={() => setIsProductHistoryModalOpen(false)} className="absolute top-8 right-8 h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center hover:bg-rose-500 transition-all z-10">
                                     <X size={20} />
                                 </button>
                                 <div className="relative z-10 flex items-center gap-6">
-                                    <div className="h-16 w-16 bg-amber-500 rounded-2xl flex items-center justify-center text-3xl shadow-xl border-2 border-white/10">
-                                        💡
-                                    </div>
+                                    <div className="h-16 w-16 bg-amber-500 rounded-2xl flex items-center justify-center text-3xl shadow-xl">💡</div>
                                     <div>
                                         <h2 className="text-2xl font-black tracking-tight uppercase italic text-white">Tabletas Purificadoras X</h2>
-                                        <p className="text-amber-400 text-[10px] font-black uppercase mt-1 tracking-widest">Historial Estratégico de Rendimiento</p>
+                                        <p className="text-amber-400 text-[10px] font-black uppercase mt-1 tracking-widest">Historial Estratégico</p>
                                     </div>
                                 </div>
                             </div>
-
-                            <div className="p-10 space-y-8 bg-gray-50/50 overflow-y-auto custom-scrollbar flex-1">
+                            <div className="p-10 space-y-8 bg-gray-50/50 overflow-y-auto flex-1">
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                    {[
-                                        { label: 'Ventas (Feb Pasado)', val: '1.240 uds', icon: <Package size={14}/>, color: 'text-gray-900' },
-                                        { label: 'Ingresos Netos', val: formatCurrency(32240000), icon: <DollarSign size={14}/>, color: 'text-emerald-600' },
-                                        { label: 'Nuevos Clientes', val: '185', icon: <Users size={14}/>, color: 'text-blue-600' },
-                                        { label: 'Tasa Conversión', val: '8.4%', icon: <Target size={14}/>, color: 'text-purple-600' },
-                                    ].map((stat, i) => (
-                                        <div key={i} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
-                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-2">
-                                                {stat.icon} {stat.label}
-                                            </p>
-                                            <p className={`text-xl font-black ${stat.color}`}>{stat.val}</p>
+                                    {[ { l: 'Ventas Feb', v: '1.240' }, { l: 'Ingresos', v: '$32.2M' }, { l: 'Nuevos', v: '185' }, { l: 'Conv', v: '8.4%' } ].map((s, i) => (
+                                        <div key={i} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm text-center">
+                                            <p className="text-[9px] font-black text-gray-400 uppercase mb-2">{s.l}</p>
+                                            <p className="text-xl font-black text-gray-900">{s.v}</p>
                                         </div>
                                     ))}
                                 </div>
-
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
-                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest border-b border-gray-50 pb-4">Argumentación de Bayt AI</h4>
-                                        <div className="space-y-4">
-                                            {[
-                                                "Estacionalidad confirmada: Febrero representa el 22% de tus ventas anuales de este producto.",
-                                                "Adquisición de clientes: Este producto tiene un 40% más de probabilidad de atraer clientes nuevos que el resto del catálogo.",
-                                                "Rentabilidad: El margen neto por unidad es del 45% tras costos logísticos.",
-                                                "Fuga evitable: Perdiste aprox. $12M el año pasado por rotura de stock en la tercera semana de febrero."
-                                            ].map((text, i) => (
-                                                <div key={i} className="flex gap-4 items-start">
-                                                    <div className="h-5 w-5 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                                                        <CheckCircle2 size={12}/>
-                                                    </div>
-                                                    <p className="text-xs text-gray-600 font-medium leading-relaxed">{text}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-gray-900 p-10 rounded-[3rem] text-white flex flex-col justify-between relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 p-8 opacity-5">
-                                            <TrendingUp size={120} />
-                                        </div>
-                                        <div>
-                                            <p className="text-[9px] font-black text-purple-400 uppercase tracking-widest mb-4">Proyección de Venta (Feb 2026)</p>
-                                            <h4 className="text-3xl font-black italic tracking-tight">+$45.800.000</h4>
-                                            <p className="text-gray-400 text-xs mt-2 font-medium">Potencial de ingresos si se mantiene el stock recomendado.</p>
-                                        </div>
-                                        <div className="pt-6 border-t border-white/10 flex items-center gap-4">
-                                            <div className="h-10 w-10 bg-purple-600 rounded-xl flex items-center justify-center text-white">
-                                                <Bot size={20} />
-                                            </div>
-                                            <p className="text-[10px] font-bold text-gray-300 italic uppercase">Recomendación: Compra prioritaria de 450 unidades.</p>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
-
-                            <div className="p-8 bg-white border-t border-gray-100 flex gap-4 flex-shrink-0">
-                                <button onClick={() => setIsProductHistoryModalOpen(false)} className="flex-1 py-5 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-colors">
-                                    Cerrar Análisis
-                                </button>
-                                <button onClick={() => { setIsProductHistoryModalOpen(false); setIsOrderModalOpen(true); }} className="flex-[2] py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all">
-                                    Proceder con la Orden de Compra
-                                </button>
+                            <div className="p-8 bg-white border-t border-gray-100 flex gap-4">
+                                <button onClick={() => setIsProductHistoryModalOpen(false)} className="flex-1 py-5 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase">Cerrar</button>
+                                <button onClick={() => { setIsProductHistoryModalOpen(false); setIsOrderModalOpen(true); }} className="flex-[2] py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl">Montar Orden</button>
                             </div>
                         </motion.div>
                     </div>
@@ -987,109 +1040,46 @@ export default function WebAnalyticsPage() {
                                     <X size={20} />
                                 </button>
                                 <div className="flex items-center gap-4">
-                                    <div className="h-14 w-14 bg-amber-500 rounded-[1.5rem] flex items-center justify-center shadow-lg">
-                                        <ShoppingCart size={28} />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-2xl font-black tracking-tight">Orden de Compra</h2>
-                                        <p className="text-amber-400 text-[10px] font-black uppercase mt-1">Bayt Sugerencia</p>
-                                    </div>
+                                    <div className="h-14 w-14 bg-amber-500 rounded-[1.5rem] flex items-center justify-center shadow-lg"><ShoppingCart size={28} /></div>
+                                    <div><h2 className="text-2xl font-black tracking-tight">Orden de Compra</h2><p className="text-amber-400 text-[10px] font-black uppercase mt-1">Bayt Sugerencia</p></div>
                                 </div>
                             </div>
                             <div className="flex-1 overflow-y-auto p-10 space-y-8 bg-gray-50/30 custom-scrollbar">
                                 <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
-                                    <div className="flex justify-between items-center pb-4 border-b border-gray-50">
-                                        <span className="text-[10px] font-black uppercase text-gray-400">Producto</span>
-                                        <span className="text-sm font-black text-gray-900">{orderForm.productName}</span>
-                                    </div>
+                                    <div className="flex justify-between items-center pb-4 border-b border-gray-50"><span className="text-[10px] font-black uppercase text-gray-400">Producto</span><span className="text-sm font-black text-gray-900">{orderForm.productName}</span></div>
                                     <div className="grid grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black text-gray-400 uppercase">Unidades</label>
-                                            <input 
-                                                type="text" 
-                                                value={formatNumber(orderForm.quantity)} 
-                                                onChange={(e) => setOrderForm({ ...orderForm, quantity: unformatNumber(e.target.value) })} 
-                                                className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold shadow-inner" 
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black text-gray-400 uppercase">Total</label>
-                                            <div className="w-full p-4 bg-gray-100 rounded-2xl font-black text-gray-500">{formatCurrency(orderForm.quantity * orderForm.pricePerUnit)}</div>
-                                        </div>
+                                        <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase">Unidades</label><input type="text" value={formatNumber(orderForm.quantity)} onChange={(e) => setOrderForm({ ...orderForm, quantity: unformatNumber(e.target.value) })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold" /></div>
+                                        <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase">Total</label><div className="w-full p-4 bg-gray-100 rounded-2xl font-black text-gray-500">{formatCurrency(orderForm.quantity * orderForm.pricePerUnit)}</div></div>
                                     </div>
                                 </div>
                                 <div className="space-y-4 relative">
-                                    <div className="flex justify-between items-end px-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Proveedor</label>
-                                        <button onClick={() => setIsRegisterProviderOpen(true)} className="text-[9px] font-black text-purple-600 uppercase underline">+ Registrar Nuevo</button>
-                                    </div>
-                                    <button onClick={() => setIsProviderDropdownOpen(!isProviderDropdownOpen)} className="w-full p-5 bg-white border border-gray-100 rounded-3xl text-sm font-black flex justify-between items-center shadow-sm">
-                                        {orderForm.provider || 'Selecciona un aliado...'}
-                                        <ChevronDown size={16} />
-                                    </button>
-                                    <AnimatePresence>
-                                        {isProviderDropdownOpen && (
-                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-[600] max-h-48 overflow-y-auto">
-                                                {providers.map((p) => (
-                                                    <button key={p.id} onClick={() => { setOrderForm({ ...orderForm, provider: p.name }); setIsProviderDropdownOpen(false); }} className="w-full px-6 py-4 text-left hover:bg-purple-50 transition-colors flex items-center justify-between">
-                                                        <span className="text-xs font-black uppercase text-gray-700">{p.name}</span>
-                                                        {orderForm.provider === p.name && <CheckCircle2 size={14} className="text-purple-600" />}
-                                                    </button>
-                                                ))}
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Instrucciones o Notas del Pedido</label>
-                                    <textarea 
-                                        value={orderForm.notes} 
-                                        onChange={(e) => setOrderForm({ ...orderForm, notes: e.target.value })}
-                                        placeholder="Ej: Por favor incluir factura comercial, tallas surtidas según inventario anterior..."
-                                        rows={3}
-                                        className="w-full p-5 bg-white border border-gray-100 rounded-[2rem] outline-none text-sm font-medium shadow-sm focus:border-purple-200 transition-all resize-none"
-                                    />
-                                </div>
-                                <div className="space-y-6 pt-6 border-t border-gray-100">
-                                    <div className="grid grid-cols-3 gap-4">
-                                        {[{ id: 'whatsapp', label: 'WhatsApp', icon: <MessageSquare size={18}/> }, { id: 'email', label: 'Email', icon: <Mail size={18}/> }, { id: 'reminder', label: 'Programar', icon: <Clock size={18}/> }].map((method) => (
-                                            <div key={method.id} onClick={() => setOrderForm({ ...orderForm, sending_method: method.id as any })} className={`p-4 rounded-3xl border-2 cursor-pointer transition-all flex flex-col items-center gap-2 ${orderForm.sending_method === method.id ? 'bg-purple-50 border-purple-600 shadow-md' : 'bg-white border-gray-100 opacity-60'}`}>
-                                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${orderForm.sending_method === method.id ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                                                    {method.icon}
-                                                </div>
-                                                <span className="text-[9px] font-black uppercase">{method.label}</span>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    <div className="flex justify-between items-end px-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Proveedor</label><button onClick={() => setIsRegisterProviderOpen(true)} className="text-[9px] font-black text-purple-600 uppercase underline">+ Nuevo</button></div>
+                                    <button onClick={() => setIsProviderDropdownOpen(!isProviderDropdownOpen)} className="w-full p-5 bg-white border border-gray-100 rounded-3xl text-sm font-black flex justify-between items-center shadow-sm">{orderForm.provider || 'Selecciona...'}<ChevronDown size={16} /></button>
+                                    {isProviderDropdownOpen && (
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-[600] max-h-48 overflow-y-auto">
+                                            {providers.map((p) => (
+                                                <button key={p.id} onClick={() => { setOrderForm({ ...orderForm, provider: p.name }); setIsProviderDropdownOpen(false); }} className="w-full px-6 py-4 text-left hover:bg-purple-50 flex items-center justify-between"><span className="text-xs font-black uppercase">{p.name}</span></button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="p-8 bg-white border-t border-gray-100 flex gap-4">
                                 <button onClick={() => setIsOrderModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cancelar</button>
-                                <button onClick={handleConfirmOrder} disabled={isSubmittingOrder} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] active:scale-95 transition-all">{isSubmittingOrder ? 'Cargando...' : 'Confirmar Pedido'}</button>
+                                <button onClick={handleConfirmOrder} disabled={isSubmittingOrder} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl transition-all">{isSubmittingOrder ? 'Cargando...' : 'Confirmar Pedido'}</button>
                             </div>
                         </motion.div>
                     </div>
                 )}
+
                 {isRegisterProviderOpen && (
                     <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
                         <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden relative border border-white/20">
-                            <div className="bg-gray-900 p-8 text-white">
-                                <h2 className="text-xl font-black tracking-tight flex items-center gap-3"><Users size={20}/> Nuevo Proveedor</h2>
-                            </div>
+                            <div className="bg-gray-900 p-8 text-white"><h2 className="text-xl font-black tracking-tight">Nuevo Proveedor</h2></div>
                             <div className="p-10 space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-gray-400 uppercase ml-1">Nombre Comercial</label>
-                                    <input value={newProvider.name} onChange={(e) => setNewProvider({ ...newProvider, name: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" placeholder="Ej: Distribuidora Tech S.A." />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-gray-400 uppercase ml-2">WhatsApp</label>
-                                    <input value={newProvider.phone} onChange={(e) => setNewProvider({ ...newProvider, phone: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" placeholder="+57 300 000 0000" />
-                                </div>
+                                <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase">Nombre Comercial</label><input value={newProvider.name} onChange={(e) => setNewProvider({ ...newProvider, name: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" /></div>
                             </div>
-                            <div className="p-8 bg-gray-50 flex gap-4">
-                                <button onClick={() => setIsRegisterProviderOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cancelar</button>
-                                <button onClick={handleCreateProvider} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg transition-all">Registrar Proveedor</button>
-                            </div>
+                            <div className="p-8 bg-gray-50 flex gap-4"><button onClick={() => setIsRegisterProviderOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cancelar</button><button onClick={handleCreateProvider} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg transition-all">Registrar</button></div>
                         </motion.div>
                     </div>
                 )}
