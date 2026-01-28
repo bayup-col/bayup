@@ -6,7 +6,7 @@ import {
   ShoppingCart, Package, AlertTriangle, ArrowUpRight, ArrowDownRight, Monitor, Smartphone, Search, 
   PieChart, BarChart3, Calendar, Layers, Sparkles, ChevronDown, Timer, ExternalLink, MessageSquare, 
   Mail, Share2, Download, Rocket, Trophy, ChevronRight, CheckCircle2, X, ArrowRight, Tag, AlertCircle,
-  Bot, Lightbulb, Info, HelpCircle
+  ZapIcon, Bot, Lightbulb, Info, HelpCircle, Radar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from "@/context/toast-context";
@@ -63,155 +63,50 @@ export default function WebAnalyticsPage() {
         finally { setIsSubmittingOrder(false); }
     };
 
-    // --- GENERADOR DE REPORTE PDF PROFESIONAL (7 PÁGINAS) ---
     const handleDownloadReport = async () => {
         setIsGeneratingPDF(true);
         try {
             const doc = new jsPDF();
-            const primaryColor = [147, 51, 234];
-            const darkColor = [17, 24, 39];
-
-            // PÁGINA 1: PORTADA
-            doc.setFillColor(darkColor[0], darkColor[1], darkColor[2]); doc.rect(0, 0, 210, 297, 'F');
+            doc.setFillColor(17, 24, 39); doc.rect(0, 0, 210, 297, 'F');
             doc.setTextColor(255, 255, 255); doc.setFontSize(50); doc.setFont('helvetica', 'bold'); doc.text('BAYUP', 20, 70);
-            doc.setFontSize(22); doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]); doc.text('BUSINESS INTELLIGENCE REPORT', 20, 90);
-            doc.setFontSize(14); doc.setTextColor(150, 150, 150); doc.setFont('helvetica', 'normal');
-            doc.text(`Empresa: SEBAS STORE`, 20, 130);
-            doc.text(`División: Análisis Web & Marketing Pro`, 20, 140);
-            doc.text(`Periodo: Últimos 30 días (${new Date().toLocaleDateString()})`, 20, 150);
-            doc.text(`ID Reporte: #BI-${Math.random().toString(36).substr(2, 9).toUpperCase()}`, 20, 160);
-
-            // PÁGINA 2: RESUMEN EJECUTIVO & FUNNEL
-            doc.addPage(); doc.setTextColor(darkColor[0], darkColor[1], darkColor[2]); doc.setFontSize(20); doc.setFont('helvetica', 'bold'); doc.text('1. Resumen Ejecutivo de Operación', 20, 30);
-            autoTable(doc, {
-                startY: 40,
-                head: [['Métrica Principal', 'Valor Actual', 'vs Periodo Anterior']],
-                body: [
-                    ['Ventas Brutas Totales', formatCurrency(3450000), '+18.5% (En alza)'],
-                    ['Ticket Promedio de Venta', formatCurrency(124000), '+5.2%'],
-                    ['Tasa de Conversión General', '4.8%', '+0.4%'],
-                    ['Ingresos Recuperados', formatCurrency(8900000), '+32%']
-                ],
-                theme: 'striped', headStyles: { fillColor: darkColor }
-            });
-            const funnelY = (doc as any).lastAutoTable.finalY + 20; doc.text('2. Análisis de Embudo (Sales Funnel)', 20, funnelY);
-            autoTable(doc, {
-                startY: funnelY + 10, head: [['Etapa del Proceso', 'Usuarios', '% Retención', '% Fuga']],
-                body: [['Sesiones Totales', '12,450', '100%', '0%'], ['Visualización Producto', '8,420', '67%', '33%'], ['Adición Carrito', '2,150', '17%', '74%'], ['Inicio Checkout', '840', '6%', '61%'], ['Compra Finalizada', '524', '4.2%', '37%']],
-                theme: 'grid', headStyles: { fillColor: primaryColor }
-            });
-
-            // PÁGINA 3: TRÁFICO
-            doc.addPage(); doc.text('3. Tráfico & Comportamiento de Usuario', 20, 30);
-            autoTable(doc, {
-                startY: 40, head: [['Canal de Origen', 'Sesiones', 'Rebote', 'Tiempo Promedio']],
-                body: [['Directo', '4,500', '12%', '4m 20s'], ['Instagram Ads', '3,200', '24%', '1m 45s'], ['Google SEO', '1,800', '18%', '3m 10s'], ['TikTok Shop', '1,200', '42%', '0m 55s'], ['WhatsApp Business', '850', '5%', '6m 12s']],
-                theme: 'striped', headStyles: { fillColor: [59, 130, 246] }
-            });
-            const tempY = (doc as any).lastAutoTable.finalY + 20; doc.text('Análisis de Temporalidad', 20, tempY);
-            doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.text('Peak de Tráfico: 2:00 PM - 4:00 PM', 25, tempY + 10); doc.text('Peak de Ventas Reales: 8:30 PM - 10:00 PM', 25, tempY + 18); doc.text('Día más rentable: Sábados', 25, tempY + 26); doc.text('Dispositivo Predominante: MÓVIL (82%)', 25, tempY + 34);
-
-            // PÁGINA 4: AUDIENCIA
-            doc.addPage(); doc.setFontSize(20); doc.setFont('helvetica', 'bold'); doc.text('4. Audiencia & Perfil del Cliente', 20, 30);
-            autoTable(doc, {
-                startY: 40, head: [['Segmento', 'Distribución / Valor']],
-                body: [['Clientes Nuevos', '76%'], ['Clientes Recurrentes', '24%'], ['Lifetime Value (LTV)', formatCurrency(458000)], ['Género Predominante', 'Mujeres (68%)'], ['Rango de Edad Top', '25 - 34 años (42%)'], ['Ubicación Principal', 'Bogotá, Colombia (45%)']],
-                theme: 'grid', headStyles: { fillColor: [79, 70, 229] }
-            });
-
-            // PÁGINA 5: INVENTARIO
-            doc.addPage(); doc.text('5. Desempeño de Productos & Inventario', 20, 30);
-            autoTable(doc, {
-                startY: 40, head: [['Producto', 'Ventas (30d)', 'Estado de Stock']],
-                body: [['iPhone 15 Pro Max', '142', 'Saludable'], ['AirPods Pro 2', '89', 'Saludable'], ['Tabletas Purificadoras X', '12', 'CRÍTICO (3 uds)']],
-                theme: 'striped', headStyles: { fillColor: [245, 158, 11] }
-            });
-            const alertY = (doc as any).lastAutoTable.finalY + 20; doc.setFillColor(254, 243, 199); doc.rect(15, alertY, 180, 25, 'F');
-            doc.setTextColor(146, 64, 14); doc.setFontSize(10); doc.text('ALERTA PREDICTIVA: Alta probabilidad de quiebre de stock en Tabletas X para Febrero.', 20, alertY + 15);
-
-            // PÁGINA 6: MARKETING
-            doc.addPage(); doc.setTextColor(darkColor[0], darkColor[1], darkColor[2]); doc.text('6. Marketing & Recuperación de Ventas', 20, 30);
-            autoTable(doc, {
-                startY: 40, head: [['Canal de Rescate', 'Impactos', 'Tasa Apertura', 'Ingresos']],
-                body: [['Email Marketing', '1,240', '45%', formatCurrency(2100000)], ['WhatsApp Direct', '680', '92%', formatCurrency(3300000)], ['SMS / Push', '320', '15%', formatCurrency(0)]],
-                theme: 'grid', headStyles: { fillColor: primaryColor }
-            });
-
-            // PÁGINA 7: RECOMENDACIONES
-            doc.addPage(); doc.setFillColor(darkColor[0], darkColor[1], darkColor[2]); doc.rect(0, 0, 210, 297, 'F');
-            doc.setTextColor(255, 255, 255); doc.setFontSize(24); doc.text('7. Recomendaciones Estratégicas', 20, 40);
-            doc.setFontSize(12); doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]); doc.text('ACCIONES INMEDIATAS POR BAYT AI:', 20, 60);
-            doc.setTextColor(200, 200, 200); doc.text('1. Optimizar Checkout: Se pierde el 61% en inicio de pago.', 25, 80); doc.text('2. Inversión Ads: WhatsApp tiene ROI 3x superior al Email.', 25, 95); doc.text('3. Abastecimiento: Pedir 450 uds de Tabletas X para Febrero.', 25, 110);
-
-            // FOOTER GLOBAL
-            const totalPages = doc.internal.getNumberOfPages();
-            for(let i = 1; i <= totalPages; i++) { doc.setPage(i); doc.setFontSize(8); doc.setTextColor(150, 150, 150); doc.text(`Confidencial - Sebas Store | Bayup Business Intelligence | Página ${i} de ${totalPages}`, 20, 285); }
-
-            doc.save(`Reporte_Estrategico_Sebas.pdf`);
-            showToast("Informe de Inteligencia 360° generado ✨", "success");
-        } catch (e) { showToast("Error al generar PDF", "error"); }
-        finally { setIsGeneratingPDF(false); }
+            doc.setFontSize(22); doc.setTextColor(147, 51, 234); doc.text('AUDITORÍA ESTRATÉGICA 360', 20, 90);
+            doc.save(`Auditoria_BI_Sebas.pdf`);
+            showToast("Informe descargado ✨", "success");
+        } finally { setIsGeneratingPDF(false); }
     };
 
-    // --- BLOQUE 1: RESUMEN ESTRATÉGICO (LA GUÍA) ---
+    const handleCreateProvider = async () => {
+        if (!newProvider.name) return showToast("Nombre obligatorio", "error");
+        try {
+            const res = await fetch('http://localhost:8000/providers', { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(newProvider) });
+            if (res.ok) { showToast("Proveedor registrado", "success"); await fetchProviders(); setIsRegisterProviderOpen(false); }
+        } catch (e) { showToast("Error", "error"); }
+    };
+
+    // --- RENDERS DETALLADOS ---
+
     const renderOverview = () => (
         <div className="space-y-10 animate-in fade-in duration-500">
             <div className="bg-gray-900 p-10 rounded-[3.5rem] text-white relative overflow-hidden shadow-2xl flex flex-col md:flex-row items-center gap-10">
-                <div className="h-24 w-24 bg-purple-600 rounded-[2rem] flex items-center justify-center text-5xl relative z-10 animate-pulse">🤖</div>
+                <div className="h-24 w-24 bg-purple-600 rounded-[2rem] flex items-center justify-center text-5xl relative z-10 animate-pulse border-4 border-white/10">🤖</div>
                 <div className="flex-1 relative z-10 space-y-2">
                     <h3 className="text-2xl font-black tracking-tight italic">¡Hola Sebas! Soy Bayt. Analicemos tu negocio:</h3>
-                    <p className="text-gray-400 text-base leading-relaxed font-medium">
-                        "Tu conversión está en el <span className="text-emerald-400 font-bold">4.8%</span> (superior a la media), pero detecto una <span className="text-rose-400 font-bold">fuga del 61%</span> al iniciar el checkout. Si ajustamos los costos de envío hoy, podríamos recuperar <span className="text-white font-bold">$24.5M</span> en ventas perdidas."
-                    </p>
+                    <p className="text-gray-400 text-base leading-relaxed font-medium">"Tu conversión está en el <span className="text-emerald-400 font-bold">4.8%</span>, pero detecto una <span className="text-rose-400 font-bold">fuga del 61%</span> al iniciar el checkout. Si ajustamos los costos de envío hoy, podríamos recuperar <span className="text-white font-bold">$24.5M</span>."</p>
                 </div>
-                <button onClick={() => setActiveTab('marketing')} className="relative z-10 px-8 py-4 bg-white text-gray-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2"><Rocket size={16}/> Activar Rescate AI</button>
-            </div>
-
-            {/* BARRA DE ACTIVIDAD EN TIEMPO REAL (NUEVO) */}
-            <div className="bg-white/40 backdrop-blur-md p-6 rounded-[2.5rem] border border-gray-50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative group">
-                <div className="flex items-center gap-6 relative z-10">
-                    <div className="h-12 w-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 relative">
-                        <Activity size={24} className="animate-pulse" />
-                        <div className="absolute -top-1 -right-1 h-3 w-3 bg-emerald-500 rounded-full animate-ping"></div>
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <span className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Monitor Live</p>
-                        </div>
-                        <h4 className="text-xl font-black text-gray-900">24 Usuarios <span className="text-gray-400 font-medium ml-1">navegando en tu tienda ahora</span></h4>
-                    </div>
-                </div>
-                
-                <div className="flex items-center gap-8 relative z-10">
-                    <div className="text-center">
-                        <p className="text-[9px] font-black text-gray-400 uppercase">Páginas/Min</p>
-                        <p className="text-sm font-black text-gray-900">4.2</p>
-                    </div>
-                    <div className="w-px h-8 bg-gray-100"></div>
-                    <div className="text-center">
-                        <p className="text-[9px] font-black text-gray-400 uppercase">Checkout Activo</p>
-                        <p className="text-sm font-black text-purple-600">3 clientes</p>
-                    </div>
-                    <button className="px-6 py-3 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-95">Ver Mapa en Vivo</button>
-                </div>
-                {/* Micro-gráfica de fondo decorativa */}
-                <div className="absolute right-0 bottom-0 opacity-[0.03] group-hover:opacity-10 transition-opacity">
-                    <BarChart3 size={120} />
-                </div>
+                <button onClick={() => setActiveTab('marketing')} className="relative z-10 px-8 py-4 bg-white text-gray-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-50 transition-all flex items-center gap-2 shadow-xl"><Rocket size={16}/> Activar Rescate AI</button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                    { label: 'Ingresos Totales', val: 3450000, trend: '+18.5%', up: true, help: 'Dinero real generado por ventas finalizadas.' },
-                    { label: 'Ticket Promedio', val: 124000, trend: '+5.2%', up: true, help: 'Promedio de lo que gasta cada cliente.' },
-                    { label: 'Pedidos Hoy', val: 42, trend: '-2.1%', up: false, help: 'Total de órdenes procesadas con éxito.' },
-                    { label: 'Tasa Conversión', val: '4.8%', trend: '+0.4%', up: true, help: 'Porcentaje de visitas que terminan en compra.' },
+                    { label: 'Ventas Hoy', val: 3450000, trend: '+18.5%', up: true, h: 'Dinero real generado hoy.' },
+                    { label: 'Ticket Promedio', val: 124000, trend: '+5.2%', up: true, h: 'Gasto promedio por cliente.' },
+                    { label: 'Pedidos Hoy', val: 42, trend: '-2.1%', up: false, h: 'Órdenes procesadas hoy.' },
+                    { label: 'Tasa Conversión', val: '4.8%', trend: '+0.4%', up: true, h: 'Visitas que terminan en compra.' },
                 ].map((kpi, i) => (
                     <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-gray-50 shadow-sm relative group cursor-help transition-all hover:shadow-xl">
                         <div className="flex justify-between items-start"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p><Info size={14} className="text-gray-200 group-hover:text-purple-400" /></div>
                         <div className="flex items-end gap-2 mt-2"><h3 className="text-2xl font-black text-gray-900">{typeof kpi.val === 'number' ? formatCurrency(kpi.val) : kpi.val}</h3><div className={`flex items-center text-[10px] font-black mb-1 ${kpi.up ? 'text-emerald-500' : 'text-rose-500'}`}>{kpi.trend}</div></div>
-                        <div className="absolute inset-0 bg-gray-900/95 p-8 flex items-center justify-center text-center opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-[2.5rem] z-20"><p className="text-white text-xs font-medium leading-relaxed">{kpi.help}</p></div>
+                        <div className="absolute inset-0 bg-gray-900/95 p-8 flex items-center justify-center text-center opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-[2.5rem] z-20"><p className="text-white text-xs font-medium leading-relaxed">{kpi.h}</p></div>
                     </div>
                 ))}
             </div>
@@ -220,10 +115,10 @@ export default function WebAnalyticsPage() {
                 <div className="bg-white p-12 rounded-[3.5rem] border border-gray-100 shadow-sm flex flex-col justify-between min-h-[350px]">
                     <div className="space-y-6">
                         <h4 className="text-xl font-black text-gray-900 flex items-center gap-3"><AlertCircle className="text-rose-500"/> Fuga de Capital Detectada</h4>
-                        <p className="text-sm text-gray-500 font-medium leading-relaxed">Bayt ha detectado que el <span className="font-bold text-gray-900">61% de tus clientes</span> abandonan al ver el costo de envío. Sugerimos una estrategia de 'Envío Gratis' por compras superiores a $150k.</p>
+                        <p className="text-sm text-gray-500 font-medium leading-relaxed">El <span className="font-bold text-gray-900">61% de tus clientes</span> abandonan al ver el costo de envío. Sugerimos una estrategia de 'Envío Gratis' por compras superiores a $150k.</p>
                         <div className="grid grid-cols-2 gap-6 pt-4">
-                            <div className="p-6 bg-rose-50 rounded-[2rem] border border-rose-100"><p className="text-2xl font-black text-rose-600">{formatCurrency(24500000)}</p><p className="text-[9px] font-bold text-rose-400 uppercase mt-1">Valor en el Limbo</p></div>
-                            <div className="p-6 bg-amber-50 rounded-[2rem] border border-amber-100"><p className="text-2xl font-black text-amber-600">128</p><p className="text-[9px] font-bold text-amber-400 uppercase mt-1">Carritos Abiertos</p></div>
+                            <div className="p-6 bg-rose-50 rounded-[2rem] border border-rose-100"><p className="text-2xl font-black text-rose-600">{formatCurrency(24500000)}</p><p className="text-[9px] font-bold text-rose-400 uppercase mt-1">Valor Perdido</p></div>
+                            <div className="p-6 bg-amber-50 rounded-[2rem] border border-amber-100"><p className="text-2xl font-black text-amber-600">128</p><p className="text-[9px] font-bold text-amber-400 uppercase mt-1">Abandonos</p></div>
                         </div>
                     </div>
                 </div>
@@ -232,7 +127,7 @@ export default function WebAnalyticsPage() {
                         <h4 className="text-xl font-black flex items-center gap-3"><CheckCircle2 fill="white"/> Éxito de Recuperación</h4>
                         <p className="text-emerald-100 text-sm font-medium leading-relaxed">"Gracias a las automatizaciones de WhatsApp, hemos rescatado <span className="font-bold text-white">8.9 millones de pesos</span> este mes. Tu tasa de cierre es del 32%."</p>
                         <div className="grid grid-cols-2 gap-6 pt-4">
-                            <div><p className="text-4xl font-black">{formatCurrency(8900000)}</p><p className="text-[9px] font-bold text-emerald-100 uppercase mt-1">Rescatado este mes</p></div>
+                            <div><p className="text-4xl font-black">{formatCurrency(8900000)}</p><p className="text-[9px] font-bold text-emerald-100 uppercase mt-1">Rescatado hoy</p></div>
                             <div className="text-right"><p className="text-4xl font-black">32%</p><p className="text-[9px] font-bold text-emerald-100 uppercase mt-1">ROI: +420%</p></div>
                         </div>
                     </div>
@@ -242,7 +137,6 @@ export default function WebAnalyticsPage() {
         </div>
     );
 
-    // --- BLOQUE 2: RUTA DE COMPRADORES (TRÁFICO) ---
     const renderTraffic = () => (
         <div className="space-y-10 animate-in fade-in duration-500">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -257,14 +151,7 @@ export default function WebAnalyticsPage() {
                         ))}
                     </div>
                 </div>
-                <div className="bg-gray-900 p-10 rounded-[3.5rem] text-white flex flex-col justify-center relative overflow-hidden">
-                    <h4 className="text-xl font-black flex items-center gap-3 relative z-10"><Clock className="text-purple-400"/> Hora de Oro</h4>
-                    <p className="text-sm font-medium text-gray-400 mt-4 leading-relaxed relative z-10 italic">
-                        "Tus ventas reales se concentran entre las <span className="text-white font-bold underline">8:30 PM y las 10:00 PM</span>. No lances campañas a mediodía aunque veas más tráfico."
-                    </p>
-                    <div className="mt-6 flex items-center gap-2 text-[9px] font-black uppercase text-purple-400 relative z-10"><Monitor size={12}/> 18% Desktop <span className="text-gray-600">|</span> <Smartphone size={12}/> 82% Mobile</div>
-                    <div className="absolute -right-10 -bottom-10 text-[12rem] opacity-[0.03] rotate-12 font-black">TIME</div>
-                </div>
+                <div className="bg-gray-900 p-10 rounded-[3.5rem] text-white flex flex-col justify-center relative overflow-hidden"><h4 className="text-xl font-black flex items-center gap-3 relative z-10"><Clock className="text-purple-400"/> Hora de Oro</h4><p className="text-sm font-medium text-gray-400 mt-4 leading-relaxed relative z-10 italic">"Tus ventas reales se concentran entre las <span className="text-white font-bold underline">8:30 PM y las 10:00 PM</span>. No lances campañas a mediodía."</p><div className="absolute -right-10 -bottom-10 text-[12rem] opacity-[0.03] rotate-12 font-black pointer-events-none">TIME</div></div>
             </div>
         </div>
     );
@@ -273,42 +160,19 @@ export default function WebAnalyticsPage() {
         <div className="space-y-10 animate-in fade-in duration-500">
             <div className="bg-white p-16 rounded-[4rem] border border-gray-100 shadow-sm max-w-5xl mx-auto relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-600 via-indigo-500 to-emerald-500" />
-                <div className="text-center space-y-4 mb-20">
-                    <h3 className="text-4xl font-black text-gray-900 tracking-tight italic mb-4">Embudo de Conversión Real</h3>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em]">Análisis de pérdida y retención quirúrgico</p>
-                </div>
+                <h3 className="text-center text-4xl font-black text-gray-900 tracking-tight italic mb-20">Embudo de Conversión Real</h3>
                 <div className="space-y-4">
-                    {[ 
-                        { step: 'Sesiones Totales', val: 12450, pct: 100, loss: 0, icon: <Eye size={20}/> },
-                        { step: 'Vieron Producto', val: 8420, pct: 67, loss: 33, icon: <Package size={20}/> },
-                        { step: 'Agregaron al Carrito', val: 2150, pct: 17, loss: 74, icon: <ShoppingCart size={20}/> },
-                        { step: 'Inicio de Checkout', val: 840, pct: 6, loss: 61, icon: <DollarSign size={20}/> },
-                        { step: 'Compra Exitosa', val: 524, pct: 4.2, loss: 37, icon: <CheckCircle2 size={20}/> },
-                    ].map((item, i) => (
+                    {[ { step: 'Sesiones Totales', val: 12450, pct: 100, loss: 0 }, { step: 'Vieron Producto', val: 8420, pct: 67, loss: 33 }, { step: 'Agregaron Carrito', val: 2150, pct: 17, loss: 74 }, { step: 'Compra Finalizada', val: 524, pct: 4.2, loss: 37 } ].map((item, i) => (
                         <div key={i} className="group relative">
                             <div className="flex items-center gap-12 py-10 px-10 hover:bg-gray-50 transition-all rounded-[3rem] border border-transparent hover:border-gray-100">
-                                <div className="w-16 h-16 bg-white rounded-[1.5rem] shadow-sm flex items-center justify-center text-purple-600 border border-gray-50">{item.icon}</div>
+                                <div className="w-16 h-16 bg-white border border-gray-50 rounded-[1.5rem] flex items-center justify-center text-purple-600 font-black shadow-sm">{i+1}</div>
                                 <div className="flex-1 space-y-4">
-                                    <div className="flex justify-between items-end">
-                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{item.step}</p>
-                                        <p className="text-2xl font-black text-gray-900">{item.val.toLocaleString()} <span className="text-gray-300 font-medium text-sm ml-2">{item.pct}%</span></p>
-                                    </div>
-                                    <div className="h-5 w-full bg-gray-50 rounded-full relative overflow-hidden shadow-inner">
-                                        <motion.div initial={{ width: 0 }} animate={{ width: `${item.pct}%` }} className={`h-full ${i === 4 ? 'bg-emerald-500' : 'bg-purple-600'} rounded-full`} />
-                                    </div>
+                                    <div className="flex justify-between font-black uppercase text-[10px] text-gray-400"><span>{item.step}</span><span>{item.val.toLocaleString()} <span className="text-gray-300 ml-2">{item.pct}%</span></span></div>
+                                    <div className="h-5 bg-gray-50 rounded-full overflow-hidden shadow-inner"><motion.div initial={{ width: 0 }} animate={{ width: `${item.pct}%` }} className={`h-full ${i === 3 ? 'bg-emerald-500' : 'bg-purple-600'} rounded-full`} /></div>
                                 </div>
-                                <div className="w-32 text-right">
-                                    {item.loss > 0 ? (
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-black text-rose-500">-{item.loss}% Fuga</p>
-                                            <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Abandono</p>
-                                        </div>
-                                    ) : (
-                                        <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-lg">Base</p>
-                                    )}
-                                </div>
+                                <div className="w-32 text-right">{item.loss > 0 ? <p className="text-sm font-black text-rose-500">-{item.loss}% Fuga</p> : <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-lg">Base</p>}</div>
                             </div>
-                            {i < 4 && <div className="flex justify-center -my-4 relative z-10"><div className="bg-white p-2.5 rounded-full border border-gray-100 text-gray-300"><ChevronDown size={20}/></div></div>}
+                            {i < 3 && <div className="flex justify-center -my-4 relative z-10"><div className="bg-white p-2.5 rounded-full border border-gray-100 text-gray-300"><ChevronDown size={20}/></div></div>}
                         </div>
                     ))}
                 </div>
@@ -316,7 +180,6 @@ export default function WebAnalyticsPage() {
         </div>
     );
 
-    // --- BLOQUE 4: PERFIL DE AUDIENCIA & EDADES ---
     const renderAudience = () => (
         <div className="space-y-10 animate-in fade-in duration-500">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -324,17 +187,17 @@ export default function WebAnalyticsPage() {
                     <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-10 italic">Fidelización</h4>
                     <div className="relative h-64 w-64 flex items-center justify-center">
                         <div className="h-56 w-56 rounded-full border-[20px] border-purple-600 flex flex-col items-center justify-center bg-white shadow-2xl relative z-10"><p className="text-5xl font-black text-gray-900">24%</p><p className="text-[10px] font-black text-gray-400 uppercase mt-1">Recurrentes</p></div>
-                        <div className="absolute -top-4 -right-4 px-6 py-3 bg-gray-900 text-white rounded-2xl shadow-2xl transform rotate-12"><p className="text-sm font-black italic">76% Nuevos</p></div>
+                        <div className="absolute -top-4 -right-4 px-6 py-3 bg-gray-900 text-white rounded-2xl transform rotate-12 shadow-2xl"><p className="text-sm font-black italic">76% Nuevos</p></div>
                     </div>
-                    <p className="text-[10px] text-gray-400 font-medium mt-10 italic leading-relaxed">"Tu LTV promedio es de <span className="text-purple-600 font-bold">$458.000</span>. Los clientes fieles compran 1.2 veces al año."</p>
+                    <p className="text-[10px] text-gray-400 font-medium mt-10 leading-relaxed">"Tu LTV promedio es de <span className="text-purple-600 font-bold">$458.000</span>. Los clientes fieles compran 1.2 veces al año."</p>
                 </div>
 
                 <div className="lg:col-span-2 bg-white p-12 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-12">
-                    <div><h3 className="text-2xl font-black text-gray-900 tracking-tight italic">Segmentación de Edades & Conversión</h3><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Diferencia entre quién te ve y quién te paga.</p></div>
+                    <div><h3 className="text-2xl font-black text-gray-900 tracking-tight italic">Edad & Conversión</h3><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Diferencia entre quién te ve y quién te paga.</p></div>
                     <div className="space-y-10">
                         {[
-                            { range: '18 - 24 años', views: '45%', sales: '12%', color: 'bg-purple-400', tip: 'Mucho tráfico, pero buscan rebajas.' },
-                            { range: '25 - 34 años', views: '38%', sales: '65%', color: 'bg-emerald-500', tip: 'Tu público objetivo real. Mayor poder adquisitivo.' },
+                            { range: '18 - 24 años', views: '45%', sales: '12%', color: 'bg-purple-400', tip: 'Mucho tráfico, baja conversión.' },
+                            { range: '25 - 34 años', views: '38%', sales: '65%', color: 'bg-emerald-500', tip: 'Tu público objetivo real. Mayor poder de compra.' },
                             { range: '35 - 44 años', views: '12%', sales: '18%', color: 'bg-blue-500', tip: 'Clientes fieles con compras recurrentes.' },
                         ].map((age, i) => (
                             <div key={i} className="grid grid-cols-1 md:grid-cols-4 items-center gap-6 group">
@@ -355,37 +218,39 @@ export default function WebAnalyticsPage() {
         </div>
     );
 
-    // --- BLOQUE 5: PRODUCTOS & INVENTARIO (DETALLADO) ---
     const renderInventory = () => (
         <div className="space-y-10 animate-in fade-in duration-500">
             <div className="bg-amber-500 p-16 rounded-[4rem] text-white relative overflow-hidden flex flex-col md:flex-row items-center gap-16 shadow-2xl">
-                <div className="h-32 w-32 bg-white/20 rounded-[2.5rem] flex items-center justify-center text-6xl shadow-2xl relative z-10 animate-bounce">💡</div>
+                <div className="h-32 w-32 bg-white/20 rounded-[2.5rem] flex items-center justify-center text-6xl shadow-2xl relative z-10 animate-bounce border border-white/30 backdrop-blur-md">💡</div>
                 <div className="flex-1 relative z-10 space-y-6">
                     <div>
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="px-4 py-1.5 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/30">Bayt Stock Intelligence</span>
+                            <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse"></span>
+                        </div>
                         <h3 className="text-3xl font-black tracking-tight italic">Alerta de Suministro Inteligente</h3>
                         <p className="text-amber-100 text-lg font-medium max-w-3xl leading-relaxed mt-2">
-                            "El año pasado en <span className="text-white font-black underline italic">Febrero</span>, tu producto estrella fue <span className="text-white font-black italic">Tabletas Purificadoras X</span>. Actualmente tienes solo <span className="bg-rose-600 text-white px-3 py-1 rounded-xl font-black shadow-lg animate-pulse">3 unidades</span> en stock. Bayt recomienda pedir 450 uds hoy."
+                            "En <span className="text-white font-black underline italic">Febrero del año pasado</span>, tu producto estrella fue <span className="text-white font-black italic">Tabletas Purificadoras X</span>. Actualmente tienes solo <span className="bg-rose-600 text-white px-3 py-1 rounded-xl font-black shadow-lg animate-pulse">3 unidades</span> en stock. Bayt recomienda pedir 450 uds hoy."
                         </p>
                     </div>
-                    <button onClick={() => setIsOrderModalOpen(true)} className="px-10 py-5 bg-gray-900 hover:bg-black text-white rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95">Montar Orden de Abastecimiento</button>
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setIsOrderModalOpen(true)} className="px-10 py-5 bg-gray-900 hover:bg-black text-white rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 flex items-center gap-2 border border-white/10">
+                            <ShoppingCart size={16}/> Montar Orden
+                        </button>
+                        <button onClick={() => setIsProductHistoryModalOpen(true)} className="px-10 py-5 bg-white/10 hover:bg-white/20 text-white rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] border border-white/30 backdrop-blur-md transition-all active:scale-95 flex items-center gap-2">
+                            <Activity size={16}/> Historial
+                        </button>
+                    </div>
                 </div>
                 <div className="absolute -right-20 -bottom-20 text-[25rem] font-black opacity-[0.08] rotate-12 pointer-events-none uppercase">STOCK</div>
             </div>
-            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-white p-12 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-10">
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><Trophy size={14} className="text-amber-500"/> Desempeño de Productos (30d)</h4>
+                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><Trophy size={14} className="text-amber-500"/> Top Ventas (30d)</h4>
                     <div className="space-y-6">
-                        {[
-                            { name: 'iPhone 15 Pro Max', sales: 142, rev: 658000000, img: '📱', status: 'Saludable' },
-                            { name: 'AirPods Pro 2', sales: 89, rev: 124500000, img: '🎧', status: 'Saludable' },
-                            { name: 'Cargador 20W USB-C', sales: 45, rev: 45000000, img: '⚡', status: 'Bajo (8 uds)' },
-                        ].map((prod, i) => (
+                        {[ { name: 'iPhone 15 Pro Max', sales: 142, rev: 658000000, img: '📱', status: 'Saludable' }, { name: 'AirPods Pro 2', sales: 89, rev: 124500000, img: '🎧', status: 'Saludable' }, { name: 'Cargador 20W USB-C', sales: 45, rev: 45000000, img: '⚡', status: 'Bajo (8 uds)' } ].map((prod, i) => (
                             <div key={i} className="flex items-center justify-between group hover:bg-gray-50/50 p-4 rounded-3xl transition-all">
-                                <div className="flex items-center gap-6">
-                                    <div className="h-14 w-14 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">{prod.img}</div>
-                                    <div><p className="text-sm font-black text-gray-900">{prod.name}</p><p className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{prod.sales} uds vendidas</p></div>
-                                </div>
+                                <div className="flex items-center gap-6"><div className="h-14 w-14 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">{prod.img}</div><div><p className="text-sm font-black text-gray-900">{prod.name}</p><p className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{prod.sales} uds vendidas</p></div></div>
                                 <div className="text-right"><p className="text-sm font-black text-emerald-600">{formatCurrency(prod.rev)}</p><span className={`text-[8px] font-black uppercase ${prod.status.includes('Bajo') ? 'text-rose-500' : 'text-emerald-500'}`}>{prod.status}</span></div>
                             </div>
                         ))}
@@ -400,7 +265,6 @@ export default function WebAnalyticsPage() {
         </div>
     );
 
-    // --- BLOQUE 6: MARKETING & ROI (CON DATA REAL DEL REPORTE) ---
     const renderMarketing = () => (
         <div className="space-y-10 animate-in fade-in duration-500">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -422,7 +286,6 @@ export default function WebAnalyticsPage() {
                     <div className="absolute -right-4 -bottom-4 text-6xl opacity-5 rotate-12 font-black">ROI</div>
                 </div>
             </div>
-            
             <div className="bg-white rounded-[3.5rem] border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-10 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
                     <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-3"><Tag size={16} className="text-purple-600" /> Rendimiento de Campañas & Cupones</h4>
@@ -436,7 +299,7 @@ export default function WebAnalyticsPage() {
                                     <td className="px-10 py-8 font-black text-purple-600 uppercase font-mono">{item.c}</td>
                                     <td className="px-10 py-8 text-center"><div className="flex items-center justify-center gap-2 font-black text-xs text-gray-900">{item.e} <span className="text-[8px] text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-lg">{item.roi}</span></div></td>
                                     <td className="px-10 py-8 font-black text-gray-900 text-lg">{formatCurrency(item.r)}</td>
-                                    <td className="px-10 py-8 text-right"><button onClick={() => setSelectedCoupon(item)} className="h-12 px-8 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 transition-all shadow-xl">Ver Auditoría BI</button></td>
+                                    <td className="px-10 py-8 text-right"><button onClick={() => setSelectedCoupon(item)} className="h-12 px-8 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 transition-all shadow-xl">Ver Campaña</button></td>
                                 </tr>
                             ))}
                         </tbody>
@@ -447,22 +310,43 @@ export default function WebAnalyticsPage() {
     );
 
     return (
-        <div className="max-w-7xl mx-auto space-y-12 pb-20 animate-in fade-in duration-500">
-            {/* Header Global Impactante */}
+        <div className="max-w-7xl mx-auto space-y-8 pb-20 animate-in fade-in duration-500">
+            {/* Header Global */}
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
                 <div className="flex items-center gap-6">
                     <div className="h-20 w-20 bg-gray-900 rounded-[2.5rem] flex items-center justify-center shadow-2xl relative"><BarChart3 className="text-white" size={36} /><div className="absolute -top-2 -right-2 h-8 w-8 bg-purple-600 rounded-xl flex items-center justify-center text-white border-4 border-gray-50 shadow-lg animate-pulse"><Sparkles size={14} /></div></div>
-                    <div><h1 className="text-4xl font-black text-gray-900 tracking-tight italic uppercase">Estadísticas Web <span className="text-purple-600">PRO</span></h1><p className="text-gray-500 mt-1 font-medium flex items-center gap-2">Guía Estratégica de Crecimiento Bayup</p></div>
+                    <div><h1 className="text-4xl font-black text-gray-900 tracking-tight italic uppercase">Estadísticas Web <span className="text-purple-600">PRO</span></h1><p className="text-gray-500 mt-1 font-medium">Guía Estratégica Bayup</p></div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center bg-white p-2 rounded-3xl border border-gray-100 shadow-sm gap-4 px-6 h-16"><Calendar size={18} className="text-purple-600" /><div className="flex flex-col"><span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Periodo</span><span className="text-xs font-black text-gray-900 uppercase">Últimos 30 Días</span></div><ChevronDown size={16} className="text-gray-300" /></div>
-                    <button onClick={handleDownloadReport} disabled={isGeneratingPDF} className="h-16 bg-gray-900 hover:bg-black text-white px-8 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl transition-all flex items-center gap-3 border border-white/10 disabled:opacity-50">{isGeneratingPDF ? <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Download size={18} />} Descargar Reporte</button>
+                    <div className="flex items-center bg-white p-2 rounded-3xl border border-gray-100 shadow-sm h-16 px-6"><Calendar size={18} className="text-purple-600 mr-4" /><div className="flex flex-col"><span className="text-[8px] font-black text-gray-400 uppercase">Periodo</span><span className="text-xs font-black text-gray-900 uppercase">Últimos 30 Días</span></div><ChevronDown size={16} className="text-gray-300 ml-4" /></div>
+                    <button onClick={handleDownloadReport} disabled={isGeneratingPDF} className="h-16 bg-gray-900 text-white px-8 rounded-3xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 border border-white/10 disabled:opacity-50">{isGeneratingPDF ? <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Download size={18} />} Reporte</button>
+                </div>
+            </div>
+
+            {/* BARRA DE ACTIVIDAD LIVE SLIM (FIJA) */}
+            <div className="bg-white rounded-[2rem] p-5 border border-emerald-50 shadow-xl flex items-center justify-between gap-8 relative overflow-hidden transition-all hover:border-emerald-200">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                <div className="flex items-center gap-6 relative z-10">
+                    <div className="h-12 w-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500 relative">
+                        <Activity size={24} className="animate-pulse" />
+                        <div className="absolute top-1 right-1 h-2.5 w-2.5 bg-emerald-500 rounded-full border-2 border-white"></div>
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2 mb-0.5"><span className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-ping"></span><p className="text-[8px] font-black text-emerald-600 uppercase tracking-[0.2em]">Radar Live</p></div>
+                        <h4 className="text-xl font-black text-gray-900 tracking-tight">24 Clientes <span className="text-gray-400 font-medium text-sm ml-1">en línea ahora mismo</span></h4>
+                    </div>
+                </div>
+                <div className="flex items-center gap-8 relative z-10">
+                    <div className="text-center"><p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Navegación</p><p className="text-sm font-black text-gray-900">4.2 pág/min</p></div>
+                    <div className="w-px h-8 bg-gray-100"></div>
+                    <div className="text-center"><p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">En Checkout</p><p className="text-sm font-black text-purple-600">3 activos</p></div>
+                    <button className="bg-gray-900 text-white px-6 py-3 rounded-xl text-[8px] font-black uppercase tracking-widest border border-white/10 flex items-center gap-2">Radar Global <Radar size={12} className="animate-spin-slow" /></button>
                 </div>
             </div>
 
             {/* Navegación Quirúrgica */}
-            <div className="flex items-center justify-center pt-4">
-                <div className="flex bg-white/50 backdrop-blur-2xl p-2.5 rounded-[3rem] border border-gray-100 shadow-2xl gap-3 w-full max-w-6xl overflow-x-auto custom-scrollbar">
+            <div className="flex items-center justify-center pt-2">
+                <div className="flex bg-white/50 backdrop-blur-2xl p-2 rounded-[2.5rem] border border-gray-100 shadow-xl gap-2 w-full max-w-6xl overflow-x-auto custom-scrollbar">
                     {[
                         { id: 'overview', label: 'Resumen Estratégico', icon: <PieChart size={16}/> },
                         { id: 'traffic', label: 'Ruta de Compradores', icon: <Globe size={16}/> },
@@ -471,7 +355,7 @@ export default function WebAnalyticsPage() {
                         { id: 'inventory', label: 'Stock Inteligente', icon: <Package size={16}/> },
                         { id: 'marketing', label: 'Marketing & ROI', icon: <Rocket size={16}/> },
                     ].map(tab => (
-                        <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 flex items-center justify-center gap-3 px-10 py-5 rounded-[2.5rem] text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-gray-900 text-white shadow-2xl scale-[1.02] -translate-y-1' : 'text-gray-400 hover:text-gray-600 hover:bg-white/80'}`}>{tab.icon} {tab.label}</button>
+                        <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 flex items-center justify-center gap-3 px-8 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-gray-900 text-white shadow-2xl scale-[1.02] -translate-y-1' : 'text-gray-400 hover:text-gray-600 hover:bg-white/80'}`}>{tab.icon} {tab.label}</button>
                     ))}
                 </div>
             </div>
@@ -490,97 +374,424 @@ export default function WebAnalyticsPage() {
                 </AnimatePresence>
             </div>
 
-            {/* MODAL AUDITORÍA DE CUPÓN (BI) */}
+            {/* MODALES PRO */}
             <AnimatePresence>
                 {selectedCoupon && (
                     <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-2xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col">
-                            <div className="bg-gray-900 p-10 text-white relative flex-shrink-0">
-                                <button onClick={() => setSelectedCoupon(null)} className="absolute top-8 right-8 h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-rose-500 transition-all"><X size={24} /></button>
-                                <div className="flex items-center gap-6"><div className="h-16 w-16 bg-purple-600 rounded-[1.5rem] flex items-center justify-center shadow-lg"><Tag size={32} /></div><div><h2 className="text-3xl font-black tracking-tight">{selectedCoupon.c}</h2><p className="text-purple-400 text-[10px] font-black uppercase mt-1">Informe de Conversión Inteligente</p></div></div>
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-5xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col max-h-[90vh]">
+                            {/* Cabecera Premium */}
+                            <div className="bg-gray-900 p-8 text-white relative flex-shrink-0 overflow-hidden">
+                                <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
+                                    <Tag size={200} />
+                                </div>
+                                <button 
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setSelectedCoupon(null);
+                                    }} 
+                                    className="absolute top-8 right-8 h-12 w-12 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-all active:scale-90 z-[100] group/close"
+                                >
+                                    <X size={24} className="text-white group-hover:rotate-90 transition-transform duration-300" />
+                                </button>
+                                <div className="relative z-10 flex items-center gap-8">
+                                    <div className="h-20 w-20 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-[1.8rem] flex items-center justify-center shadow-2xl border-2 border-white/10">
+                                        <Tag size={36} />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-3">
+                                            <h2 className="text-4xl font-black tracking-tighter uppercase italic">{selectedCoupon.c}</h2>
+                                            <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-500/30">Campaña Activa</span>
+                                        </div>
+                                        <p className="text-gray-400 text-[11px] font-bold uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
+                                            <Calendar size={12} className="text-purple-500" /> Rendimiento Estratégico Detallado
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="p-12 space-y-10 bg-gray-50/30 overflow-y-auto max-h-[65vh] custom-scrollbar">
-                                <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
-                                    <div className="flex justify-between items-end"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Auditoría de Uso</p><p className="text-sm font-black text-gray-900">142 <span className="text-gray-300">/ 500 meta</span></p></div>
-                                    <div className="h-2.5 w-full bg-gray-50 rounded-full overflow-hidden shadow-inner"><motion.div initial={{ width: 0 }} animate={{ width: '28%' }} className="h-full bg-purple-600 rounded-full" /></div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-8">
-                                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col justify-between"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ingresos Totales</p><h4 className="text-3xl font-black text-emerald-600 mt-2">{formatCurrency(selectedCoupon.r)}</h4></div>
-                                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col justify-between"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Atribución de Público</p><div className="flex items-center gap-4 mt-2"><div className="text-center flex-1"><p className="text-xl font-black text-purple-600">65%</p><p className="text-[8px] font-bold text-gray-400 uppercase">Nuevos</p></div><div className="w-px h-8 bg-gray-100"></div><div className="text-center flex-1"><p className="text-xl font-black text-emerald-500">35%</p><p className="text-[8px] font-bold text-gray-400 uppercase">Fieles</p></div></div></div>
-                                </div>
-                                <div className="bg-gray-900 p-8 rounded-[3.5rem] text-white space-y-6 relative overflow-hidden shadow-2xl">
-                                    <div className="flex justify-between items-start relative z-10"><div><p className="text-[10px] font-black text-purple-400 uppercase tracking-widest">ROI de Campaña</p><h3 className="text-5xl font-black text-white">{selectedCoupon.roi}</h3></div><div className="h-14 w-14 bg-white/10 rounded-2xl flex items-center justify-center text-purple-400 border border-white/5"><Sparkles size={28}/></div></div>
-                                    <div className="p-6 bg-white/5 rounded-3xl border border-white/10 relative z-10"><p className="text-sm font-medium text-gray-300 leading-relaxed italic">"Este cupón es excepcional para captar tráfico nuevo. Sugiero activarlo automáticamente en el checkout para usuarios que duden más de 2 min."</p></div>
-                                    <div className="absolute -right-10 -bottom-10 text-[15rem] font-black opacity-[0.03] rotate-12 uppercase pointer-events-none">ROI</div>
-                                </div>
-                            </div>
-                            <div className="p-10 bg-white border-t border-gray-50"><button onClick={() => setSelectedCoupon(null)} className="w-full py-5 bg-gray-900 hover:bg-black text-white rounded-[1.5rem] font-black text-[10px] uppercase shadow-xl transition-all active:scale-95">Cerrar Informe de Inteligencia</button></div>
-                        </motion.div>
-                    </div>
-                )}
 
-                {/* MODAL DE ORDEN DE COMPRA (INVENTARIO) */}
-                {isOrderModalOpen && (
-                    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col">
-                            <div className="bg-gray-900 p-10 text-white relative">
-                                <button onClick={() => setIsOrderModalOpen(false)} className="absolute top-8 right-8 h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-rose-500 transition-all"><X size={24} /></button>
-                                <div className="flex items-center gap-6">
-                                    <div className="h-16 w-16 bg-amber-500 rounded-[1.5rem] flex items-center justify-center shadow-lg"><ShoppingCart size={32} /></div>
-                                    <h2 className="text-2xl font-black tracking-tight">Orden de Compra</h2>
+                            {/* Cuerpo con Scroll */}
+                            <div className="p-10 space-y-10 bg-gray-50/50 overflow-y-auto custom-scrollbar flex-1">
+                                
+                                {/* KPIs de Impacto Inmediato */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                    {[
+                                        { label: 'Ingresos Reales', val: formatCurrency(selectedCoupon.r), icon: <DollarSign size={14}/>, color: 'text-emerald-600' },
+                                        { label: 'Uso de Cupón', val: '452 / 1.000', icon: <Activity size={14}/>, color: 'text-purple-600' },
+                                        { label: 'Ticket Promedio', val: formatCurrency(158400), icon: <ShoppingCart size={14}/>, color: 'text-blue-600' },
+                                        { label: 'Rentabilidad (ROI)', val: selectedCoupon.roi, icon: <TrendingUp size={14}/>, color: 'text-emerald-500' },
+                                    ].map((kpi, i) => (
+                                        <div key={i} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm transition-all hover:shadow-md group">
+                                            <div className="flex items-center gap-2 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                                                {kpi.icon} {kpi.label}
+                                            </div>
+                                            <h4 className={`text-xl font-black ${kpi.color} group-hover:scale-105 transition-transform origin-left`}>{kpi.val}</h4>
+                                        </div>
+                                    ))}
                                 </div>
-                            </div>
-                            <div className="p-12 space-y-10">
-                                <div className="p-8 bg-gray-50 rounded-[2.5rem] space-y-4 border border-gray-100">
-                                    <div className="flex justify-between items-center"><span className="text-[10px] font-black text-gray-400 uppercase">Producto</span><span className="text-sm font-black text-gray-900">{orderForm.productName}</span></div>
-                                    <div className="flex justify-between items-center"><span className="text-[10px] font-black text-gray-400 uppercase">Unidades</span><span className="text-sm font-black text-purple-600">450 uds</span></div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                    {/* Perfil Demográfico y Género */}
+                                    <div className="lg:col-span-2 bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                                                <Users size={16} className="text-purple-600" /> Perfil de Audiencia
+                                            </h4>
+                                            <div className="flex gap-2">
+                                                <span className="text-[10px] font-black text-gray-400 uppercase bg-gray-50 px-3 py-1 rounded-lg">65% Nuevos</span>
+                                                <span className="text-[10px] font-black text-gray-400 uppercase bg-gray-50 px-3 py-1 rounded-lg">35% Fieles</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                            {/* Género */}
+                                            <div className="space-y-6">
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] border-b border-gray-50 pb-2">Distribución de Género</p>
+                                                <div className="space-y-4">
+                                                    {[ { g: 'Mujeres', p: '68%', c: 'bg-rose-400' }, { g: 'Hombres', p: '28%', c: 'bg-blue-400' }, { g: 'Otros', p: '4%', c: 'bg-gray-300' } ].map((item, i) => (
+                                                        <div key={i} className="space-y-2">
+                                                            <div className="flex justify-between text-[10px] font-black uppercase"><span>{item.g}</span><span>{item.p}</span></div>
+                                                            <div className="h-2 w-full bg-gray-50 rounded-full overflow-hidden">
+                                                                <motion.div initial={{ width: 0 }} animate={{ width: item.p }} className={`h-full ${item.c} rounded-full`} />
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            {/* Edad */}
+                                            <div className="space-y-6">
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] border-b border-gray-50 pb-2">Rango de Edad</p>
+                                                <div className="space-y-4">
+                                                    {[ { r: '18-24', p: '45%', c: 'bg-purple-600' }, { r: '25-34', p: '38%', c: 'bg-purple-400' }, { r: '35+', p: '17%', c: 'bg-purple-200' } ].map((item, i) => (
+                                                        <div key={i} className="space-y-2">
+                                                            <div className="flex justify-between text-[10px] font-black uppercase"><span>{item.r} años</span><span>{item.p}</span></div>
+                                                            <div className="h-2 w-full bg-gray-50 rounded-full overflow-hidden">
+                                                                <motion.div initial={{ width: 0 }} animate={{ width: item.p }} className={`h-full ${item.c} rounded-full`} />
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Dispositivo y Canal */}
+                                    <div className="bg-gray-900 p-10 rounded-[3rem] text-white space-y-8 shadow-2xl relative overflow-hidden">
+                                        <div className="absolute -right-4 -bottom-4 text-7xl opacity-5 font-black uppercase pointer-events-none">TECH</div>
+                                        <h4 className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Tecnología & Origen</h4>
+                                        <div className="space-y-10">
+                                            {/* Dispositivos */}
+                                            <div className="flex justify-around items-center">
+                                                <div className="text-center group">
+                                                    <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto group-hover:bg-purple-600 transition-colors">
+                                                        <Smartphone size={24} />
+                                                    </div>
+                                                    <p className="text-lg font-black mt-2">82%</p>
+                                                    <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Móvil</p>
+                                                </div>
+                                                <div className="text-center group">
+                                                    <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto group-hover:bg-blue-600 transition-colors">
+                                                        <Monitor size={24} />
+                                                    </div>
+                                                    <p className="text-lg font-black mt-2">18%</p>
+                                                    <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">PC / Tablet</p>
+                                                </div>
+                                            </div>
+                                            {/* Canales */}
+                                            <div className="space-y-4">
+                                                <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest text-center">Canales de Llegada</p>
+                                                <div className="space-y-3">
+                                                    {[ 
+                                                        { s: 'Instagram', p: '55%', i: <Share2 size={10}/> },
+                                                        { s: 'WhatsApp', p: '25%', i: <MessageSquare size={10}/> },
+                                                        { s: 'Facebook', p: '15%', i: <Globe size={10}/> },
+                                                        { s: 'Otros', p: '5%', i: <Search size={10}/> } 
+                                                    ].map((item, i) => (
+                                                        <div key={i} className="flex items-center gap-3">
+                                                            <span className="w-16 text-[9px] font-bold text-gray-400 uppercase">{item.s}</span>
+                                                            <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                                                <div className="h-full bg-emerald-400" style={{ width: item.p }} />
+                                                            </div>
+                                                            <span className="w-8 text-[9px] font-black text-emerald-400 text-right">{item.p}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="space-y-4 relative">
-                                    <div className="flex justify-between items-end px-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Proveedor</label><button onClick={() => setIsRegisterProviderOpen(true)} className="text-[9px] font-black text-purple-600 uppercase underline">+ Registrar Nuevo</button></div>
-                                    <button onClick={() => setIsProviderDropdownOpen(!isProviderDropdownOpen)} className="w-full p-6 bg-white border-2 border-gray-100 rounded-3xl text-sm font-black flex justify-between items-center shadow-sm">{orderForm.provider || 'Selecciona un aliado...'}<ChevronDown size={20}/></button>
-                                    <AnimatePresence>
-                                        {isProviderDropdownOpen && (
-                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-[600] max-h-48 overflow-y-auto">
-                                                {providers.map(p => (
-                                                    <button key={p.id} onClick={() => { setOrderForm({...orderForm, provider: p.name}); setIsProviderDropdownOpen(false); }} className="w-full px-6 py-4 text-left hover:bg-purple-50 text-xs font-black uppercase">{p.name}</button>
+
+                                {/* Comportamiento Temporal */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    {/* Picos Horarios */}
+                                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
+                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                                            <Clock size={16} className="text-amber-500" /> Picos de Actividad
+                                        </h4>
+                                        <div className="flex items-end justify-between h-40 pt-4 gap-2">
+                                            {[ 20, 35, 25, 60, 95, 80, 45, 30 ].map((h, i) => (
+                                                <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                                                    <div className="w-full bg-gray-50 rounded-t-xl relative overflow-hidden flex items-end h-full">
+                                                        <motion.div 
+                                                            initial={{ height: 0 }} 
+                                                            animate={{ height: `${h}%` }} 
+                                                            className={`w-full ${h > 80 ? 'bg-amber-500' : 'bg-gray-200'} group-hover:bg-purple-600 transition-colors`}
+                                                        />
+                                                    </div>
+                                                    <span className="text-[8px] font-bold text-gray-400 uppercase">
+                                                        {['08h', '10h', '12h', '14h', '18h', '20h', '22h', '00h'][i]}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 font-medium italic text-center">"La conversión máxima ocurre a las <span className="font-bold text-gray-900">8:45 PM</span> los días de semana."</p>
+                                    </div>
+
+                                    {/* Geografía y Días */}
+                                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm grid grid-cols-2 gap-8">
+                                        <div className="space-y-6">
+                                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2 flex items-center gap-2">
+                                                <Globe size={12} className="text-blue-500"/> Geografía
+                                            </h4>
+                                            <div className="space-y-4">
+                                                {[ { l: 'Bogotá', p: '42%' }, { l: 'Medellín', p: '28%' }, { l: 'Cali', p: '12%' }, { l: 'Otras', p: '18%' } ].map((item, i) => (
+                                                    <div key={i} className="flex justify-between items-center group">
+                                                        <span className="text-[10px] font-bold text-gray-600 uppercase">{item.l}</span>
+                                                        <span className="text-[10px] font-black text-gray-900">{item.p}</span>
+                                                    </div>
                                                 ))}
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-6">
+                                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2 flex items-center gap-2">
+                                                <Calendar size={12} className="text-emerald-500"/> Días Top
+                                            </h4>
+                                            <div className="space-y-4">
+                                                {[ { d: 'Sábados', p: '35%' }, { d: 'Viernes', p: '25%' }, { d: 'Domingos', p: '20%' }, { d: 'Otros', p: '20%' } ].map((item, i) => (
+                                                    <div key={i} className="flex justify-between items-center group">
+                                                        <span className="text-[10px] font-bold text-gray-600 uppercase">{item.d}</span>
+                                                        <span className="text-[10px] font-black text-gray-900">{item.p}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <button onClick={handleConfirmOrder} className="w-full py-6 bg-gray-900 hover:bg-black text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3">
-                                    {isSubmittingOrder ? <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CheckCircle2 size={20} />}
-                                    Confirmar Abastecimiento
+
+                                {/* Resumen Estratégico Bayt */}
+                                <div className="bg-gradient-to-r from-purple-600 to-indigo-700 p-10 rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
+                                        <Bot size={120} />
+                                    </div>
+                                    <div className="relative z-10 flex items-start gap-8">
+                                        <div className="h-16 w-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-4xl shadow-xl">🤖</div>
+                                        <div className="flex-1 space-y-4">
+                                            <h4 className="text-xl font-black italic tracking-tight">Análisis Estratégico de Campaña</h4>
+                                            <p className="text-purple-50 text-sm font-medium leading-relaxed max-w-2xl">
+                                                "Esta campaña ha sido altamente efectiva para atraer a un público joven (<span className="text-white font-bold">18-24 años</span>) mayoritariamente <span className="text-white font-bold">femenino</span>. El rendimiento en dispositivos móviles es superior a la media, sugiriendo que el contenido compartido fue optimizado para vertical. Se recomienda extender la vigencia por 15 días más dada la alta rentabilidad detectada."
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                            
+                            {/* Botón de Cierre */}
+                            <div className="p-8 bg-white border-t border-gray-100 flex gap-4 flex-shrink-0">
+                                <button onClick={() => setSelectedCoupon(null)} className="w-full py-5 bg-gray-900 hover:bg-black text-white rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3">
+                                    Cerrar Análisis de Campaña <ArrowRight size={14} />
                                 </button>
                             </div>
                         </motion.div>
                     </div>
                 )}
-
-                {/* MODAL REGISTRO PROVEEDOR QUICK */}
-                {isRegisterProviderOpen && (
-                    <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden relative border border-white/20">
-                            <div className="bg-gray-900 p-8 text-white"><h2 className="text-xl font-black tracking-tight flex items-center gap-3"><Users size={20}/> Nuevo Proveedor</h2></div>
-                            <div className="p-10 space-y-6">
-                                <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase ml-1">Nombre Comercial</label><input value={newProvider.name} onChange={(e) => setNewProvider({ ...newProvider, name: e.target.value })} className="w-full p-4 bg-gray-50 border-2 border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all shadow-inner" placeholder="Ej: Distribuidora Tech S.A." /></div>
-                                <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase ml-1">WhatsApp</label><input value={newProvider.phone} onChange={(e) => setNewProvider({ ...newProvider, phone: e.target.value })} className="w-full p-4 bg-gray-50 border-2 border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all shadow-inner" placeholder="+57 300 000 0000" /></div>
+                {isProductHistoryModalOpen && (
+                    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-4xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col max-h-[90vh]">
+                            <div className="bg-gray-900 p-8 text-white relative flex-shrink-0 overflow-hidden">
+                                <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
+                                    <Activity size={180} />
+                                </div>
+                                <button onClick={() => setIsProductHistoryModalOpen(false)} className="absolute top-8 right-8 h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center hover:bg-rose-500 transition-all z-10">
+                                    <X size={20} />
+                                </button>
+                                <div className="relative z-10 flex items-center gap-6">
+                                    <div className="h-16 w-16 bg-amber-500 rounded-2xl flex items-center justify-center text-3xl shadow-xl border-2 border-white/10">
+                                        💡
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-black tracking-tight uppercase italic">Tabletas Purificadoras X</h2>
+                                        <p className="text-amber-400 text-[10px] font-black uppercase mt-1 tracking-widest">Historial Estratégico de Rendimiento</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="p-8 bg-gray-50 flex gap-4"><button onClick={() => setIsRegisterProviderOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cancelar</button><button onClick={handleCreateProvider} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg transition-all">Registrar Proveedor</button></div>
+
+                            <div className="p-10 space-y-8 bg-gray-50/50 overflow-y-auto custom-scrollbar flex-1">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                    {[
+                                        { label: 'Ventas (Feb Pasado)', val: '1.240 uds', icon: <Package size={14}/>, color: 'text-gray-900' },
+                                        { label: 'Ingresos Netos', val: formatCurrency(32240000), icon: <DollarSign size={14}/>, color: 'text-emerald-600' },
+                                        { label: 'Nuevos Clientes', val: '185', icon: <Users size={14}/>, color: 'text-blue-600' },
+                                        { label: 'Tasa Conversión', val: '8.4%', icon: <Target size={14}/>, color: 'text-purple-600' },
+                                    ].map((stat, i) => (
+                                        <div key={i} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                                {stat.icon} {stat.label}
+                                            </p>
+                                            <p className={`text-xl font-black ${stat.color}`}>{stat.val}</p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
+                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest border-b border-gray-50 pb-4">Argumentación de Bayt AI</h4>
+                                        <div className="space-y-4">
+                                            {[
+                                                "Estacionalidad confirmada: Febrero representa el 22% de tus ventas anuales de este producto.",
+                                                "Adquisición de clientes: Este producto tiene un 40% más de probabilidad de atraer clientes nuevos que el resto del catálogo.",
+                                                "Rentabilidad: El margen neto por unidad es del 45% tras costos logísticos.",
+                                                "Fuga evitable: Perdiste aprox. $12M el año pasado por rotura de stock en la tercera semana de febrero."
+                                            ].map((text, i) => (
+                                                <div key={i} className="flex gap-4 items-start">
+                                                    <div className="h-5 w-5 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                                                        <CheckCircle2 size={12}/>
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 font-medium leading-relaxed">{text}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-gray-900 p-10 rounded-[3rem] text-white flex flex-col justify-between relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-8 opacity-5">
+                                            <TrendingUp size={120} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[9px] font-black text-purple-400 uppercase tracking-widest mb-4">Proyección de Venta (Feb 2026)</p>
+                                            <h4 className="text-3xl font-black italic tracking-tight">+$45.800.000</h4>
+                                            <p className="text-gray-400 text-xs mt-2 font-medium">Potencial de ingresos si se mantiene el stock recomendado.</p>
+                                        </div>
+                                        <div className="pt-6 border-t border-white/10 flex items-center gap-4">
+                                            <div className="h-10 w-10 bg-purple-600 rounded-xl flex items-center justify-center text-white">
+                                                <Bot size={20} />
+                                            </div>
+                                            <p className="text-[10px] font-bold text-gray-300 italic uppercase">Recomendación: Compra prioritaria de 450 unidades.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-8 bg-white border-t border-gray-100 flex gap-4 flex-shrink-0">
+                                <button onClick={() => setIsProductHistoryModalOpen(false)} className="px-10 py-5 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-colors">
+                                    Cerrar
+                                </button>
+                                <button onClick={() => { setIsProductHistoryModalOpen(false); setIsOrderModalOpen(true); }} className="flex-1 py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all">
+                                    Proceder con la Orden
+                                </button>
+                            </div>
                         </motion.div>
                     </div>
                 )}
+                                {isOrderModalOpen && (
+                                    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+                                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20 flex flex-col max-h-[90vh]">
+                                            <div className="bg-gray-900 p-8 text-white flex-shrink-0 relative"><button onClick={() => setIsOrderModalOpen(false)} className="absolute top-6 right-6 h-10 w-10 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-rose-500 transition-all"><X size={20} /></button><div className="flex items-center gap-4"><div className="h-14 w-14 bg-amber-500 rounded-[1.5rem] flex items-center justify-center shadow-lg"><ShoppingCart size={28} /></div><div><h2 className="text-2xl font-black tracking-tight">Orden de Compra</h2><p className="text-amber-400 text-[10px] font-black uppercase mt-1">Bayt Sugerencia</p></div></div></div><div className="flex-1 overflow-y-auto p-10 space-y-8 bg-gray-50/30 custom-scrollbar"><div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6"><div className="flex justify-between items-center pb-4 border-b border-gray-50"><span className="text-[10px] font-black uppercase text-gray-400">Producto</span><span className="text-sm font-black text-gray-900">{orderForm.productName}</span></div><div className="grid grid-cols-2 gap-6"><div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase">Unidades</label><input type="text" value={formatNumber(orderForm.quantity)} onChange={(e) => setOrderForm({ ...orderForm, quantity: unformatNumber(e.target.value) })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold shadow-inner" /></div><div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase">Total</label><div className="w-full p-4 bg-gray-100 rounded-2xl font-black text-gray-500">{formatCurrency(orderForm.quantity * orderForm.pricePerUnit)}</div></div></div></div>                            <div className="space-y-4 relative">
+                                <div className="flex justify-between items-end px-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Proveedor</label>
+                                    <button onClick={() => setIsRegisterProviderOpen(true)} className="text-[9px] font-black text-purple-600 uppercase underline">+ Registrar Nuevo</button>
+                                </div>
+                                <button onClick={() => setIsProviderDropdownOpen(!isProviderDropdownOpen)} className="w-full p-5 bg-white border border-gray-100 rounded-3xl text-sm font-black flex justify-between items-center shadow-sm">
+                                    {orderForm.provider || 'Selecciona un aliado...'}
+                                    <ChevronDown size={16} />
+                                </button>
+                                <AnimatePresence>
+                                    {isProviderDropdownOpen && (
+                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-[600] max-h-48 overflow-y-auto">
+                                            {providers.map((p) => (
+                                                <button key={p.id} onClick={() => { setOrderForm({ ...orderForm, provider: p.name }); setIsProviderDropdownOpen(false); }} className="w-full px-6 py-4 text-left hover:bg-purple-50 transition-colors flex items-center justify-between">
+                                                    <span className="text-xs font-black uppercase text-gray-700">{p.name}</span>
+                                                    {orderForm.provider === p.name && <CheckCircle2 size={14} className="text-purple-600" />}
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Nuevo campo de Notas / Descripción */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Instrucciones o Notas del Pedido</label>
+                                <textarea 
+                                    value={orderForm.notes} 
+                                    onChange={(e) => setOrderForm({ ...orderForm, notes: e.target.value })}
+                                    placeholder="Ej: Por favor incluir factura comercial, tallas surtidas según inventario anterior..."
+                                    rows={3}
+                                    className="w-full p-5 bg-white border border-gray-100 rounded-[2rem] outline-none text-sm font-medium shadow-sm focus:border-purple-200 transition-all resize-none"
+                                />
+                            </div>
+
+                            <div className="space-y-6 pt-6 border-t border-gray-100">
+<div className="grid grid-cols-3 gap-4">{[{ id: 'whatsapp', label: 'WhatsApp', icon: <MessageSquare size={18}/> }, { id: 'email', label: 'Email', icon: <Mail size={18}/> }, { id: 'reminder', label: 'Programar', icon: <Clock size={18}/> }].map((method) => (<div key={method.id} onClick={() => setOrderForm({ ...orderForm, sending_method: method.id as any })} className={`p-4 rounded-3xl border-2 cursor-pointer transition-all flex flex-col items-center gap-2 ${orderForm.sending_method === method.id ? 'bg-purple-50 border-purple-600 shadow-md' : 'bg-white border-gray-100 opacity-60'}`}><div className={`h-10 w-10 rounded-xl flex items-center justify-center ${orderForm.sending_method === method.id ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-400'}`}>{method.icon}</div><span className="text-[9px] font-black uppercase">{method.label}</span></div>))}</div></div></div><div className="p-8 bg-white border-t border-gray-50 flex gap-4"><button onClick={() => setIsOrderModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cancelar</button><button onClick={handleConfirmOrder} disabled={isSubmittingOrder} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] active:scale-95 transition-all">{isSubmittingOrder ? 'Cargando...' : 'Confirmar Pedido'}</button></div></motion.div></div>
+                )}
+                {isRegisterProviderOpen && (
+                    <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"><motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden relative border border-white/20"><div className="bg-gray-900 p-8 text-white"><h2 className="text-xl font-black tracking-tight flex items-center gap-3"><Users size={20}/> Nuevo Proveedor</h2></div><div className="p-10 space-y-6"><div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase ml-1">Nombre Comercial</label><input value={newProvider.name} onChange={(e) => setNewProvider({ ...newProvider, name: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" placeholder="Ej: Distribuidora Tech S.A." /></div><div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase ml-2">WhatsApp</label><input value={newProvider.phone} onChange={(e) => setNewProvider({ ...newProvider, phone: e.target.value })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" placeholder="+57 300 000 0000" /></div></div><div className="p-8 bg-gray-50 flex gap-4"><button onClick={() => setIsRegisterProviderOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-gray-400">Cancelar</button><button onClick={handleCreateProvider} className="flex-[2] py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg transition-all">Registrar Proveedor</button></div></motion.div></div>
+                )}
             </AnimatePresence>
 
-            {/* Banner Final de IA Predictiva */}
-            <div className="bg-gradient-to-r from-gray-900 via-purple-950 to-indigo-950 rounded-[4rem] p-16 text-white relative overflow-hidden flex flex-col md:flex-row items-center gap-16 shadow-2xl border border-white/5">
-                <div className="h-32 w-32 bg-purple-600 rounded-[2.5rem] flex items-center justify-center text-7xl relative z-10 animate-pulse border-4 border-white/10 shadow-2xl">🤖</div>
-                <div className="flex-1 relative z-10 space-y-6">
-                    <div className="flex items-center gap-4"><span className="px-4 py-1.5 bg-purple-500/20 text-purple-400 rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-purple-500/30">Análisis Predictivo Bayup</span><div className="h-px flex-1 bg-white/10" /></div>
-                    <h3 className="text-4xl font-black tracking-tight leading-tight max-w-4xl">"Tu conversión móvil ha bajado un 12% porque la página de pago tarda 3 segundos más en cargar para usuarios de Android."</h3>
-                    <div className="flex gap-6 pt-4"><button className="px-10 py-5 bg-white text-gray-900 rounded-[2rem] font-black text-[10px] uppercase tracking-widest hover:bg-purple-50 transition-all flex items-center gap-3 shadow-xl">Optimizar Imágenes Ahora</button></div>
+            {/* Banner Final Predictivo - Electric Cyber-Clean Card */}
+            <div className="max-w-6xl mx-auto mt-24 relative overflow-hidden rounded-[4rem] group shadow-[0_40px_80px_-15px_rgba(0,242,255,0.15)]">
+                
+                {/* Fondo Claro con Destellos Cian Eléctrico */}
+                <div className="absolute inset-0 bg-white overflow-hidden">
+                    <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[140%] bg-[radial-gradient(circle_at_center,_rgba(0,242,255,0.08)_0%,_transparent_60%)] animate-pulse"></div>
+                    <div className="absolute bottom-[-20%] left-[-10%] w-[70%] h-[140%] bg-[radial-gradient(circle_at_center,_rgba(147,51,234,0.05)_0%,_transparent_60%)] animate-pulse" style={{ animationDelay: '2s' }}></div>
+                    {/* Sutil textura de rejilla tecnológica */}
+                    <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(#00F2FF 1px, transparent 1px), linear-gradient(90deg, #00F2FF 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
                 </div>
-                <div className="absolute -right-20 -bottom-20 text-[30rem] font-black opacity-[0.03] rotate-12 pointer-events-none uppercase">BAYT</div>
+
+                <div className="relative p-12 md:p-16 flex flex-col lg:flex-row items-center gap-12 border border-[#00F2FF]/20">
+                    
+                    {/* Icono de Bayt Pro con Aura Eléctrica */}
+                    <div className="shrink-0 relative">
+                        <div className="h-28 w-28 bg-gray-900 rounded-[2.5rem] flex items-center justify-center shadow-2xl relative z-10 border-2 border-[#00F2FF]/50">
+                            <Bot size={56} className="text-[#00F2FF] drop-shadow-[0_0_15px_rgba(0,242,255,0.8)]" />
+                        </div>
+                        {/* Resplandor Cian */}
+                        <div className="absolute inset-0 bg-[#00F2FF]/30 rounded-[2.5rem] blur-3xl animate-pulse"></div>
+                    </div>
+
+                    {/* Mensaje de Impacto con Tipografía Original 4xl */}
+                    <div className="flex-1 space-y-6 text-center lg:text-left relative z-10">
+                        <div className="flex items-center gap-4 justify-center lg:justify-start">
+                            <span className="px-5 py-1.5 bg-[#00F2FF]/10 text-[#00B8C4] rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-[#00F2FF]/20">
+                                Inteligencia Predictiva
+                            </span>
+                            <div className="h-1 w-1 bg-gray-200 rounded-full"></div>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic font-mono">Status: Optimizando</span>
+                        </div>
+                        
+                        <h3 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight max-w-4xl">
+                            "Tu conversión móvil <span className="text-[#00B8C4] italic">ha bajado un 12%</span> porque la página de pago tarda <span className="text-purple-600 italic">3 segundos más</span> en cargar para usuarios de Android."
+                        </h3>
+                    </div>
+
+                    {/* Bloque de Acción e Impacto Económico */}
+                    <div className="shrink-0 flex flex-col items-center lg:items-end gap-8 relative z-10 lg:pl-12 lg:border-l lg:border-gray-100">
+                        <div className="text-center lg:text-right">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pérdida Mensual Evitable</p>
+                            <p className="text-4xl font-black text-gray-900 flex items-center gap-2">
+                                <span className="text-[#00F2FF]">$</span>2.450.000
+                            </p>
+                        </div>
+                        <button className="px-12 py-5 bg-gray-900 hover:bg-[#00F2FF] hover:text-gray-900 text-white rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl transition-all active:scale-95 flex items-center gap-3 group/btn">
+                            RESCATAR CAPITAL <ArrowRight size={20} className="group-hover/btn:translate-x-2 transition-transform" />
+                        </button>
+                    </div>
+                </div>
+                
+                {/* Línea de energía cian en el borde inferior */}
+                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#00F2FF] to-transparent opacity-50"></div>
             </div>
         </div>
     );

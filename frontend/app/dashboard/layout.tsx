@@ -147,11 +147,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <div className="p-4 border-b border-white/10 relative">
                 <div className="bg-white/10 backdrop-blur-md p-4 rounded-[2rem] border border-white/30 shadow-sm">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="h-10 w-10 rounded-2xl bg-purple-600 flex items-center justify-center text-white shadow-lg shadow-purple-200">
-                            <span className="text-xl font-bold">B</span>
+                        <div className="h-12 w-12 rounded-2xl bg-transparent flex items-center justify-center overflow-hidden">
+                            <img src="/assets/Logo Bayup sin fondo negra.png" alt="Bayup Logo" className="h-full w-full object-contain" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-sm font-black text-gray-900 leading-tight">Mi Tienda</span>
+                            <span className="text-sm font-black text-gray-900 leading-tight uppercase tracking-tighter">Bayup</span>
                             <div className="flex items-center gap-1.5 mt-0.5">
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                 <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">En línea</span>

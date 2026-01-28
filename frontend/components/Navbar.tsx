@@ -28,9 +28,9 @@ export default function Navbar({ isScrolled }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           {/* Left: Logo */}
-          <div className="flex-shrink-0">
-            <Link href="/" className="text-white text-2xl font-bold">
-              BAYUP
+          <div className="flex-shrink-0 flex items-center">
+            <Link href="/" className="h-10 w-auto">
+              <img src="/assets/Logo Bayup sin fondo blanca.png" alt="Bayup Logo" className="h-full object-contain" />
             </Link>
           </div>
 

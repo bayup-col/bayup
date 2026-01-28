@@ -75,7 +75,9 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md p-10 space-y-8 bg-white rounded-[3rem] shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-500">
         <div className="text-center">
-          <div className="h-16 w-16 bg-purple-600 rounded-3xl flex items-center justify-center text-white text-3xl font-black mx-auto mb-6 shadow-xl shadow-purple-200">B</div>
+          <div className="h-24 w-auto flex items-center justify-center mx-auto mb-6">
+            <img src="/assets/Logo Bayup sin fondo negra.png" alt="Bayup Logo" className="h-full object-contain" />
+          </div>
           <h2 className="text-3xl font-black text-gray-900 tracking-tight">¡Hola de nuevo!</h2>
           <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-2">Ingresa a tu centro operativo</p>
         </div>
