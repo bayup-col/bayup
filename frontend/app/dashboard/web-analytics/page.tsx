@@ -695,103 +695,365 @@ export default function WebAnalyticsPage() {
                                         
                                                                                                                     <div className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-8 mt-10">
                                         
-                                                                                                                        {selectedInventoryCategory === 'winners' ? (
+                                                                                                                                                                    {selectedInventoryCategory === 'winners' ? (
                                         
-                                                                                                                                                                            <>
+                                                                                                                                                                        <>
                                         
-                                                                                                                                                                                <div className="flex items-center justify-between border-b border-gray-50 pb-6">
+                                                                                                                                                                            <div className="flex items-center justify-between border-b border-gray-50 pb-6">
                                         
-                                                                                                                                                                                    <div>
+                                                                                                                                                                                <div>
                                         
-                                                                                                                                                                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                                                                                                                                                                                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
                                         
-                                                                                                                                                                                            <Trophy size={18} className="text-emerald-500" /> Ranking de Rentabilidad Crítica (80/20)
+                                                                                                                                                                                        <Trophy size={18} className="text-emerald-500" /> Ranking de Rentabilidad Crítica (80/20)
                                         
-                                                                                                                                                                                        </h4>
+                                                                                                                                                                                    </h4>
                                         
-                                                                                                                                                                                        <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Productos 'Ancla' que generan el 80% de tu utilidad neta</p>
-                                        
-                                                                                                                                                                                    </div>
-                                        
-                                                                                                                                                                                    <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-3 py-1 rounded-full uppercase italic">Core Business Assets</span>
+                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Productos 'Ancla' que generan el 80% de tu utilidad neta</p>
                                         
                                                                                                                                                                                 </div>
                                         
-                                                                                                                                                                                <div className="grid grid-cols-1 gap-4">
+                                                                                                                                                                                <span className="text-[9px] font-black text-purple-600 bg-purple-50 px-3 py-1 rounded-full uppercase italic">Core Business Assets</span>
                                         
-                                                                                                                                                                                    {[
+                                                                                                                                                                            </div>
                                         
-                                                                                                                                                                                        { rank: 1, name: "Tabletas Purificadoras X", margin: "68%", contribution: 124500000, efficiency: "Alta", label: "Ancla Principal" },
+                                                                                                                                                                            <div className="grid grid-cols-1 gap-4">
                                         
-                                                                                                                                                                                        { rank: 2, name: "Kit Supervivencia 360", margin: "52%", contribution: 88400000, efficiency: "Máxima", label: "Multiplicador de Margen" },
+                                                                                                                                                                                {[
                                         
-                                                                                                                                                                                        { rank: 3, name: "Filtro de Carbón Pro", margin: "45%", contribution: 72000000, efficiency: "Estable", label: "Generador de Flujo" },
+                                                                                                                                                                                    { rank: 1, name: "Tabletas Purificadoras X", margin: "68%", contribution: 124500000, efficiency: "Alta", label: "Ancla Principal" },
                                         
-                                                                                                                                                                                        { rank: 4, name: "Botella Térmica Bayup", margin: "42%", contribution: 45000000, efficiency: "Media", label: "Activo de Retención" },
+                                                                                                                                                                                    { rank: 2, name: "Kit Supervivencia 360", margin: "52%", contribution: 88400000, efficiency: "Máxima", label: "Multiplicador de Margen" },
                                         
-                                                                                                                                                                                        { rank: 5, name: "Linterna Solar Pro", margin: "38%", contribution: 36000000, efficiency: "Escalable", label: "Potencial de Crecimiento" }
+                                                                                                                                                                                    { rank: 3, name: "Filtro de Carbón Pro", margin: "45%", contribution: 72000000, efficiency: "Estable", label: "Generador de Flujo" },
                                         
-                                                                                                                                                                                    ].map((product, idx) => (
+                                                                                                                                                                                    { rank: 4, name: "Botella Térmica Bayup", margin: "42%", contribution: 45000000, efficiency: "Media", label: "Activo de Retención" },
                                         
-                                                                                                                                                                                        <div key={idx} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2.5rem] hover:bg-white hover:shadow-xl hover:scale-[1.02] transition-all border border-transparent hover:border-gray-100 group">
+                                                                                                                                                                                    { rank: 5, name: "Linterna Solar Pro", margin: "38%", contribution: 36000000, efficiency: "Escalable", label: "Potencial de Crecimiento" }
                                         
-                                                                                                                                                                                            <div className="flex items-center gap-8">
+                                                                                                                                                                                ].map((product, idx) => (
                                         
-                                                                                                                                                                                                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${
+                                                                                                                                                                                    <div key={idx} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2.5rem] hover:bg-white hover:shadow-xl hover:scale-[1.02] transition-all border border-transparent hover:border-gray-100 group">
                                         
-                                                                                                                                                                                                    idx === 0 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200' :
+                                                                                                                                                                                        <div className="flex items-center gap-8">
                                         
-                                                                                                                                                                                                    idx === 1 ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' :
+                                                                                                                                                                                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${
                                         
-                                                                                                                                                                                                    idx === 2 ? 'bg-gray-900 text-white' : 'bg-white text-gray-400 border border-gray-200'
+                                                                                                                                                                                                idx === 0 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200' :
                                         
-                                                                                                                                                                                                }`}>
+                                                                                                                                                                                                idx === 1 ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' :
                                         
-                                                                                                                                                                                                    {idx + 1}
+                                                                                                                                                                                                idx === 2 ? 'bg-gray-900 text-white' : 'bg-white text-gray-400 border border-gray-200'
                                         
-                                                                                                                                                                                                </div>
+                                                                                                                                                                                            }`}>
                                         
-                                                                                                                                                                                                <div>
-                                        
-                                                                                                                                                                                                    <div className="flex items-center gap-2">
-                                        
-                                                                                                                                                                                                        <p className="text-sm font-black text-gray-900 uppercase italic">{product.name}</p>
-                                        
-                                                                                                                                                                                                        <span className="text-[7px] font-black bg-gray-900 text-white px-2 py-0.5 rounded-full uppercase tracking-tighter">{product.label}</span>
-                                        
-                                                                                                                                                                                                    </div>
-                                        
-                                                                                                                                                                                                    <div className="flex items-center gap-4 mt-1">
-                                        
-                                                                                                                                                                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Margen Neto: <span className="text-emerald-600">{product.margin}</span></p>
-                                        
-                                                                                                                                                                                                        <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
-                                        
-                                                                                                                                                                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Eficiencia: <span className="text-gray-900">{product.efficiency}</span></p>
-                                        
-                                                                                                                                                                                                    </div>
-                                        
-                                                                                                                                                                                                </div>
+                                                                                                                                                                                                {idx + 1}
                                         
                                                                                                                                                                                             </div>
                                         
-                                                                                                                                                                                            <div className="text-right">
+                                                                                                                                                                                            <div>
                                         
-                                                                                                                                                                                                <p className="text-xs font-black text-gray-900">+{formatCurrency(product.contribution)}</p>
+                                                                                                                                                                                                <div className="flex items-center gap-2">
                                         
-                                                                                                                                                                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Contribución a Utilidad</p>
+                                                                                                                                                                                                    <p className="text-sm font-black text-gray-900 uppercase italic">{product.name}</p>
+                                        
+                                                                                                                                                                                                    <span className="text-[7px] font-black bg-gray-900 text-white px-2 py-0.5 rounded-full uppercase tracking-tighter">{product.label}</span>
+                                        
+                                                                                                                                                                                                </div>
+                                        
+                                                                                                                                                                                                <div className="flex items-center gap-4 mt-1">
+                                        
+                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Margen Neto: <span className="text-emerald-600">{product.margin}</span></p>
+                                        
+                                                                                                                                                                                                    <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
+                                        
+                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Eficiencia: <span className="text-gray-900">{product.efficiency}</span></p>
+                                        
+                                                                                                                                                                                                </div>
                                         
                                                                                                                                                                                             </div>
                                         
                                                                                                                                                                                         </div>
                                         
-                                                                                                                                                                                    ))}
+                                                                                                                                                                                        <div className="text-right">
+                                        
+                                                                                                                                                                                            <p className="text-xs font-black text-gray-900">+{formatCurrency(product.contribution)}</p>
+                                        
+                                                                                                                                                                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Contribución a Utilidad</p>
+                                        
+                                                                                                                                                                                        </div>
+                                        
+                                                                                                                                                                                    </div>
+                                        
+                                                                                                                                                                                ))}
+                                        
+                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                                                                        </>
+                                        
+                                                                                                                                                                                                                    ) : selectedInventoryCategory === 'stuck' ? (
+                                        
+                                                                                                                                                                                                                        <>
+                                        
+                                                                                                                                                                                                                            <div className="flex items-center justify-between border-b border-gray-50 pb-6">
+                                        
+                                                                                                                                                                                                                                <div>
+                                        
+                                                                                                                                                                                                                                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                                        
+                                                                                                                                                                                                                                        <DollarSign size={18} className="text-rose-500" /> Ranking de Rescate de Liquidez
+                                        
+                                                                                                                                                                                                                                    </h4>
+                                        
+                                                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Capital 'Secuestrado': libéralo para reinvertir en activos de alto ROI</p>
+                                        
+                                                                                                                                                                                                                                </div>
+                                        
+                                                                                                                                                                                                                                <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-3 py-1 rounded-full uppercase italic animate-pulse">High Holding Cost</span>
+                                        
+                                                                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                                                                            <div className="grid grid-cols-1 gap-4">
+                                        
+                                                                                                                                                                                                                                {[
+                                        
+                                                                                                                                                                                                                                    { rank: 1, name: "Fundas Silicona Pro", capital: 8500000, opportunity: 4200000, discount: "25%", aging: "92 días" },
+                                        
+                                                                                                                                                                                                                                    { rank: 2, name: "Protector Pantalla X", capital: 6200000, opportunity: 3100000, discount: "30%", aging: "120 días" },
+                                        
+                                                                                                                                                                                                                                    { rank: 3, name: "Cables USB-C Braided", capital: 4800000, opportunity: 2400000, discount: "20%", aging: "75 días" },
+                                        
+                                                                                                                                                                                                                                    { rank: 4, name: "Soporte Coche MagSafe", capital: 3200000, opportunity: 1600000, discount: "15%", aging: "60 días" },
+                                        
+                                                                                                                                                                                                                                    { rank: 5, name: "Adaptador Audio Jack", capital: 1800000, opportunity: 900000, discount: "40%", aging: "150 días" }
+                                        
+                                                                                                                                                                                                                                ].map((product, idx) => (
+                                        
+                                                                                                                                                                                                                                    <div key={idx} className="flex items-center justify-between p-6 bg-rose-50/20 rounded-[2.5rem] hover:bg-white hover:shadow-xl hover:scale-[1.02] transition-all border border-transparent hover:border-rose-100 group">
+                                        
+                                                                                                                                                                                                                                        <div className="flex items-center gap-8">
+                                        
+                                                                                                                                                                                                                                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${
+                                        
+                                                                                                                                                                                                                                                idx === 0 ? 'bg-rose-600 text-white shadow-lg' :
+                                        
+                                                                                                                                                                                                                                                'bg-white text-rose-400 border border-rose-100'
+                                        
+                                                                                                                                                                                                                                            }`}>
+                                        
+                                                                                                                                                                                                                                                {idx + 1}
+                                        
+                                                                                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                                                                                            <div>
+                                        
+                                                                                                                                                                                                                                                <p className="text-sm font-black text-gray-900 uppercase italic">{product.name}</p>
+                                        
+                                                                                                                                                                                                                                                <div className="flex items-center gap-4 mt-1">
+                                        
+                                                                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Antigüedad: <span className="text-rose-600">{product.aging}</span></p>
+                                        
+                                                                                                                                                                                                                                                    <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
+                                        
+                                                                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Descuento Sugerido: <span className="text-gray-900 font-black">{product.discount}</span></p>
+                                        
+                                                                                                                                                                                                                                                </div>
+                                        
+                                                                                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                                                                                        </div>
+                                        
+                                                                                                                                                                                                                                        <div className="text-right">
+                                        
+                                                                                                                                                                                                                                            <p className="text-xs font-black text-rose-600">{formatCurrency(product.capital)}</p>
+                                        
+                                                                                                                                                                                                                                            <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mt-0.5">Potencial de Reinversión: +{formatCurrency(product.opportunity)}</p>
+                                        
+                                                                                                                                                                                                                                        </div>
+                                        
+                                                                                                                                                                                                                                    </div>
+                                        
+                                                                                                                                                                                                                                ))}
+                                        
+                                                                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                                                                                                                        </>
+                                        
+                                                                                                                                                                                                                                                                    ) : selectedInventoryCategory === 'decline' ? (
+                                        
+                                                                                                                                                                                                                                                                        <>
+                                        
+                                                                                                                                                                                                                                                                            <div className="flex items-center justify-between border-b border-gray-50 pb-6">
+                                        
+                                                                                                                                                                                                                                                                                <div>
+                                        
+                                                                                                                                                                                                                                                                                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                                        
+                                                                                                                                                                                                                                                                                        <TrendingDown size={18} className="text-amber-500" /> Ranking de Salida Estratégica (Bundles AI)
+                                        
+                                                                                                                                                                                                                                                                                    </h4>
+                                        
+                                                                                                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Evacuación de inventario: recupera inversión antes de obsolescencia</p>
+                                        
+                                                                                                                                                                                                                                                                                </div>
+                                        
+                                                                                                                                                                                                                                                                                <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-3 py-1 rounded-full uppercase italic">Inventory Liquidation Phase</span>
+                                        
+                                                                                                                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                                                                                                                            <div className="grid grid-cols-1 gap-4">
+                                        
+                                                                                                                                                                                                                                                                                {[
+                                        
+                                                                                                                                                                                                                                                                                    { rank: 1, name: "Cargador Solar 1.0", drop: "-62%", residual: 4200000, bundle: "Tabletas Purificadoras X", units: "45 uds" },
+                                        
+                                                                                                                                                                                                                                                                                    { rank: 2, name: "Brújula Clásica Pro", drop: "-45%", residual: 2800000, bundle: "Kit Supervivencia 360", units: "32 uds" },
+                                        
+                                                                                                                                                                                                                                                                                    { rank: 3, name: "Cantimplora Basic", drop: "-38%", residual: 1500000, bundle: "Botella Térmica Bayup", units: "115 uds" },
+                                        
+                                                                                                                                                                                                                                                                                    { rank: 4, name: "Cuerda Paracord (Azul)", drop: "-24%", residual: 950000, bundle: "Mochila Pro-Tactical", units: "210 uds" }
+                                        
+                                                                                                                                                                                                                                                                                ].map((product, idx) => (
+                                        
+                                                                                                                                                                                                                                                                                    <div key={idx} className="flex items-center justify-between p-6 bg-amber-50/30 rounded-[2.5rem] hover:bg-white hover:shadow-xl hover:scale-[1.02] transition-all border border-transparent hover:border-amber-100 group">
+                                        
+                                                                                                                                                                                                                                                                                        <div className="flex items-center gap-8">
+                                        
+                                                                                                                                                                                                                                                                                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${
+                                        
+                                                                                                                                                                                                                                                                                                idx === 0 ? 'bg-amber-500 text-white shadow-lg' :
+                                        
+                                                                                                                                                                                                                                                                                                'bg-white text-amber-400 border border-amber-100'
+                                        
+                                                                                                                                                                                                                                                                                            }`}>
+                                        
+                                                                                                                                                                                                                                                                                                {idx + 1}
+                                        
+                                                                                                                                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                                                                                                                                            <div>
+                                        
+                                                                                                                                                                                                                                                                                                <p className="text-sm font-black text-gray-900 uppercase italic">{product.name}</p>
+                                        
+                                                                                                                                                                                                                                                                                                <div className="flex items-center gap-4 mt-1">
+                                        
+                                                                                                                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Caída Demanda: <span className="text-rose-500 font-black">{product.drop}</span></p>
+                                        
+                                                                                                                                                                                                                                                                                                    <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
+                                        
+                                                                                                                                                                                                                                                                                                    <p className="text-[10px] text-purple-600 font-black uppercase tracking-widest">Bundle Sugerido: <span className="text-gray-900">{product.bundle}</span></p>
+                                        
+                                                                                                                                                                                                                                                                                                </div>
+                                        
+                                                                                                                                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                                                                                                                                        </div>
+                                        
+                                                                                                                                                                                                                                                                                        <div className="text-right">
+                                        
+                                                                                                                                                                                                                                                                                            <p className="text-xs font-black text-amber-600">{formatCurrency(product.residual)}</p>
+                                        
+                                                                                                                                                                                                                                                                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Valor Residual en Riesgo</p>
+                                        
+                                                                                                                                                                                                                                                                                        </div>
+                                        
+                                                                                                                                                                                                                                                                                    </div>
+                                        
+                                                                                                                                                                                                                                                                                ))}
+                                        
+                                                                                                                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                                                                                                                        </>
+                                        
+                                                                                                                                                                                                                                                                    ) : selectedInventoryCategory === 'reorder' ? (
+                                        
+                                                                                                                                                                        <>
+                                        
+                                                                                                                                                                            <div className="flex items-center justify-between border-b border-gray-50 pb-6">
+                                        
+                                                                                                                                                                                <div>
+                                        
+                                                                                                                                                                                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-3">
+                                        
+                                                                                                                                                                                        <AlertCircle size={18} className="text-rose-500" /> Ranking de Emergencia Operativa
+                                        
+                                                                                                                                                                                    </h4>
+                                        
+                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 ml-7">Ventas en fuga: cada minuto sin stock regala clientes al rival</p>
                                         
                                                                                                                                                                                 </div>
                                         
-                                                                                                                                                                            </>
+                                                                                                                                                                                <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-3 py-1 rounded-full uppercase italic animate-pulse">Critical Stockout Risk</span>
                                         
-                                                                                                                        ) : (
+                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                            <div className="grid grid-cols-1 gap-4">
+                                        
+                                                                                                                                                                                {[
+                                        
+                                                                                                                                                                                    { rank: 1, name: "PowerBank Solar 20k", lost: 1200000, churn: "Muy Alto", stock: "0 uds", time: "AGOTADO" },
+                                        
+                                                                                                                                                                                    { rank: 2, name: "Hamaca Ultra-Light", lost: 850000, churn: "Alto", stock: "2 uds", time: "4 horas" },
+                                        
+                                                                                                                                                                                    { rank: 3, name: "Navaja Multi-Tool", lost: 450000, churn: "Medio", stock: "5 uds", time: "12 horas" },
+                                        
+                                                                                                                                                                                    { rank: 4, name: "Mochila Pro-Tactical", lost: 320000, churn: "Bajo", stock: "8 uds", time: "1.5 días" }
+                                        
+                                                                                                                                                                                ].map((product, idx) => (
+                                        
+                                                                                                                                                                                    <div key={idx} className="flex items-center justify-between p-6 bg-rose-50/30 rounded-[2.5rem] hover:bg-white hover:shadow-xl hover:scale-[1.02] transition-all border border-transparent hover:border-rose-100 group">
+                                        
+                                                                                                                                                                                        <div className="flex items-center gap-8">
+                                        
+                                                                                                                                                                                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${
+                                        
+                                                                                                                                                                                                idx === 0 ? 'bg-rose-600 text-white shadow-lg shadow-rose-200 animate-pulse' :
+                                        
+                                                                                                                                                                                                idx === 1 ? 'bg-rose-500 text-white shadow-md' :
+                                        
+                                                                                                                                                                                                'bg-white text-rose-400 border border-rose-100'
+                                        
+                                                                                                                                                                                            }`}>
+                                        
+                                                                                                                                                                                                {idx + 1}
+                                        
+                                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                                            <div>
+                                        
+                                                                                                                                                                                                <p className="text-sm font-black text-gray-900 uppercase italic">{product.name}</p>
+                                        
+                                                                                                                                                                                                <div className="flex items-center gap-4 mt-1">
+                                        
+                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Stock Actual: <span className="text-rose-600 font-black">{product.stock}</span></p>
+                                        
+                                                                                                                                                                                                    <div className="h-1 w-1 bg-gray-300 rounded-full"></div>
+                                        
+                                                                                                                                                                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Tiempo para Stockout: <span className="text-gray-900">{product.time}</span></p>
+                                        
+                                                                                                                                                                                                </div>
+                                        
+                                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                                        </div>
+                                        
+                                                                                                                                                                                        <div className="text-right">
+                                        
+                                                                                                                                                                                            <p className="text-xs font-black text-rose-600">-{formatCurrency(product.lost)}/día</p>
+                                        
+                                                                                                                                                                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Venta Perdida Proyectada</p>
+                                        
+                                                                                                                                                                                        </div>
+                                        
+                                                                                                                                                                                    </div>
+                                        
+                                                                                                                                                                                ))}
+                                        
+                                                                                                                                                                            </div>
+                                        
+                                                                                                                                                                        </>
+                                        
+                                                                                                                                                                    ) : (
                                         
                                                                                                                             <>
                                         
