@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useMemo } from 'react';
+import '@/lib/jspdf-types';
 
 export default function AffiliateTransactions() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -146,7 +147,7 @@ export default function AffiliateTransactions() {
                 styles: { fontSize: 10 }
             });
 
-            const finalY = (doc as any).lastAutoTable.finalY + 20;
+            const finalY = doc.lastAutoTable.finalY + 20;
             doc.setFillColor(249, 250, 251);
             doc.rect(130, finalY, 60, 30, 'F');
             doc.setTextColor(147, 51, 234);

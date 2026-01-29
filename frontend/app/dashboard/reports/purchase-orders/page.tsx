@@ -30,6 +30,7 @@ import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import '@/lib/jspdf-types';
 
 interface OrderItem {
     name: string;
@@ -128,7 +129,7 @@ export default function PurchaseOrdersPage() {
         });
 
         // 5. Totales y Notas
-        const finalY = (doc as any).lastAutoTable.finalY + 15;
+        const finalY = doc.lastAutoTable.finalY + 15;
         doc.setTextColor(17, 24, 39);
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');

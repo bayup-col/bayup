@@ -23,6 +23,7 @@ import { useToast } from "@/context/toast-context";
 import { useRouter } from 'next/navigation';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import '@/lib/jspdf-types';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
@@ -197,7 +198,7 @@ export default function ReportsPage() {
             });
 
             // 4. Detalle de Ventas por Canal
-            const currentY = (doc as any).lastAutoTable.finalY + 15;
+            const currentY = doc.lastAutoTable.finalY + 15;
             doc.text('Desglose por Canales', 20, currentY);
             const channelData = ['pos', 'web'].map(canal => {
                 const canalSales = totals.filteredSales.filter(s => s.source === canal);
@@ -214,7 +215,7 @@ export default function ReportsPage() {
 
             // 5. Detalle de Gastos
             if (totals.filteredExpenses.length > 0) {
-                const expensesY = (doc as any).lastAutoTable.finalY + 15;
+                const expensesY = doc.lastAutoTable.finalY + 15;
                 doc.text('Detalle de Gastos Registrados', 20, expensesY);
                 autoTable(doc, {
                     startY: expensesY + 5,

@@ -13,6 +13,7 @@ import { useToast } from "@/context/toast-context";
 import { useAuth } from "@/context/auth-context";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import '@/lib/jspdf-types';
 
 export default function WebAnalyticsPage() {
     const { token } = useAuth();

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+import '@/lib/jspdf-types';
 
 export default function AffiliateTreasury() {
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
@@ -89,10 +90,10 @@ export default function AffiliateTreasury() {
                 headStyles: { fillColor: [147, 51, 234] }
             });
 
-            doc.text('Historial Detallado', 20, (doc as any).lastAutoTable.finalY + 15);
+            doc.text('Historial Detallado', 20, doc.lastAutoTable.finalY + 15);
             const historyRows = paymentHistory.map(p => [p.period, p.amount, p.status, p.date]);
             autoTable(doc, {
-                startY: (doc as any).lastAutoTable.finalY + 20,
+                startY: doc.lastAutoTable.finalY + 20,
                 head: [['Periodo', 'Monto', 'Estatus', 'Fecha Pago']],
                 body: historyRows,
                 headStyles: { fillColor: [17, 24, 39] }
@@ -149,7 +150,7 @@ export default function AffiliateTreasury() {
             });
 
             // Cuadro de Totales
-            const finalY = (doc as any).lastAutoTable.finalY + 20;
+            const finalY = doc.lastAutoTable.finalY + 20;
             doc.setFillColor(249, 250, 251);
             doc.rect(120, finalY, 70, 45, 'F');
             

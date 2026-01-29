@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useMemo } from 'react';
+import '@/lib/jspdf-types';
 
 export default function AffiliateDashboard() {
     const [activePeriod, setActivePeriod] = useState('Día');
@@ -130,7 +131,7 @@ export default function AffiliateDashboard() {
                 styles: { fontSize: 10, cellPadding: 5 }
             });
 
-            const finalY = (doc as any).lastAutoTable.finalY + 20;
+            const finalY = doc.lastAutoTable.finalY + 20;
             doc.setFillColor(249, 250, 251);
             doc.rect(120, finalY, 70, 40, 'F');
             
