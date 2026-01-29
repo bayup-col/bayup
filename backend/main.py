@@ -96,6 +96,7 @@ async def clerk_login_for_access_token(
                 password=str(uuid.uuid4())
             )
         )
+        db.add(user) # Explicit add
         db.commit()
         db.refresh(user)
     
@@ -216,8 +217,10 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
                 db.commit()
                 db.refresh(order)
                 # El mensaje debe ser EXACTO al del test
-                msg = f"Payment notification for Order ID: {order.id} received. Status updated to 'completed'."
-                return {"status": "success", "message": msg}
+                return {
+                    "status": "success", 
+                    "message": f"Payment notification for Order ID: {order.id} received. Status updated to 'completed'."
+                }
         except:
             # Si no es un UUID válido, ignoramos silenciosamente para cumplir con el contrato de webhook
             pass
