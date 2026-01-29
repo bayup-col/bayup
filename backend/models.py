@@ -30,7 +30,7 @@ class User(Base):
     plan_id = Column(UUID(as_uuid=True), ForeignKey("plans.id"))
     plan = relationship("Plan", back_populates="users")
     products = relationship("Product", back_populates="owner")
-    orders = relationship("Order", back_populates="customer")
+    orders = relationship("Order", back_populates="customer", foreign_keys="[Order.customer_id]")
 
 class Product(Base):
     __tablename__ = "products"
