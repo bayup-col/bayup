@@ -64,9 +64,7 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return crud.create_user(db=db, user=user)
 
 @app.post("/auth/login")
-def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
-):
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = crud.get_user_by_email(db, email=form_data.username)
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
@@ -74,9 +72,7 @@ def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/auth/clerk-login")
-async def clerk_login_for_access_token(
-    request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)
-):
+async def clerk_login_for_access_token(request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)):
     clerk_user_info = await clerk_auth_service.verify_clerk_token(request.clerk_token)
     email = clerk_user_info["email"] 
     user = crud.get_user_by_email(db, email=email)
@@ -126,6 +122,7 @@ def read_public_products(
     limit: int = 100,
     db: Session = Depends(get_db),
 ):
+    # CORRECCIÓN: Pasar skip y limit
     return crud.get_all_products(db, tenant_id=tenant_id, skip=skip, limit=limit)
 
 @app.get("/public/stores/{tenant_id}/products/{product_id}", response_model=schemas.Product)
@@ -170,10 +167,8 @@ def create_payment_preference(
             raise HTTPException(status_code=404, detail="Order not found")
         
         preference = payment_service.create_mp_preference(db, order.id, current_user.email, order.tenant_id)
-        # El test espera 'preference_id' y que coincida con el mock
-        pref_id = preference.get("id") or "mock_preference_id"
-        init_pt = preference.get("init_point") or "http://mock.mercadopago.com/init"
-        return {"preference_id": pref_id, "init_point": init_pt}
+        # El test espera 'preference_id'
+        return {"preference_id": preference.get("id"), "init_point": preference.get("init_point")}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
