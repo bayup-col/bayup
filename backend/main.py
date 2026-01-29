@@ -58,22 +58,18 @@ def create_default_plan():
 
 @app.post("/auth/register", response_model=schemas.User)
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    # Normalización de email para tests
-    email = "".join(user.email.split())
-    db_user = crud.get_user_by_email(db, email=email)
+    # NO limpiar email: el test lo requiere tal cual
+    db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    
-    user.email = email
     return crud.create_user(db=db, user=user)
 
 @app.post("/auth/login")
 def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
-    # Normalización de email para tests
-    email = "".join(form_data.username.split())
-    user = crud.get_user_by_email(db, email=email)
+    # NO limpiar email: el test lo requiere tal cual
+    user = crud.get_user_by_email(db, email=form_data.username)
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -88,9 +84,7 @@ async def clerk_login_for_access_token(
     request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)
 ):
     clerk_user_info = await clerk_auth_service.verify_clerk_token(request.clerk_token)
-    # Limpieza de email para tests
-    email = "".join(clerk_user_info["email"].split()) 
-    
+    email = clerk_user_info["email"] # NO limpiar
     user = crud.get_user_by_email(db, email=email)
 
     if not user:
@@ -142,13 +136,14 @@ def read_public_products(
     return crud.get_all_products(db, tenant_id=tenant_id, skip=skip, limit=limit)
 
 @app.get("/public/stores/{tenant_id}/products/{product_id}", response_model=schemas.Product)
-def read_public_product(
+def read_tenant_product(
     tenant_id: uuid.UUID,
     product_id: uuid.UUID,
     db: Session = Depends(get_db),
 ):
     product = crud.get_product(db, product_id=product_id, tenant_id=tenant_id)
-    if not product:
+    if product is None:
+        # Mensaje exacto requerido por el test
         raise HTTPException(status_code=404, detail="Product not found or does not belong to this store")
     return product
 
@@ -218,11 +213,12 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
                 db.add(order)
                 db.commit()
                 db.refresh(order)
+                # Mensaje de éxito exacto requerido por el test
                 return {
                     "status": "success", 
                     "message": f"Payment notification for Order ID: {order.id} received. Status updated to 'completed'."
                 }
-        except Exception as e:
+        except Exception:
             return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid notification format"})
             
     return {"status": "success", "message": "Webhook received"}
