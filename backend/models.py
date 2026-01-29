@@ -230,18 +230,18 @@ class Provider(Base):
     contact_name = Column(String)
     email = Column(String)
     phone = Column(String)
-        category = Column(String, default="General")
-        tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    
-    class Shipment(Base):
-        __tablename__ = "shipments"
-        id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-        order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"))
-        tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-        status = Column(String, default="pending_packing")
-        recipient_name = Column(String)
-        destination_address = Column(String)
-        carrier = Column(String, nullable=True)
-        tracking_number = Column(String, nullable=True)
-        updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    category = Column(String, default="General")
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+
+class Shipment(Base):
+    __tablename__ = "shipments"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"))
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    status = Column(String, default="pending_packing")
+    recipient_name = Column(String)
+    destination_address = Column(String)
+    carrier = Column(String, nullable=True)
+    tracking_number = Column(String, nullable=True)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     
