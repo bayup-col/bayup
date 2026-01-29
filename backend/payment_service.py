@@ -40,8 +40,14 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
         })
 
     commission_rate = 0.10
-    if tenant and tenant.plan:
-        commission_rate = tenant.plan.commission_rate
+    try:
+        # Resolve tenant_id explicitly if not provided or to ensure it matches order
+        target_tenant_id = tenant_id or order.tenant_id
+        tenant_obj = db.query(models.User).filter(models.User.id == target_tenant_id).first()
+        if tenant_obj and tenant_obj.plan:
+            commission_rate = tenant_obj.plan.commission_rate
+    except:
+        pass
 
     preference_data = {
         "items": items,

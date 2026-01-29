@@ -100,8 +100,11 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
     for item_in in order.items:
         product_variant = get_product_variant(db, item_in.product_variant_id)
         if not product_variant:
-            raise HTTPException(status_code=404, detail="Product variant not found")
+            raise HTTPException(status_code=404, detail=f"Product variant with id {item_in.product_variant_id} not found")
         
+        if product_variant.stock < item_in.quantity:
+            raise HTTPException(status_code=400, detail=f"Not enough stock for variant {product_variant.name}")
+
         variant_price = product_variant.product.price + product_variant.price_adjustment
         
         if tenant_id_for_order is None:
