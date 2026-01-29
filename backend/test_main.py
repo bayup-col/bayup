@@ -8,10 +8,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from moto import mock_aws
 from unittest.mock import patch, MagicMock
-from ..backend.database import Base, get_db
-from ..backend.main import app
-from ..backend.security import create_access_token
-from ..backend import models, crud
+from database import Base, get_db
+from main import app
+from security import create_access_token
+import models, crud
 from datetime import timedelta
 
 # --- Test Database Setup ---
