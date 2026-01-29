@@ -110,6 +110,7 @@ class OrderCreate(OrderBase):
 
 class Order(OrderBase):
     id: uuid.UUID
+    customer_id: uuid.UUID # Added customer_id
     status: str
     created_at: datetime
     total_price: float # Asegurar que total_price se devuelva

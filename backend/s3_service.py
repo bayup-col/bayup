@@ -13,7 +13,8 @@ def create_presigned_upload_url(file_type: str) -> dict | None:
     """
     Generate a presigned URL to upload a file to S3.
     """
-    if not S3_BUCKET_NAME:
+    bucket_name = os.getenv("S3_BUCKET_NAME")
+    if not bucket_name:
         # In a real app, you'd log this error.
         print("Error: S3_BUCKET_NAME environment variable not set.")
         return None
@@ -23,7 +24,7 @@ def create_presigned_upload_url(file_type: str) -> dict | None:
 
     try:
         response = s3_client.generate_presigned_post(
-            Bucket=S3_BUCKET_NAME,
+            Bucket=bucket_name,
             Key=object_name,
             Fields={"Content-Type": file_type},
             Conditions=[{"Content-Type": file_type}],
