@@ -2,10 +2,12 @@
 import os
 import boto3
 import uuid
+import pytest
 from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from moto import mock_aws
 from unittest.mock import patch, MagicMock
 from database import Base, get_db
@@ -15,36 +17,25 @@ import models, crud, schemas
 from datetime import timedelta
 
 # --- Test Database Setup ---
+# Usamos StaticPool para que todas las sesiones compartan la misma base de datos en memoria
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# --- Dependency Override ---
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
-
-# Apply the override
-app.dependency_overrides[get_db] = override_get_db
-
-# --- Test Client ---
-client = TestClient(app)
-
-# --- Test Helpers ---
-def get_auth_headers(email: str):
-    token = create_access_token(data={"sub": email}, expires_delta=timedelta(minutes=15))
-    return {"Authorization": f"Bearer {token}"}
-
-# --- Tests ---
-def setup_function():
-    # Create the tables
+# --- Pytest Fixtures ---
+@pytest.fixture(autouse=True)
+def setup_db():
+    """
+    Crea las tablas antes de cada test y las elimina después.
+    Se ejecuta automáticamente para cada función de test.
+    """
     Base.metadata.create_all(bind=engine)
-    # Ensure default plan is created for tests
+    
+    # Creamos el plan por defecto necesario para los tests de registro
     db = TestingSessionLocal()
     if not crud.get_default_plan(db):
         crud.create_plan(
@@ -59,10 +50,30 @@ def setup_function():
         )
         db.commit()
     db.close()
-
-def teardown_function():
-    # Drop the tables
+    
+    yield
+    
     Base.metadata.drop_all(bind=engine)
+
+# --- Dependency Override ---
+def override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+app.dependency_overrides[get_db] = override_get_db
+
+# --- Test Client ---
+client = TestClient(app)
+
+# --- Test Helpers ---
+def get_auth_headers(email: str):
+    token = create_access_token(data={"sub": email}, expires_delta=timedelta(minutes=15))
+    return {"Authorization": f"Bearer {token}"}
+
+# --- Tests ---
 
 def test_read_root_redirect():
     response = client.get("/")
