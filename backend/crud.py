@@ -23,15 +23,13 @@ def get_user_by_email(db: Session, email: str) -> models.User | None:
 def create_user(db: Session, user: schemas.UserCreate) -> models.User:
     hashed_password = security.get_password_hash(user.password)
     default_plan = get_default_plan(db)
-    if not default_plan:
-        raise HTTPException(status_code=500, detail="No default plan configured.")
     db_user = models.User(
         email=user.email,
         full_name=user.full_name,
         hashed_password=hashed_password,
         role=user.role or "admin_tienda",
         status=user.status or "Activo",
-        plan_id=default_plan.id
+        plan_id=default_plan.id if default_plan else None
     )
     db.add(db_user)
     db.commit()
@@ -47,10 +45,11 @@ def get_product(db: Session, product_id: uuid.UUID, tenant_id: Optional[uuid.UUI
 def get_product_variant(db: Session, variant_id: uuid.UUID) -> models.ProductVariant | None:
     return db.query(models.ProductVariant).filter(models.ProductVariant.id == variant_id).first()
 
-def get_all_products(db: Session, tenant_id: Optional[uuid.UUID] = None) -> list[models.Product]:
+def get_all_products(db: Session, tenant_id: Optional[uuid.UUID] = None, skip: int = 0, limit: int = 100) -> list[models.Product]:
+    # CORRECCIÓN: Soporte para paginación
     query = db.query(models.Product).options(joinedload(models.Product.variants))
     if tenant_id: query = query.filter(models.Product.owner_id == tenant_id)
-    return query.all()
+    return query.offset(skip).limit(limit).all()
 
 def get_products_by_owner(db: Session, owner_id: uuid.UUID, skip: int = 0, limit: int = 100) -> list[models.Product]:
     return db.query(models.Product).filter(models.Product.owner_id == owner_id).options(joinedload(models.Product.variants)).offset(skip).limit(limit).all()
