@@ -11,7 +11,7 @@ from unittest.mock import patch, MagicMock
 from database import Base, get_db
 from main import app
 from security import create_access_token
-import models, crud
+import models, crud, schemas
 from datetime import timedelta
 
 # --- Test Database Setup ---
@@ -49,7 +49,7 @@ def setup_function():
     if not crud.get_default_plan(db):
         crud.create_plan(
             db=db,
-            plan=models.Plan(
+            plan=schemas.PlanCreate(
                 name="Test Default Plan",
                 description="Default plan for testing",
                 commission_rate=0.10,
