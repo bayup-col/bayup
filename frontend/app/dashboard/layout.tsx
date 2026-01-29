@@ -7,6 +7,8 @@ import { useAuth } from '@/context/auth-context';
 import { userService } from '@/lib/api';
 import { DashboardHeader } from '@/components/dashboard/Header';
 import { BaytAssistant } from '@/components/dashboard/BaytAssistant';
+import { InteractiveUP } from '@/components/landing/InteractiveUP';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
   Bot, 
@@ -89,8 +91,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       }
       
       return (isSub ? subBase : base) + (isActive 
-        ? 'bg-purple-50 text-purple-600 shadow-sm' 
-        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900');
+        ? 'backdrop-blur-md bg-white/20 border border-white/30 text-[#004d4d] shadow-[0_8px_16px_-4px_rgba(0,77,77,0.15)] scale-[1.02]' 
+        : 'text-gray-500 hover:bg-[#004d4d]/5 hover:text-[#004d4d]');
     };
   
     const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
@@ -155,20 +157,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return (
         <>
             <div className="p-4 border-b border-white/10 relative">
-                <div className="bg-white/10 backdrop-blur-md p-4 rounded-[2rem] border border-white/30 shadow-sm">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="h-12 w-12 rounded-2xl bg-transparent flex items-center justify-center overflow-hidden">
-                            <img src="/assets/Logo Bayup sin fondo negra.png" alt="Bayup Logo" className="h-full w-full object-contain" />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-sm font-black text-gray-900 leading-tight uppercase tracking-tighter">Bayup</span>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">En línea</span>
-                            </div>
+                <div className="bg-white/10 backdrop-blur-md p-6 rounded-[2.5rem] border border-white/30 shadow-sm flex flex-col items-center text-center">
+                    <div className="flex flex-col items-center">
+                        <span className="text-base font-black text-gray-900 leading-tight uppercase tracking-tighter">
+                            {userEmail?.split('@')[0] || 'Mi Empresa'}
+                        </span>
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>
+                            <span className="text-[9px] font-black text-[#004d4d] uppercase tracking-widest">En línea</span>
                         </div>
                     </div>
-                    <Link href="/dashboard/my-store" className="flex items-center justify-center gap-2 w-full py-2 bg-white border border-purple-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-purple-600 hover:bg-purple-600 hover:text-white transition-all shadow-sm active:scale-95 group/store">
+                    <Link href="/dashboard/my-store" className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 bg-white border border-[#004d4d]/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-[#004d4d] hover:bg-[#004d4d] hover:text-white transition-all shadow-sm active:scale-95 group/store">
                         <span>Ver tienda online</span>
                         <Globe size={12} className="group-hover/store:translate-x-0.5 group-hover/store:-translate-y-0.5 transition-transform" />
                     </Link>
@@ -277,7 +276,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="h-screen w-full bg-gray-50 flex overflow-hidden">
+    <div className="h-screen w-full bg-[#FAFAFA] flex overflow-hidden">
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -285,19 +284,39 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.1); }
       `}</style>
       
-      <aside className="w-64 flex-shrink-0 m-4 rounded-[2.5rem] backdrop-blur-3xl bg-white/20 border border-white/50 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] flex flex-col overflow-y-auto custom-scrollbar z-0 transition-all duration-500 hover:bg-white/30">
-        {renderSidebar()}
-        <div className="p-6 mt-auto flex items-center justify-between border-t border-white/10 bg-transparent">
-          <span className="text-[10px] text-gray-300 font-bold uppercase tracking-widest leading-none block">Bayup Admin</span>
-          <button 
-            onClick={() => setIsEditingMenu(!isEditingMenu)} 
-            className={`h-7 w-7 flex items-center justify-center rounded-lg transition-all ${isEditingMenu ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-300 hover:text-purple-600 opacity-50 hover:opacity-100'}`}
-            title="Personalizar Menú"
-          >
-            <Pencil size={12} />
-          </button>
+      {/* Sidebar con efecto Aurora */}
+      <div className="relative group m-4 p-[2px] rounded-[2.5rem] overflow-hidden isolate flex-shrink-0 w-64 shadow-[0_20px_50px_rgba(0,77,77,0.05)]">
+        <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden -z-10">
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            className="absolute top-1/2 left-1/2 w-[300%] aspect-square"
+            style={{
+              background: `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)`,
+              x: "-50%",
+              y: "-50%",
+              willChange: 'transform'
+            }}
+          />
+          <div className="absolute inset-[1px] rounded-[2.45rem] bg-white/90 backdrop-blur-3xl" />
         </div>
-      </aside>
+        
+        <aside className="w-full h-full flex flex-col overflow-y-auto custom-scrollbar z-0 transition-all duration-500 hover:bg-white/30">
+          {renderSidebar()}
+          <div className="p-6 mt-auto flex items-center justify-between border-t border-white/10 bg-transparent">
+            <div className="text-2xl font-black text-black italic tracking-tighter cursor-pointer w-fit">
+              <span>BAY</span><InteractiveUP />
+            </div>
+            <button 
+              onClick={() => setIsEditingMenu(!isEditingMenu)} 
+              className={`h-8 w-8 flex items-center justify-center rounded-xl transition-all ${isEditingMenu ? 'bg-[#004d4d] text-white shadow-lg shadow-[#004d4d]/20' : 'text-gray-300 hover:text-[#004d4d] opacity-50 hover:opacity-100 hover:bg-white/50'}`}
+              title="Personalizar Menú"
+            >
+              <Pencil size={14} />
+            </button>
+          </div>
+        </aside>
+      </div>
 
       <div className="flex-1 flex flex-col min-w-0">
         <DashboardHeader 
@@ -311,7 +330,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             isBaytOpen={isBaytOpen}
             setIsBaytOpen={setIsBaytOpen}
         />
-        <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar">{children}</main>
+        <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar bg-transparent">{children}</main>
         
         <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />
       </div>

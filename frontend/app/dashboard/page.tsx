@@ -4,71 +4,90 @@ import { useState, useEffect } from 'react';
 import { useAuth } from "@/context/auth-context";
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Search, Sparkles, Users, LayoutDashboard, CheckCircle2 } from 'lucide-react';
+import { 
+  Activity, 
+  Search, 
+  Sparkles, 
+  Users, 
+  LayoutDashboard, 
+  CheckCircle2, 
+  ArrowRight, 
+  TrendingUp, 
+  AlertCircle,
+  Package,
+  CreditCard,
+  MessageCircle,
+  Lightbulb,
+  Zap,
+  Globe,
+  ShieldCheck,
+  TrendingDown,
+  RefreshCw,
+  Clock,
+  BarChart3
+} from 'lucide-react';
 
 export default function DashboardPage() {
-  const { userEmail } = useAuth();
-
-  // Estado para actividad en tiempo real (Limitado a 4)
-  const [activities, setActivities] = useState([
-    { id: 1, type: 'order', user: 'Ana G.', detail: 'Nueva orden #8241', time: 'hace 5 min' },
-    { id: 2, type: 'message', user: 'Carlos L.', detail: 'Preguntó por stock de Zapatillas', time: 'hace 15 min' },
-    { id: 3, type: 'customer', user: 'María R.', detail: 'Se registró como cliente', time: 'hace 1 hora' },
-    { id: 4, type: 'order', user: 'Roberto V.', detail: 'Pago confirmado #8239', time: 'hace 2 horas' },
-  ]);
-
-  const [isTipsModalOpen, setIsTipsModalOpen] = useState(false);
+  const { userEmail, token } = useAuth();
+  
+  // Estados de datos
+  const [opportunities, setOpportunities] = useState<any[]>([]);
   const [pendingPayment, setPendingPayment] = useState<any>(null);
   const [pendingCollection, setPendingCollection] = useState<any>(null);
-  const { token } = useAuth();
+  const [loadingOpps, setLoadingOpps] = useState(true);
 
+  // Actividad Mock (Mejorada visualmente)
+  const [activities, setActivities] = useState([
+    { id: 1, type: 'order', user: 'Ana García', detail: 'Nueva orden #8241', time: '5m', amount: '$150.000' },
+    { id: 2, type: 'message', user: 'Carlos López', detail: 'Consulta de stock', time: '15m', amount: null },
+    { id: 3, type: 'customer', user: 'María Rodriguez', detail: 'Nuevo registro', time: '1h', amount: null },
+    { id: 4, type: 'order', user: 'Roberto VIP', detail: 'Pago confirmado #8239', time: '2h', amount: '$850.000' },
+  ]);
+
+  // Carga de datos reales y oportunidades
   useEffect(() => {
-    const fetchFinances = async () => {
+    const fetchData = async () => {
         if (!token) return;
         try {
-            const [expRes, recRes] = await Promise.all([
+            const [expRes, recRes, oppRes] = await Promise.all([
                 fetch('http://localhost:8000/expenses', { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch('http://localhost:8000/receivables', { headers: { 'Authorization': `Bearer ${token}` } })
+                fetch('http://localhost:8000/receivables', { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch('http://localhost:8000/analytics/opportunities', { headers: { 'Authorization': `Bearer ${token}` } })
             ]);
 
             if (expRes.ok) {
                 const exps = await expRes.json();
-                // Filtramos SOLO pendientes y ordenamos por fecha más cercana (futura o hoy)
-                const pending = exps
-                    .filter((e: any) => e.status === 'pending')
+                const pending = exps.filter((e: any) => e.status === 'pending')
                     .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
                 setPendingPayment(pending);
             }
 
             if (recRes.ok) {
                 const recs = await recRes.json();
-                // Filtramos SOLO pendientes
-                const pending = recs
-                    .filter((r: any) => r.status === 'pending')
+                const pending = recs.filter((r: any) => r.status === 'pending')
                     .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
                 setPendingCollection(pending);
             }
-        } catch (e) { console.error("Error loading dashboard finance cards"); }
+
+            if (oppRes.ok) {
+                const opps = await oppRes.json();
+                setOpportunities(opps);
+            }
+        } catch (e) { console.error("Error loading dashboard data"); } finally {
+            setLoadingOpps(false);
+        }
     };
-    fetchFinances();
+    fetchData();
   }, [token]);
 
-  const growthTips = [
-    { module: 'Facturación', icon: '💳', tip: 'Ofrecer pagos en cuotas aumenta la tasa de conversión en un 35% en productos de alto valor.' },
-    { module: 'Inventario', icon: '📦', tip: 'Mantener un stock de seguridad del 10% evita perder ventas por quiebres inesperados.' },
-    { module: 'Marketing', icon: '🚀', tip: 'Los cupones de descuento personalizados para clientes inactivos recuperan hasta el 20% de usuarios perdidos.' },
-    { module: 'Clientes', icon: '👤', tip: 'Llamar a tus clientes por su nombre (como hace Bayt) genera un vínculo de lealtad un 50% más fuerte.' },
-    { module: 'Envíos', icon: '🚚', tip: 'El 60% de los carritos abandonados se debe a costos de envío inesperados. Intenta incluirlos en el precio base.' },
-  ];
-
-  // Simulación de llegada de nueva actividad cada 8 segundos (solo para demo visual)
+  // Mock en tiempo real
   useEffect(() => {
     const types = ['order', 'message', 'customer'] as const;
     const names = ['Juan K.', 'Elena M.', 'Santi P.', 'Laura O.', 'Mateo D.'];
     const details = {
-        order: 'Nueva venta generada',
-        message: 'Mensaje nuevo en WhatsApp',
-        customer: 'Cliente nuevo registrado'
+        order: 'Nueva venta',
+        message: 'Mensaje WhatsApp',
+        customer: 'Cliente registrado'
     };
 
     const interval = setInterval(() => {
@@ -78,408 +97,401 @@ export default function DashboardPage() {
             type,
             user: names[Math.floor(Math.random() * names.length)],
             detail: details[type],
-            time: 'Recién ahora'
+            time: 'Ahora',
+            amount: type === 'order' ? `$${Math.floor(Math.random() * 500) + 50}.000` : null
         };
-        
-        setActivities(prev => [newAct, ...prev.slice(0, 3)]);
-    }, 8000);
+        setActivities(prev => [newAct, ...prev.slice(0, 4)]);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Datos de ejemplo
-  const stats = {
-    salesToday: 4250.00,
-    ordersToday: 8,
-    visitorsToday: 142,
-  };
-
-  const pendingTasks = {
-    toShip: 5,
-    toConfirmPayment: 3,
-    messages: 12,
-    lowStock: 2
-  };
-
-  const recentActivity = [
-    { id: 1, type: 'order', user: 'Ana G.', detail: 'Nueva orden #8241', time: 'hace 5 min' },
-    { id: 2, type: 'message', user: 'Carlos L.', detail: 'Preguntó por stock de Zapatillas', time: 'hace 15 min' },
-    { id: 3, type: 'customer', user: 'María R.', detail: 'Se registró como cliente', time: 'hace 1 hora' },
-    { id: 4, type: 'order', user: 'Roberto V.', detail: 'Pago confirmado #8239', time: 'hace 2 horas' },
-  ];
-
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
   };
 
-  // Gráfico Semanal Nativo (SVG/CSS)
-  const WeeklyTrend = () => (
-    <div className="h-32 w-full flex items-end justify-between gap-1 pt-4">
-        {[30, 45, 25, 60, 80, 55, 90].map((h, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                <div className="w-full bg-purple-50 rounded-t-lg relative h-24 overflow-hidden">
-                    <div 
-                        className="absolute bottom-0 w-full bg-purple-500 rounded-t-lg transition-all duration-700 group-hover:bg-purple-600"
-                        style={{ height: `${h}%` }}
-                    ></div>
+  // Componente de Gráfica Minimalista
+  const WeeklyChart = () => (
+    <div className="h-40 w-full flex items-end justify-between gap-2 pt-6">
+        {[35, 50, 30, 65, 85, 60, 95].map((h, i) => (
+            <motion.div 
+                key={i} 
+                initial={{ height: 0 }}
+                animate={{ height: `${h}%` }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="flex-1 flex flex-col items-center gap-3 group relative cursor-pointer"
+            >
+                <div className="w-full bg-gray-50 rounded-t-2xl relative h-full overflow-hidden border border-gray-100">
+                    <div className="absolute bottom-0 w-full bg-gradient-to-t from-[#004d4d] to-[#00F2FF] rounded-t-2xl opacity-80 group-hover:opacity-100 transition-all duration-300 h-full"></div>
                 </div>
-                <span className="text-[10px] text-gray-400 font-medium">
+                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest group-hover:text-[#004d4d] transition-colors">
                     {['L', 'M', 'M', 'J', 'V', 'S', 'D'][i]}
                 </span>
-            </div>
+                
+                {/* Tooltip */}
+                <div className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity bg-[#001A1A] text-[#00F2FF] text-[9px] font-bold px-2 py-1 rounded-lg">
+                    {h}%
+                </div>
+            </motion.div>
         ))}
     </div>
   );
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 400, damping: 30 } }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto space-y-10 pb-20">
-      {/* 1. Header & Saludo */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="max-w-[1400px] mx-auto space-y-10 pb-20 animate-in fade-in duration-700 relative">
+      
+      {/* 1. Header Premium */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
         <div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">¡Hola de nuevo! 👋</h1>
-          <p className="text-gray-500 mt-2 font-medium">Esto es lo que está pasando en <span className="text-purple-600 font-bold">tu tienda</span> hoy.</p>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_10px_#10B981]"></span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Gestión de Activos</span>
+          </div>
+          <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase">
+            Dashboard <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF]">Operativo</span>
+          </h1>
+          <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed">
+            Resumen de inteligencia y rendimiento en tiempo real para <span className="font-bold text-[#001A1A]">{userEmail?.split('@')[0] || 'tu empresa'}</span>.
+          </p>
         </div>
-        <div className="flex gap-3">
-            <Link href="/dashboard/products" className="px-5 py-2.5 bg-white border border-gray-100 rounded-2xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm flex items-center gap-2">
-                <span>+ Nuevo Producto</span>
+        
+        <div className="flex gap-4">
+            <Link href="/dashboard/products/new" className="group px-6 py-4 bg-white border border-[#004d4d]/10 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.15em] text-[#004d4d] hover:bg-[#004d4d] hover:text-white hover:border-transparent hover:shadow-[0_20px_40px_rgba(0,77,77,0.1)] transition-all flex items-center gap-3">
+                <Package size={16} className="group-hover:scale-110 transition-transform group-hover:text-[#00F2FF]"/>
+                <span>Nuevo Producto</span>
             </Link>
-            <Link href="/dashboard/discounts" className="px-5 py-2.5 bg-purple-600 text-white rounded-2xl text-sm font-bold hover:bg-purple-700 transition-all shadow-lg shadow-purple-100 flex items-center gap-2">
-                <span>Crear Descuento</span>
+            <Link href="/dashboard/discounts" className="px-8 py-4 bg-[#001A1A] text-white rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.15em] hover:bg-black hover:scale-[1.02] transition-all shadow-xl flex items-center gap-3 active:scale-95 group">
+                <Zap size={16} className="text-[#EAB308] fill-[#EAB308] group-hover:text-white group-hover:fill-white transition-colors"/>
+                <span>Crear Oferta</span>
             </Link>
         </div>
       </div>
 
-      {/* 2. Resumen de Métricas Hoy */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Métrica Principal */}
-        <div className="md:col-span-2 bg-gradient-to-br from-purple-600 to-indigo-700 p-8 rounded-[2rem] shadow-xl shadow-purple-100 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300 cursor-pointer">
-            <div className="relative z-10">
-                <p className="text-sm font-bold text-purple-100 uppercase tracking-widest">Ventas de hoy</p>
-                <h3 className="text-4xl font-black text-white mt-2">{formatCurrency(stats.salesToday)}</h3>
-                <div className="mt-4 flex items-center gap-2">
-                    <span className="text-xs font-bold bg-white/20 text-white px-2 py-1 rounded-lg backdrop-blur-md">↑ 12% vs ayer</span>
-                </div>
-            </div>
-            {/* Decoración sutil */}
-            <div className="absolute -right-4 -bottom-4 text-9xl opacity-10 group-hover:scale-110 transition-transform duration-700">💰</div>
-        </div>
-        
-        {/* Métricas Secundarias */}
-        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-50 flex flex-col justify-center hover:scale-[1.02] transition-all duration-300 cursor-pointer group">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-purple-500 transition-colors">Pedidos</p>
-            <h3 className="text-3xl font-black text-gray-900 mt-1">{stats.ordersToday}</h3>
-            <p className="text-xs font-medium text-emerald-500 mt-2">Recibidos hoy</p>
-        </div>
-        
-        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-50 flex flex-col justify-center hover:scale-[1.02] transition-all duration-300 cursor-pointer group">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-purple-500 transition-colors">Visitas</p>
-            <h3 className="text-3xl font-black text-gray-900 mt-1">{stats.visitorsToday}</h3>
-            <p className="text-xs font-medium text-purple-500 mt-2">Usuarios activos</p>
-        </div>
-      </div>
-
-      {/* 3. Grid Principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        
-        {/* Columna Izquierda */}
-        <div className="lg:col-span-2 space-y-10">
-            {/* Acción Requerida */}
-            <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-black text-gray-900 flex items-center gap-3">
-                        Acción Requerida
-                        <span className="flex h-2 w-2 rounded-full bg-rose-500"></span>
-                    </h2>
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{Object.values(pendingTasks).reduce((a, b) => a + b, 0)} Pendientes</span>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Link href="/dashboard/orders" className="p-6 bg-white rounded-3xl shadow-sm border border-gray-50 flex flex-col justify-between group hover:shadow-md hover:scale-[1.02] transition-all duration-300 cursor-pointer">
-                        <div className="flex items-start justify-between">
-                            <div className="h-12 w-12 bg-amber-50 rounded-2xl flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition-transform">📦</div>
-                            <span className="text-2xl font-black text-gray-900">{pendingTasks.toShip}</span>
-                        </div>
-                        <div className="mt-4">
-                            <p className="text-sm font-bold text-gray-900">Pedidos por despachar</p>
-                            <p className="text-xs text-gray-500 mt-1">Tienes envíos pendientes de procesar.</p>
-                            <div className="mt-4 inline-flex items-center text-xs font-black text-purple-600 uppercase tracking-widest group-hover:gap-2 transition-all">
-                                Despachar ahora <span className="text-sm">→</span>
-                            </div>
-                        </div>
-                    </Link>
-                    
-                    <Link href="/dashboard/chats" className="p-6 bg-white rounded-3xl shadow-sm border border-gray-50 flex flex-col justify-between group hover:shadow-md hover:scale-[1.02] transition-all duration-300 cursor-pointer">
-                        <div className="flex items-start justify-between">
-                            <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition-transform">💬</div>
-                            <span className="text-2xl font-black text-gray-900">{pendingTasks.messages}</span>
-                        </div>
-                        <div className="mt-4">
-                            <p className="text-sm font-bold text-gray-900">Mensajes de clientes</p>
-                            <p className="text-xs text-gray-500 mt-1">Nuevas consultas en tus canales.</p>
-                            <div className="mt-4 inline-flex items-center text-xs font-black text-purple-600 uppercase tracking-widest group-hover:gap-2 transition-all">
-                                Ir a mensajes <span className="text-sm">→</span>
-                            </div>
-                        </div>
-                    </Link>
-
-                    <Link href="/dashboard/inventory" className="p-6 bg-rose-50/50 rounded-3xl border border-rose-100 flex flex-col justify-between group hover:scale-[1.02] transition-all duration-300 cursor-pointer">
-                        <div className="flex items-start justify-between">
-                            <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition-transform">⚠️</div>
-                            <span className="text-2xl font-black text-rose-700">{pendingTasks.lowStock}</span>
-                        </div>
-                        <div className="mt-4">
-                            <p className="text-sm font-bold text-rose-900">Alertas de Stock</p>
-                            <p className="text-xs text-rose-600/70 mt-1">Productos que están por agotarse.</p>
-                            <div className="mt-4 inline-flex items-center text-xs font-black text-rose-700 uppercase tracking-widest group-hover:gap-2 transition-all">
-                                Revisar inventario <span className="text-sm">→</span>
-                            </div>
-                        </div>
-                    </Link>
-
-                    <Link href="/dashboard/orders" className="p-6 bg-emerald-50/50 rounded-3xl border border-emerald-100 flex flex-col justify-between group hover:scale-[1.02] transition-all duration-300 cursor-pointer">
-                        <div className="flex items-start justify-between">
-                            <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition-transform">💳</div>
-                            <span className="text-2xl font-black text-emerald-700">{pendingTasks.toConfirmPayment}</span>
-                        </div>
-                        <div className="mt-4">
-                            <p className="text-sm font-bold text-emerald-900">Pagos por confirmar</p>
-                            <p className="text-xs text-emerald-600/70 mt-1">Transferencias pendientes de validación.</p>
-                            <div className="mt-4 inline-flex items-center text-xs font-black text-emerald-700 uppercase tracking-widest group-hover:gap-2 transition-all">
-                                Validar pagos <span className="text-sm">→</span>
-                            </div>
-                        </div>
-                    </Link>
-                </div>
-            </div>
-
-            {/* Tendencia Semanal */}
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-50 hover:scale-[1.01] transition-all duration-300">
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h2 className="text-xl font-black text-gray-900">Ventas de la semana</h2>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Rendimiento en tiempo real</p>
+      {/* 2. Business Pulse - Sección inteligente superior */}
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+      >
+        {/* BLOQUE 1: Estado Operativo (Health Card) */}
+        <motion.div variants={itemVariants} className="lg:col-span-7 p-8 rounded-[2.5rem] bg-white border border-[#004d4d]/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)] flex flex-col justify-between group hover:shadow-[0_20px_60px_rgba(0,77,77,0.05)] transition-all duration-500">
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-2xl bg-[#004d4d]/5 flex items-center justify-center text-[#004d4d]">
+                        <ShieldCheck size={20} />
                     </div>
-                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">Tendencia: +15.4%</span>
+                    <h2 className="text-[10px] font-black text-[#004d4d]/40 uppercase tracking-[0.2em]">Estado de tu tienda</h2>
                 </div>
-                <WeeklyTrend />
-            </div>
-        </div>
-
-        {/* Columna Derecha: Actividad Reciente */}
-        <div className="space-y-8">
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl font-black text-gray-900">Actividad</h2>
-                <button className="text-[10px] font-black text-purple-600 uppercase tracking-widest hover:underline">Ver Todo</button>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-full border border-emerald-100">
+                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Bajo Control</span>
+                </div>
             </div>
             
-            <div className="bg-white rounded-[2rem] shadow-sm border border-gray-50 overflow-hidden hover:scale-[1.02] transition-all duration-300">
-                <div className="p-4 flex flex-col min-h-[340px] relative">
-                    <AnimatePresence mode="popLayout" initial={false}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                {[
+                    { label: 'Pagos', val: 'OK', status: 'success' },
+                    { label: 'Stock Crítico', val: '2 prod.', status: 'warning' },
+                    { label: 'Envíos', val: 'Al día', status: 'success' },
+                    { label: 'Sincronía', val: 'Activa', status: 'success' }
+                ].map((item, i) => (
+                    <div key={i} className="space-y-1">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{item.label}</p>
+                        <p className={`text-sm font-black uppercase ${item.status === 'success' ? 'text-[#004d4d]' : 'text-[#00F2FF]'}`}>{item.val}</p>
+                    </div>
+                ))}
+            </div>
+        </motion.div>
+
+        {/* BLOQUE 4: Canales Activos (Compacto) */}
+        <motion.div variants={itemVariants} className="lg:col-span-5 p-8 rounded-[2.5rem] bg-white border border-[#004d4d]/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)] group hover:shadow-[0_20px_60px_rgba(0,77,77,0.05)] transition-all duration-500">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="h-10 w-10 rounded-2xl bg-[#00F2FF]/10 flex items-center justify-center text-[#004d4d]">
+                    <Globe size={20} />
+                </div>
+                <h2 className="text-[10px] font-black text-[#004d4d]/40 uppercase tracking-[0.2em]">Canales Activos</h2>
+            </div>
+            <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-gray-50/50 rounded-2xl border border-gray-100">
+                    <div className="flex items-center gap-3">
+                        <MessageCircle size={14} className="text-emerald-500" />
+                        <span className="text-[10px] font-black text-[#004d4d]/80 uppercase">WhatsApp CRM</span>
+                    </div>
+                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">8 chats</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50/50 rounded-2xl border border-gray-100">
+                    <div className="flex items-center gap-3">
+                        <Zap size={14} className="text-[#00F2FF]" />
+                        <span className="text-[10px] font-black text-[#004d4d]/80 uppercase">Tienda Online</span>
+                    </div>
+                    <span className="text-[9px] font-bold text-[#00F2FF] bg-[#00F2FF]/10 px-2 py-0.5 rounded-md">Activa</span>
+                </div>
+            </div>
+        </motion.div>
+
+        {/* BLOQUE 2: Acciones Recomendadas (IA) */}
+        <motion.div variants={itemVariants} className="lg:col-span-8 p-10 rounded-[3rem] bg-[#001A1A] text-white shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#00F2FF]/10 rounded-full blur-[100px] pointer-events-none"></div>
+            <div className="relative z-10">
+                <div className="flex items-center justify-between mb-10">
+                    <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-[#004d4d] border border-[#00F2FF]/30 flex items-center justify-center text-[#00F2FF] shadow-[0_0_20px_rgba(0,242,255,0.2)]">
+                            <Lightbulb size={24} className="text-white fill-white" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black italic uppercase tracking-wider">Acciones Recomendadas</h3>
+                            <p className="text-[9px] font-bold text-[#00F2FF] uppercase tracking-[0.2em] mt-1">Inteligencia de Negocio Bayup</p>
+                        </div>
+                    </div>
+                    <div className="h-10 w-10 rounded-full border border-white/10 flex items-center justify-center text-white/40 group-hover:text-[#00F2FF] transition-colors">
+                        <RefreshCw size={16} />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                        { title: 'Reabastecer "Zapatillas"', desc: 'Alta demanda en última semana.', action: 'Ver Stock' },
+                        { title: 'Oferta Clientes Rec.', desc: 'Mejora retención en un 12%.', action: 'Crear' },
+                        { title: 'Campaña WhatsApp', desc: '12 chats pendientes de cierre.', action: 'Ir' },
+                        { title: 'Ajuste de Precio', desc: '"Reloj Tech" 15% arriba del mercado.', action: 'Revisar' }
+                    ].map((item, i) => (
+                        <div key={i} className="p-5 bg-white/5 rounded-[2rem] border border-white/10 hover:bg-white/10 transition-all flex items-center justify-between group/item">
+                            <div className="space-y-1">
+                                <p className="text-xs font-black text-white uppercase tracking-tight">{item.title}</p>
+                                <p className="text-[9px] text-white/40 font-medium">{item.desc}</p>
+                            </div>
+                            <button className="h-8 px-4 bg-[#00F2FF] text-[#001A1A] text-[9px] font-black uppercase tracking-widest rounded-full hover:scale-105 transition-transform">
+                                {item.action}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </motion.div>
+
+        {/* BLOQUE 3: Rendimiento Hoy vs Ayer */}
+        <motion.div variants={itemVariants} className="lg:col-span-4 p-10 rounded-[3rem] bg-white border border-[#004d4d]/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)] group hover:shadow-[0_20px_60px_rgba(0,77,77,0.05)] transition-all duration-500 flex flex-col justify-between">
+            <div className="flex items-center gap-3 mb-8">
+                <div className="h-10 w-10 rounded-2xl bg-[#004d4d]/5 flex items-center justify-center text-[#004d4d]">
+                    <TrendingUp size={20} />
+                </div>
+                <h2 className="text-[10px] font-black text-[#004d4d]/40 uppercase tracking-[0.2em]">Rendimiento Hoy</h2>
+            </div>
+            
+            <div className="space-y-8">
+                <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ventas Netas</p>
+                    <div className="flex items-end gap-3 mt-1">
+                        <h3 className="text-4xl font-black italic text-[#001A1A] tracking-tighter">$1.250k</h3>
+                        <span className="mb-1 text-xs font-black text-emerald-500 flex items-center gap-0.5">
+                            <TrendingUp size={12} /> 15%
+                        </span>
+                    </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-6 pt-6 border-t border-gray-100">
+                    <div>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Ticket Prom.</p>
+                        <p className="text-lg font-black text-[#004d4d] tracking-tight">$85.400</p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Conversión</p>
+                        <p className="text-lg font-black text-[#004d4d] tracking-tight">4.8%</p>
+                    </div>
+                </div>
+            </div>
+        </motion.div>
+      </motion.div>
+
+      {/* 3. Grid Principal: Oportunidades (Alargado), Gráfica y Actividad */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Columna Izquierda: Oportunidades y Tendencia */}
+        <div className="lg:col-span-2 space-y-8">
+            
+            {/* NUEVA CARD: OPORTUNIDADES DE MERCADO (ALARGADA) */}
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="p-10 bg-[#001A1A] text-white rounded-[3rem] shadow-2xl relative overflow-hidden group border border-[#004d4d]/20"
+            >
+                <div className="absolute top-0 right-0 w-96 h-96 bg-[#00F2FF]/5 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
+                
+                <div className="flex items-center justify-between mb-10 relative z-10">
+                    <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-[#004d4d] border border-[#00F2FF]/30 flex items-center justify-center text-[#00F2FF] shadow-[0_0_25px_rgba(0,242,255,0.15)]">
+                            <Sparkles size={24} className="text-[#EAB308] fill-[#EAB308]" />
+                        </div>
+                        <div>
+                            <h3 className="text-2xl font-black italic uppercase tracking-wider">Oportunidades Detectadas</h3>
+                            <p className="text-[9px] font-bold text-[#00F2FF] uppercase tracking-[0.2em] mt-1">Demanda insatisfecha identificada por Bayup AI</p>
+                        </div>
+                    </div>
+                    <Link href="/dashboard/products/new" className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-white text-[#001A1A] rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#00F2FF] transition-all group/btn">
+                        Importar Todo <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                    </Link>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+                    {loadingOpps ? (
+                        <div className="col-span-4 py-10 flex flex-col items-center justify-center text-white/20 gap-4">
+                            <RefreshCw size={24} className="animate-spin" />
+                            <p className="text-[10px] font-black uppercase tracking-widest">Escaneando mercado global...</p>
+                        </div>
+                    ) : opportunities.length > 0 ? (
+                        opportunities.map((opp, idx) => (
+                            <motion.div 
+                                key={idx}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                whileInView={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: idx * 0.1 }}
+                                className="p-6 bg-white/5 rounded-[2.5rem] border border-white/5 hover:bg-white/10 hover:border-[#00F2FF]/30 transition-all group/item cursor-pointer flex flex-col justify-between min-h-[180px]"
+                            >
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-start">
+                                        <span className="text-[9px] font-black text-[#00F2FF] bg-[#00F2FF]/10 px-2 py-1 rounded-lg uppercase tracking-widest border border-[#00F2FF]/20">Demand</span>
+                                        <TrendingUp size={14} className="text-emerald-400" />
+                                    </div>
+                                    <p className="text-sm font-black text-white uppercase tracking-tight line-clamp-2">{opp.term}</p>
+                                    <div className="flex items-center gap-2">
+                                        <Users size={12} className="text-white/40" />
+                                        <span className="text-[10px] font-bold text-white/60">{opp.volume} búsquedas</span>
+                                    </div>
+                                </div>
+                                <div className="mt-6 pt-4 border-t border-white/5 space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[8px] font-black text-white/30 uppercase">Potencial</span>
+                                        <span className="text-xs font-black text-emerald-400">+{formatCurrency(opp.potential)}</span>
+                                    </div>
+                                    <button className="w-full py-2 bg-white/5 text-white text-[8px] font-black uppercase tracking-widest rounded-lg group-hover/item:bg-[#00F2FF] group-hover/item:text-[#001A1A] transition-all">
+                                        {opp.action.split(' ')[0]}
+                                    </button>
+                                </div>
+                            </motion.div>
+                        ))
+                    ) : (
+                        <div className="col-span-4 py-10 text-center text-white/40">
+                            <CheckCircle2 size={32} className="mx-auto mb-4 text-[#00F2FF]" />
+                            <p className="text-xs font-black uppercase tracking-widest">Inventario Optimizado al 100%</p>
+                        </div>
+                    )}
+                </div>
+            </motion.div>
+            
+            {/* Gráfica de Rendimiento */}
+            <div className="p-10 bg-white rounded-[3rem] shadow-[0_10px_40px_rgba(0,0,0,0.02)] border border-[#004d4d]/5 relative overflow-hidden">
+                <div className="flex justify-between items-end mb-4 relative z-10">
+                    <div>
+                        <h2 className="text-2xl font-black italic text-[#001A1A] uppercase tracking-tighter">Tendencia Semanal</h2>
+                        <p className="text-xs font-bold text-[#004d4d]/40 uppercase tracking-widest mt-1">Rendimiento Operativo</p>
+                    </div>
+                    <button className="px-4 py-2 bg-gray-50 rounded-xl text-[10px] font-black text-[#004d4d] uppercase tracking-widest hover:bg-[#004d4d] hover:text-white transition-colors">
+                        Detalles
+                    </button>
+                </div>
+                <WeeklyChart />
+            </div>
+
+            {/* Finanzas Rápidas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-8 bg-white rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.02)] border border-[#004d4d]/5 hover:border-rose-100 transition-colors group">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-rose-50 text-rose-600 rounded-lg border border-rose-100"><AlertCircle size={18}/></div>
+                        <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest">Por Pagar</span>
+                    </div>
+                    {pendingPayment ? (
+                        <div>
+                            <h4 className="text-xl font-black text-[#001A1A] leading-tight">{pendingPayment.description}</h4>
+                            <p className="text-2xl font-black text-rose-600 mt-2 tracking-tight">${pendingPayment.amount.toLocaleString()}</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">Vence: {new Date(pendingPayment.due_date).toLocaleDateString()}</p>
+                        </div>
+                    ) : (
+                        <div className="text-center py-4">
+                            <p className="text-xs font-bold text-gray-300 uppercase">Sin deudas pendientes</p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-8 bg-white rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.02)] border border-[#004d4d]/5 hover:border-emerald-100 transition-colors group">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100"><CreditCard size={18}/></div>
+                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Por Cobrar</span>
+                    </div>
+                    {pendingCollection ? (
+                        <div>
+                            <h4 className="text-xl font-black text-[#001A1A] leading-tight">{pendingCollection.client_name}</h4>
+                            <p className="text-2xl font-black text-emerald-600 mt-2 tracking-tight">${pendingCollection.amount.toLocaleString()}</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">Estimado: {new Date(pendingCollection.due_date).toLocaleDateString()}</p>
+                        </div>
+                    ) : (
+                        <div className="text-center py-4">
+                            <p className="text-xs font-bold text-gray-300 uppercase">Cartera al día</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+
+        {/* Columna Derecha: Actividad */}
+        <div className="space-y-8">
+            
+            {/* Actividad Reciente (Timeline) */}
+            <div className="p-10 bg-white rounded-[3rem] shadow-[0_10px_40px_rgba(0,0,0,0.02)] border border-[#004d4d]/5 relative overflow-hidden h-full flex flex-col">
+                <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-lg font-black italic text-[#001A1A] uppercase tracking-tighter">Actividad</h3>
+                    <div className="h-8 w-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-[#004d4d] cursor-pointer transition-colors">
+                        <Clock size={14} />
+                    </div>
+                </div>
+                <div className="flex-1 space-y-10 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100">
+                    <AnimatePresence initial={false}>
                         {activities.map((act) => (
                             <motion.div 
                                 key={act.id}
                                 layout
-                                initial={{ opacity: 0, x: -20 }}
+                                initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 20 }}
-                                transition={{ 
-                                    type: "spring", 
-                                    stiffness: 400, 
-                                    damping: 40,
-                                    opacity: { duration: 0.2 }
-                                }}
-                                className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-2xl transition-all cursor-pointer group"
+                                className="relative pl-12 flex flex-col gap-1"
                             >
-                                <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-lg transition-transform group-hover:scale-110 ${
+                                <div className={`absolute left-0 top-1 w-10 h-10 rounded-full border-4 border-white flex items-center justify-center z-10 shadow-sm ${
                                     act.type === 'order' ? 'bg-emerald-50 text-emerald-600' :
                                     act.type === 'message' ? 'bg-blue-50 text-blue-600' :
-                                    'bg-purple-50 text-purple-600'
+                                    'bg-[#004d4d]/10 text-[#004d4d]'
                                 }`}>
-                                    {act.type === 'order' ? '🛒' : act.type === 'message' ? '💬' : '👤'}
+                                    {act.type === 'order' ? <Package size={14} /> : act.type === 'message' ? <MessageCircle size={14} /> : <Users size={14} />}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 truncate">{act.user}</p>
-                                    <p className="text-xs text-gray-500 font-medium truncate mt-0.5">{act.detail}</p>
+                                <div className="flex justify-between items-baseline">
+                                    <span className="text-xs font-black text-[#001A1A] truncate max-w-[120px]">{act.user}</span>
+                                    <span className="text-[8px] font-black text-[#004d4d]/30 uppercase tracking-widest">{act.time}</span>
                                 </div>
-                                <span className="text-[10px] font-bold text-gray-300 whitespace-nowrap">{act.time}</span>
+                                <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide truncate">{act.detail}</p>
+                                {act.amount && <span className="text-xs font-black text-emerald-600 mt-1">{act.amount}</span>}
                             </motion.div>
                         ))}
                     </AnimatePresence>
                 </div>
+                <button className="mt-10 w-full py-4 bg-gray-50 rounded-2xl text-[9px] font-black text-[#004d4d] uppercase tracking-[0.2em] hover:bg-gray-100 transition-all">Historial Completo</button>
             </div>
 
-            {/* Tip del día Premium */}
-            <div className="p-8 bg-gray-900 rounded-[2rem] text-white relative overflow-hidden group hover:scale-[1.02] transition-all duration-300 cursor-pointer">
-                <div className="relative z-10">
-                    <p className="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em]">Tip de Crecimiento</p>
-                    <p className="text-sm font-bold mt-3 leading-relaxed">
-                        "Las tiendas que responden en menos de 15 min. cierran un <span className="text-purple-400 font-black">40% más de ventas</span>."
-                    </p>
-                    <button 
-                        onClick={() => setIsTipsModalOpen(true)}
-                        className="mt-6 text-xs font-black text-white bg-white/10 px-4 py-2 rounded-xl hover:bg-white/20 transition-all"
-                    >
-                        Saber más
-                    </button>
-                </div>
-                <div className="absolute top-0 right-0 p-4 opacity-10 text-4xl group-hover:rotate-12 group-hover:scale-125 transition-transform duration-500">💡</div>
-            </div>
-        </div>
-
-      </div>
-
-      {/* 4. SECCIÓN: COMPROMISOS FINANCIEROS PRÓXIMOS */}
-      <div className="pt-10 border-t border-gray-100">
-        <h2 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-3">
-            Compromisos Financieros
-            <span className="h-1.5 w-1.5 rounded-full bg-purple-600 animate-pulse"></span>
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Card Cuentas por Pagar */}
-            <div className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all duration-500">
-                <div className="flex justify-between items-start mb-6">
-                    <div className="h-12 w-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                        <Activity size={24} />
-                    </div>
-                    <span className="px-3 py-1 bg-rose-50 text-rose-600 text-[8px] font-black uppercase rounded-lg border border-rose-100 tracking-widest">Gasto Próximo</span>
-                </div>
-                {pendingPayment ? (
-                    <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Debes pagar por:</p>
-                        <h3 className="text-xl font-black text-gray-900 tracking-tight">{pendingPayment.description}</h3>
-                        <div className="mt-6 flex justify-between items-end">
-                            <div>
-                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Fecha Límite</p>
-                                <p className="text-sm font-bold text-gray-700">{new Date(pendingPayment.due_date).toLocaleDateString()}</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Monto</p>
-                                <p className="text-2xl font-black text-rose-600 tracking-tighter">${pendingPayment.amount.toLocaleString('de-DE')}</p>
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="py-6 flex flex-col items-center justify-center text-gray-300 gap-2">
-                        <CheckCircle2 size={32} strokeWidth={1} />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-center">No hay cuentas por pagar <br/> programadas próximamente</p>
-                    </div>
-                )}
-                <div className="absolute -right-6 -bottom-6 text-8xl opacity-[0.03] group-hover:rotate-12 transition-transform">💸</div>
-            </div>
-
-            {/* Card Cuentas por Cobrar */}
-            <div className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all duration-500">
-                <div className="flex justify-between items-start mb-6">
-                    <div className="h-12 w-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                        <Users size={24} />
-                    </div>
-                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase rounded-lg border border-emerald-100 tracking-widest">Pendiente de Cobro</span>
-                </div>
-                {pendingCollection ? (
-                    <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Debes cobrarle a:</p>
-                        <h3 className="text-xl font-black text-gray-900 tracking-tight">{pendingCollection.client_name}</h3>
-                        <div className="mt-6 flex justify-between items-end">
-                            <div>
-                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Fecha Esperada</p>
-                                <p className="text-sm font-bold text-gray-700">{new Date(pendingCollection.due_date).toLocaleDateString()}</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Saldo Pendiente</p>
-                                <p className="text-2xl font-black text-emerald-600 tracking-tighter">${pendingCollection.amount.toLocaleString('de-DE')}</p>
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="py-6 flex flex-col items-center justify-center text-gray-300 gap-2">
-                        <Sparkles size={32} strokeWidth={1} />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-center">Cartera totalmente al día <br/> No hay cuentas por cobrar</p>
-                    </div>
-                )}
-                <div className="absolute -right-6 -bottom-6 text-8xl opacity-[0.03] group-hover:-rotate-12 transition-transform">💰</div>
-            </div>
         </div>
       </div>
-
-      {/* MODAL: BIBLIOTECA DE CRECIMIENTO (Diseño Libro) */}
-      <AnimatePresence>
-        {isTipsModalOpen && (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 md:p-10">
-                <motion.div 
-                    initial={{ opacity: 0, scale: 0.9, rotateY: -20 }}
-                    animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, rotateY: 20 }}
-                    className="bg-white w-full max-w-5xl h-[80vh] rounded-[3rem] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-white/20"
-                >
-                    {/* Lado Izquierdo: Portada/Categorías */}
-                    <div className="md:w-1/3 bg-gray-900 p-12 text-white flex flex-col justify-between relative overflow-hidden">
-                        <div className="relative z-10">
-                            <div className="h-16 w-16 bg-purple-600 rounded-2xl flex items-center justify-center mb-8 shadow-lg shadow-purple-500/30">
-                                <Activity size={32} />
-                            </div>
-                            <h2 className="text-3xl font-black leading-tight tracking-tighter">
-                                Manual de <br />
-                                <span className="text-purple-400">Crecimiento</span>
-                            </h2>
-                            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-4">Estrategias por Módulo</p>
-                        </div>
-                        
-                        <div className="relative z-10 space-y-4">
-                            <p className="text-xs text-gray-500 leading-relaxed font-medium italic">
-                                "El éxito no es un accidente, es el resultado de pequeñas optimizaciones diarias."
-                            </p>
-                            <div className="h-px w-12 bg-purple-600"></div>
-                        </div>
-
-                        {/* Decoración tipo lomo de libro */}
-                        <div className="absolute top-0 left-0 bottom-0 w-2 bg-gradient-to-r from-black/20 to-transparent"></div>
-                    </div>
-
-                    {/* Lado Derecho: Contenido/Tips */}
-                    <div className="flex-1 bg-[#FDFCFB] p-8 md:p-16 overflow-y-auto custom-scrollbar relative">
-                        <button 
-                            onClick={() => setIsTipsModalOpen(false)}
-                            className="absolute top-8 right-8 h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-400"
-                        >
-                            <Search className="rotate-45" size={20} />
-                        </button>
-
-                        <div className="max-w-2xl mx-auto space-y-12">
-                            {growthTips.map((item, i) => (
-                                <motion.div 
-                                    key={i}
-                                    initial={{ opacity: 0, x: 20 }}
-                                    whileInView={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: i * 0.1 }}
-                                    className="group"
-                                >
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <span className="text-2xl">{item.icon}</span>
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600 bg-purple-50 px-3 py-1 rounded-lg">
-                                            Módulo {item.module}
-                                        </span>
-                                    </div>
-                                    <p className="text-lg font-bold text-gray-800 leading-relaxed group-hover:text-black transition-colors">
-                                        {item.tip}
-                                    </p>
-                                    <div className="mt-6 h-px w-full bg-gray-100 group-last:hidden"></div>
-                                </motion.div>
-                            ))}
-                        </div>
-
-                        {/* Pie de página tipo libro */}
-                        <div className="mt-20 flex justify-center">
-                            <div className="flex items-center gap-4 text-[10px] font-black uppercase text-gray-300 tracking-widest">
-                                <span>Pág. 01</span>
-                                <div className="h-1 w-1 rounded-full bg-gray-200"></div>
-                                <span>Bayup Intelligence</span>
-                            </div>
-                        </div>
-                    </div>
-                </motion.div>
-            </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

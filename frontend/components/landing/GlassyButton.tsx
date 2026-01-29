@@ -6,44 +6,61 @@ import Link from "next/link";
 interface GlassyButtonProps {
   href: string;
   children: React.ReactNode;
+  variant?: "dark" | "light";
 }
 
-export const GlassyButton = ({ href, children }: GlassyButtonProps) => {
+export const GlassyButton = ({ href, children, variant = "dark" }: GlassyButtonProps) => {
+  const isLight = variant === "light";
+
   return (
     <Link href={href} className="relative group">
       <motion.div
-        whileHover={{ scale: 1.05 }}
+        whileHover={{ scale: 1.1, y: -4 }}
         whileTap={{ scale: 0.95 }}
-        className="relative px-6 py-2.5 rounded-xl overflow-hidden isolate"
+        className="relative px-5 py-5 rounded-[1.5rem] overflow-hidden isolate flex items-center justify-center transition-all duration-500"
       >
-        {/* 1. Fondo de Cristal (Base) */}
-        <div className="absolute inset-0 bg-black/80 backdrop-blur-xl border border-white/20 transition-all duration-500 group-hover:bg-black group-hover:border-cyan/50" />
-        
-        {/* 2. Brillo de Cristal Superior (Reflejo) */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-50 pointer-events-none" />
-
-        {/* 3. Animación de Rayo de Luz (Scan) */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* 1. AURORA EFFECT CONTAINER */}
+        <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden -z-10">
+          {/* Rayo de luz rotativo (Aurora) */}
           <motion.div 
-            initial={{ x: "-150%", skewX: -45 }}
-            animate={{ x: "150%", skewX: -45 }}
-            transition={{ 
-              repeat: Infinity, 
-              duration: 2.5, 
-              ease: "linear",
-              repeatDelay: 1
+            animate={{ rotate: 360 }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+            className="absolute top-1/2 left-1/2 w-[300%] aspect-square"
+            style={{
+              background: `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)`,
+              x: "-50%",
+              y: "-50%",
+              willChange: 'transform'
             }}
-            className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-white/20 to-transparent"
           />
+          
+          {/* Relleno Glass (Máscara del borde) */}
+          <div className={`
+            absolute inset-[2px] rounded-[1.4rem] backdrop-blur-3xl transition-all duration-500
+            ${isLight 
+              ? 'bg-white/95 shadow-[0_20px_40px_-10px_rgba(0,77,77,0.2)] group-hover:bg-white' 
+              : 'bg-black/80'
+            }
+          `} />
         </div>
+        
+        {/* 2. Brillo de Borde Superior (Relieve Físico) */}
+        {isLight && (
+          <div className="absolute inset-0 border border-t-white/80 border-l-white/80 border-transparent rounded-[1.5rem] pointer-events-none" />
+        )}
 
-        {/* 4. Texto con brillo */}
-        <span className="relative z-10 text-white font-black text-[9px] uppercase tracking-[0.3em] group-hover:text-cyan transition-colors duration-300">
+        {/* 3. Contenido (Icono/Texto) */}
+        <span className={`
+          relative z-10 font-black transition-colors duration-300
+          ${isLight ? 'text-[#004d4d] group-hover:text-black' : 'text-white'}
+        `}>
           {children}
         </span>
 
-        {/* 5. Glow exterior al hacer hover */}
-        <div className="absolute inset-0 shadow-[0_0_20px_rgba(0,242,255,0)] group-hover:shadow-[0_0_30px_rgba(0,242,255,0.2)] transition-all duration-500 rounded-2xl" />
+        {/* 4. Glow exterior reactivo */}
+        {isLight && (
+          <div className="absolute inset-0 bg-[#00f2ff]/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-20" />
+        )}
       </motion.div>
     </Link>
   );

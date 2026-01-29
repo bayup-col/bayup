@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { HeroLight } from "@/components/landing/HeroLight";
 import { ValueStatement } from "@/components/landing/ValueStatement";
 import { NarrativeScroll } from "@/components/landing/NarrativeScroll";
@@ -36,8 +37,21 @@ export default function HomePage() {
   const { scrollY } = useScroll();
   const [hidden, setHidden] = useState(false);
   const [isAtTop, setIsAtTop] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    // Verificar en el cliente si ya se cargó en esta sesión
+    if (typeof window !== "undefined") {
+      return !sessionStorage.getItem("bayup_initialized");
+    }
+    return true;
+  });
   const lastScrollY = useRef(0);
+
+  const handleLoadingComplete = () => {
+    setIsLoading(false);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("bayup_initialized", "true");
+    }
+  };
 
   const scaleX = useSpring(useScroll().scrollYProgress, {
     stiffness: 100,
@@ -62,7 +76,7 @@ export default function HomePage() {
       
       <AnimatePresence mode="wait">
         {isLoading ? (
-          <PageLoader key="loader" onComplete={() => setIsLoading(false)} />
+          <PageLoader key="loader" onComplete={handleLoadingComplete} />
         ) : (
           <motion.div 
             key="main-content"
@@ -104,22 +118,21 @@ export default function HomePage() {
                   <span>BAY</span><InteractiveUP />
                 </motion.div>
                 
-                {/* Columna 2: Mini Barra Glass Centrada */}
                 <div className="hidden md:flex items-center justify-center">
                   <div className={`flex items-center gap-12 px-10 py-4 rounded-full border border-white/40 bg-white/20 backdrop-blur-xl shadow-sm transition-all duration-500 pointer-events-auto ${isAtTop ? '' : 'border-gray-100 bg-white/40 shadow-md'}`}>
                     {[
-                      { label: 'Inicio', href: '#inicio' },
-                      { label: 'Planes', href: '#planes' },
-                      { label: 'Afiliados', href: '#afiliados' }
+                      { label: 'Afiliados', href: '/afiliados' },
+                      { label: 'Inicio', href: '/' },
+                      { label: 'Planes', href: '/planes' }
                     ].map((item) => (
-                      <a 
+                      <Link 
                         key={item.label} 
                         href={item.href} 
                         className="text-[12px] font-black text-gray-500 hover:text-black uppercase tracking-[0.5em] transition-all duration-500 relative group"
                       >
                         {item.label}
-                        <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-cyan transition-all duration-500 group-hover:w-full"></span>
-                      </a>
+                        <span className={`absolute -bottom-1 left-0 h-[1.5px] bg-cyan transition-all duration-500 group-hover:w-full ${item.label === 'Inicio' ? 'w-full' : 'w-0'}`}></span>
+                      </Link>
                     ))}
                   </div>
                 </div>

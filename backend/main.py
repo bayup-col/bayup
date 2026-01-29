@@ -199,5 +199,31 @@ def read_plans(db: Session = Depends(get_db)):
 def create_upload_url(file_type: str, current_user: models.User = Depends(security.get_current_user)):
     return s3_service.create_presigned_upload_url(file_type)
 
+@app.get("/analytics/opportunities")
+def get_opportunities(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """
+    Analiza 'tendencias de mercado' vs 'inventario actual' para detectar oportunidades.
+    Simula una detección de demanda no cubierta.
+    """
+    # 1. Obtener productos del usuario
+    products = crud.get_products_by_owner(db, owner_id=current_user.id)
+    product_text = " ".join([p.name.lower() + " " + (p.description or "").lower() for p in products])
+    
+    # 2. Tendencias de Mercado (Simuladas como 'Búsquedas Recientes' en la plataforma)
+    market_trends = [
+        {"term": "zapatillas urbanas", "volume": 1450, "potential": 3200000, "action": "Importar Zapatillas"},
+        {"term": "audifonos inalambricos", "volume": 980, "potential": 1500000, "action": "Crear Oferta Tech"},
+        {"term": "skincare coreano", "volume": 2100, "potential": 4800000, "action": "Buscar Proveedor Belleza"},
+        {"term": "termos motivacionales", "volume": 350, "potential": 450000, "action": "Agregar a Catálogo Hogar"}
+    ]
+    
+    opportunities = []
+    for trend in market_trends:
+        # Si el término no está en el inventario, es una oportunidad
+        if trend["term"] not in product_text:
+            opportunities.append(trend)
+            
+    return opportunities[:4] # Retornar top 4
+
 @app.get("/")
 def read_root(): return {"message": "Welcome to BaseCommerce API"}
