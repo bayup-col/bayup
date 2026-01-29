@@ -15,7 +15,7 @@ import models, crud, schemas
 from datetime import timedelta
 
 # --- Test Database Setup ---
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
@@ -63,8 +63,6 @@ def setup_function():
 def teardown_function():
     # Drop the tables
     Base.metadata.drop_all(bind=engine)
-    if os.path.exists("./test.db"):
-        os.remove("./test.db")
 
 def test_read_root_redirect():
     response = client.get("/")
