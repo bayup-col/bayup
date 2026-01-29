@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from moto import mock_s3
+from moto import mock_aws
 from unittest.mock import patch, MagicMock
 from ..backend.database import Base, get_db
 from ..backend.main import app
@@ -279,7 +279,7 @@ def test_read_products_by_owner_with_variants():
     assert len(shirt_product["variants"]) == 1
     assert shirt_product["variants"][0]["name"] == "Green"
 
-@mock_s3
+@mock_aws
 def test_create_upload_url_success():
     # Setup mock S3
     s3 = boto3.client("s3", region_name="us-east-1")
