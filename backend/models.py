@@ -126,6 +126,15 @@ class Receivable(Base):
     items = Column(JSON)
     description_detail = Column(String)
 
+class Income(Base):
+    __tablename__ = "incomes"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    description = Column(String)
+    amount = Column(Float)
+    category = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+
 class PayrollEmployee(Base):
     __tablename__ = "payroll_employees"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

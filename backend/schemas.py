@@ -174,6 +174,21 @@ class PayrollEmployee(PayrollEmployeeBase):
     class Config:
         orm_mode = True
 
+class IncomeBase(BaseModel):
+    description: str
+    amount: float
+    category: str | None = None
+
+class IncomeCreate(IncomeBase):
+    pass
+
+class Income(IncomeBase):
+    id: uuid.UUID
+    created_at: datetime
+    tenant_id: uuid.UUID
+    class Config:
+        orm_mode = True
+
 class CollectionBase(BaseModel):
     title: str
     description: str | None = None
