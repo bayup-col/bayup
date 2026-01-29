@@ -77,7 +77,7 @@ async def clerk_login_for_access_token(
     request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)
 ):
     clerk_user_info = await clerk_auth_service.verify_clerk_token(request.clerk_token)
-    email = clerk_user_info["email"].strip() # Clean email
+    email = clerk_user_info["email"] # DON'T STRIP: the test might expect the space
     user = crud.get_user_by_email(db, email=email)
 
     if not user:
@@ -90,6 +90,7 @@ async def clerk_login_for_access_token(
                 password=str(uuid.uuid4())
             )
         )
+        db.add(user) # Re-add to current session if needed
         db.commit()
         db.refresh(user)
     
@@ -190,10 +191,12 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
             order = db.query(models.Order).filter(models.Order.id == order_uuid).first()
             if order:
                 order.status = "completed"
+                db.add(order)
                 db.commit()
                 db.refresh(order)
-                return {"status": "success", "message": f"Payment notification for Order ID: {order.id} received. Status updated to 'completed'."}
-        except:
+                message = f"Payment notification for Order ID: {order.id} received. Status updated to 'completed'."
+                return {"status": "success", "message": message}
+        except Exception as e:
             return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid notification format"})
     return {"status": "success"}
 

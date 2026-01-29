@@ -20,8 +20,11 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
         for item in order.items:
             # Resolve product name through relationship
             product_name = "Producto"
-            if item.product_variant and item.product_variant.product:
-                product_name = item.product_variant.product.name
+            try:
+                if item.product_variant and item.product_variant.product:
+                    product_name = item.product_variant.product.name
+            except:
+                pass
             
             items.append({
                 "title": product_name,
@@ -41,8 +44,12 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
 
     # Get commission rate safely
     commission_rate = 0.10
-    if tenant and tenant.plan:
-        commission_rate = tenant.plan.commission_rate
+    try:
+        tenant_obj = db.query(models.User).filter(models.User.id == tenant_id).first()
+        if tenant_obj and tenant_obj.plan:
+            commission_rate = tenant_obj.plan.commission_rate
+    except:
+        pass
 
     preference_data = {
         "items": items,
