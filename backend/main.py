@@ -63,10 +63,18 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 @app.post("/auth/clerk-login")
 async def clerk_login(request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)):
     clerk_info = await clerk_auth_service.verify_clerk_token(request.clerk_token)
-    email = clerk_info["email"]
-    user = crud.get_user_by_email(db, email=email)
+    email = clerk_info["email"] 
+    user = db.query(models.User).filter(models.User.email == email).first()
     if not user:
-        user = crud.create_user(db=db, user=schemas.UserCreate(email=email, full_name=clerk_info.get("full_name", "User"), password=str(uuid.uuid4())))
+        # Create user directly
+        hashed_password = security.get_password_hash(str(uuid.uuid4()))
+        default_plan = crud.get_default_plan(db)
+        user = models.User(
+            email=email,
+            full_name=clerk_info.get("full_name", "User"),
+            hashed_password=hashed_password,
+            plan_id=default_plan.id if default_plan else None
+        )
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -86,7 +94,7 @@ def read_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     return crud.create_product(db=db, product=product, owner_id=current_user.id)
 
-# --- Public Store (Crucial for test compatibility) ---
+# --- Public Store ---
 
 @app.get("/public/stores/{tenant_id}/products", response_model=List[schemas.Product])
 def read_public_products(tenant_id: uuid.UUID, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -133,17 +141,18 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     if topic == "payment":
         try:
             order_uuid = uuid.UUID(payment_id)
+            # Use direct SQL update to ensure immediate effect
+            db.execute(text("UPDATE orders SET status = 'completed' WHERE id = :id"), {"id": str(order_uuid)})
+            db.commit()
+            
+            # Fetch from DB to get fresh object
             order = db.query(models.Order).filter(models.Order.id == order_uuid).first()
             if order:
-                order.status = "completed"
-                db.add(order)
-                db.commit()
-                db.refresh(order)
                 return {
                     "status": "success", 
                     "message": f"Payment notification for Order ID: {order.id} received. Status updated to 'completed'."
                 }
-        except:
+        except Exception:
             pass
     return {"status": "success", "message": "Webhook received"}
 
