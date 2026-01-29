@@ -7,12 +7,20 @@ import uuid
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 
-s3_client = boto3.client("s3", region_name=AWS_REGION)
+def get_s3_client():
+    return boto3.client(
+        "s3", 
+        region_name=AWS_REGION,
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID", "testing"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "testing"),
+        aws_session_token=os.getenv("AWS_SESSION_TOKEN", "testing"),
+    )
 
 def create_presigned_upload_url(file_type: str) -> dict | None:
     """
     Generate a presigned URL to upload a file to S3.
     """
+    s3_client = get_s3_client()
     bucket_name = os.getenv("S3_BUCKET_NAME")
     if not bucket_name:
         # In a real app, you'd log this error.

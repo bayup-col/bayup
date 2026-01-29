@@ -54,5 +54,9 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
     }
 
     preference_response = sdk.preference().create(preference_data)
+    
+    if "response" not in preference_response:
+        raise Exception("Error integration with MercadoPago SDK")
+        
     preference = preference_response["response"]
     return preference

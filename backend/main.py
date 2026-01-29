@@ -1,6 +1,7 @@
 from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, text
 import datetime
@@ -210,14 +211,13 @@ async def clerk_login_for_access_token(
     user = crud.get_user_by_email(db, email=clerk_user_info["email"])
 
     if not user:
-        # If user doesn't exist, create a new one (without password, as Clerk handles it)
-        # Note: A real implementation might require a more robust user linking strategy.
+        # FIX: Create user automatically if it doesn't exist (Just-in-time provisioning)
         user = crud.create_user(
             db=db,
             user=schemas.UserCreate(
                 email=clerk_user_info["email"],
-                full_name=clerk_user_info.get("full_name"),
-                password=str(uuid.uuid4()) # Dummy password, not used for login directly
+                full_name=clerk_user_info.get("full_name", "Clerk User"),
+                password=str(uuid.uuid4()) # Dummy password
             )
         )
     
@@ -577,8 +577,7 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     payment_id = request.query_params.get("id")
 
     if not topic or not payment_id:
-        # Return 400 for invalid notification format as expected by tests
-        raise HTTPException(status_code=400, detail="Invalid notification format")
+        return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid notification format"})
 
     if topic == "payment":
         # Find the order by payment_id as external_reference
