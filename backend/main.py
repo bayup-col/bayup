@@ -54,7 +54,7 @@ def create_default_plan():
     finally:
         db.close()
 
-# --- Auth Endpoints ---
+# --- Auth ---
 
 @app.post("/auth/register", response_model=schemas.User)
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -64,9 +64,7 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return crud.create_user(db=db, user=user)
 
 @app.post("/auth/login")
-def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
-):
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = crud.get_user_by_email(db, email=form_data.username)
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
@@ -74,9 +72,7 @@ def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/auth/clerk-login")
-async def clerk_login_for_access_token(
-    request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)
-):
+async def clerk_login_for_access_token(request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)):
     clerk_user_info = await clerk_auth_service.verify_clerk_token(request.clerk_token)
     email = clerk_user_info["email"] 
     user = crud.get_user_by_email(db, email=email)
@@ -90,7 +86,7 @@ async def clerk_login_for_access_token(
                 password=str(uuid.uuid4())
             )
         )
-        db.add(user)
+        db.add(user) # Persistencia forzada
         db.commit()
         db.refresh(user)
     
@@ -100,7 +96,7 @@ async def clerk_login_for_access_token(
 def get_me(current_user: models.User = Depends(security.get_current_user)):
     return current_user
 
-# --- Product Endpoints ---
+# --- Products ---
 
 @app.get("/products", response_model=List[schemas.Product])
 def read_products(
@@ -139,7 +135,7 @@ def read_tenant_product(
         raise HTTPException(status_code=404, detail="Product not found or does not belong to this store")
     return product
 
-# --- Order Endpoints ---
+# --- Orders ---
 
 @app.post("/orders", response_model=schemas.Order)
 def create_order(
@@ -156,7 +152,7 @@ def read_orders(
 ):
     return crud.get_orders_by_customer(db, customer_id=current_user.id)
 
-# --- Payment Endpoints ---
+# --- Payments & Webhook ---
 
 @app.post("/payments/create-preference/{order_id}")
 def create_payment_preference(
@@ -198,7 +194,7 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
                 db.add(order)
                 db.commit()
                 db.refresh(order)
-                # El mensaje debe ser EXACTO al del test
+                # Mensaje EXACTO requerido por el test
                 return {
                     "status": "success", 
                     "message": f"Payment notification for Order ID: {order.id} received. Status updated to 'completed'."
