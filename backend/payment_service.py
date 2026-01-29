@@ -25,14 +25,14 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
 
     items = []
     for item in order.items:
-        product = crud.get_product(db, item.product_id) # Assuming get_product is available in crud
-        if product:
-            items.append({
-                "title": product.name,
-                "quantity": item.quantity,
-                "unit_price": float(item.price_at_purchase),
-                "currency_id": "CLP", # Assuming Chilean Peso for now, should be dynamic
-            })
+        # Access product name through the variant relationship
+        product_name = item.product_variant.product.name if item.product_variant and item.product_variant.product else "Producto"
+        items.append({
+            "title": product_name,
+            "quantity": item.quantity,
+            "unit_price": float(item.price_at_purchase),
+            "currency_id": "CLP",
+        })
 
     preference_data = {
         "items": items,

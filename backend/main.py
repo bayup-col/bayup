@@ -584,35 +584,23 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
         try:
             order_uuid = uuid.UUID(payment_id)
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid payment ID format")
+            return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid ID format"})
 
         order = db.query(models.Order).filter(models.Order.id == order_uuid).first()
         if not order:
-            print(f"Order not found for payment ID: {payment_id}")
-            raise HTTPException(status_code=404, detail="Order not found for this payment")
+            return JSONResponse(status_code=404, content={"status": "error", "message": "Order not found"})
 
         # Get the tenant's plan
         tenant = db.query(models.User).filter(models.User.id == order.tenant_id).options(joinedload(models.User.plan)).first()
-        if not tenant or not tenant.plan:
-            print(f"Tenant or tenant's plan not found for order {order.id}")
-            raise HTTPException(status_code=500, detail="Tenant or tenant's plan not found")
-
-        commission_rate = tenant.plan.commission_rate
-        platform_commission = order.total_price * commission_rate
-        net_to_tenant = order.total_price - platform_commission
-
-        # Update order status (simulated as "completed" for approved payments)
-        order.status = "completed" # Assuming payment was approved
-        db.add(order)
+        
+        # Update order status
+        order.status = "completed"
         db.commit()
         db.refresh(order)
 
-        print(f"Payment notification for Order ID: {order.id} received. Status updated to 'completed'.")
-        print(f"Order Total: {order.total_price:.2f}, Commission Rate: {commission_rate:.2%}, Platform Commission: {platform_commission:.2f}, Net to Tenant: {net_to_tenant:.2f}")
-
-        return {"status": "success", "message": f"Payment notification for ID {payment_id} processed for order {order.id}"}
+        return {"status": "success", "message": f"Payment notification for Order ID: {order.id} received. Status updated to 'completed'."}
     
-    return {"status": "success", "message": f"Webhook received for topic {topic}, ID {payment_id} (ignored)"}
+    return {"status": "success", "message": "Webhook received"}
 
 
 # --- Root Endpoint ---
