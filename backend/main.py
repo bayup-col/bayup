@@ -80,7 +80,7 @@ async def clerk_login_for_access_token(
     user = crud.get_user_by_email(db, email=clerk_user_info["email"])
 
     if not user:
-        # Auto-provisioning for Clerk users
+        # Just-in-time provisioning para usuarios de Clerk
         user = crud.create_user(
             db=db,
             user=schemas.UserCreate(
@@ -177,9 +177,10 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     topic = request.query_params.get("topic")
     payment_id = request.query_params.get("id")
     if not topic or not payment_id:
-        return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid notification"})
+        return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid notification format"})
     if topic == "payment":
         try:
+            # En tests, payment_id es el Order ID
             order_uuid = uuid.UUID(payment_id)
             order = db.query(models.Order).filter(models.Order.id == order_uuid).first()
             if order:
@@ -187,7 +188,7 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
                 db.commit()
                 return {"status": "success", "message": f"Order {order.id} completed"}
         except:
-            return JSONResponse(status_code=400, content={"status": "error"})
+            return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid notification format"})
     return {"status": "success"}
 
 @app.get("/")
