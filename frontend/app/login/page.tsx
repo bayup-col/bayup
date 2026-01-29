@@ -20,17 +20,17 @@ export default function LoginPage() {
     console.log("🚀 [Paso 1] Iniciando intento de login...");
 
     try {
-      // Auto-detección de la URL del servidor
-      const apiHost = window.location.hostname;
-      const apiBase = `http://${apiHost}:8000`;
-      
+      const apiBase = "http://localhost:8000";
+      console.log(`🔍 [DEBUG] Intentando login en: ${apiBase}`);
+
       const response = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ username: email, password: password }),
+      }).catch(err => {
+        console.error("🔍 [DEBUG] Error en fetch login:", err);
+        throw new Error("No se pudo conectar con el servidor (vía localhost:8000). ¿Está el backend encendido?");
       });
-
-      console.log(`📥 [Paso 2] Respuesta de login desde ${apiBase} recibida. Status:`, response.status);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -38,11 +38,12 @@ export default function LoginPage() {
       }
 
       const data = await response.json();
-      console.log("🔑 [Paso 3] Token obtenido con éxito.");
       
-      // Obtener info del usuario directamente con fetch
       const userResponse = await fetch(`${apiBase}/auth/me`, {
         headers: { 'Authorization': `Bearer ${data.access_token}` }
+      }).catch(err => {
+        console.error("🔍 [DEBUG] Error en fetch profile:", err);
+        throw new Error("Login exitoso, pero no se pudo obtener el perfil.");
       });
 
       console.log("👤 [Paso 4] Respuesta de perfil recibida. Status:", userResponse.status);
@@ -56,10 +57,12 @@ export default function LoginPage() {
       
       // Guardar y Redirigir
       login(data.access_token, email, userRole);
-      console.log("🚚 [Paso 6] Redirigiendo al dashboard...");
+      console.log(`🚚 [Paso 6] Redirigiendo según rol: ${userRole}...`);
       
       if (userRole === 'super_admin') {
         router.push('/dashboard/super-admin');
+      } else if (userRole === 'afiliado') {
+        router.push('/afiliado/dashboard');
       } else {
         router.push('/dashboard');
       }

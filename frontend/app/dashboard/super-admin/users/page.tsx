@@ -93,7 +93,7 @@ export default function RolesManagement() {
                                     <select 
                                         value={member.role}
                                         onChange={(e) => updateRole(member.id, e.target.value as Role)}
-                                        className="bg-purple-50 text-purple-700 text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border-none outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                                        className="bg-[#f0f9f9] text-[#004d4d] text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border-none outline-none focus:ring-2 focus:ring-[#004d4d] cursor-pointer"
                                     >
                                         {roles.map(r => <option key={r} value={r}>{r}</option>)}
                                     </select>
@@ -104,7 +104,7 @@ export default function RolesManagement() {
                                 <td className="px-8 py-5 text-center">
                                     <button 
                                         onClick={() => toggleStatus(member.id)}
-                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${member.status === 'active' ? 'bg-green-500' : 'bg-gray-200'}`}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${member.status === 'active' ? 'bg-emerald-500' : 'bg-gray-200'}`}
                                     >
                                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${member.status === 'active' ? 'translate-x-6' : 'translate-x-1'}`} />
                                     </button>
@@ -112,7 +112,7 @@ export default function RolesManagement() {
                                 <td className="px-8 py-5 text-right">
                                     <button 
                                         onClick={() => setEditingUser(member)}
-                                        className="text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-black text-[10px] uppercase tracking-widest border-b-2 border-purple-600 pb-0.5"
+                                        className="text-[#004d4d] opacity-0 group-hover:opacity-100 transition-opacity font-black text-[10px] uppercase tracking-widest border-b-2 border-[#004d4d] pb-0.5"
                                     >
                                         Ajustar Permisos
                                     </button>
@@ -130,7 +130,7 @@ export default function RolesManagement() {
                         <div className="p-10 bg-gray-900 text-white relative">
                             <button onClick={() => setEditingUser(null)} className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors">✕</button>
                             <h3 className="text-2xl font-black italic tracking-tighter">Privilegios de Acceso</h3>
-                            <p className="text-purple-400 text-xs font-bold uppercase tracking-widest mt-1">Usuario: {editingUser.name}</p>
+                            <p className="text-[#00ffff] text-xs font-bold uppercase tracking-widest mt-1">Usuario: {editingUser.name}</p>
                         </div>
 
                         <div className="p-10 space-y-6">
@@ -145,7 +145,7 @@ export default function RolesManagement() {
                                         <span className="text-lg">{perm.icon}</span>
                                         <span className="text-sm font-bold text-gray-700">{perm.label}</span>
                                     </div>
-                                    <button className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-all ${editingUser.permissions[perm.key as keyof typeof editingUser.permissions] ? 'bg-purple-600 border-purple-600' : 'border-gray-300'}`}>
+                                    <button className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-all ${editingUser.permissions[perm.key as keyof typeof editingUser.permissions] ? 'bg-[#004d4d] border-[#004d4d]' : 'border-gray-300'}`}>
                                         {editingUser.permissions[perm.key as keyof typeof editingUser.permissions] && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path d="M5 13l4 4L19 7" /></svg>}
                                     </button>
                                 </div>
@@ -153,7 +153,7 @@ export default function RolesManagement() {
                         </div>
 
                         <div className="p-10 pt-0">
-                            <button onClick={() => setEditingUser(null)} className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Guardar Privilegios</button>
+                            <button onClick={() => setEditingUser(null)} className="w-full bg-[#004d4d] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Guardar Privilegios</button>
                         </div>
                     </div>
                 </div>

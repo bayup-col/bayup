@@ -1,0 +1,194 @@
+"use client";
+
+import React, { useEffect, useRef, useState } from 'react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
+import { Layout, Target, LineChart, Zap } from 'lucide-react';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { NumberTicker } from './NumberTicker';
+import { RollingText } from './RollingText';
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
+
+// Reusable Tilt Component for Narrative Sections
+const NarrativeCard = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const mouseXSpring = useSpring(x);
+  const mouseYSpring = useSpring(y);
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["7deg", "-7deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-7deg", "7deg"]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    x.set( (e.clientX - rect.left) / rect.width - 0.5 );
+    y.set( (e.clientY - rect.top) / rect.height - 0.5 );
+  };
+
+  const handleMouseLeave = () => { x.set(0); y.set(0); };
+
+  return (
+    <motion.div onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} style={{ rotateX, rotateY, transformStyle: "preserve-3d" }} className={className}>
+      {children}
+    </motion.div>
+  );
+};
+
+const AnalyticsCard = ({ stat }: { stat: any }) => {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const mouseXSpring = useSpring(x);
+  const mouseYSpring = useSpring(y);
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["10deg", "-10deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-10deg", "10deg"]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    x.set( (e.clientX - rect.left) / rect.width - 0.5 );
+    y.set( (e.clientY - rect.top) / rect.height - 0.5 );
+  };
+
+  const handleMouseLeave = () => { x.set(0); y.set(0); };
+
+  return (
+    <motion.div onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} style={{ rotateX, rotateY, transformStyle: "preserve-3d" }} className="group relative p-12 rounded-[4rem] overflow-hidden isolate flex items-center justify-between w-[400px] mx-auto transition-all duration-700">
+      <div className="absolute inset-0 rounded-[4.5rem] overflow-hidden -z-10">
+        <div className="absolute top-1/2 left-1/2 w-[250%] aspect-square animate-aurora opacity-20 group-hover:opacity-40 transition-opacity duration-1000" style={{ background: `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, rgba(0, 242, 255, 0.5) 320deg, rgba(0, 77, 77, 0.5) 360deg)`, willChange: 'transform' }} />
+        <div className="absolute inset-[1.5px] rounded-[4.4rem] bg-white/10 backdrop-blur-[80px] z-0" />
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-br from-petroleum/[0.05] to-transparent -z-20" />
+      <div style={{ transform: "translateZ(50px)" }} className="relative z-10">
+        <p className="text-5xl font-black text-black italic tracking-tighter flex items-baseline">
+          {stat.val === 'Realtime' ? (<span>Realtime</span>) : (
+            <><NumberTicker value={parseFloat(stat.val)} className="text-5xl font-black" /><span className="text-3xl ml-1">{stat.val.includes('%') ? '%' : 'x'}</span></>
+          )}
+        </p>
+        <p className="text-[11px] font-black text-petroleum uppercase mt-3 tracking-[0.4em]">{stat.label}</p>
+      </div>
+      <div style={{ transform: "translateZ(30px)" }} className="relative flex items-center justify-center">
+        <div className="absolute h-12 w-12 bg-cyan/10 rounded-full blur-xl animate-pulse" />
+        <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_15px_#00f2ff] relative z-10" />
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent -translate-x-[200%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-in-out pointer-events-none" />
+    </motion.div>
+  );
+};
+
+export const NarrativeScroll = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const horizontalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      if (!horizontalRef.current || !containerRef.current) return;
+      gsap.to(horizontalRef.current, {
+        x: () => {
+          if (!horizontalRef.current) return 0;
+          return -(horizontalRef.current.scrollWidth - window.innerWidth);
+        },
+        ease: "none",
+        scrollTrigger: {
+          trigger: containerRef.current,
+          pin: true,
+          scrub: 1,
+          end: () => horizontalRef.current ? `+=${horizontalRef.current.scrollWidth}` : "+=1000",
+          invalidateOnRefresh: true,
+        }
+      });
+    }, containerRef);
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <div id="ecosystem" ref={containerRef} className="overflow-hidden bg-background">
+      <div ref={horizontalRef} className="flex h-screen w-fit">
+        
+        {/* Intro Section - Pure White Background */}
+        <section className="horizontal-section flex h-screen w-screen flex-col items-center justify-center p-20 bg-[#FFFFFF]">
+          <div className="max-w-4xl space-y-8 text-center flex flex-col items-center">
+            <p className="text-cyan font-black uppercase tracking-[0.5em] text-[10px] mb-4">
+              <RollingText text="Connected Ecosystem" />
+            </p>
+            <div className="text-7xl md:text-9xl font-black text-black italic tracking-tighter uppercase leading-[0.85] flex flex-col items-center">
+              <RollingText text="ESTRATEGIA" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan block w-full">
+                <RollingText text="CONECTADA." />
+              </span>
+            </div>
+            <div className="h-1 w-24 bg-gray-100 mt-12 mx-auto" />
+          </div>
+        </section>
+
+        {/* 1. Web Strategy */}
+        <section className="horizontal-section flex h-screen w-screen items-center justify-center p-20 bg-background">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
+            <NarrativeCard className="space-y-10 group relative">
+              <div className="absolute -inset-10 bg-petroleum/5 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              <div className="relative p-12 rounded-[4.5rem] bg-white/5 backdrop-blur-[80px] border-2 border-white/40 shadow-[0_30px_60px_-10px_rgba(0,0,0,0.05)] space-y-10 overflow-hidden isolate">
+                <div style={{ transform: "translateZ(40px)" }} className="h-20 w-20 rounded-3xl bg-petroleum flex items-center justify-center text-cyan shadow-2xl relative overflow-hidden group-hover:scale-110 transition-all duration-500"><Layout size={32} /></div>
+                <div style={{ transform: "translateZ(30px)" }} className="space-y-6">
+                  <h3 className="text-6xl font-black text-black italic uppercase tracking-tighter leading-none">01. ESTRATEGIA <br /> <span className="text-petroleum uppercase tracking-widest">WEB</span></h3>
+                  <p className="text-gray-400 text-sm font-medium leading-relaxed max-w-sm uppercase tracking-[0.2em] text-[10px]">Define la estructura, el UX y los componentes visuales de tu imperio. Tu tienda no es una plantilla, es una declaración de intenciones.</p>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent -translate-x-[200%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-in-out pointer-events-none" />
+              </div>
+            </NarrativeCard>
+            <NarrativeCard className="relative group">
+              <div className="absolute -inset-20 bg-petroleum/10 rounded-full blur-[120px] animate-pulse" />
+              <div className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/5 backdrop-blur-[120px] border-2 border-white/60 shadow-[0_50px_100px_-20px_rgba(0,77,77,0.15)] p-12 flex flex-col gap-8 overflow-hidden isolate text-center group-hover:border-cyan/30 transition-all duration-700">
+                <div style={{ transform: "translateZ(30px)" }} className="h-6 w-32 bg-petroleum/20 rounded-full border border-petroleum/10 shadow-inner mx-auto" />
+                <div style={{ transform: "translateZ(50px)" }} className="flex-1 bg-background rounded-[3.5rem] border border-white/40 shadow-2xl flex items-center justify-center group/screen overflow-hidden relative"><div className="absolute inset-0 bg-gradient-to-br from-petroleum/10 to-transparent" /><div className="w-2/3 h-2/3 bg-white/90 rounded-2xl shadow-2xl relative z-10 flex flex-col p-4 gap-3"><div className="h-2 w-1/2 bg-petroleum/20 rounded-full" /><div className="flex-1 bg-gray-50 rounded-xl" /><div className="h-8 w-full bg-petroleum rounded-xl flex items-center justify-center" /></div></div>
+                <div style={{ transform: "translateZ(40px)" }} className="space-y-4"><div className="h-3 w-full bg-petroleum/10 rounded-full overflow-hidden"><div className="h-full w-2/3 bg-gradient-to-r from-petroleum to-cyan" /></div></div>
+                <div className="absolute inset-0 shadow-[inset_0_0_60px_rgba(255,255,255,0.2)] rounded-[5rem] pointer-events-none" />
+              </div>
+            </NarrativeCard>
+          </div>
+        </section>
+
+        {/* 2. Marketing ROI - Pure White Background */}
+        <section className="horizontal-section flex h-screen w-screen items-center justify-center p-20 bg-[#FFFFFF]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
+            <div className="order-2 md:order-1 relative group">
+              <div className="absolute -inset-20 bg-cyan/5 rounded-full blur-[120px] animate-pulse" />
+              <div className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/5 backdrop-blur-[120px] border-2 border-white/60 shadow-[0_50px_100px_-20px_rgba(0,77,77,0.15)] p-12 flex flex-col items-center justify-center text-center gap-10 overflow-hidden isolate group-hover:border-cyan/30 transition-all duration-700">
+                <div className="relative"><div className="absolute inset-0 bg-cyan/20 blur-3xl animate-pulse rounded-full" /><div className="h-32 w-32 rounded-full bg-petroleum flex items-center justify-center text-cyan shadow-2xl relative z-10 border border-white/20"><Target size={64} /></div></div>
+                <div className="space-y-8 relative z-10 text-center"><div className="px-10 py-4 rounded-full bg-petroleum text-cyan text-[10px] font-black uppercase tracking-[0.3em] shadow-xl border border-white/10">Segmento VIP Detectado</div><p className="text-[10px] text-gray-400 uppercase font-black tracking-widest leading-relaxed">Acción: Campaña automatizada <br /> en ejecución de alto impacto.</p></div>
+                <div className="absolute inset-0 shadow-[inset_0_0_80px_rgba(255,255,255,0.3)] rounded-[5rem] pointer-events-none" />
+              </div>
+            </div>
+            <NarrativeCard className="order-1 md:order-2 relative group">
+              <div className="absolute -inset-10 bg-cyan/5 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              <div className="relative p-12 rounded-[4.5rem] bg-white/5 backdrop-blur-[80px] border-2 border-white/40 shadow-[0_30px_60px_-10px_rgba(0,0,0,0.05)] space-y-10 overflow-hidden isolate group-hover:border-cyan/30 transition-all duration-700">
+                <div style={{ transform: "translateZ(40px)" }} className="h-20 w-20 rounded-3xl bg-petroleum flex items-center justify-center text-cyan shadow-xl relative overflow-hidden group-hover:scale-110 transition-all duration-500"><div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" /><Zap size={32} className="relative z-10" /></div>
+                <div style={{ transform: "translateZ(30px)" }} className="space-y-6"><h3 className="text-6xl font-black text-black italic uppercase tracking-tighter leading-none">02. MARKETING <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan uppercase tracking-widest">ROI</span></h3><p className="text-gray-400 text-sm font-medium leading-relaxed max-w-sm uppercase tracking-[0.2em] text-[10px]">Consume datos de la estrategia web para ejecutar campañas quirúrgicas. Nada es azar, cada centavo se mide y se optimiza.</p></div>
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent -translate-x-[200%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-in-out pointer-events-none" />
+              </div>
+            </NarrativeCard>
+          </div>
+        </section>
+
+        {/* 3. Global Analytics */}
+        <section className="horizontal-section flex h-screen w-screen items-center justify-center p-20 bg-background">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
+            <NarrativeCard className="space-y-10 group relative">
+              <div className="absolute -inset-10 bg-petroleum/5 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              <div className="relative p-12 rounded-[4.5rem] bg-white/5 backdrop-blur-[80px] border-2 border-white/40 shadow-[0_30px_60px_-10px_rgba(0,0,0,0.05)] space-y-10 overflow-hidden isolate group-hover:border-cyan/30 transition-all duration-700">
+                <div style={{ transform: "translateZ(40px)" }} className="h-20 w-20 rounded-full bg-white border border-gray-100 flex items-center justify-center text-petroleum shadow-2xl relative overflow-hidden group-hover:scale-110 transition-all duration-500"><LineChart size={32} className="relative z-10" /></div>
+                <div style={{ transform: "translateZ(30px)" }} className="space-y-6"><h3 className="text-6xl font-black text-black italic uppercase tracking-tighter leading-none">03. ANALYTICS <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan uppercase tracking-widest">GLOBAL</span></h3><p className="text-gray-400 text-sm font-medium leading-relaxed max-w-sm uppercase tracking-[0.2em] text-[10px]">Retroalimentación total. Los datos de ventas y comportamiento vuelven a la estrategia web para cerrar el ciclo de crecimiento infinito.</p></div>
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent -translate-x-[200%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-in-out pointer-events-none" />
+              </div>
+            </NarrativeCard>
+            <div className="grid grid-cols-1 gap-8 pt-10">
+              {[ { val: '98%', label: 'Precision' }, { val: '4.2x', label: 'Conversion' }, { val: 'Realtime', label: 'Feedback' } ].map((stat, i) => (
+                <AnalyticsCard key={i} stat={stat} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  );
+};

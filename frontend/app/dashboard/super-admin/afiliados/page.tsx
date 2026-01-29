@@ -92,15 +92,15 @@ export default function AffiliatesModule() {
             
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tight italic text-purple-600">Gestión de Afiliados</h1>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight italic text-[#004d4d]">Gestión de Afiliados</h1>
                     <p className="text-gray-500 mt-1 font-medium">Control de socios y facturación por referidos.</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="relative w-full sm:w-64">
-                        <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-purple-500 shadow-sm transition-all" />
+                        <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#004d4d] shadow-sm transition-all" />
                         <svg className="w-4 h-4 absolute left-4 top-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                     </div>
-                    <button onClick={() => setIsCreateModalOpen(true)} className="bg-gray-900 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl hover:bg-purple-600 transition-all">+ Crear Afiliado</button>
+                    <button onClick={() => setIsCreateModalOpen(true)} className="bg-gray-900 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl hover:bg-[#004d4d] transition-all">+ Crear Afiliado</button>
                 </div>
             </div>
 
@@ -118,14 +118,14 @@ export default function AffiliatesModule() {
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                         {affiliates.filter(af => af.full_name.toLowerCase().includes(searchTerm.toLowerCase())).map((af) => (
-                            <tr key={af.id} onClick={() => setSelectedAffiliate(af)} className="hover:bg-purple-50/30 transition-colors cursor-pointer group">
+                            <tr key={af.id} onClick={() => setSelectedAffiliate(af)} className="hover:bg-[#f0f9f9] transition-colors cursor-pointer group">
                                 <td className="px-8 py-5">
                                     <div className="flex items-center gap-4">
                                         <div className="h-12 w-12 rounded-2xl bg-gray-900 flex items-center justify-center font-black text-white shadow-lg">{af.avatar}</div>
                                         <div><p className="text-sm font-black text-gray-900">{af.full_name}</p><p className="text-[10px] font-bold text-gray-400 truncate w-40">{af.email}</p></div>
                                     </div>
                                 </td>
-                                <td className="px-8 py-5 text-center"><span className="text-sm font-black text-purple-600 bg-purple-50 px-3 py-1 rounded-lg">{af.companies_count}</span></td>
+                                <td className="px-8 py-5 text-center"><span className="text-sm font-black text-[#004d4d] bg-[#f0f9f9] px-3 py-1 rounded-lg">{af.companies_count}</span></td>
                                 <td className="px-8 py-5"><p className="text-sm font-black text-gray-900">{formatCurrency(af.avg_revenue)}</p><span className="text-[9px] font-black text-green-500 uppercase">{af.level}</span></td>
                                 <td className="px-8 py-5 text-sm text-gray-400 font-medium">{af.registration_date}</td>
                                 <td className="px-8 py-5">
@@ -133,7 +133,7 @@ export default function AffiliatesModule() {
                                         {af.status}
                                     </span>
                                 </td>
-                                <td className="px-8 py-5 text-right"><span className="text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity font-black text-xs">Perfil →</span></td>
+                                <td className="px-8 py-5 text-right"><span className="text-[#004d4d] opacity-0 group-hover:opacity-100 transition-opacity font-black text-xs">Perfil →</span></td>
                             </tr>
                         ))}
                     </tbody>
@@ -147,28 +147,28 @@ export default function AffiliatesModule() {
                         <form onSubmit={handleCreateAffiliate}>
                             <div className="p-10 bg-gray-900 text-white relative">
                                 <button type="button" onClick={() => setIsCreateModalOpen(false)} className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors">✕</button>
-                                <h3 className="text-2xl font-black italic tracking-tighter text-purple-400">Nuevo Afiliado</h3>
+                                <h3 className="text-2xl font-black italic tracking-tighter text-[#00ffff]">Nuevo Afiliado</h3>
                                 <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Registro manual de socio</p>
                             </div>
                             <div className="p-10 space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label>
-                                    <input required type="text" value={newAffiliate.full_name} onChange={e => setNewAffiliate({...newAffiliate, full_name: e.target.value})} className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500" /></div>
+                                    <input required type="text" value={newAffiliate.full_name} onChange={e => setNewAffiliate({...newAffiliate, full_name: e.target.value})} className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#004d4d]" /></div>
                                     <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Correo Electrónico</label>
-                                    <input required type="email" value={newAffiliate.email} onChange={e => setNewAffiliate({...newAffiliate, email: e.target.value})} className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500" /></div>
+                                    <input required type="email" value={newAffiliate.email} onChange={e => setNewAffiliate({...newAffiliate, email: e.target.value})} className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#004d4d]" /></div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Teléfono</label>
-                                    <input type="text" value={newAffiliate.phone} onChange={e => setNewAffiliate({...newAffiliate, phone: e.target.value})} className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500" /></div>
+                                    <input type="text" value={newAffiliate.phone} onChange={e => setNewAffiliate({...newAffiliate, phone: e.target.value})} className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#004d4d]" /></div>
                                     <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nivel Inicial</label>
                                     <select value={newAffiliate.level} onChange={e => setNewAffiliate({...newAffiliate, level: e.target.value as any})} className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none">
                                         <option value="Silver">Silver</option><option value="Gold">Gold</option><option value="Platinum">Platinum</option>
                                     </select></div>
                                 </div>
                                 <div><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Dirección</label>
-                                <input type="text" value={newAffiliate.address} onChange={e => setNewAffiliate({...newAffiliate, address: e.target.value})} className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500" /></div>
+                                <input type="text" value={newAffiliate.address} onChange={e => setNewAffiliate({...newAffiliate, address: e.target.value})} className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#004d4d]" /></div>
                             </div>
-                            <div className="p-10 pt-0"><button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Registrar Socio</button></div>
+                            <div className="p-10 pt-0"><button type="submit" className="w-full bg-[#004d4d] hover:bg-[#003333] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Registrar Socio</button></div>
                         </form>
                     </div>
                 </div>
@@ -182,13 +182,13 @@ export default function AffiliatesModule() {
                             <button onClick={() => setSelectedAffiliate(null)} className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors text-xl">✕</button>
                             <div className="flex items-center gap-6">
                                 <div className="h-24 w-24 rounded-[2rem] bg-white text-gray-900 shadow-xl flex items-center justify-center text-3xl font-black">{selectedAffiliate.avatar}</div>
-                                <div><h3 className="text-3xl font-black tracking-tighter">{selectedAffiliate.full_name}</h3><p className="text-sm font-bold text-purple-400 uppercase tracking-[0.2em] mt-1">{selectedAffiliate.level} Partner • {selectedAffiliate.status}</p></div>
+                                <div><h3 className="text-3xl font-black tracking-tighter">{selectedAffiliate.full_name}</h3><p className="text-sm font-bold text-[#00ffff] uppercase tracking-[0.2em] mt-1">{selectedAffiliate.level} Partner • {selectedAffiliate.status}</p></div>
                             </div>
                         </div>
                         <div className="p-10 overflow-y-auto custom-scrollbar space-y-8">
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 text-center"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Empresas Referidas</p><p className="text-3xl font-black text-gray-900">{selectedAffiliate.companies_count}</p></div>
-                                <div className="bg-green-50 p-6 rounded-3xl border border-green-100 text-center"><p className="text-[10px] font-black text-green-600 uppercase tracking-widest mb-2">Comisiones Totales</p><p className="text-3xl font-black text-green-700">{formatCurrency(selectedAffiliate.avg_revenue * 12)}</p></div>
+                                <div className="bg-[#f0f9f9] p-6 rounded-3xl border border-[#004d4d]/10 text-center"><p className="text-[10px] font-black text-[#004d4d] uppercase tracking-widest mb-2">Comisiones Totales</p><p className="text-3xl font-black text-[#004d4d]">{formatCurrency(selectedAffiliate.avg_revenue * 12)}</p></div>
                             </div>
                         </div>
                     </div>

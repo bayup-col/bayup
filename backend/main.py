@@ -2,6 +2,7 @@ from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func, text
 import datetime
 from datetime import timedelta
 from typing import List, Optional
@@ -45,7 +46,7 @@ def create_default_plan():
                 plan=schemas.PlanCreate(
                     name="Free Tier",
                     description="Default free plan with basic features.",
-                    commission_rate=0.10, # 10% commission
+                    commission_rate=0.10,
                     monthly_fee=0.0,
                     is_default=True,
                 ),
@@ -100,15 +101,31 @@ def create_default_plan():
                         options=attr_data["options"]
                     )
                     db.add(db_attribute)
-                
-                db.commit()
-                print(f"Product type {product_type_data['name']} created with attributes.")
+                print(f"Product type {product_type_data['name']} created.")
+
+        # Create initial Affiliate user
+        affiliate_email = "afiliado@bayup.com"
+        if not crud.get_user_by_email(db, affiliate_email):
+            print(f"Creating initial affiliate user: {affiliate_email}...")
+            hashed_pwd = security.get_password_hash("123456789")
+            affiliate_user = models.User(
+                email=affiliate_email,
+                hashed_password=hashed_pwd,
+                role="afiliado",
+                status="Activo",
+                full_name="Usuario Afiliado Oficial"
+            )
+            db.add(affiliate_user)
+            db.commit()
+            print("Affiliate user created successfully.")
         
+        db.commit()
     except Exception as e:
         print(f"Error during startup: {e}")
         db.rollback()
     finally:
         db.close()
+
 
 
 # --- Authentication Endpoints ---
@@ -1270,4 +1287,55 @@ def create_provider(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+# --- Super Admin Endpoints ---
+
+@app.get("/super-admin/stats", response_model=schemas.SuperAdminStats)
+def get_super_admin_stats(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_super_admin_user)
+):
+    # 1. Total Revenue (Sum of all orders)
+    total_revenue = db.query(func.sum(models.Order.total_price)).filter(models.Order.status == "completed").scalar() or 0.0
+
+    # 2. Total Commission (Estimated 5% for MVP)
+    total_commission = total_revenue * 0.05 
+
+    # 3. Active Companies
+    active_companies = db.query(models.User).filter(models.User.role == "admin_tienda", models.User.status == "Activo").count()
+
+    # 4. Active Affiliates
+    active_affiliates = db.query(models.User).filter(models.User.role == "afiliado", models.User.status == "Activo").count()
+
+    # 5. Top Companies by Revenue
+    top_performers = db.query(
+        models.Order.tenant_id,
+        func.sum(models.Order.total_price).label("revenue")
+    ).filter(models.Order.status == "completed").group_by(models.Order.tenant_id).order_by(text("revenue DESC")).limit(5).all()
+
+    top_companies_data = []
+    for t_id, rev in top_performers:
+        user = db.query(models.User).filter(models.User.id == t_id).first()
+        if user:
+            top_companies_data.append({
+                "name": user.full_name or user.email,
+                "revenue": rev,
+                "plan": user.plan.name if user.plan else "Free"
+            })
+
+    # 6. Recent Alerts (Mocked for now)
+    recent_alerts = [
+        {"id": 1, "type": "warning", "message": "Alta latencia en API de Pagos", "time": "Hace 5 min"},
+        {"id": 2, "type": "info", "message": "Nuevo afiliado registrado", "time": "Hace 20 min"},
+        {"id": 3, "type": "success", "message": "Backup diario completado", "time": "Hace 1 hora"},
+    ]
+
+    return {
+        "total_revenue": total_revenue,
+        "total_commission": total_commission,
+        "active_companies": active_companies,
+        "active_affiliates": active_affiliates,
+        "top_companies": top_companies_data,
+        "recent_alerts": recent_alerts
+    }
     

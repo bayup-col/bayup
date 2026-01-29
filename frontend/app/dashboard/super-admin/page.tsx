@@ -2,165 +2,213 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from "@/context/auth-context";
+import { 
+    TrendingUp, 
+    TrendingDown, 
+    Users, 
+    Building2, 
+    DollarSign, 
+    Activity, 
+    AlertTriangle, 
+    CheckCircle2, 
+    Info 
+} from 'lucide-react';
 
 export default function SuperAdminDashboard() {
-    const { token, isAuthenticated } = useAuth();
-    
-    // Mock Data Financiera
-    const financialStats = {
-        totalDeposits: 854200.00,
-        totalWithdrawals: 320150.00,
-        netBalance: 534050.00,
-        revenueToday: 12450.00,
-        activeCompanies: 42,
-        trends: {
-            deposits: +12.5,
-            withdrawals: -2.1,
-            balance: +8.4,
-            revenue: +15.2,
-            companies: +3
-        }
-    };
+    const { token } = useAuth();
+    const [stats, setStats] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
 
-    const recentMovements = [
-        { id: '1', shop: 'Nike Store', type: 'deposito', amount: 4500, time: 'hace 5 min', status: 'completado' },
-        { id: '2', shop: 'Tech Hub', type: 'retiro', amount: 12000, time: 'hace 24 min', status: 'pendiente' },
-        { id: '3', shop: 'Boutique Maria', type: 'deposito', amount: 850, time: 'hace 1 hora', status: 'completado' },
-        { id: '4', shop: 'Electro Express', type: 'deposito', amount: 3200, time: 'hace 2 horas', status: 'completado' },
-    ];
+    useEffect(() => {
+        const fetchStats = async () => {
+            if (!token) return;
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/super-admin/stats`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setStats(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch stats", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchStats();
+    }, [token]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
     };
 
-    const StatCard = ({ title, value, trend, isCurrency = true }: any) => (
-        <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-            <div className="absolute top-4 left-4">
-                {trend > 0 ? (
-                    <span className="text-green-500 flex items-center text-[10px] font-bold bg-green-50 px-1.5 py-0.5 rounded-md">
-                        ↑ {Math.abs(trend)}%
-                    </span>
-                ) : (
-                    <span className="text-rose-500 flex items-center text-[10px] font-bold bg-rose-50 px-1.5 py-0.5 rounded-md">
-                        ↓ {Math.abs(trend)}%
-                    </span>
-                )}
+    const generateAISummary = (data: any) => {
+        if (!data) return "Analizando datos del sistema...";
+        const growth = data.total_revenue > 0 ? "positivo" : "estable";
+        return `Resumen Ejecutivo: La facturación total asciende a ${formatCurrency(data.total_revenue)}, generando una ganancia neta estimada de ${formatCurrency(data.total_commission)}. Actualmente hay ${data.active_companies} empresas operando activamente y ${data.active_affiliates} afiliados promoviendo productos. El sistema se encuentra estable con ${data.recent_alerts.length} alertas recientes.`;
+    };
+
+    if (loading) {
+        return (
+            <div className="flex h-96 items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004d4d]"></div>
             </div>
-            <div className="mt-4 text-center">
-                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">{title}</p>
-                <h3 className={`text-xl font-black ${title.includes('Retiros') ? 'text-rose-600' : 'text-gray-900'}`}>
-                    {isCurrency ? formatCurrency(value) : value}
-                </h3>
-            </div>
-            <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-50 group-hover:bg-purple-500 transition-all duration-500"></div>
-        </div>
-    );
+        );
+    }
+
+    if (!stats) return <div className="p-8 text-center text-gray-500">No se pudieron cargar los datos.</div>;
 
     return (
-        <div className="max-w-7xl mx-auto space-y-10 pb-20 animate-in fade-in duration-700">
+        <div className="max-w-7xl mx-auto space-y-8 pb-20 animate-in fade-in duration-700">
             
-            {/* 1. Header Logístico */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tight italic">Global Logistics Control</h1>
-                    <p className="text-gray-500 mt-1 font-medium">Resumen financiero y operativo de toda la red Bayup.</p>
+            {/* 1. Header & AI Summary */}
+            <div className="space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-black text-gray-900 tracking-tight italic">Panel de Control Global</h1>
+                        <p className="text-gray-500 mt-1 font-medium">Visión estratégica en tiempo real de Bayup.</p>
+                    </div>
+                    <div className="flex gap-3">
+                        <button className="px-5 py-2.5 bg-gray-900 text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all shadow-xl">
+                            Reporte Financiero PDF
+                        </button>
+                    </div>
                 </div>
-                <div className="flex gap-3">
-                    <button className="px-5 py-2.5 bg-gray-900 text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all shadow-xl">Auditoría Completa</button>
+
+                {/* AI Insight Card */}
+                <div className="bg-gradient-to-r from-[#002222] to-[#004d4d] p-6 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-8 opacity-10">
+                        <Activity size={100} />
+                    </div>
+                    <div className="relative z-10 flex gap-4">
+                        <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-sm">
+                            <Activity size={20} className="text-[#00ffff]" />
+                        </div>
+                        <div className="space-y-1 max-w-3xl">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-[#00ffff]">Bayt AI Insights</p>
+                            <p className="text-sm font-medium leading-relaxed opacity-90">
+                                {generateAISummary(stats)}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* 2. Grid de Cards Financieras (Top) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <StatCard title="Depósitos Mes" value={financialStats.totalDeposits} trend={financialStats.trends.deposits} />
-                <StatCard title="Retiros Mes" value={financialStats.totalWithdrawals} trend={financialStats.trends.withdrawals} />
-                <StatCard title="Saldo Neto" value={financialStats.netBalance} trend={financialStats.trends.balance} />
-                <StatCard title="Ingreso Hoy" value={financialStats.revenueToday} trend={financialStats.trends.revenue} />
-                <StatCard title="Empresas Activas" value={financialStats.activeCompanies} trend={financialStats.trends.companies} isCurrency={false} />
+            {/* 2. KPIs Principales */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard 
+                    title="Facturación Total" 
+                    value={formatCurrency(stats.total_revenue)} 
+                    icon={<DollarSign size={20} className="text-green-600" />}
+                    trend="+12.5%" 
+                    trendUp={true}
+                />
+                <StatCard 
+                    title="Ganancia Neta (Comisión)" 
+                    value={formatCurrency(stats.total_commission)} 
+                    icon={<DollarSign size={20} className="text-[#004d4d]" />}
+                    trend="+5.2%" 
+                    trendUp={true}
+                />
+                <StatCard 
+                    title="Empresas Activas" 
+                    value={stats.active_companies} 
+                    icon={<Building2 size={20} className="text-blue-600" />}
+                    trend="+2" 
+                    trendUp={true}
+                />
+                <StatCard 
+                    title="Afiliados Activos" 
+                    value={stats.active_affiliates} 
+                    icon={<Users size={20} className="text-amber-600" />}
+                    trend="+8" 
+                    trendUp={true}
+                />
             </div>
 
-            {/* 3. Panel de Control Secundario */}
+            {/* 3. Panel Dividido */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
-                {/* Columna Izquierda: Movimientos en Tiempo Real */}
+                {/* Top Empresas */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden h-full">
                         <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
-                            <h2 className="text-lg font-bold text-gray-800">Flujo de Caja en Vivo</h2>
-                            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                            <h2 className="text-lg font-bold text-gray-800">Top Empresas por Facturación</h2>
+                            <button className="text-[10px] font-black uppercase tracking-widest text-[#004d4d] hover:text-[#003333]">Ver todas</button>
                         </div>
                         <div className="divide-y divide-gray-50">
-                            {recentMovements.map((move) => (
-                                <div key={move.id} className="p-6 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-xl shadow-inner ${move.type === 'deposito' ? 'bg-green-50 text-green-600' : 'bg-rose-50 text-rose-600'}`}>
-                                            {move.type === 'deposito' ? '📥' : '📤'}
+                            {stats.top_companies.length > 0 ? (
+                                stats.top_companies.map((company: any, index: number) => (
+                                    <div key={index} className="p-6 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center font-black text-gray-500 text-xs">
+                                                {index + 1}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-black text-gray-900">{company.name}</p>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{company.plan} Plan</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-black text-gray-900">{move.shop}</p>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{move.time} • {move.type}</p>
-                                        </div>
+                                        <p className="text-sm font-black text-gray-900">{formatCurrency(company.revenue)}</p>
                                     </div>
-                                    <div className="text-right">
-                                        <p className={`text-sm font-black ${move.type === 'deposito' ? 'text-green-600' : 'text-rose-600'}`}>
-                                            {move.type === 'deposito' ? '+' : '-'}{formatCurrency(move.amount)}
-                                        </p>
-                                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${move.status === 'pendiente' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
-                                            {move.status}
-                                        </span>
+                                ))
+                            ) : (
+                                <div className="p-10 text-center text-gray-400 text-xs font-medium">No hay datos de ventas aún.</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Alertas Críticas */}
+                <div className="space-y-6">
+                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden h-full flex flex-col">
+                        <div className="p-8 border-b border-gray-50 bg-gray-50/30">
+                            <h2 className="text-lg font-bold text-gray-800">Alertas del Sistema</h2>
+                        </div>
+                        <div className="flex-1 p-6 space-y-4">
+                            {stats.recent_alerts.map((alert: any) => (
+                                <div key={alert.id} className="flex gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                                    <div className="mt-1">
+                                        {alert.type === 'warning' && <AlertTriangle size={16} className="text-amber-500" />}
+                                        {alert.type === 'success' && <CheckCircle2 size={16} className="text-green-500" />}
+                                        {alert.type === 'info' && <Info size={16} className="text-blue-500" />}
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-gray-900">{alert.message}</p>
+                                        <p className="text-[10px] font-medium text-gray-400 mt-1">{alert.time}</p>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                        <button className="w-full py-4 text-[10px] font-black uppercase tracking-widest text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all">Ver todas las transacciones →</button>
-                    </div>
-                </div>
-
-                {/* Columna Derecha: Alertas y Salud del Sistema */}
-                <div className="space-y-8">
-                    
-                    {/* Sección de Aprobaciones */}
-                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
-                        <h2 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">Pendiente de Aprobación</h2>
-                        <div className="space-y-4">
-                            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex flex-col gap-3">
-                                <div className="flex justify-between items-start">
-                                    <span className="text-xs font-bold text-amber-800">Solicitud de Retiro</span>
-                                    <span className="text-[10px] font-black text-amber-600">ID #9284</span>
-                                </div>
-                                <p className="text-lg font-black text-gray-900">$15,400.00</p>
-                                <div className="flex gap-2">
-                                    <button className="flex-1 bg-white text-gray-900 py-2 rounded-xl text-[10px] font-black uppercase border border-amber-200">Revisar</button>
-                                    <button className="flex-1 bg-gray-900 text-white py-2 rounded-xl text-[10px] font-black uppercase shadow-lg">Aprobar</button>
-                                </div>
-                            </div>
+                        <div className="p-6 border-t border-gray-50">
+                            <button className="w-full py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all">
+                                Ver Logs Técnicos
+                            </button>
                         </div>
                     </div>
-
-                    {/* Salud del Sistema */}
-                    <div className="bg-gray-900 p-8 rounded-[2.5rem] text-white space-y-6 shadow-2xl">
-                        <h2 className="text-xs font-black text-purple-400 uppercase tracking-[0.2em]">Estado de Infraestructura</h2>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs font-bold text-gray-400">Servidores API</span>
-                                <span className="text-[10px] font-black text-green-400 uppercase">Óptimo (99.9%)</span>
-                            </div>
-                            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                                <div className="bg-green-400 h-full w-[99%]"></div>
-                            </div>
-                            <div className="flex justify-between items-center pt-2">
-                                <span className="text-xs font-bold text-gray-400">Procesamiento Pagos</span>
-                                <span className="text-[10px] font-black text-green-400 uppercase">Activo</span>
-                            </div>
-                            <div className="flex justify-between items-center pt-2">
-                                <span className="text-xs font-bold text-gray-400">Amazon S3 (Imágenes)</span>
-                                <span className="text-[10px] font-black text-green-400 uppercase">Conectado</span>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
         </div>
     );
 }
+
+const StatCard = ({ title, value, icon, trend, trendUp }: any) => (
+    <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md transition-all group">
+        <div className="flex justify-between items-start mb-4">
+            <div className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                {icon}
+            </div>
+            {trend && (
+                <span className={`flex items-center text-[10px] font-bold px-2 py-1 rounded-lg ${trendUp ? 'bg-green-50 text-green-600' : 'bg-rose-50 text-rose-600'}`}>
+                    {trendUp ? <TrendingUp size={12} className="mr-1" /> : <TrendingDown size={12} className="mr-1" />}
+                    {trend}
+                </span>
+            )}
+        </div>
+        <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">{title}</p>
+            <h3 className="text-2xl font-black text-gray-900">{value}</h3>
+        </div>
+    </div>
+);

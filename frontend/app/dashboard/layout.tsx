@@ -77,66 +77,76 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     );
   };
 
-  const getLinkStyles = (path: string, type: 'admin' | 'super' = 'admin', isSub = false) => {
-    const isActive = pathname === path || (path !== '/dashboard' && pathname?.startsWith(path));
-    const base = `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 `;
-    const subBase = `flex items-center gap-3 px-4 py-2 ml-9 rounded-xl text-xs font-bold transition-all duration-300 `;
-    
-    if (type === 'super') {
+      const getLinkStyles = (path: string, type: 'admin' | 'super' = 'admin', isSub = false) => {
+      const isActive = pathname === path || (path !== '/dashboard' && pathname?.startsWith(path));
+      const base = `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 `;
+      const subBase = `flex items-center gap-3 px-4 py-2 ml-9 rounded-xl text-xs font-bold transition-all duration-300 `;
+      
+      if (type === 'super') {
+        return (isSub ? subBase : base) + (isActive 
+          ? 'bg-[#f0f9f9] text-[#004d4d] shadow-sm' 
+          : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900');
+      }
+      
       return (isSub ? subBase : base) + (isActive 
-        ? 'bg-red-50 text-red-600 shadow-sm' 
+        ? 'bg-purple-50 text-purple-600 shadow-sm' 
         : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900');
-    }
-    
-    return (isSub ? subBase : base) + (isActive 
-      ? 'bg-purple-50 text-purple-600 shadow-sm' 
-      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900');
-  };
-
-  const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
-    // BLOQUEO REAL: Si el permiso está en false, no renderizamos el componente
-    const permissionKey = id.replace('m_', ''); // convertimos m_facturacion a facturacion
-    if (permissions[permissionKey] === false && !isEditingMenu) return null;
-    
-    if (hiddenModules.includes(id) && !isEditingMenu) return null;
-    
-    return (
-      <div className="relative group">
-        <Link 
-          href={href} 
-          className={`${getLinkStyles(href, 'admin', isSub)} ${hiddenModules.includes(id) ? 'opacity-40' : ''}`}
-        >
-          {label}
-        </Link>
-        {isEditingMenu && (
-          <button 
-            onClick={(e) => { e.preventDefault(); toggleModule(id); }}
-            className={`absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${hiddenModules.includes(id) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-200 text-transparent'}`}
+    };
+  
+    const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
+      // BLOQUEO REAL: Si el permiso está en false, no renderizamos el componente
+      const permissionKey = id.replace('m_', ''); // convertimos m_facturacion a facturacion
+      if (permissions[permissionKey] === false && !isEditingMenu) return null;
+      
+      if (hiddenModules.includes(id) && !isEditingMenu) return null;
+      
+      return (
+        <div className="relative group">
+          <Link 
+            href={href} 
+            className={`${getLinkStyles(href, 'admin', isSub)} ${hiddenModules.includes(id) ? 'opacity-40' : ''}`}
           >
-            <div className="h-1.5 w-1.5 rounded-full bg-current"></div>
-          </button>
-        )}
-      </div>
-    );
-  };
-
-  const renderSidebar = () => {
-    if (userRole === 'super_admin') {
-        return (
-            <>
-              <div className="p-6 border-b border-white/10">
-                <Link href="/dashboard/super-admin" className="text-2xl font-black bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
-                  Super Admin
-                </Link>
-              </div>
-              <nav className="flex-1 px-4 py-6 space-y-2">
-                <Link href="/dashboard/super-admin" className={getLinkStyles('/dashboard/super-admin', 'super')}><BarChart3 size={16} /> Dashboard</Link>
-                <Link href="/dashboard/super-admin/comercial" className={getLinkStyles('/dashboard/super-admin/comercial', 'super')}><TrendingUp size={16} /> Comercial</Link>
-                <Link href="/dashboard/super-admin/clientes" className={getLinkStyles('/dashboard/super-admin/clientes', 'super')}><Users size={16} /> Clientes</Link>
-                <Link href="/dashboard/super-admin/ventas" className={getLinkStyles('/dashboard/super-admin/ventas', 'super')}><Package size={16} /> Ventas</Link>
+            {label}
+          </Link>
+          {isEditingMenu && (
+            <button 
+              onClick={(e) => { e.preventDefault(); toggleModule(id); }}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${hiddenModules.includes(id) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-200 text-transparent'}`}
+            >
+              <div className="h-1.5 w-1.5 rounded-full bg-current"></div>
+            </button>
+          )}
+        </div>
+      );
+    };
+  
+    const renderSidebar = () => {
+      if (userRole === 'super_admin') {
+          return (
+              <>
+                <div className="p-6 border-b border-white/10">
+                  <Link href="/dashboard/super-admin" className="text-2xl font-black bg-gradient-to-r from-[#004d4d] to-[#008080] bg-clip-text text-transparent">
+                    Super Admin
+                  </Link>
+                </div>              <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
+                <Link href="/dashboard/super-admin" className={getLinkStyles('/dashboard/super-admin', 'super')}><LayoutDashboard size={16} /> Dashboard</Link>
+                <Link href="/dashboard/super-admin/empresas" className={getLinkStyles('/dashboard/super-admin/empresas', 'super')}><Store size={16} /> Empresas</Link>
                 <Link href="/dashboard/super-admin/afiliados" className={getLinkStyles('/dashboard/super-admin/afiliados', 'super')}><Users2 size={16} /> Afiliados</Link>
-                <Link href="/dashboard/super-admin/roles" className={getLinkStyles('/dashboard/super-admin/roles', 'super')}><ShieldCheck size={16} /> Usuarios</Link>
-                <Link href="/dashboard/super-admin/reports" className={getLinkStyles('/dashboard/super-admin/reports', 'super')}><FileText size={16} /> Informes</Link>
+                <Link href="/dashboard/super-admin/tesoreria" className={getLinkStyles('/dashboard/super-admin/tesoreria', 'super')}><Gem size={16} /> Tesorería</Link>
+                <div className="my-2 border-t border-gray-100/10"></div>
+                <Link href="/dashboard/super-admin/web-analytics" className={getLinkStyles('/dashboard/super-admin/web-analytics', 'super')}><BarChart3 size={16} /> Estadísticas Web</Link>
+                <Link href="/dashboard/super-admin/marketing" className={getLinkStyles('/dashboard/super-admin/marketing', 'super')}><TrendingUp size={16} /> Marketing</Link>
+                <Link href="/dashboard/super-admin/soporte" className={getLinkStyles('/dashboard/super-admin/soporte', 'super')}><MessageSquare size={16} /> Soporte</Link>
+                <div className="my-2 border-t border-gray-100/10"></div>
+                <Link href="/dashboard/super-admin/apis" className={getLinkStyles('/dashboard/super-admin/apis', 'super')}><Link2 size={16} /> APIs & Integraciones</Link>
+                <Link href="/dashboard/super-admin/feature-flags" className={getLinkStyles('/dashboard/super-admin/feature-flags', 'super')}><Tag size={16} /> Feature Flags</Link>
+                <Link href="/dashboard/super-admin/risk" className={getLinkStyles('/dashboard/super-admin/risk', 'super')}><ShieldCheck size={16} /> Riesgos & Fraude</Link>
+                <div className="my-2 border-t border-gray-100/10"></div>
+                <Link href="/dashboard/super-admin/legal" className={getLinkStyles('/dashboard/super-admin/legal', 'super')}><FileText size={16} /> Legal & Fiscal</Link>
+                <Link href="/dashboard/super-admin/docs" className={getLinkStyles('/dashboard/super-admin/docs', 'super')}><FileText size={16} /> Documentación</Link>
+                <Link href="/dashboard/super-admin/observability" className={getLinkStyles('/dashboard/super-admin/observability', 'super')}><Camera size={16} /> Observabilidad</Link>
+                <Link href="/dashboard/super-admin/users" className={getLinkStyles('/dashboard/super-admin/users', 'super')}><Users size={16} /> Usuarios & Roles</Link>
+                <Link href="/dashboard/super-admin/settings" className={getLinkStyles('/dashboard/super-admin/settings', 'super')}><Settings size={16} /> Configuración</Link>
               </nav>
             </>
         );

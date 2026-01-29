@@ -427,3 +427,13 @@ class Provider(ProviderBase):
 
     class Config:
         orm_mode = True
+
+# --- Super Admin Schemas ---
+
+class SuperAdminStats(BaseModel):
+    total_revenue: float
+    total_commission: float
+    active_companies: int
+    active_affiliates: int
+    top_companies: List[Dict[str, Any]]
+    recent_alerts: List[Dict[str, Any]]
