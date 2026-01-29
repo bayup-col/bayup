@@ -466,3 +466,27 @@ def update_custom_role(db: Session, role_id: uuid.UUID, role_in: schemas.CustomR
         db.commit()
         db.refresh(db_role)
     return db_role
+
+# --- Shipment CRUD ---
+
+def get_shipment(db: Session, shipment_id: uuid.UUID, tenant_id: uuid.UUID):
+    return db.query(models.Shipment).filter(
+        models.Shipment.id == shipment_id, 
+        models.Shipment.tenant_id == tenant_id
+    ).first()
+
+def get_shipments_by_owner(db: Session, owner_id: uuid.UUID):
+    return db.query(models.Shipment).filter(models.Shipment.tenant_id == owner_id).all()
+
+def create_shipment(db: Session, shipment: schemas.ShipmentCreate, tenant_id: uuid.UUID):
+    db_shipment = models.Shipment(**shipment.dict(), tenant_id=tenant_id)
+    db.add(db_shipment)
+    db.commit()
+    db.refresh(db_shipment)
+    return db_shipment
+
+def update_shipment_status(db: Session, db_shipment: models.Shipment, status: str):
+    db_shipment.status = status
+    db.commit()
+    db.refresh(db_shipment)
+    return db_shipment
