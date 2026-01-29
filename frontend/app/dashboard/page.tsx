@@ -27,6 +27,8 @@ import {
   BarChart3,
   Ghost
 } from 'lucide-react';
+import { GlassyButton } from "@/components/landing/GlassyButton";
+import { ActionButton } from "@/components/landing/ActionButton";
 
 export default function DashboardPage() {
   const { userEmail, token } = useAuth();
@@ -173,14 +175,14 @@ export default function DashboardPage() {
         </div>
         
         <div className="flex gap-4">
-            <Link href="/dashboard/products/new" className="group px-6 py-4 bg-white border border-[#004d4d]/10 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.15em] text-[#004d4d] hover:bg-[#004d4d] hover:text-white hover:border-transparent hover:shadow-[0_20px_40px_rgba(0,77,77,0.1)] transition-all flex items-center gap-3">
-                <Package size={16} className="group-hover:scale-110 transition-transform group-hover:text-[#00F2FF]"/>
+            <ActionButton href="/dashboard/products/new" variant="outline">
+                <Package size={16} />
                 <span>Nuevo Producto</span>
-            </Link>
-            <Link href="/dashboard/discounts" className="px-8 py-4 bg-[#001A1A] text-white rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.15em] hover:bg-black hover:scale-[1.02] transition-all shadow-xl flex items-center gap-3 active:scale-95 group">
-                <Zap size={16} className="text-[#EAB308] fill-[#EAB308] group-hover:text-white group-hover:fill-white transition-colors"/>
+            </ActionButton>
+            <ActionButton href="/dashboard/discounts">
+                <Zap size={16} className="text-[#EAB308] fill-[#EAB308]"/>
                 <span>Crear Oferta</span>
-            </Link>
+            </ActionButton>
         </div>
       </div>
 
@@ -232,17 +234,17 @@ export default function DashboardPage() {
             <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-gray-50/50 rounded-2xl border border-gray-100">
                     <div className="flex items-center gap-3">
-                        <MessageCircle size={14} className="text-emerald-500" />
+                        <MessageCircle size={14} className="text-[#10B981]" />
                         <span className="text-[10px] font-black text-[#004d4d]/80 uppercase">WhatsApp CRM</span>
                     </div>
-                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">8 chats</span>
+                    <span className="text-[9px] font-bold text-[#10B981] bg-emerald-50 px-2 py-0.5 rounded-md">8 chats</span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-gray-50/50 rounded-2xl border border-gray-100">
                     <div className="flex items-center gap-3">
-                        <Zap size={14} className="text-[#00F2FF]" />
+                        <Zap size={14} className="text-[#10B981]" />
                         <span className="text-[10px] font-black text-[#004d4d]/80 uppercase">Tienda Online</span>
                     </div>
-                    <span className="text-[9px] font-bold text-[#00F2FF] bg-[#00F2FF]/10 px-2 py-0.5 rounded-md">Activa</span>
+                    <span className="text-[9px] font-bold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded-md">Activa</span>
                 </div>
             </div>
         </motion.div>

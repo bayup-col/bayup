@@ -174,9 +174,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <span className="text-[9px] font-black text-[#004d4d] uppercase tracking-widest">En línea</span>
                         </div>
                     </div>
-                    <Link href="/dashboard/my-store" className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 bg-white border border-[#004d4d]/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-[#004d4d] hover:bg-[#004d4d] hover:text-white transition-all shadow-sm active:scale-95 group/store">
-                        <span>Ver tienda online</span>
-                        <Globe size={12} className="group-hover/store:translate-x-0.5 group-hover/store:-translate-y-0.5 transition-transform" />
+                    <Link href="/dashboard/my-store" className="mt-4 relative group/store w-full">
+                        <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-[#004d4d] to-[#00F2FF] opacity-30 group-hover/store:opacity-100 transition-opacity duration-500"></div>
+                        <div className="relative flex items-center justify-center gap-3 w-full py-4 bg-white rounded-[0.95rem] text-[10px] font-black uppercase tracking-widest text-[#004d4d] group-hover/store:bg-[#004d4d] group-hover/store:text-white transition-all">
+                            <span>Ver tienda online</span>
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                className="flex items-center justify-center"
+                            >
+                                <Globe size={14} />
+                            </motion.div>
+                        </div>
                     </Link>
                 </div>
             </div>

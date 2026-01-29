@@ -13,6 +13,7 @@ import { Footer } from "@/components/landing/Footer";
 import { InteractiveUP } from "@/components/landing/InteractiveUP";
 import { PremiumButton } from "@/components/landing/PremiumButton";
 import { PageLoader } from "@/components/landing/PageLoader";
+import { WhatsAppFloatingButton } from "@/components/landing/WhatsAppFloatingButton";
 import { motion, useScroll, useSpring, useMotionValueEvent, AnimatePresence } from "framer-motion";
 import { useState, useRef } from "react";
 
@@ -157,6 +158,9 @@ export default function HomePage() {
             </main>
 
             <Footer />
+
+            {/* WhatsApp Smart Floating Button */}
+            <WhatsAppFloatingButton hidden={hidden} />
           </motion.div>
         )}
       </AnimatePresence>
