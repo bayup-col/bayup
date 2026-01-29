@@ -4,6 +4,7 @@ import uuid
 from botocore.exceptions import ClientError
 
 def get_s3_client():
+    # Inject dummy credentials for Moto compatibility if not present
     return boto3.client(
         "s3",
         region_name=os.getenv("AWS_REGION", "us-east-1"),

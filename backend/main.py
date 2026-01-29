@@ -40,7 +40,7 @@ def create_default_plan():
                 db=db,
                 plan=schemas.PlanCreate(
                     name="Free Tier",
-                    description="Default free plan with basic features.",
+                    description="Default free plan",
                     commission_rate=0.10,
                     monthly_fee=0.0,
                     is_default=True,
@@ -48,7 +48,7 @@ def create_default_plan():
             )
             db.commit()
     except Exception as e:
-        print(f"Error during startup: {e}")
+        print(f"Startup error: {e}")
     finally:
         db.close()
 
@@ -70,8 +70,7 @@ def login_for_access_token(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = security.create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": security.create_access_token(data={"sub": user.email}), "token_type": "bearer"}
 
 @app.post("/auth/clerk-login")
 async def clerk_login_for_access_token(
@@ -81,6 +80,7 @@ async def clerk_login_for_access_token(
     user = crud.get_user_by_email(db, email=clerk_user_info["email"])
 
     if not user:
+        # Auto-provisioning for Clerk users
         user = crud.create_user(
             db=db,
             user=schemas.UserCreate(
@@ -90,8 +90,11 @@ async def clerk_login_for_access_token(
             )
         )
     
-    access_token = security.create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": security.create_access_token(data={"sub": user.email}), "token_type": "bearer"}
+
+@app.get("/auth/me", response_model=schemas.User)
+def get_me(current_user: models.User = Depends(security.get_current_user)):
+    return current_user
 
 @app.get("/products", response_model=List[schemas.Product])
 def read_products(
@@ -111,7 +114,7 @@ def create_product(
     return crud.create_product(db=db, product=product, owner_id=current_user.id)
 
 @app.get("/public/stores/{tenant_id}/products", response_model=List[schemas.Product])
-def read_all_tenant_products(
+def read_public_products(
     tenant_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
@@ -120,13 +123,13 @@ def read_all_tenant_products(
     return crud.get_all_products(db, tenant_id=tenant_id, skip=skip, limit=limit)
 
 @app.get("/public/stores/{tenant_id}/products/{product_id}", response_model=schemas.Product)
-def read_tenant_product(
+def read_public_product(
     tenant_id: uuid.UUID,
     product_id: uuid.UUID,
     db: Session = Depends(get_db),
 ):
     product = crud.get_product(db, product_id=product_id, tenant_id=tenant_id)
-    if product is None:
+    if not product:
         raise HTTPException(status_code=404, detail="Product not found or does not belong to this store")
     return product
 
@@ -134,10 +137,10 @@ def read_tenant_product(
 def create_upload_url(
     file_type: str, current_user: models.User = Depends(security.get_current_user)
 ):
-    presigned_url_data = s3_service.create_presigned_upload_url(file_type)
-    if not presigned_url_data:
-        raise HTTPException(status_code=500, detail="Could not generate upload URL")
-    return presigned_url_data
+    data = s3_service.create_presigned_upload_url(file_type)
+    if not data:
+        raise HTTPException(status_code=500, detail="Upload URL generation failed")
+    return data
 
 @app.post("/orders", response_model=schemas.Order)
 def create_order(
@@ -164,7 +167,6 @@ def create_payment_preference(
         order = db.query(models.Order).filter(models.Order.id == order_id).first()
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
-        
         preference = payment_service.create_mp_preference(db, order_id, current_user.email, order.tenant_id)
         return {"preference_id": preference["id"], "init_point": preference["init_point"]}
     except Exception as e:
@@ -174,27 +176,23 @@ def create_payment_preference(
 async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     topic = request.query_params.get("topic")
     payment_id = request.query_params.get("id")
-
     if not topic or not payment_id:
-        return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid notification format"})
-
+        return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid notification"})
     if topic == "payment":
         try:
             order_uuid = uuid.UUID(payment_id)
+            order = db.query(models.Order).filter(models.Order.id == order_uuid).first()
+            if order:
+                order.status = "completed"
+                db.commit()
+                return {"status": "success", "message": f"Order {order.id} completed"}
         except:
             return JSONResponse(status_code=400, content={"status": "error"})
-
-        order = db.query(models.Order).filter(models.Order.id == order_uuid).first()
-        if order:
-            order.status = "completed"
-            db.commit()
-            return {"status": "success", "message": "Order updated"}
-    
     return {"status": "success"}
 
 @app.get("/")
-def read_root():
-    return {"message": "Welcome to BaseCommerce API"}
+def root():
+    return {"message": "API Active"}
 
 @app.post("/plans", response_model=schemas.Plan)
 def create_plan(plan: schemas.PlanCreate, db: Session = Depends(get_db)):

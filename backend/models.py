@@ -1,337 +1,234 @@
-# backend/models.py
-import uuid
-import datetime
-from sqlalchemy import Column, String, Float, Integer, ForeignKey, DateTime, Boolean, UniqueConstraint
+from sqlalchemy import Column, String, Float, Boolean, ForeignKey, DateTime, JSON, Integer
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.types import JSON # For storing JSON content
+import uuid
+import datetime
 from database import Base
 
 class Plan(Base):
     __tablename__ = "plans"
-
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, unique=True, nullable=False)
-    description = Column(String, nullable=True)
-    commission_rate = Column(Float, nullable=False, default=0.0) # e.g., 0.05 for 5%
-    monthly_fee = Column(Float, nullable=False, default=0.0)
-    is_default = Column(Boolean, default=False) # A default plan for new users
-
+    name = Column(String, unique=True, index=True)
+    description = Column(String)
+    commission_rate = Column(Float)
+    monthly_fee = Column(Float)
+    is_default = Column(Boolean, default=False)
     users = relationship("User", back_populates="plan")
 
 class User(Base):
     __tablename__ = "users"
-
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email = Column(String, unique=True, index=True, nullable=False)
-    full_name = Column(String, nullable=True)
-    nickname = Column(String, nullable=True) # Nombre tierno que Bayt recordará
-    hashed_password = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True)
+    full_name = Column(String)
+    nickname = Column(String)
+    hashed_password = Column(String)
     role = Column(String, default="admin_tienda")
-    status = Column(String, default="Activo") # Nuevo: Estado del usuario
-    api_key = Column(String, unique=True, default=lambda: uuid.uuid4().hex)
-    # Llave para n8n
-    bank_accounts = Column(JSON, nullable=True, default=[]) # New: store wallet info
-    social_links = Column(JSON, nullable=True, default={}) # New: store social media links
-    whatsapp_lines = Column(JSON, nullable=True, default=[]) # New: store multiple WhatsApp lines
-    
-    plan_id = Column(UUID(as_uuid=True), ForeignKey("plans.id"), nullable=True)
+    status = Column(String, default="Activo")
+    bank_accounts = Column(JSON, default=[])
+    social_links = Column(JSON, default={})
+    whatsapp_lines = Column(JSON, default=[])
+    plan_id = Column(UUID(as_uuid=True), ForeignKey("plans.id"))
     plan = relationship("Plan", back_populates="users")
-
     products = relationship("Product", back_populates="owner")
-    orders = relationship("Order", back_populates="customer", foreign_keys="[Order.customer_id]")
-    pages = relationship("Page", back_populates="owner")
-
-class CustomRole(Base):
-    __tablename__ = "custom_roles"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False)
-    permissions = Column(JSON, nullable=False, default={}) # ej: {"facturacion": true, "inventario": false}
-    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    
-    owner = relationship("User")
-
-class Collection(Base):
-    __tablename__ = "collections"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    title = Column(String, nullable=False)
-    description = Column(String, nullable=True)
-    image_url = Column(String, nullable=True)
-    status = Column(String, default="active") # active, hidden
-    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    
-    owner = relationship("User")
-    products = relationship("Product", back_populates="collection")
+    orders = relationship("Order", back_populates="customer")
 
 class Product(Base):
     __tablename__ = "products"
-
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, index=True, nullable=False)
-    description = Column(String, nullable=True)
-    price = Column(Float, nullable=False) # Base price, variants can adjust
-    image_url = Column(String, nullable=True) # Main product image
-    
-    product_type_id = Column(UUID(as_uuid=True), ForeignKey("product_types.id"), nullable=True)
-    product_type = relationship("ProductType")
-    
-    collection_id = Column(UUID(as_uuid=True), ForeignKey("collections.id"), nullable=True)
-    collection = relationship("Collection", back_populates="products")
-
+    name = Column(String, index=True)
+    description = Column(String)
+    price = Column(Float)
+    image_url = Column(String)
     owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    product_type_id = Column(UUID(as_uuid=True), ForeignKey("product_types.id"), nullable=True)
+    collection_id = Column(UUID(as_uuid=True), ForeignKey("collections.id"), nullable=True)
     owner = relationship("User", back_populates="products")
-    
     variants = relationship("ProductVariant", back_populates="product", cascade="all, delete-orphan")
 
 class ProductVariant(Base):
     __tablename__ = "product_variants"
-
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False)
-    name = Column(String, nullable=False) # e.g., "Red, Large"
-    sku = Column(String, unique=True, index=True, nullable=True) # Stock Keeping Unit
-    price_adjustment = Column(Float, nullable=False, default=0.0) # Adjustment to base product price
-    stock = Column(Integer, nullable=False)
-    image_url = Column(String, nullable=True) # Variant specific image
-    attributes = Column(JSON, nullable=True, default={}) # Dynamic attributes based on product type
-
+    product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"))
+    name = Column(String)
+    sku = Column(String, index=True)
+    price_adjustment = Column(Float, default=0.0)
+    stock = Column(Integer, default=0)
+    image_url = Column(String)
+    attributes = Column(JSON)
     product = relationship("Product", back_populates="variants")
-    order_items = relationship("OrderItem", back_populates="product_variant")
 
 class Order(Base):
     __tablename__ = "orders"
-    
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    total_price = Column(Float, nullable=False)
-    status = Column(String, nullable=False, default="pending")
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    
-    customer_name = Column(String, nullable=True) # Para ventas manuales/POS
-    customer_email = Column(String, nullable=True) # Para registro de cliente en POS
-    seller_name = Column(String, nullable=True) # Para registrar al vendedor responsable
-    
     customer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    customer = relationship("User", foreign_keys=[customer_id], back_populates="orders")
-
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    tenant = relationship("User", foreign_keys=[tenant_id]) # The owner of the store
-
-    tax_rate_id = Column(UUID(as_uuid=True), ForeignKey("tax_rates.id"), nullable=True) # Tax applied to this order
-    tax_rate_snapshot = Column(Float, nullable=True) # Snapshot of tax rate at time of order
-
-    shipping_option_id = Column(UUID(as_uuid=True), ForeignKey("shipping_options.id"), nullable=True)
-    shipping_cost_snapshot = Column(Float, nullable=True) # Snapshot of shipping cost at time of order
-
-    items = relationship("OrderItem", back_populates="order")
-    shipment = relationship("Shipment", back_populates="order", uselist=False)
-
-class Shipment(Base):
-    __tablename__ = "shipments"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"), unique=True)
-    status = Column(String, default="pending_packing") # pending_packing, ready_to_ship, in_transit, delivered, exception
-    recipient_name = Column(String)
-    destination_address = Column(String)
-    carrier = Column(String, nullable=True)
-    tracking_number = Column(String, nullable=True)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-
-    order = relationship("Order", back_populates="shipment")
-    owner = relationship("User")
+    total_price = Column(Float)
+    status = Column(String, default="pending")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    tax_rate_id = Column(UUID(as_uuid=True), nullable=True)
+    tax_rate_snapshot = Column(Float, nullable=True)
+    shipping_option_id = Column(UUID(as_uuid=True), nullable=True)
+    shipping_cost_snapshot = Column(Float, nullable=True)
+    customer_name = Column(String)
+    customer_email = Column(String)
+    seller_name = Column(String)
+    customer = relationship("User", back_populates="orders", foreign_keys=[customer_id])
+    items = relationship("OrderItem", back_populates="order")
 
 class OrderItem(Base):
     __tablename__ = "order_items"
-
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    quantity = Column(Integer, nullable=False)
-    price_at_purchase = Column(Float, nullable=False)
-
     order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id"))
-    product_variant_id = Column(UUID(as_uuid=True), ForeignKey("product_variants.id"), nullable=False)
-
+    product_variant_id = Column(UUID(as_uuid=True), ForeignKey("product_variants.id"))
+    quantity = Column(Integer)
+    price_at_purchase = Column(Float)
     order = relationship("Order", back_populates="items")
-    product_variant = relationship("ProductVariant", back_populates="order_items")
-
-class Page(Base):
-    __tablename__ = "pages"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    slug = Column(String, nullable=False, index=True) # e.g., "home", "about-us"
-    title = Column(String, nullable=True)
-    content = Column(JSON, nullable=True) # Stores the JSON structure of the page
-    
-    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    owner = relationship("User", back_populates="pages")
-
-    __table_args__ = (UniqueConstraint("slug", "owner_id", name="_owner_id_slug_uc"),)
-
-class AIAssistant(Base):
-    __tablename__ = "ai_assistants"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False)
-    description = Column(String, nullable=True)
-    assistant_type = Column(String, nullable=False) # e.g., "appointment_setter", "cart_recovery", "custom"
-    status = Column(String, default="active")
-    is_byoa = Column(Boolean, default=False) # True si usa el n8n del cliente
-    
-    # n8n & Logic Configuration
-    n8n_webhook_url = Column(String, nullable=True)
-    system_prompt = Column(String, nullable=True)
-    config = Column(JSON, nullable=True, default={}) # Extra parameters
-    
-    # Metrics
-    total_actions = Column(Integer, default=0)
-    success_rate = Column(Float, default=0.0)
-    last_run = Column(DateTime, nullable=True)
-
-    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    owner = relationship("User")
-
-
-class TaxRate(Base):
-    __tablename__ = "tax_rates"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False) # e.g., "IVA 19%"
-    rate = Column(Float, nullable=False) # e.g., 0.19 for 19%
-    is_default = Column(Boolean, default=False)
-    
-    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    owner = relationship("User")
-
-    __table_args__ = (UniqueConstraint("name", "owner_id", name="_owner_id_tax_name_uc"),)
-
-
-class ShippingOption(Base):
-    __tablename__ = "shipping_options"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False) # e.g., "Standard Shipping"
-    cost = Column(Float, nullable=False)
-    min_order_total = Column(Float, nullable=True) # Minimum order total for this option to apply
-
-    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    owner = relationship("User")
-
-    __table_args__ = (UniqueConstraint("name", "owner_id", name="_owner_id_shipping_name_uc"),)
-
+    product_variant = relationship("ProductVariant")
 
 class ProductType(Base):
     __tablename__ = "product_types"
-
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False, unique=True) # e.g., "Clothing", "Electronics", "Other"
-    description = Column(String, nullable=True)
-
-    attributes = relationship("ProductAttribute", back_populates="product_type", cascade="all, delete-orphan")
-
+    name = Column(String, unique=True)
+    description = Column(String)
+    attributes = relationship("ProductAttribute", back_populates="product_type")
 
 class ProductAttribute(Base):
     __tablename__ = "product_attributes"
-
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    product_type_id = Column(UUID(as_uuid=True), ForeignKey("product_types.id"), nullable=False)
-    name = Column(String, nullable=False) # e.g., "Size", "Color", "Memory"
-    attribute_type = Column(String, nullable=False) # e.g., "select", "text", "number"
-    # Values are stored as JSON array for select types: ["S", "M", "L", "XL"]
-    options = Column(JSON, nullable=True)
-
+    product_type_id = Column(UUID(as_uuid=True), ForeignKey("product_types.id"))
+    name = Column(String)
+    attribute_type = Column(String)
+    options = Column(JSON)
     product_type = relationship("ProductType", back_populates="attributes")
-
-    __table_args__ = (UniqueConstraint("product_type_id", "name", name="_product_type_id_name_uc"),)
-
-class AIAssistantLog(Base):
-    __tablename__ = "ai_assistant_logs"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    assistant_id = Column(UUID(as_uuid=True), ForeignKey("ai_assistants.id"))
-    action_type = Column(String) 
-    detail = Column(String)
-    status = Column(String) 
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 class Expense(Base):
     __tablename__ = "expenses"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    description = Column(String, nullable=False) # Nombre/Concepto
-    amount = Column(Float, nullable=False)
-    due_date = Column(DateTime, nullable=False)
-    status = Column(String, default="pending") # pending, paid
-    category = Column(String, default="diario") # Nuevo: fijo o diario
-    invoice_num = Column(String, nullable=True) # Nuevo: # de factura
-    items = Column(JSON, nullable=True) # Nuevo: Lista de productos [{name, qty}]
-    description_detail = Column(String, nullable=True) # Nuevo: Notas largas
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    description = Column(String)
+    amount = Column(Float)
+    due_date = Column(DateTime)
+    status = Column(String, default="pending")
+    category = Column(String, default="diario")
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    invoice_num = Column(String)
+    items = Column(JSON)
+    description_detail = Column(String)
 
 class Receivable(Base):
     __tablename__ = "receivables"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    client_name = Column(String, nullable=False)
-    amount = Column(Float, nullable=False)
-    due_date = Column(DateTime, nullable=False)
-    status = Column(String, default="pending") # pending, collected
-    invoice_num = Column(String, nullable=True)
-    items = Column(JSON, nullable=True)
-    description_detail = Column(String, nullable=True)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    client_name = Column(String)
+    amount = Column(Float)
+    due_date = Column(DateTime)
+    status = Column(String, default="pending")
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    invoice_num = Column(String)
+    items = Column(JSON)
+    description_detail = Column(String)
 
 class PayrollEmployee(Base):
     __tablename__ = "payroll_employees"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False)
-    role = Column(String, nullable=False)
-    base_salary = Column(Float, nullable=False)
+    name = Column(String)
+    role = Column(String)
+    base_salary = Column(Float)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     seller_id = Column(UUID(as_uuid=True), ForeignKey("sellers.id"), nullable=True)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    
-    user = relationship("User", foreign_keys=[user_id])
-    seller = relationship("Seller", foreign_keys=[seller_id])
 
 class Seller(Base):
     __tablename__ = "sellers"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False)
-    role = Column(String, nullable=False)
-    branch = Column(String, nullable=True)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    name = Column(String)
+    role = Column(String)
+    branch = Column(String)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
 
-class Income(Base):
-    __tablename__ = "incomes"
+class Page(Base):
+    __tablename__ = "pages"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    description = Column(String, nullable=False)
-    amount = Column(Float, nullable=False)
+    slug = Column(String, index=True)
+    title = Column(String)
+    content = Column(JSON)
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+
+class TaxRate(Base):
+    __tablename__ = "tax_rates"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String)
+    rate = Column(Float)
+    is_default = Column(Boolean, default=False)
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+
+class ShippingOption(Base):
+    __tablename__ = "shipping_options"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String)
+    cost = Column(Float)
+    min_order_total = Column(Float, nullable=True)
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+
+class AIAssistant(Base):
+    __tablename__ = "ai_assistants"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String)
+    description = Column(String)
+    assistant_type = Column(String)
+    status = Column(String, default="active")
+    n8n_webhook_url = Column(String)
+    system_prompt = Column(String)
+    config = Column(JSON)
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    total_actions = Column(Integer, default=0)
+    success_rate = Column(Float, default=100.0)
+    last_run = Column(DateTime, nullable=True)
+
+class AIAssistantLog(Base):
+    __tablename__ = "ai_assistant_logs"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    assistant_id = Column(UUID(as_uuid=True), ForeignKey("ai_assistants.id"))
+    action_type = Column(String)
+    detail = Column(String)
+    status = Column(String)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    category = Column(String, nullable=True) # e.g., "Venta Directa", "Inversión"
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
+class Collection(Base):
+    __tablename__ = "collections"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(String)
+    description = Column(String)
+    image_url = Column(String)
+    status = Column(String, default="active")
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    products = relationship("Product", backref="collection")
+
+class CustomRole(Base):
+    __tablename__ = "custom_roles"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String)
+    permissions = Column(JSON)
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
 
 class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    product_name = Column(String, nullable=False) # Resumen: "Varios productos" o el primero
-    quantity = Column(Integer, nullable=False) # Cantidad total de unidades
-    items = Column(JSON, nullable=True) # Detalle: [{"name": "X", "qty": 10}, ...]
-    total_amount = Column(Float, nullable=False)
-    status = Column(String, default="sent") # sent, confirmed, delivered, scheduled
-    provider_name = Column(String, nullable=True)
-    sending_method = Column(String, nullable=True) # email, whatsapp, reminder
+    product_name = Column(String)
+    quantity = Column(Integer)
+    items = Column(JSON)
+    total_amount = Column(Float)
+    provider_name = Column(String)
+    status = Column(String, default="sent")
+    sending_method = Column(String)
     scheduled_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    
-    tenant = relationship("User")
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
 
 class Provider(Base):
     __tablename__ = "providers"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False)
-    contact_name = Column(String, nullable=True)
-    email = Column(String, nullable=True)
-    phone = Column(String, nullable=True)
+    name = Column(String)
+    contact_name = Column(String)
+    email = Column(String)
+    phone = Column(String)
     category = Column(String, default="General")
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    
-    tenant = relationship("User")
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))

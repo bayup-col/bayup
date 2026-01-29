@@ -15,7 +15,7 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
     
     items = []
     for item in order.items:
-        # Access product name through the variant relationship
+        # Resolve product name through relationship
         product_name = item.product_variant.product.name if item.product_variant and item.product_variant.product else "Producto"
         items.append({
             "title": product_name,
@@ -37,5 +37,5 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
 
     result = sdk.preference().create(preference_data)
     if "response" not in result:
-        raise Exception("MercadoPago SDK Error")
+        raise Exception("SDK Error")
     return result["response"]
