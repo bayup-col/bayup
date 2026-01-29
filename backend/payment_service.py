@@ -1,28 +1,18 @@
-# backend/payment_service.py
 import mercadopago
 import os
 import uuid
-
 from sqlalchemy.orm import Session
 import crud, models, schemas
 
-# Initialize Mercado Pago SDK
-# TODO: Move MP_ACCESS_TOKEN to environment variable and retrieve securely
-sdk = mercadopago.SDK(os.getenv("MP_ACCESS_TOKEN", "YOUR_ACCESS_TOKEN"))
+sdk = mercadopago.SDK(os.getenv("MP_ACCESS_TOKEN", "TEST-TOKEN"))
 
 def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, tenant_id: uuid.UUID) -> dict:
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise ValueError("Order not found")
 
-    tenant = crud.get_user_by_email(db, email=order.tenant.email) # Assuming tenant_id points to a User
-    if not tenant or not tenant.plan:
-        raise ValueError("Tenant or tenant's plan not found.")
-
-    # For MVP, we use fixed back_urls and notification_url
-    # In a real app, these would be dynamic and properly configured
-    BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000") # TODO: use actual backend URL
-
+    tenant = db.query(models.User).filter(models.User.id == tenant_id).first()
+    
     items = []
     for item in order.items:
         # Access product name through the variant relationship
@@ -36,27 +26,16 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
 
     preference_data = {
         "items": items,
-        "payer": {
-            "email": customer_email, # This email is from the authenticated user creating the order
-        },
-        "back_urls": {
-            "success": f"{BACKEND_URL}/payments/success", # Placeholder
-            "failure": f"{BACKEND_URL}/payments/failure", # Placeholder
-            "pending": f"{BACKEND_URL}/payments/pending", # Placeholder
-        },
-        "auto_return": "approved",
-        "external_reference": str(order.id), # Link payment to our order ID
-        "notification_url": f"{BACKEND_URL}/payments/webhook",
+        "payer": {"email": customer_email},
+        "external_reference": str(order.id),
+        "notification_url": "http://localhost:8000/payments/webhook",
         "metadata": {
             "tenant_id": str(tenant_id),
-            "commission_rate": tenant.plan.commission_rate
+            "commission_rate": tenant.plan.commission_rate if tenant and tenant.plan else 0.10
         }
     }
 
-    preference_response = sdk.preference().create(preference_data)
-    
-    if "response" not in preference_response:
-        raise Exception("Error integration with MercadoPago SDK")
-        
-    preference = preference_response["response"]
-    return preference
+    result = sdk.preference().create(preference_data)
+    if "response" not in result:
+        raise Exception("MercadoPago SDK Error")
+    return result["response"]
