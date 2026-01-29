@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/context/auth-context";
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { 
   Activity, 
   Search, 
@@ -24,7 +24,8 @@ import {
   TrendingDown,
   RefreshCw,
   Clock,
-  BarChart3
+  BarChart3,
+  Ghost
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -49,10 +50,11 @@ export default function DashboardPage() {
     const fetchData = async () => {
         if (!token) return;
         try {
+            const apiBase = "http://localhost:8000";
             const [expRes, recRes, oppRes] = await Promise.all([
-                fetch('http://localhost:8000/expenses', { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch('http://localhost:8000/receivables', { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch('http://localhost:8000/analytics/opportunities', { headers: { 'Authorization': `Bearer ${token}` } })
+                fetch(`${apiBase}/expenses`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch(`${apiBase}/receivables`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch(`${apiBase}/analytics/opportunities`, { headers: { 'Authorization': `Bearer ${token}` } })
             ]);
 
             if (expRes.ok) {
@@ -137,7 +139,7 @@ export default function DashboardPage() {
     </div>
   );
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -147,7 +149,7 @@ export default function DashboardPage() {
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 400, damping: 30 } }
   };
@@ -162,8 +164,8 @@ export default function DashboardPage() {
             <span className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_10px_#10B981]"></span>
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Gestión de Activos</span>
           </div>
-          <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase">
-            Dashboard <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF]">Operativo</span>
+          <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">
+            Dashboard <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF] px-2 py-1">Operativo</span>
           </h1>
           <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed">
             Resumen de inteligencia y rendimiento en tiempo real para <span className="font-bold text-[#001A1A]">{userEmail?.split('@')[0] || 'tu empresa'}</span>.
@@ -207,13 +209,13 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                 {[
                     { label: 'Pagos', val: 'OK', status: 'success' },
-                    { label: 'Stock Crítico', val: '2 prod.', status: 'warning' },
+                    { label: 'Stock Crítico', val: '2 prod.', status: 'critical' },
                     { label: 'Envíos', val: 'Al día', status: 'success' },
                     { label: 'Sincronía', val: 'Activa', status: 'success' }
                 ].map((item, i) => (
                     <div key={i} className="space-y-1">
                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{item.label}</p>
-                        <p className={`text-sm font-black uppercase ${item.status === 'success' ? 'text-[#004d4d]' : 'text-[#00F2FF]'}`}>{item.val}</p>
+                        <p className={`text-sm font-black uppercase ${item.status === 'success' ? 'text-[#004d4d]' : 'text-rose-600'}`}>{item.val}</p>
                     </div>
                 ))}
             </div>
@@ -259,7 +261,7 @@ export default function DashboardPage() {
                             <p className="text-[9px] font-bold text-[#00F2FF] uppercase tracking-[0.2em] mt-1">Inteligencia de Negocio Bayup</p>
                         </div>
                     </div>
-                    <div className="h-10 w-10 rounded-full border border-white/10 flex items-center justify-center text-white/40 group-hover:text-[#00F2FF] transition-colors">
+                    <div className="h-10 w-10 rounded-full border border-white/10 flex items-center justify-center text-white/40 active:text-[#00F2FF] transition-colors cursor-pointer group-active:text-[#00F2FF]">
                         <RefreshCw size={16} />
                     </div>
                 </div>
@@ -276,7 +278,7 @@ export default function DashboardPage() {
                                 <p className="text-xs font-black text-white uppercase tracking-tight">{item.title}</p>
                                 <p className="text-[9px] text-white/40 font-medium">{item.desc}</p>
                             </div>
-                            <button className="h-8 px-4 bg-[#00F2FF] text-[#001A1A] text-[9px] font-black uppercase tracking-widest rounded-full hover:scale-105 transition-transform">
+                            <button className="h-8 px-4 bg-white text-[#001A1A] text-[9px] font-black uppercase tracking-widest rounded-full hover:scale-105 transition-transform">
                                 {item.action}
                             </button>
                         </div>
@@ -344,9 +346,12 @@ export default function DashboardPage() {
                             <p className="text-[9px] font-bold text-[#00F2FF] uppercase tracking-[0.2em] mt-1">Demanda insatisfecha identificada por Bayup AI</p>
                         </div>
                     </div>
-                    <Link href="/dashboard/products/new" className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-white text-[#001A1A] rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#00F2FF] transition-all group/btn">
+                    <button 
+                        onClick={() => {}} 
+                        className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-white text-[#001A1A] rounded-xl text-[10px] font-black uppercase tracking-widest active:bg-[#00F2FF] transition-all group/btn"
+                    >
                         Importar Todo <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-                    </Link>
+                    </button>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">

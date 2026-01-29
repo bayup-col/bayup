@@ -34,7 +34,8 @@ import {
   Bell,
   Globe2,
   Camera,
-  X
+  X,
+  Ghost
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -51,6 +52,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isBaytOpen, setIsBaytOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'prefs'>('profile');
+  const [showGhost, setShowGhost] = useState(false);
 
   // Cargar Permisos Reales del Usuario
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
@@ -72,6 +74,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const userEmail = authEmail || 'usuario@ejemplo.com';
   const userRole = authRole || 'admin';
+
+  const handleLogoClick = () => {
+    setShowGhost(true);
+    setTimeout(() => setShowGhost(false), 1500);
+  };
 
   const toggleModule = (id: string) => {
     setHiddenModules(prev => 
@@ -303,9 +310,36 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         
         <aside className="w-full h-full flex flex-col overflow-y-auto custom-scrollbar z-0 transition-all duration-500 hover:bg-white/30">
           {renderSidebar()}
-          <div className="p-6 mt-auto flex items-center justify-between border-t border-white/10 bg-transparent">
-            <div className="text-2xl font-black text-black italic tracking-tighter cursor-pointer w-fit">
+          <div className="p-6 mt-auto flex items-center justify-between border-t border-white/10 bg-transparent relative">
+            <div 
+              onClick={handleLogoClick}
+              className="text-2xl font-black text-black italic tracking-tighter cursor-pointer w-fit relative group/logo"
+            >
               <span>BAY</span><InteractiveUP />
+              
+              <AnimatePresence>
+                {showGhost && (
+                  <motion.div
+                    key="ghost-jump"
+                    initial={{ y: 0, opacity: 0, scale: 0.5 }}
+                    animate={{ 
+                      y: [0, -80, 0], 
+                      opacity: [0, 1, 1, 0],
+                      scale: [0.5, 1.5, 1.5, 1],
+                      rotate: [0, 15, -15, 0]
+                    }}
+                    exit={{ opacity: 0 }}
+                    transition={{ 
+                      duration: 1.2,
+                      times: [0, 0.4, 0.8, 1],
+                      ease: "easeInOut"
+                    }}
+                    className="absolute left-1/2 -translate-x-1/2 bottom-full mb-4 pointer-events-none text-[#004d4d] drop-shadow-[0_0_15px_rgba(0,77,77,0.3)]"
+                  >
+                    <Ghost size={32} strokeWidth={2.5} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             <button 
               onClick={() => setIsEditingMenu(!isEditingMenu)} 

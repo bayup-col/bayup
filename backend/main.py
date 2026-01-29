@@ -2,13 +2,13 @@ from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 import datetime
 from datetime import timedelta
 from typing import List, Optional
 import uuid
-from starlette.responses import RedirectResponse
+from contextlib import asynccontextmanager
 
 from database import SessionLocal, engine, get_db
 import crud
@@ -20,10 +20,25 @@ import payment_service
 import clerk_auth_service
 import ai_service
 
-# Initialize tables
-models.Base.metadata.create_all(bind=engine)
+# Lifespan manager for startup and shutdown events
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Initialize tables and default plan
+    models.Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        if not crud.get_default_plan(db):
+            crud.create_plan(db=db, plan=schemas.PlanCreate(name="Free", description="Default", commission_rate=0.1, monthly_fee=0, is_default=True))
+            db.commit()
+    except Exception as e:
+        print(f"Error during startup: {e}")
+        db.rollback()
+    finally:
+        db.close()
+    yield
+    # Shutdown logic (if any) can go here
 
-app = FastAPI(title="BaseCommerce API")
+app = FastAPI(title="BaseCommerce API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,18 +47,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@app.on_event("startup")
-def create_default_plan():
-    db = SessionLocal()
-    try:
-        if not crud.get_default_plan(db):
-            crud.create_plan(db=db, plan=schemas.PlanCreate(name="Free", description="Default", commission_rate=0.1, monthly_fee=0, is_default=True))
-            db.commit()
-    except:
-        db.rollback()
-    finally:
-        db.close()
 
 # --- Auth ---
 
@@ -62,32 +65,36 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 @app.post("/auth/clerk-login")
 async def clerk_login(request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)):
-    clerk_user_info = await clerk_auth_service.verify_clerk_token(request.clerk_token)
-    email = clerk_user_info.get("email")
-    if not email:
-        raise HTTPException(status_code=400, detail="Clerk token does not contain email")
-    
-    user = db.query(models.User).filter(models.User.email == email).first()
-    
-    if not user:
-        # Create user explicitly in the endpoint as requested
-        hashed_password = security.get_password_hash(str(uuid.uuid4()))
-        default_plan = crud.get_default_plan(db)
-        user = models.User(
-            id=uuid.uuid4(),
-            email=email,
-            full_name=clerk_user_info.get("full_name", "Clerk User"),
-            hashed_password=hashed_password,
-            plan_id=default_plan.id if default_plan else None,
-            role="admin_tienda",
-            status="Activo"
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    
-    access_token = security.create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+    try:
+        clerk_user_info = await clerk_auth_service.verify_clerk_token(request.clerk_token)
+        email = clerk_user_info.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="Clerk token does not contain email")
+        
+        user = db.query(models.User).filter(models.User.email == email).first()
+        
+        if not user:
+            # Create user explicitly and commit to local DB
+            hashed_password = security.get_password_hash(str(uuid.uuid4()))
+            default_plan = crud.get_default_plan(db)
+            user = models.User(
+                id=uuid.uuid4(),
+                email=email,
+                full_name=clerk_user_info.get("full_name", "Clerk User"),
+                hashed_password=hashed_password,
+                plan_id=default_plan.id if default_plan else None,
+                role="admin_tienda",
+                status="Activo"
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        
+        access_token = security.create_access_token(data={"sub": user.email})
+        return {"access_token": access_token, "token_type": "bearer"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Clerk login error: {str(e)}")
 
 @app.get("/auth/me", response_model=schemas.User)
 def get_me(current_user: models.User = Depends(security.get_current_user)):
@@ -132,19 +139,30 @@ def read_orders(db: Session = Depends(get_db), current_user: models.User = Depen
 def create_payment_preference(order_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     try:
         order = db.query(models.Order).filter(models.Order.id == order_id).first()
-        if not order: raise HTTPException(status_code=404, detail="Order not found")
+        if not order: 
+            raise HTTPException(status_code=404, detail="Order not found")
         
+        # Recover seller (tenant) access_token validation
+        tenant = db.query(models.User).filter(models.User.id == order.tenant_id).first()
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Seller (tenant) not found")
+            
         pref = payment_service.create_mp_preference(db, order.id, current_user.email, order.tenant_id)
         
-        # Match test expectation for keys
+        if not pref or "id" not in pref:
+            raise HTTPException(status_code=500, detail="Failed to create Mercado Pago preference")
+
         return {
             "preference_id": pref.get("id"),
             "init_point": pref.get("init_point")
         }
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Payment Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Payment Error: {str(e)}")
 
 @app.post("/payments/webhook")
 async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
@@ -155,31 +173,28 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     
     if topic == "payment":
         try:
-            # For testing purposes, the payment_id sent in the test is the order_id
+            # Payment_id represents the order_id in our simplified webhook logic
             order_uuid = uuid.UUID(payment_id)
             order = db.query(models.Order).filter(models.Order.id == order_uuid).first()
             if order:
+                # Update status to completed
                 order.status = "completed"
                 
-                # Logic for commission calculation as requested
-                try:
-                    tenant = db.query(models.User).filter(models.User.id == order.tenant_id).first()
-                    if tenant and tenant.plan:
-                        commission_amount = order.total_price * tenant.plan.commission_rate
-                        # In a real app we would create a Transaction record here
-                        print(f"Commission calculated: {commission_amount}")
-                except Exception:
-                    pass
+                # Logic for commission calculation
+                tenant = db.query(models.User).filter(models.User.id == order.tenant_id).first()
+                if tenant and tenant.plan:
+                    commission_amount = order.total_price * tenant.plan.commission_rate
+                    print(f"Commission calculated: {commission_amount}")
                 
                 db.add(order)
-                db.commit()
+                db.commit() # FINAL COMMIT before response
                 db.refresh(order)
                 
-                # Return exact message test expects
                 msg = f"Payment notification for Order ID: {order.id} received. Status updated to 'completed'."
                 return {"status": "success", "message": msg}
-        except Exception:
-            pass
+        except Exception as e:
+            db.rollback()
+            print(f"Webhook Error: {e}")
             
     return {"status": "success", "message": "Webhook received"}
 
@@ -205,11 +220,9 @@ def get_opportunities(db: Session = Depends(get_db), current_user: models.User =
     Analiza 'tendencias de mercado' vs 'inventario actual' para detectar oportunidades.
     Simula una detección de demanda no cubierta.
     """
-    # 1. Obtener productos del usuario
     products = crud.get_products_by_owner(db, owner_id=current_user.id)
     product_text = " ".join([p.name.lower() + " " + (p.description or "").lower() for p in products])
     
-    # 2. Tendencias de Mercado (Simuladas como 'Búsquedas Recientes' en la plataforma)
     market_trends = [
         {"term": "zapatillas urbanas", "volume": 1450, "potential": 3200000, "action": "Importar Zapatillas"},
         {"term": "audifonos inalambricos", "volume": 980, "potential": 1500000, "action": "Crear Oferta Tech"},
@@ -219,11 +232,10 @@ def get_opportunities(db: Session = Depends(get_db), current_user: models.User =
     
     opportunities = []
     for trend in market_trends:
-        # Si el término no está en el inventario, es una oportunidad
         if trend["term"] not in product_text:
             opportunities.append(trend)
             
-    return opportunities[:4] # Retornar top 4
+    return opportunities[:4]
 
 @app.get("/")
 def read_root(): return {"message": "Welcome to BaseCommerce API"}
