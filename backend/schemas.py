@@ -103,6 +103,25 @@ class Order(OrderBase):
     class Config:
         orm_mode = True
 
+# --- Shipment Schemas ---
+class ShipmentBase(BaseModel):
+    order_id: uuid.UUID
+    status: str = "pending_packing"
+    recipient_name: str
+    destination_address: str
+    carrier: Optional[str] = None
+    tracking_number: Optional[str] = None
+
+class ShipmentCreate(ShipmentBase):
+    pass
+
+class Shipment(ShipmentBase):
+    id: uuid.UUID
+    updated_at: datetime
+    tenant_id: uuid.UUID
+    class Config:
+        orm_mode = True
+
 # --- Finance Schemas ---
 class ExpenseBase(BaseModel):
     description: str
