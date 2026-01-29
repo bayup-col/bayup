@@ -60,40 +60,20 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
         }
     }
 
-            result = sdk.preference().create(preference_data)
-
-            
-
-            # Manejo robusto para Mocks y Producción
-
-            final_response = {}
-
-            if isinstance(result, dict):
-
-                if "response" in result:
-
-                    final_response = result["response"]
-
-                else:
-
-                    final_response = result
-
-        
-
-            # Fallback keys for tests
-
-            if "id" not in final_response:
-
-                final_response["id"] = final_response.get("preference_id", "mock_id")
-
-            if "init_point" not in final_response:
-
-                final_response["init_point"] = final_response.get("checkout_url", "http://mock.link")
-
-                
-
-            return final_response
-
-        
-
+    result = sdk.preference().create(preference_data)
     
+    # Manejo robusto para Mocks y Producción
+    final_response = {}
+    if isinstance(result, dict):
+        if "response" in result:
+            final_response = result["response"]
+        else:
+            final_response = result
+
+    # Fallback keys for tests
+    if "id" not in final_response:
+        final_response["id"] = final_response.get("preference_id", "mock_id")
+    if "init_point" not in final_response:
+        final_response["init_point"] = final_response.get("checkout_url", "http://mock.link")
+        
+    return final_response
