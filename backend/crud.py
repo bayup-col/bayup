@@ -46,7 +46,6 @@ def get_product_variant(db: Session, variant_id: uuid.UUID) -> models.ProductVar
     return db.query(models.ProductVariant).filter(models.ProductVariant.id == variant_id).first()
 
 def get_all_products(db: Session, tenant_id: Optional[uuid.UUID] = None, skip: int = 0, limit: int = 100) -> list[models.Product]:
-    # CORRECCIÓN: Soporte para paginación
     query = db.query(models.Product).options(joinedload(models.Product.variants))
     if tenant_id: query = query.filter(models.Product.owner_id == tenant_id)
     return query.offset(skip).limit(limit).all()
@@ -90,3 +89,50 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
 
 def get_orders_by_customer(db: Session, customer_id: uuid.UUID) -> list[models.Order]:
     return db.query(models.Order).filter(models.Order.customer_id == customer_id).all()
+
+# --- Finance CRUD ---
+def create_income(db: Session, income: schemas.IncomeCreate, tenant_id: uuid.UUID) -> models.Income:
+    db_income = models.Income(**income.dict(), tenant_id=tenant_id)
+    db.add(db_income)
+    db.commit()
+    db.refresh(db_income)
+    return db_income
+
+# --- Collection CRUD ---
+def create_collection(db: Session, collection: schemas.CollectionCreate, owner_id: uuid.UUID) -> models.Collection:
+    db_col = models.Collection(**collection.dict(), owner_id=owner_id)
+    db.add(db_col)
+    db.commit()
+    db.refresh(db_col)
+    return db_col
+
+def get_collections_by_owner(db: Session, owner_id: uuid.UUID) -> list[models.Collection]:
+    return db.query(models.Collection).filter(models.Collection.owner_id == owner_id).all()
+
+# --- Custom Role CRUD ---
+def create_custom_role(db: Session, role_in: schemas.CustomRoleCreate, owner_id: uuid.UUID):
+    db_role = models.CustomRole(id=uuid.uuid4(), name=role_in.name, permissions=role_in.permissions, owner_id=owner_id)
+    db.add(db_role)
+    db.commit()
+    db.refresh(db_role)
+    return db_role
+
+# --- Shipment CRUD ---
+def get_shipment(db: Session, shipment_id: uuid.UUID, tenant_id: uuid.UUID):
+    return db.query(models.Shipment).filter(models.Shipment.id == shipment_id, models.Shipment.tenant_id == tenant_id).first()
+
+def get_shipments_by_owner(db: Session, owner_id: uuid.UUID):
+    return db.query(models.Shipment).filter(models.Shipment.tenant_id == owner_id).all()
+
+def create_shipment(db: Session, shipment: schemas.ShipmentCreate, tenant_id: uuid.UUID):
+    db_shipment = models.Shipment(**shipment.dict(), tenant_id=tenant_id)
+    db.add(db_shipment)
+    db.commit()
+    db.refresh(db_shipment)
+    return db_shipment
+
+def update_shipment_status(db: Session, db_shipment: models.Shipment, status: str):
+    db_shipment.status = status
+    db.commit()
+    db.refresh(db_shipment)
+    return db_shipment
