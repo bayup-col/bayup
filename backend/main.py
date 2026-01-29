@@ -69,7 +69,7 @@ async def clerk_login(request: schemas.ClerkLoginRequest, db: Session = Depends(
         clerk_user_info = await clerk_auth_service.verify_clerk_token(request.clerk_token)
         email = clerk_user_info.get("email")
         if not email:
-            raise HTTPException(status_code=400, detail="Clerk token does not contain email")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Clerk token does not contain email")
         
         user = db.query(models.User).filter(models.User.email == email).first()
         
@@ -94,7 +94,8 @@ async def clerk_login(request: schemas.ClerkLoginRequest, db: Session = Depends(
         return {"access_token": access_token, "token_type": "bearer"}
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Clerk login error: {str(e)}")
+        # Return 401 instead of 500 for validation errors as requested
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Clerk login error: {str(e)}")
 
 @app.get("/auth/me", response_model=schemas.User)
 def get_me(current_user: models.User = Depends(security.get_current_user)):
@@ -187,7 +188,7 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
                     print(f"Commission calculated: {commission_amount}")
                 
                 db.add(order)
-                db.commit() # FINAL COMMIT before response
+                db.commit() # FINAL COMMIT for persistence
                 db.refresh(order)
                 
                 msg = f"Payment notification for Order ID: {order.id} received. Status updated to 'completed'."

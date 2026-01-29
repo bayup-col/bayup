@@ -352,7 +352,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </aside>
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative">
         <DashboardHeader 
             pathname={pathname} 
             userEmail={userEmail} 
@@ -364,7 +364,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             isBaytOpen={isBaytOpen}
             setIsBaytOpen={setIsBaytOpen}
         />
-        <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar bg-transparent">{children}</main>
+        
+        {/* Atmospheric Top Dissolve Mask */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#FAFAFA] via-[#FAFAFA]/90 to-transparent z-[45] pointer-events-none backdrop-blur-[2px]" />
+        
+        <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar bg-transparent relative z-10">
+            <div className="pt-4"> {/* Extra safe space for the floating header */}
+                {children}
+            </div>
+        </main>
         
         <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />
       </div>

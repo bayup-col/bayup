@@ -58,6 +58,6 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
 
     # Call MercadoPago SDK directly as required by the test mock
     # The test patches sdk.preference and expects preference.create to be called.
-    result = sdk.preference.create(preference_data)
+    result = sdk.preference().create(preference_data)
     
     return result.get("response", result)

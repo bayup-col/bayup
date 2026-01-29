@@ -81,7 +81,7 @@ export const FloatingParticlesBackground = () => {
     };
 
     const drawLines = () => {
-      for (let a = 0; i < particles.length; a++) {
+      for (let a = 0; a < particles.length; a++) {
         for (let b = a; b < particles.length; b++) {
           const dx = particles[a].x - particles[b].x;
           const dy = particles[a].y - particles[b].y;
