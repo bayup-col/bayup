@@ -265,6 +265,34 @@ class ShippingOption(ShippingOptionBase):
     class Config:
         orm_mode = True
 
+# --- ProductType Schemas ---
+class ProductAttributeBase(BaseModel):
+    name: str
+    attribute_type: str
+    options: List[str] | None = None
+
+class ProductAttributeCreate(ProductAttributeBase):
+    pass
+
+class ProductAttribute(ProductAttributeBase):
+    id: uuid.UUID
+    product_type_id: uuid.UUID
+    class Config:
+        orm_mode = True
+
+class ProductTypeBase(BaseModel):
+    name: str
+    description: str | None = None
+
+class ProductTypeCreate(ProductTypeBase):
+    pass
+
+class ProductType(ProductTypeBase):
+    id: uuid.UUID
+    attributes: List[ProductAttribute] = []
+    class Config:
+        orm_mode = True
+
 class AIAssistantBase(BaseModel):
     name: str
     description: str | None = None
