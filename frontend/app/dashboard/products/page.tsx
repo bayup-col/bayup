@@ -57,11 +57,34 @@ interface Product {
   variants: ProductVariant[];
   status?: 'active' | 'draft' | 'archived';
   category?: string;
+  collection_id?: string | null;
+}
+
+interface NewProductState {
+  name: string;
+  status: 'active' | 'draft' | 'archived';
+  category: string;
+  collection_id: string | null;
+  description: string;
+  cost: string;
+  price: string;
+  stock: string;
+  sku: string;
+  images: { file?: File; preview: string }[];
+  attributes: {
+    tallas: string[];
+    colores: string[];
+    marcas: string[];
+    materiales: string[];
+    estilos: string[];
+    generos: string[];
+    otros: string[];
+  };
 }
 
 const MOCK_PRODUCTS_EXTRA: Product[] = [
-    { id: "prod_mock_1", name: "Camiseta Básica Oversize", description: "Algodón 100%", price: 250, image_url: null, variants: [{id:'v1', name:'M', sku:'SKU-001', price_adjustment:0, stock: 15, image_url:null, attributes: { tallas: ['M'] }}], status: 'draft', category: 'Ropa' },    
-    { id: "prod_mock_2", name: "Zapatillas Running Pro", description: "Suela de gel", price: 1200, image_url: null, variants: [{id:'v2', name:'42', sku:'SKU-002', price_adjustment:0, stock: 0, image_url:null, attributes: { tallas: ['42'] }}], status: 'archived', category: 'Calzado' }
+    { id: "prod_mock_1", name: "Camiseta Básica Oversize", description: "Algodón 100%", price: 250, image_url: null, variants: [{id:'v1', name:'M', sku:'SKU-001', price_adjustment:0, stock: 15, image_url:null, attributes: { tallas: ['M'] }}], status: 'draft', category: 'Ropa', collection_id: null },    
+    { id: "prod_mock_2", name: "Zapatillas Running Pro", description: "Suela de gel", price: 1200, image_url: null, variants: [{id:'v2', name:'42', sku:'SKU-002', price_adjustment:0, stock: 0, image_url:null, attributes: { tallas: ['42'] }}], status: 'archived', category: 'Calzado', collection_id: null }
 ];
 
 const AttributeField = ({ label, category, value, suggestions, onAdd, onRemove }: any) => {
@@ -136,10 +159,10 @@ export default function ProductsPage() {
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const categoryRef = useRef<HTMLDivElement>(null);
 
-  const [newProduct, setNewProduct] = useState({
-    name: '', status: 'active' as 'active' | 'draft' | 'archived', category: '', collection_id: '' as string | null, description: '', cost: '', price: '', stock: '', sku: '',   
-    images: [] as { file?: File, preview: string }[],
-    attributes: { tallas: [] as string[], colores: [] as string[], marcas: [] as string[], materiales: [] as string[], estilos: [] as string[], generos: [] as string[], otros: [] as string[] }
+  const [newProduct, setNewProduct] = useState<NewProductState>({
+    name: '', status: 'active', category: '', collection_id: null, description: '', cost: '', price: '', stock: '', sku: '',   
+    images: [],
+    attributes: { tallas: [], colores: [], marcas: [], materiales: [], estilos: [], generos: [], otros: [] }
   });
 
   const resetForm = () => {
@@ -207,6 +230,7 @@ export default function ProductsPage() {
         name: product.name || '',
         status: product.status || 'active',
         category: product.category || '',
+        collection_id: product.collection_id || null,
         description: product.description || '',
         cost: '', 
         price: (product.price || 0).toString(),
