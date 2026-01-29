@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 
 interface Expense {
     id: string;
-    category: 'fijo' | 'diario';
+    category: 'operativo_fijo' | 'operativo_diario' | 'fijo' | 'diario';
     description: string;
     amount: number;
     due_date: string;
@@ -61,7 +61,7 @@ export default function GastosPage() {
         return parseFloat(val.replace(/\./g, '')) || 0;
     };
 
-    const handleAddExpense = async (category: 'fijo' | 'diario') => {
+    const handleAddExpense = async (type: 'fijo' | 'diario') => {
         if (!formData.name || formData.amount <= 0) {
             return showToast("Completa los datos obligatorios", "error");
         }
@@ -72,7 +72,7 @@ export default function GastosPage() {
                 description: formData.name.trim(),
                 amount: Number(formData.amount),
                 due_date: new Date(formData.date).toISOString(),
-                category: category === 'fijo' ? 'operativo_fijo' : 'operativo_diario',
+                category: type === 'fijo' ? 'operativo_fijo' : 'operativo_diario',
                 status: "paid" // Marcamos como pagado por defecto al registrar
             };
 
