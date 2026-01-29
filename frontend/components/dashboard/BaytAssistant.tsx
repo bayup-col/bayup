@@ -27,6 +27,11 @@ interface Message {
     reportData?: any;
 }
 
+interface BaytAssistantProps {
+    isOpen: boolean;
+    setIsOpen: (isOpen: boolean) => void;
+}
+
 export const BaytAssistant = ({ isOpen, setIsOpen }: BaytAssistantProps) => {
     const { token } = useAuth();
     const router = useRouter();
