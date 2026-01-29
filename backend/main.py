@@ -77,7 +77,7 @@ async def clerk_login_for_access_token(
     request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)
 ):
     clerk_user_info = await clerk_auth_service.verify_clerk_token(request.clerk_token)
-    email = clerk_user_info["email"]
+    email = clerk_user_info["email"].strip() # Clean email
     user = crud.get_user_by_email(db, email=email)
 
     if not user:
@@ -90,6 +90,8 @@ async def clerk_login_for_access_token(
                 password=str(uuid.uuid4())
             )
         )
+        db.commit()
+        db.refresh(user)
     
     return {"access_token": security.create_access_token(data={"sub": user.email}), "token_type": "bearer"}
 

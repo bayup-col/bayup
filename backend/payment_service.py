@@ -11,7 +11,9 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
     if not order:
         raise ValueError("Order not found")
 
-    tenant = db.query(models.User).filter(models.User.id == tenant_id).first()
+    # Use the tenant_id provided or the owner_id from the order
+    effective_tenant_id = tenant_id or order.tenant_id
+    tenant = db.query(models.User).filter(models.User.id == effective_tenant_id).first()
     
     items = []
     if order.items:
