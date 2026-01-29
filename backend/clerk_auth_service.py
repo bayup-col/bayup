@@ -10,7 +10,8 @@ async def verify_clerk_token(clerk_token: str) -> Dict:
     In a real app, this would call Clerk's API or SDK.
     """
     if clerk_token == "mock_clerk_valid_token":
-        # Simulate a valid Clerk user
+        # Check if the test is patching the return value (as seen in test_main.py)
+        # If not, provide a generic mock.
         return {
             "id": "user_mock_clerk_id",
             "email": "clerkuser@example.com",

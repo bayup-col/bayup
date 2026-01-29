@@ -14,15 +14,33 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
     tenant = db.query(models.User).filter(models.User.id == tenant_id).first()
     
     items = []
-    for item in order.items:
-        # Resolve product name through relationship
-        product_name = item.product_variant.product.name if item.product_variant and item.product_variant.product else "Producto"
+    if order.items:
+        for item in order.items:
+            # Resolve product name through relationship
+            product_name = "Producto"
+            if item.product_variant and item.product_variant.product:
+                product_name = item.product_variant.product.name
+            
+            items.append({
+                "title": product_name,
+                "quantity": item.quantity,
+                "unit_price": float(item.price_at_purchase),
+                "currency_id": "CLP",
+            })
+    
+    if not items:
+        # Fallback for orders without explicit items in DB (if any)
         items.append({
-            "title": product_name,
-            "quantity": item.quantity,
-            "unit_price": float(item.price_at_purchase),
+            "title": "Orden de Compra",
+            "quantity": 1,
+            "unit_price": float(order.total_price),
             "currency_id": "CLP",
         })
+
+    # Get commission rate safely
+    commission_rate = 0.10
+    if tenant and tenant.plan:
+        commission_rate = tenant.plan.commission_rate
 
     preference_data = {
         "items": items,
@@ -31,7 +49,7 @@ def create_mp_preference(db: Session, order_id: uuid.UUID, customer_email: str, 
         "notification_url": "http://localhost:8000/payments/webhook",
         "metadata": {
             "tenant_id": str(tenant_id),
-            "commission_rate": tenant.plan.commission_rate if tenant and tenant.plan else 0.10
+            "commission_rate": commission_rate
         }
     }
 

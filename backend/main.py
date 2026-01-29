@@ -77,14 +77,15 @@ async def clerk_login_for_access_token(
     request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)
 ):
     clerk_user_info = await clerk_auth_service.verify_clerk_token(request.clerk_token)
-    user = crud.get_user_by_email(db, email=clerk_user_info["email"])
+    email = clerk_user_info["email"]
+    user = crud.get_user_by_email(db, email=email)
 
     if not user:
         # Just-in-time provisioning para usuarios de Clerk
         user = crud.create_user(
             db=db,
             user=schemas.UserCreate(
-                email=clerk_user_info["email"],
+                email=email,
                 full_name=clerk_user_info.get("full_name", "Clerk User"),
                 password=str(uuid.uuid4())
             )
@@ -169,6 +170,8 @@ def create_payment_preference(
             raise HTTPException(status_code=404, detail="Order not found")
         preference = payment_service.create_mp_preference(db, order_id, current_user.email, order.tenant_id)
         return {"preference_id": preference["id"], "init_point": preference["init_point"]}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -186,7 +189,8 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
             if order:
                 order.status = "completed"
                 db.commit()
-                return {"status": "success", "message": f"Order {order.id} completed"}
+                db.refresh(order)
+                return {"status": "success", "message": f"Payment notification for Order ID: {order.id} received. Status updated to 'completed'."}
         except:
             return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid notification format"})
     return {"status": "success"}
