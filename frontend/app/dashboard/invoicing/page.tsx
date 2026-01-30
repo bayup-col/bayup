@@ -403,8 +403,19 @@ export default function InvoicingPage() {
                 {!isPOSActive ? (
                     <motion.div key="history-view" className="max-w-7xl mx-auto pb-20 space-y-16">
                         <motion.div initial={{ y: -200, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -200, opacity: 0 }} className="space-y-16">
-                            <div className="flex justify-between items-center gap-8">
-                                <h1 className="text-5xl font-black italic uppercase">Facturación</h1>
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+                                <div>
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <span className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_10px_#10B981]"></span>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Gestión Financiera</span>
+                                    </div>
+                                    <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">
+                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF] pr-2 py-1">Facturación</span>
+                                    </h1>
+                                    <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed">
+                                        Control financiero y registro de ventas en tiempo real para <span className="font-bold text-[#001A1A]">{authEmail?.split('@')[0] || 'tu empresa'}</span>.
+                                    </p>
+                                </div>
                                 <button onClick={() => setIsPOSActive(true)} className="px-12 py-6 bg-gray-900 text-white rounded-[2.2rem] font-black text-[11px] uppercase tracking-[0.4em] shadow-2xl active:scale-95 transition-all">Nueva Venta POS</button>
                             </div>
                             <div className="grid grid-cols-4 gap-6">
