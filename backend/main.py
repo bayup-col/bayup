@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from sqlalchemy import func, text, inspect
 import datetime
 from datetime import timedelta
 from typing import List, Optional
@@ -23,22 +23,110 @@ import ai_service
 # Lifespan manager for startup and shutdown events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print("Starting BaseCommerce API...")
     # Startup: Initialize tables and default plan
-    models.Base.metadata.create_all(bind=engine)
+    try:
+        models.Base.metadata.create_all(bind=engine)
+        print("Database tables synchronized.")
+    except Exception as e:
+        print(f"Metadata creation error: {e}")
+
     db = SessionLocal()
     try:
+        # Automigrate: Check for missing columns in 'users' table
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        print(f"Available tables: {tables}")
+        
+        if 'users' in tables:
+            columns = [c['name'] for c in inspector.get_columns('users')]
+            
+            with engine.begin() as conn:
+                if 'loyalty_points' not in columns:
+                    try: conn.execute(text("ALTER TABLE users ADD COLUMN loyalty_points INTEGER DEFAULT 0"))
+                    except: pass
+                
+                if 'total_spent' not in columns:
+                    try: conn.execute(text("ALTER TABLE users ADD COLUMN total_spent FLOAT DEFAULT 0.0"))
+                    except: pass
+                
+                if 'last_purchase_date' not in columns:
+                    try:
+                        col_type = "TIMESTAMP" if engine.name == 'postgresql' else "DATETIME"
+                        conn.execute(text(f"ALTER TABLE users ADD COLUMN last_purchase_date {col_type}"))
+                    except: pass
+                
+                if 'last_purchase_summary' not in columns:
+                    try: conn.execute(text("ALTER TABLE users ADD COLUMN last_purchase_summary VARCHAR"))
+                    except: pass
+            print("User table migration check completed.")
+
+        # Automigrate 'orders' table
+        if 'orders' in tables:
+            order_columns = [c['name'] for c in inspector.get_columns('orders')]
+            with engine.begin() as conn:
+                if 'customer_phone' not in order_columns:
+                    try: conn.execute(text("ALTER TABLE orders ADD COLUMN customer_phone VARCHAR"))
+                    except: pass
+                if 'customer_type' not in order_columns:
+                    try: conn.execute(text("ALTER TABLE orders ADD COLUMN customer_type VARCHAR DEFAULT 'final'"))
+                    except: pass
+                if 'source' not in order_columns:
+                    try: conn.execute(text("ALTER TABLE orders ADD COLUMN source VARCHAR DEFAULT 'pos'"))
+                    except: pass
+                if 'payment_method' not in order_columns:
+                    try: conn.execute(text("ALTER TABLE orders ADD COLUMN payment_method VARCHAR DEFAULT 'cash'"))
+                    except: pass
+            print("Orders table migration check completed.")
+
         if not crud.get_default_plan(db):
+            print("Creating default 'Free' plan...")
             crud.create_plan(db=db, plan=schemas.PlanCreate(name="Free", description="Default", commission_rate=0.1, monthly_fee=0, is_default=True))
             db.commit()
+
+        # Asegurar que existan productos mock para pruebas de POS
+        existing_products = db.query(models.Product).count()
+        if existing_products == 0:
+            print("Injecting initial mock products for testing...")
+            # Buscamos un usuario admin para asignar los productos
+            admin = db.query(models.User).filter(models.User.role == 'admin_tienda').first()
+            if admin:
+                mock_data = [
+                    { "id": "00000000-0000-4000-a000-000000000001", "name": "Zapatillas Nitro Pro Max", "price": 250000, "variants": [{ "id": "00000000-0000-4000-b000-000000000001", "name": "Estándar", "stock": 100, "attributes": {"Talla": ["38", "40", "42"], "Color": ["Negro", "Azul"]} }] },
+                    { "id": "00000000-0000-4000-a000-000000000002", "name": "Camiseta Oversize Cyber", "price": 85000, "variants": [{ "id": "00000000-0000-4000-b000-000000000002", "name": "Estándar", "stock": 100, "attributes": {"Talla": ["S", "M", "L"], "Color": ["Blanco", "Gris"]} }] },
+                    { "id": "00000000-0000-4000-a000-000000000003", "name": "Smartwatch Bayup v2", "price": 450000, "variants": [{ "id": "00000000-0000-4000-b000-000000000003", "name": "Estándar", "stock": 100 }] },
+                    { "id": "00000000-0000-4000-a000-000000000004", "name": "Set de Pesas 20kg", "price": 180000, "variants": [{ "id": "00000000-0000-4000-b000-000000000004", "name": "Estándar", "stock": 100 }] }
+                ]
+                for p_info in mock_data:
+                    p = models.Product(id=uuid.UUID(p_info["id"]), name=p_info["name"], price=p_info["price"], owner_id=admin.id, description="Demo product")
+                    db.add(p)
+                    for v_info in p_info["variants"]:
+                        v = models.ProductVariant(id=uuid.UUID(v_info["id"]), product_id=p.id, name=v_info["name"], stock=v_info["stock"], attributes=v_info.get("attributes"))
+                        db.add(v)
+                db.commit()
+                print("Mock products injected successfully.")
+
     except Exception as e:
-        print(f"Error during startup: {e}")
-        db.rollback()
+        print(f"General Startup Error: {e}")
     finally:
         db.close()
     yield
-    # Shutdown logic (if any) can go here
 
 app = FastAPI(title="BaseCommerce API", lifespan=lifespan)
+
+# Global Exception Handler to fix CORS on 500 errors
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    print(f"CRITICAL ERROR: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "message": str(exc)},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
 
 app.add_middleware(
     CORSMiddleware,
@@ -133,6 +221,74 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db), curr
 @app.get("/orders", response_model=List[schemas.Order])
 def read_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     return crud.get_orders_by_customer(db, customer_id=current_user.id)
+
+# --- Admin / Customers / Sync ---
+
+@app.post("/admin/customers/sync")
+def sync_customer(data: schemas.CustomerSync, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    # Look for existing customer by phone or email
+    customer = None
+    if data.email:
+        customer = db.query(models.User).filter(models.User.email == data.email).first()
+    if not customer and data.phone:
+        customer = db.query(models.User).filter(models.User.nickname == data.phone).first() # Using nickname for phone storage consistency in this context
+
+    if not customer:
+        # Create new customer user
+        customer = models.User(
+            id=uuid.uuid4(),
+            email=data.email or f"anon_{uuid.uuid4().hex[:8]}@bayup.com",
+            full_name=data.name,
+            nickname=data.phone,
+            hashed_password="pos_generated_user", # Placeholder
+            role="cliente",
+            status="Activo",
+            loyalty_points=data.points_to_add,
+            total_spent=data.last_purchase_amount,
+            last_purchase_date=data.last_purchase_date,
+            last_purchase_summary=data.last_purchase_summary
+        )
+        db.add(customer)
+    else:
+        # Update existing
+        customer.loyalty_points = (customer.loyalty_points or 0) + data.points_to_add
+        customer.total_spent = (customer.total_spent or 0.0) + data.last_purchase_amount
+        customer.last_purchase_date = data.last_purchase_date
+        customer.last_purchase_summary = data.last_purchase_summary
+        if data.name: customer.full_name = data.name
+        if data.phone: customer.nickname = data.phone
+
+    db.commit()
+    return {"status": "success", "customer_id": customer.id}
+
+@app.get("/admin/users", response_model=List[schemas.User])
+def get_all_users(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    # Solo devolvemos personal de staff/admin, excluyendo a los clientes
+    return db.query(models.User).filter(models.User.role != 'cliente').all()
+
+@app.get("/admin/roles", response_model=List[schemas.CustomRole])
+def get_roles(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    return db.query(models.CustomRole).filter(models.CustomRole.owner_id == current_user.id).all()
+
+@app.get("/collections", response_model=List[schemas.Collection])
+def get_collections(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    return crud.get_collections_by_owner(db, owner_id=current_user.id)
+
+@app.get("/expenses", response_model=List[schemas.Expense])
+def get_expenses(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    return db.query(models.Expense).filter(models.Expense.tenant_id == current_user.id).all()
+
+@app.get("/receivables", response_model=List[schemas.Receivable])
+def get_receivables(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    return db.query(models.Receivable).filter(models.Receivable.tenant_id == current_user.id).all()
+
+@app.get("/ai-assistants", response_model=List[schemas.AIAssistant])
+def get_assistants(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    return db.query(models.AIAssistant).filter(models.AIAssistant.owner_id == current_user.id).all()
+
+@app.get("/pages", response_model=List[schemas.Page])
+def get_pages(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    return db.query(models.Page).filter(models.Page.owner_id == current_user.id).all()
 
 # --- Payments ---
 

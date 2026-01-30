@@ -214,12 +214,24 @@ export default function ProductsPage() {
   useEffect(() => {
     fetchProducts();
     fetchCollections();
+    
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setIsModalOpen(false); setIsImportModalOpen(false); resetForm(); } };
     const handleClickOutside = (e: MouseEvent) => { if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) setIsCategoryDropdownOpen(false); };
+    
     window.addEventListener('keydown', handleEsc);
     document.addEventListener('mousedown', handleClickOutside);       
-    return () => { window.removeEventListener('keydown', handleEsc); document.removeEventListener('mousedown', handleClickOutside); };       
-  }, [fetchProducts, fetchCollections]);
+    
+    // Limpieza de URLs blob para evitar ERR_FILE_NOT_FOUND
+    return () => {
+        window.removeEventListener('keydown', handleEsc); 
+        document.removeEventListener('mousedown', handleClickOutside);
+        newProduct.images.forEach(img => {
+            if (img.preview && img.preview.startsWith('blob:')) {
+                URL.revokeObjectURL(img.preview);
+            }
+        });
+    };
+  }, [fetchProducts, fetchCollections, newProduct.images]); // Agregamos newProduct.images para seguimiento de limpieza
 
   const handleEditClick = (product: Product) => {
     setIsEditMode(true);
@@ -384,7 +396,7 @@ export default function ProductsPage() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
             <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[3rem] shadow-2xl flex flex-col overflow-hidden">
                 <div className="p-8 border-b border-gray-50 flex items-center justify-between sticky top-0 bg-white z-10"><div><h2 className="text-2xl font-black text-gray-900 tracking-tight">{isEditMode ? 'Editar Producto' : 'Nuevo Producto'}</h2><p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Completa los detalles para tu catálogo</p></div><button type="button" onClick={() => { setIsModalOpen(false); resetForm(); }} className="h-12 w-12 flex items-center justify-center rounded-2xl hover:bg-gray-50 transition-colors text-gray-400 text-xl">✕</button></div>
                 <div className="flex-1 overflow-y-auto p-12 space-y-12 custom-scrollbar">

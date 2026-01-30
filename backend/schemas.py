@@ -22,9 +22,24 @@ class User(UserBase):
     social_links: dict | None = {}
     whatsapp_lines: List[dict] | None = []
     permissions: Optional[Dict[str, bool]] = {}
+    
+    # Loyalty and Customer Stats
+    loyalty_points: int = 0
+    total_spent: float = 0.0
+    last_purchase_date: Optional[datetime] = None
+    last_purchase_summary: Optional[str] = None
 
     class Config:
         orm_mode = True
+
+class CustomerSync(BaseModel):
+    name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    last_purchase_date: datetime
+    last_purchase_summary: str
+    last_purchase_amount: float
+    points_to_add: int
 
 class BankAccountsUpdate(BaseModel):
     bank_accounts: List[dict]
@@ -88,6 +103,10 @@ class OrderItem(OrderItemBase):
 class OrderBase(BaseModel):
     customer_name: Optional[str] = None
     customer_email: Optional[str] = None
+    customer_phone: Optional[str] = None
+    customer_type: Optional[str] = "final"
+    source: Optional[str] = "pos"
+    payment_method: Optional[str] = "cash"
     seller_name: Optional[str] = None
 
 class OrderCreate(OrderBase):

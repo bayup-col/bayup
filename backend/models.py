@@ -54,6 +54,13 @@ class User(Base):
     bank_accounts = Column(JSON, default=[])
     social_links = Column(JSON, default={})
     whatsapp_lines = Column(JSON, default=[])
+    
+    # Loyalty and Customer Stats
+    loyalty_points = Column(Integer, default=0)
+    total_spent = Column(Float, default=0.0)
+    last_purchase_date = Column(DateTime, nullable=True)
+    last_purchase_summary = Column(String, nullable=True)
+    
     plan_id = Column(GUID(), ForeignKey("plans.id"))
     plan = relationship("Plan", back_populates="users")
     products = relationship("Product", back_populates="owner")
@@ -98,6 +105,10 @@ class Order(Base):
     shipping_cost_snapshot = Column(Float, nullable=True)
     customer_name = Column(String)
     customer_email = Column(String)
+    customer_phone = Column(String)
+    customer_type = Column(String, default="final")
+    source = Column(String, default="pos")
+    payment_method = Column(String, default="cash")
     seller_name = Column(String)
     customer = relationship("User", back_populates="orders", foreign_keys=[customer_id])
     items = relationship("OrderItem", back_populates="order")

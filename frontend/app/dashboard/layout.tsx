@@ -35,7 +35,8 @@ import {
   Globe2,
   Camera,
   X,
-  Ghost
+  Ghost,
+  ExternalLink
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -161,6 +162,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         );
     }
 
+    const [isRedirectingStore, setIsRedirectingStore] = useState(false);
+
+    const handleStoreClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsRedirectingStore(true);
+      setTimeout(() => {
+        router.push('/dashboard/my-store');
+        setTimeout(() => setIsRedirectingStore(false), 500); // Reset after navigation starts
+      }, 800);
+    };
+
     return (
         <>
             <div className="p-4 border-b border-white/10 relative">
@@ -174,19 +186,27 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <span className="text-[9px] font-black text-[#004d4d] uppercase tracking-widest">En línea</span>
                         </div>
                     </div>
-                    <Link href="/dashboard/my-store" className="mt-4 relative group/store w-full">
-                        <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-[#004d4d] to-[#00F2FF] opacity-30 group-hover/store:opacity-100 transition-opacity duration-500"></div>
-                        <div className="relative flex items-center justify-center gap-3 w-full py-4 bg-white rounded-[0.95rem] text-[10px] font-black uppercase tracking-widest text-[#004d4d] group-hover/store:bg-[#004d4d] group-hover/store:text-white transition-all">
-                            <span>Ver tienda online</span>
-                            <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                                className="flex items-center justify-center"
-                            >
-                                <Globe size={14} />
-                            </motion.div>
+                    
+                    <button 
+                        onClick={handleStoreClick}
+                        className="mt-4 group/conic relative w-full p-[1.5px] overflow-hidden rounded-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(0,242,255,0.2)]"
+                    >
+                        {/* Rotating Conic Gradient Border */}
+                        <div 
+                            className="absolute inset-[-200%] bg-[conic-gradient(from_0deg,#00F2FF_0deg,#004d4d_90deg,#9333EA_180deg,#004d4d_270deg,#00F2FF_360deg)] animate-[spin_4s_linear_infinite] opacity-100 group-hover/conic:animate-[spin_2s_linear_infinite]"
+                        />
+
+                        {/* Inner Light Glass Body */}
+                        <div className="relative flex items-center justify-center w-full py-4 px-6 bg-white/80 backdrop-blur-2xl rounded-[calc(1rem-1.5px)] transition-all duration-500 group-hover/conic:bg-white/95">
+                            <span className="relative z-10 text-[10px] font-black uppercase tracking-[0.25em] text-[#004d4d] flex items-center gap-2 group-hover/conic:text-black transition-colors">
+                                <ExternalLink size={14} className="opacity-80" />
+                                Ver tienda online
+                            </span>
                         </div>
-                    </Link>
+
+                        {/* Subtle Outer Glow */}
+                        <div className="absolute inset-0 rounded-2xl border border-white/10 pointer-events-none" />
+                    </button>
                 </div>
             </div>
 
@@ -375,9 +395,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         />
         
         {/* Atmospheric Top Dissolve Mask */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#FAFAFA] via-[#FAFAFA]/90 to-transparent z-[45] pointer-events-none backdrop-blur-[2px]" />
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#FAFAFA] via-[#FAFAFA]/90 to-transparent z-[40] pointer-events-none backdrop-blur-[2px]" />
         
-        <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar bg-transparent relative z-10">
+        <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar bg-transparent relative">
             <div className="pt-4"> {/* Extra safe space for the floating header */}
                 {children}
             </div>

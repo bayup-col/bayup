@@ -87,7 +87,7 @@ export const DashboardHeader = ({
     };
 
     return (
-        <header className="h-24 flex-shrink-0 flex items-center justify-end px-10 sticky top-0 z-[100] pointer-events-none">
+        <header className="h-24 flex-shrink-0 flex items-center justify-end px-10 sticky top-0 z-[50] pointer-events-none">
             <div className="flex items-center pointer-events-auto">
                 
                 {/* Contenedor Único Premium (Bayt, Notificaciones, Avatar) */}

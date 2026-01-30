@@ -30,6 +30,23 @@ import {
 import { GlassyButton } from "@/components/landing/GlassyButton";
 import { ActionButton } from "@/components/landing/ActionButton";
 
+// --- COMPONENTE DE NÚMEROS ANIMADOS ---
+function AnimatedNumber({ value, className, type = 'currency' }: { value: number, className?: string, type?: 'currency' | 'percentage' | 'simple' }) {
+    const { useSpring, useTransform } = require('framer-motion');
+    const spring = useSpring(0, { mass: 0.8, stiffness: 75, damping: 15 });
+    const display = useTransform(spring, (current: number) => {
+        if (type === 'percentage') return `${current.toFixed(1)}%`;
+        if (type === 'simple') return Math.round(current).toLocaleString();
+        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(current);
+    });
+
+    useEffect(() => {
+        spring.set(value);
+    }, [value, spring]);
+
+    return <motion.span className={className}>{display}</motion.span>;
+}
+
 export default function DashboardPage() {
   const { userEmail, token } = useAuth();
   
@@ -302,9 +319,11 @@ export default function DashboardPage() {
                 <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ventas Netas</p>
                     <div className="flex items-end gap-3 mt-1">
-                        <h3 className="text-4xl font-black italic text-[#001A1A] tracking-tighter">$1.250k</h3>
+                        <h3 className="text-4xl font-black italic text-[#001A1A] tracking-tighter">
+                            <AnimatedNumber value={1250000} />
+                        </h3>
                         <span className="mb-1 text-xs font-black text-emerald-500 flex items-center gap-0.5">
-                            <TrendingUp size={12} /> 15%
+                            <TrendingUp size={12} /> <AnimatedNumber value={15} type="percentage" />
                         </span>
                     </div>
                 </div>
@@ -312,11 +331,15 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 gap-6 pt-6 border-t border-gray-100">
                     <div>
                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Ticket Prom.</p>
-                        <p className="text-lg font-black text-[#004d4d] tracking-tight">$85.400</p>
+                        <p className="text-lg font-black text-[#004d4d] tracking-tight">
+                            <AnimatedNumber value={85400} />
+                        </p>
                     </div>
                     <div>
                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Conversión</p>
-                        <p className="text-lg font-black text-[#004d4d] tracking-tight">4.8%</p>
+                        <p className="text-lg font-black text-[#004d4d] tracking-tight">
+                            <AnimatedNumber value={4.8} type="percentage" />
+                        </p>
                     </div>
                 </div>
             </div>
@@ -369,25 +392,27 @@ export default function DashboardPage() {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 whileInView={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: idx * 0.1 }}
-                                className="p-6 bg-white/5 rounded-[2.5rem] border border-white/5 hover:bg-white/10 hover:border-[#00F2FF]/30 transition-all group/item cursor-pointer flex flex-col justify-between min-h-[180px]"
+                                className="p-6 bg-white/5 rounded-[2.5rem] border border-white/5 hover:bg-white hover:border-white transition-all group/item cursor-pointer flex flex-col justify-between min-h-[180px]"
                             >
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-start">
-                                        <span className="text-[9px] font-black text-[#00F2FF] bg-[#00F2FF]/10 px-2 py-1 rounded-lg uppercase tracking-widest border border-[#00F2FF]/20">Demand</span>
-                                        <TrendingUp size={14} className="text-emerald-400" />
+                                        <span className="text-[9px] font-black text-[#00F2FF] bg-[#00F2FF]/10 px-2 py-1 rounded-lg uppercase tracking-widest border border-[#00F2FF]/20 group-hover/item:text-[#004d4d] group-hover/item:border-[#004d4d]/20 group-hover/item:bg-[#004d4d]/5 transition-colors">Demand</span>
+                                        <TrendingUp size={14} className="text-emerald-400 group-hover/item:text-[#004d4d] transition-colors" />
                                     </div>
-                                    <p className="text-sm font-black text-white uppercase tracking-tight line-clamp-2">{opp.term}</p>
+                                    <p className="text-sm font-black text-white uppercase tracking-tight line-clamp-2 group-hover/item:text-[#004d4d] transition-colors">{opp.term}</p>
                                     <div className="flex items-center gap-2">
-                                        <Users size={12} className="text-white/40" />
-                                        <span className="text-[10px] font-bold text-white/60">{opp.volume} búsquedas</span>
+                                        <Users size={12} className="text-white/40 group-hover/item:text-[#004d4d]/40 transition-colors" />
+                                        <span className="text-[10px] font-bold text-white/60 group-hover/item:text-[#004d4d]/60 transition-colors">{opp.volume} búsquedas</span>
                                     </div>
                                 </div>
-                                <div className="mt-6 pt-4 border-t border-white/5 space-y-3">
+                                <div className="mt-6 pt-4 border-t border-white/5 group-hover/item:border-[#004d4d]/5 transition-colors space-y-3">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[8px] font-black text-white/30 uppercase">Potencial</span>
-                                        <span className="text-xs font-black text-emerald-400">+{formatCurrency(opp.potential)}</span>
+                                        <span className="text-[8px] font-black text-white/30 uppercase group-hover/item:text-[#004d4d]/30 transition-colors">Potencial</span>
+                                        <span className="text-xs font-black text-emerald-400 group-hover/item:text-[#004d4d] transition-colors">
+                                            +<AnimatedNumber value={opp.potential} />
+                                        </span>
                                     </div>
-                                    <button className="w-full py-2 bg-white/5 text-white text-[8px] font-black uppercase tracking-widest rounded-lg group-hover/item:bg-[#00F2FF] group-hover/item:text-[#001A1A] transition-all">
+                                    <button className="w-full py-2 bg-white/5 text-white text-[8px] font-black uppercase tracking-widest rounded-lg group-hover/item:bg-[#004d4d] group-hover/item:text-white transition-all">
                                         {opp.action.split(' ')[0]}
                                     </button>
                                 </div>
@@ -426,7 +451,9 @@ export default function DashboardPage() {
                     {pendingPayment ? (
                         <div>
                             <h4 className="text-xl font-black text-[#001A1A] leading-tight">{pendingPayment.description}</h4>
-                            <p className="text-2xl font-black text-rose-600 mt-2 tracking-tight">${pendingPayment.amount.toLocaleString()}</p>
+                            <p className="text-2xl font-black text-rose-600 mt-2 tracking-tight">
+                                <AnimatedNumber value={pendingPayment.amount} />
+                            </p>
                             <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">Vence: {new Date(pendingPayment.due_date).toLocaleDateString()}</p>
                         </div>
                     ) : (
@@ -444,7 +471,9 @@ export default function DashboardPage() {
                     {pendingCollection ? (
                         <div>
                             <h4 className="text-xl font-black text-[#001A1A] leading-tight">{pendingCollection.client_name}</h4>
-                            <p className="text-2xl font-black text-emerald-600 mt-2 tracking-tight">${pendingCollection.amount.toLocaleString()}</p>
+                            <p className="text-2xl font-black text-emerald-600 mt-2 tracking-tight">
+                                <AnimatedNumber value={pendingCollection.amount} />
+                            </p>
                             <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">Estimado: {new Date(pendingCollection.due_date).toLocaleDateString()}</p>
                         </div>
                     ) : (

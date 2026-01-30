@@ -92,6 +92,10 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
         tenant_id=tenant_id,
         customer_name=order.customer_name,
         customer_email=order.customer_email,
+        customer_phone=order.customer_phone,
+        customer_type=order.customer_type,
+        source=order.source,
+        payment_method=order.payment_method,
         seller_name=order.seller_name
     )
     db.add(db_order)
