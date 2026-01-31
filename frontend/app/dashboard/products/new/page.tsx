@@ -27,7 +27,8 @@ import {
   Clock,
   User,
   Smartphone,
-  Star
+  Star,
+  ChevronDown
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -42,6 +43,42 @@ export default function NewProductPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [activeTab, setActiveTab] = useState<'info' | 'financial' | 'variants'>('info');
     
+    // Estados para Categorías y Guía
+    const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+    const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState("");
+    const [categoriesList, setCategoriesList] = useState(['General', 'Ropa', 'Calzado', 'Tecnología', 'Hogar', 'Deportes', 'Belleza']);
+    
+    const [isEditorGuideOpen, setIsEditorGuideOpen] = useState(false);
+    const [activeEditorGuideTab, setActiveEditorGuideTab] = useState('info');
+
+    const editorGuideContent = {
+        info: {
+            title: 'Información General',
+            icon: <Info size={20}/>,
+            color: 'text-blue-500',
+            howItWorks: 'Aquí defines la identidad visual y textual de tu producto. El título y la descripción son clave para el SEO en tu tienda.',
+            example: 'Título: "Zapatillas Urbanas Pro". Descripción: Enfócate en beneficios, no solo en características.',
+            tip: 'Usa palabras clave que tus clientes buscarían en Google o Instagram para aparecer en los primeros resultados.'
+        },
+        financial: {
+            title: 'Finanzas y PVP',
+            icon: <DollarSign size={20}/>,
+            color: 'text-emerald-600',
+            howItWorks: 'Nuestro motor calcula tu utilidad real descontando comisiones de plataforma e impuestos de pasarela automáticamente.',
+            example: 'Si tu costo es $100 y vendes en $200, te mostraremos cuánto te queda libre tras el fee de Bayup.',
+            tip: 'Activa la casilla de "Pasarela" si quieres que el cliente asuma el costo financiero de la transacción digital.'
+        },
+        variants: {
+            title: 'Variantes y Stock',
+            icon: <Layers size={20}/>,
+            color: 'text-cyan-600',
+            howItWorks: 'Gestiona múltiples versiones de un mismo producto (Colores, Tallas, Materiales) con SKUs independientes.',
+            example: 'Crea una variante "Azul / L" y otra "Azul / M" para llevar un control exacto de lo que tienes en bodega.',
+            tip: 'Asigna siempre un SKU único. Esto es vital para sincronizar con Mercado Libre o Shopify en el futuro.'
+        }
+    };
+
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -59,7 +96,7 @@ export default function NewProductPage() {
 
     const [images, setImages] = useState<{file?: File, preview: string}[]>([]);
 
-    // Cálculos (Coherentes con Facturación)
+    // Cálculos
     const platformCommission = 2.5;
     const gatewayFee = formData.add_gateway_fee ? (formData.price * 0.035) : 0;
     const platformFee = formData.price * (platformCommission / 100);
@@ -97,7 +134,7 @@ export default function NewProductPage() {
 
     return (
         <div className="fixed inset-0 z-[1000] bg-white flex flex-col lg:flex-row overflow-hidden font-sans">
-            {/* --- BOTÓN CERRAR (Estilo POS) --- */}
+            {/* --- BOTÓN CERRAR --- */}
             <motion.button 
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
@@ -107,34 +144,59 @@ export default function NewProductPage() {
                 <X size={20} />
             </motion.button>
 
-            {/* --- LADO IZQUIERDO: FORMULARIO (Estilo POS) --- */}
+            {/* --- LADO IZQUIERDO: FORMULARIO --- */}
             <motion.div 
                 initial={{ x: -100, opacity: 0 }} 
                 animate={{ x: 0, opacity: 1 }}
                 className="w-full lg:w-[55%] h-full flex flex-col bg-[#FAFAFA] border-r border-gray-100 overflow-y-auto custom-scrollbar p-12 lg:p-20 space-y-12"
             >
-                <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <span className="h-2 w-2 rounded-full bg-[#00F2FF] animate-pulse"></span>
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Editor de Catálogo</span>
+                <header className="flex flex-col md:flex-row items-center justify-between gap-8">
+                    <div>
+                        <div className="flex items-center gap-3 mb-1">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#00F2FF] animate-pulse"></span>
+                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Editor de Catálogo</span>
+                        </div>
+                        <h2 className="text-4xl font-black italic uppercase text-[#001A1A] tracking-tighter">
+                            Crear <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF]">Producto</span>
+                        </h2>
                     </div>
-                    <h2 className="text-4xl font-black italic uppercase text-[#001A1A]">
-                        Crear <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF]">Producto</span>
-                    </h2>
-                </div>
 
-                {/* Tabs de Configuración */}
-                <div className="flex bg-white p-1 rounded-2xl border border-gray-100 shadow-sm w-fit">
-                    {(['info', 'financial', 'variants'] as const).map((tab) => (
-                        <button 
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-[#004D4D] text-white shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}
+                    <div className="flex items-center gap-4">
+                        {/* Menú de Pestañas más Pequeño */}
+                        <div className="p-1 bg-white border border-[#0a3d42]/5 rounded-full shadow-lg flex items-center relative z-10">
+                            {(['info', 'financial', 'variants'] as const).map((tab) => {
+                                const isActive = activeTab === tab;
+                                return (
+                                    <button 
+                                        key={tab}
+                                        type="button"
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`relative px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all duration-300 z-10 ${isActive ? 'text-white' : 'text-gray-400 hover:text-[#004D4D]'}`}
+                                    >
+                                        {isActive && (
+                                            <motion.div 
+                                                layoutId="activeEditorTab" 
+                                                className="absolute inset-0 bg-[#004D4D] rounded-full shadow-md -z-10" 
+                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} 
+                                            />
+                                        )}
+                                        {tab === 'info' ? 'Información' : tab === 'financial' ? 'Finanzas' : 'Variantes'}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Botón Info Separado */}
+                        <motion.button 
+                            whileHover={{ scale: 1.1, backgroundColor: "#004D4D", color: "#fff" }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => setIsEditorGuideOpen(true)}
+                            className="h-10 w-10 rounded-full bg-white border border-[#0a3d42]/10 flex items-center justify-center text-[#004D4D] transition-all shadow-md group"
                         >
-                            {tab === 'info' ? 'Información' : tab === 'financial' ? 'Finanzas' : 'Variantes'}
-                        </button>
-                    ))}
-                </div>
+                            <Info size={18} className="group-hover:animate-pulse" />
+                        </motion.button>
+                    </div>
+                </header>
 
                 <AnimatePresence mode="wait">
                     {activeTab === 'info' && (
@@ -142,7 +204,7 @@ export default function NewProductPage() {
                             <section className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
                                 <div className="space-y-6">
                                     <div className="space-y-2">
-                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Comercial</label>
+                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">TITULO DEL PRODUCTO</label>
                                         <input 
                                             value={formData.name} 
                                             onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -151,21 +213,62 @@ export default function NewProductPage() {
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-8">
-                                        <div className="space-y-2">
+                                        <div className="space-y-2 relative">
                                             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Categoría</label>
-                                            <select 
-                                                value={formData.category}
-                                                onChange={(e) => setFormData({...formData, category: e.target.value})}
-                                                className="w-full px-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner appearance-none cursor-pointer"
+                                            <button 
+                                                type="button"
+                                                onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                                                className="w-full px-6 py-5 bg-gray-50 border border-transparent rounded-2xl text-left text-sm font-bold shadow-inner flex items-center justify-between hover:bg-white hover:border-[#004D4D]/20 transition-all"
                                             >
-                                                <option value="General">General</option>
-                                                <option value="Ropa">Ropa</option>
-                                                <option value="Calzado">Calzado</option>
-                                                <option value="Tecnología">Tecnología</option>
-                                            </select>
+                                                <span className={formData.category ? "text-[#004D4D]" : "text-gray-300"}>
+                                                    {formData.category || "Seleccionar..."}
+                                                </span>
+                                                <ChevronDown size={16} className={`transition-transform duration-300 ${isCategoryOpen ? 'rotate-180' : ''}`} />
+                                            </button>
+
+                                            <AnimatePresence>
+                                                {isCategoryOpen && (
+                                                    <>
+                                                        <div className="fixed inset-0 z-[100]" onClick={() => setIsCategoryOpen(false)} />
+                                                        <motion.div 
+                                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                            className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 z-[110] overflow-hidden flex flex-col"
+                                                        >
+                                                            <div className="max-h-[240px] overflow-y-auto custom-scrollbar p-2">
+                                                                {categoriesList.map((cat) => (
+                                                                    <button 
+                                                                        key={cat}
+                                                                        onClick={() => {
+                                                                            setFormData({...formData, category: cat});
+                                                                            setIsCategoryOpen(false);
+                                                                        }}
+                                                                        className={`w-full text-left px-5 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${formData.category === cat ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+                                                                    >
+                                                                        {cat}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                            <div className="p-2 bg-slate-50 border-t border-slate-100">
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setIsNewCategoryModalOpen(true);
+                                                                        setIsCategoryOpen(false);
+                                                                    }}
+                                                                    className="w-full flex items-center justify-center gap-2 py-3 bg-white border border-slate-200 rounded-xl text-[9px] font-black uppercase text-[#004D4D] hover:bg-[#004D4D] hover:text-white transition-all shadow-sm"
+                                                                >
+                                                                    <Plus size={14}/> Crear Nueva
+                                                                </button>
+                                                            </div>
+                                                        </motion.div>
+                                                    </>
+                                                )}
+                                            </AnimatePresence>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Estado</label>
+                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Estado de Publicación</label>
                                             <div className="flex bg-gray-50 p-1 rounded-2xl shadow-inner h-14">
                                                 <button onClick={() => setFormData({...formData, status: 'active'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase transition-all ${formData.status === 'active' ? 'bg-[#004D4D] text-white shadow-md' : 'text-gray-400'}`}>Activo</button>
                                                 <button onClick={() => setFormData({...formData, status: 'draft'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase transition-all ${formData.status === 'draft' ? 'bg-[#004D4D] text-white shadow-md' : 'text-gray-400'}`}>Borrador</button>
@@ -239,7 +342,6 @@ export default function NewProductPage() {
                                         </label>
                                     </div>
 
-                                    {/* Panel de Rentabilidad (Estilo Facturación) */}
                                     <div className="bg-[#004D4D] rounded-[3rem] p-10 text-white flex flex-col justify-center relative overflow-hidden">
                                         <div className="absolute top-0 right-0 w-48 h-48 bg-[#00F2FF]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                                         <div className="relative z-10 space-y-6">
@@ -283,6 +385,7 @@ export default function NewProductPage() {
                                         <Layers size={18} /> Gestión de Variantes
                                     </h3>
                                     <button 
+                                        type="button"
                                         onClick={() => setVariants([...variants, { name: '', sku: '', stock: 0, price_adjustment: 0 }])}
                                         className="bg-[#004D4D]/5 hover:bg-[#004D4D] hover:text-white text-[#004D4D] px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm"
                                     >
@@ -333,6 +436,7 @@ export default function NewProductPage() {
                                             </div>
                                             {variants.length > 1 && (
                                                 <button 
+                                                    type="button"
                                                     onClick={() => setVariants(variants.filter((_, idx) => idx !== index))}
                                                     className="h-11 w-11 flex items-center justify-center bg-white border border-rose-100 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm"
                                                 >
@@ -347,9 +451,9 @@ export default function NewProductPage() {
                     )}
                 </AnimatePresence>
 
-                {/* --- FOOTER DE ACCIÓN --- */}
                 <div className="pt-10 flex items-center justify-between border-t border-gray-100 pb-20">
                     <button 
+                        type="button"
                         onClick={() => router.back()}
                         className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#004D4D] transition-colors"
                     >
@@ -357,12 +461,14 @@ export default function NewProductPage() {
                     </button>
                     <div className="flex gap-4">
                         <button 
+                            type="button"
                             onClick={() => { setFormData({...formData, status: 'draft'}); handleSave(); }}
                             className="px-10 py-5 bg-white border border-gray-100 text-[#004D4D] rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest shadow-sm hover:shadow-lg transition-all"
                         >
                             Guardar Borrador
                         </button>
                         <button 
+                            type="button"
                             onClick={handleSave}
                             disabled={isSubmitting || !formData.name}
                             className={`px-14 py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl transition-all ${isSubmitting || !formData.name ? 'bg-gray-200 text-gray-400' : 'bg-[#004D4D] text-white hover:bg-black shadow-[#004D4D]/20'}`}
@@ -373,15 +479,13 @@ export default function NewProductPage() {
                 </div>
             </motion.div>
 
-            {/* --- LADO DERECHO: VISTA PREVIA (Estilo "Recibo" de Facturación) --- */}
+            {/* --- LADO DERECHO: VISTA PREVIA --- */}
             <motion.div 
                 initial={{ y: 200, opacity: 0 }} 
                 animate={{ y: 0, opacity: 1 }}
                 className="w-full lg:w-[45%] h-full bg-[#E5E7EB] p-12 lg:p-20 flex items-center justify-center relative"
             >
-                {/* Product Card "Digital Twin" */}
                 <div className="w-full max-w-lg bg-white shadow-2xl rounded-[3.5rem] flex flex-col h-[calc(100vh-160px)] overflow-hidden border border-white relative group">
-                    {/* Header Card (Estilo Recibo) */}
                     <div className="bg-[#004D4D] p-10 text-white flex justify-between items-start shrink-0 z-20">
                         <div className="flex items-center gap-6">
                             <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
@@ -400,23 +504,19 @@ export default function NewProductPage() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar bg-white p-10 space-y-10">
-                        {/* Imagen Principal */}
-                        <div className="aspect-square w-full rounded-[2.5rem] bg-gray-50 border border-gray-100 overflow-hidden shadow-inner flex items-center justify-center relative group/img">
+                        <div className="aspect-square w-full rounded-[2.5rem] bg-gray-50 border border-gray-100 overflow-hidden shadow-inner flex items-center justify-center relative">
                             {images.length > 0 ? (
-                                <img src={images[0].preview} className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-110" />
+                                <img src={images[0].preview} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Preview" />
                             ) : (
                                 <ImageIcon size={40} className="text-gray-200" />
                             )}
-                            <div className="absolute top-6 right-6 flex flex-col gap-2">
-                                <div className="h-10 w-10 rounded-xl bg-white/90 backdrop-blur-md flex items-center justify-center shadow-lg text-[#004D4D]"><Star size={18} fill="#004D4D" /></div>
-                            </div>
+                            <div className="absolute top-6 right-6 h-10 w-10 rounded-xl bg-white/90 backdrop-blur-md flex items-center justify-center shadow-lg text-[#004D4D]"><Star size={18} fill="#004D4D" /></div>
                         </div>
 
-                        {/* Detalles */}
                         <div className="space-y-6">
                             <div className="flex justify-between items-start">
                                 <div className="space-y-1">
-                                    <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Catálogo {formData.category}</p>
+                                    <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">{formData.category}</p>
                                     <h3 className="text-2xl font-black text-gray-900 tracking-tighter leading-tight">{formData.name || 'Sin nombre'}</h3>
                                 </div>
                                 <div className="text-right">
@@ -448,26 +548,183 @@ export default function NewProductPage() {
                         </div>
                     </div>
 
-                    {/* Footer Card "CTA Preview" */}
                     <div className="p-10 pt-0 bg-white">
                         <div className="bg-[#004D4D]/5 p-6 rounded-[2rem] border border-[#004D4D]/10 flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 bg-[#004D4D] rounded-xl flex items-center justify-center text-white shadow-lg">
-                                    <ShoppingBag size={18} />
-                                </div>
+                                <div className="h-10 w-10 bg-[#004D4D] rounded-xl flex items-center justify-center text-white shadow-lg"><ShoppingBag size={18} /></div>
                                 <span className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Vista Tienda Online</span>
                             </div>
                             <ArrowUpRight size={18} className="text-[#004D4D]/30" />
                         </div>
                     </div>
                 </div>
-
-                {/* Badge Flotante "Live Preview" */}
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/90 backdrop-blur-md px-6 py-2.5 rounded-full shadow-xl border border-white">
-                    <div className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse"></div>
-                    <span className="text-[9px] font-black text-gray-900 uppercase tracking-widest">Live Sync Preview</span>
-                </div>
             </motion.div>
+
+            {/* --- MODAL GUÍA DE MAESTRÍA --- */}
+            <AnimatePresence>
+                {isEditorGuideOpen && (
+                    <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setIsEditorGuideOpen(false)}
+                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+                        />
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95, y: 30 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 30 }}
+                            className="relative bg-white w-full max-w-4xl h-[70vh] rounded-[3rem] shadow-2xl overflow-hidden border border-white flex flex-col md:flex-row"
+                        >
+                            <div className="w-full md:w-64 bg-slate-50 border-r border-slate-100 p-6 flex flex-col gap-2 overflow-y-auto">
+                                <div className="mb-6">
+                                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#004D4D]">Guía de Creación</h3>
+                                    <p className="text-[10px] text-slate-400 font-bold mt-1">Maestría de Catálogo</p>
+                                </div>
+                                {Object.entries(editorGuideContent).map(([key, item]) => (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        onClick={() => setActiveEditorGuideTab(key)}
+                                        className={`flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${activeEditorGuideTab === key ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:bg-white hover:shadow-sm'}`}
+                                    >
+                                        <div className={`${activeEditorGuideTab === key ? 'text-white' : item.color}`}>
+                                            {item.icon}
+                                        </div>
+                                        <span className="text-[10px] font-black uppercase tracking-wide">{item.title}</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="flex-1 flex flex-col overflow-hidden bg-white">
+                                <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white/50 backdrop-blur-sm sticky top-0">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center ${editorGuideContent[activeEditorGuideTab as keyof typeof editorGuideContent].color}`}>
+                                            {editorGuideContent[activeEditorGuideTab as keyof typeof editorGuideContent].icon}
+                                        </div>
+                                        <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">
+                                            {editorGuideContent[activeEditorGuideTab as keyof typeof editorGuideContent].title}
+                                        </h2>
+                                    </div>
+                                    <button type="button" onClick={() => setIsEditorGuideOpen(false)} className="h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
+                                        <X size={20}/>
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar">
+                                    <section>
+                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                            <div className="h-1 w-4 bg-[#004D4D] rounded-full"></div> ¿Cómo configurar esto?
+                                        </h4>
+                                        <p className="text-sm font-medium text-slate-600 leading-relaxed bg-slate-50 p-6 rounded-[2rem] border border-slate-100 shadow-inner">
+                                            {editorGuideContent[activeEditorGuideTab as keyof typeof editorGuideContent].howItWorks}
+                                        </p>
+                                    </section>
+
+                                    <div className="grid md:grid-cols-2 gap-8">
+                                        <section className="space-y-4">
+                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <Box size={14} className="text-blue-500"/> Recomendación
+                                            </h4>
+                                            <div className="p-6 bg-blue-50/30 border border-blue-100 rounded-[2rem]">
+                                                <p className="text-xs font-medium text-blue-900 leading-relaxed italic">
+                                                    "{editorGuideContent[activeEditorGuideTab as keyof typeof editorGuideContent].example}"
+                                                </p>
+                                            </div>
+                                        </section>
+
+                                        <section className="space-y-4">
+                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <Zap size={14} className="text-amber-500"/> Bayup Pro-Tip
+                                            </h4>
+                                            <div className="p-6 bg-amber-50/30 border border-amber-100 rounded-[2rem]">
+                                                <p className="text-xs font-bold text-amber-900 leading-relaxed">
+                                                    {editorGuideContent[activeEditorGuideTab as keyof typeof editorGuideContent].tip}
+                                                </p>
+                                            </div>
+                                        </section>
+                                    </div>
+                                </div>
+
+                                <div className="p-8 border-t border-slate-50 flex justify-end bg-slate-50/30">
+                                    <button 
+                                        type="button"
+                                        onClick={() => setIsEditorGuideOpen(false)}
+                                        className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-900/10 hover:bg-black transition-all"
+                                    >
+                                        Entendido, continuar edición
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* --- MODAL CREAR NUEVA CATEGORÍA --- */}
+            <AnimatePresence>
+                {isNewCategoryModalOpen && (
+                    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setIsNewCategoryModalOpen(false)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl"
+                        />
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative bg-white w-full max-w-md rounded-[3rem] shadow-2xl p-10 border border-white"
+                        >
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="h-12 w-12 rounded-2xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D]">
+                                    <Layers size={24}/>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tighter">Nueva Categoría</h3>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Organiza tu inventario</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre de la Familia</label>
+                                    <input 
+                                        autoFocus
+                                        value={newCategoryName}
+                                        onChange={(e) => setNewCategoryName(e.target.value)}
+                                        placeholder="Ej: Accesorios Premium"
+                                        className="w-full px-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner transition-all"
+                                    />
+                                </div>
+
+                                <div className="flex gap-3 pt-4">
+                                    <button 
+                                        type="button"
+                                        onClick={() => setIsNewCategoryModalOpen(false)}
+                                        className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        disabled={!newCategoryName.trim()}
+                                        onClick={() => {
+                                            setCategoriesList([...categoriesList, newCategoryName.trim()]);
+                                            setFormData({...formData, category: newCategoryName.trim()});
+                                            setNewCategoryName("");
+                                            setIsNewCategoryModalOpen(false);
+                                            showToast("Categoría creada y seleccionada", "success");
+                                        }}
+                                        className="flex-[2] py-4 bg-[#004D4D] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[#004D4D]/20 disabled:opacity-50"
+                                    >
+                                        Crear Categoría
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

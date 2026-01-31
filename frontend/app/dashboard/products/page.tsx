@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
 import { motion, AnimatePresence, useSpring, useTransform, useMotionValue } from 'framer-motion';
 import { InteractiveUP } from '@/components/landing/InteractiveUP';
+import { PremiumButton } from '@/components/landing/PremiumButton';
 import { 
   Package, 
   Search, 
@@ -263,14 +264,9 @@ export default function ProductsPage() {
                         </p>
                     </div>
                     <div className="flex gap-4">
-                        <motion.button 
-                            whileHover={{ scale: 1.05, backgroundColor: "#4fffcb", color: "#004D4D" }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => router.push('/dashboard/products/new')} 
-                            className="px-12 py-6 bg-gray-900 text-white rounded-[2.2rem] font-black text-[11px] uppercase tracking-[0.4em] shadow-2xl transition-all flex items-center gap-3 hover:shadow-[#4fffcb]/20"
-                        >
+                        <PremiumButton onClick={() => router.push('/dashboard/products/new')}>
                             <Plus size={18} /> Nuevo Producto
-                        </motion.button>
+                        </PremiumButton>
                     </div>
                 </motion.div>
 

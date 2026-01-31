@@ -25,6 +25,7 @@ const config: Config = {
         "scanline": "scanline 10s linear infinite",
         "float": "float 6s ease-in-out infinite",
         "aurora-border": "aurora-border 6s linear infinite",
+        "aurora": "aurora-border 4s linear infinite",
       },
       keyframes: {
         scanline: {
