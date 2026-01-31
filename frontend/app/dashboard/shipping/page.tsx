@@ -118,20 +118,67 @@ export default function ShippingPage() {
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<'all' | ShippingStatus>('all');
+  
+  const carriers = ['Servientrega', 'Coordinadora', 'Envia', 'Interrapidisimo', 'FedEx', 'DHL'];
+
+  // --- Nuevos Estados de Filtros y UI ---
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
+  const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
+  const [isFilterHovered, setIsFilterHovered] = useState(false);
+  const [isDateHovered, setIsDateHovered] = useState(false);
+  const [isExportHovered, setIsExportHovered] = useState(false);
+  const [dateRangeState, setDateRangeState] = useState({ from: '', to: '' });
+  const [advancedFilters, setAdvancedFilters] = useState({ carrier: 'all', status: 'all' });
 
   // --- Lógica de Filtrado ---
   const filteredShipments = useMemo(() => {
     return shipments.filter(shp => {
       const matchesSearch = 
-        shp.tracking_number.includes(searchTerm) || 
+        shp.tracking_number.toLowerCase().includes(searchTerm.toLowerCase()) || 
         shp.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         shp.id.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesStatus = activeTab === 'all' || shp.status === activeTab;
+      const matchesTab = activeTab === 'all' || shp.status === activeTab;
       
-      return matchesSearch && matchesStatus;
+      const matchesCarrier = advancedFilters.carrier === 'all' || shp.carrier === advancedFilters.carrier;
+      const matchesAdvancedStatus = advancedFilters.status === 'all' || shp.status === advancedFilters.status;
+
+      let matchesDate = true;
+      if (dateRangeState.from && dateRangeState.to) {
+          const shpDate = new Date(shp.last_update).toISOString().split('T')[0];
+          matchesDate = shpDate >= dateRangeState.from && shpDate <= dateRangeState.to;
+      }
+      
+      return matchesSearch && matchesTab && matchesCarrier && matchesAdvancedStatus && matchesDate;
     });
-  }, [shipments, searchTerm, activeTab]);
+  }, [shipments, searchTerm, activeTab, advancedFilters, dateRangeState]);
+
+  // --- Funciones de Acción ---
+  const handleDatePreset = (preset: 'today' | 'yesterday' | 'week' | 'month') => {
+      const today = new Date();
+      const formatDate = (d: Date) => d.toISOString().split('T')[0];
+      let start = new Date();
+      let end = new Date();
+      if (preset === 'yesterday') { start.setDate(today.getDate() - 1); end.setDate(today.getDate() - 1); }
+      else if (preset === 'week') { start.setDate(today.getDate() - 7); }
+      else if (preset === 'month') { start = new Date(today.getFullYear(), today.getMonth(), 1); }
+      setDateRangeState({ from: formatDate(start), to: formatDate(end) });
+  };
+
+  const handleExportExcel = () => {
+    if (shipments.length === 0) { showToast("No hay datos para exportar", "info"); return; }
+    const styles = `<style>.header { background-color: #004D4D; color: #ffffff; font-weight: bold; text-align: center; }.cell { border: 1px solid #e2e8f0; padding: 8px; font-family: sans-serif; font-size: 12px; }.title { font-size: 20px; font-weight: bold; color: #004D4D; }</style>`;
+    let tableHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8">${styles}</head><body><table><tr><td colspan="7" class="title">BAYUP - REPORTE DE ENVÍOS ELITE</td></tr><thead><tr class="header"><th>ID ENVÍO</th><th>PEDIDO</th><th>CLIENTE</th><th>TRANSPORTADORA</th><th>GUÍA</th><th>ESTADO</th><th>ÚLTIMA ACT.</th></tr></thead><tbody>`;
+    shipments.forEach(s => {
+        tableHtml += `<tr><td class="cell">${s.id}</td><td class="cell">${s.order_id}</td><td class="cell">${s.customer.name}</td><td class="cell">${s.carrier}</td><td class="cell">${s.tracking_number}</td><td class="cell">${s.status}</td><td class="cell">${s.last_update}</td></tr>`;
+    });
+    tableHtml += `</tbody></table></body></html>`;
+    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a"); link.href = url; link.download = `Reporte_Envios_Bayup.xls`; link.click();
+    showToast("Excel logístico generado con éxito", "success");
+  };
 
   const getStatusInfo = (status: ShippingStatus) => {
     switch (status) {
@@ -229,9 +276,117 @@ export default function ShippingPage() {
                       className="w-full pl-11 pr-4 py-3 bg-transparent text-sm font-medium outline-none"
                     />
                  </div>
-                 <div className="flex items-center gap-2">
-                     <button className="p-3 text-slate-500 hover:text-[#004D4D] hover:bg-slate-50 rounded-xl transition-colors"><Filter size={18}/></button>
-                     <button className="p-3 text-slate-500 hover:text-[#004D4D] hover:bg-slate-50 rounded-xl transition-colors"><Download size={18}/></button>
+                 
+                 <div className="flex items-center gap-1 relative">
+                     {/* Overlay de Cierre */}
+                     {(isFilterMenuOpen || isDateMenuOpen) && <div className="fixed inset-0 z-40" onClick={() => { setIsFilterMenuOpen(false); setIsDateMenuOpen(false); }} />}
+
+                     {/* Botón Filtros */}
+                     <div className="relative z-50">
+                        <motion.button 
+                            layout
+                            onMouseEnter={() => setIsFilterHovered(true)}
+                            onMouseLeave={() => setIsFilterHovered(false)}
+                            onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setIsDateMenuOpen(false); }}
+                            className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isFilterMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white border border-slate-100 text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
+                        >
+                            <motion.div layout><Filter size={18}/></motion.div>
+                            <AnimatePresence mode="popLayout">
+                                {isFilterHovered && (
+                                    <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Filtro</motion.span>
+                                )}
+                            </AnimatePresence>
+                        </motion.button>
+                        
+                        <AnimatePresence>
+                            {isFilterMenuOpen && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: filteredShipments.length === 0 ? -10 : 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: filteredShipments.length === 0 ? -10 : 10, scale: 0.95 }}
+                                    className={`absolute ${filteredShipments.length === 0 ? 'bottom-full mb-4' : 'top-full mt-2'} right-0 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 w-[280px] z-50 origin-top-right overflow-hidden`}
+                                >
+                                    <div className="flex flex-col">
+                                        {[
+                                            { id: 'transp', label: 'Transportadora', icon: <Truck size={16}/>, options: ['all', ...carriers], key: 'carrier' },
+                                            { id: 'est', label: 'Estado Detallado', icon: <Activity size={16}/>, options: ['all', 'label_generated', 'in_transit', 'out_for_delivery', 'delivered', 'incident'], key: 'status' }
+                                        ].map((s) => (
+                                            <div key={s.id} className="border-b border-slate-50 last:border-none">
+                                                <button onClick={() => setActiveAccordion(activeAccordion === s.id ? null : s.id)} className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors text-left">
+                                                    <div className="flex items-center gap-3"><div className={`p-2 rounded-lg ${activeAccordion === s.id ? 'bg-[#004D4D] text-white' : 'bg-slate-100 text-slate-500'}`}>{s.icon}</div><span className="text-[10px] font-black uppercase text-slate-700">{s.label}</span></div>
+                                                    <ChevronRight size={14} className={`text-slate-300 transition-transform ${activeAccordion === s.id ? 'rotate-90' : ''}`}/>
+                                                </button>
+                                                <AnimatePresence>{activeAccordion === s.id && (
+                                                    <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden bg-slate-50/30 px-4 pb-4 flex flex-wrap gap-2 pt-2">
+                                                        {s.options.map(o => (<button key={o} onClick={() => setAdvancedFilters({...advancedFilters, [s.key]: o})} className={`px-3 py-1.5 rounded-xl text-[9px] font-bold uppercase transition-all ${advancedFilters[s.key as keyof typeof advancedFilters] === o ? 'bg-[#004D4D] text-white' : 'bg-white border border-slate-200 text-slate-500'}`}>{o === 'all' ? 'Todos' : o.replace('_', ' ')}</button>))}
+                                                    </motion.div>
+                                                )}</AnimatePresence>
+                                            </div>
+                                        ))}
+                                        <div className="p-4 bg-slate-50"><button onClick={() => { setAdvancedFilters({carrier: 'all', status: 'all'}); setIsFilterMenuOpen(false); }} className="w-full py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase">Limpiar Filtros</button></div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                     </div>
+
+                     {/* Botón Fecha */}
+                     <div className="relative z-50">
+                        <motion.button 
+                            layout
+                            onMouseEnter={() => setIsDateHovered(true)}
+                            onMouseLeave={() => setIsDateHovered(false)}
+                            onClick={() => { setIsDateMenuOpen(!isDateMenuOpen); setIsFilterMenuOpen(false); }}
+                            className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isDateMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
+                        >
+                            <motion.div layout><CalendarIcon size={18}/></motion.div>
+                            <AnimatePresence mode="popLayout">
+                                {isDateHovered && (
+                                    <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Fecha</motion.span>
+                                )}
+                            </AnimatePresence>
+                        </motion.button>
+                        <AnimatePresence>
+                            {isDateMenuOpen && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: filteredShipments.length === 0 ? -10 : 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: filteredShipments.length === 0 ? -10 : 10, scale: 0.95 }}
+                                    className={`absolute ${filteredShipments.length === 0 ? 'bottom-full mb-4' : 'top-full mt-2'} right-0 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 w-[300px] z-50 origin-top-right`}
+                                >
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase">Desde</label><input type="date" value={dateRangeState.from} onChange={e => setDateRangeState({...dateRangeState, from: e.target.value})} className="w-full bg-slate-50 border rounded-xl p-2 text-[10px] font-bold outline-none" /></div>
+                                            <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase">Hasta</label><input type="date" value={dateRangeState.to} onChange={e => setDateRangeState({...dateRangeState, to: e.target.value})} className="w-full bg-slate-50 border rounded-xl p-2 text-[10px] font-bold outline-none" /></div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {['today', 'yesterday', 'week', 'month'].map(p => (<button key={p} onClick={() => handleDatePreset(p as any)} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[9px] font-black uppercase text-slate-500">{p === 'week' ? '7 Días' : p === 'month' ? 'Mes' : p}</button>))}
+                                        </div>
+                                        <div className="pt-4 border-t flex flex-col gap-2">
+                                            <button onClick={() => setIsDateMenuOpen(false)} className="w-full py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase">Aplicar</button>
+                                            <button onClick={() => { setDateRangeState({from: '', to: ''}); setIsDateMenuOpen(false); }} className="w-full py-2 text-slate-400 text-[9px] font-black uppercase">Limpiar</button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                     </div>
+
+                     {/* Botón Exportar */}
+                     <motion.button 
+                        layout
+                        onMouseEnter={() => setIsExportHovered(true)}
+                        onMouseLeave={() => setIsExportHovered(false)}
+                        onClick={handleExportExcel}
+                        className="h-12 flex items-center gap-2 px-4 bg-white border border-slate-100 rounded-2xl text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5 transition-all shadow-sm"
+                     >
+                        <motion.div layout><Download size={18}/></motion.div>
+                        <AnimatePresence mode="popLayout">
+                            {isExportHovered && (
+                                <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Exportar</motion.span>
+                            )}
+                        </AnimatePresence>
+                     </motion.button>
                  </div>
             </div>
         </div>
