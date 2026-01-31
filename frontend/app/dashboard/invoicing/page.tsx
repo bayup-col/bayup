@@ -212,6 +212,9 @@ export default function InvoicingPage() {
     const [advancedFilters, setAdvancedFilters] = useState({ channel: 'all', paymentMethod: 'all' });
     const [dateRange, setDateRange] = useState('Mes');
     const [currentPage, setCurrentPage] = useState(1);
+    const [isFilterHovered, setIsFilterHovered] = useState(false);
+    const [isDateHovered, setIsDateHovered] = useState(false);
+    const [isExportHovered, setIsExportHovered] = useState(false);
     const itemsPerPage = 20;
 
     const handleDatePreset = (preset: 'today' | 'yesterday' | 'week' | 'month') => {
@@ -617,12 +620,20 @@ export default function InvoicingPage() {
 
                                     {/* Botón Filtros */}
                                     <div className="relative z-50">
-                                        <button 
+                                        <motion.button 
+                                            layout
+                                            onMouseEnter={() => setIsFilterHovered(true)}
+                                            onMouseLeave={() => setIsFilterHovered(false)}
                                             onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setIsDateMenuOpen(false); }}
-                                            className={`p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase ${isFilterMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
+                                            className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isFilterMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
                                         >
-                                            <Filter size={18}/> Filtros
-                                        </button>
+                                            <motion.div layout><Filter size={18}/></motion.div>
+                                            <AnimatePresence mode="popLayout">
+                                                {isFilterHovered && (
+                                                    <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Filtro</motion.span>
+                                                )}
+                                            </AnimatePresence>
+                                        </motion.button>
                                         
                                         <AnimatePresence>
                                             {isFilterMenuOpen && (
@@ -712,12 +723,20 @@ export default function InvoicingPage() {
 
                                     {/* Botón Fecha */}
                                     <div className="relative z-50">
-                                        <button 
+                                        <motion.button 
+                                            layout
+                                            onMouseEnter={() => setIsDateHovered(true)}
+                                            onMouseLeave={() => setIsDateHovered(false)}
                                             onClick={() => { setIsDateMenuOpen(!isDateMenuOpen); setIsFilterMenuOpen(false); }}
-                                            className={`p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase ${isDateMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
+                                            className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isDateMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
                                         >
-                                            <Calendar size={18}/> Fecha
-                                        </button>
+                                            <motion.div layout><Calendar size={18}/></motion.div>
+                                            <AnimatePresence mode="popLayout">
+                                                {isDateHovered && (
+                                                    <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Fecha</motion.span>
+                                                )}
+                                            </AnimatePresence>
+                                        </motion.button>
                                         
                                         <AnimatePresence>
                                             {isDateMenuOpen && (
@@ -758,13 +777,21 @@ export default function InvoicingPage() {
                                         </AnimatePresence>
                                     </div>
 
-                                    <button 
+                                    <motion.button 
+                                        layout
+                                        onMouseEnter={() => setIsExportHovered(true)}
+                                        onMouseLeave={() => setIsExportHovered(false)}
                                         onClick={handleExportExcel}
-                                        className="p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5"
+                                        className="h-12 flex items-center gap-2 px-4 rounded-xl transition-all text-xs font-bold uppercase text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5"
                                         title="Exportar a Excel"
                                     >
-                                        <Download size={18}/> Exportar
-                                    </button>
+                                        <motion.div layout><Download size={18}/></motion.div>
+                                        <AnimatePresence mode="popLayout">
+                                            {isExportHovered && (
+                                                <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Exportar</motion.span>
+                                            )}
+                                        </AnimatePresence>
+                                    </motion.button>
                                 </div>
                             </div>
                         </motion.div>

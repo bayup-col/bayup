@@ -13,6 +13,8 @@ import {
   Package, 
   AlertCircle, 
   ArrowUpDown,
+  ArrowUpRight,
+  ArrowDownRight,
   Download,
   RefreshCcw,
   Globe,
@@ -114,6 +116,47 @@ const MOCK_SHIPMENTS: Shipment[] = [
     ]
   }
 ];
+
+// --- KPI CARD (Estándar Premium con 3D Tilt) ---
+const KPICard = ({ title, value, trendValue, icon: Icon, iconColor = "text-[#004D4D]", iconBg = "bg-[#004D4D]/5", valueClassName = "text-gray-900", isCurrency = false }: any) => {
+    const isUp = trendValue >= 0;
+    const x = useMotionValue(0);
+    const y = useMotionValue(0);
+    const mouseXSpring = useSpring(x);
+    const mouseYSpring = useSpring(y);
+    const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["10deg", "-10deg"]);
+    const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-10deg", "10deg"]);
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        x.set((e.clientX - rect.left) / rect.width - 0.5);
+        y.set((e.clientY - rect.top) / rect.height - 0.5);
+    };
+
+    return (
+        <motion.div onMouseMove={handleMouseMove} onMouseLeave={() => {x.set(0); y.set(0);}} style={{ rotateY, rotateX, transformStyle: "preserve-3d" }} className="relative h-full">
+            <div style={{ transform: "translateZ(50px)", transformStyle: "preserve-3d" }} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col justify-between h-full group hover:shadow-2xl hover:shadow-[#004D4D]/10 transition-shadow duration-500">
+                <div style={{ transform: "translateZ(30px)" }} className="flex justify-between items-start mb-6">
+                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 duration-500 ${iconBg} ${iconColor}`}>
+                        <Icon size={24} />
+                    </div>
+                    {trendValue !== undefined && (
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${isUp ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                            {isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                            <span className="text-[10px] font-black">{isUp ? '+' : ''}{trendValue}%</span>
+                        </div>
+                    )}
+                </div>
+                <div style={{ transform: "translateZ(20px)" }}>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">{title}</p>
+                    <h3 className={`text-3xl font-black tracking-tighter ${valueClassName}`}>
+                        {isCurrency ? <AnimatedNumber value={value} /> : <AnimatedNumber value={value} type="simple" />}
+                    </h3>
+                </div>
+            </div>
+        </motion.div>
+    );
+};
 
 export default function ShippingPage() {
   const { showToast } = useToast();
@@ -342,24 +385,12 @@ export default function ShippingPage() {
 
       <main className="px-8 max-w-[1600px] mx-auto space-y-10">
         
-        {/* --- KPI Stats --- */}
+        {/* --- KPI Stats (Estilo Premium) --- */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {[
-                { label: 'Envíos Activos', val: stats.total, icon: <Package/>, color: 'text-slate-600', bg: 'bg-slate-100' },
-                { label: 'En Camino', val: stats.transit, icon: <Truck/>, color: 'text-blue-600', bg: 'bg-blue-50' },
-                { label: 'Entregados', val: stats.delivered, icon: <CheckCircle2/>, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                { label: 'Alertas', val: stats.alerts, icon: <AlertCircle/>, color: 'text-rose-600', bg: 'bg-rose-50' },
-            ].map((stat, i) => (
-                <div key={i} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-6">
-                    <div className={`h-14 w-14 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
-                        {stat.icon}
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                        <h3 className="text-3xl font-black text-slate-900 mt-1"><AnimatedNumber value={stat.val} type="simple" /></h3>
-                    </div>
-                </div>
-            ))}
+            <KPICard title="Envíos Activos" value={stats.total} trendValue={12} icon={Package} iconColor="text-slate-600" iconBg="bg-slate-100" />
+            <KPICard title="En Tránsito" value={stats.transit} trendValue={8.5} icon={Truck} iconColor="text-blue-600" iconBg="bg-blue-50" />
+            <KPICard title="Entregados" value={stats.delivered} trendValue={4.2} icon={CheckCircle2} iconColor="text-emerald-600" iconBg="bg-emerald-50" />
+            <KPICard title="Alertas Logísticas" value={stats.alerts} trendValue={-2.1} icon={AlertCircle} iconColor="text-rose-600" iconBg="bg-rose-50" />
         </div>
 
         {/* --- Control Bar --- */}

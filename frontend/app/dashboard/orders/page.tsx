@@ -346,6 +346,9 @@ export default function OrdersPage() {
   const [isShippingModalOpen, setIsShippingModalOpen] = useState(false);
   const [isCarrierDropdownOpen, setIsCarrierDropdownOpen] = useState(false);
   const [shippingData, setShippingData] = useState({ carrier: '', trackingNumber: '' });
+  const [isFilterHovered, setIsFilterHovered] = useState(false);
+  const [isDateHovered, setIsDateHovered] = useState(false);
+  const [isExportHovered, setIsExportHovered] = useState(false);
 
   const carriers = ['Servientrega', 'Coordinadora', 'Envia', 'Interrapidisimo', 'FedEx', 'DHL'];
 
@@ -1126,13 +1129,24 @@ Gracias por tu paciencia.`;
                     />
                  </div>
                  <div className="flex items-center gap-2 relative">
-                     <div className="relative">
-                        <button 
+                     {/* Overlay de Cierre */}
+                     {(isFilterMenuOpen || isDateMenuOpen) && <div className="fixed inset-0 z-40" onClick={() => { setIsFilterMenuOpen(false); setIsDateMenuOpen(false); }} />}
+
+                     <div className="relative z-50">
+                        <motion.button 
+                            layout
+                            onMouseEnter={() => setIsFilterHovered(true)}
+                            onMouseLeave={() => setIsFilterHovered(false)}
                             onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setIsDateMenuOpen(false); }}
-                            className={`p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase ${isFilterMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
+                            className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isFilterMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
                         >
-                            <Filter size={18}/> Filtros
-                        </button>
+                            <motion.div layout><Filter size={18}/></motion.div>
+                            <AnimatePresence mode="popLayout">
+                                {isFilterHovered && (
+                                    <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Filtro</motion.span>
+                                )}
+                            </AnimatePresence>
+                        </motion.button>
                         
                         <AnimatePresence>
                             {isFilterMenuOpen && (
@@ -1201,65 +1215,88 @@ Gracias por tu paciencia.`;
                         </AnimatePresence>
                      </div>
 
-                     <div className="relative">
-                        <button 
+                     <div className="relative z-50">
+                        <motion.button 
+                            layout
+                            onMouseEnter={() => setIsDateHovered(true)}
+                            onMouseLeave={() => setIsDateHovered(false)}
                             onClick={() => { setIsDateMenuOpen(!isDateMenuOpen); setIsFilterMenuOpen(false); }}
-                            className={`p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase ${isDateMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
+                            className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isDateMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
                         >
-                            <CalendarIcon size={18}/> Fecha
-                        </button>
+                            <motion.div layout><CalendarIcon size={18}/></motion.div>
+                            <AnimatePresence mode="popLayout">
+                                {isDateHovered && (
+                                    <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Fecha</motion.span>
+                                )}
+                            </AnimatePresence>
+                        </motion.button>
+
+                        <AnimatePresence>
+                            {isDateMenuOpen && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 p-6 w-[320px] z-50 origin-top-right"
+                                >
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desde</label>
+                                                <input 
+                                                    type="date" 
+                                                    value={dateRangeState.from}
+                                                    onChange={(e) => setDateRangeState({ ...dateRangeState, from: e.target.value })}
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-700 outline-none focus:border-[#004D4D]"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hasta</label>
+                                                <input 
+                                                    type="date" 
+                                                    value={dateRangeState.to}
+                                                    onChange={(e) => setDateRangeState({ ...dateRangeState, to: e.target.value })}
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-700 outline-none focus:border-[#004D4D]"
+                                                />
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex flex-wrap gap-2">
+                                            <button onClick={() => handleDatePreset('today')} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 transition-colors">Hoy</button>
+                                            <button onClick={() => handleDatePreset('yesterday')} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 transition-colors">Ayer</button>
+                                            <button onClick={() => handleDatePreset('week')} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 transition-colors">7 Días</button>
+                                            <button onClick={() => handleDatePreset('month')} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 transition-colors">Este Mes</button>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-slate-100 flex gap-2">
+                                            <button onClick={() => setIsDateMenuOpen(false)} className="flex-1 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-50">
+                                                Cancelar
+                                            </button>
+                                            <button onClick={handleExport} className="flex-1 py-2.5 bg-[#004D4D] text-white rounded-xl text-[10px] font-black uppercase shadow-lg shadow-[#004D4D]/20 hover:bg-[#003333] flex items-center justify-center gap-2">
+                                                <Download size={14}/> Aplicar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                      </div>
 
-                     {/* Date Range Picker Popover */}
-                     <AnimatePresence>
-                        {isDateMenuOpen && (
-                            <motion.div 
-                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 p-6 w-[320px] z-50 origin-top-right"
-                            >
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="space-y-1">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desde</label>
-                                            <input 
-                                                type="date" 
-                                                value={dateRangeState.from}
-                                                onChange={(e) => setDateRangeState({ ...dateRangeState, from: e.target.value })}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-700 outline-none focus:border-[#004D4D]"
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hasta</label>
-                                            <input 
-                                                type="date" 
-                                                value={dateRangeState.to}
-                                                onChange={(e) => setDateRangeState({ ...dateRangeState, to: e.target.value })}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-700 outline-none focus:border-[#004D4D]"
-                                            />
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex flex-wrap gap-2">
-                                        <button onClick={() => handleDatePreset('today')} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 transition-colors">Hoy</button>
-                                        <button onClick={() => handleDatePreset('yesterday')} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 transition-colors">Ayer</button>
-                                        <button onClick={() => handleDatePreset('week')} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 transition-colors">7 Días</button>
-                                        <button onClick={() => handleDatePreset('month')} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 transition-colors">Este Mes</button>
-                                    </div>
-
-                                    <div className="pt-4 border-t border-slate-100 flex gap-2">
-                                        <button onClick={() => setIsDateMenuOpen(false)} className="flex-1 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase hover:bg-slate-50">
-                                            Cancelar
-                                        </button>
-                                        <button onClick={handleExport} className="flex-1 py-2.5 bg-[#004D4D] text-white rounded-xl text-[10px] font-black uppercase shadow-lg shadow-[#004D4D]/20 hover:bg-[#003333] flex items-center justify-center gap-2">
-                                            <Download size={14}/> Exportar
-                                        </button>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        )}
-                     </AnimatePresence>
+                     {/* Botón Exportar */}
+                     <motion.button 
+                        layout
+                        onMouseEnter={() => setIsExportHovered(true)}
+                        onMouseLeave={() => setIsExportHovered(false)}
+                        onClick={handleExport}
+                        className="h-12 flex items-center gap-2 px-4 bg-white border border-slate-100 rounded-2xl text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5 transition-all shadow-sm"
+                     >
+                        <motion.div layout><Download size={18}/></motion.div>
+                        <AnimatePresence mode="popLayout">
+                            {isExportHovered && (
+                                <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Exportar</motion.span>
+                            )}
+                        </AnimatePresence>
+                     </motion.button>
                  </div>
             </div>
         </div>
