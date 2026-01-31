@@ -135,6 +135,14 @@ def create_collection(db: Session, collection: schemas.CollectionCreate, owner_i
 def get_collections_by_owner(db: Session, owner_id: uuid.UUID) -> list[models.Collection]:
     return db.query(models.Collection).filter(models.Collection.owner_id == owner_id).all()
 
+def delete_collection(db: Session, collection_id: uuid.UUID, owner_id: uuid.UUID):
+    db_col = db.query(models.Collection).filter(models.Collection.id == collection_id, models.Collection.owner_id == owner_id).first()
+    if db_col:
+        db.delete(db_col)
+        db.commit()
+        return True
+    return False
+
 # --- Custom Role CRUD ---
 def create_custom_role(db: Session, role_in: schemas.CustomRoleCreate, owner_id: uuid.UUID):
     db_role = models.CustomRole(id=uuid.uuid4(), name=role_in.name, permissions=role_in.permissions, owner_id=owner_id)

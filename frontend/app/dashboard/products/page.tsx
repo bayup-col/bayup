@@ -124,9 +124,32 @@ export default function ProductsPage() {
     // Estados para Nueva Categoría
     const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<any>(null);
+    const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
+    const [isDeletingCategory, setIsDeletingCategory] = useState(false);
     const [modalView, setModalView] = useState<'analytics' | 'products'>('analytics');
     const [newCategoryData, setNewCategoryData] = useState({ name: '', description: '' });
     const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+
+    // ... (rest of the logic)
+
+    const handleDeleteCategory = async () => {
+        if (!categoryToDelete || !token) return;
+        setIsDeletingCategory(true);
+        try {
+            await apiRequest(`/collections/${categoryToDelete.id}`, { 
+                method: 'DELETE', 
+                token 
+            });
+            showToast("Categoría eliminada", "success");
+            setCategoryToDelete(null);
+            await fetchProducts(); 
+        } catch (err) {
+            console.error("Error deleting category:", err);
+            showToast("Error al eliminar la categoría", "error");
+        } finally {
+            setIsDeletingCategory(false);
+        }
+    };
 
     // Resetear vista al cerrar o cambiar categoría
     useEffect(() => {
@@ -467,8 +490,20 @@ export default function ProductsPage() {
                                                 <div className="h-14 w-14 rounded-2xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D] group-hover:bg-[#004D4D] group-hover:text-white transition-all duration-500">
                                                     <Layers size={24} />
                                                 </div>
-                                                <div className="px-3 py-1 bg-white rounded-full border border-gray-100 text-[9px] font-black text-[#004D4D] uppercase">
-                                                    {products.filter(p => p.category === cat.title || p.collection_id === cat.id).length} Items
+                                                <div className="relative h-8 flex items-center">
+                                                    {/* Contador de Items (Visible por defecto) */}
+                                                    <div className="px-3 py-1 bg-white rounded-full border border-gray-100 text-[9px] font-black text-[#004D4D] uppercase group-hover:opacity-0 group-hover:scale-95 transition-all duration-300">
+                                                        {products.filter(p => p.category === cat.title || p.collection_id === cat.id).length} Items
+                                                    </div>
+                                                    {/* Botón Eliminar (Visible en Hover) */}
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); setCategoryToDelete(cat); }}
+                                                        className="absolute inset-0 flex items-center justify-center opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300"
+                                                    >
+                                                        <div className="h-8 w-8 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-colors shadow-sm">
+                                                            <Trash2 size={14} />
+                                                        </div>
+                                                    </button>
                                                 </div>
                                             </div>
                                             <h4 className="text-xl font-black text-gray-900 group-hover:text-[#004D4D] transition-colors">{cat.title}</h4>
@@ -768,6 +803,41 @@ export default function ProductsPage() {
                                         {isCreatingCategory ? 'Creando...' : 'Crear Categoría'}
                                     </PremiumButton>
                                 </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* --- MODAL CONFIRMACIÓN ELIMINAR --- */}
+            <AnimatePresence>
+                {categoryToDelete && (
+                    <div className="fixed inset-0 z-[900] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setCategoryToDelete(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl" />
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative bg-white w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden border border-white p-10 text-center space-y-6">
+                            <div className="h-20 w-20 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <AlertCircle size={40} className="animate-pulse" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">¿Eliminar Categoría?</h3>
+                                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 px-4 leading-relaxed">
+                                    Esta acción es definitiva. Se eliminará la categoría <span className="text-[#004D4D] font-black italic">"{categoryToDelete.title}"</span>.
+                                </p>
+                            </div>
+                            <div className="flex flex-col gap-3 pt-4">
+                                <button 
+                                    onClick={handleDeleteCategory}
+                                    disabled={isDeletingCategory}
+                                    className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-600/20 hover:bg-rose-700 active:scale-95 transition-all"
+                                >
+                                    {isDeletingCategory ? 'Eliminando...' : 'Sí, Eliminar de inmediato'}
+                                </button>
+                                <button 
+                                    onClick={() => setCategoryToDelete(null)}
+                                    className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
+                                >
+                                    No, mantener categoría
+                                </button>
                             </div>
                         </motion.div>
                     </div>

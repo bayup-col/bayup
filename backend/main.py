@@ -278,6 +278,13 @@ def get_collections(db: Session = Depends(get_db), current_user: models.User = D
 def create_collection(collection: schemas.CollectionCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     return crud.create_collection(db=db, collection=collection, owner_id=current_user.id)
 
+@app.delete("/collections/{collection_id}")
+def delete_collection(collection_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    success = crud.delete_collection(db=db, collection_id=collection_id, owner_id=current_user.id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    return {"status": "success"}
+
 @app.get("/expenses", response_model=List[schemas.Expense])
 def get_expenses(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     return db.query(models.Expense).filter(models.Expense.tenant_id == current_user.id).all()
