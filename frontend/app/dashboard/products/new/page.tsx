@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { 
   Package, 
   ArrowLeft, 
@@ -26,9 +26,13 @@ import {
   CheckCircle2,
   Clock,
   User,
-  Smartphone,
-  Star,
-  ChevronDown
+  Smartphone, 
+  Star, 
+  ChevronDown, 
+  GripVertical,
+  Volume2,
+  VolumeX,
+  Play
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -47,10 +51,114 @@ export default function NewProductPage() {
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState("");
-    const [categoriesList, setCategoriesList] = useState(['General', 'Ropa', 'Calzado', 'Tecnología', 'Hogar', 'Deportes', 'Belleza']);
+    const [categoriesList, setCategoriesList] = useState<any[]>([]);
     
     const [isEditorGuideOpen, setIsEditorGuideOpen] = useState(false);
     const [activeEditorGuideTab, setActiveEditorGuideTab] = useState('info');
+
+    const [formData, setFormData] = useState({
+        name: '',
+        description: '',
+        price: 0,
+        cost: 0,
+        category: 'General',
+        sku: '',
+        status: 'active' as 'active' | 'draft',
+        add_gateway_fee: false
+    });
+
+    const [variants, setVariants] = useState([
+        { name: 'Estándar', sku: '', stock: 0, price_adjustment: 0 }
+    ]);
+
+    const [media, setMedia] = useState<{file?: File, preview: string, type: 'image' | 'video', isMuted: boolean}[]>([]);
+    const [selectedPreviewIndex, setSelectedPreviewPreviewIndex] = useState(0);
+
+    // Cálculos
+    const platformCommission = 2.5;
+    const gatewayFee = formData.add_gateway_fee ? (formData.price * 0.035) : 0;
+    const platformFee = formData.price * (platformCommission / 100);
+    const profit = formData.price - formData.cost - platformFee - gatewayFee;
+    const margin = formData.price > 0 ? (profit / formData.price) * 100 : 0;
+
+    // Cargar Categorías Reales
+    useEffect(() => {
+        const fetchCategories = async () => {
+            if (!token) return;
+            try {
+                const data = await apiRequest<any[]>('/collections', { token });
+                if (data) setCategoriesList(data);
+            } catch (err) {
+                console.error("Error fetching categories:", err);
+            }
+        };
+        fetchCategories();
+    }, [token]);
+
+    const handleCreateCategory = async () => {
+        if (!newCategoryName.trim() || !token) return;
+        try {
+            const data = await apiRequest<any>('/collections', {
+                method: 'POST',
+                token,
+                body: JSON.stringify({
+                    title: newCategoryName.trim(),
+                    description: "Creada desde el editor de productos",
+                    status: 'active'
+                })
+            });
+            if (data) {
+                setCategoriesList([...categoriesList, data]);
+                setFormData({...formData, category: data.title});
+                setNewCategoryName("");
+                setIsNewCategoryModalOpen(false);
+                showToast("Categoría creada", "success");
+            }
+        } catch (err) {
+            showToast("Error al crear categoría", "error");
+        }
+    };
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (media.length + files.length > 5) return showToast("Máximo 5 archivos", "info");
+        
+        const newMedia = files.map(f => ({ 
+            file: f, 
+            preview: URL.createObjectURL(f),
+            type: f.type.startsWith('video') ? 'video' as const : 'image' as const,
+            isMuted: true
+        }));
+        setMedia([...media, ...newMedia]);
+    };
+
+    const toggleMute = (index: number) => {
+        const updatedMedia = [...media];
+        updatedMedia[index].isMuted = !updatedMedia[index].isMuted;
+        setMedia(updatedMedia);
+    };
+
+    const handleSave = async () => {
+        if (!formData.name) return showToast("El nombre es obligatorio", "info");
+        setIsSubmitting(true);
+        try {
+            await apiRequest('/products', {
+                method: 'POST',
+                token,
+                body: JSON.stringify({
+                    ...formData,
+                    image_url: media.length > 0 ? media[0].preview : null,
+                    variants: variants.map(v => ({ ...v, sku: v.sku || formData.sku }))
+                })
+            });
+            showToast("Producto creado con éxito", "success");
+            router.push('/dashboard/products');
+        } catch (err) {
+            showToast("Error al crear el producto", "error");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const editorGuideContent = {
         info: {
@@ -76,59 +184,6 @@ export default function NewProductPage() {
             howItWorks: 'Gestiona múltiples versiones de un mismo producto (Colores, Tallas, Materiales) con SKUs independientes.',
             example: 'Crea una variante "Azul / L" y otra "Azul / M" para llevar un control exacto de lo que tienes en bodega.',
             tip: 'Asigna siempre un SKU único. Esto es vital para sincronizar con Mercado Libre o Shopify en el futuro.'
-        }
-    };
-
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        price: 0,
-        cost: 0,
-        category: 'General',
-        sku: '',
-        status: 'active' as 'active' | 'draft',
-        add_gateway_fee: false
-    });
-
-    const [variants, setVariants] = useState([
-        { name: 'Estándar', sku: '', stock: 0, price_adjustment: 0 }
-    ]);
-
-    const [images, setImages] = useState<{file?: File, preview: string}[]>([]);
-
-    // Cálculos
-    const platformCommission = 2.5;
-    const gatewayFee = formData.add_gateway_fee ? (formData.price * 0.035) : 0;
-    const platformFee = formData.price * (platformCommission / 100);
-    const profit = formData.price - formData.cost - platformFee - gatewayFee;
-    const margin = formData.price > 0 ? (profit / formData.price) * 100 : 0;
-
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        if (images.length + files.length > 5) return showToast("Máximo 5 imágenes", "info");
-        const newImgs = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
-        setImages([...images, ...newImgs]);
-    };
-
-    const handleSave = async () => {
-        if (!formData.name) return showToast("El nombre es obligatorio", "info");
-        setIsSubmitting(true);
-        try {
-            await apiRequest('/products', {
-                method: 'POST',
-                token,
-                body: JSON.stringify({
-                    ...formData,
-                    image_url: images.length > 0 ? images[0].preview : null,
-                    variants: variants.map(v => ({ ...v, sku: v.sku || formData.sku }))
-                })
-            });
-            showToast("Producto creado con éxito", "success");
-            router.push('/dashboard/products');
-        } catch (err) {
-            showToast("Error al crear el producto", "error");
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
@@ -162,7 +217,6 @@ export default function NewProductPage() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        {/* Menú de Pestañas más Pequeño */}
                         <div className="p-1 bg-white border border-[#0a3d42]/5 rounded-full shadow-lg flex items-center relative z-10">
                             {(['info', 'financial', 'variants'] as const).map((tab) => {
                                 const isActive = activeTab === tab;
@@ -186,7 +240,6 @@ export default function NewProductPage() {
                             })}
                         </div>
 
-                        {/* Botón Info Separado */}
                         <motion.button 
                             whileHover={{ scale: 1.1, backgroundColor: "#004D4D", color: "#fff" }}
                             whileTap={{ scale: 0.9 }}
@@ -237,18 +290,23 @@ export default function NewProductPage() {
                                                             className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 z-[110] overflow-hidden flex flex-col"
                                                         >
                                                             <div className="max-h-[240px] overflow-y-auto custom-scrollbar p-2">
-                                                                {categoriesList.map((cat) => (
-                                                                    <button 
-                                                                        key={cat}
-                                                                        onClick={() => {
-                                                                            setFormData({...formData, category: cat});
-                                                                            setIsCategoryOpen(false);
-                                                                        }}
-                                                                        className={`w-full text-left px-5 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${formData.category === cat ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
-                                                                    >
-                                                                        {cat}
-                                                                    </button>
-                                                                ))}
+                                                                {categoriesList.length === 0 ? (
+                                                                    <div className="py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sin categorías</div>
+                                                                ) : (
+                                                                    categoriesList.map((cat) => (
+                                                                        <button 
+                                                                            key={cat.id || cat.title}
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setFormData({...formData, category: cat.title});
+                                                                                setIsCategoryOpen(false);
+                                                                            }}
+                                                                            className={`w-full text-left px-5 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${formData.category === cat.title ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+                                                                        >
+                                                                            {cat.title}
+                                                                        </button>
+                                                                    ))
+                                                                )}
                                                             </div>
                                                             <div className="p-2 bg-slate-50 border-t border-slate-100">
                                                                 <button 
@@ -289,24 +347,77 @@ export default function NewProductPage() {
                             </section>
 
                             <section className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3">
-                                    <ImageIcon size={18} /> Galería Multimedia
-                                </h3>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {images.map((img, i) => (
-                                        <div key={i} className="group relative aspect-square rounded-2xl overflow-hidden bg-gray-100 border border-gray-50 shadow-sm">
-                                            <img src={img.preview} alt="Preview" className="w-full h-full object-cover" />
-                                            <button onClick={() => setImages(images.filter((_, idx) => idx !== i))} className="absolute top-2 right-2 h-7 w-7 bg-rose-500 text-white rounded-xl opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center shadow-lg"><X size={14}/></button>
-                                        </div>
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3">
+                                        <ImageIcon size={18} /> Galería Multimedia
+                                    </h3>
+                                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-lg">Arrastra para ordenar</span>
+                                </div>
+                                
+                                <Reorder.Group 
+                                    axis="x" 
+                                    values={media} 
+                                    onReorder={setMedia}
+                                    className="flex flex-wrap gap-4"
+                                >
+                                    {media.map((item, i) => (
+                                        <Reorder.Item 
+                                            key={item.preview} 
+                                            value={item}
+                                            whileDrag={{ scale: 1.05, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
+                                            className="group relative h-32 w-32 rounded-2xl overflow-hidden bg-gray-100 border border-gray-100 shadow-sm cursor-grab active:cursor-grabbing"
+                                        >
+                                            {item.type === 'video' ? (
+                                                <video src={item.preview} className="w-full h-full object-cover pointer-events-none" muted loop autoPlay playsInline />
+                                            ) : (
+                                                <img src={item.preview} alt="Preview" className="w-full h-full object-cover pointer-events-none" />
+                                            )}
+                                            
+                                            {i === 0 && (
+                                                <div className="absolute top-2 left-2 px-2 py-0.5 bg-[#4fffcb] text-[#004D4D] text-[7px] font-black uppercase rounded-md shadow-sm z-10">
+                                                    Principal
+                                                </div>
+                                            )}
+
+                                            {item.type === 'video' && item.isMuted && (
+                                                <div className="absolute top-2 right-2 h-5 w-5 bg-black/40 backdrop-blur-md rounded-lg flex items-center justify-center text-white z-10">
+                                                    <VolumeX size={10} />
+                                                </div>
+                                            )}
+
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-20">
+                                                {item.type === 'video' && (
+                                                    <button 
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); toggleMute(i); }}
+                                                        className="h-8 w-8 bg-white/20 backdrop-blur-md text-white rounded-xl flex items-center justify-center hover:bg-[#00F2FF] hover:text-[#004D4D] transition-all"
+                                                    >
+                                                        {item.isMuted ? <VolumeX size={14}/> : <Volume2 size={14}/>}
+                                                    </button>
+                                                )}
+                                                <button 
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); setMedia(media.filter((_, idx) => idx !== i)); }} 
+                                                    className="h-8 w-8 bg-rose-500 text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-rose-600 transition-colors"
+                                                >
+                                                    <Trash2 size={14}/>
+                                                </button>
+                                            </div>
+                                            
+                                            <div className="absolute bottom-2 right-2 h-6 w-6 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center text-white/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <GripVertical size={12} />
+                                            </div>
+                                        </Reorder.Item>
                                     ))}
-                                    {images.length < 5 && (
-                                        <label className="aspect-square rounded-2xl border-2 border-dashed border-gray-100 bg-gray-50 flex flex-col items-center justify-center gap-2 hover:border-[#00F2FF]/30 hover:bg-[#00F2FF]/5 cursor-pointer transition-all group">
-                                            <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-gray-300 group-hover:text-[#00F2FF] shadow-sm"><Plus size={20}/></div>
-                                            <span className="text-[9px] font-black uppercase text-gray-300">Añadir</span>
-                                            <input type="file" className="hidden" accept="image/*" multiple onChange={handleFileUpload} />
+                                    
+                                    {media.length < 5 && (
+                                        <label className="h-32 w-32 rounded-2xl border-2 border-dashed border-gray-100 bg-gray-50 flex flex-col items-center justify-center gap-2 hover:border-[#00F2FF]/30 hover:bg-[#00F2FF]/5 cursor-pointer transition-all group">
+                                            <div className="h-8 w-8 bg-white rounded-xl flex items-center justify-center text-gray-300 group-hover:text-[#00F2FF] shadow-sm"><Plus size={16}/></div>
+                                            <span className="text-[8px] font-black uppercase text-gray-300">Añadir</span>
+                                            <input type="file" className="hidden" accept="image/*,video/*" multiple onChange={handleFileUpload} />
                                         </label>
                                     )}
-                                </div>
+                                </Reorder.Group>
                             </section>
                         </motion.div>
                     )}
@@ -467,14 +578,26 @@ export default function NewProductPage() {
                         >
                             Guardar Borrador
                         </button>
-                        <button 
-                            type="button"
-                            onClick={handleSave}
-                            disabled={isSubmitting || !formData.name}
-                            className={`px-14 py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl transition-all ${isSubmitting || !formData.name ? 'bg-gray-200 text-gray-400' : 'bg-[#004D4D] text-white hover:bg-black shadow-[#004D4D]/20'}`}
-                        >
-                            {isSubmitting ? 'Procesando...' : 'Publicar Catálogo'}
-                        </button>
+                        
+                        {activeTab !== 'variants' ? (
+                            <button 
+                                type="button"
+                                onClick={() => setActiveTab(activeTab === 'info' ? 'financial' : 'variants')}
+                                disabled={!formData.name}
+                                className={`px-14 py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl transition-all ${!formData.name ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#004D4D] text-white hover:bg-black shadow-[#004D4D]/20'}`}
+                            >
+                                Siguiente
+                            </button>
+                        ) : (
+                            <button 
+                                type="button"
+                                onClick={handleSave}
+                                disabled={isSubmitting || !formData.name}
+                                className={`px-14 py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl transition-all ${isSubmitting || !formData.name ? 'bg-gray-200 text-gray-400' : 'bg-[#004D4D] text-white hover:bg-black shadow-[#004D4D]/20'}`}
+                            >
+                                {isSubmitting ? 'Procesando...' : 'Publicar Catálogo'}
+                            </button>
+                        )}
                     </div>
                 </div>
             </motion.div>
@@ -504,13 +627,78 @@ export default function NewProductPage() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar bg-white p-10 space-y-10">
-                        <div className="aspect-square w-full rounded-[2.5rem] bg-gray-50 border border-gray-100 overflow-hidden shadow-inner flex items-center justify-center relative">
-                            {images.length > 0 ? (
-                                <img src={images[0].preview} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Preview" />
-                            ) : (
-                                <ImageIcon size={40} className="text-gray-200" />
+                        <div className="space-y-6">
+                            <div className="aspect-square w-full rounded-[2.5rem] bg-gray-50 border border-gray-100 overflow-hidden shadow-inner flex items-center justify-center relative group/img">
+                                <AnimatePresence mode="popLayout">
+                                    {media.length > 0 ? (
+                                        media[selectedPreviewIndex]?.type === 'video' ? (
+                                            <motion.video 
+                                                key={media[selectedPreviewIndex]?.preview}
+                                                layoutId={`media-${media[selectedPreviewIndex]?.preview}`}
+                                                src={media[selectedPreviewIndex]?.preview}
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-110"
+                                                autoPlay
+                                                muted
+                                                loop
+                                                playsInline
+                                            />
+                                        ) : (
+                                            <motion.img 
+                                                key={media[selectedPreviewIndex]?.preview}
+                                                layoutId={`media-${media[selectedPreviewIndex]?.preview}`}
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                                src={media[selectedPreviewIndex]?.preview} 
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-110" 
+                                                alt="Preview" 
+                                            />
+                                        )
+                                    ) : (
+                                        <ImageIcon size={40} className="text-gray-200" />
+                                    )}
+                                </AnimatePresence>
+                                <div className="absolute top-6 right-6 h-10 w-10 rounded-xl bg-white/90 backdrop-blur-md flex items-center justify-center shadow-lg text-[#004D4D]"><Star size={18} fill="#004D4D" /></div>
+                            </div>
+
+                            {/* Carrusel de Miniaturas Inteligente (Filtrado) */}
+                            {media.length > 1 && (
+                                <motion.div layout className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+                                    <AnimatePresence mode="popLayout">
+                                        {media.map((item, i) => {
+                                            if (i === selectedPreviewIndex) return null;
+                                            return (
+                                                <motion.button 
+                                                    key={item.preview}
+                                                    layoutId={`media-${item.preview}`}
+                                                    initial={{ opacity: 0, scale: 0.8 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    exit={{ opacity: 0, scale: 0.8 }}
+                                                    type="button"
+                                                    onClick={() => setSelectedPreviewPreviewIndex(i)}
+                                                    className="h-16 w-16 rounded-2xl overflow-hidden flex-shrink-0 border border-slate-100 shadow-sm opacity-60 hover:opacity-100 transition-opacity relative group/thumb"
+                                                >
+                                                    {item.type === 'video' ? (
+                                                        <>
+                                                            <video src={item.preview} className="w-full h-full object-cover" muted loop autoPlay playsInline />
+                                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 text-white shadow-inner">
+                                                                <Play size={12} fill="white" />
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <img src={item.preview} className="w-full h-full object-cover" alt={`Thumb ${i}`} />
+                                                    )}
+                                                </motion.button>
+                                            );
+                                        })}
+                                    </AnimatePresence>
+                                </motion.div>
                             )}
-                            <div className="absolute top-6 right-6 h-10 w-10 rounded-xl bg-white/90 backdrop-blur-md flex items-center justify-center shadow-lg text-[#004D4D]"><Star size={18} fill="#004D4D" /></div>
                         </div>
 
                         <div className="space-y-6">
@@ -708,13 +896,7 @@ export default function NewProductPage() {
                                     <button 
                                         type="button"
                                         disabled={!newCategoryName.trim()}
-                                        onClick={() => {
-                                            setCategoriesList([...categoriesList, newCategoryName.trim()]);
-                                            setFormData({...formData, category: newCategoryName.trim()});
-                                            setNewCategoryName("");
-                                            setIsNewCategoryModalOpen(false);
-                                            showToast("Categoría creada y seleccionada", "success");
-                                        }}
+                                        onClick={handleCreateCategory}
                                         className="flex-[2] py-4 bg-[#004D4D] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[#004D4D]/20 disabled:opacity-50"
                                     >
                                         Crear Categoría
