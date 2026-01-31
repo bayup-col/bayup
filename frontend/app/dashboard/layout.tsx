@@ -55,26 +55,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'prefs'>('profile');
   const [showGhost, setShowGhost] = useState(false);
 
+  const userEmail = authEmail || 'usuario@ejemplo.com';
+  const userRole = authRole || 'admin';
+
   // Cargar Permisos Reales del Usuario
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchPerms = async () => {
-        if (!token) return;
+        if (!token || userRole === 'admin' || userRole === 'super_admin') return;
         try {
             const rolesData = await userService.getRoles(token);
-            // Si el usuario es staff, buscamos los permisos de su rol
             const myRole = rolesData.find((r: any) => r.name === authRole || r.id === authRole);
             if (myRole?.permissions) setPermissions(myRole.permissions);
         } catch (e) {
-            console.error("Error loading permissions");
+            // Error silencioso en carga inicial
         }
     };
-    if (token) fetchPerms();
-  }, [pathname, authRole, token]);
-
-  const userEmail = authEmail || 'usuario@ejemplo.com';
-  const userRole = authRole || 'admin';
+    fetchPerms();
+  }, [authRole, token, userRole]);
 
   const handleLogoClick = () => {
     setShowGhost(true);
