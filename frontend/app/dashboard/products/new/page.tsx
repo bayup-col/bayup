@@ -375,7 +375,18 @@ export default function NewProductPage() {
                                         <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1 text-slate-900">Precio Mayorista</label>
                                         <div className="relative"><span className="absolute left-6 top-1/2 -translate-y-1/2 text-cyan-600 font-black">$</span><input type="text" value={formatValue(formData.wholesale_price)} onChange={e => setFormData({...formData, wholesale_price: parseValue(e.target.value)})} placeholder="0" className="w-full pl-12 pr-6 py-5 bg-cyan-50/30 rounded-2xl outline-none text-xl font-black text-cyan-700 border border-transparent focus:border-cyan-200 focus:bg-white shadow-inner transition-all text-slate-900" /></div>
                                     </div>
-                                    <motion.div layout className="bg-[#004D4D] rounded-[2.5rem] p-8 text-white relative overflow-hidden h-[110px] mt-6 flex flex-col justify-center border border-white/5"><div className="absolute top-0 right-0 w-32 h-32 bg-cyan-400/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div><div className="absolute top-6 right-8"><span className="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">{marginWholesale.toFixed(1)}%</span></div><div className="relative z-10"><p className="text-[7px] font-black text-cyan-400 uppercase tracking-[0.2em] mb-1 text-white">Utilidad Mayorista</p><span className={`text-2xl font-black italic leading-none ${profitWholesale > 0 ? 'text-[#4fffcb]' : 'text-rose-400'}`}>${profitWholesale.toLocaleString('de-DE')}</span><div className="mt-2 flex items-center gap-2 text-white"><div className="h-1 w-1 rounded-full bg-cyan-400 text-white"></div><span className="text-[8px] font-bold text-cyan-300 uppercase tracking-widest text-white">Retención: -${(platformFeeWholesale + gatewayFeeWholesale).toFixed(0)}</span></div></div></motion.div>
+                                    <motion.div layout className="bg-[#004D4D] rounded-[2.5rem] p-8 text-white relative overflow-hidden h-[110px] mt-6 flex flex-col justify-center border border-white/5">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-400/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                                        <div className="absolute top-6 right-8"><span className="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">{marginWholesale.toFixed(1)}%</span></div>
+                                        <div className="relative z-10">
+                                            <p className="text-[7px] font-black text-cyan-400 uppercase tracking-[0.2em] mb-1 text-white">Utilidad Mayorista</p>
+                                            <span className={`text-2xl font-black italic leading-none ${profitWholesale > 0 ? 'text-[#4fffcb]' : 'text-rose-400'}`}>${profitWholesale.toLocaleString('de-DE')}</span>
+                                            <div className="mt-2 flex items-center gap-2 text-white">
+                                                <div className="h-1 w-1 rounded-full bg-[#00F2FF] animate-pulse shadow-[0_0_8px_#00F2FF]"></div>
+                                                <span className="text-[8px] font-bold text-cyan-300 uppercase tracking-widest text-white">Retención: -${(platformFeeWholesale + gatewayFeeWholesale).toFixed(0)}</span>
+                                            </div>
+                                        </div>
+                                    </motion.div>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center text-slate-900">
@@ -388,12 +399,21 @@ export default function NewProductPage() {
 
                                 <div className="pt-8 border-t border-gray-100 space-y-8 text-slate-900">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center text-slate-900">
-                                        <label className="flex items-center gap-4 p-5 bg-gray-50 rounded-2xl border border-transparent hover:border-[#00F2FF]/30 cursor-pointer transition-all group text-slate-900">
+                                        <label className="flex items-center gap-4 p-5 bg-gray-50 rounded-2xl border border-transparent hover:border-[#00F2FF]/30 cursor-pointer transition-all group text-slate-900 relative">
                                             <div className="relative inline-flex items-center cursor-pointer">
                                                 <input type="checkbox" checked={formData.add_gateway_fee} onChange={e => setFormData({...formData, add_gateway_fee: e.target.checked})} className="sr-only peer" />
                                                 <div className="w-8 h-5 bg-gray-200 rounded-full peer peer-checked:bg-[#00F2FF] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-3"></div>
                                             </div>
-                                            <div><p className="text-[9px] font-black uppercase text-[#004D4D]">Comisión Pasarela (3.5%)</p><p className="text-[8px] text-gray-400 font-bold uppercase mt-0.5 text-slate-900">Sumar al precio final automáticamente</p></div>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-[9px] font-black uppercase text-[#004D4D]">Comisión Pasarela de Pago</p>
+                                                <div className="relative group/gate">
+                                                    <Info size={10} className="text-slate-300 hover:text-[#004D4D] transition-colors" />
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-3 bg-[#001A1A] text-white rounded-xl text-[8px] leading-relaxed font-bold uppercase tracking-widest opacity-0 group-hover/gate:opacity-100 pointer-events-none transition-all shadow-2xl z-50">
+                                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-[#001A1A]"></div>
+                                                        Las pasarelas de pago cobran un porcentaje por procesar tarjetas de crédito/débito de forma segura, cubrir redes bancarias y prevenir fraudes digitales.
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </label>
                                         <div className="flex items-center justify-between px-6 py-4 bg-[#004D4D]/5 rounded-2xl border border-[#004D4D]/10 text-slate-900"><div className="flex flex-col text-slate-900"><span className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-slate-900">Soporte Financiero</span><span className="text-[10px] font-black text-[#004D4D] uppercase">Bayup Fee Incluído</span></div><div className="flex items-center gap-3 text-slate-900"><span className="text-sm font-black text-[#004D4D]">2.5%</span><ShieldCheck size={18} className="text-[#004D4D]/20 text-slate-900" /></div></div>
                                     </div>
