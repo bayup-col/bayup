@@ -33,7 +33,9 @@ import {
   X,
   Upload,
   Info,
-  ChevronDown
+  ChevronDown,
+  Trophy,
+  ShoppingBag
 } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
 
@@ -116,6 +118,37 @@ export default function ProductsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'all' | 'active' | 'draft' | 'archived'>('all');
     
+    // Guía de Maestría (Nuevo)
+    const [isGuideOpen, setIsGuideOpen] = useState(false);
+    const [activeGuideTab, setActiveGuideTab] = useState('all');
+
+    const guideContent = {
+        all: {
+            title: 'Catálogo Maestro',
+            icon: <Package size={20}/>,
+            color: 'text-[#004D4D]',
+            howItWorks: 'Visualiza el 100% de tus activos comerciales, incluyendo productos listos para la venta, borradores y artículos archivados.',
+            example: 'Úsalo para tener una perspectiva global de tu capacidad de oferta y diversidad de categorías.',
+            tip: 'Mantén un SKU maestro coherente para facilitar la búsqueda rápida desde el módulo de Facturación POS.'
+        },
+        active: {
+            title: 'Productos Activos',
+            icon: <Zap size={20}/>,
+            color: 'text-emerald-600',
+            howItWorks: 'Artículos que están actualmente publicados y visibles en todos tus canales de venta (Tienda Web, WhatsApp, etc.).',
+            example: 'Si un producto aparece aquí, significa que tus clientes pueden comprarlo en este preciso momento.',
+            tip: 'Revisa periódicamente el stock de estos productos para evitar ventas fallidas por falta de existencias.'
+        },
+        draft: {
+            title: 'Borradores',
+            icon: <Clock size={20}/>,
+            color: 'text-amber-600',
+            howItWorks: 'Productos en fase de edición o preparación que aún no han sido lanzados al público.',
+            example: 'Estás creando una nueva colección de temporada pero aún no tienes las fotos finales; guárdala aquí.',
+            tip: 'Utiliza este estado para pre-cargar lanzamientos masivos y activarlos todos a la vez cuando inicie tu campaña.'
+        }
+    };
+
     // Filtros Avanzados (Estilo Facturación)
     const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
     const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
@@ -166,10 +199,14 @@ export default function ProductsPage() {
     const activeCount = products.filter(p => p.status === 'active').length;
     const lowStockCount = products.filter(p => (p.variants?.reduce((acc: number, v: any) => acc + (v.stock || 0), 0) || 0) <= 5).length;
     
-    const totalInventoryValue = products.reduce((acc, p) => {
-        const productStock = p.variants?.reduce((vAcc: number, v: any) => vAcc + (v.stock || 0), 0) || 0;
-        return acc + (p.price * productStock);
-    }, 0);
+    // Cálculos para nuevos KPIs
+    const averageTicket = products.length > 0 
+        ? products.reduce((acc, p) => acc + p.price, 0) / products.length 
+        : 0;
+    
+    const topProductMonth = products.length > 0 
+        ? products.find(p => p.status === 'active')?.name || products[0].name
+        : "Sin datos";
 
     return (
         <div className="relative min-h-[calc(100vh-120px)] bg-[#FAFAFA] overflow-hidden px-4 sm:px-6 lg:px-8">
@@ -187,28 +224,69 @@ export default function ProductsPage() {
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Gestión de Activos</span>
                         </div>
                         <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF] pr-2 py-1">Inventario</span>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF] pr-2 py-1">Todos los productos</span>
                         </h1>
                         <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed">
                             Catálogo maestro y control de existencias para <span className="font-bold text-[#001A1A]">{userEmail?.split('@')[0] || 'tu empresa'}</span>.
                         </p>
                     </div>
                     <div className="flex gap-4">
-                        <button 
+                        <motion.button 
+                            whileHover={{ scale: 1.05, backgroundColor: "#4fffcb", color: "#004D4D" }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => router.push('/dashboard/products/new')} 
-                            className="px-12 py-6 bg-gray-900 text-white rounded-[2.2rem] font-black text-[11px] uppercase tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center gap-3"
+                            className="px-12 py-6 bg-gray-900 text-white rounded-[2.2rem] font-black text-[11px] uppercase tracking-[0.4em] shadow-2xl transition-all flex items-center gap-3 hover:shadow-[#4fffcb]/20"
                         >
                             <Plus size={18} /> Nuevo Producto
-                        </button>
+                        </motion.button>
                     </div>
                 </motion.div>
 
                 {/* --- KPI CARDS (Estilo Facturación) --- */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <KPICard title="Total Productos" value={products.length} trendValue={4.2} icon={Package} iconColor="text-[#004D4D]" isCurrency={false} />
-                    <KPICard title="Valor Inventario" value={totalInventoryValue} trendValue={12.5} icon={DollarSign} iconColor="text-emerald-600" />
+                    <KPICard title="Producto del mes" value={topProductMonth} trendValue={12.5} icon={Trophy} iconColor="text-yellow-500" iconBg="bg-yellow-50" isCurrency={false} valueClassName="text-lg leading-tight mt-2" />
                     <KPICard title="Stock Crítico" value={lowStockCount} trendValue={-5.1} icon={AlertCircle} iconColor="text-rose-600" isCurrency={false} />
-                    <KPICard title="Categorías" value={new Set(products.map(p => p.category)).size} icon={Layers} iconColor="text-cyan-600" isCurrency={false} />
+                    <KPICard title="Ticket Promedio" value={averageTicket} trendValue={8.2} icon={ShoppingBag} iconColor="text-cyan-600" />
+                </div>
+
+                {/* --- MENÚ CENTRADO FLOTANTE (NUEVO) --- */}
+                <div className="flex justify-center items-center gap-4 pt-4">
+                    <motion.div 
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        className="p-1.5 bg-white border border-slate-200 rounded-full shadow-xl shadow-slate-200/50 flex items-center relative z-10"
+                    >
+                        {(['all', 'active', 'draft'] as const).map((tab) => {
+                            const isActive = activeTab === tab;
+                            return (
+                                <button 
+                                    key={tab} 
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`relative px-10 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 z-10 ${isActive ? 'text-white' : 'text-slate-500 hover:text-[#004D4D]'}`}
+                                >
+                                    {isActive && (
+                                        <motion.div 
+                                            layoutId="productsTab" 
+                                            className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" 
+                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} 
+                                        />
+                                    )}
+                                    {tab === 'all' ? 'Todos los items' : tab === 'active' ? 'Productos Activos' : 'Borradores'}
+                                </button>
+                            );
+                        })}
+                    </motion.div>
+
+                    {/* Botón Guía Maestro */}
+                    <motion.button 
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setIsGuideOpen(true)}
+                        className="h-12 w-12 rounded-full bg-white border border-slate-200 shadow-lg flex items-center justify-center text-[#004D4D] hover:bg-[#004D4D] hover:text-white transition-all group shrink-0"
+                    >
+                        <Info size={20} className="group-hover:animate-pulse"/>
+                    </motion.button>
                 </div>
 
                 {/* --- BARRA DE BÚSQUEDA Y FILTROS (Estilo Facturación) --- */}
@@ -231,19 +309,6 @@ export default function ProductsPage() {
                         </div>
                         <div className="h-8 w-px bg-slate-100 hidden md:block"></div>
                         <div className="flex items-center gap-2 relative">
-                            {/* Tabs Estilo Facturación */}
-                            <div className="flex bg-slate-50 p-1 rounded-xl mr-2">
-                                {(['all', 'active', 'draft'] as const).map((tab) => (
-                                    <button 
-                                        key={tab} 
-                                        onClick={() => setActiveTab(tab)}
-                                        className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${activeTab === tab ? 'bg-[#004D4D] text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                                    >
-                                        {tab === 'all' ? 'Todos' : tab === 'active' ? 'Activos' : 'Borradores'}
-                                    </button>
-                                ))}
-                            </div>
-
                             <div className="relative">
                                 <button 
                                     onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
@@ -439,6 +504,106 @@ export default function ProductsPage() {
                         </table>
                     </div>
                 </motion.div>
+
+                {/* --- MODAL MAESTRÍA DE PRODUCTOS (NUEVO) --- */}
+                <AnimatePresence>
+                    {isGuideOpen && (
+                        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+                            <motion.div 
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                onClick={() => setIsGuideOpen(false)}
+                                className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+                            />
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95, y: 30 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 30 }}
+                                className="relative bg-white w-full max-w-4xl h-[70vh] rounded-[3rem] shadow-2xl overflow-hidden border border-white flex flex-col md:flex-row"
+                            >
+                                {/* Navigation Sidebar */}
+                                <div className="w-full md:w-64 bg-slate-50 border-r border-slate-100 p-6 flex flex-col gap-2 overflow-y-auto">
+                                    <div className="mb-6">
+                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#004D4D]">Maestría de Productos</h3>
+                                        <p className="text-[10px] text-slate-400 font-bold mt-1">Guía Operativa Bayup</p>
+                                    </div>
+                                    {Object.entries(guideContent).map(([key, item]) => (
+                                        <button
+                                            key={key}
+                                            onClick={() => setActiveGuideTab(key)}
+                                            className={`flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${activeGuideTab === key ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:bg-white hover:shadow-sm'}`}
+                                        >
+                                            <div className={`${activeGuideTab === key ? 'text-white' : item.color}`}>
+                                                {item.icon}
+                                            </div>
+                                            <span className="text-[10px] font-black uppercase tracking-wide">{item.title}</span>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Content Area */}
+                                <div className="flex-1 flex flex-col overflow-hidden bg-white">
+                                    <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white/50 backdrop-blur-sm sticky top-0">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center ${guideContent[activeGuideTab as keyof typeof guideContent].color}`}>
+                                                {guideContent[activeGuideTab as keyof typeof guideContent].icon}
+                                            </div>
+                                            <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">
+                                                {guideContent[activeGuideTab as keyof typeof guideContent].title}
+                                            </h2>
+                                        </div>
+                                        <button onClick={() => setIsGuideOpen(false)} className="h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
+                                            <X size={20}/>
+                                        </button>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar">
+                                        <section>
+                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                <div className="h-1 w-4 bg-[#004D4D] rounded-full"></div> ¿Qué significa?
+                                            </h4>
+                                            <p className="text-sm font-medium text-slate-600 leading-relaxed bg-slate-50 p-6 rounded-[2rem] border border-slate-100 shadow-inner">
+                                                {guideContent[activeGuideTab as keyof typeof guideContent].howItWorks}
+                                            </p>
+                                        </section>
+
+                                        <div className="grid md:grid-cols-2 gap-8">
+                                            <section className="space-y-4">
+                                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                    <ShoppingBag size={14} className="text-[#00F2FF]"/> Ejemplo de Operación
+                                                </h4>
+                                                <div className="p-6 bg-cyan-50/30 border border-cyan-100 rounded-[2rem]">
+                                                    <p className="text-xs font-medium text-[#004D4D] leading-relaxed italic">
+                                                        "{guideContent[activeGuideTab as keyof typeof guideContent].example}"
+                                                    </p>
+                                                </div>
+                                            </section>
+
+                                            <section className="space-y-4">
+                                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                    <Zap size={14} className="text-amber-500"/> Tip de Experto
+                                                </h4>
+                                                <div className="p-6 bg-amber-50/30 border border-amber-100 rounded-[2rem]">
+                                                    <p className="text-xs font-bold text-amber-900 leading-relaxed">
+                                                        {guideContent[activeGuideTab as keyof typeof guideContent].tip}
+                                                    </p>
+                                                </div>
+                                            </section>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-8 border-t border-slate-50 flex justify-end bg-slate-50/30">
+                                        <button 
+                                            onClick={() => setIsGuideOpen(false)}
+                                            className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-900/10 hover:bg-black transition-all"
+                                        >
+                                            ¡Entendido, a organizar!
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );
