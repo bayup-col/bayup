@@ -119,6 +119,19 @@ export default function ShippingPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<'all' | ShippingStatus>('all');
   
+  // --- Efecto para Cargar Envíos Registrados desde Pedidos ---
+  useEffect(() => {
+    const savedShipments = JSON.parse(localStorage.getItem('bayup_shipments') || '[]');
+    if (savedShipments.length > 0) {
+        // Filtrar duplicados por order_id para no repetir si recargas
+        setShipments(prev => {
+            const combined = [...prev, ...savedShipments];
+            const unique = combined.filter((v, i, a) => a.findIndex(t => t.order_id === v.order_id) === i);
+            return unique;
+        });
+    }
+  }, []);
+
   const carriers = ['Servientrega', 'Coordinadora', 'Envia', 'Interrapidisimo', 'FedEx', 'DHL'];
 
   // --- Nuevos Estados de Filtros y UI ---

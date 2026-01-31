@@ -571,7 +571,24 @@ Gracias por tu paciencia.`;
         const msg = `¡Hola ${order.customer.name}! 🚀 Tu pedido ${order.id} ya fue entregado a ${shippingData.carrier}. \n\n📍 Guía: ${shippingData.trackingNumber}\n🔗 Rastrear aquí: ${trackingUrl}\n\nTe adjuntamos tu factura y comprobante de despacho. ¡Disfrútalo!`;
         window.open(`https://wa.me/${order.customer.phone.replace(/\+/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
 
-        showToast("¡Despacho Exitoso! Documentos generados y cliente notificado.", "success");
+        // --- INTEGRACIÓN: REGISTRAR EN MÓDULO ENVÍOS ---
+        const newShipment = {
+            id: `SHP-${order.id.split('-')[1] || Date.now().toString().slice(-4)}`,
+            order_id: order.id,
+            customer: order.customer,
+            carrier: shippingData.carrier,
+            tracking_number: shippingData.trackingNumber,
+            status: 'label_generated',
+            last_update: new Date().toISOString(),
+            estimated_delivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            history: [{ date: new Date().toISOString(), message: "Guía generada y pendiente de recolección", location: "Bodega Principal" }]
+        };
+
+        const existingShipments = JSON.parse(localStorage.getItem('bayup_shipments') || '[]');
+        localStorage.setItem('bayup_shipments', JSON.stringify([...existingShipments, newShipment]));
+        // ----------------------------------------------
+
+        showToast("¡Despacho Exitoso! Registrado en el Módulo de Envíos.", "success");
         setIsShippingModalOpen(false);
         setSelectedOrder(null);
         setShippingData({ carrier: '', trackingNumber: '' });
