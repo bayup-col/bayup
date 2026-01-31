@@ -227,25 +227,67 @@ export default function NewProductPage() {
         return () => { isMounted = false; };
     }, [token]);
 
-    const handleSave = async () => {
-        if (!formData.name.trim()) return showToast("Nombre obligatorio", "error");
-        if (formData.cost <= 0) return showToast("Costo debe ser > 0", "error");
-        setIsSubmitting(true);
-        try {
-            await apiRequest('/products', {
-                method: 'POST', token,
-                body: JSON.stringify({ 
-                    ...formData, 
-                    image_url: media.length > 0 ? media[0].preview : null,
-                    variants: variants.map(v => ({ name: v.name, sku: v.sku, stock: v.stock })) 
-                })
-            });
-            showToast("Publicado", "success");
-            router.push('/dashboard/products');
-        } catch (err) { showToast("Error", "error"); } finally { setIsSubmitting(false); }
-    };
-
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+            const handleSave = async () => {
+                if (!formData.name.trim()) { showToast("Nombre obligatorio", "error"); setActiveTab('info'); return; }
+                if (formData.cost <= 0) { showToast("Costo debe ser > 0", "error"); setActiveTab('financial'); return; }
+        
+                setIsSubmitting(true);
+                try {
+                    let finalImageUrl = null;
+        
+                    // 1. Intento de Subida Multimedia (Opcional)
+                    if (media.length > 0 && media[0].file) {
+                        try {
+                            const file = media[0].file;
+                            const uploadData = await apiRequest<any>(`/products/upload-url?file_type=${file.type}`, { 
+                                method: 'POST', 
+                                token 
+                            });
+        
+                            if (uploadData && uploadData.upload_url) {
+                                // En desarrollo local esto puede fallar si no hay un endpoint de subida real, 
+                                // pero capturamos el error para no bloquear.
+                                try {
+                                    await fetch(uploadData.upload_url, {
+                                        method: 'PUT',
+                                        body: file,
+                                        headers: { 'Content-Type': file.type }
+                                    });
+                                    finalImageUrl = uploadData.file_url;
+                                } catch (fErr) { console.warn("Fallo fetch PUT", fErr); }
+                            }
+                        } catch (uErr) { console.warn("Fallo obtención URL", uErr); }
+                    }
+        
+                    // 2. Guardar Producto
+                    await apiRequest('/products', {
+                        method: 'POST', token,
+                        body: JSON.stringify({
+                            name: formData.name,
+                            description: formData.description,
+                            price: formData.price,
+                            wholesale_price: formData.wholesale_price,
+                            cost: formData.cost,
+                            collection_id: formData.collection_id,
+                            status: formData.status,
+                            sku: formData.sku,
+                            add_gateway_fee: formData.add_gateway_fee,
+                            image_url: finalImageUrl,
+                            variants: variants.map(v => ({ 
+                                name: v.name || 'Estándar',
+                                sku: v.sku,
+                                stock: v.stock
+                            }))
+                        })
+                    });
+        
+                    showToast("¡Producto creado con éxito!", "success");
+                    router.push('/dashboard/products');
+                } catch (err: any) { 
+                    console.error("Error al publicar:", err);
+                    showToast("Error al procesar el guardado. Verifica los datos.", "error"); 
+                } finally { setIsSubmitting(false); }
+            };    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (media.length + files.length > 5) return showToast("Máximo 5 archivos", "info");
         const newMedia = files.map(f => ({ 

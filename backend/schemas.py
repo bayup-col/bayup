@@ -72,6 +72,11 @@ class ProductBase(BaseModel):
     name: str
     description: str | None = None
     price: float
+    wholesale_price: float | None = 0.0
+    cost: float | None = 0.0
+    sku: str | None = None
+    status: str | None = "active"
+    add_gateway_fee: bool | None = False
     image_url: str | None = None
     product_type_id: uuid.UUID | None = None
     collection_id: uuid.UUID | None = None

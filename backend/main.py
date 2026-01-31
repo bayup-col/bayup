@@ -61,6 +61,27 @@ async def lifespan(app: FastAPI):
                     except: pass
             print("User table migration check completed.")
 
+        # Automigrate 'products' table
+        if 'products' in tables:
+            product_columns = [c['name'] for c in inspector.get_columns('products')]
+            with engine.begin() as conn:
+                if 'wholesale_price' not in product_columns:
+                    try: conn.execute(text("ALTER TABLE products ADD COLUMN wholesale_price FLOAT DEFAULT 0.0"))
+                    except: pass
+                if 'cost' not in product_columns:
+                    try: conn.execute(text("ALTER TABLE products ADD COLUMN cost FLOAT DEFAULT 0.0"))
+                    except: pass
+                if 'status' not in product_columns:
+                    try: conn.execute(text("ALTER TABLE products ADD COLUMN status VARCHAR DEFAULT 'active'"))
+                    except: pass
+                if 'sku' not in product_columns:
+                    try: conn.execute(text("ALTER TABLE products ADD COLUMN sku VARCHAR"))
+                    except: pass
+                if 'add_gateway_fee' not in product_columns:
+                    try: conn.execute(text("ALTER TABLE products ADD COLUMN add_gateway_fee BOOLEAN DEFAULT FALSE"))
+                    except: pass
+            print("Product table migration check completed.")
+
         # Automigrate 'orders' table
         if 'orders' in tables:
             order_columns = [c['name'] for c in inspector.get_columns('orders')]
@@ -195,9 +216,37 @@ def get_me(current_user: models.User = Depends(security.get_current_user)):
 def read_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     return crud.get_products_by_owner(db, owner_id=current_user.id, skip=skip, limit=limit)
 
+@app.get("/products/{product_id}", response_model=schemas.Product)
+def read_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    p = crud.get_product(db, product_id=product_id, tenant_id=current_user.id)
+    if not p:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return p
+
 @app.post("/products", response_model=schemas.Product)
 def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     return crud.create_product(db=db, product=product, owner_id=current_user.id)
+
+@app.put("/products/{product_id}", response_model=schemas.Product)
+def update_product(product_id: uuid.UUID, product: schemas.ProductCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    db_product = crud.get_product(db, product_id=product_id, tenant_id=current_user.id)
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return crud.update_product(db=db, db_product=db_product, product=product)
+
+@app.post("/products/upload-url")
+def get_upload_url(file_type: str, current_user: models.User = Depends(security.get_current_user)):
+    # Simulación de URL firmada para desarrollo local
+    # En producción esto conectaría con s3_service.py
+    file_id = str(uuid.uuid4())
+    extension = file_type.split('/')[-1]
+    file_name = f"{file_id}.{extension}"
+    
+    # Por ahora devolvemos una URL dummy para no bloquear el flujo
+    return {
+        "upload_url": f"http://localhost:8000/upload-test/{file_name}",
+        "file_url": f"https://bayup-media-test.s3.amazonaws.com/{file_name}"
+    }
 
 # --- Public Store ---
 

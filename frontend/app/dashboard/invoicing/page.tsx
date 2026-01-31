@@ -260,10 +260,11 @@ export default function InvoicingPage() {
         if (!token) return;
         try {
             const apiBase = "http://localhost:8000";
-            const [usersRes, productsRes, ordersRes] = await Promise.all([
+            const [usersRes, productsRes, ordersRes, collectionsRes] = await Promise.all([
                 fetch(`${apiBase}/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } }),
                 fetch(`${apiBase}/products`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch(`${apiBase}/orders`, { headers: { 'Authorization': `Bearer ${token}` } })
+                fetch(`${apiBase}/orders`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch(`${apiBase}/collections`, { headers: { 'Authorization': `Bearer ${token}` } })
             ]);
 
             if (usersRes.ok) {
@@ -271,15 +272,17 @@ export default function InvoicingPage() {
                 setSellers(data.map((u: any) => ({ name: u.full_name || u.email, role: u.role })));
             }
 
-            const mockProducts: Product[] = [
-                { id: '00000000-0000-4000-a000-000000000001', name: 'Zapatillas Nitro Pro Max', category: 'Calzado', price: 250000, cost: 180000, description: 'Zapatillas de alto rendimiento.', sku: 'SKU-ZAT-001', image_url: PRODUCT_IMAGES.Calzado, variants: [{ id: '00000000-0000-4000-b000-000000000001', attributes: { Talla: ['38', '40', '42'], Color: ['Negro', 'Azul'] }, stock: 15}] },
-                { id: '00000000-0000-4000-a000-000000000003', name: 'Smartwatch Bayup v2', category: 'Tecnología', price: 450000, cost: 320000, description: 'Monitorización de salud.', sku: 'SKU-TEC-443', image_url: PRODUCT_IMAGES.Tecnología, variants: [{ id: '00000000-0000-4000-b000-000000000003', stock: 3 }] }
-            ];
-
             if (productsRes.ok) {
                 const realProducts = await productsRes.json();
-                setProducts([...mockProducts, ...realProducts]);
-            } else { setProducts(mockProducts); }
+                setProducts(realProducts);
+            }
+
+            if (collectionsRes.ok) {
+                const collectionsData = await collectionsRes.json();
+                // Sincronización Real con el módulo de Categorías
+                const collectionTitles = collectionsData.map((c: any) => c.title);
+                setCategories(['Todas', ...collectionTitles]);
+            }
 
             if (ordersRes.ok) {
                 const data = await ordersRes.json();

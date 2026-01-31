@@ -54,7 +54,7 @@ def get_all_products(db: Session, tenant_id: Optional[uuid.UUID] = None, skip: i
     return query.offset(skip).limit(limit).all()
 
 def get_products_by_owner(db: Session, owner_id: uuid.UUID, skip: int = 0, limit: int = 100) -> list[models.Product]:
-    return db.query(models.Product).filter(models.Product.owner_id == owner_id).options(joinedload(models.Product.variants)).offset(skip).limit(limit).all()
+    return db.query(models.Product).filter(models.Product.owner_id == owner_id).options(joinedload(models.Product.variants)).order_by(models.Product.id.desc()).offset(skip).limit(limit).all()
 
 def create_product(db: Session, product: schemas.ProductCreate, owner_id: uuid.UUID) -> models.Product:
     db_product = models.Product(**product.dict(exclude={"variants"}), owner_id=owner_id)
@@ -63,6 +63,22 @@ def create_product(db: Session, product: schemas.ProductCreate, owner_id: uuid.U
     for v in product.variants:
         db_variant = models.ProductVariant(**v.dict(), product_id=db_product.id)
         db.add(db_variant)
+    db.commit()
+    db.refresh(db_product)
+    return db_product
+
+def update_product(db: Session, db_product: models.Product, product: schemas.ProductCreate) -> models.Product:
+    # 1. Actualizar campos básicos
+    update_data = product.dict(exclude={"variants"})
+    for key, value in update_data.items():
+        setattr(db_product, key, value)
+    
+    # 2. Actualizar variantes (Borramos las anteriores y creamos las nuevas para simplicidad)
+    db.query(models.ProductVariant).filter(models.ProductVariant.product_id == db_product.id).delete()
+    for v in product.variants:
+        db_variant = models.ProductVariant(**v.dict(), product_id=db_product.id)
+        db.add(db_variant)
+    
     db.commit()
     db.refresh(db_product)
     return db_product
@@ -114,7 +130,7 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
     return db_order
 
 def get_orders_by_customer(db: Session, customer_id: uuid.UUID) -> list[models.Order]:
-    return db.query(models.Order).filter(models.Order.customer_id == customer_id).all()
+    return db.query(models.Order).filter(models.Order.customer_id == customer_id).order_by(models.Order.created_at.desc()).all()
 
 # --- Finance CRUD ---
 def create_income(db: Session, income: schemas.IncomeCreate, tenant_id: uuid.UUID) -> models.Income:
@@ -133,7 +149,7 @@ def create_collection(db: Session, collection: schemas.CollectionCreate, owner_i
     return db_col
 
 def get_collections_by_owner(db: Session, owner_id: uuid.UUID) -> list[models.Collection]:
-    return db.query(models.Collection).filter(models.Collection.owner_id == owner_id).all()
+    return db.query(models.Collection).filter(models.Collection.owner_id == owner_id).order_by(models.Collection.id.desc()).all()
 
 def delete_collection(db: Session, collection_id: uuid.UUID, owner_id: uuid.UUID):
     db_col = db.query(models.Collection).filter(models.Collection.id == collection_id, models.Collection.owner_id == owner_id).first()
