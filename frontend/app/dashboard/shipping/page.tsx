@@ -20,13 +20,15 @@ import {
   CreditCard,
   Calendar as CalendarIcon,
   MapPin,
-  Printer,
-  ExternalLink,
-  User,
-  Zap,
-  Clock,
-  RotateCcw,
-  Box,
+  Map,
+    Printer,
+    ExternalLink,
+    User,
+    Zap,
+    TrendingUp,
+    TrendingDown,
+    Clock, 
+    RotateCcw,  Box,
   Activity
 } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
@@ -134,9 +136,62 @@ export default function ShippingPage() {
 
   const carriers = ['Servientrega', 'Coordinadora', 'Envia', 'Interrapidisimo', 'FedEx', 'DHL'];
 
+  const getTrackingUrl = (carrier?: string, code?: string) => {
+    if (!carrier || !code) return "#";
+    const cleanCode = code.trim();
+    if (carrier === 'Coordinadora') return `https://www.coordinadora.com/portafolio-de-servicios/servicios-en-linea/rastreo-de-guias/?guia=${cleanCode}`;
+    if (carrier === 'Servientrega') return `https://www.servientrega.com/wps/portal/Colombia/transacciones-personas/rastreo-envios?id=${cleanCode}`;
+    if (carrier === 'Interrapidisimo') return `https://www.interrapidisimo.com/sigue-tu-envio/?guia=${cleanCode}`;
+    return "#";
+  };
+
+  const handlePrintLabel = async (shp: Shipment) => {
+    try {
+        const { default: jsPDF } = await import('jspdf');
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [100, 150] }); // Formato etiqueta térmica
+        const petrol = [0, 77, 77];
+        
+        doc.setFillColor(petrol[0], petrol[1], petrol[2]);
+        doc.rect(0, 0, 100, 20, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(16);
+        doc.text("BAYUP LOGISTICS", 50, 12, { align: 'center' });
+
+        doc.setTextColor(0,0,0);
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.text("DESTINATARIO:", 10, 35);
+        doc.setFont("helvetica", "normal");
+        doc.text(shp.customer.name, 10, 40);
+        doc.text(shp.customer.address, 10, 45);
+        doc.text(`${shp.customer.city}, Colombia`, 10, 50);
+        doc.text(shp.customer.phone, 10, 55);
+
+        doc.setFont("helvetica", "bold");
+        doc.text("TRANSPORTADORA:", 10, 75);
+        doc.setFontSize(12);
+        doc.text(shp.carrier.toUpperCase(), 10, 82);
+        
+        doc.setFontSize(8);
+        doc.text("GUÍA DE RASTREO:", 10, 95);
+        doc.setFontSize(14);
+        doc.text(shp.tracking_number, 10, 102);
+
+        // Simulación de código de barras
+        doc.setFillColor(0,0,0);
+        doc.rect(10, 115, 80, 15, 'F');
+        doc.setFontSize(6);
+        doc.text("|| |||| ||| ||||| || |||| ||| ||||| ||", 50, 135, { align: 'center' });
+
+        doc.save(`Etiqueta_${shp.tracking_number}.pdf`);
+        showToast("Etiqueta generada con éxito", "success");
+    } catch (e) { console.error(shp); }
+  };
+
   // --- Nuevos Estados de Filtros y UI ---
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
+  const [isCustomerViewOpen, setIsCustomerViewOpen] = useState(false);
   const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
   const [isFilterHovered, setIsFilterHovered] = useState(false);
   const [isDateHovered, setIsDateHovered] = useState(false);
@@ -490,30 +545,87 @@ export default function ShippingPage() {
 
                     <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar bg-[#FAFAFA]">
                         {/* Customer Card */}
-                        <section className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4">
-                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><User size={14}/> Datos de Entrega</h3>
-                            <div className="space-y-2">
-                                <p className="text-lg font-black text-slate-900">{selectedShipment.customer.name}</p>
-                                <p className="text-sm font-medium text-slate-500">{selectedShipment.customer.address}</p>
-                                <p className="text-sm font-bold text-[#004D4D]">{selectedShipment.customer.city}, Colombia</p>
-                                <div className="flex items-center gap-4 mt-4 pt-4 border-t border-slate-50">
-                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-600"><Smartphone size={14}/> {selectedShipment.customer.phone}</div>
+                        <section className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative group/card">
+                            <div className="flex justify-between items-center">
+                                <div className="space-y-4">
+                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                        <User size={14}/> Datos de Entrega
+                                    </h3>
+                                    <div className="space-y-2">
+                                        <p className="text-lg font-black text-slate-900">{selectedShipment.customer.name}</p>
+                                        <p className="text-sm font-medium text-slate-500">{selectedShipment.customer.address}</p>
+                                        <p className="text-sm font-bold text-[#004D4D]">{selectedShipment.customer.city}, Colombia</p>
+                                        <div className="flex items-center gap-4 mt-4 pt-4 border-t border-slate-50">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-600"><Smartphone size={14}/> {selectedShipment.customer.phone}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Client Insight Button */}
+                                <div className="absolute right-20 top-1/2 -translate-y-1/2">
+                                    <motion.button
+                                        whileHover={{ scale: 1.05, backgroundColor: '#004D4D', color: '#fff', boxShadow: '0 20px 40px rgba(0,77,77,0.2)' }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => setIsCustomerViewOpen(true)}
+                                        className="h-32 w-32 rounded-[2.5rem] bg-slate-50 text-[#004D4D] border border-slate-100 flex items-center justify-center shadow-xl transition-all group/btn"
+                                        title="Ver Perfil Inteligente"
+                                    >
+                                        <User size={56} className="group-hover/btn:animate-pulse" />
+                                    </motion.button>
                                 </div>
                             </div>
                         </section>
 
                         {/* Logistics Timeline */}
                         <section className="space-y-6">
-                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Activity size={14}/> Línea de Tiempo Logística</h3>
+                            <div className="flex items-center gap-3">
+                                <div className="relative flex items-center justify-center">
+                                    <motion.div 
+                                        animate={{ 
+                                            scale: [1, 1.5, 1],
+                                            opacity: [0.3, 0.6, 0.3]
+                                        }}
+                                        transition={{ 
+                                            duration: 2, 
+                                            repeat: Infinity,
+                                            ease: "easeInOut"
+                                        }}
+                                        className="absolute h-6 w-6 bg-emerald-400 rounded-full blur-md"
+                                    />
+                                    <motion.div
+                                        animate={{ 
+                                            scale: [1, 1.2, 1]
+                                        }}
+                                        transition={{ 
+                                            duration: 0.8, 
+                                            repeat: Infinity,
+                                            ease: "easeInOut"
+                                        }}
+                                        className="relative z-10 text-emerald-500"
+                                    >
+                                        <Activity size={16}/>
+                                    </motion.div>
+                                </div>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Línea de Tiempo Logística</h3>
+                            </div>
+                            
                             <div className="relative space-y-8 before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
                                 {selectedShipment.history.map((log, i) => (
                                     <div key={i} className="flex gap-6 relative">
-                                        <div className={`h-8 w-8 rounded-full flex items-center justify-center z-10 ${i === 0 ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-200' : 'bg-white border-2 border-slate-100 text-slate-300'}`}>
-                                            {i === 0 ? <Activity size={14}/> : <Clock size={14}/>}
+                                        <div className={`h-8 w-8 rounded-full flex items-center justify-center z-10 relative ${i === 0 ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-200' : 'bg-white border-2 border-slate-300 text-slate-600'}`}>
+                                            {i === 0 && (
+                                                <motion.div 
+                                                    animate={{ opacity: [0.4, 1, 0.4] }}
+                                                    transition={{ duration: 1.5, repeat: Infinity }}
+                                                    className="absolute inset-0 bg-cyan-400 rounded-full blur-sm"
+                                                />
+                                            )}
+                                            <div className="relative z-10 flex items-center justify-center">
+                                                {i === 0 ? <Activity size={14} color="white" /> : <Clock size={14}/>}
+                                            </div>
                                         </div>
                                         <div>
-                                            <p className="text-xs font-black text-slate-900">{log.message}</p>
-                                            <p className="text-[10px] font-bold text-[#004D4D] mt-0.5 uppercase tracking-tighter">{log.location}</p>
+                                            <p className={`text-xs font-black ${i === 0 ? 'text-slate-900' : 'text-slate-500'}`}>{log.message}</p>
+                                            <p className={`text-[10px] font-bold mt-0.5 uppercase tracking-tighter ${i === 0 ? 'text-[#004D4D]' : 'text-slate-400'}`}>{log.location}</p>
                                             <p className="text-[9px] text-slate-400 mt-1">{new Date(log.date).toLocaleString()}</p>
                                         </div>
                                     </div>
@@ -523,15 +635,194 @@ export default function ShippingPage() {
                     </div>
 
                     <div className="p-8 border-t border-slate-100 bg-white grid grid-cols-2 gap-4">
-                        <button className="py-4 bg-slate-50 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-100 transition-all">
+                        <button 
+                            onClick={() => handlePrintLabel(selectedShipment)}
+                            className="py-4 bg-slate-50 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-100 transition-all"
+                        >
                             <Printer size={16}/> Imprimir Guía
                         </button>
-                        <button className="py-4 bg-[#004D4D] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-cyan-900/20 hover:bg-black transition-all">
-                            <ExternalLink size={16}/> Rastrear API
+                        <button 
+                            onClick={() => {
+                                const url = getTrackingUrl(selectedShipment.carrier, selectedShipment.tracking_number);
+                                if (url !== "#") window.open(url, '_blank');
+                                else showToast("Rastreo no disponible", "info");
+                            }}
+                            className="py-4 bg-[#004D4D] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-cyan-900/20 hover:bg-black transition-all"
+                        >
+                            <Map size={16} className="text-cyan-400"/> Rastrear API
                         </button>
                     </div>
                 </motion.div>
             </>
+        )}
+      </AnimatePresence>
+
+      {/* --- Customer Intelligence Modal --- */}
+      <AnimatePresence>
+        {isCustomerViewOpen && selectedShipment && (
+            <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[500] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4"
+            >
+                <motion.div 
+                    initial={{ scale: 0.9, x: 100, opacity: 0 }} 
+                    animate={{ scale: 1, x: 0, opacity: 1 }} 
+                    exit={{ scale: 0.9, x: 100, opacity: 0 }}
+                    className="relative bg-[#FAFAFA] w-full max-w-6xl h-[90vh] rounded-[3.5rem] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-white/20"
+                >
+                    {/* Close Button */}
+                    <button 
+                        onClick={() => setIsCustomerViewOpen(false)}
+                        className="absolute top-8 right-8 z-[510] h-12 w-12 rounded-full bg-white shadow-lg border border-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all hover:rotate-90"
+                    >
+                        <X size={20}/>
+                    </button>
+
+                    {/* Left Sidebar: Basic Info & Loyalty */}
+                    <div className="w-full md:w-[350px] bg-white border-r border-slate-100 p-10 flex flex-col items-center text-center space-y-8">
+                        <div className="relative">
+                            <div className="h-32 w-32 rounded-[2.5rem] bg-gradient-to-br from-[#004D4D] to-cyan-500 flex items-center justify-center text-white text-4xl font-black shadow-2xl">
+                                {selectedShipment.customer.name.charAt(0)}
+                            </div>
+                            <div className="absolute -bottom-2 -right-2 h-10 w-10 bg-emerald-500 rounded-full border-4 border-white flex items-center justify-center text-white shadow-lg">
+                                <Zap size={16} fill="currentColor"/>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">{selectedShipment.customer.name}</h2>
+                            <p className="text-sm font-medium text-cyan-600 mb-3">{selectedShipment.customer.email}</p>
+                            
+                            <div className="flex flex-col gap-2 items-center">
+                                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest">
+                                    Premium Member
+                                </div>
+                                <div className={`inline-flex items-center gap-2 px-4 py-1.5 border rounded-full text-[9px] font-black uppercase tracking-widest ${selectedShipment.order_id.includes('7825') ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-cyan-50 text-cyan-600 border-cyan-100'}`}>
+                                    {selectedShipment.order_id.includes('7825') ? 'Socio Mayorista' : 'Consumidor Final'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="w-full grid grid-cols-2 gap-4 py-6 border-y border-slate-50">
+                            <div className="text-center">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Edad</p>
+                                <p className="text-lg font-black text-slate-900">28 Años</p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Club Puntos</p>
+                                <p className="text-lg font-black text-emerald-600">1,250</p>
+                            </div>
+                        </div>
+
+                        <div className="w-full space-y-4 text-left">
+                            <div className="flex items-center gap-4 text-slate-600">
+                                <Smartphone size={18} className="text-slate-400"/>
+                                <span className="text-sm font-bold">{selectedShipment.customer.phone}</span>
+                            </div>
+                            <div className="flex items-center gap-4 text-slate-600">
+                                <MapPin size={18} className="text-slate-400"/>
+                                <span className="text-xs font-medium leading-tight">{selectedShipment.customer.address}, {selectedShipment.customer.city}</span>
+                            </div>
+                        </div>
+
+                        {/* Customer Spend Trend Graph */}
+                        <div className="w-full pt-6 border-t border-slate-50 space-y-4">
+                            <div className="flex justify-between items-end">
+                                <div className="text-left">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Gasto Mensual</p>
+                                    <p className="text-lg font-black text-slate-900">$450,000</p>
+                                </div>
+                                <div className="flex items-center gap-1 text-emerald-500 font-black text-[10px]">
+                                    <TrendingUp size={12}/> +15%
+                                </div>
+                            </div>
+                            <div className="flex items-end justify-between h-16 gap-1 px-2">
+                                {[30, 45, 25, 60, 80, 100].map((h, i) => (
+                                    <div key={i} className="w-full bg-slate-50 rounded-t-md relative overflow-hidden group">
+                                        <motion.div 
+                                            initial={{ height: 0 }}
+                                            animate={{ height: `${h}%` }}
+                                            className={`absolute bottom-0 w-full rounded-t-md ${i === 5 ? 'bg-cyan-500' : 'bg-slate-200'}`}
+                                        ></motion.div>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em]">Últimos 6 meses</p>
+                        </div>
+                    </div>
+
+                    {/* Right Content: Insights & Analytics */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-10">
+                        {/* Summary Header */}
+                        <div className="flex justify-between items-end pr-16">
+                            <div>
+                                <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic">Customer <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004D4D] to-cyan-500">Intelligence</span></h3>
+                                <p className="text-slate-400 text-sm font-medium mt-1">Análisis de comportamiento y patrones de compra.</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] font-black text-slate-400 uppercase">Última Actividad</p>
+                                <p className="text-sm font-black text-slate-900">{new Date(selectedShipment.last_update).toLocaleString()}</p>
+                            </div>
+                        </div>
+
+                        {/* Bento Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {/* Behavioral Box */}
+                            <div className="md:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Globe size={14}/> Comportamiento en Sitio</h4>
+                                <div className="grid grid-cols-3 gap-6">
+                                    <div className="p-4 bg-slate-50 rounded-2xl">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase">Tiempo/Sitio</p>
+                                        <p className="text-lg font-black text-slate-900 mt-1">12m 45s</p>
+                                    </div>
+                                    <div className="p-4 bg-cyan-50 rounded-2xl overflow-hidden">
+                                        <p className="text-[9px] font-black text-cyan-600 uppercase">Cupones</p>
+                                        <p className="text-sm font-black text-cyan-700 mt-1 truncate">WELCOME10</p>
+                                    </div>
+                                    <div className="p-4 bg-emerald-50 rounded-2xl overflow-hidden">
+                                        <p className="text-[9px] font-black text-emerald-600 uppercase">Tipo Cliente</p>
+                                        <p className="text-sm font-black text-emerald-700 mt-1 truncate">Recurrente</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase">Búsquedas Recientes</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['Zapatillas Nike', 'Camisetas Oversize', 'Gorra Black', 'Calzado Deportivo'].map(tag => (
+                                            <span key={tag} className="px-3 py-1 bg-white border border-slate-200 rounded-full text-[10px] font-bold text-slate-600">{tag}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Tech Stack Box */}
+                            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col justify-between">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Smartphone size={14}/> Tecnología</h4>
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Smartphone size={16} className="text-emerald-500"/>
+                                            <span className="text-xs font-bold text-slate-700">Mobile</span>
+                                        </div>
+                                        <span className="text-xs font-black text-slate-900">70%</span>
+                                    </div>
+                                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                                        <div className="h-full bg-emerald-500" style={{ width: '70%' }}></div>
+                                        <div className="h-full bg-[#004D4D]" style={{ width: '30%' }}></div>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Globe size={16} className="text-[#004D4D]"/>
+                                            <span className="text-xs font-bold text-slate-700">Desktop</span>
+                                        </div>
+                                        <span className="text-xs font-black text-slate-900">30%</span>
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-slate-400 font-medium italic mt-4 text-center border-t pt-4">Dispositivo: iPhone 15 Pro</p>
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+            </motion.div>
         )}
       </AnimatePresence>
     </div>
