@@ -102,7 +102,7 @@ export const pageService = {
         apiRequest(`/pages/${id}`, { method: 'DELETE', token }),
 };
 
-export const collectionService = {
+export const categoryService = {
     getAll: (token: string) => apiRequest<any[]>('/collections', { token }),
     create: (token: string, data: any) => 
         apiRequest('/collections', { method: 'POST', token, body: JSON.stringify(data) }),

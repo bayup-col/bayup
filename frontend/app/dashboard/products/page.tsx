@@ -395,7 +395,9 @@ export default function ProductsPage() {
                         <motion.div key="categories-view" initial={{ y: -500, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 500, opacity: 0 }} transition={{ duration: 0.6, ease: "anticipate" }} className="bg-white rounded-[3rem] border border-gray-100 shadow-sm p-12">
                             <div className="flex items-center justify-between mb-12">
                                 <div><h3 className="text-2xl font-black italic uppercase text-[#001A1A] tracking-tighter">Categorías Maestro</h3><p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Organización lógica de tu inventario</p></div>
-                                <PremiumButton onClick={() => router.push('/dashboard/collections/new')}><Plus size={18} /> Nueva Categoría</PremiumButton>
+                                <PremiumButton onClick={() => showToast("Funcionalidad de creación en desarrollo", "info")}>
+                                    <Plus size={18} /> Nueva Categoría
+                                </PremiumButton>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                 {Array.from(new Set(products.map(p => p.category || 'General'))).map((cat, i) => (

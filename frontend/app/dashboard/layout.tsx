@@ -231,7 +231,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                 <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                                     <div className="space-y-1">
                                         <MenuItem href="/dashboard/products" label="Todos los productos" id="s_products_all" isSub />
-                                        <MenuItem href="/dashboard/collections" label="Colecciones" id="s_collections" isSub />
                                         <MenuItem href="/dashboard/inventory" label="Inventario" id="s_inventory" isSub />
                                         <MenuItem href="/dashboard/catalogs" label="Catálogos WhatsApp" id="s_catalogs" isSub />
                                         <MenuItem href="/dashboard/products/separados" label="Separados (IA)" id="s_separados" isSub />
