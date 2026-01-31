@@ -60,6 +60,28 @@ export default function NewProductPage() {
     const [isEditorGuideOpen, setIsEditorGuideOpen] = useState(false);
     const [activeEditorGuideTab, setActiveEditorGuideTab] = useState('info');
 
+    // Mapeo de colores para reconocimiento automático
+    const colorMap: { [key: string]: string } = {
+        'rojo': '#FF0000', 'red': '#FF0000',
+        'azul': '#0000FF', 'blue': '#0000FF',
+        'verde': '#008000', 'green': '#008000',
+        'negro': '#000000', 'black': '#000000',
+        'blanco': '#FFFFFF', 'white': '#FFFFFF',
+        'amarillo': '#FFFF00', 'yellow': '#FFFFFF',
+        'gris': '#808080', 'gray': '#808080',
+        'naranja': '#FFA500', 'orange': '#FFA500',
+        'morado': '#800080', 'purple': '#800080',
+        'rosa': '#FFC0CB', 'pink': '#FFC0CB',
+        'cian': '#00FFFF', 'cyan': '#00F2FF'
+    };
+
+    const resolveColor = (val: string) => {
+        const lower = val.toLowerCase().trim();
+        if (colorMap[lower]) return colorMap[lower];
+        if (/^#[0-9A-F]{6}$/i.test(lower)) return lower;
+        return '#000000'; // Default
+    };
+
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -73,11 +95,39 @@ export default function NewProductPage() {
     });
 
     const [variants, setVariants] = useState([
-        { name: 'Estándar', sku: '', stock: 0, price_adjustment: 0 }
+        { id: Math.random().toString(36).substr(2, 9), name: 'Estándar', sku: '', stock: 0, price_adjustment: 0 }
     ]);
 
     const [media, setMedia] = useState<{file?: File, preview: string, type: 'image' | 'video', isMuted: boolean}[]>([]);
     const [selectedPreviewIndex, setSelectedPreviewPreviewIndex] = useState(0);
+
+    // Helpers de Secuencia de Variantes
+    const getNextVariantValue = (currentValue: string) => {
+        const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+        const currentSize = currentValue.toUpperCase();
+        const sizeIndex = sizes.indexOf(currentSize);
+        
+        if (sizeIndex !== -1 && sizeIndex < sizes.length - 1) return sizes[sizeIndex + 1];
+        const num = parseInt(currentValue);
+        if (!isNaN(num)) return String(num + 1);
+        return "";
+    };
+
+    const addSequentialVariant = (index: number) => {
+        const source = variants[index];
+        const nextValue = getNextVariantValue(source.sku);
+        const newVariant = {
+            id: Math.random().toString(36).substr(2, 9),
+            name: source.name,
+            sku: nextValue,
+            stock: 0,
+            price_adjustment: 0
+        };
+        
+        const newVariants = [...variants];
+        newVariants.splice(index + 1, 0, newVariant);
+        setVariants(newVariants);
+    };
 
     // Estados Asistente de Precios
     const [isPriceAssistantOpen, setIsPriceAssistantOpen] = useState(false);
@@ -440,24 +490,121 @@ export default function NewProductPage() {
                                         <Plus size={14} /> Añadir Variante
                                     </button>
                                 </div>
-                                <div className="space-y-4 text-slate-900">
-                                    {variants.map((variant, index) => (
-                                        <div key={index} className="p-8 bg-gray-50 rounded-[2.5rem] border border-transparent hover:border-[#004D4D]/10 transition-all flex flex-wrap md:flex-nowrap gap-6 items-end group relative text-slate-900 text-slate-900">
-                                            <div className="flex-1 min-w-[180px] space-y-2 text-slate-900">
-                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre (Color/Talla)</label>
-                                                <input value={variant.name} onChange={e => { const v = [...variants]; v[index].name = e.target.value; setVariants(v); }} placeholder="Ej: Azul / XL" className="w-full bg-white border border-gray-100 rounded-xl px-4 py-3 outline-none text-xs font-bold transition-all focus:border-[#00F2FF]/30 text-slate-900 text-slate-900" />
+                                <div className="space-y-10 text-slate-900">
+                                    {/* AGRUPACIÓN POR FAMILIA DE ATRIBUTO */}
+                                    {Array.from(new Set(variants.map(v => v.name))).map((groupName, groupIdx) => {
+                                        const groupVariants = variants.filter(v => v.name === groupName);
+                                        const isColorType = groupName.toLowerCase().includes('color');
+
+                                        return (
+                                            <div key={`group-${groupIdx}`} className="p-10 bg-gray-50 rounded-[3rem] border border-transparent hover:border-[#004D4D]/10 transition-all text-slate-900">
+                                                {/* ENCABEZADOS DE LA FAMILIA */}
+                                                <div className="flex gap-6 mb-4 px-2 text-slate-900">
+                                                    <div className="flex-1 min-w-[180px]"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Atributo</label></div>
+                                                    <div className="flex-1 min-w-[180px]"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Especificación</label></div>
+                                                    <div className="w-32"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1 text-center block">Stock</label></div>
+                                                    <div className="w-11"></div>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    {groupVariants.map((variant) => (
+                                                        <div key={variant.id} className="flex gap-6 items-center group/row animate-in fade-in slide-in-from-top-2 duration-300">
+                                                            {/* Atributo */}
+                                                            <div className="flex-1 min-w-[180px]">
+                                                                <input 
+                                                                    value={variant.name} 
+                                                                    onChange={e => {
+                                                                        const newName = e.target.value;
+                                                                        setVariants(prev => prev.map(v => v.name === groupName ? { ...v, name: newName } : v));
+                                                                    }}
+                                                                    placeholder="Ej: Talla" 
+                                                                    className="w-full bg-white border border-gray-100 rounded-xl px-4 py-3 outline-none text-xs font-bold focus:border-[#00F2FF]/30 text-slate-900 shadow-sm"
+                                                                />
+                                                            </div>
+
+                                                            {/* Especificación */}
+                                                            <div className="flex-1 min-w-[180px]">
+                                                                <div className="relative flex items-center">
+                                                                    {isColorType && (
+                                                                        <div className="absolute left-3 flex items-center">
+                                                                            <input 
+                                                                                type="color" 
+                                                                                value={resolveColor(variant.sku)}
+                                                                                className="w-5 h-5 rounded-full border-none cursor-pointer bg-transparent shadow-sm"
+                                                                                onChange={(e) => {
+                                                                                    const val = e.target.value;
+                                                                                    setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, sku: val } : v));
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    )}
+                                                                    <input 
+                                                                        value={variant.sku} 
+                                                                        onChange={e => {
+                                                                            const val = e.target.value;
+                                                                            setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, sku: val } : v));
+                                                                        }}
+                                                                        placeholder={isColorType ? "Nombre o Hex" : "Ej: S, M, L..."} 
+                                                                        className={`w-full bg-white border border-gray-100 rounded-xl py-3 outline-none text-xs font-bold focus:border-[#00F2FF]/30 text-slate-900 shadow-sm ${isColorType ? 'pl-10' : 'px-4'}`} 
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Stock */}
+                                                            <div className="w-32">
+                                                                <input 
+                                                                    type="text" 
+                                                                    value={formatValue(variant.stock)} 
+                                                                    onChange={e => {
+                                                                        const val = parseValue(e.target.value);
+                                                                        setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, stock: val } : v));
+                                                                    }} 
+                                                                    className="w-full bg-white border border-gray-100 rounded-xl px-4 py-3 outline-none text-xs font-black text-center focus:border-[#00F2FF]/30 text-slate-900 shadow-sm" 
+                                                                />
+                                                            </div>
+
+                                                            {/* Eliminar Fila */}
+                                                            <div className="w-11">
+                                                                {variants.length > 1 && (
+                                                                    <button 
+                                                                        type="button" 
+                                                                        onClick={() => setVariants(prev => prev.filter(v => v.id !== variant.id))}
+                                                                        className="h-11 w-11 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover/row:opacity-100"
+                                                                    >
+                                                                        <X size={18} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* BOTÓN AGREGAR OTRA */}
+                                                {groupName && (
+                                                    <div className="mt-6 pt-6 border-t border-gray-200/50">
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => addSequentialVariant(variants.indexOf(groupVariants[groupVariants.length - 1]))}
+                                                            className="text-[10px] font-black text-[#004D4D] hover:text-black uppercase tracking-widest flex items-center gap-3 transition-all group/btn"
+                                                        >
+                                                            <div className="h-7 w-7 rounded-xl bg-[#004D4D] text-white flex items-center justify-center shadow-lg group-hover/btn:scale-110 transition-transform">
+                                                                <Plus size={14} />
+                                                            </div>
+                                                            Agregar otra {groupName} {getNextVariantValue(groupVariants[groupVariants.length - 1].sku) ? `(${getNextVariantValue(groupVariants[groupVariants.length - 1].sku)})` : ''}
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="w-40 space-y-2 text-slate-900 text-slate-900">
-                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">SKU Específico</label>
-                                                <input value={variant.sku} onChange={e => { const v = [...variants]; v[index].sku = e.target.value; setVariants(v); }} placeholder="SKU-001" className="w-full bg-white border border-gray-100 rounded-xl px-4 py-3 outline-none text-xs font-bold transition-all focus:border-[#00F2FF]/30 uppercase text-slate-900 text-slate-900" />
-                                            </div>
-                                            <div className="w-32 space-y-2 text-slate-900 text-slate-900">
-                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Stock</label>
-                                                <input type="number" value={variant.stock} onChange={e => { const v = [...variants]; v[index].stock = Number(e.target.value); setVariants(v); }} className="w-full bg-white border border-gray-100 rounded-xl px-4 py-3 outline-none text-xs font-black transition-all focus:border-[#00F2FF]/30 text-slate-900 text-slate-900" />
-                                            </div>
-                                            {variants.length > 1 && (<button type="button" onClick={() => setVariants(variants.filter((_, idx) => idx !== index))} className="h-11 w-11 flex items-center justify-center bg-white border border-rose-100 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm text-slate-900"><Trash2 size={18} /></button>)}
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
+                                    
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setVariants([...variants, { id: Math.random().toString(36).substr(2, 9), name: '', sku: '', stock: 0, price_adjustment: 0 }])}
+                                        className="w-full py-6 border-2 border-dashed border-gray-200 rounded-[3rem] text-[10px] font-black text-gray-400 uppercase tracking-widest hover:border-[#004D4D]/20 hover:text-[#004D4D] transition-all flex items-center justify-center gap-3"
+                                    >
+                                        <Plus size={16} /> Nueva Familia de Atributos
+                                    </button>
                                 </div>
                             </section>
                         </motion.div>
