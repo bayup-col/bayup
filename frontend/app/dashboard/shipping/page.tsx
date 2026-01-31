@@ -21,8 +21,9 @@ import {
   Calendar as CalendarIcon,
   MapPin,
   Map,
-    Printer,
-    ExternalLink,
+  Info,
+  Printer,
+  ExternalLink,
     User,
     Zap,
     TrendingUp,
@@ -133,6 +134,62 @@ export default function ShippingPage() {
         });
     }
   }, []);
+
+  const [isCarrierDropdownOpen, setIsCarrierDropdownOpen] = useState(false);
+  const [shippingData, setShippingData] = useState({ carrier: '', trackingNumber: '' });
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [activeGuideTab, setActiveGuideTab] = useState('all');
+
+  const guideContent = {
+    all: {
+        title: 'Vista 360 Logística',
+        icon: <Package size={20}/>,
+        color: 'text-blue-500',
+        howItWorks: 'Centraliza todos los envíos digitales de tu plataforma sin importar su estado actual.',
+        example: 'Úsalo para tener una auditoría rápida de cuántos paquetes tienes fuera de bodega en este momento.',
+        tip: 'Si un cliente llama preguntando por su paquete, búscalo aquí primero para obtener el ID de envío global.'
+    },
+    label_generated: {
+        title: 'Guía Generada',
+        icon: <Printer size={20}/>,
+        color: 'text-slate-500',
+        howItWorks: 'Paquetes que ya tienen asignada una transportadora y número de guía, pero aún no han sido recogidos por el camión.',
+        example: 'Generaste la guía a las 10 AM. El paquete aparece aquí hasta que la transportadora lo escanee al recogerlo en la tarde.',
+        tip: 'Aprovecha este tiempo para asegurar que el empaque sea premium y la etiqueta esté en un lugar visible.'
+    },
+    in_transit: {
+        title: 'En Tránsito',
+        icon: <Truck size={20}/>,
+        color: 'text-blue-600',
+        howItWorks: 'El paquete ya está en manos de la transportadora y se mueve entre centros de distribución hacia la ciudad destino.',
+        example: 'El envío salió de Medellín y está viajando por carretera hacia Cali.',
+        tip: 'Monitorea envíos que lleven más de 48h en este estado. Si el viaje es nacional, ya deberían estar cerca de su destino.'
+    },
+    out_for_delivery: {
+        title: 'En Reparto',
+        icon: <Activity size={20}/>,
+        color: 'text-cyan-600',
+        howItWorks: '¡Fase final! El paquete está en el vehículo de entrega local y llegará al cliente en las próximas horas.',
+        example: 'El mensajero de Servientrega cargó el paquete en su camioneta a las 8 AM en Barranquilla.',
+        tip: 'Este es el mejor momento para enviarle un recordatorio al cliente: "¡Tu pedido llega hoy!". Aumenta la tasa de entrega efectiva.'
+    },
+    delivered: {
+        title: 'Entregado',
+        icon: <CheckCircle2 size={20}/>,
+        color: 'text-emerald-600',
+        howItWorks: 'Objetivo cumplido. El cliente recibió el producto y la transportadora confirmó la entrega.',
+        example: 'El cliente firmó la planilla de recibido. El sistema se actualiza automáticamente a este estado.',
+        tip: 'Es el momento perfecto para pedir feedback. Envía un cupón de descuento para su próxima compra digital.'
+    },
+    incident: {
+        title: 'Incidencia',
+        icon: <AlertCircle size={20}/>,
+        color: 'text-rose-600',
+        howItWorks: 'Alertas críticas reportadas por la transportadora: dirección errada, cliente ausente o paquete dañado.',
+        example: 'La transportadora reporta "Dirección no existe". El paquete se detiene y requiere tu intervención inmediata.',
+        tip: 'Llama al cliente de inmediato cuando veas un envío aquí. Resolver incidencias en menos de 1 hora salva el 90% de las ventas.'
+    }
+  };
 
   const carriers = ['Servientrega', 'Coordinadora', 'Envia', 'Interrapidisimo', 'FedEx', 'DHL'];
 
@@ -307,30 +364,42 @@ export default function ShippingPage() {
 
         {/* --- Control Bar --- */}
         <div className="flex flex-col items-center gap-6">
-            {/* Centered Workflow Menu */}
-            <div className="p-1.5 bg-white border border-slate-200 rounded-full shadow-xl shadow-slate-200/50 flex items-center relative z-10 overflow-x-auto max-w-full">
-                {[
-                    { id: 'all', label: 'Todos' },
-                    { id: 'label_generated', label: 'Guía' },
-                    { id: 'in_transit', label: 'Tránsito' },
-                    { id: 'out_for_delivery', label: 'Reparto' },
-                    { id: 'delivered', label: 'Entregado' },
-                    { id: 'incident', label: 'Incidencia' }
-                ].map((tab) => {
-                    const isActive = activeTab === tab.id;
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`relative px-6 py-3 rounded-full text-xs font-black uppercase tracking-wide transition-all duration-300 z-10 whitespace-nowrap ${isActive ? 'text-white' : 'text-slate-500 hover:text-slate-900'}`}
-                        >
-                            {isActive && (
-                                <motion.div layoutId="shippingTab" className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
-                            )}
-                            {tab.label}
-                        </button>
-                    );
-                })}
+            <div className="flex items-center gap-4">
+                {/* Centered Workflow Menu */}
+                <div className="p-1.5 bg-white border border-slate-200 rounded-full shadow-xl shadow-slate-200/50 flex items-center relative z-10 overflow-x-auto max-w-full">
+                    {[
+                        { id: 'all', label: 'Todos' },
+                        { id: 'label_generated', label: 'Guía' },
+                        { id: 'in_transit', label: 'Tránsito' },
+                        { id: 'out_for_delivery', label: 'Reparto' },
+                        { id: 'delivered', label: 'Entregado' },
+                        { id: 'incident', label: 'Incidencia' }
+                    ].map((tab) => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`relative px-6 py-3 rounded-full text-xs font-black uppercase tracking-wide transition-all duration-300 z-10 whitespace-nowrap ${isActive ? 'text-white' : 'text-slate-500 hover:text-slate-900'}`}
+                            >
+                                {isActive && (
+                                    <motion.div layoutId="shippingTab" className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+                                )}
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Guía Icon Button */}
+                <motion.button 
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setIsGuideOpen(true)}
+                    className="h-12 w-12 rounded-full bg-white border border-slate-200 shadow-lg flex items-center justify-center text-[#004D4D] hover:bg-[#004D4D] hover:text-white transition-all group shrink-0"
+                >
+                    <Info size={20} className="group-hover:animate-pulse"/>
+                </motion.button>
             </div>
 
             <div className="w-full flex justify-between items-center bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
@@ -823,6 +892,106 @@ export default function ShippingPage() {
                     </div>
                 </motion.div>
             </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* --- Logistics Mastery Guide Modal --- */}
+      <AnimatePresence>
+        {isGuideOpen && (
+            <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+                <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    onClick={() => setIsGuideOpen(false)}
+                    className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+                />
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.95, y: 30 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 30 }}
+                    className="relative bg-white w-full max-w-4xl h-[70vh] rounded-[3rem] shadow-2xl overflow-hidden border border-white flex flex-col md:flex-row"
+                >
+                    {/* Navigation Sidebar */}
+                    <div className="w-full md:w-64 bg-slate-50 border-r border-slate-100 p-6 flex flex-col gap-2 overflow-y-auto">
+                        <div className="mb-6">
+                            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#004D4D]">Maestría Logística</h3>
+                            <p className="text-[10px] text-slate-400 font-bold mt-1">Guía Operativa Bayup</p>
+                        </div>
+                        {Object.entries(guideContent).map(([key, item]) => (
+                            <button
+                                key={key}
+                                onClick={() => setActiveGuideTab(key)}
+                                className={`flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${activeGuideTab === key ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:bg-white hover:shadow-sm'}`}
+                            >
+                                <div className={`${activeGuideTab === key ? 'text-white' : item.color}`}>
+                                    {item.icon}
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-wide">{item.title}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Content Area */}
+                    <div className="flex-1 flex flex-col overflow-hidden bg-white">
+                        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white/50 backdrop-blur-sm sticky top-0">
+                            <div className="flex items-center gap-4">
+                                <div className={`h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center ${guideContent[activeGuideTab as keyof typeof guideContent].color}`}>
+                                    {guideContent[activeGuideTab as keyof typeof guideContent].icon}
+                                </div>
+                                <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">
+                                    {guideContent[activeGuideTab as keyof typeof guideContent].title}
+                                </h2>
+                            </div>
+                            <button onClick={() => setIsGuideOpen(false)} className="h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
+                                <X size={20}/>
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar">
+                            <section>
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <div className="h-1 w-4 bg-[#004D4D] rounded-full"></div> ¿Qué significa?
+                                </h4>
+                                <p className="text-sm font-medium text-slate-600 leading-relaxed bg-slate-50 p-6 rounded-[2rem] border border-slate-100 shadow-inner">
+                                    {guideContent[activeGuideTab as keyof typeof guideContent].howItWorks}
+                                </p>
+                            </section>
+
+                            <div className="grid md:grid-cols-2 gap-8">
+                                <section className="space-y-4">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                        <Smartphone size={14} className="text-cyan-500"/> Ejemplo de Operación
+                                    </h4>
+                                    <div className="p-6 bg-cyan-50/30 border border-cyan-100 rounded-[2rem]">
+                                        <p className="text-xs font-medium text-cyan-900 leading-relaxed italic">
+                                            "{guideContent[activeGuideTab as keyof typeof guideContent].example}"
+                                        </p>
+                                    </div>
+                                </section>
+
+                                <section className="space-y-4">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                        <Zap size={14} className="text-amber-500"/> Tip de Experto
+                                    </h4>
+                                    <div className="p-6 bg-amber-50/30 border border-amber-100 rounded-[2rem]">
+                                        <p className="text-xs font-bold text-amber-900 leading-relaxed">
+                                            {guideContent[activeGuideTab as keyof typeof guideContent].tip}
+                                        </p>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+
+                        <div className="p-8 border-t border-slate-50 flex justify-end bg-slate-50/30">
+                            <button 
+                                onClick={() => setIsGuideOpen(false)}
+                                className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-900/10 hover:bg-black transition-all"
+                            >
+                                ¡Entendido, a despachar!
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
         )}
       </AnimatePresence>
     </div>
