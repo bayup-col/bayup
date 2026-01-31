@@ -26,6 +26,7 @@ import {
   Eye,
   CheckCircle2,
   Clock,
+  Calendar,
   Box,
   Image as ImageIcon,
   DollarSign,
@@ -151,8 +152,39 @@ export default function ProductsPage() {
 
     // Filtros Avanzados (Estilo Facturación)
     const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+    const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
     const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
+    const [isFilterHovered, setIsFilterHovered] = useState(false);
+    const [isDateHovered, setIsDateHovered] = useState(false);
+    const [isExportHovered, setIsExportHovered] = useState(false);
+    const [dateRangeState, setDateRangeState] = useState({ from: '', to: '' });
     const [advancedFilters, setAdvancedFilters] = useState({ category: 'all', stockStatus: 'all' });
+
+    const handleDatePreset = (preset: 'today' | 'yesterday' | 'week' | 'month') => {
+        const today = new Date();
+        const formatDate = (d: Date) => d.toISOString().split('T')[0];
+        let start = new Date();
+        let end = new Date();
+        if (preset === 'yesterday') { start.setDate(today.getDate() - 1); end.setDate(today.getDate() - 1); }
+        else if (preset === 'week') { start.setDate(today.getDate() - 7); }
+        else if (preset === 'month') { start = new Date(today.getFullYear(), today.getMonth(), 1); }
+        setDateRangeState({ from: formatDate(start), to: formatDate(end) });
+    };
+
+    const handleExportExcel = () => {
+        if (products.length === 0) { showToast("No hay datos para exportar", "info"); return; }
+        const styles = `<style>.header { background-color: #004D4D; color: #ffffff; font-weight: bold; text-align: center; }.cell { border: 1px solid #e2e8f0; padding: 8px; font-family: sans-serif; font-size: 12px; }.title { font-size: 20px; font-weight: bold; color: #004D4D; }</style>`;
+        let tableHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8">${styles}</head><body><table><tr><td colspan="6" class="title">BAYUP - REPORTE DE CATÁLOGO MAESTRO</td></tr><thead><tr class="header"><th>PRODUCTO</th><th>CATEGORÍA</th><th>SKU</th><th>STOCK TOTAL</th><th>PRECIO</th><th>ESTADO</th></tr></thead><tbody>`;
+        products.forEach(p => {
+            const stock = p.variants?.reduce((acc, v) => acc + (v.stock || 0), 0) || 0;
+            tableHtml += `<tr><td class="cell">${p.name}</td><td class="cell">${p.category}</td><td class="cell">${p.variants?.[0]?.sku || 'S/N'}</td><td class="cell">${stock}</td><td class="cell">${p.price}</td><td class="cell">${p.status}</td></tr>`;
+        });
+        tableHtml += `</tbody></table></body></html>`;
+        const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a"); link.href = url; link.download = `Catalogo_Bayup_${new Date().toISOString().split('T')[0]}.xls`; link.click();
+        showToast("Excel de catálogo generado", "success");
+    };
 
     const fetchProducts = useCallback(async () => {
         if (!token) { setLoading(false); return; }
@@ -308,90 +340,168 @@ export default function ProductsPage() {
                             />
                         </div>
                         <div className="h-8 w-px bg-slate-100 hidden md:block"></div>
-                        <div className="flex items-center gap-2 relative">
-                            <div className="relative">
-                                <button 
-                                    onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
-                                    className={`p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase ${isFilterMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
+                        <div className="flex items-center gap-1 relative">
+                            {/* Overlay de Cierre */}
+                            {(isFilterMenuOpen || isDateMenuOpen) && <div className="fixed inset-0 z-40" onClick={() => { setIsFilterMenuOpen(false); setIsDateMenuOpen(false); }} />}
+
+                            {/* Botón Filtros */}
+                            <div className="relative z-50">
+                                <motion.button 
+                                    layout
+                                    onMouseEnter={() => setIsFilterHovered(true)}
+                                    onMouseLeave={() => setIsFilterHovered(false)}
+                                    onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setIsDateMenuOpen(false); }}
+                                    className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isFilterMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white border border-slate-100 text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
                                 >
-                                    <Filter size={18}/> Filtros
-                                </button>
+                                    <motion.div layout><Filter size={18}/></motion.div>
+                                    <AnimatePresence mode="popLayout">
+                                        {isFilterHovered && (
+                                            <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Filtro</motion.span>
+                                        )}
+                                    </AnimatePresence>
+                                </motion.button>
                                 
                                 <AnimatePresence>
                                     {isFilterMenuOpen && (
-                                        <>
-                                            <div className="fixed inset-0 z-40" onClick={() => setIsFilterMenuOpen(false)} />
-                                            <motion.div 
-                                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                className="absolute top-full mt-2 right-0 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 w-[280px] z-50 overflow-hidden"
-                                            >
-                                                <div className="flex flex-col">
-                                                    {[
-                                                        { 
-                                                            id: 'stock', 
-                                                            label: 'Estado de Stock', 
-                                                            icon: <Box size={16}/>, 
-                                                            options: [
-                                                                { val: 'all', l: 'Todos' }, 
-                                                                { val: 'low', l: 'Stock Bajo' }, 
-                                                                { val: 'out', l: 'Agotado' }
-                                                            ], 
-                                                            key: 'stockStatus' 
-                                                        }
-                                                    ].map((section) => (
-                                                        <div key={section.id} className="border-b border-slate-50 last:border-none">
-                                                            <button 
-                                                                onClick={() => setActiveAccordion(activeAccordion === section.id ? null : section.id)}
-                                                                className={`w-full flex items-center justify-between p-4 transition-colors hover:bg-slate-50 ${activeAccordion === section.id ? 'bg-slate-50/50' : ''}`}
-                                                            >
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className={`p-2 rounded-lg ${activeAccordion === section.id ? 'bg-[#004D4D] text-white' : 'bg-slate-100 text-slate-500'}`}>
-                                                                        {section.icon}
-                                                                    </div>
-                                                                    <span className="text-[10px] font-black uppercase tracking-wide text-slate-700">{section.label}</span>
-                                                                </div>
-                                                                <ChevronRight size={14} className={`text-slate-300 transition-transform ${activeAccordion === section.id ? 'rotate-90' : ''}`}/>
-                                                            </button>
-                                                            <AnimatePresence>
-                                                                {activeAccordion === section.id && (
-                                                                    <motion.div 
-                                                                        initial={{ height: 0, opacity: 0 }}
-                                                                        animate={{ height: 'auto', opacity: 1 }}
-                                                                        exit={{ height: 0, opacity: 0 }}
-                                                                        className="overflow-hidden bg-slate-50/30 px-4 pb-4"
-                                                                    >
-                                                                        <div className="flex flex-wrap gap-2 pt-2">
-                                                                            {section.options.map(opt => (
-                                                                                <button 
-                                                                                    key={opt.val}
-                                                                                    onClick={() => setAdvancedFilters({...advancedFilters, [section.key]: opt.val})}
-                                                                                    className={`px-3 py-1.5 rounded-xl text-[9px] font-bold uppercase transition-all ${advancedFilters[section.key as keyof typeof advancedFilters] === opt.val ? 'bg-[#004D4D] text-white' : 'bg-white border border-slate-200 text-slate-500 hover:border-[#004D4D]'}`}
-                                                                                >
-                                                                                    {opt.l}
-                                                                                </button>
-                                                                            ))}
-                                                                        </div>
-                                                                    </motion.div>
-                                                                )}
-                                                            </AnimatePresence>
-                                                        </div>
-                                                    ))}
-                                                    <div className="p-4 bg-slate-50">
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                            className="absolute top-full mt-2 right-0 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 w-[280px] z-50 overflow-hidden"
+                                        >
+                                            <div className="flex flex-col">
+                                                {[
+                                                    { 
+                                                        id: 'category', 
+                                                        label: 'Categorías', 
+                                                        icon: <Layers size={16}/>, 
+                                                        options: ['all', ...Array.from(new Set(products.map(p => p.category || 'General')))], 
+                                                        key: 'category' 
+                                                    },
+                                                    { 
+                                                        id: 'stock', 
+                                                        label: 'Estado de Stock', 
+                                                        icon: <Box size={16}/>, 
+                                                        options: [
+                                                            { val: 'all', l: 'Todos' }, 
+                                                            { val: 'low', l: 'Stock Bajo' }, 
+                                                            { val: 'out', l: 'Agotado' }
+                                                        ], 
+                                                        key: 'stockStatus' 
+                                                    }
+                                                ].map((section) => (
+                                                    <div key={section.id} className="border-b border-slate-50 last:border-none">
                                                         <button 
-                                                            onClick={() => { setAdvancedFilters({category: 'all', stockStatus: 'all'}); setIsFilterMenuOpen(false); setActiveAccordion(null); }}
-                                                            className="w-full py-3 bg-slate-900 text-white rounded-2xl text-[9px] font-black uppercase shadow-lg hover:bg-black transition-all"
+                                                            onClick={() => setActiveAccordion(activeAccordion === section.id ? null : section.id)}
+                                                            className={`w-full flex items-center justify-between p-4 transition-colors hover:bg-slate-50 ${activeAccordion === section.id ? 'bg-slate-50/50' : ''}`}
                                                         >
-                                                            Limpiar Filtros
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`p-2 rounded-lg ${activeAccordion === section.id ? 'bg-[#004D4D] text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                                                    {section.icon}
+                                                                </div>
+                                                                <span className="text-[10px] font-black uppercase tracking-wide text-slate-700">{section.label}</span>
+                                                            </div>
+                                                            <ChevronRight size={14} className={`text-slate-300 transition-transform ${activeAccordion === section.id ? 'rotate-90' : ''}`}/>
                                                         </button>
+                                                        <AnimatePresence>
+                                                            {activeAccordion === section.id && (
+                                                                <motion.div 
+                                                                    initial={{ height: 0, opacity: 0 }}
+                                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                                    exit={{ height: 0, opacity: 0 }}
+                                                                    className="overflow-hidden bg-slate-50/30 px-4 pb-4"
+                                                                >
+                                                                    <div className="flex flex-wrap gap-2 pt-2">
+                                                                        {section.options.map((opt: any) => {
+                                                                            const val = typeof opt === 'string' ? opt : opt.val;
+                                                                            const label = typeof opt === 'string' ? (opt === 'all' ? 'Todas' : opt) : opt.l;
+                                                                            return (
+                                                                                <button 
+                                                                                    key={val}
+                                                                                    onClick={() => setAdvancedFilters({...advancedFilters, [section.key]: val})}
+                                                                                    className={`px-3 py-1.5 rounded-xl text-[9px] font-bold uppercase transition-all ${advancedFilters[section.key as keyof typeof advancedFilters] === val ? 'bg-[#004D4D] text-white' : 'bg-white border border-slate-200 text-slate-500 hover:border-[#004D4D]'}`}
+                                                                                >
+                                                                                    {label}
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </motion.div>
+                                                            )}
+                                                        </AnimatePresence>
                                                     </div>
+                                                ))}
+                                                <div className="p-4 bg-slate-50">
+                                                    <button 
+                                                        onClick={() => { setAdvancedFilters({category: 'all', stockStatus: 'all'}); setIsFilterMenuOpen(false); setActiveAccordion(null); }}
+                                                        className="w-full py-3 bg-slate-900 text-white rounded-2xl text-[9px] font-black uppercase shadow-lg hover:bg-black transition-all"
+                                                    >
+                                                        Limpiar Filtros
+                                                    </button>
                                                 </div>
-                                            </motion.div>
-                                        </>
+                                            </div>
+                                        </motion.div>
                                     )}
                                 </AnimatePresence>
                             </div>
+
+                            {/* Botón Fecha */}
+                            <div className="relative z-50">
+                                <motion.button 
+                                    layout
+                                    onMouseEnter={() => setIsDateHovered(true)}
+                                    onMouseLeave={() => setIsDateHovered(false)}
+                                    onClick={() => { setIsDateMenuOpen(!isDateMenuOpen); setIsFilterMenuOpen(false); }}
+                                    className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isDateMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white border border-slate-100 text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
+                                >
+                                    <motion.div layout><Calendar size={18}/></motion.div>
+                                    <AnimatePresence mode="popLayout">
+                                        {isDateHovered && (
+                                            <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Fecha</motion.span>
+                                        )}
+                                    </AnimatePresence>
+                                </motion.button>
+                                <AnimatePresence>
+                                    {isDateMenuOpen && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            className="absolute top-full mt-2 right-0 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 w-[300px] z-50 origin-top-right"
+                                        >
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase">Desde</label><input type="date" value={dateRangeState.from} onChange={e => setDateRangeState({...dateRangeState, from: e.target.value})} className="w-full bg-slate-50 border rounded-xl p-2 text-[10px] font-bold outline-none" /></div>
+                                                    <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase">Hasta</label><input type="date" value={dateRangeState.to} onChange={e => setDateRangeState({...dateRangeState, to: e.target.value})} className="w-full bg-slate-50 border rounded-xl p-2 text-[10px] font-bold outline-none" /></div>
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {['today', 'yesterday', 'week', 'month'].map(p => (<button key={p} onClick={() => handleDatePreset(p as any)} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[9px] font-black uppercase text-slate-500">{p === 'week' ? '7 Días' : p === 'month' ? 'Mes' : p}</button>))}
+                                                </div>
+                                                <div className="pt-4 border-t flex flex-col gap-2">
+                                                    <button onClick={() => setIsDateMenuOpen(false)} className="w-full py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase">Aplicar</button>
+                                                    <button onClick={() => { setDateRangeState({from: '', to: ''}); setIsDateMenuOpen(false); }} className="w-full py-2 text-slate-400 text-[9px] font-black uppercase">Limpiar</button>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Botón Exportar */}
+                            <motion.button 
+                                layout
+                                onMouseEnter={() => setIsExportHovered(true)}
+                                onMouseLeave={() => setIsExportHovered(false)}
+                                onClick={handleExportExcel}
+                                className="h-12 flex items-center gap-2 px-4 bg-white border border-slate-100 rounded-2xl text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5 transition-all shadow-sm"
+                            >
+                                <motion.div layout><Download size={18}/></motion.div>
+                                <AnimatePresence mode="popLayout">
+                                    {isExportHovered && (
+                                        <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Exportar</motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </motion.button>
                         </div>
                     </div>
                 </div>
