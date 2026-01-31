@@ -177,10 +177,28 @@ export default function InvoicingPage() {
     const [sellers, setSellers] = useState<{name: string, role: string}[]>([]);
     const [historySearch, setHistorySearch] = useState('');
     const [historyFilter, setHistoryFilter] = useState('all');
-    const [dateRange, setDateRange] = useState('Mes');
+    const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
+    const [dateRangeState, setDateRangeState] = useState({ from: '', to: '' });
     const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+    const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
+    const [advancedFilters, setAdvancedFilters] = useState({ channel: 'all', paymentMethod: 'all' });
+    const [dateRange, setDateRange] = useState('Mes');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
+
+    const handleDatePreset = (preset: 'today' | 'yesterday' | 'week' | 'month') => {
+        const today = new Date();
+        const formatDate = (d: Date) => d.toISOString().split('T')[0];
+        let start = new Date();
+        let end = new Date();
+        switch (preset) {
+            case 'today': break;
+            case 'yesterday': start.setDate(today.getDate() - 1); end.setDate(today.getDate() - 1); break;
+            case 'week': start.setDate(today.getDate() - 7); break;
+            case 'month': start = new Date(today.getFullYear(), today.getMonth(), 1); break;
+        }
+        setDateRangeState({ from: formatDate(start), to: formatDate(end) });
+    };
 
     const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', phone: '' });
     const [invoiceItems, setInvoiceItems] = useState<InvoicingItem[]>([]);
@@ -266,9 +284,26 @@ export default function InvoicingPage() {
     }, [productSearch, products, selectedCategory]);
 
     const { paginatedHistory, totalPages } = useMemo(() => {
-        const filtered = history.filter(inv => (inv.customer.toLowerCase().includes(historySearch.toLowerCase()) || inv.invoice_num.toLowerCase().includes(historySearch.toLowerCase())) && (historyFilter === 'all' || inv.source === historyFilter));
+        const filtered = history.filter(inv => {
+            const matchesSearch = inv.customer.toLowerCase().includes(historySearch.toLowerCase()) || 
+                                 inv.invoice_num.toLowerCase().includes(historySearch.toLowerCase());
+            
+            const matchesChannel = advancedFilters.channel === 'all' || inv.source === advancedFilters.channel;
+            
+            const matchesPayment = advancedFilters.paymentMethod === 'all' || 
+                                  (advancedFilters.paymentMethod === 'transfer' && inv.payment_method === 'transfer') ||
+                                  (advancedFilters.paymentMethod === 'cash' && inv.payment_method === 'cash');
+
+            let matchesDate = true;
+            if (dateRangeState.from && dateRangeState.to) {
+                const invDate = new Date(inv.date).toISOString().split('T')[0];
+                matchesDate = invDate >= dateRangeState.from && invDate <= dateRangeState.to;
+            }
+
+            return matchesSearch && matchesChannel && matchesPayment && matchesDate;
+        });
         return { paginatedHistory: filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage), totalPages: Math.ceil(filtered.length / itemsPerPage) };
-    }, [historySearch, historyFilter, history, currentPage]);
+    }, [historySearch, history, advancedFilters, dateRangeState, currentPage]);
 
     const suggestedCustomers = useMemo(() => customerSearchQuery.length < 2 ? [] : recentCustomers.filter(c => c.name.toLowerCase().includes(customerSearchQuery.toLowerCase()) || c.phone.includes(customerSearchQuery)), [customerSearchQuery]);
 
@@ -424,8 +459,139 @@ export default function InvoicingPage() {
                                 <KPICard title="Ticket Promedio" value={325000} trendValue={-2.1} icon={ShoppingBag} iconColor="text-rose-600" />
                                 <KPICard title="Canal POS vs Web" value="65% / 35%" trendValue={0.5} icon={Zap} iconColor="text-yellow-500" />
                             </div>
+
+                            {/* --- BARRA DE BÚSQUEDA Y FILTROS AVANZADOS (ESTILO PEDIDOS) --- */}
+                            <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-2 rounded-2xl border border-slate-100 shadow-sm mt-8">
+                                <div className="relative flex-1 w-full">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Buscar factura por número o cliente..." 
+                                        value={historySearch}
+                                        onChange={(e) => setHistorySearch(e.target.value)}
+                                        className="w-full pl-11 pr-4 py-3 bg-transparent text-sm font-medium text-slate-700 placeholder:text-slate-400 outline-none"
+                                    />
+                                </div>
+                                <div className="h-8 w-px bg-slate-100 hidden md:block"></div>
+                                <div className="flex items-center gap-2 relative">
+                                    {/* Botón Filtros */}
+                                    <div className="relative">
+                                        <button 
+                                            onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setIsDateMenuOpen(false); }}
+                                            className={`p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase ${isFilterMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
+                                        >
+                                            <Filter size={18}/> Filtros
+                                        </button>
+                                        
+                                        <AnimatePresence>
+                                            {isFilterMenuOpen && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    className="absolute top-full right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 w-[280px] z-50 origin-top-right overflow-hidden"
+                                                >
+                                                    <div className="flex flex-col">
+                                                        {[
+                                                            { id: 'canal', label: 'Canal de Venta', icon: <Globe size={16}/>, options: ['all', 'web', 'whatsapp', 'instagram', 'pos'], key: 'channel' },
+                                                            { id: 'pago', label: 'Método de Pago', icon: <CreditCard size={16}/>, options: ['all', 'card', 'transfer', 'cash'], key: 'paymentMethod' }
+                                                        ].map((section) => (
+                                                            <div key={section.id} className="border-b border-slate-50 last:border-none">
+                                                                <button 
+                                                                    onClick={() => setActiveAccordion(activeAccordion === section.id ? null : section.id)}
+                                                                    className={`w-full flex items-center justify-between p-4 transition-colors hover:bg-slate-50 ${activeAccordion === section.id ? 'bg-slate-50/50' : ''}`}
+                                                                >
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className={`p-2 rounded-lg ${activeAccordion === section.id ? 'bg-[#004D4D] text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                                                            {section.icon}
+                                                                        </div>
+                                                                        <span className="text-[10px] font-black uppercase tracking-wide text-slate-700">{section.label}</span>
+                                                                    </div>
+                                                                    <ChevronRight size={14} className={`text-slate-300 transition-transform ${activeAccordion === section.id ? 'rotate-90' : ''}`}/>
+                                                                </button>
+                                                                <AnimatePresence>
+                                                                    {activeAccordion === section.id && (
+                                                                        <motion.div 
+                                                                            initial={{ height: 0, opacity: 0 }}
+                                                                            animate={{ height: 'auto', opacity: 1 }}
+                                                                            exit={{ height: 0, opacity: 0 }}
+                                                                            className="overflow-hidden bg-slate-50/30 px-4 pb-4"
+                                                                        >
+                                                                            <div className="flex flex-wrap gap-2 pt-2">
+                                                                                {section.options.map(opt => (
+                                                                                    <button 
+                                                                                        key={opt}
+                                                                                        onClick={() => setAdvancedFilters({...advancedFilters, [section.key]: opt})}
+                                                                                        className={`px-3 py-1.5 rounded-xl text-[9px] font-bold uppercase transition-all ${advancedFilters[section.key as keyof typeof advancedFilters] === opt ? 'bg-[#004D4D] text-white' : 'bg-white border border-slate-200 text-slate-500 hover:border-[#004D4D]'}`}
+                                                                                    >
+                                                                                        {opt === 'all' ? 'Todos' : opt}
+                                                                                    </button>
+                                                                                ))}
+                                                                            </div>
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            </div>
+                                                        ))}
+                                                        <div className="p-4 bg-slate-50">
+                                                            <button 
+                                                                onClick={() => { setAdvancedFilters({channel: 'all', paymentMethod: 'all'}); setIsFilterMenuOpen(false); setActiveAccordion(null); }}
+                                                                className="w-full py-3 bg-slate-900 text-white rounded-2xl text-[9px] font-black uppercase shadow-lg hover:bg-black transition-all"
+                                                            >
+                                                                Limpiar Filtros
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+
+                                    {/* Botón Fecha */}
+                                    <div className="relative">
+                                        <button 
+                                            onClick={() => { setIsDateMenuOpen(!isDateMenuOpen); setIsFilterMenuOpen(false); }}
+                                            className={`p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase ${isDateMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
+                                        >
+                                            <Calendar size={18}/> Fecha
+                                        </button>
+                                        
+                                        <AnimatePresence>
+                                            {isDateMenuOpen && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    className="absolute top-full right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 w-[300px] z-50 origin-top-right"
+                                                >
+                                                    <div className="space-y-4">
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div className="space-y-1">
+                                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desde</label>
+                                                                <input type="date" value={dateRangeState.from} onChange={(e) => setDateRangeState({...dateRangeState, from: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl p-2 text-[10px] font-bold outline-none focus:border-[#004D4D]"/>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hasta</label>
+                                                                <input type="date" value={dateRangeState.to} onChange={(e) => setDateRangeState({...dateRangeState, to: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl p-2 text-[10px] font-bold outline-none focus:border-[#004D4D]"/>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {['today', 'yesterday', 'week', 'month'].map(p => (
+                                                                <button key={p} onClick={() => handleDatePreset(p as any)} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[9px] font-black uppercase text-slate-500">{p === 'week' ? '7 Días' : p === 'month' ? 'Mes' : p}</button>
+                                                            ))}
+                                                        </div>
+                                                        <div className="pt-4 border-t border-slate-100">
+                                                            <button onClick={() => setIsDateMenuOpen(false)} className="w-full py-3 bg-slate-900 text-white rounded-2xl text-[9px] font-black uppercase shadow-lg hover:bg-black transition-all">Aplicar Filtro</button>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+                            </div>
                         </motion.div>
-                        <motion.div initial={{ y: 200, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+                        <motion.div initial={{ y: 200, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden mt-2">
                             <table className="min-w-full divide-y divide-gray-50">
                                 <thead className="bg-gray-50/50">
                                     <tr>
