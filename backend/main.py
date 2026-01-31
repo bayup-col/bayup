@@ -274,6 +274,10 @@ def get_roles(db: Session = Depends(get_db), current_user: models.User = Depends
 def get_collections(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     return crud.get_collections_by_owner(db, owner_id=current_user.id)
 
+@app.post("/collections", response_model=schemas.Collection)
+def create_collection(collection: schemas.CollectionCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    return crud.create_collection(db=db, collection=collection, owner_id=current_user.id)
+
 @app.get("/expenses", response_model=List[schemas.Expense])
 def get_expenses(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     return db.query(models.Expense).filter(models.Expense.tenant_id == current_user.id).all()

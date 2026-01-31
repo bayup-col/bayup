@@ -116,10 +116,17 @@ export default function ProductsPage() {
     const router = useRouter();
 
     const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'all' | 'active' | 'draft' | 'archived' | 'categories'>('all');
     
+    // Estados para Nueva Categoría
+    const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<any>(null);
+    const [newCategoryData, setNewCategoryData] = useState({ name: '', description: '' });
+    const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+
     // Guía de Maestría
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [activeGuideTab, setActiveGuideTab] = useState('all');
@@ -195,21 +202,56 @@ export default function ProductsPage() {
         showToast("Excel de catálogo generado", "success");
     };
 
+    const handleCreateCategory = async () => {
+        if (!token) { showToast("Sesión expirada, por favor reingresa", "error"); return; }
+        if (!newCategoryData.name.trim()) { showToast("El nombre es obligatorio", "error"); return; }
+        
+        setIsCreatingCategory(true);
+        try {
+            await apiRequest('/collections', { 
+                method: 'POST', 
+                token, 
+                body: JSON.stringify({
+                    title: newCategoryData.name,
+                    description: newCategoryData.description || '',
+                    status: 'active'
+                }) 
+            });
+            showToast("Categoría creada con éxito", "success");
+            setIsNewCategoryModalOpen(false);
+            setNewCategoryData({ name: '', description: '' });
+            await fetchProducts(); 
+        } catch (err) {
+            console.error("Error creating category:", err);
+            showToast("Error al crear la categoría", "error");
+        } finally {
+            setIsCreatingCategory(false);
+        }
+    };
+
     const fetchProducts = useCallback(async () => {
         if (!token) { setLoading(false); return; }
         setLoading(true);
         try {
-            const data = await apiRequest<any[]>('/products', { token });
-            if (data && Array.isArray(data)) {
-                setProducts(data.map((p: any) => ({ 
+            const [productsData, categoriesData] = await Promise.all([
+                apiRequest<any[]>('/products', { token }),
+                apiRequest<any[]>('/collections', { token })
+            ]);
+
+            if (productsData && Array.isArray(productsData)) {
+                setProducts(productsData.map((p: any) => ({ 
                     ...p, 
                     status: p.status || (p.variants?.every((v:any) => v.stock === 0) ? 'archived' : 'active'), 
                     category: p.category || 'General' 
                 })));
             }
+
+            if (categoriesData && Array.isArray(categoriesData)) {
+                setCategories(categoriesData);
+            }
         } catch (err) {
-            console.error("Error fetching products:", err);
-            showToast("Error al cargar productos", "error");
+            console.error("Error fetching data:", err);
+            showToast("Error al sincronizar catálogo", "error");
         } finally {
             setLoading(false);
         }
@@ -229,7 +271,7 @@ export default function ProductsPage() {
             const totalStock = p.variants?.reduce((acc: number, v: any) => acc + (v.stock || 0), 0) || 0;
             if (advancedFilters.stockStatus === 'low') matchesStock = totalStock <= 5 && totalStock > 0;
             if (advancedFilters.stockStatus === 'out') matchesStock = totalStock === 0;
-            return matchesSearch && (activeTab === 'collections' ? true : matchesTab) && matchesCategory && matchesStock;
+            return matchesSearch && (activeTab === 'categories' ? true : matchesTab) && matchesCategory && matchesStock;
         });
     }, [products, searchTerm, activeTab, advancedFilters]);
 
@@ -392,27 +434,252 @@ export default function ProductsPage() {
                             </div>
                         </motion.div>
                     ) : (
-                        <motion.div key="categories-view" initial={{ y: -500, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 500, opacity: 0 }} transition={{ duration: 0.6, ease: "anticipate" }} className="bg-white rounded-[3rem] border border-gray-100 shadow-sm p-12">
+                        <motion.div key="categories-view" initial={{ y: -100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 500, opacity: 0 }} transition={{ duration: 0.6, ease: "anticipate" }} className="bg-white rounded-[3rem] border border-gray-100 shadow-sm p-12">
                             <div className="flex items-center justify-between mb-12">
                                 <div><h3 className="text-2xl font-black italic uppercase text-[#001A1A] tracking-tighter">Categorías Maestro</h3><p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Organización lógica de tu inventario</p></div>
-                                <PremiumButton onClick={() => showToast("Funcionalidad de creación en desarrollo", "info")}>
+                                <PremiumButton onClick={() => setIsNewCategoryModalOpen(true)}>
                                     <Plus size={18} /> Nueva Categoría
                                 </PremiumButton>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                {Array.from(new Set(products.map(p => p.category || 'General'))).map((cat, i) => (
-                                    <motion.div key={cat} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }} className="group bg-gray-50/50 rounded-[2.5rem] border border-gray-100 p-8 hover:bg-white hover:shadow-2xl hover:shadow-[#004D4D]/10 transition-all cursor-pointer">
-                                        <div className="flex justify-between items-start mb-6"><div className="h-14 w-14 rounded-2xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D] group-hover:bg-[#004D4D] group-hover:text-white transition-all duration-500"><Layers size={24} /></div><div className="px-3 py-1 bg-white rounded-full border border-gray-100 text-[9px] font-black text-[#004D4D] uppercase">{products.filter(p => p.category === cat).length} Items</div></div>
-                                        <h4 className="text-xl font-black text-gray-900 group-hover:text-[#004D4D] transition-colors">{cat}</h4>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">Sincronizado con Tienda Web</p>
-                                        <div className="mt-8 pt-6 border-t border-gray-100 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity"><span className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Gestionar Categoría</span><ArrowUpRight size={16} className="text-[#004D4D]" /></div>
-                                    </motion.div>
-                                ))}
+                                {categories.length === 0 ? (
+                                    <div className="col-span-full py-20 text-center text-slate-400">
+                                        <Layers size={40} className="mx-auto mb-4 opacity-10" />
+                                        <p className="text-xs font-black uppercase tracking-widest">No hay categorías registradas</p>
+                                    </div>
+                                ) : (
+                                    categories.map((cat, i) => (
+                                        <motion.div 
+                                            key={cat.id || cat.title} 
+                                            initial={{ opacity: 0, scale: 0.9 }} 
+                                            animate={{ opacity: 1, scale: 1 }} 
+                                            transition={{ delay: i * 0.1 }} 
+                                            onClick={() => setSelectedCategory(cat)}
+                                            className="group bg-gray-50/50 rounded-[2.5rem] border border-gray-100 p-8 hover:bg-white hover:shadow-2xl hover:shadow-[#004D4D]/10 transition-all cursor-pointer"
+                                        >
+                                            <div className="flex justify-between items-start mb-6">
+                                                <div className="h-14 w-14 rounded-2xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D] group-hover:bg-[#004D4D] group-hover:text-white transition-all duration-500">
+                                                    <Layers size={24} />
+                                                </div>
+                                                <div className="px-3 py-1 bg-white rounded-full border border-gray-100 text-[9px] font-black text-[#004D4D] uppercase">
+                                                    {products.filter(p => p.category === cat.title || p.collection_id === cat.id).length} Items
+                                                </div>
+                                            </div>
+                                            <h4 className="text-xl font-black text-gray-900 group-hover:text-[#004D4D] transition-colors">{cat.title}</h4>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">{cat.description || 'Sincronizado con Tienda Web'}</p>
+                                            <div className="mt-8 pt-6 border-t border-gray-100 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Ver Inteligencia</span>
+                                                <ArrowUpRight size={16} className="text-[#004D4D]" />
+                                            </div>
+                                        </motion.div>
+                                    ))
+                                )}
                             </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
             </div>
+
+            {/* --- MODAL INTELIGENCIA DE CATEGORÍA --- */}
+            <AnimatePresence>
+                {selectedCategory && (
+                    <div className="fixed inset-0 z-[800] flex items-center justify-center p-4 md:p-8">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedCategory(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-2xl" />
+                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 40 }} className="relative bg-white/90 w-full max-w-6xl h-[85vh] rounded-[4rem] shadow-2xl overflow-hidden border border-white flex flex-col md:flex-row">
+                            {/* Lateral Izquierdo: Resumen y KPI */}
+                            <div className="w-full md:w-80 bg-[#004D4D] p-10 text-white flex flex-col justify-between">
+                                <div className="space-y-8">
+                                    <div className="h-16 w-16 rounded-3xl bg-white/10 flex items-center justify-center backdrop-blur-md">
+                                        <Layers size={32} className="text-[#4fffcb]" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">{selectedCategory.title}</h3>
+                                        <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mt-2 italic">Reporte de Inteligencia Web</p>
+                                    </div>
+                                    <div className="pt-8 space-y-6">
+                                        <div className="p-6 rounded-[2.5rem] bg-white/5 border border-white/10">
+                                            <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Conversión Mensual</p>
+                                            <div className="flex items-end gap-2">
+                                                <span className="text-3xl font-black italic">4.2%</span>
+                                                <span className="text-[10px] font-black text-[#4fffcb] mb-1">+1.2%</span>
+                                            </div>
+                                        </div>
+                                        <div className="p-6 rounded-[2.5rem] bg-white/5 border border-white/10">
+                                            <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Ticket Promedio</p>
+                                            <div className="flex items-end gap-2">
+                                                <span className="text-2xl font-black italic">$ 185k</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <PremiumButton onClick={() => setSelectedCategory(null)} className="w-full">
+                                    Cerrar Reporte
+                                </PremiumButton>
+                            </div>
+
+                            {/* Contenido Principal: Estadísticas */}
+                            <div className="flex-1 overflow-y-auto p-12 bg-slate-50/50 backdrop-blur-sm custom-scrollbar">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                                    {/* Bloque 1: Tráfico y Búsquedas */}
+                                    <section className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8">
+                                        <div className="flex justify-between items-center">
+                                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#004D4D]">Rendimiento de Mercado</h4>
+                                            <TrendingUp size={18} className="text-emerald-500" />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div className="space-y-1">
+                                                <span className="text-4xl font-black tracking-tighter text-slate-900">1,240</span>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase">Compras/Mes</p>
+                                            </div>
+                                            <div className="space-y-1 text-right">
+                                                <span className="text-4xl font-black tracking-tighter text-[#00F2FF]">8,500</span>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase">Búsquedas/Mes</p>
+                                            </div>
+                                        </div>
+                                        {/* Simulación de gráfico simple */}
+                                        <div className="h-24 flex items-end gap-2 pt-4">
+                                            {[40, 70, 45, 90, 65, 80, 100].map((h, i) => (
+                                                <motion.div key={i} initial={{ height: 0 }} animate={{ height: `${h}%` }} transition={{ delay: i * 0.1 }} className="flex-1 bg-gradient-to-t from-[#004D4D] to-[#4fffcb] rounded-t-lg opacity-20 hover:opacity-100 transition-all cursor-pointer" />
+                                            ))}
+                                        </div>
+                                    </section>
+
+                                    {/* Bloque 2: Demografía */}
+                                    <section className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8">
+                                        <div className="flex justify-between items-center">
+                                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#004D4D]">Audiencia Clave</h4>
+                                            <BarChart3 size={18} className="text-purple-500" />
+                                        </div>
+                                        <div className="space-y-6">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-black uppercase text-slate-500">Género Dominante</span>
+                                                <div className="flex gap-4">
+                                                    <span className="text-[10px] font-black text-rose-500">Mujeres 65%</span>
+                                                    <span className="text-[10px] font-black text-blue-500">Hombres 35%</span>
+                                                </div>
+                                            </div>
+                                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                                                <div className="h-full bg-rose-500" style={{ width: '65%' }} />
+                                                <div className="h-full bg-blue-500" style={{ width: '35%' }} />
+                                            </div>
+                                            <div className="pt-4 grid grid-cols-3 gap-2">
+                                                {['18-24', '25-34', '35+'].map((age, i) => (
+                                                    <div key={age} className="text-center p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                                        <span className="block text-sm font-black text-slate-900">{i === 1 ? '52%' : i === 0 ? '28%' : '20%'}</span>
+                                                        <span className="text-[8px] font-black text-slate-400 uppercase">{age}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    {/* Bloque 3: Geografía */}
+                                    <section className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8">
+                                        <div className="flex justify-between items-center">
+                                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#004D4D]">Focos Geográficos</h4>
+                                            <TrendingUp size={18} className="rotate-90 text-cyan-500" />
+                                        </div>
+                                        <div className="space-y-4">
+                                            {['Bogotá', 'Medellín', 'Cali', 'Barranquilla'].map((city, i) => (
+                                                <div key={city} className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-[10px] font-black text-slate-400 w-4">0{i+1}</span>
+                                                        <span className="text-sm font-black text-slate-700">{city}</span>
+                                                    </div>
+                                                    <span className="text-[10px] font-black text-[#004D4D]">{40 - i * 10}% Interés</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </section>
+
+                                    {/* Bloque 4: Bayt AI Advice */}
+                                    <section className="bg-[#001A1A] p-10 rounded-[3.5rem] border border-white/5 shadow-2xl relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-700">
+                                            <Zap size={120} className="text-[#4fffcb]" />
+                                        </div>
+                                        <div className="relative z-10 space-y-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-10 w-10 rounded-full bg-[#4fffcb] flex items-center justify-center text-[#001A1A]">
+                                                    <Zap size={20} />
+                                                </div>
+                                                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#4fffcb]">Consejo Bayt AI</h4>
+                                            </div>
+                                            <p className="text-sm font-medium text-white/80 leading-relaxed italic">
+                                                "Para esta categoría, los usuarios suelen buscar una experiencia completa. Te recomiendo combinarla con <span className="text-[#4fffcb] font-bold">Accesorios Tech</span> y <span className="text-[#4fffcb] font-bold">Lifestyle Moderno</span> para aumentar el valor del carrito en un 25%."
+                                            </p>
+                                            <div className="pt-4 flex gap-3">
+                                                <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-[#4fffcb] uppercase tracking-widest">Cross-selling Activo</div>
+                                                <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest">Optimización de SEO</div>
+                                            </div>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* --- MODAL NUEVA CATEGORÍA --- */}
+            <AnimatePresence>
+                {isNewCategoryModalOpen && (
+                    <div className="fixed inset-0 z-[700] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNewCategoryModalOpen(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl" />
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 40 }} className="relative bg-white w-full max-w-lg rounded-[3.5rem] shadow-2xl overflow-hidden border border-white">
+                            <div className="p-10 space-y-8">
+                                <div className="flex justify-between items-center text-[#004D4D]">
+                                    <div className="h-14 w-14 rounded-2xl bg-[#004D4D]/5 flex items-center justify-center">
+                                        <Layers size={28} />
+                                    </div>
+                                    <button onClick={() => setIsNewCategoryModalOpen(false)} className="h-10 w-10 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <div>
+                                    <h3 className="text-3xl font-black italic uppercase text-[#001A1A] tracking-tighter">Nueva <span className="text-[#004D4D]">Categoría</span></h3>
+                                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Define una nueva familia de productos</p>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-[#004D4D]/60 ml-1">Nombre Maestro</label>
+                                        <input 
+                                            type="text" 
+                                            value={newCategoryData.name}
+                                            onChange={(e) => setNewCategoryData({...newCategoryData, name: e.target.value})}
+                                            placeholder="Ej: Colección Verano 2026"
+                                            className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-[#004D4D]/10 transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-[#004D4D]/60 ml-1">Descripción (Opcional)</label>
+                                        <textarea 
+                                            value={newCategoryData.description}
+                                            onChange={(e) => setNewCategoryData({...newCategoryData, description: e.target.value})}
+                                            placeholder="¿De qué trata esta categoría?"
+                                            rows={3}
+                                            className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-[#004D4D]/10 transition-all resize-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-end gap-4 pt-8 border-t border-slate-50">
+                                    <button 
+                                        onClick={() => setIsNewCategoryModalOpen(false)}
+                                        className="px-8 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-[#004D4D] transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <PremiumButton onClick={handleCreateCategory}>
+                                        {isCreatingCategory ? 'Creando...' : 'Crear Categoría'}
+                                    </PremiumButton>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             <AnimatePresence>
                 {isGuideOpen && (
