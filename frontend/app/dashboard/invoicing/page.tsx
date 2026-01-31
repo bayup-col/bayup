@@ -118,7 +118,9 @@ const CHANNELS = {
     web: { icon: <Globe size={14}/>, label: 'Tienda Web', color: 'bg-cyan-50 text-cyan-600' },
     instagram: { icon: <Instagram size={14}/>, label: 'Redes Sociales', color: 'bg-gray-50 text-gray-600' },
     whatsapp: { icon: <MessageSquare size={14}/>, label: 'WhatsApp', color: 'bg-emerald-50 text-emerald-600' },
-    pos: { icon: <Home size={14}/>, label: 'Tienda Física', color: 'bg-[#004D4D] text-white' }
+    pos: { icon: <Home size={14}/>, label: 'Tienda Física', color: 'bg-[#004D4D] text-white' },
+    mercadolibre: { icon: <ShoppingBag size={14}/>, label: 'Mercado Libre', color: 'bg-yellow-50 text-yellow-600' },
+    shopify: { icon: <ShoppingBag size={14}/>, label: 'Shopify', color: 'bg-green-50 text-green-600' }
 };
 
 const PRODUCT_IMAGES: Record<string, string> = {
@@ -173,7 +175,32 @@ export default function InvoicingPage() {
     const [selectedInvoice, setSelectedInvoice] = useState<PastInvoice | null>(null);
     
     const [products, setProducts] = useState<Product[]>([]);
-    const [history, setHistory] = useState<PastInvoice[]>([]);
+    const [history, setHistory] = useState<PastInvoice[]>([
+        {
+            id: "ORD-7828",
+            invoice_num: "FAC-7828",
+            date: "2026-01-29T16:40:00",
+            customer: "Carlos Ruiz",
+            customer_email: "carlos@example.com",
+            customer_type: "final",
+            source: "mercadolibre",
+            payment_method: "transfer",
+            total: 320000,
+            items: [{ product_name: "Smartwatch Series 5", quantity: 1, price_at_purchase: 320000 }]
+        },
+        {
+            id: "ORD-7825",
+            invoice_num: "FAC-7825",
+            date: "2026-01-28T14:20:00",
+            customer: "Luisa Lane",
+            customer_email: "luisa@daily.com",
+            customer_type: "final",
+            source: "shopify",
+            payment_method: "transfer",
+            total: 450000,
+            items: [{ product_name: "Bolso de Cuero", quantity: 1, price_at_purchase: 450000 }]
+        }
+    ]);
     const [sellers, setSellers] = useState<{name: string, role: string}[]>([]);
     const [historySearch, setHistorySearch] = useState('');
     const [historyFilter, setHistoryFilter] = useState('all');
@@ -436,8 +463,8 @@ export default function InvoicingPage() {
         <div className="relative min-h-[calc(100vh-120px)] bg-[#FAFAFA] overflow-hidden">
             <AnimatePresence mode="wait">
                 {!isPOSActive ? (
-                    <motion.div key="history-view" className="max-w-7xl mx-auto pb-20 space-y-16">
-                        <motion.div initial={{ y: -200, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -200, opacity: 0 }} className="space-y-16">
+                    <motion.div key="history-view" className="max-w-7xl mx-auto pb-20 space-y-4">
+                        <motion.div initial={{ y: -200, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -200, opacity: 0 }} className="space-y-8">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
                                 <div>
                                     <div className="flex items-center gap-3 mb-2">
@@ -461,7 +488,7 @@ export default function InvoicingPage() {
                             </div>
 
                             {/* --- BARRA DE BÚSQUEDA Y FILTROS AVANZADOS (ESTILO PEDIDOS) --- */}
-                            <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-2 rounded-2xl border border-slate-100 shadow-sm mt-8">
+                            <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-2 rounded-2xl border border-slate-100 shadow-sm mt-4">
                                 <div className="relative flex-1 w-full">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                     <input 
@@ -591,7 +618,7 @@ export default function InvoicingPage() {
                                 </div>
                             </div>
                         </motion.div>
-                        <motion.div initial={{ y: 200, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden mt-2">
+                        <motion.div initial={{ y: 200, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden mt-1">
                             <table className="min-w-full divide-y divide-gray-50">
                                 <thead className="bg-gray-50/50">
                                     <tr>
