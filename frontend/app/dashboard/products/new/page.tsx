@@ -139,6 +139,8 @@ export default function NewProductPage() {
     const [calcWholesaleMargin, setCalcWholesaleMargin] = useState(15);
     const [costError, setCostError] = useState(false);
     const [hasAnalyzed, setHasAnalyzed] = useState(false);
+    const [isNoDataModalOpen, setIsNoDataModalOpen] = useState(false);
+    const [avgTicket, setAvgTicket] = useState(125000);
 
     // Helpers de Formateo de Moneda
     const formatValue = (val: number | string) => {
@@ -166,7 +168,6 @@ export default function NewProductPage() {
 
     const marginPerUnit = suggestedPrice - formData.cost - (suggestedPrice * (platformCommission / 100));
     const breakEvenUnits = marginPerUnit > 0 ? Math.ceil(totalFixedExpenses / marginPerUnit) : 0;
-    const simulatedAvgTicket = 125000;
 
     // Cálculos Pantalla Principal
     const gatewayFeeUser = formData.add_gateway_fee ? (formData.price * 0.035) : 0;
@@ -185,17 +186,24 @@ export default function NewProductPage() {
         showToast("Bayt AI auditando finanzas reales...", "info");
         
         try {
-            // CONSULTA DE DATOS REALES
             const [expenses, orders] = await Promise.all([
-                apiRequest<any[]>('/expenses', { token }),
-                apiRequest<any[]>('/orders', { token })
+                apiRequest<any[]>('/expenses', { token }).catch(() => []),
+                apiRequest<any[]>('/orders', { token }).catch(() => [])
             ]);
 
-            // 1. Procesar Gastos Reales
             const totals = { payroll: 0, rent: 0, utilities: 0, ops: 0 };
+            const hasRealData = (expenses && Array.isArray(expenses) && expenses.length > 0) || 
+                               (orders && Array.isArray(orders) && orders.length > 0);
+
+            if (!hasRealData) {
+                setIsNoDataModalOpen(true);
+                setIsAnalyzingBayt(false);
+                return;
+            }
+
             if (expenses && Array.isArray(expenses)) {
                 expenses.forEach(exp => {
-                    const desc = exp.description.toLowerCase();
+                    const desc = exp.description?.toLowerCase() || "";
                     const amount = exp.amount || 0;
                     if (desc.includes('nómina') || desc.includes('sueldo') || desc.includes('pago')) totals.payroll += amount;
                     else if (desc.includes('arriendo') || desc.includes('alquiler')) totals.rent += amount;
@@ -205,27 +213,17 @@ export default function NewProductPage() {
             }
 
             // 2. Calcular Ticket Promedio Real
-            let avgTicket = 125000; // Valor base si no hay ventas
             if (orders && Array.isArray(orders) && orders.length > 0) {
                 const totalSales = orders.reduce((acc, order) => acc + (order.total_price || 0), 0);
-                avgTicket = totalSales / orders.length;
+                setAvgTicket(totalSales / orders.length);
             }
 
-            // Actualizar estados con data real
             setAssistantExpenses(totals);
-            // Podríamos añadir un estado para el ticket promedio dinámico si se desea
-            
-            // Si no hay datos, avisar al usuario
-            if (!expenses.length && !orders.length) {
-                showToast("Bayt no encontró datos históricos. Se usaron valores base sugeridos.", "info");
-            } else {
-                showToast("Auditoría completada con datos de tu empresa.", "success");
-            }
-
+            showToast("Auditoría completada con datos de tu empresa.", "success");
             setHasAnalyzed(true);
         } catch (err) {
-            console.error("Error en auditoría IA:", err);
-            showToast("Error al conectar con la base de datos financiera", "error");
+            // Ante cualquier error de estructura, asumimos que faltan datos para el análisis
+            setIsNoDataModalOpen(true);
         } finally {
             setIsAnalyzingBayt(false);
         }
@@ -684,32 +682,30 @@ export default function NewProductPage() {
                                                                                 ))}
                                                                             </div>
                                     
-                                                                            {/* Botón Consultar Bayt AI: Abajo de los gastos */}
-                                                                            <button 
-                                                                                onClick={handleBaytAnalysis} 
-                                                                                disabled={isAnalyzingBayt} 
-                                                                                className={`w-full py-5 rounded-2xl flex items-center justify-center gap-4 transition-all relative overflow-hidden border-2 ${isAnalyzingBayt ? 'bg-slate-100' : 'bg-gradient-to-r from-[#001A1A] to-[#004D4D] text-white border-white/5 shadow-2xl'}`}
-                                                                            >
-                                                                                <AnimatePresence mode="wait">
-                                                                                    {!isAnalyzingBayt ? (
-                                                                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-4 text-white">
-                                                                                            <Bot size={24} />
-                                                                                            <div className="flex flex-col items-start">
-                                                                                                <span className="text-[10px] font-black uppercase tracking-widest leading-none">Consultar Bayt AI</span>
-                                                                                                <span className="text-[7px] font-bold text-white/40 uppercase mt-1 tracking-widest">Análisis Multimétrica</span>
-                                                                                            </div>
-                                                                                        </motion.div>
-                                                                                    ) : (
-                                                                                        <motion.div className="flex items-center justify-center">
-                                                                                            <motion.div animate={{ y: [-2, -20, 0], scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }} transition={{ duration: 0.8, repeat: Infinity }} className="text-[#004D4D]">
-                                                                                                <Bot size={32} />
-                                                                                            </motion.div>
-                                                                                        </motion.div>
-                                                                                    )}
-                                                                                                                                                                        </AnimatePresence>
-                                                                                                                                                                    </button>
-                                                                                                                            
-                                                                                                                                                                    {/* Botón de Sustentación encima de la nota */}
+                                                                                                                                                            {/* Botón Consultar a Bayt */}
+                                                                                                                                                            <button 
+                                                                                                                                                                onClick={handleBaytAnalysis} 
+                                                                                                                                                                disabled={isAnalyzingBayt} 
+                                                                                                                                                                className={`w-full py-5 rounded-2xl flex items-center justify-center gap-4 transition-all relative overflow-hidden border-2 ${isAnalyzingBayt ? 'bg-slate-100' : 'bg-gradient-to-r from-[#001A1A] to-[#004D4D] text-white border-white/5 shadow-2xl'}`}
+                                                                                                                                                            >
+                                                                                                                                                                <AnimatePresence mode="wait">
+                                                                                                                                                                    {!isAnalyzingBayt ? (
+                                                                                                                                                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-4 text-white">
+                                                                                                                                                                            <Bot size={24} />
+                                                                                                                                                                            <div className="flex flex-col items-start">
+                                                                                                                                                                                <span className="text-[10px] font-black uppercase tracking-widest leading-none">Consultar a Bayt</span>
+                                                                                                                                                                                <span className="text-[7px] font-bold text-white/40 uppercase mt-1 tracking-widest">Análisis Multimétrica</span>
+                                                                                                                                                                            </div>
+                                                                                                                                                                        </motion.div>
+                                                                                                                                                                    ) : (
+                                                                                                                                                                        <motion.div className="flex items-center justify-center">
+                                                                                                                                                                            <motion.div animate={{ y: [-2, -20, 0], scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }} transition={{ duration: 0.8, repeat: Infinity }} className="text-[#004D4D]">
+                                                                                                                                                                                <Bot size={32} />
+                                                                                                                                                                            </motion.div>
+                                                                                                                                                                        </motion.div>
+                                                                                                                                                                    )}
+                                                                                                                                                                </AnimatePresence>
+                                                                                                                                                            </button>                                                                                                                                                                    {/* Botón de Sustentación encima de la nota */}
                                                                                                                                                                     <AnimatePresence>
                                                                                                                                                                         {hasAnalyzed && (
                                                                                                                                                                             <motion.button 
@@ -743,7 +739,7 @@ export default function NewProductPage() {
                                 <div className="space-y-10 text-slate-900 text-slate-900">
                                     <div className="flex justify-between items-start text-slate-900 text-slate-900">
                                         <div className="space-y-6 text-slate-900 text-slate-900"><div className="text-slate-900 text-slate-900"><h2 className="text-3xl font-black italic uppercase text-[#001A1A] tracking-tighter text-slate-900 text-slate-900">Simulación de <span className="text-[#004D4D] text-slate-900">Rentabilidad</span></h2><p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1 text-slate-900">Calculando el punto óptimo de venta</p></div>
-                                            <div className="flex flex-wrap items-center gap-4 bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 text-slate-900 text-slate-900"><div className="space-y-1.5 min-w-[200px] text-slate-900 text-slate-900 text-slate-900"><label className="text-[8px] font-black text-[#004D4D] uppercase tracking-widest ml-1 text-slate-900 text-slate-900 text-slate-900">Unidades a la venta (Volumen)</label><div className="relative text-slate-900 text-slate-900 text-slate-900"><Box size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#004D4D]/30 text-slate-900" /><input type="text" value={formatValue(calcQuantity)} onChange={(e) => setCalcQuantity(parseValue(e.target.value))} className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold focus:border-[#004D4D]/20 outline-none transition-all text-slate-900 text-slate-900 shadow-sm text-slate-900" /></div></div><div className="h-12 w-px bg-slate-200 mx-2 hidden md:block text-slate-900"></div><div className="space-y-1.5 min-w-[180px] relative group/info text-slate-900"><div className="flex items-center gap-2 ml-1 text-slate-900"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-slate-900">Ticket Promedio Tienda</label><div className="relative cursor-help text-slate-900"><Info size={10} className="text-slate-300 hover:text-[#004D4D] text-slate-900" /><div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-[#001A1A] text-white rounded-xl text-[8px] font-bold uppercase tracking-widest opacity-0 group-hover/info:opacity-100 transition-all text-white">Valor medio de compra. Vital para competitividad.</div></div></div><div className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-slate-100 shadow-sm text-slate-900 text-slate-900"><ShoppingBag size={12} className="text-emerald-600 text-slate-900" /><span className="text-sm font-black text-slate-900 text-slate-900">${simulatedAvgTicket.toLocaleString('de-DE')}</span></div></div></div>
+                                            <div className="flex flex-wrap items-center gap-4 bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 text-slate-900 text-slate-900"><div className="space-y-1.5 min-w-[200px] text-slate-900 text-slate-900 text-slate-900"><label className="text-[8px] font-black text-[#004D4D] uppercase tracking-widest ml-1 text-slate-900 text-slate-900 text-slate-900">Unidades a la venta (Volumen)</label><div className="relative text-slate-900 text-slate-900 text-slate-900"><Box size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#004D4D]/30 text-slate-900" /><input type="text" value={formatValue(calcQuantity)} onChange={(e) => setCalcQuantity(parseValue(e.target.value))} className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold focus:border-[#004D4D]/20 outline-none transition-all text-slate-900 text-slate-900 shadow-sm text-slate-900" /></div></div><div className="h-12 w-px bg-slate-200 mx-2 hidden md:block text-slate-900"></div><div className="space-y-1.5 min-w-[180px] relative group/info text-slate-900"><div className="flex items-center gap-2 ml-1 text-slate-900"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-slate-900">Ticket Promedio Tienda</label><div className="relative cursor-help text-slate-900"><Info size={10} className="text-slate-300 hover:text-[#004D4D] text-slate-900" /><div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-[#001A1A] text-white rounded-xl text-[8px] font-bold uppercase tracking-widest opacity-0 group-hover/info:opacity-100 transition-all text-white">Valor medio de compra. Vital para competitividad.</div></div></div><div className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-slate-100 shadow-sm text-slate-900 text-slate-900"><ShoppingBag size={12} className="text-emerald-600 text-slate-900" /><span className="text-sm font-black text-slate-900 text-slate-900">${avgTicket.toLocaleString('de-DE')}</span></div></div></div>
                                         </div>
                                         <button onClick={() => setIsPriceAssistantOpen(false)} className="h-10 w-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#004D4D] transition-colors text-slate-900"><X size={20}/></button>
                                     </div>
@@ -751,7 +747,7 @@ export default function NewProductPage() {
                                         <div className="bg-[#001A1A] rounded-[3.5rem] p-8 text-white relative overflow-hidden group border border-white/5 shadow-2xl flex flex-col justify-between min-h-[220px] text-white"><div className="absolute top-0 right-0 w-48 h-48 bg-[#00F2FF]/5 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2 text-white"></div><div className="relative z-10 flex justify-between items-start text-white text-white"><div className="space-y-0.5 text-white"><p className="text-[8px] font-black text-[#00F2FF] uppercase tracking-[0.3em] text-white">Sugerido Retail</p><h5 className="text-4xl font-black italic tracking-tighter text-[#4fffcb] text-white">${Math.round(suggestedPrice).toLocaleString('de-DE')}</h5></div><div className="text-right text-white text-white"><span className="text-2xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.6)] text-white text-white text-white">{calcMargin}%</span></div></div><div className="relative z-10 space-y-3 bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/10 mt-4 text-white text-white text-white text-white"><div className="flex justify-between items-center text-white"><span className="text-[7px] font-black uppercase text-slate-400">Margen Final</span><button onClick={() => setCalcMargin(30)} className="text-[7px] font-black text-[#4fffcb] uppercase hover:underline">Recomendación (30%)</button></div><input type="range" min="5" max="80" value={calcMargin} onChange={(e) => setCalcMargin(Number(e.target.value))} className="w-full h-1 bg-white/10 appearance-none accent-[#4fffcb]" /><div className="flex justify-center items-center gap-3 text-white text-white"><span className="text-[8px] font-black text-white/40 uppercase">Utilidad Neta:</span><span className="text-sm font-black text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] text-white">${Math.round(profitPerUnit).toLocaleString()} / Unidad</span></div></div></div>
                                         <div className="bg-[#004D4D] rounded-[2.5rem] p-8 text-white relative overflow-hidden group border border-white/5 shadow-lg flex flex-col justify-between min-h-[220px] text-white"><div className="absolute top-0 right-0 w-48 h-48 bg-cyan-400/5 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2 text-white"></div><div className="relative z-10 flex justify-between items-start text-white text-white"><div className="space-y-0.5 text-white"><p className="text-[8px] font-black text-cyan-400 uppercase tracking-[0.3em] text-white">Sugerido Mayorista</p><h5 className="text-4xl font-black italic tracking-tighter text-white text-white">${Math.round(suggestedWholesale).toLocaleString('de-DE')}</h5></div><div className="text-right text-white text-white text-white text-white"><span className="text-2xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.4)] text-white text-white">{calcWholesaleMargin}%</span></div></div><div className="relative z-10 space-y-3 bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/10 mt-4 text-white text-white text-white text-white text-white"><div className="flex justify-between items-center text-white"><span className="text-[7px] font-black uppercase text-white/40">Distribución</span><button onClick={() => setCalcWholesaleMargin(15)} className="text-[7px] font-black text-white/60 uppercase hover:underline">Recomendación (15%)</button></div><input type="range" min="5" max="50" value={calcWholesaleMargin} onChange={(e) => setCalcWholesaleMargin(Number(e.target.value))} className="w-full h-1 bg-white/10 appearance-none accent-cyan-400" /><div className="flex justify-center items-center gap-3 text-white text-white text-white"><span className="text-[8px] font-black text-white/40 uppercase">Utilidad Neta:</span><span className="text-sm font-black text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] text-white text-white text-white text-white">${Math.round(profitWholesalePerUnit).toLocaleString()} / Unidad</span></div></div></div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-6 text-slate-900 text-slate-900"><div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 text-slate-900 text-slate-900 text-slate-900"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-slate-900">Punto de Equilibrio</p><h5 className="text-xl font-black text-slate-900 text-slate-900 text-slate-900 text-slate-900">{breakEvenUnits} <span className="text-[10px]">Unidades</span></h5></div><div className={`p-6 rounded-2xl border flex items-center gap-4 ${suggestedPrice > simulatedAvgTicket * 1.3 ? 'bg-rose-50 border-rose-100 text-rose-900' : 'bg-emerald-50 border-emerald-100 text-emerald-900'}`}><div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${suggestedPrice > simulatedAvgTicket * 1.3 ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'}`}>{suggestedPrice > simulatedAvgTicket * 1.3 ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}</div><p className="text-[9px] font-bold uppercase leading-tight">{suggestedPrice > simulatedAvgTicket * 1.3 ? "Precio elevado vs mercado" : "Precio Competitivo"}</p></div></div>
+                                    <div className="grid grid-cols-2 gap-6 text-slate-900 text-slate-900"><div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 text-slate-900 text-slate-900 text-slate-900"><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-slate-900">Punto de Equilibrio</p><h5 className="text-xl font-black text-slate-900 text-slate-900 text-slate-900 text-slate-900">{breakEvenUnits} <span className="text-[10px]">Unidades</span></h5></div><div className={`p-6 rounded-2xl border flex items-center gap-4 ${suggestedPrice > avgTicket * 1.3 ? 'bg-rose-50 border-rose-100 text-rose-900' : 'bg-emerald-50 border-emerald-100 text-emerald-900'}`}><div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${suggestedPrice > avgTicket * 1.3 ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'}`}>{suggestedPrice > avgTicket * 1.3 ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}</div><p className="text-[9px] font-bold uppercase leading-tight">{suggestedPrice > avgTicket * 1.3 ? "Precio elevado vs mercado" : "Precio Competitivo"}</p></div></div>
                                     <div className="p-8 bg-[#004D4D]/5 rounded-[2.5rem] border border-[#004D4D]/10 flex gap-6 items-start text-slate-900 text-slate-900 text-slate-900"><div className="h-12 w-12 rounded-2xl bg-white flex items-center justify-center text-[#004D4D] shadow-sm shrink-0 text-slate-900"><ShieldCheck size={24} /></div><div className="space-y-2 text-slate-900"><h4 className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">¿Por qué este precio es tu mejor opción?</h4><p className="text-[11px] text-slate-600 leading-relaxed font-medium text-slate-900">Análisis de <span className="text-[#004D4D] font-bold text-slate-900">Prorrateo Operativo</span>. Cubre costo de compra y asegura aporte proporcional a <span className="font-bold text-slate-900">Nómina, Arriendo y Servicios</span>. Proteges tu utilidad y aseguras escalabilidad sin perder competitividad.</p></div></div>
                                 </div>
                                 <div className="flex gap-4 pt-10 text-slate-900"><button onClick={() => setIsPriceAssistantOpen(false)} className="flex-1 py-5 rounded-[1.8rem] bg-slate-100 text-slate-500 font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all text-slate-900 text-slate-900">Cancelar</button><button onClick={() => { setFormData({...formData, price: Math.round(suggestedPrice), wholesale_price: Math.round(suggestedWholesale)}); setIsPriceAssistantOpen(false); showToast("Estrategia aplicada", "success"); }} className="flex-[2] py-5 rounded-[1.8rem] bg-[#004D4D] text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-[#004D4D]/20 hover:bg-black transition-all">Aplicar Estrategia Dual</button></div>
@@ -817,6 +813,72 @@ export default function NewProductPage() {
                             <div className="space-y-6 text-slate-900">
                                 <div className="space-y-2 text-slate-900 text-slate-900"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1 text-slate-900">Nombre de la Familia</label><input autoFocus value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="Ej: Accesorios Premium" className="w-full px-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner transition-all text-slate-900" /></div>
                                 <div className="flex gap-3 pt-4 text-slate-900 text-slate-900"><button type="button" onClick={() => setIsNewCategoryModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors">Cancelar</button><button type="button" disabled={!newCategoryName.trim()} onClick={handleCreateCategory} className="flex-[2] py-4 bg-[#004D4D] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[#004D4D]/20 disabled:opacity-50">Crear Categoría</button></div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* --- MODAL: DATOS INSUFICIENTES (MENTORÍA BAYT) --- */}
+            <AnimatePresence>
+                {isNoDataModalOpen && (
+                    <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNoDataModalOpen(false)} className="absolute inset-0 bg-[#001A1A]/80 backdrop-blur-xl" />
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+                            animate={{ opacity: 1, scale: 1, y: 0 }} 
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }} 
+                            className="relative bg-white w-full max-w-xl rounded-[4rem] shadow-2xl overflow-hidden border border-white flex flex-col text-slate-900"
+                        >
+                            <div className="p-12 text-center space-y-8">
+                                <div className="flex justify-center">
+                                    <div className="h-24 w-24 rounded-[2.5rem] bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D] relative">
+                                        <Bot size={48} className="animate-bounce" />
+                                        <div className="absolute -top-2 -right-2 h-8 w-8 bg-rose-500 text-white rounded-full flex items-center justify-center border-4 border-white shadow-lg">
+                                            <AlertCircle size={16} />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-3">
+                                    <h3 className="text-3xl font-black italic uppercase tracking-tighter text-[#001A1A]">Faltan <span className="text-rose-600">Datos Clave</span></h3>
+                                    <p className="text-sm font-medium text-slate-500 leading-relaxed max-w-md mx-auto">
+                                        Bayt necesita conocer el pulso real de tu empresa para darte una estrategia de precios infalible. Actualmente no encontramos registros financieros suficientes.
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4 text-left">
+                                    {[
+                                        { title: "Registra tus Gastos", desc: "Sube tu nómina, arriendo y servicios en el módulo de Tesorería.", icon: <ShieldCheck size={18}/> },
+                                        { title: "Genera Movimientos", desc: "Realiza tus primeras ventas a través del módulo de Facturación.", icon: <ShoppingBag size={18}/> },
+                                        { title: "Precisión de Costos", desc: "Asegúrate de que cada producto tenga su costo base de compra real.", icon: <DollarSign size={18}/> }
+                                    ].map((step, i) => (
+                                        <div key={i} className="p-5 bg-gray-50 rounded-3xl border border-gray-100 flex items-center gap-5 group hover:bg-[#004D4D] transition-all duration-500">
+                                            <div className="h-10 w-10 rounded-2xl bg-white flex items-center justify-center text-[#004D4D] shadow-sm group-hover:scale-110 transition-transform">
+                                                {step.icon}
+                                            </div>
+                                            <div>
+                                                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#001A1A] group-hover:text-[#4fffcb] transition-colors">{step.title}</h4>
+                                                <p className="text-[9px] font-bold text-slate-400 group-hover:text-white/70 transition-colors uppercase mt-0.5">{step.desc}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="pt-4 flex flex-col gap-4">
+                                    <button 
+                                        onClick={() => setIsNoDataModalOpen(false)}
+                                        className="w-full py-5 bg-[#004D4D] text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-xl shadow-[#004D4D]/20 hover:bg-black transition-all"
+                                    >
+                                        Entendido, voy a alimentar mis datos
+                                    </button>
+                                    <button 
+                                        onClick={() => setIsNoDataModalOpen(false)}
+                                        className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-[#001A1A] transition-colors"
+                                    >
+                                        Cerrar Advertencia
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     </div>
