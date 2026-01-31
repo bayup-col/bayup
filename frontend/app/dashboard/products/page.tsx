@@ -124,8 +124,14 @@ export default function ProductsPage() {
     // Estados para Nueva Categoría
     const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<any>(null);
+    const [modalView, setModalView] = useState<'analytics' | 'products'>('analytics');
     const [newCategoryData, setNewCategoryData] = useState({ name: '', description: '' });
     const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+
+    // Resetear vista al cerrar o cambiar categoría
+    useEffect(() => {
+        if (!selectedCategory) setModalView('analytics');
+    }, [selectedCategory]);
 
     // Guía de Maestría
     const [isGuideOpen, setIsGuideOpen] = useState(false);
@@ -487,16 +493,18 @@ export default function ProductsPage() {
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedCategory(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-2xl" />
                         <motion.div initial={{ opacity: 0, scale: 0.95, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 40 }} className="relative bg-white/90 w-full max-w-6xl h-[85vh] rounded-[4rem] shadow-2xl overflow-hidden border border-white flex flex-col md:flex-row">
                             {/* Lateral Izquierdo: Resumen y KPI */}
-                            <div className="w-full md:w-80 bg-[#004D4D] p-10 text-white flex flex-col justify-between">
-                                <div className="space-y-8">
+                            <div className="w-full md:w-80 bg-[#004D4D] p-10 text-white flex flex-col justify-between shrink-0">
+                                <div className="space-y-6">
                                     <div className="h-16 w-16 rounded-3xl bg-white/10 flex items-center justify-center backdrop-blur-md">
                                         <Layers size={32} className="text-[#4fffcb]" />
                                     </div>
-                                    <div>
-                                        <h3 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">{selectedCategory.title}</h3>
+                                    <div className="min-h-[80px] flex flex-col justify-center">
+                                        <h3 className={`font-black italic uppercase tracking-tighter leading-[1.1] line-clamp-2 ${selectedCategory.title.length > 15 ? 'text-xl' : 'text-3xl'}`}>
+                                            {selectedCategory.title}
+                                        </h3>
                                         <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mt-2 italic">Reporte de Inteligencia Web</p>
                                     </div>
-                                    <div className="pt-8 space-y-6">
+                                    <div className="pt-4 space-y-4">
                                         <div className="p-6 rounded-[2.5rem] bg-white/5 border border-white/10">
                                             <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Conversión Mensual</p>
                                             <div className="flex items-end gap-2">
@@ -512,108 +520,193 @@ export default function ProductsPage() {
                                         </div>
                                     </div>
                                 </div>
-                                <PremiumButton onClick={() => setSelectedCategory(null)} className="w-full">
-                                    Cerrar Reporte
-                                </PremiumButton>
+                                <div className="space-y-3">
+                                    <button 
+                                        onClick={() => setModalView(modalView === 'analytics' ? 'products' : 'analytics')}
+                                        className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border flex items-center justify-center gap-3 ${modalView === 'products' ? 'bg-[#4fffcb] text-[#004D4D] border-[#4fffcb]' : 'bg-white/10 text-white border-white/10 hover:bg-white/20'}`}
+                                    >
+                                        {modalView === 'analytics' ? <><ShoppingBag size={16}/> Ver Productos</> : <><BarChart3 size={16}/> Ver Reporte</>}
+                                    </button>
+                                    <PremiumButton onClick={() => setSelectedCategory(null)} className="w-full">
+                                        Cerrar Reporte
+                                    </PremiumButton>
+                                </div>
                             </div>
 
-                            {/* Contenido Principal: Estadísticas */}
-                            <div className="flex-1 overflow-y-auto p-12 bg-slate-50/50 backdrop-blur-sm custom-scrollbar">
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                                    {/* Bloque 1: Tráfico y Búsquedas */}
-                                    <section className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8">
-                                        <div className="flex justify-between items-center">
-                                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#004D4D]">Rendimiento de Mercado</h4>
-                                            <TrendingUp size={18} className="text-emerald-500" />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-6">
-                                            <div className="space-y-1">
-                                                <span className="text-4xl font-black tracking-tighter text-slate-900">1,240</span>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase">Compras/Mes</p>
-                                            </div>
-                                            <div className="space-y-1 text-right">
-                                                <span className="text-4xl font-black tracking-tighter text-[#00F2FF]">8,500</span>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase">Búsquedas/Mes</p>
-                                            </div>
-                                        </div>
-                                        {/* Simulación de gráfico simple */}
-                                        <div className="h-24 flex items-end gap-2 pt-4">
-                                            {[40, 70, 45, 90, 65, 80, 100].map((h, i) => (
-                                                <motion.div key={i} initial={{ height: 0 }} animate={{ height: `${h}%` }} transition={{ delay: i * 0.1 }} className="flex-1 bg-gradient-to-t from-[#004D4D] to-[#4fffcb] rounded-t-lg opacity-20 hover:opacity-100 transition-all cursor-pointer" />
-                                            ))}
-                                        </div>
-                                    </section>
-
-                                    {/* Bloque 2: Demografía */}
-                                    <section className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8">
-                                        <div className="flex justify-between items-center">
-                                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#004D4D]">Audiencia Clave</h4>
-                                            <BarChart3 size={18} className="text-purple-500" />
-                                        </div>
-                                        <div className="space-y-6">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10px] font-black uppercase text-slate-500">Género Dominante</span>
-                                                <div className="flex gap-4">
-                                                    <span className="text-[10px] font-black text-rose-500">Mujeres 65%</span>
-                                                    <span className="text-[10px] font-black text-blue-500">Hombres 35%</span>
-                                                </div>
-                                            </div>
-                                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
-                                                <div className="h-full bg-rose-500" style={{ width: '65%' }} />
-                                                <div className="h-full bg-blue-500" style={{ width: '35%' }} />
-                                            </div>
-                                            <div className="pt-4 grid grid-cols-3 gap-2">
-                                                {['18-24', '25-34', '35+'].map((age, i) => (
-                                                    <div key={age} className="text-center p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                                                        <span className="block text-sm font-black text-slate-900">{i === 1 ? '52%' : i === 0 ? '28%' : '20%'}</span>
-                                                        <span className="text-[8px] font-black text-slate-400 uppercase">{age}</span>
+                            {/* Contenido Principal: Animaciones Divergentes */}
+                            <div className="flex-1 overflow-y-auto p-12 bg-slate-50/50 backdrop-blur-sm custom-scrollbar relative">
+                                <AnimatePresence mode="wait">
+                                    {modalView === 'analytics' ? (
+                                        <div key="analytics-grid" className="space-y-10">
+                                            {/* GRUPO SUPERIOR: Entra/Sale hacia ARRIBA */}
+                                            <motion.div 
+                                                initial={{ y: -500, opacity: 0 }}
+                                                animate={{ y: 0, opacity: 1 }}
+                                                exit={{ y: -500, opacity: 0 }}
+                                                transition={{ duration: 0.6, ease: "anticipate" }}
+                                                className="grid grid-cols-1 lg:grid-cols-2 gap-10"
+                                            >
+                                                {/* Bloque 1: Tráfico y Búsquedas */}
+                                                <section className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8">
+                                                    <div className="flex justify-between items-center">
+                                                        <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#004D4D]">Rendimiento de Mercado</h4>
+                                                        <TrendingUp size={18} className="text-emerald-500" />
                                                     </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </section>
-
-                                    {/* Bloque 3: Geografía */}
-                                    <section className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8">
-                                        <div className="flex justify-between items-center">
-                                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#004D4D]">Focos Geográficos</h4>
-                                            <TrendingUp size={18} className="rotate-90 text-cyan-500" />
-                                        </div>
-                                        <div className="space-y-4">
-                                            {['Bogotá', 'Medellín', 'Cali', 'Barranquilla'].map((city, i) => (
-                                                <div key={city} className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-[10px] font-black text-slate-400 w-4">0{i+1}</span>
-                                                        <span className="text-sm font-black text-slate-700">{city}</span>
+                                                    <div className="grid grid-cols-2 gap-6">
+                                                        <div className="space-y-1">
+                                                            <span className="text-4xl font-black tracking-tighter text-slate-900">1,240</span>
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase">Compras/Mes</p>
+                                                        </div>
+                                                        <div className="space-y-1 text-right">
+                                                            <span className="text-4xl font-black tracking-tighter text-[#00F2FF]">8,500</span>
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase">Búsquedas/Mes</p>
+                                                        </div>
                                                     </div>
-                                                    <span className="text-[10px] font-black text-[#004D4D]">{40 - i * 10}% Interés</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </section>
+                                                    <div className="h-24 flex items-end gap-2 pt-4">
+                                                        {[40, 70, 45, 90, 65, 80, 100].map((h, i) => (
+                                                            <motion.div key={i} initial={{ height: 0 }} animate={{ height: `${h}%` }} transition={{ delay: i * 0.1 }} className="flex-1 bg-gradient-to-t from-[#004D4D] to-[#4fffcb] rounded-t-lg opacity-20 hover:opacity-100 transition-all cursor-pointer" />
+                                                        ))}
+                                                    </div>
+                                                </section>
 
-                                    {/* Bloque 4: Bayt AI Advice */}
-                                    <section className="bg-[#001A1A] p-10 rounded-[3.5rem] border border-white/5 shadow-2xl relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-700">
-                                            <Zap size={120} className="text-[#4fffcb]" />
+                                                {/* Bloque 2: Demografía */}
+                                                <section className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8">
+                                                    <div className="flex justify-between items-center">
+                                                        <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#004D4D]">Audiencia Clave</h4>
+                                                        <BarChart3 size={18} className="text-purple-500" />
+                                                    </div>
+                                                    <div className="space-y-6">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[10px] font-black uppercase text-slate-500">Género Dominante</span>
+                                                            <div className="flex gap-4">
+                                                                <span className="text-[10px] font-black text-rose-500">Mujeres 65%</span>
+                                                                <span className="text-[10px] font-black text-blue-500">Hombres 35%</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                                                            <div className="h-full bg-rose-500" style={{ width: '65%' }} />
+                                                            <div className="h-full bg-blue-500" style={{ width: '35%' }} />
+                                                        </div>
+                                                        <div className="pt-4 grid grid-cols-3 gap-2">
+                                                            {['18-24', '25-34', '35+'].map((age, i) => (
+                                                                <div key={age} className="text-center p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                                                    <span className="block text-sm font-black text-slate-900">{i === 1 ? '52%' : i === 0 ? '28%' : '20%'}</span>
+                                                                    <span className="text-[8px] font-black text-slate-400 uppercase">{age}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </section>
+                                            </motion.div>
+
+                                            {/* GRUPO INFERIOR: Entra/Sale hacia ABAJO */}
+                                            <motion.div 
+                                                initial={{ y: 500, opacity: 0 }}
+                                                animate={{ y: 0, opacity: 1 }}
+                                                exit={{ y: 500, opacity: 0 }}
+                                                transition={{ duration: 0.6, ease: "anticipate" }}
+                                                className="grid grid-cols-1 lg:grid-cols-2 gap-10"
+                                            >
+                                                {/* Bloque 3: Geografía */}
+                                                <section className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8">
+                                                    <div className="flex justify-between items-center">
+                                                        <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#004D4D]">Focos Geográficos</h4>
+                                                        <TrendingUp size={18} className="rotate-90 text-cyan-500" />
+                                                    </div>
+                                                    <div className="space-y-4">
+                                                        {['Bogotá', 'Medellín', 'Cali', 'Barranquilla'].map((city, i) => (
+                                                            <div key={city} className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    <span className="text-[10px] font-black text-slate-400 w-4">0{i+1}</span>
+                                                                    <span className="text-sm font-black text-slate-700">{city}</span>
+                                                                </div>
+                                                                <span className="text-[10px] font-black text-[#004D4D]">{40 - i * 10}% Interés</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </section>
+
+                                                {/* Bloque 4: Bayt AI Advice */}
+                                                <section className="bg-[#001A1A] p-10 rounded-[3.5rem] border border-white/5 shadow-2xl relative overflow-hidden group">
+                                                    <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-700">
+                                                        <Zap size={120} className="text-[#4fffcb]" />
+                                                    </div>
+                                                    <div className="relative z-10 space-y-6">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="h-10 w-10 rounded-full bg-[#4fffcb] flex items-center justify-center text-[#001A1A]">
+                                                                <Zap size={20} />
+                                                            </div>
+                                                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#4fffcb]">Consejo Bayt AI</h4>
+                                                        </div>
+                                                        <p className="text-sm font-medium text-white/80 leading-relaxed italic">
+                                                            "Para esta categoría, los usuarios suelen buscar una experiencia completa. Te recomiendo combinarla con <span className="text-[#4fffcb] font-bold">Accesorios Tech</span> y <span className="text-[#4fffcb] font-bold">Lifestyle Moderno</span> para aumentar el valor del carrito en un 25%."
+                                                        </p>
+                                                        <div className="pt-4 flex gap-3">
+                                                            <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-[#4fffcb] uppercase tracking-widest">Cross-selling Activo</div>
+                                                            <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest">Optimización de SEO</div>
+                                                        </div>
+                                                    </div>
+                                                </section>
+                                            </motion.div>
                                         </div>
-                                        <div className="relative z-10 space-y-6">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-full bg-[#4fffcb] flex items-center justify-center text-[#001A1A]">
-                                                    <Zap size={20} />
-                                                </div>
-                                                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#4fffcb]">Consejo Bayt AI</h4>
+                                    ) : (
+                                        <motion.div 
+                                            key="products-view"
+                                            initial={{ y: -500, opacity: 0 }}
+                                            animate={{ y: 0, opacity: 1 }}
+                                            exit={{ y: 500, opacity: 0 }}
+                                            transition={{ duration: 0.6, ease: "anticipate" }}
+                                            className="space-y-10"
+                                        >
+                                            <div className="flex items-center justify-between px-4">
+                                                <h4 className="text-2xl font-black italic uppercase text-[#001A1A] tracking-tighter">Productos en <span className="text-[#004D4D]">{selectedCategory.title}</span></h4>
+                                                <span className="px-4 py-2 bg-[#004D4D]/5 rounded-full text-[10px] font-black text-[#004D4D] uppercase tracking-widest">
+                                                    {products.filter(p => p.category === selectedCategory.title || p.collection_id === selectedCategory.id).length} Artículos Encontrados
+                                                </span>
                                             </div>
-                                            <p className="text-sm font-medium text-white/80 leading-relaxed italic">
-                                                "Para esta categoría, los usuarios suelen buscar una experiencia completa. Te recomiendo combinarla con <span className="text-[#4fffcb] font-bold">Accesorios Tech</span> y <span className="text-[#4fffcb] font-bold">Lifestyle Moderno</span> para aumentar el valor del carrito en un 25%."
-                                            </p>
-                                            <div className="pt-4 flex gap-3">
-                                                <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-[#4fffcb] uppercase tracking-widest">Cross-selling Activo</div>
-                                                <div className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest">Optimización de SEO</div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                {products
+                                                    .filter(p => p.category === selectedCategory.title || p.collection_id === selectedCategory.id)
+                                                    .map((p, i) => (
+                                                        <motion.div 
+                                                            key={p.id}
+                                                            initial={{ opacity: 0, y: 20 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ delay: i * 0.05 }}
+                                                            className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all group"
+                                                        >
+                                                            <div className="h-40 w-full bg-slate-50 rounded-2xl mb-4 overflow-hidden relative">
+                                                                {p.image_url ? (
+                                                                    <img src={p.image_url} alt={p.name} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                                ) : (
+                                                                    <div className="h-full w-full flex items-center justify-center text-slate-200">
+                                                                        <ImageIcon size={40} />
+                                                                    </div>
+                                                                )}
+                                                                <div className="absolute top-3 right-3 px-3 py-1 bg-[#004D4D] text-white text-[8px] font-black uppercase rounded-full shadow-lg">
+                                                                    ${p.price.toLocaleString()}
+                                                                </div>
+                                                            </div>
+                                                            <h5 className="text-sm font-black text-slate-900 line-clamp-1">{p.name}</h5>
+                                                            <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">SKU: {p.variants?.[0]?.sku || 'S/N'}</p>
+                                                            <div className="mt-4 pt-4 border-t border-slate-50 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-all">
+                                                                <button onClick={() => router.push(`/dashboard/products/${p.id}/edit`)} className="text-[9px] font-black text-[#004D4D] uppercase tracking-widest hover:underline">Editar Producto</button>
+                                                                <ArrowUpRight size={14} className="text-[#004D4D]" />
+                                                            </div>
+                                                        </motion.div>
+                                                    ))
+                                                }
+                                                {products.filter(p => p.category === selectedCategory.title || p.collection_id === selectedCategory.id).length === 0 && (
+                                                    <div className="col-span-full py-20 text-center text-slate-400">
+                                                        <Box size={48} className="mx-auto mb-4 opacity-10" />
+                                                        <p className="text-xs font-black uppercase tracking-widest">Esta categoría aún no tiene productos asignados</p>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
-                                    </section>
-                                </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </motion.div>
                     </div>
