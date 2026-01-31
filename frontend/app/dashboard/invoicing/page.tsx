@@ -28,6 +28,7 @@ import {
   ArrowUpRight,
   X,
   Globe,
+  Download,
   ChevronRight,
   ChevronLeft,
   ChevronDown,
@@ -211,7 +212,7 @@ export default function InvoicingPage() {
     const [advancedFilters, setAdvancedFilters] = useState({ channel: 'all', paymentMethod: 'all' });
     const [dateRange, setDateRange] = useState('Mes');
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const itemsPerPage = 20;
 
     const handleDatePreset = (preset: 'today' | 'yesterday' | 'week' | 'month') => {
         const today = new Date();
@@ -310,12 +311,111 @@ export default function InvoicingPage() {
         return products.filter(p => (p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.sku?.toLowerCase().includes(productSearch.toLowerCase())) && (selectedCategory === 'Todas' || p.category === selectedCategory)).slice(0, 12);
     }, [productSearch, products, selectedCategory]);
 
+    const handleExportExcel = () => {
+        if (history.length === 0) {
+            showToast("No hay datos para exportar", "info");
+            return;
+        }
+
+        // Estilos CSS para el Excel
+        const styles = `
+            <style>
+                .header { background-color: #004D4D; color: #ffffff; font-weight: bold; text-align: center; }
+                .cell { border: 1px solid #e2e8f0; padding: 8px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; }
+                .title { font-size: 22px; font-weight: bold; color: #004D4D; font-family: 'Segoe UI'; }
+                .subtitle { font-size: 14px; color: #64748b; font-family: 'Segoe UI'; margin-bottom: 20px; }
+                .currency { text-align: right; font-weight: bold; color: #004D4D; }
+                .tag { font-size: 10px; font-weight: bold; text-transform: uppercase; padding: 4px; border-radius: 4px; text-align: center; }
+            </style>
+        `;
+
+        // Construcción de la Tabla HTML
+        let tableHtml = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head><meta charset="utf-8">${styles}</head>
+            <body>
+                <table>
+                    <tr><td colspan="9" class="title">BAYUP - REPORTE MASTER DE FACTURACIÓN</td></tr>
+                    <tr><td colspan="9" class="subtitle">Generado el: ${new Date().toLocaleString()} | Total Registros: ${history.length}</td></tr>
+                    <tr></tr>
+                    <thead>
+                        <tr class="header">
+                            <th class="cell">NÚMERO FACTURA</th>
+                            <th class="cell">FECHA Y HORA</th>
+                            <th class="cell">CLIENTE</th>
+                            <th class="cell">EMAIL / CONTACTO</th>
+                            <th class="cell">TIPO</th>
+                            <th class="cell">CANAL</th>
+                            <th class="cell">MÉTODO PAGO</th>
+                            <th class="cell">DETALLE PRODUCTOS</th>
+                            <th class="cell">TOTAL NETO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        history.forEach(inv => {
+            const itemsList = inv.items ? inv.items.map(it => `• ${it.product_name || it.name} (x${it.quantity})`).join("<br>") : "N/A";
+            
+            tableHtml += `
+                <tr>
+                    <td class="cell" style="font-weight: bold;">${inv.invoice_num}</td>
+                    <td class="cell">${new Date(inv.date).toLocaleString()}</td>
+                    <td class="cell" style="text-transform: capitalize;">${inv.customer}</td>
+                    <td class="cell">${inv.customer_email || "N/A"}<br><span style="color: #64748b;">${inv.customer_phone || ""}</span></td>
+                    <td class="cell" style="text-align: center;">${inv.customer_type === 'wholesale' ? 'MAYORISTA' : 'FINAL'}</td>
+                    <td class="cell" style="text-align: center; font-weight: bold;">${inv.source.toUpperCase()}</td>
+                    <td class="cell" style="text-align: center;">${inv.payment_method === 'transfer' ? 'TRANSFERENCIA' : 'EFECTIVO'}</td>
+                    <td class="cell" style="font-size: 10px;">${itemsList}</td>
+                    <td class="cell currency">${formatCurrency(inv.total)}</td>
+                </tr>
+            `;
+        });
+
+        // Cálculo del Gran Total al final
+        const grandTotal = history.reduce((acc, curr) => acc + curr.total, 0);
+        tableHtml += `
+                    <tr>
+                        <td colspan="8" class="cell" style="text-align: right; font-weight: bold; background-color: #f8fafc;">TOTAL GENERAL ACUMULADO:</td>
+                        <td class="cell currency" style="background-color: #004D4D; color: #ffffff;">${formatCurrency(grandTotal)}</td>
+                    </tr>
+                </tbody>
+                </table>
+            </body>
+            </html>
+        `;
+
+        // Exportación del archivo
+        const fileName = `Reporte_Elite_Bayup_${new Date().toISOString().split('T')[0]}.xls`;
+        const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        
+        link.href = url;
+        link.download = fileName;
+        link.click();
+        
+        URL.revokeObjectURL(url);
+        showToast("Reporte Elite generado correctamente", "success");
+    };
+
     const { paginatedHistory, totalPages } = useMemo(() => {
         const filtered = history.filter(inv => {
             const matchesSearch = inv.customer.toLowerCase().includes(historySearch.toLowerCase()) || 
                                  inv.invoice_num.toLowerCase().includes(historySearch.toLowerCase());
             
-            const matchesChannel = advancedFilters.channel === 'all' || inv.source === advancedFilters.channel;
+            let matchesChannel = advancedFilters.channel === 'all';
+            if (!matchesChannel) {
+                if (advancedFilters.channel === 'web') {
+                    matchesChannel = ['web', 'mercadolibre', 'shopify', 'falabella'].includes(inv.source);
+                } else if (advancedFilters.channel === 'redes') {
+                    matchesChannel = ['instagram', 'facebook', 'tiktok', 'redes'].includes(inv.source);
+                } else if (advancedFilters.channel === 'pos') {
+                    matchesChannel = inv.source === 'pos';
+                } else {
+                    matchesChannel = inv.source === advancedFilters.channel;
+                }
+            }
             
             const matchesPayment = advancedFilters.paymentMethod === 'all' || 
                                   (advancedFilters.paymentMethod === 'transfer' && inv.payment_method === 'transfer') ||
@@ -487,8 +587,14 @@ export default function InvoicingPage() {
                                 <KPICard title="Canal POS vs Web" value="65% / 35%" trendValue={0.5} icon={Zap} iconColor="text-yellow-500" />
                             </div>
 
+                            {/* --- TÍTULO SECCIÓN HISTORIAL --- */}
+                            <div className="mt-10 mb-4 px-2 flex items-center gap-3">
+                                <span className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_10px_#10B981]"></span>
+                                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Historial de Facturación</h3>
+                            </div>
+
                             {/* --- BARRA DE BÚSQUEDA Y FILTROS AVANZADOS (ESTILO PEDIDOS) --- */}
-                            <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-2 rounded-2xl border border-slate-100 shadow-sm mt-4">
+                            <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
                                 <div className="relative flex-1 w-full">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                     <input 
@@ -501,8 +607,16 @@ export default function InvoicingPage() {
                                 </div>
                                 <div className="h-8 w-px bg-slate-100 hidden md:block"></div>
                                 <div className="flex items-center gap-2 relative">
+                                    {/* Overlay invisible para cerrar menús al hacer clic fuera */}
+                                    {(isFilterMenuOpen || isDateMenuOpen) && (
+                                        <div 
+                                            className="fixed inset-0 z-40" 
+                                            onClick={() => { setIsFilterMenuOpen(false); setIsDateMenuOpen(false); }}
+                                        />
+                                    )}
+
                                     {/* Botón Filtros */}
-                                    <div className="relative">
+                                    <div className="relative z-50">
                                         <button 
                                             onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setIsDateMenuOpen(false); }}
                                             className={`p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase ${isFilterMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
@@ -513,15 +627,37 @@ export default function InvoicingPage() {
                                         <AnimatePresence>
                                             {isFilterMenuOpen && (
                                                 <motion.div 
-                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    initial={{ opacity: 0, y: paginatedHistory.length === 0 ? 10 : -10, scale: 0.95 }}
                                                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                    className="absolute top-full right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 w-[280px] z-50 origin-top-right overflow-hidden"
+                                                    exit={{ opacity: 0, y: paginatedHistory.length === 0 ? 10 : -10, scale: 0.95 }}
+                                                    className={`absolute ${paginatedHistory.length === 0 ? 'bottom-full mb-4 origin-bottom-right' : 'top-full mt-2 origin-top-right'} right-0 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 w-[280px] z-50 overflow-hidden`}
                                                 >
                                                     <div className="flex flex-col">
                                                         {[
-                                                            { id: 'canal', label: 'Canal de Venta', icon: <Globe size={16}/>, options: ['all', 'web', 'whatsapp', 'instagram', 'pos'], key: 'channel' },
-                                                            { id: 'pago', label: 'Método de Pago', icon: <CreditCard size={16}/>, options: ['all', 'card', 'transfer', 'cash'], key: 'paymentMethod' }
+                                                            { 
+                                                                id: 'canal', 
+                                                                label: 'Canal de Venta', 
+                                                                icon: <Globe size={16}/>, 
+                                                                options: [
+                                                                    { val: 'all', l: 'Todos' }, 
+                                                                    { val: 'web', l: 'Web / Digital' }, 
+                                                                    { val: 'whatsapp', l: 'WhatsApp' }, 
+                                                                    { val: 'redes', l: 'Redes Sociales' }, 
+                                                                    { val: 'pos', l: 'Tienda Física' }
+                                                                ], 
+                                                                key: 'channel' 
+                                                            },
+                                                            { 
+                                                                id: 'pago', 
+                                                                label: 'Método de Pago', 
+                                                                icon: <CreditCard size={16}/>, 
+                                                                options: [
+                                                                    { val: 'all', l: 'Todos' }, 
+                                                                    { val: 'transfer', l: 'Transferencia' }, 
+                                                                    { val: 'cash', l: 'Efectivo' }
+                                                                ], 
+                                                                key: 'paymentMethod' 
+                                                            }
                                                         ].map((section) => (
                                                             <div key={section.id} className="border-b border-slate-50 last:border-none">
                                                                 <button 
@@ -547,11 +683,11 @@ export default function InvoicingPage() {
                                                                             <div className="flex flex-wrap gap-2 pt-2">
                                                                                 {section.options.map(opt => (
                                                                                     <button 
-                                                                                        key={opt}
-                                                                                        onClick={() => setAdvancedFilters({...advancedFilters, [section.key]: opt})}
-                                                                                        className={`px-3 py-1.5 rounded-xl text-[9px] font-bold uppercase transition-all ${advancedFilters[section.key as keyof typeof advancedFilters] === opt ? 'bg-[#004D4D] text-white' : 'bg-white border border-slate-200 text-slate-500 hover:border-[#004D4D]'}`}
+                                                                                        key={opt.val}
+                                                                                        onClick={() => setAdvancedFilters({...advancedFilters, [section.key]: opt.val})}
+                                                                                        className={`px-3 py-1.5 rounded-xl text-[9px] font-bold uppercase transition-all ${advancedFilters[section.key as keyof typeof advancedFilters] === opt.val ? 'bg-[#004D4D] text-white' : 'bg-white border border-slate-200 text-slate-500 hover:border-[#004D4D]'}`}
                                                                                     >
-                                                                                        {opt === 'all' ? 'Todos' : opt}
+                                                                                        {opt.l}
                                                                                     </button>
                                                                                 ))}
                                                                             </div>
@@ -575,7 +711,7 @@ export default function InvoicingPage() {
                                     </div>
 
                                     {/* Botón Fecha */}
-                                    <div className="relative">
+                                    <div className="relative z-50">
                                         <button 
                                             onClick={() => { setIsDateMenuOpen(!isDateMenuOpen); setIsFilterMenuOpen(false); }}
                                             className={`p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase ${isDateMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
@@ -586,10 +722,10 @@ export default function InvoicingPage() {
                                         <AnimatePresence>
                                             {isDateMenuOpen && (
                                                 <motion.div 
-                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    initial={{ opacity: 0, y: paginatedHistory.length === 0 ? 10 : -10, scale: 0.95 }}
                                                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                    className="absolute top-full right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 w-[300px] z-50 origin-top-right"
+                                                    exit={{ opacity: 0, y: paginatedHistory.length === 0 ? 10 : -10, scale: 0.95 }}
+                                                    className={`absolute ${paginatedHistory.length === 0 ? 'bottom-full mb-4 origin-bottom-right' : 'top-full mt-2 origin-top-right'} right-0 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 w-[300px] z-50`}
                                                 >
                                                     <div className="space-y-4">
                                                         <div className="grid grid-cols-2 gap-3">
@@ -607,14 +743,28 @@ export default function InvoicingPage() {
                                                                 <button key={p} onClick={() => handleDatePreset(p as any)} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[9px] font-black uppercase text-slate-500">{p === 'week' ? '7 Días' : p === 'month' ? 'Mes' : p}</button>
                                                             ))}
                                                         </div>
-                                                        <div className="pt-4 border-t border-slate-100">
+                                                        <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">
                                                             <button onClick={() => setIsDateMenuOpen(false)} className="w-full py-3 bg-slate-900 text-white rounded-2xl text-[9px] font-black uppercase shadow-lg hover:bg-black transition-all">Aplicar Filtro</button>
+                                                            <button 
+                                                                onClick={() => { setDateRangeState({from: '', to: ''}); setIsDateMenuOpen(false); }}
+                                                                className="w-full py-2 bg-slate-100 text-slate-500 rounded-xl text-[9px] font-black uppercase hover:bg-slate-200 transition-all"
+                                                            >
+                                                                Limpiar Fechas
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>
                                     </div>
+
+                                    <button 
+                                        onClick={handleExportExcel}
+                                        className="p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-bold uppercase text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5"
+                                        title="Exportar a Excel"
+                                    >
+                                        <Download size={18}/> Exportar
+                                    </button>
                                 </div>
                             </div>
                         </motion.div>
@@ -648,6 +798,35 @@ export default function InvoicingPage() {
                                     ))}
                                 </tbody>
                             </table>
+
+                            {/* --- CONTROLES DE PAGINACIÓN REDISEÑADOS --- */}
+                            {history.length > 0 && (
+                                <div className="p-6 bg-slate-50 border-t border-gray-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                            Mostrando <span className="text-slate-900">{paginatedHistory.length}</span> de <span className="text-slate-900">{history.length}</span> resultados 
+                                            <span className="mx-2 text-slate-200">|</span> 
+                                            Página <span className="text-slate-900">{currentPage}</span> de <span className="text-slate-900">{totalPages || 1}</span>
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <button 
+                                            disabled={currentPage === 1}
+                                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${currentPage === 1 ? 'text-gray-300 bg-slate-100 cursor-not-allowed' : 'bg-white text-[#004D4D] shadow-sm hover:bg-white hover:shadow-md'}`}
+                                        >
+                                            Anterior
+                                        </button>
+                                        <button 
+                                            disabled={currentPage === totalPages || totalPages === 0}
+                                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${currentPage === totalPages || totalPages === 0 ? 'text-gray-300 bg-slate-100 cursor-not-allowed' : 'bg-white text-[#004D4D] shadow-sm hover:bg-white hover:shadow-md'}`}
+                                        >
+                                            Siguiente
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </motion.div>
                     </motion.div>
                 ) : (
@@ -666,9 +845,9 @@ export default function InvoicingPage() {
                                 {posCustomerMode === 'create' ? (
                                     <motion.section key="create-mode" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-8 bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm relative">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                            <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre</label><input type="text" value={customerInfo.name} onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})} className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner" /></div>
-                                            <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">WhatsApp</label><input type="text" value={customerInfo.phone} onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value.replace(/\D/g, '')})} className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner" /></div>
-                                            <div className="space-y-2 md:col-span-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Email</label><input type="email" value={customerInfo.email} onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})} className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner" /></div>
+                                            <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre</label><input type="text" placeholder="Ej: Juan Pérez" value={customerInfo.name} onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})} className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner placeholder:text-gray-300" /></div>
+                                            <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">WhatsApp</label><input type="text" placeholder="Ej: 3001234567" value={customerInfo.phone} onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value.replace(/\D/g, '')})} className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner placeholder:text-gray-300" /></div>
+                                            <div className="space-y-2 md:col-span-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Email</label><input type="email" placeholder="Ej: juan@example.com" value={customerInfo.email} onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})} className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner placeholder:text-gray-300" /></div>
                                             <div className="space-y-3 relative"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Asesor</label>
                                                 <div className="relative"><button onClick={() => setIsSellerDropdownOpen(!isSellerDropdownOpen)} className="w-full flex items-center justify-between p-4 bg-gray-50 border border-transparent rounded-2xl text-xs font-bold transition-all hover:bg-white hover:border-[#004D4D]/20 shadow-inner group"><span className={selectedSeller ? "text-gray-900" : "text-gray-400"}>{selectedSeller || "Seleccionar..."}</span><ChevronDown size={16} className={`transition-transform ${isSellerDropdownOpen ? 'rotate-180 text-[#004D4D]' : ''}`} /></button>
                                                 <AnimatePresence>{isSellerDropdownOpen && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-[2rem] shadow-2xl z-[100] overflow-hidden"><div className="max-h-60 overflow-y-auto p-2">{sellers.map((s, i) => (<button key={i} onClick={() => {setSelectedSeller(s.name); setIsSellerDropdownOpen(false);}} className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl hover:bg-[#004D4D] hover:text-white transition-all text-left"><div className="h-8 w-8 rounded-full bg-[#004D4D]/5 flex items-center justify-center text-[10px] font-black">{s.name.charAt(0)}</div><p className="text-xs font-black">{s.name}</p></button>))}</div></motion.div>)}</AnimatePresence></div>
@@ -699,6 +878,7 @@ export default function InvoicingPage() {
                                                 </div>
                                             </div>
                                             <div className="flex justify-end items-center gap-4 pt-4 border-t border-gray-50 md:col-span-2">
+                                                <p className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Cliente</p>
                                                 <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl border border-gray-100"><button onClick={() => setCustomerType('final')} className={`px-4 py-2 rounded-lg text-[8px] font-black uppercase ${customerType === 'final' ? 'bg-[#004D4D] text-white shadow-sm' : 'text-gray-400'}`}>Final</button><button onClick={() => setCustomerType('wholesale')} className={`px-4 py-2 rounded-lg text-[8px] font-black uppercase ${customerType === 'wholesale' ? 'bg-[#004D4D] text-white shadow-sm' : 'text-gray-400'}`}>Mayorista</button></div>
                                             </div>
                                         </div>
