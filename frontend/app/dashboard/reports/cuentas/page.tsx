@@ -1,403 +1,411 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useAuth } from "@/context/auth-context";
-import { useToast } from '@/context/toast-context';
 import { 
-  Loader2, Plus, CheckCircle2, DollarSign, Users, Calendar, 
-  Store, Smartphone, X, ChevronRight, Trash2, FileText, 
-  Clock, History, Pencil, Package, Check 
+  Plus, 
+  Trash2, 
+  Edit3, 
+  Search, 
+  Tag, 
+  X, 
+  CheckCircle2, 
+  DollarSign, 
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  LayoutGrid,
+  Filter,
+  Download,
+  Sparkles,
+  Bot,
+  Zap,
+  TrendingUp,
+  Activity,
+    Target, 
+    ArrowUpRight, 
+    ArrowDownRight,
+    Clock, 
+    Briefcase,  Users,
+  ShieldCheck,
+  AlertCircle,
+  FileText,
+  CreditCard,
+  History,
+  Package,
+  ArrowRight,
+  Monitor,
+  ShoppingBag,
+  Layers,
+  Award
 } from 'lucide-react';
+import { useToast } from "@/context/toast-context";
+import { useAuth } from "@/context/auth-context";
+import { motion, AnimatePresence } from 'framer-motion';
 
-interface ProviderInvoice {
+// --- INTERFACES ---
+interface DebtRecord {
     id: string;
-    description: string;
+    entity_name: string; // Proveedor o Cliente
     amount: number;
     due_date: string;
-    status: 'pending' | 'paid';
+    status: 'pending' | 'paid' | 'overdue';
+    type: 'payable' | 'receivable';
+    invoice_num: string;
     category: string;
-    invoice_num?: string;
-    items?: {name: string, qty: number}[];
-    description_detail?: string;
+    description: string;
+    created_at: string;
 }
 
-interface CustomerCredit {
-    id: string;
-    client_name: string;
-    amount: number;
-    due_date: string;
-    status: 'pending' | 'collected';
-    invoice_num?: string;
-    items?: {name: string, qty: number}[];
-    description_detail?: string;
-}
+// --- MOCK DATA ---
+const MOCK_RECORDS: DebtRecord[] = [
+    {
+        id: 'd1', entity_name: 'Textiles del Norte', amount: 4500000, due_date: '2026-02-15',
+        status: 'pending', type: 'payable', invoice_num: 'INV-8820', category: 'Materia Prima',
+        description: 'Compra de lino para colección primavera', created_at: '2026-01-20'
+    },
+    {
+        id: 'd2', entity_name: 'Andrés Felipe (VIP)', amount: 1250000, due_date: '2026-02-05',
+        status: 'overdue', type: 'receivable', invoice_num: 'FAC-9010', category: 'Venta Crédito',
+        description: 'Venta de 3 relojes gold con compromiso de pago', created_at: '2026-01-10'
+    },
+    {
+        id: 'd3', entity_name: 'Importaciones Elite', amount: 8200000, due_date: '2026-03-01',
+        status: 'pending', type: 'payable', invoice_num: 'INV-9940', category: 'Mercancía',
+        description: 'Importación de accesorios premium', created_at: '2026-01-25'
+    }
+];
 
-export default function CuentasPage() {
+export default function CuentasCarteraPage() {
     const { token } = useAuth();
     const { showToast } = useToast();
     
-    const [activeTab, setActiveTab] = useState<'providers' | 'customers'>('providers');
-    const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
-    const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
-    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-    const [selectedRecord, setSelectedRecord] = useState<any>(null);
-    const [isEditMode, setIsEditMode] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'pagar' | 'cobrar' | 'bayt'>('pagar');
+    const [records, setRecords] = useState<DebtRecord[]>(MOCK_RECORDS);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedRecord, setSelectedRecord] = useState<DebtRecord | null>(null);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    
-    const [providerInvoices, setProviderInvoices] = useState<ProviderInvoice[]>([]);
-    const [customerCredits, setCustomerCredits] = useState<CustomerCredit[]>([]);
-
-    const [invoiceItems, setInvoiceItems] = useState<{name: string, qty: number}[]>([{name: '', qty: 1}]);
-    const [newInvoice, setNewInvoice] = useState({ provider: '', invoice_num: '', category: 'Mercancía', amount: 0, date: new Date().toISOString().split('T')[0], desc: '' });
-    const [newCredit, setNewCredit] = useState({ customer: '', invoice_num: '', amount: 0, date: new Date().toISOString().split('T')[0], desc: '' });
-
-    const loadData = useCallback(async () => {
-        if (!token) return;
-        setIsLoading(true);
-        try {
-            const [expRes, recRes] = await Promise.all([
-                fetch('http://localhost:8000/expenses', { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch('http://localhost:8000/receivables', { headers: { 'Authorization': `Bearer ${token}` } })
-            ]);
-            if (expRes.ok) {
-                const exps = await expRes.json();
-                setProviderInvoices(exps.filter((e: any) => e.category === 'cuenta_proveedor'));
-            }
-            if (recRes.ok) setCustomerCredits(await recRes.json());
-        } catch (e) { showToast("Error al cargar cartera", "error"); }
-        finally { setIsLoading(false); }
-    }, [token, showToast]);
-
-    useEffect(() => { loadData(); }, [loadData]);
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD' }).format(amount).replace('$', '$ ');
+        return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount).replace('$', '$ ');
     };
 
-    const formatNumberInput = (val: number) => {
-        if (!val) return "";
-        return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    };
+    const totals = useMemo(() => {
+        const payable = records.filter(r => r.type === 'payable' && r.status !== 'paid').reduce((acc, r) => acc + r.amount, 0);
+        const receivable = records.filter(r => r.type === 'receivable' && r.status !== 'paid').reduce((acc, r) => acc + r.amount, 0);
+        return { payable, receivable };
+    }, [records]);
 
-    const unformatNumberInput = (val: string) => {
-        return parseFloat(val.replace(/\./g, '')) || 0;
-    };
+    const filteredRecords = useMemo(() => {
+        return records.filter(r => {
+            const matchesSearch = r.entity_name.toLowerCase().includes(searchTerm.toLowerCase()) || r.invoice_num.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesTab = (activeTab === 'pagar' && r.type === 'payable') || (activeTab === 'cobrar' && r.type === 'receivable');
+            return matchesSearch && matchesTab;
+        });
+    }, [records, searchTerm, activeTab]);
 
-    const handleAction = async (action: 'pay' | 'delete', record: any, type: 'provider' | 'customer') => {
-        if (!token) return;
-        if (action === 'delete' && !confirm("¿Estás seguro de eliminar este registro definitivamente?")) return;
-        try {
-            const endpoint = type === 'provider' ? `/expenses/${record.id}` : `/receivables/${record.id}`;
-            let res;
-            if (action === 'pay') {
-                const payload = { ...record, status: type === 'provider' ? 'paid' : 'collected' };
-                // Eliminamos campos internos de UI que no pertenecen al esquema del backend
-                delete payload.type;
-                res = await fetch(`http://localhost:8000${endpoint}`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            } else {
-                res = await fetch(`http://localhost:8000${endpoint}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-            }
-            if (res.ok) {
-                showToast(action === 'pay' ? "Registro liquidado con éxito" : "Registro eliminado", "success");
-                setSelectedRecord(null);
-                await loadData();
-            } else {
-                showToast("No se pudo completar la acción", "error");
-            }
-        } catch (e) { showToast("Error en la operación", "error"); }
-    };
+    const renderKPIs = () => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 shrink-0">
+            {[
+                { label: 'Cuentas por Pagar', value: formatCurrency(totals.payable), sub: 'Deuda a proveedores', icon: <CreditCard size={20}/>, color: 'text-rose-600', trend: 'Pasivo' },
+                { label: 'Cartera por Cobrar', value: formatCurrency(totals.receivable), sub: 'Deuda de clientes', icon: <Users size={20}/>, color: 'text-emerald-600', trend: 'Activo' },
+                { label: 'Balance Neto', value: formatCurrency(totals.receivable - totals.payable), sub: 'Salud financiera', icon: <Activity size={20}/>, color: 'text-[#004d4d]', trend: 'OK' },
+                { label: 'Vencimientos 7d', value: '03', sub: 'Alertas próximas', icon: <Clock size={20}/>, color: 'text-amber-500', trend: 'Crítico' },
+            ].map((kpi, i) => (
+                <motion.div key={i} whileHover={{ y: -5, scale: 1.02 }} className="bg-white/60 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/80 shadow-sm flex flex-col justify-between group transition-all">
+                    <div className="flex justify-between items-start">
+                        <div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color} group-hover:scale-110 transition-transform`}>
+                            {kpi.icon}
+                        </div>
+                        <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${kpi.trend === 'Activo' ? 'bg-emerald-50 text-emerald-600' : kpi.trend === 'Pasivo' ? 'bg-rose-50 text-rose-600' : 'bg-gray-50 text-gray-400'}`}>{kpi.trend}</span>
+                    </div>
+                    <div className="mt-6">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p>
+                        <h3 className="text-3xl font-black text-gray-900 mt-1">{kpi.value}</h3>
+                        <p className="text-[9px] font-bold text-gray-400 mt-1 italic">{kpi.sub}</p>
+                    </div>
+                </motion.div>
+            ))}
+        </div>
+    );
 
-    const handleUpdate = async () => {
-        if (!token || !selectedRecord) return;
-        setIsSaving(true);
-        try {
-            const endpoint = selectedRecord.type === 'provider' ? `/expenses/${selectedRecord.id}` : `/receivables/${selectedRecord.id}`;
-            const res = await fetch(`http://localhost:8000${endpoint}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...selectedRecord, due_date: new Date(selectedRecord.due_date).toISOString() })
-            });
-            if (res.ok) {
-                showToast("Cambios guardados", "success");
-                setIsEditMode(false);
-                await loadData();
-            }
-        } catch (e) { showToast("Error al actualizar", "error"); }
-        finally { setIsSaving(false); }
-    };
+    const renderActionBar = () => (
+        <div className="flex flex-col md:flex-row gap-4 items-center bg-white/60 backdrop-blur-md p-3 rounded-3xl border border-white/60 shadow-sm mx-4 shrink-0 relative z-30">
+            <div className="relative flex-1 w-full">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <input 
+                    type="text" 
+                    placeholder={`Buscar ${activeTab === 'pagar' ? 'proveedor' : 'cliente'} o factura...`} 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-14 pr-6 py-4 bg-transparent text-sm font-bold text-slate-700 outline-none" 
+                />
+            </div>
+            <div className="h-10 w-px bg-slate-200 hidden md:block"></div>
+            <div className="flex items-center gap-3">
+                <button className="h-12 flex items-center gap-2 px-5 rounded-2xl bg-white text-slate-500 border border-gray-100 hover:bg-gray-50 transition-all">
+                    <Filter size={18}/> <span className="text-[10px] font-black uppercase tracking-widest">Categoría</span>
+                </button>
+                <button className="h-12 flex items-center gap-2 px-5 bg-gray-900 text-white rounded-2xl shadow-lg hover:bg-black transition-all">
+                    <Download size={18}/> <span className="text-[10px] font-black uppercase tracking-widest">Exportar</span>
+                </button>
+            </div>
+        </div>
+    );
 
-    const handleAddInvoice = async () => {
-        if (!newInvoice.provider || newInvoice.amount <= 0) return showToast("Completa los datos", "error");
-        setIsSaving(true);
-        try {
-            const res = await fetch('http://localhost:8000/expenses', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    description: newInvoice.provider, invoice_num: newInvoice.invoice_num,
-                    amount: newInvoice.amount, due_date: new Date(newInvoice.date).toISOString(),
-                    category: 'cuenta_proveedor', status: 'pending', items: invoiceItems, description_detail: newInvoice.desc
-                })
-            });
-            if (res.ok) {
-                showToast("Factura registrada", "success");
-                await loadData();
-                setIsInvoiceModalOpen(false);
-                setNewInvoice({ provider: '', invoice_num: '', category: 'Mercancía', amount: 0, date: new Date().toISOString().split('T')[0], desc: '' });
-                setInvoiceItems([{name: '', qty: 1}]);
-            }
-        } catch (e) { showToast("Error al guardar", "error"); }
-        finally { setIsSaving(false); }
-    };
+    const renderRecordList = () => (
+        <div className="px-4 space-y-4">
+            {filteredRecords.map((r) => (
+                <motion.div 
+                    key={r.id} 
+                    onClick={() => setSelectedRecord(r)}
+                    whileHover={{ x: 5 }} 
+                    className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-10 cursor-pointer"
+                >
+                    <div className="flex items-center gap-6 flex-1">
+                        <div className={`h-16 w-16 rounded-[1.8rem] flex items-center justify-center text-xl font-black shadow-2xl relative ${r.type === 'payable' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                            {r.type === 'payable' ? <ArrowUpRight size={24} /> : <ArrowDownRight size={24} />}
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-3">
+                                <h4 className="text-xl font-black text-gray-900 tracking-tight">{r.entity_name}</h4>
+                                <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${
+                                    r.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                    r.status === 'overdue' ? 'bg-rose-100 text-rose-700 border-rose-200 animate-pulse' :
+                                    'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                }`}>
+                                    {r.status === 'overdue' ? 'Vencido' : r.status === 'pending' ? 'Pendiente' : 'Saldado'}
+                                </span>
+                            </div>
+                            <p className="text-sm font-bold text-[#004d4d] mt-1 italic">Factura: {r.invoice_num}</p>
+                        </div>
+                    </div>
+                    
+                    <div className="flex-[1.5] grid grid-cols-3 gap-8 px-10 border-x border-gray-50">
+                        <div>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Categoría</p>
+                            <p className="text-xs font-black text-gray-900 mt-1 text-center">{r.category}</p>
+                        </div>
+                        <div>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Vencimiento</p>
+                            <div className="flex items-center justify-center gap-2 mt-1">
+                                <Calendar size={12} className={r.status === 'overdue' ? 'text-rose-500' : 'text-[#00f2ff]'}/>
+                                <p className={`text-xs font-black ${r.status === 'overdue' ? 'text-rose-600' : 'text-gray-900'}`}>{r.due_date}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Monto Total</p>
+                            <p className={`text-sm font-black mt-1 text-center ${r.type === 'payable' ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(r.amount)}</p>
+                        </div>
+                    </div>
 
-    const handleAddCredit = async () => {
-        if (!newCredit.customer || newCredit.amount <= 0) return showToast("Completa los datos", "error");
-        setIsSaving(true);
-        try {
-            const res = await fetch('http://localhost:8000/receivables', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    client_name: newCredit.customer, invoice_num: newCredit.invoice_num,
-                    amount: newCredit.amount, due_date: new Date(newCredit.date).toISOString(),
-                    status: 'pending', items: invoiceItems, description_detail: newCredit.desc
-                })
-            });
-            if (res.ok) {
-                showToast("Crédito activado", "success");
-                await loadData();
-                setIsCreditModalOpen(false);
-                setNewCredit({ customer: '', invoice_num: '', amount: 0, date: new Date().toISOString().split('T')[0], desc: '' });
-                setInvoiceItems([{name: '', qty: 1}]);
-            }
-        } catch (e) { showToast("Error al guardar", "error"); }
-        finally { setIsSaving(false); }
-    };
+                    <div className="flex items-center gap-4">
+                        <button className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-400 hover:text-[#004d4d] flex items-center justify-center transition-all shadow-inner"><Edit3 size={20}/></button>
+                        <button className="h-12 w-12 rounded-2xl bg-gray-900 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"><CheckCircle2 size={20} className="text-[#00f2ff]"/></button>
+                    </div>
+                </motion.div>
+            ))}
+        </div>
+    );
+
+    const renderBaytInsight = () => (
+        <div className="px-4">
+            <div className="bg-[#004d4d] p-16 rounded-[4rem] text-white relative overflow-hidden shadow-2xl border border-white/5">
+                <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12"><ShieldCheck size={300} /></div>
+                <div className="flex flex-col md:flex-row items-center gap-16 relative z-10">
+                    <div className="h-32 w-32 bg-gray-900 rounded-[3rem] border-2 border-[#00f2ff]/50 flex items-center justify-center animate-pulse"><Bot size={64} className="text-[#00f2ff]" /></div>
+                    <div className="flex-1 space-y-6">
+                        <span className="px-4 py-1.5 bg-[#00f2ff]/10 text-[#00f2ff] rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-[#00f2ff]/20">Bayt Finance-IQ</span>
+                        <h3 className="text-4xl font-black uppercase italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-[#00f2ff]">Auditoría de Salud Financiera</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10 space-y-4">
+                                <div className="flex items-center gap-3"><AlertCircle className="text-amber-400" size={20}/><p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Riesgo de Liquidez</p></div>
+                                <p className="text-sm font-medium italic leading-relaxed">"Tienes pagos a proveedores por **$12.7M** en los próximos 15 días. Te sugiero incentivar el cobro de la cartera de **Andrés Felipe** para cubrir el balance sin afectar el flujo de caja."</p>
+                            </div>
+                            <div className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10 space-y-4">
+                                <div className="flex items-center gap-3"><TrendingUp className="text-emerald-400" size={20}/><p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Oportunidad de Pago</p></div>
+                                <p className="text-sm font-medium italic leading-relaxed">"**Textiles del Norte** ofrece un 5% de descuento por pronto pago antes del día 10. Si saldas la deuda hoy, ahorrarías **$225.000**."</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 
     return (
-        <div className="max-w-7xl mx-auto pb-20 space-y-12 animate-in fade-in duration-500">
-            {/* Header & Global KPIs */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-                <div><h1 className="text-4xl font-black text-gray-900 tracking-tight">Cuentas y Cartera</h1><p className="text-gray-500 mt-2 font-medium">Gestión administrativa de deudas y créditos.</p></div>
-                <div className="flex gap-4">
-                    <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex items-center gap-4">
-                        <div className="h-10 w-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center shadow-inner text-xl">📉</div>
-                        <div><p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Proveedores</p><p className="text-base font-black text-gray-900 mt-1">{formatCurrency(providerInvoices.filter(i=>i.status==='pending').reduce((a,b)=>a+b.amount,0))}</p></div>
+        <div className="max-w-[1600px] mx-auto pb-20 space-y-12 animate-in fade-in duration-1000">
+            
+            {/* --- HEADER MAESTRO --- */}
+            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8 px-4 shrink-0">
+                <div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <span className="h-2 w-2 rounded-full bg-[#00f2ff] animate-pulse shadow-[0_0_10px_#00f2ff]"></span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Finanzas & Cobranza</span>
                     </div>
-                    <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex items-center gap-4">
-                        <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shadow-inner text-xl">📈</div>
-                        <div><p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Clientes</p><p className="text-base font-black text-gray-900 mt-1">{formatCurrency(customerCredits.filter(i=>i.status==='pending').reduce((a,b)=>a+b.amount,0))}</p></div>
-                    </div>
+                    <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">
+                        Cuentas <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF] px-2 py-1">& Cartera</span>
+                    </h1>
+                    <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed italic">
+                        Control total de obligaciones con proveedores y <span className="font-bold text-[#001A1A]">recuperación de activos</span>.
+                    </p>
+                </div>
+                <div className="flex items-center gap-4">
+                    <button onClick={() => setIsCreateModalOpen(true)} className="h-14 px-10 bg-gray-900 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group">
+                        <Zap size={18} className="text-[#00f2ff] group-hover:rotate-12 transition-transform" />
+                        Nueva Obligación
+                    </button>
                 </div>
             </div>
 
-            {/* Navigation & History */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-gray-100 pb-6">
-                <div className="flex space-x-1 bg-gray-50 p-1.5 rounded-2xl w-fit">
-                    <button onClick={() => setActiveTab('providers')} className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'providers' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>🏢 Proveedores</button>
-                    <button onClick={() => setActiveTab('customers')} className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'customers' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>👥 Clientes</button>
-                </div>
-                <button onClick={() => setIsHistoryModalOpen(true)} className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl shadow-gray-200"><History size={14} /> Historial Liquidado</button>
-            </div>
+            {/* --- KPIs ESTRATÉGICOS --- */}
+            {renderKPIs()}
 
-            {/* Content List */}
-            <div className="space-y-6">
-                <div className="flex justify-between items-center px-4">
-                    <h2 className="text-lg font-black text-gray-900 uppercase tracking-widest">{activeTab === 'providers' ? 'Pendientes de Pago' : 'Pendientes de Cobro'}</h2>
-                    <button onClick={() => activeTab === 'providers' ? setIsInvoiceModalOpen(true) : setIsCreditModalOpen(true)} className="text-purple-600 font-black text-[10px] uppercase tracking-widest hover:underline">+ Añadir Registro</button>
-                </div>
-                <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
-                    {isLoading ? (<div className="py-20 flex justify-center"><Loader2 className="animate-spin text-purple-600" size={32} /></div>) : (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-50">
-                                <thead className="bg-gray-50/50">
-                                    <tr>
-                                        <th className="px-8 py-4 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest">Referencia / Concepto</th>
-                                        <th className="px-8 py-4 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest">Vencimiento</th>
-                                        <th className="px-8 py-4 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest">Monto</th>
-                                        <th className="px-8 py-4 text-right text-[9px] font-black text-gray-400 uppercase tracking-widest">Ver</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {(activeTab === 'providers' ? providerInvoices : customerCredits).filter(r => r.status === 'pending').map((rec) => (
-                                        <tr key={rec.id} onClick={() => setSelectedRecord({...rec, type: activeTab === 'providers' ? 'provider' : 'customer'})} className="hover:bg-gray-50/50 transition-all cursor-pointer group">
-                                            <td className="px-8 py-5">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs ${activeTab === 'providers' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>{activeTab === 'providers' ? '🏢' : '👤'}</div>
-                                                    <p className="text-sm font-bold text-gray-900 group-hover:text-purple-600 transition-colors">{(rec as any).description || (rec as any).client_name}</p>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase">{new Date(rec.due_date).toLocaleDateString()}</td>
-                                            <td className="px-8 py-5 font-black text-sm text-gray-900">{formatCurrency(rec.amount)}</td>
-                                            <td className="px-8 py-5 text-right"><ChevronRight size={16} className="text-gray-300 group-hover:text-purple-600 group-hover:translate-x-1 transition-all inline-block" /></td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* MODAL DETALLE (ESPEJO) */}
-            {selectedRecord && (
-                <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col border border-white/20">
-                        <div className={`p-8 text-white relative flex-shrink-0 ${selectedRecord.type === 'provider' ? 'bg-gray-900' : 'bg-purple-600'}`}>
-                            <div className="absolute top-6 right-6 flex gap-2">
-                                <button onClick={() => setIsEditMode(!isEditMode)} className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all ${isEditMode ? 'bg-white text-purple-600' : 'bg-white/10 hover:bg-white/20'}`}><Pencil size={16} /></button>
-                                <button onClick={() => { setSelectedRecord(null); setIsEditMode(false); }} className="h-8 w-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-all"><X size={16} /></button>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center shadow-lg">{selectedRecord.type === 'provider' ? <Store size={24} /> : <Users size={24} />}</div>
-                                <div><h2 className="text-xl font-black tracking-tight">{selectedRecord.description || selectedRecord.client_name}</h2><p className="text-white/60 text-[10px] font-black uppercase tracking-widest mt-1">Detalle del Registro</p></div>
-                            </div>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{selectedRecord.type === 'provider' ? 'Proveedor' : 'Cliente'}</label>
-                                        {isEditMode ? (
-                                            <input type="text" value={selectedRecord.description || selectedRecord.client_name} onChange={(e) => setSelectedRecord({...selectedRecord, description: e.target.value, client_name: e.target.value})} className="w-full p-4 bg-gray-50 border-2 border-purple-200 rounded-2xl outline-none text-sm font-bold shadow-inner" />
-                                        ) : (
-                                            <div className="w-full p-4 bg-gray-50/50 rounded-2xl text-sm font-bold text-gray-900">{selectedRecord.description || selectedRecord.client_name}</div>
-                                        )}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vencimiento</label>
-                                        {isEditMode ? (
-                                            <input type="date" value={selectedRecord.due_date.split('T')[0]} onChange={(e) => setSelectedRecord({...selectedRecord, due_date: e.target.value})} className="w-full p-4 bg-gray-50 border-2 border-purple-200 rounded-2xl outline-none text-sm font-bold shadow-inner" />
-                                        ) : (
-                                            <div className="w-full p-4 bg-gray-50/50 rounded-2xl text-sm font-bold text-gray-900">{new Date(selectedRecord.due_date).toLocaleDateString()}</div>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="space-y-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Monto Total</label>
-                                        {isEditMode ? (
-                                            <input type="text" value={formatNumberInput(selectedRecord.amount)} onChange={(e) => setSelectedRecord({...selectedRecord, amount: unformatNumberInput(e.target.value)})} className="w-full p-4 bg-gray-50 border-2 border-purple-200 rounded-2xl outline-none text-sm font-black shadow-inner" />
-                                        ) : (
-                                            <div className="w-full p-4 bg-gray-50/50 rounded-2xl text-sm font-black text-gray-900">{formatCurrency(selectedRecord.amount)}</div>
-                                        )}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Referencia #</label>
-                                        {isEditMode ? (
-                                            <input type="text" value={selectedRecord.invoice_num || ''} onChange={(e) => setSelectedRecord({...selectedRecord, invoice_num: e.target.value})} className="w-full p-4 bg-gray-50 border-2 border-purple-200 rounded-2xl outline-none text-sm font-bold shadow-inner" />
-                                        ) : (
-                                            <div className="w-full p-4 bg-gray-50/50 rounded-2xl text-sm font-bold text-gray-900">{selectedRecord.invoice_num || 'N/A'}</div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="space-y-6 bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100">
-                                <div className="flex justify-between items-center"><h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Productos</h3>
-                                    {isEditMode && (<button onClick={() => setSelectedRecord({...selectedRecord, items: [...(selectedRecord.items || []), {name: '', qty: 1}]})} className="text-[9px] font-black uppercase text-purple-600 hover:text-purple-700">+ Añadir</button>)}
-                                </div>
-                                <div className="space-y-3">
-                                    {(selectedRecord.items || [{name: 'Sin productos registrados', qty: 1}]).map((item: any, idx: number) => (
-                                        <div key={idx} className="flex gap-3">
-                                            {isEditMode ? (
-                                                <><input type="text" value={item.name} onChange={(e) => { const updated = [...selectedRecord.items]; updated[idx].name = e.target.value; setSelectedRecord({...selectedRecord, items: updated}); }} className="flex-1 p-3 bg-white border border-gray-100 rounded-xl text-sm font-bold outline-none" /><input type="number" value={item.qty} onChange={(e) => { const updated = [...selectedRecord.items]; updated[idx].qty = parseInt(e.target.value) || 0; setSelectedRecord({...selectedRecord, items: updated}); }} className="w-20 p-3 bg-white border border-gray-100 rounded-xl text-sm font-bold text-center outline-none" /></>
-                                            ) : (
-                                                <div className="flex-1 flex justify-between items-center p-3 bg-white/50 rounded-xl border border-transparent"><span className="text-sm font-bold text-gray-700">{item.name}</span><span className="text-xs font-black text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md">x{item.qty}</span></div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Descripción / Notas Adicionales</label>
-                                {isEditMode ? (
-                                    <textarea rows={3} value={selectedRecord.description_detail || ''} onChange={(e) => setSelectedRecord({...selectedRecord, description_detail: e.target.value})} className="w-full p-6 bg-gray-50 border-2 border-purple-200 rounded-[2rem] outline-none text-sm font-medium resize-none shadow-inner" />
-                                ) : (
-                                    <div className="w-full p-6 bg-gray-50/50 rounded-[2rem] text-sm font-medium text-gray-600 italic">{selectedRecord.description_detail || "Sin notas adicionales."}</div>
+            {/* --- MENÚ FLOTANTE CENTRAL (RE-DISEÑADO) --- */}
+            <div className="flex items-center justify-center gap-6 shrink-0 relative z-20">
+                <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl shadow-gray-200/50 backdrop-blur-xl flex items-center relative">
+                    {[
+                        { id: 'pagar', label: 'Cuentas por Pagar', icon: <CreditCard size={14}/> },
+                        { id: 'cobrar', label: 'Cartera de Clientes', icon: <Users size={14}/> },
+                        { id: 'bayt', label: 'Bayt Insight', icon: <Sparkles size={14}/> }
+                    ].map((tab) => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`relative px-8 py-3 rounded-full text-[9px] font-black uppercase tracking-widest transition-all duration-500 z-10 flex items-center gap-2 ${isActive ? 'text-white' : 'text-gray-400 hover:text-gray-900'}`}
+                            >
+                                {isActive && (
+                                    <motion.div layoutId="activeDebtTab" className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
                                 )}
-                            </div>
-                            <div className="pt-6 border-t border-gray-50 flex gap-4">
-                                {isEditMode ? (
-                                    <button onClick={handleUpdate} disabled={isSaving} className="w-full py-5 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 flex items-center justify-center gap-2">{isSaving ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />} Guardar Cambios</button>
-                                ) : (
-                                    <><button onClick={() => handleAction('pay', selectedRecord, selectedRecord.type)} className="flex-[2] py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 flex items-center justify-center gap-2"><CheckCircle2 size={18} /> Marcar como Liquidado</button><button onClick={() => handleAction('delete', selectedRecord, selectedRecord.type)} className="flex-1 py-5 bg-white border border-rose-100 text-rose-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-50 transition-all">Eliminar</button></>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                                {tab.icon}
+                                {tab.label}
+                            </button>
+                        );
+                    })}
                 </div>
-            )}
+            </div>
 
-            {/* MODALES DE CREACIÓN (PRO) */}
-            {(isInvoiceModalOpen || isCreditModalOpen) && (
-                <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-                    <div className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[3.5rem] shadow-2xl flex flex-col overflow-hidden border border-white/20">
-                        <div className={`${isInvoiceModalOpen ? 'bg-gray-900' : 'bg-purple-600'} p-8 text-white flex-shrink-0 relative`}>
-                            <button onClick={() => { setIsInvoiceModalOpen(false); setIsCreditModalOpen(false); }} className="absolute top-6 right-6 h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center hover:bg-rose-500 transition-all active:scale-90"><Plus className="rotate-45" size={20} /></button>
-                            <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center shadow-lg">{isInvoiceModalOpen ? <Store size={24} /> : <Users size={24} />}</div>
-                                <div><h2 className="text-xl font-black tracking-tight">{isInvoiceModalOpen ? 'Nueva Factura Proveedor' : 'Nuevo Crédito Cliente'}</h2><p className="text-white/60 text-[10px] font-black uppercase tracking-widest mt-1">Gestión Administrativa Pro</p></div>
-                            </div>
+            {/* --- CONTENIDO DINÁMICO --- */}
+            <AnimatePresence mode="wait">
+                <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }} className="space-y-10">
+                    {activeTab !== 'bayt' ? (
+                        <div className="space-y-8">
+                            {renderActionBar()}
+                            {renderRecordList()}
                         </div>
-                        <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar bg-white">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-6">
-                                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{isInvoiceModalOpen ? 'Proveedor' : 'Nombre del Cliente'}</label><input type="text" placeholder="Nombre" value={isInvoiceModalOpen ? newInvoice.provider : newCredit.customer} onChange={(e) => isInvoiceModalOpen ? setNewInvoice({...newInvoice, provider: e.target.value}) : setNewCredit({...newCredit, customer: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold shadow-inner" /></div>
-                                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Referencia #</label><input type="text" placeholder="Ej: FAC-001" value={isInvoiceModalOpen ? newInvoice.invoice_num : newCredit.invoice_num} onChange={(e) => isInvoiceModalOpen ? setNewInvoice({...newInvoice, invoice_num: e.target.value}) : setNewCredit({...newCredit, invoice_num: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold shadow-inner" /></div>
-                                </div>
-                                <div className="space-y-6">
-                                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Monto Total</label><input type="text" value={isInvoiceModalOpen ? formatNumberInput(newInvoice.amount) : formatNumberInput(newCredit.amount)} onChange={(e) => isInvoiceModalOpen ? setNewInvoice({...newInvoice, amount: unformatNumberInput(e.target.value)}) : setNewCredit({...newCredit, amount: unformatNumberInput(e.target.value)})} className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-black shadow-inner" /></div>
-                                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vencimiento</label><input type="date" value={isInvoiceModalOpen ? newInvoice.date : newCredit.date} onChange={(e) => isInvoiceModalOpen ? setNewInvoice({...newInvoice, date: e.target.value}) : setNewCredit({...newCredit, date: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:bg-white focus:border-purple-200 outline-none text-sm font-bold shadow-inner" /></div>
-                                </div>
-                            </div>
-                            <div className="space-y-6 bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100">
-                                <div className="flex justify-between items-center"><h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Productos</h3><button onClick={() => setInvoiceItems([...invoiceItems, {name: '', qty: 1}])} className="text-[9px] font-black uppercase text-purple-600 hover:text-purple-700">+ Añadir</button></div>
-                                <div className="space-y-3">{invoiceItems.map((item, idx) => (
-                                    <div key={idx} className="flex gap-3"><input type="text" placeholder="Nombre" value={item.name} onChange={(e) => { const updated = [...invoiceItems]; updated[idx].name = e.target.value; setInvoiceItems(updated); }} className="flex-1 p-4 bg-white rounded-xl text-sm font-bold outline-none border border-gray-100" /><input type="number" placeholder="Cant." value={item.qty} onChange={(e) => { const updated = [...invoiceItems]; updated[idx].qty = parseInt(e.target.value) || 0; setInvoiceItems(updated); }} className="w-20 p-4 bg-white rounded-xl text-sm font-bold text-center outline-none border border-gray-100" /></div>
-                                ))}</div>
-                            </div>
-                            <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Descripción / Notas</label><textarea rows={3} placeholder="Detalles..." value={isInvoiceModalOpen ? newInvoice.desc : newCredit.desc} onChange={(e) => isInvoiceModalOpen ? setNewInvoice({...newInvoice, desc: e.target.value}) : setNewCredit({...newCredit, desc: e.target.value})} className="w-full p-6 bg-gray-50 rounded-[2rem] outline-none text-sm font-medium border-2 border-transparent focus:bg-white focus:border-purple-200" /></div>
-                        </div>
-                        <div className="p-10 bg-gray-50/50 border-t border-gray-100 flex gap-4 flex-shrink-0">
-                            <button onClick={() => { setIsInvoiceModalOpen(false); setIsCreditModalOpen(false); }} className="flex-1 px-8 py-4 rounded-2xl text-[10px] font-black uppercase text-gray-400 border border-gray-100">Cancelar</button>
-                            <button onClick={isInvoiceModalOpen ? handleAddInvoice : handleAddCredit} disabled={isSaving} className={`flex-[2] py-4 ${isInvoiceModalOpen ? 'bg-gray-900' : 'bg-purple-600'} text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-2`}>{isSaving ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />} {isSaving ? 'Guardando...' : 'Registrar Oficial'}</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                    ) : renderBaytInsight()}
+                </motion.div>
+            </AnimatePresence>
 
-            {/* MODAL HISTORIAL (MANTENIDO) */}
-            {isHistoryModalOpen && (
-                <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-4xl h-[80vh] rounded-[3.5rem] shadow-2xl flex flex-col overflow-hidden border border-white/20">
-                        <div className="bg-gray-900 p-8 text-white flex justify-between items-center relative flex-shrink-0">
-                            <h2 className="text-2xl font-black tracking-tight flex items-center gap-3"><History className="text-purple-400" size={24} /> Historial Liquidado</h2>
-                            <button onClick={() => setIsHistoryModalOpen(false)} className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center hover:bg-rose-500 transition-all"><X size={20} /></button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-gray-50/20">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {[...providerInvoices, ...customerCredits].filter(r => r.status === 'paid' || r.status === 'collected').map((h) => (
-                                    <div key={h.id} className="bg-white p-6 rounded-3xl border border-gray-100 flex items-center justify-between shadow-sm">
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center grayscale text-lg">{(h as any).client_name ? '👤' : '🏢'}</div>
-                                            <div><p className="text-sm font-black text-gray-900">{(h as any).client_name || (h as any).description}</p><p className="text-[9px] font-bold text-emerald-600 uppercase tracking-[0.2em]">Liquidado</p></div>
+            {/* --- MODAL 360° DETALLE DE OBLIGACIÓN --- */}
+            <AnimatePresence>
+                {selectedRecord && (
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedRecord(null)} className="absolute inset-0 bg-black/70 backdrop-blur-xl" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 100 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 100 }} className="bg-white w-full max-w-4xl rounded-[4rem] shadow-3xl overflow-hidden flex flex-col md:flex-row relative z-10 border border-white/20">
+                            
+                            {/* SIDEBAR ENTIDAD */}
+                            <div className="w-full md:w-[350px] bg-gray-50 border-r border-gray-100 p-12 overflow-y-auto custom-scrollbar space-y-12">
+                                <button onClick={() => setSelectedRecord(null)} className="h-12 w-12 bg-white rounded-full flex items-center justify-center text-gray-400 hover:text-rose-500 shadow-sm transition-all"><X size={24}/></button>
+                                
+                                <section className="space-y-6">
+                                    <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] border-b border-gray-200 pb-3">Detalle de la Entidad</h4>
+                                    <div className="flex items-center gap-6">
+                                        <div className={`h-20 w-20 rounded-[1.5rem] text-white flex items-center justify-center text-3xl font-black shadow-2xl ${selectedRecord.type === 'payable' ? 'bg-rose-600' : 'bg-emerald-600'}`}>
+                                            {selectedRecord.entity_name.charAt(0)}
                                         </div>
-                                        <p className="text-sm font-black text-gray-900">{formatCurrency(h.amount)}</p>
+                                        <div><h3 className="text-xl font-black text-gray-900 tracking-tight">{selectedRecord.entity_name}</h3><p className="text-sm font-bold text-[#004d4d] mt-1 italic">{selectedRecord.type === 'payable' ? 'Proveedor' : 'Cliente Cartera'}</p></div>
                                     </div>
-                                ))}
+                                </section>
+
+                                <section className="space-y-6">
+                                    <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] border-b border-gray-200 pb-3">Estado de Cuenta</h4>
+                                    <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm space-y-4">
+                                        <div className="flex items-center justify-between"><span className="text-[9px] font-black text-gray-400 uppercase">Total:</span><span className="text-sm font-black text-gray-900">{formatCurrency(selectedRecord.amount)}</span></div>
+                                        <div className="flex items-center justify-between"><span className="text-[9px] font-black text-gray-400 uppercase">Vencimiento:</span><span className="text-xs font-black text-rose-600">{selectedRecord.due_date}</span></div>
+                                    </div>
+                                </section>
+
+                                <button className="w-full py-5 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#004d4d] transition-all shadow-2xl flex items-center justify-center gap-3">
+                                    <FileText size={16} className="text-[#00f2ff]" /> Ver Factura PDF
+                                </button>
                             </div>
-                        </div>
+
+                            {/* MAIN CONTENT: ACTIONS & HISTORY */}
+                            <div className="flex-1 flex flex-col bg-white overflow-hidden">
+                                <div className="p-12 border-b border-gray-50 flex justify-between items-center bg-white/50 backdrop-blur-md sticky top-0 z-10">
+                                    <div>
+                                        <h2 className="text-3xl font-black text-gray-900 tracking-tight italic uppercase">Gestión de Pago</h2>
+                                        <p className="text-gray-400 text-xs font-black uppercase tracking-widest mt-2 flex items-center gap-2"><Clock size={14} className="text-[#00f2ff]"/> Registra abonos o cancelaciones</p>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button className="px-8 py-4 bg-[#004d4d] rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-xl flex items-center gap-3"><Check size={18}/> {selectedRecord.type === 'payable' ? 'Marcar como Pagado' : 'Registrar Cobro'}</button>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-12 space-y-12 custom-scrollbar bg-gray-50/20">
+                                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
+                                        <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] border-b border-gray-50 pb-4">Descripción de la Obligación</h4>
+                                        <p className="text-sm font-medium text-gray-600 leading-relaxed italic">"{selectedRecord.description}"</p>
+                                        <div className="grid grid-cols-2 gap-8 pt-4">
+                                            <div><p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Fecha de Registro</p><p className="text-sm font-black text-gray-900">{selectedRecord.created_at}</p></div>
+                                            <div><p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Nro de Comprobante</p><p className="text-sm font-black text-gray-900">{selectedRecord.invoice_num}</p></div>
+                                        </div>
+                                    </div>
+
+                                    {/* Timeline de Seguimiento */}
+                                    <div className="space-y-8">
+                                        <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] ml-2">Historia de Movimientos</h4>
+                                        <div className="relative pl-12 space-y-10 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100">
+                                            <div className="relative">
+                                                <div className="absolute left-[-52px] top-0 h-10 w-10 rounded-full border-4 border-white bg-gray-900 flex items-center justify-center text-white shadow-lg z-10"><Plus size={14} fill="currentColor" /></div>
+                                                <div className="bg-white p-6 rounded-[2.2rem] border border-gray-100 shadow-sm"><p className="text-xs font-black text-gray-900 uppercase tracking-widest">Obligación Registrada</p><p className="text-[10px] text-gray-400 mt-1">{selectedRecord.created_at} · Por: Sistema</p></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
                     </div>
-                </div>
-            )}
+                )}
+            </AnimatePresence>
+
+            {/* --- MODAL CREAR OBLIGACIÓN --- */}
+            <AnimatePresence>
+                {isCreateModalOpen && (
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCreateModalOpen(false)} className="absolute inset-0 bg-black/70 backdrop-blur-xl" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 100 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 100 }} className="bg-white w-full max-w-lg rounded-[4rem] shadow-3xl overflow-hidden relative border border-white/20 z-10">
+                            <div className="bg-[#004d4d] p-10 text-white flex items-center gap-6">
+                                <div className="h-16 w-16 bg-[#00f2ff] text-[#004d4d] rounded-2xl flex items-center justify-center shadow-lg"><Zap size={32} /></div>
+                                <div><h2 className="text-2xl font-black uppercase tracking-tight">Nueva Obligación</h2><p className="text-[10px] font-black text-[#00f2ff] uppercase tracking-widest">Registro de Deuda o Cartera</p></div>
+                            </div>
+                            <div className="p-10 space-y-8 bg-white">
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button className="py-4 rounded-2xl border-2 border-[#004d4d] bg-emerald-50 text-[#004d4d] text-xs font-black uppercase">C. por Pagar</button>
+                                        <button className="py-4 rounded-2xl border-2 border-gray-100 text-gray-400 text-xs font-black uppercase">C. por Cobrar</button>
+                                    </div>
+                                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Nombre Proveedor / Cliente</label><input type="text" className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" placeholder="Ej: Textiles del Norte" /></div>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Monto Total</label><input type="text" className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" placeholder="$ 0.00" /></div>
+                                        <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Vencimiento</label><input type="date" className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" /></div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4 pt-4"><button onClick={() => setIsCreateModalOpen(false)} className="flex-1 py-5 rounded-2xl text-[10px] font-black uppercase text-gray-400">Cancelar</button><button className="flex-[2] py-5 bg-gray-900 text-white rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest shadow-2xl">Registrar en Cartera</button></div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <style jsx global>{`
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 30px; }
+            `}</style>
         </div>
     );
 }
