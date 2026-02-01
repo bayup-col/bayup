@@ -242,7 +242,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                         <MenuItem href="/dashboard/multiventa" label={<><Globe size={16} className="mr-2" /> Multiventa</>} id="m_multiventa" />
                         <MenuItem href="/dashboard/chats" label={<><MessageSquare size={16} className="mr-2" /> Mensajes</>} id="m_mensajes" />
-                        <MenuItem href="/dashboard/links" label={<><Link2 size={16} className="mr-2" /> Link de pago</>} id="m_links" />
                         <MenuItem href="/dashboard/customers" label={<><Users size={16} className="mr-2" /> Clientes</>} id="m_clientes" />
                         <MenuItem href="/dashboard/returns" label={<><ShieldCheck size={16} className="mr-2" /> Garantías</>} id="m_garantias" />
                     </div>
