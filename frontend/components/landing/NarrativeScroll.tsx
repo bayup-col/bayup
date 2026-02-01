@@ -4,9 +4,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 import { Layout, Target, LineChart, Zap } from 'lucide-react';
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform, useScroll } from 'framer-motion';
 import { NumberTicker } from './NumberTicker';
 import { RollingText } from './RollingText';
+import { LiquidImage } from './LiquidImage';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
@@ -79,6 +80,28 @@ const AnalyticsCard = ({ stat }: { stat: any }) => {
 export const NarrativeScroll = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const horizontalRef = useRef<HTMLDivElement>(null);
+  
+  // Lógica para la barra expansiva con scroll
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "end start"]
+  });
+
+  // Simetría ajustada: 
+  // 0.1: Empieza a aparecer (3rem)
+  // 0.3: Se estira al máximo (100%)
+  // 0.5: Vuelve a encogerse (3rem) mientras el scroll horizontal avanza
+  const lineWidth = useTransform(
+    scrollYProgress, 
+    [0.1, 0.3, 0.5], 
+    ["3rem", "100%", "3rem"]
+  );
+  
+  const lineOpacity = useTransform(
+    scrollYProgress, 
+    [0.1, 0.2, 0.6, 0.7], 
+    [0, 1, 1, 0]
+  );
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -105,21 +128,51 @@ export const NarrativeScroll = () => {
     <div id="ecosystem" ref={containerRef} className="overflow-hidden bg-background">
       <div ref={horizontalRef} className="flex h-screen w-fit">
         
-        {/* Intro Section - Pure White Background */}
-        <section className="horizontal-section flex h-screen w-screen flex-col items-center justify-center p-20 bg-[#FFFFFF]">
-          <div className="max-w-5xl space-y-2 text-center flex flex-col items-center">
-            <div className="text-6xl md:text-8xl font-black text-black italic tracking-tighter uppercase leading-[0.9] flex flex-col items-center">
-              <RollingText text="EL MUNDO ESTA LISTO" />
+        {/* Intro Section - Liquid Background */}
+        <LiquidImage
+          image="/assets/mundobayup.png"
+          alt="Fondo de red global Bayup"
+          className="horizontal-section h-screen w-screen"
+          distortionScale={0.4}
+          speed={0.3}
+          tint="#000000"
+          opacity={0.8}
+        >
+          <div className="max-w-5xl text-center flex flex-col items-center relative z-10">
+            <div className="text-6xl md:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] flex flex-col items-center">
+              {/* Bloque 1: El mundo esta listo (Incandescente) */}
+              <div className="text-white filter 
+                drop-shadow-[0_0_15px_rgba(255,255,255,1)] 
+                drop-shadow-[0_0_40px_rgba(255,255,255,0.9)] 
+                drop-shadow-[0_0_70px_rgba(255,255,255,0.7)] 
+                drop-shadow-[0_0_120px_rgba(255,255,255,0.4)]">
+                <RollingText text="EL MUNDO ESTA LISTO" />
+              </div>
+              
+              {/* Bloque 2: Para (Incandescente) + Comprarte (Degradado Limpio) */}
               <div className="flex flex-wrap items-center justify-center gap-x-4">
-                <RollingText text="PARA" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan">
+                <span className="text-white filter 
+                  drop-shadow-[0_0_15px_rgba(255,255,255,1)] 
+                  drop-shadow-[0_0_40px_rgba(255,255,255,0.9)] 
+                  drop-shadow-[0_0_70px_rgba(255,255,255,0.7)] 
+                  drop-shadow-[0_0_120px_rgba(255,255,255,0.4)]">
+                  <RollingText text="PARA" />
+                </span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan to-white">
                   <RollingText text="COMPRARTE." />
                 </span>
               </div>
             </div>
-            <div className="h-1 w-24 bg-gray-100 mt-12 mx-auto" />
+            <motion.div 
+              style={{ width: lineWidth, opacity: lineOpacity }}
+              className="h-[2px] bg-cyan mt-12 mx-auto shadow-[0_0_20px_#00f2ff] relative"
+            >
+              {/* Destellos en las puntas de la línea */}
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-4 bg-cyan blur-md rounded-full" />
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 bg-cyan blur-md rounded-full" />
+            </motion.div>
           </div>
-        </section>
+        </LiquidImage>
 
         {/* 1. Web Strategy */}
         <section className="horizontal-section flex h-screen w-screen items-center justify-center p-20 bg-background">
