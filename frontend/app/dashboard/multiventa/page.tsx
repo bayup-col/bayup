@@ -14,15 +14,18 @@ import {
   Settings2, 
   Activity, 
   Link2, 
-  CheckCircle2,
-  Package,
-  ShoppingCart,
-  ArrowRight,
-  Info,
-  Layers,
-  ShieldCheck,
-  MousePointer2,
-  Search
+  CheckCircle2, 
+  Package, 
+  ShoppingCart, 
+  ArrowRight, 
+  Info, 
+  Layers, 
+  ShieldCheck, 
+  MousePointer2, 
+  Search,
+  Filter,
+  Tag,
+  Check
 } from 'lucide-react';
 
 interface Marketplace {
@@ -44,13 +47,47 @@ const CONNECTED_MARKETPLACES: Marketplace[] = [
 ];
 
 export default function MultiventePage() {
-    const [view, setView] = useState<'dashboard' | 'connect'>('dashboard');
-    const [step, setStep] = useState(1);
+    const [view, setView] = useState<'dashboard' | 'connect' | 'custom-catalogs'>('dashboard');
+    const [mappingMode, setMappingMode] = useState<'products' | 'categories'>('products');
+    const [selectedMarketplaceForCatalog, setSelectedMarketplaceForCatalog] = useState(CONNECTED_MARKETPLACES[0]);
     const [isSyncing, setIsSyncing] = useState(false);
+
+    // Mock de productos y categorías actualizadas
+    const [mappingProducts, setMappingProducts] = useState([
+        { id: 'p1', name: 'Reloj Cronógrafo Gold', sku: 'WA-GOLD', category: 'Accesorios', stock: 45, active: true },
+        { id: 'p2', name: 'Zapatos Oxford', sku: 'SH-OXFORD', category: 'Calzado', stock: 12, active: true },
+        { id: 'p3', name: 'Camisa Lino', sku: 'CL-LINO', category: 'Ropa', stock: 88, active: false },
+        { id: 'p4', name: 'Gafas Aviador', sku: 'GL-AVIA', category: 'Accesorios', stock: 5, active: true },
+    ]);
+
+    const [mappingCategories, setMappingCategories] = useState([
+        { id: 'c1', name: 'Ropa', count: 124, active: true },
+        { id: 'c2', name: 'Calzado', count: 45, active: true },
+        { id: 'c3', name: 'Accesorios', count: 82, active: false },
+        { id: 'c4', name: 'Tecnología', count: 12, active: false },
+    ]);
 
     const handleSync = () => {
         setIsSyncing(true);
         setTimeout(() => setIsSyncing(false), 3000);
+    };
+
+    const toggleProductMapping = (id: string) => {
+        setMappingProducts(prev => prev.map(p => p.id === id ? { ...p, active: !p.active } : p));
+    };
+
+    const toggleCategoryMapping = (id: string) => {
+        setMappingCategories(prev => prev.map(c => {
+            if (c.id === id) {
+                const newState = !c.active;
+                // Si activamos una categoría, activamos todos sus productos (lógica simulada)
+                if (newState) {
+                    setMappingProducts(prodPrev => prodPrev.map(p => p.category === c.name ? { ...p, active: true } : p));
+                }
+                return { ...c, active: newState };
+            }
+            return c;
+        }));
     };
 
     const getStatusGlow = (status: Marketplace['status']) => {
@@ -58,6 +95,7 @@ export default function MultiventePage() {
             case 'connected': return 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]';
             case 'warning': return 'bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.4)]';
             case 'error': return 'bg-rose-500 shadow-[0_0_12px_rgba(225,29,72,0.4)]';
+            default: return 'bg-gray-300';
         }
     };
 
@@ -77,14 +115,21 @@ export default function MultiventePage() {
                 
                 <div className="flex items-center gap-4">
                     <button 
+                        onClick={() => setView('custom-catalogs')}
+                        className="flex items-center gap-3 px-8 py-4 bg-white border border-[#004d4d]/20 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[#004d4d] hover:bg-[#00f2ff]/5 hover:border-[#004d4d] transition-all shadow-sm"
+                    >
+                        <Layers size={16} className="text-[#008080]" />
+                        Catálogos Personalizados
+                    </button>
+                    <button 
                         onClick={handleSync}
-                        className="flex items-center gap-3 px-8 py-4 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[#004d4d] hover:bg-gray-50 transition-all shadow-sm"
+                        className="flex items-center gap-3 px-8 py-4 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 transition-all shadow-sm"
                     >
                         <RefreshCw size={14} className={`${isSyncing ? 'animate-spin' : ''}`} />
                         {isSyncing ? 'Sincronizando...' : 'Forzar Sincro'}
                     </button>
                     <button 
-                        onClick={() => { setView('connect'); setStep(1); }}
+                        onClick={() => { setView('connect'); }}
                         className="group relative px-8 py-5 bg-[#004d4d] text-white rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-[#004d4d]/20 hover:scale-[1.02] active:scale-95 transition-all overflow-hidden"
                     >
                         <span className="flex items-center gap-3 relative z-10">
@@ -104,7 +149,6 @@ export default function MultiventePage() {
                         exit={{ opacity: 0, y: -20 }}
                         className="space-y-10"
                     >
-                        {/* --- KPI INDICATORS --- */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {[
                                 { label: 'Marketplaces', value: '04', sub: 'Activos', icon: <Layers size={18} />, color: 'text-[#004d4d]' },
@@ -116,16 +160,15 @@ export default function MultiventePage() {
                                     <div>
                                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p>
                                         <p className={`text-3xl font-black mt-2 ${kpi.color}`}>{kpi.value}</p>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase mt-1 italic">{kpi.sub}</p>
+                                        <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase italic">{kpi.sub}</p>
                                     </div>
-                                    <div className="h-14 w-14 rounded-2xl bg-gray-50 flex items-center justify-center text-[#004d4d]/20 group-hover:bg-[#00f2ff]/10 group-hover:text-[#00f2ff] transition-all">
+                                    <div className={`h-14 w-14 rounded-2xl bg-gray-50 flex items-center justify-center text-[#004d4d]/20 group-hover:bg-[#00f2ff]/10 group-hover:text-[#00f2ff] transition-all`}>
                                         {kpi.icon}
                                     </div>
                                 </div>
                             ))}
                         </div>
 
-                        {/* --- MARKETPLACE GRID --- */}
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
                             {CONNECTED_MARKETPLACES.map((m) => (
                                 <div key={m.id} className="group relative bg-white rounded-[3rem] p-10 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(0,77,77,0.08)] hover:border-[#004d4d]/10 transition-all cursor-pointer">
@@ -159,7 +202,6 @@ export default function MultiventePage() {
                                 </div>
                             ))}
 
-                            {/* ADD NEW PLACEHOLDER */}
                             <div 
                                 onClick={() => setView('connect')}
                                 className="group border-2 border-dashed border-gray-100 rounded-[3rem] p-10 flex flex-col items-center justify-center text-center gap-6 hover:border-[#00f2ff] hover:bg-[#00f2ff]/5 transition-all cursor-pointer min-h-[380px]"
@@ -173,261 +215,188 @@ export default function MultiventePage() {
                                 </div>
                             </div>
                         </div>
+                    </motion.div>
+                ) : view === 'custom-catalogs' ? (
+                    <motion.div 
+                        key="custom-catalogs"
+                        initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }}
+                        className="space-y-8"
+                    >
+                        <div className="flex items-center justify-between">
+                            <button onClick={() => setView('dashboard')} className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-all">← Volver al Centro de Control</button>
+                            
+                            {/* MAPPING MODE SWITCHER */}
+                            <div className="bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-2">
+                                <button 
+                                    onClick={() => setMappingMode('products')}
+                                    className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${mappingMode === 'products' ? 'bg-[#004d4d] text-white shadow-md' : 'text-gray-400 hover:text-[#004d4d]'}`}
+                                >
+                                    Individual
+                                </button>
+                                <button 
+                                    onClick={() => setMappingMode('categories')}
+                                    className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${mappingMode === 'categories' ? 'bg-[#004d4d] text-white shadow-md' : 'text-gray-400 hover:text-[#004d4d]'}`}
+                                >
+                                    Por Categoría
+                                </button>
+                            </div>
+                        </div>
 
-                        {/* --- MONITOR & ACTIVITY --- */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-10 border-t border-gray-100">
-                            <div className="lg:col-span-2 bg-[#004d4d] rounded-[4rem] p-12 text-white relative overflow-hidden shadow-2xl shadow-[#004d4d]/20">
-                                <div className="absolute top-0 right-0 p-12 opacity-10">
-                                    <Activity size={150} />
-                                </div>
-                                <div className="relative z-10 flex flex-col md:flex-row gap-12 items-center">
-                                    <div className="h-32 w-32 rounded-full border-8 border-white/10 flex items-center justify-center relative">
-                                        <div className="h-24 w-24 rounded-full border-8 border-[#00f2ff] border-t-transparent animate-spin duration-[3000ms]"></div>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                            <p className="text-2xl font-black text-[#00f2ff]">98%</p>
-                                            <p className="text-[8px] font-black uppercase tracking-widest">Salud</p>
-                                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                            {/* Left: Channel Selector */}
+                            <div className="lg:col-span-4 space-y-6">
+                                <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                                    <h2 className="text-xl font-black text-[#004d4d] tracking-tight flex items-center gap-3">
+                                        <Layers size={20} className="text-[#00f2ff]" /> Selección de Canal
+                                    </h2>
+                                    <div className="space-y-3">
+                                        {CONNECTED_MARKETPLACES.map(m => (
+                                            <button 
+                                                key={m.id}
+                                                onClick={() => setSelectedMarketplaceForCatalog(m)}
+                                                className={`w-full flex items-center justify-between p-5 rounded-2xl border transition-all ${selectedMarketplaceForCatalog.id === m.id ? 'bg-[#004d4d] border-[#004d4d] text-white shadow-xl' : 'bg-gray-50 border-transparent text-gray-500 hover:bg-white hover:border-gray-200'}`}
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <span className="text-xl">{m.logo}</span>
+                                                    <span className="text-xs font-black uppercase tracking-widest">{m.name}</span>
+                                                </div>
+                                                <ChevronRight size={14} className={selectedMarketplaceForCatalog.id === m.id ? 'text-[#00f2ff]' : 'text-gray-300'} />
+                                            </button>
+                                        ))}
                                     </div>
-                                    <div className="flex-1 text-center md:text-left">
-                                        <h3 className="text-3xl font-black tracking-tight">Monitor de Sincronización</h3>
-                                        <p className="text-white/60 text-lg mt-4 max-w-xl font-medium leading-relaxed">
-                                            Tu stock maestro está actualmente sincronizado con <span className="text-[#00f2ff]">4 canales externos</span>. Sin discrepancias detectadas en las últimas 24 horas.
-                                        </p>
-                                        <div className="flex gap-4 mt-8 justify-center md:justify-start">
-                                            <div className="px-6 py-3 bg-white/10 rounded-2xl border border-white/10 flex items-center gap-2">
-                                                <div className="h-1.5 w-1.5 rounded-full bg-[#00f2ff] animate-pulse"></div>
-                                                <span className="text-[10px] font-black uppercase tracking-widest">Sincronización Automática ON</span>
-                                            </div>
+                                    <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100 flex items-start gap-4">
+                                        <div className="h-2 w-2 rounded-full bg-emerald-500 mt-1 animate-pulse"></div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-emerald-900 uppercase tracking-widest italic">Sincro Inteligente ON</p>
+                                            <p className="text-[10px] text-emerald-700 font-medium mt-1 leading-relaxed">
+                                                {mappingMode === 'products' 
+                                                    ? 'Mapeo individual: Control total producto por producto.' 
+                                                    : 'Mapeo por categoría: Cualquier producto nuevo en la categoría se sincronizará automáticamente.'}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-white rounded-[4rem] p-12 border border-gray-100 shadow-sm flex flex-col">
-                                <h3 className="text-lg font-black text-[#004d4d] uppercase tracking-[0.2em] mb-10 flex items-center gap-3">
-                                    <Activity size={18} className="text-[#00f2ff]" /> Alertas Recientes
-                                </h3>
-                                <div className="space-y-8 flex-1">
-                                    {[
-                                        { title: 'Token Expirado', desc: 'Amazon requiere re-autenticación', type: 'error', time: 'hace 10m' },
-                                        { title: 'Stock Bajo', desc: 'MercadoLibre: Zapato Oxford (SKU-01)', type: 'warning', time: 'hace 1h' },
-                                        { title: 'Nueva Orden', desc: 'Shopify: #10294 - $125.000', type: 'success', time: 'hace 2h' },
-                                    ].map((alert, i) => (
-                                        <div key={i} className="flex gap-4 group cursor-pointer">
-                                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
-                                                alert.type === 'error' ? 'bg-rose-50 text-rose-500' : alert.type === 'warning' ? 'bg-amber-50 text-amber-500' : 'bg-emerald-50 text-emerald-500'
-                                            }`}>
-                                                {alert.type === 'error' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center justify-between gap-4">
-                                                    <p className="text-xs font-black text-gray-900 group-hover:text-[#004d4d] transition-colors uppercase tracking-widest">{alert.title}</p>
-                                                    <span className="text-[8px] font-bold text-gray-300 uppercase">{alert.time}</span>
-                                                </div>
-                                                <p className="text-xs text-gray-400 mt-1 font-medium">{alert.desc}</p>
-                                            </div>
-                                        </div>
-                                    ))}
+                            {/* Right: Mapping List */}
+                            <div className="lg:col-span-8 bg-white/80 backdrop-blur-xl rounded-[4rem] border border-white/60 shadow-2xl shadow-gray-200/20 overflow-hidden flex flex-col">
+                                <div className="p-12 border-b border-gray-50 flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-2xl font-black text-[#004d4d] tracking-tight uppercase italic">
+                                            {mappingMode === 'products' ? 'Gestión de Productos' : 'Gestión de Categorías'}
+                                        </h3>
+                                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-2">Personaliza qué contenido enviar a {selectedMarketplaceForCatalog.name}</p>
+                                    </div>
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
+                                        <input type="text" placeholder="Buscar..." className="pl-9 pr-4 py-2 bg-gray-50 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-[#00f2ff]/30 w-48 transition-all" />
+                                    </div>
                                 </div>
-                                <button className="mt-10 w-full py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d] border border-[#004d4d]/10 rounded-2xl hover:bg-gray-50 transition-all">
-                                    Ver Centro de Alertas
-                                </button>
+
+                                <div className="flex-1 overflow-y-auto min-h-[400px]">
+                                    <table className="min-w-full divide-y divide-gray-50">
+                                        <thead className="bg-gray-50/30">
+                                            <tr>
+                                                <th className="px-10 py-6 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">{mappingMode === 'products' ? 'Producto' : 'Categoría'}</th>
+                                                <th className="px-10 py-6 text-center text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">{mappingMode === 'products' ? 'Stock' : 'Ítems'}</th>
+                                                <th className="px-10 py-6 text-center text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Estado Sincro</th>
+                                                <th className="px-10 py-6 text-right text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Acción</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {mappingMode === 'products' ? (
+                                                mappingProducts.map((p) => (
+                                                    <tr key={p.id} className="hover:bg-[#004d4d]/[0.02] transition-colors">
+                                                        <td className="px-10 py-6">
+                                                            <p className="text-sm font-black text-gray-900">{p.name}</p>
+                                                            <p className="text-[9px] text-[#00f2ff] font-black uppercase tracking-widest mt-1">{p.category}</p>
+                                                        </td>
+                                                        <td className="px-10 py-6 text-center">
+                                                            <span className="text-sm font-black text-[#004d4d]">{p.stock}</span>
+                                                        </td>
+                                                        <td className="px-10 py-6 text-center">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <div className={`h-1.5 w-1.5 rounded-full ${p.active ? 'bg-emerald-500 animate-pulse' : 'bg-gray-200'}`}></div>
+                                                                <span className="text-[9px] font-bold text-gray-400 uppercase">{p.active ? 'Vínculo activo' : 'Pausado'}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-10 py-6 text-right">
+                                                            <button 
+                                                                onClick={() => toggleProductMapping(p.id)}
+                                                                className={`h-7 w-12 rounded-full relative transition-all duration-300 flex items-center px-1 ml-auto ${p.active ? 'bg-[#004d4d]' : 'bg-gray-200'}`}
+                                                            >
+                                                                <div className={`h-5 w-5 bg-white rounded-full shadow-md transition-all ${p.active ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                mappingCategories.map((c) => (
+                                                    <tr key={c.id} className="hover:bg-[#004d4d]/[0.02] transition-colors">
+                                                        <td className="px-10 py-6">
+                                                            <div className="flex items-center gap-3">
+                                                                <Tag size={14} className="text-[#00f2ff]" />
+                                                                <p className="text-sm font-black text-gray-900 uppercase tracking-widest">{c.name}</p>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-10 py-6 text-center">
+                                                            <span className="text-sm font-black text-[#004d4d]">{c.count} Prod.</span>
+                                                        </td>
+                                                        <td className="px-10 py-6 text-center">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <div className={`h-1.5 w-1.5 rounded-full ${c.active ? 'bg-[#00f2ff] animate-pulse' : 'bg-gray-200'}`}></div>
+                                                                <span className="text-[9px] font-bold text-gray-400 uppercase">{c.active ? 'Sync Masiva' : 'Excluido'}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-10 py-6 text-right">
+                                                            <button 
+                                                                onClick={() => toggleCategoryMapping(c.id)}
+                                                                className={`h-7 w-12 rounded-full relative transition-all duration-300 flex items-center px-1 ml-auto ${c.active ? 'bg-[#004d4d]' : 'bg-gray-200'}`}
+                                                            >
+                                                                <div className={`h-5 w-5 bg-white rounded-full shadow-md transition-all ${c.active ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div className="p-10 bg-gray-50/50 border-t border-gray-50 flex justify-between items-center">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Sincronización bidireccional garantizada</p>
+                                    <button 
+                                        onClick={() => { setView('dashboard'); alert("Configuración de mapeo masivo actualizada."); }}
+                                        className="px-10 py-4 bg-[#004d4d] text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all"
+                                    >
+                                        Aplicar Cambios Masivos
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </motion.div>
                 ) : (
                     <motion.div 
-                        key="connect"
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="bg-white/80 backdrop-blur-xl rounded-[4rem] border border-white/60 shadow-2xl shadow-[#004d4d]/5 overflow-hidden flex flex-col"
+                        key="connect" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                        className="bg-white/80 backdrop-blur-xl rounded-[4rem] border border-white/60 shadow-2xl overflow-hidden flex flex-col"
                     >
-                        {/* WIZARD HEADER */}
                         <div className="p-12 border-b border-gray-50 flex items-center justify-between bg-white/50">
                             <div>
-                                <button 
-                                    onClick={() => setView('dashboard')}
-                                    className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 hover:text-[#004d4d] flex items-center gap-2 mb-4"
-                                >
+                                <button onClick={() => setView('dashboard')} className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 hover:text-[#004d4d] flex items-center gap-2 mb-4">
                                     <ChevronRight size={14} className="rotate-180" /> Cancelar Conexión
                                 </button>
                                 <h2 className="text-3xl font-black text-[#004d4d] tracking-tight">Conectar nuevo Marketplace</h2>
                             </div>
-                            
-                            {/* STEPS INDICATOR */}
-                            <div className="flex gap-4">
-                                {[1, 2, 3, 4].map((s) => (
-                                    <div key={s} className="flex flex-col items-center gap-2">
-                                        <div className={`h-1.5 w-12 rounded-full transition-all duration-500 ${step >= s ? 'bg-[#00f2ff]' : 'bg-gray-100'}`}></div>
-                                        <span className={`text-[8px] font-black uppercase tracking-tighter ${step >= s ? 'text-[#004d4d]' : 'text-gray-300'}`}>Paso {s}</span>
+                        </div>
+                        <div className="p-20 text-center space-y-12">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                {['MercadoLibre', 'Shopify', 'Amazon', 'Falabella'].map((m, i) => (
+                                    <div key={i} className="bg-gray-50 p-10 rounded-[3rem] border border-transparent hover:border-[#00f2ff] transition-all cursor-pointer group">
+                                        <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🌐</div>
+                                        <p className="text-xs font-black uppercase tracking-widest text-gray-900">{m}</p>
                                     </div>
                                 ))}
                             </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-12 lg:p-20 custom-scrollbar min-h-[600px] flex items-center justify-center">
-                            <AnimatePresence mode="wait">
-                                {step === 1 && (
-                                    <motion.div 
-                                        key="step1" 
-                                        initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-                                        className="w-full max-w-4xl text-center space-y-12"
-                                    >
-                                        <div className="space-y-4">
-                                            <h3 className="text-2xl font-black text-[#004d4d] tracking-tight">¿Qué marketplace deseas conectar?</h3>
-                                            <p className="text-gray-400 text-sm font-medium uppercase tracking-widest italic">Selecciona el ecosistema que quieres integrar hoy</p>
-                                        </div>
-                                        
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                            {[
-                                                { name: 'MercadoLibre', logo: '🟡' },
-                                                { name: 'Shopify', logo: '🟢' },
-                                                { name: 'Amazon', logo: '🟠' },
-                                                { name: 'Falabella', logo: '🔵' },
-                                                { name: 'Magento', logo: '🔴' },
-                                                { name: 'WooCommerce', logo: '🟣' },
-                                                { name: 'VTEX', logo: '🟡' },
-                                                { name: 'Walmart', logo: '🔵' },
-                                            ].map((market, i) => (
-                                                <button 
-                                                    key={i}
-                                                    onClick={() => setStep(2)}
-                                                    className="group bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:border-[#00f2ff] hover:bg-[#00f2ff]/5 hover:scale-105 transition-all flex flex-col items-center gap-4"
-                                                >
-                                                    <div className="text-4xl group-hover:scale-125 transition-transform">{market.logo}</div>
-                                                    <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest">{market.name}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </motion.div>
-                                )}
-
-                                {step === 2 && (
-                                    <motion.div 
-                                        key="step2" 
-                                        initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-                                        className="w-full max-w-2xl text-center space-y-12"
-                                    >
-                                        <div className="h-32 w-32 bg-[#004d4d]/5 rounded-[3rem] flex items-center justify-center mx-auto text-[#004d4d]">
-                                            <ShieldCheck size={60} className="text-[#00f2ff]" />
-                                        </div>
-                                        <div className="space-y-6">
-                                            <h3 className="text-3xl font-black text-[#004d4d] tracking-tight leading-tight">Autorización de Seguridad</h3>
-                                            <p className="text-gray-500 text-lg font-medium leading-relaxed">
-                                                Para conectar tu cuenta de <span className="text-[#004d4d] font-black italic">MercadoLibre</span>, necesitamos que autorices a Bayup a sincronizar tus productos y ventas vía API oficial.
-                                            </p>
-                                        </div>
-                                        <div className="bg-gray-50 p-8 rounded-3xl border border-gray-100 text-left space-y-4">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><Info size={14} className="text-[#00f2ff]" /> Información de Seguridad</p>
-                                            <p className="text-xs text-gray-500 font-medium leading-relaxed italic">"Tu contraseña de marketplace nunca es almacenada. Utilizamos tokens de acceso encriptados de nivel bancario (AES-256)."</p>
-                                        </div>
-                                        <button 
-                                            onClick={() => setStep(3)}
-                                            className="w-full py-6 bg-[#004d4d] text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl shadow-[#004d4d]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
-                                        >
-                                            Autorizar Conexión Segura <ExternalLink size={16} />
-                                        </button>
-                                    </motion.div>
-                                )}
-
-                                {step === 3 && (
-                                    <motion.div 
-                                        key="step3" 
-                                        initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-                                        className="w-full max-w-2xl space-y-12"
-                                    >
-                                        <div className="text-center space-y-4">
-                                            <h3 className="text-3xl font-black text-[#004d4d] tracking-tight">Configuración de Canal</h3>
-                                            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest italic">Personaliza cómo Bayup interactúa con este marketplace</p>
-                                        </div>
-                                        
-                                        <div className="space-y-8">
-                                            <div className="space-y-3">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">País de Operación</label>
-                                                <select className="w-full p-5 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-[#00f2ff]/40 outline-none text-sm font-bold text-gray-700 shadow-inner">
-                                                    <option>Colombia (CO)</option>
-                                                    <option>México (MX)</option>
-                                                    <option>Chile (CL)</option>
-                                                </select>
-                                            </div>
-                                            <div className="space-y-3">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Bodega de Despacho</label>
-                                                <select className="w-full p-5 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-[#00f2ff]/40 outline-none text-sm font-bold text-gray-700 shadow-inner">
-                                                    <option>Bodega Central - Occidente</option>
-                                                    <option>Almacén Norte (Tienda Física)</option>
-                                                </select>
-                                            </div>
-                                            <div className="p-6 bg-[#00f2ff]/5 rounded-3xl border border-[#00f2ff]/20 flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-xs font-black text-[#004d4d] uppercase tracking-widest">Sincronización de Stock</p>
-                                                    <p className="text-[10px] text-[#008080] font-bold mt-1">Actualizar automáticamente existencias</p>
-                                                </div>
-                                                <div className="h-6 w-11 bg-[#004d4d] rounded-full relative flex items-center px-1">
-                                                    <div className="h-4 w-4 bg-[#00f2ff] rounded-full shadow-sm translate-x-5"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <button 
-                                            onClick={() => setStep(4)}
-                                            className="w-full py-6 bg-[#004d4d] text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl transition-all"
-                                        >
-                                            Continuar a Confirmación
-                                        </button>
-                                    </motion.div>
-                                )}
-
-                                {step === 4 && (
-                                    <motion.div 
-                                        key="step4" 
-                                        initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
-                                        className="w-full max-w-2xl text-center space-y-12"
-                                    >
-                                        <div className="relative mx-auto h-40 w-40">
-                                            <motion.div 
-                                                animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                                                className="absolute inset-0 border-4 border-dashed border-[#00f2ff] rounded-full"
-                                            ></motion.div>
-                                            <div className="absolute inset-0 flex items-center justify-center text-[#00f2ff]">
-                                                <Link2 size={60} />
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="space-y-6">
-                                            <h3 className="text-4xl font-black text-[#004d4d] tracking-tight">¡Casi listo para el despegue!</h3>
-                                            <p className="text-gray-500 text-lg font-medium leading-relaxed max-w-lg mx-auto">
-                                                Estamos listos para conectar <span className="text-[#004d4d] font-black italic">MercadoLibre (CO)</span> con tu inventario de la <span className="text-[#004d4d] font-black italic">Bodega Central</span>.
-                                            </p>
-                                        </div>
-
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Stock</p>
-                                                <p className="text-xs font-black text-[#004d4d]">Auto-Sync</p>
-                                            </div>
-                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Precios</p>
-                                                <p className="text-xs font-black text-[#004d4d]">Espejo</p>
-                                            </div>
-                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Pedidos</p>
-                                                <p className="text-xs font-black text-[#004d4d]">Centralizados</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex flex-col gap-4">
-                                            <button 
-                                                onClick={() => { setView('dashboard'); alert("Integración finalizada con éxito."); }}
-                                                className="w-full py-6 bg-[#004d4d] text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl shadow-[#004d4d]/20 hover:bg-black transition-all"
-                                            >
-                                                Finalizar e Iniciar Sincro
-                                            </button>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Al finalizar, importaremos tus primeras 50 publicaciones automáticamente.</p>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
                         </div>
                     </motion.div>
                 )}
@@ -445,24 +414,19 @@ export default function MultiventePage() {
                     </div>
                     
                     <div className="flex-1 text-center lg:text-left">
-                        <h3 className="text-3xl font-black text-[#004d4d] tracking-tight leading-tight">Tu Negocio en Todo el Mundo</h3>
+                        <h3 className="text-3xl font-black text-[#004d4d] tracking-tight leading-tight uppercase italic">Control Total Omnicanal</h3>
                         <p className="text-gray-500 text-lg mt-4 max-w-3xl leading-relaxed font-medium">
-                            La omnicanalidad no es solo estar en todos lados, es estar <span className="text-[#004d4d] font-bold italic">bien organizado</span> en todos lados. Bayup Multivende asegura que nunca vendas lo que no tienes y que cada pedido cuente.
+                            Decide exactamente qué vender en cada marketplace. Ya sea un <span className="text-[#004d4d] font-bold">producto único</span> o una <span className="text-[#004d4d] font-bold">categoría completa</span>, Bayup mantiene el stock sincronizado en milisegundos.
                         </p>
                     </div>
 
                     <div className="flex flex-col gap-4 min-w-[240px]">
-                        <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Uptime APIs</span>
-                                <span className="text-xs font-black text-emerald-600">99.9%</span>
-                            </div>
-                            <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
-                                <div className="h-full w-[99.9%] bg-emerald-500"></div>
-                            </div>
+                        <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100 text-center">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Stock Maestro Protegido</p>
+                            <p className="text-2xl font-black text-[#004d4d]">100% Sync</p>
                         </div>
-                        <button className="px-8 py-4 bg-[#004d4d] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-[#004d4d]/10 hover:bg-[#00f2ff] hover:text-[#004d4d] transition-all">
-                            Documentación API
+                        <button className="px-8 py-4 bg-[#004d4d] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-black transition-all">
+                            Manual de Sincronización
                         </button>
                     </div>
                 </div>
