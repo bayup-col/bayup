@@ -16,7 +16,7 @@ import {
   Plus, 
   Rocket, 
   CheckCircle2, 
-  PieChart, 
+  PieChart as LucidePieChart, 
   Eye, 
   MousePointer2, 
   DollarSign, 
@@ -61,6 +61,7 @@ import {
     BarChart, 
     Bar, 
     Cell,
+    PieChart,
     Pie,
     Pie as RePie
 } from 'recharts';

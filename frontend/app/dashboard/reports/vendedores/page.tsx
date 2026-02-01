@@ -35,7 +35,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Clock,
-  PieChart,
+  PieChart as LucidePieChart,
   Medal,
   Award
 } from 'lucide-react';
