@@ -30,7 +30,7 @@ import {
   AlertCircle,
   FileText,
   CreditCard,
-  History,
+  LucideHistory,
   Package,
   ArrowRight,
   Monitor,

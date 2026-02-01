@@ -23,7 +23,7 @@ import {
   Rocket,
   Trash2,
   Send,
-  History,
+  LucideHistory,
   Truck,
   Store,
   ChevronRight,
@@ -371,7 +371,7 @@ export default function PurchaseOrdersPage() {
                                 </button>
                             </div>
 
-                            {/* MAIN CONTENT: ITEMS & HISTORY */}
+                            {/* MAIN CONTENT: ITEMS & LucideHistory */}
                             <div className="flex-1 flex flex-col bg-white overflow-hidden">
                                 <div className="p-12 border-b border-gray-50 flex justify-between items-center bg-white/50 backdrop-blur-md sticky top-0 z-10">
                                     <div>
@@ -418,7 +418,7 @@ export default function PurchaseOrdersPage() {
                                     <div className="space-y-8">
                                         <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] ml-2">Trazabilidad de la Orden</h4>
                                         <div className="relative pl-12 space-y-10 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100">
-                                            {selectedOrder.history.map((event, i) => (
+                                            {selectedOrder.LucideHistory.map((event, i) => (
                                                 <div key={i} className="relative">
                                                     <div className="absolute left-[-52px] top-0 h-10 w-10 rounded-full border-4 border-white bg-[#004d4d] flex items-center justify-center text-white shadow-lg z-10">
                                                         <Zap size={14} fill="currentColor" />

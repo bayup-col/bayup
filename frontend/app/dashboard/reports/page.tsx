@@ -14,7 +14,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Search,
-  PieChart,
+  PieChart as LucidePieChart,
   BarChart3,
   Activity,
   Zap,
@@ -28,13 +28,13 @@ import {
   Globe,
   Monitor,
   ShoppingBag,
-  Info,
-  ShieldAlert,
-  Trophy,
-  ArrowRight,
-  RefreshCcw
-} from 'lucide-react';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+    Info, 
+    ShieldAlert, 
+    Trophy, 
+    ArrowRight, 
+    RefreshCcw,
+    History as LucideHistory
+  } from 'lucide-react';import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";

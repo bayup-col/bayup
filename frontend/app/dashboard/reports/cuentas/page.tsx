@@ -31,7 +31,7 @@ import {
   AlertCircle,
   FileText,
   CreditCard,
-  History,
+  LucideHistory,
   Package,
   ArrowRight,
   Monitor,
@@ -334,7 +334,7 @@ export default function CuentasCarteraPage() {
                                 </button>
                             </div>
 
-                            {/* MAIN CONTENT: ACTIONS & HISTORY */}
+                            {/* MAIN CONTENT: ACTIONS & LucideHistory */}
                             <div className="flex-1 flex flex-col bg-white overflow-hidden">
                                 <div className="p-12 border-b border-gray-50 flex justify-between items-center bg-white/50 backdrop-blur-md sticky top-0 z-10">
                                     <div>
