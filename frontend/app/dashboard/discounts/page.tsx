@@ -15,7 +15,19 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  LayoutGrid,
+  Filter,
+  Download,
+  Sparkles,
+  Bot,
+  Zap,
+  TrendingUp,
+  Activity,
+  Target,
+  Plus,
+  ArrowUpRight,
+  Clock
 } from 'lucide-react';
 import { useToast } from "@/context/toast-context";
 import { motion, AnimatePresence } from 'framer-motion';
@@ -54,6 +66,7 @@ type DiscountFormData = z.infer<typeof discountSchema>;
 export default function DiscountsPage() {
     const [discounts, setDiscounts] = useState<Discount[]>(INITIAL_DISCOUNTS);
     const [searchTerm, setSearchTerm] = useState('');
+    const [activeTab, setActiveTab] = useState<'todos' | 'cupones' | 'automaticos' | 'bayt'>('todos');
     const { showToast } = useToast();
     
     // UI State para Modal
@@ -62,10 +75,6 @@ export default function DiscountsPage() {
     const [isActiveToggle, setIsActiveToggle] = useState(true);
     const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-
-    // Paginación
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
 
     const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<DiscountFormData>({
         resolver: zodResolver(discountSchema),
@@ -92,13 +101,7 @@ export default function DiscountsPage() {
             setIsActiveToggle(discount.status === 'active');
         } else {
             setEditingDiscount(null);
-            reset({
-                code: '',
-                type: 'percentage',
-                value: 0,
-                min_purchase: 0,
-                max_uses: null
-            });
+            reset({ code: '', type: 'percentage', value: 0, min_purchase: 0, max_uses: null });
             setIsActiveToggle(true);
         }
         setIsModalOpen(true);
@@ -107,377 +110,239 @@ export default function DiscountsPage() {
     const onSubmit = async (data: DiscountFormData) => {
         setIsSaving(true);
         await new Promise(resolve => setTimeout(resolve, 800));
-
         if (editingDiscount) {
-            setDiscounts(discounts.map(d => d.id === editingDiscount.id ? { 
-                ...d, 
-                ...data, 
-                status: isActiveToggle ? 'active' : 'expired' 
-            } : d));
-            showToast("¡Perfecto! Los cambios se han guardado con éxito ✨", "success");
+            setDiscounts(discounts.map(d => d.id === editingDiscount.id ? { ...d, ...data, status: isActiveToggle ? 'active' : 'expired' } : d));
+            showToast("Cambios guardados con éxito ✨", "success");
         } else {
-            const newDiscount: Discount = {
-                id: Math.random().toString(36).substr(2, 9),
-                ...data,
-                status: isActiveToggle ? 'active' : 'expired',
-                used_count: 0,
-                created_at: new Date().toISOString()
-            };
+            const newDiscount: Discount = { id: Math.random().toString(36).substr(2, 9), ...data, status: isActiveToggle ? 'active' : 'expired', used_count: 0, created_at: new Date().toISOString() };
             setDiscounts([newDiscount, ...discounts]);
-            showToast("¡Excelente! Tu nuevo cupón ya está activo 🏷️", "success");
+            showToast("¡Nuevo cupón activo! 🏷️", "success");
         }
         setIsSaving(false);
         setIsModalOpen(false);
     };
 
-    const handleDelete = (id: string) => {
-        if (confirm("¿Eliminar este cupón permanentemente?")) {
-            setDiscounts(discounts.filter(d => d.id !== id));
-            showToast("Cupón eliminado correctamente", "success");
-        }
-    };
+    const formatCurrency = (amount: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
+    const formatNumberInput = (val: number) => val === 0 ? "0" : val?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") || "";
+    const unformatNumberInput = (val: string) => parseFloat(val.replace(/\./g, '')) || 0;
 
-    const copyCode = (code: string) => {
-        navigator.clipboard.writeText(code);
-        showToast("¡Código copiado!", "success");
-    };
-
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
-    };
-
-    const formatNumberInput = (val: number) => {
-        if (val === 0) return "0";
-        if (!val) return "";
-        return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    };
-
-    const unformatNumberInput = (val: string) => {
-        return parseFloat(val.replace(/\./g, '')) || 0;
-    };
-
-    // --- LÓGICA DE FILTRADO, ORDENAMIENTO Y PAGINACIÓN ---
-    const { filteredDiscounts, totalPages } = useMemo(() => {
-        const filtered = discounts
+    const filteredDiscounts = useMemo(() => {
+        return discounts
             .filter(d => d.code.toLowerCase().includes(searchTerm.toLowerCase()))
-            // ORDENAMIENTO: El más nuevo arriba
             .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+    }, [discounts, searchTerm]);
 
-        const total = Math.ceil(filtered.length / itemsPerPage);
-        const sliced = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    const renderKPIs = () => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 shrink-0">
+            {[
+                { label: 'Cupones Emitidos', value: '42', sub: 'Total histórico', icon: <Tag size={20}/>, trend: '+5%', color: 'text-[#004d4d]' },
+                { label: 'Campañas Activas', value: '08', sub: 'Corriendo ahora', icon: <Target size={20}/>, trend: 'OK', color: 'text-amber-500' },
+                { label: 'Tasa Redención', value: '24.5%', sub: 'Efectividad', icon: <TrendingUp size={20}/>, trend: '+3%', color: 'text-emerald-600' },
+                { label: 'Ahorro Generado', value: '$ 4.2M', sub: 'Ventas con descuento', icon: <DollarSign size={20}/>, trend: '+12%', color: 'text-[#00f2ff]' },
+            ].map((kpi, i) => (
+                <motion.div key={i} whileHover={{ y: -5, scale: 1.02 }} className="bg-white/60 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/80 shadow-sm flex flex-col justify-between group transition-all">
+                    <div className="flex justify-between items-start">
+                        <div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color} group-hover:scale-110 transition-transform`}>
+                            {kpi.icon}
+                        </div>
+                        <span className="text-[10px] font-black px-2 py-1 bg-gray-50 text-gray-400 rounded-lg">{kpi.trend}</span>
+                    </div>
+                    <div className="mt-6">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p>
+                        <h3 className="text-3xl font-black text-gray-900 mt-1">{kpi.value}</h3>
+                        <p className="text-[9px] font-bold text-gray-400 mt-1 italic">{kpi.sub}</p>
+                    </div>
+                </motion.div>
+            ))}
+        </div>
+    );
 
-        return { filteredDiscounts: sliced, totalPages: total };
-    }, [discounts, searchTerm, currentPage]);
-
-    useEffect(() => { setCurrentPage(1); }, [searchTerm]);
-
-    return (
-        <div className="max-w-7xl mx-auto space-y-10 pb-20 animate-in fade-in duration-500">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                    <h1 className="text-4xl font-black text-gray-900 tracking-tight">Descuentos</h1>
-                    <p className="text-gray-500 mt-2 font-medium">Gestiona tus campañas de marketing y fidelización.</p>
-                </div>
-                <button 
-                    onClick={() => handleOpenModal()}
-                    className="bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all text-center"
-                >
-                    + Crear Cupón
+    const renderActionBar = () => (
+        <div className="flex flex-col md:flex-row gap-4 items-center bg-white/60 backdrop-blur-md p-3 rounded-3xl border border-white/60 shadow-sm mx-4 shrink-0 relative z-30">
+            <div className="relative flex-1 w-full">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <input type="text" placeholder="Buscar por código promocional..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-14 pr-6 py-4 bg-transparent text-sm font-bold text-slate-700 outline-none" />
+            </div>
+            <div className="h-10 w-px bg-slate-200 hidden md:block"></div>
+            <div className="flex items-center gap-3">
+                <button className="h-12 flex items-center gap-2 px-5 rounded-2xl bg-white text-slate-500 border border-gray-100 hover:bg-gray-50 transition-all">
+                    <Filter size={18}/> <span className="text-[10px] font-black uppercase tracking-widest">Tipo</span>
+                </button>
+                <button className="h-12 flex items-center gap-2 px-5 bg-gray-900 text-white rounded-2xl shadow-lg hover:bg-black transition-all">
+                    <Download size={18}/> <span className="text-[10px] font-black uppercase tracking-widest">Reporte</span>
                 </button>
             </div>
+        </div>
+    );
 
-            {/* Search Bar */}
-            <div className="bg-white p-2 rounded-[2.5rem] shadow-sm border border-gray-100 flex items-center px-6 group focus-within:border-purple-200 transition-all">
-                <Search className="text-gray-400 group-focus-within:text-purple-600 transition-colors" size={20} />
-                <input 
-                    type="text" 
-                    placeholder="Buscar por código promocional..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="flex-1 py-4 px-4 bg-transparent outline-none text-sm font-bold text-gray-900 placeholder:text-gray-300 placeholder:font-medium"
-                />
-            </div>
-
-            {/* Table */}
-            <div className="bg-white rounded-[3rem] border border-gray-50 shadow-sm overflow-hidden">
-                <table className="w-full text-left">
-                    <thead>
-                        <tr className="bg-gray-50/50 border-b border-gray-50">
-                            <th className="px-10 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Código / Requisito</th>
-                            <th className="px-10 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Uso</th>
-                            <th className="px-10 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Valor</th>
-                            <th className="px-10 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                        {filteredDiscounts.map((d) => (
-                            <tr key={d.id} className="hover:bg-gray-50/50 transition-colors group">
-                                <td className="px-10 py-8">
-                                    <div className="flex items-center gap-3">
-                                        <span className={`px-4 py-1.5 rounded-xl font-mono font-black text-xs border ${d.status === 'active' ? 'bg-purple-50 text-purple-700 border-purple-100' : 'bg-gray-100 text-gray-400 border-gray-200'}`}>
-                                            {d.code}
-                                        </span>
-                                    </div>
-                                    <p className="text-[10px] text-gray-400 font-bold mt-2 uppercase tracking-tight">Compra mín: {formatCurrency(d.min_purchase)}</p>
-                                </td>
-                                <td className="px-10 py-8">
-                                    <div className="max-w-[140px] mx-auto">
-                                        <div className="flex justify-between text-[9px] font-black uppercase text-gray-400 mb-1.5">
-                                            <span>{d.used_count} usos</span>
-                                            {d.max_uses && <span>meta: {d.max_uses}</span>}
-                                        </div>
-                                        <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner">
-                                            <div 
-                                                className={`h-full rounded-full transition-all duration-1000 ${d.status === 'active' ? 'bg-purple-600' : 'bg-gray-400'}`} 
-                                                style={{ width: `${d.max_uses ? (d.used_count / d.max_uses) * 100 : 100}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="px-10 py-8">
-                                    <p className="text-base font-black text-gray-900">
-                                        {d.type === 'percentage' ? `${d.value}% OFF` : d.type === 'free_shipping' ? 'Gratis' : formatCurrency(d.value)}
-                                    </p>
-                                    <p className="text-[10px] text-gray-400 font-bold uppercase">{d.type === 'free_shipping' ? 'Envío' : 'Directo'}</p>
-                                </td>
-                                <td className="px-10 py-8 text-right">
-                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                                        <button 
-                                            onClick={() => copyCode(d.code)} 
-                                            className="h-10 w-10 bg-white text-gray-400 rounded-xl flex items-center justify-center hover:bg-purple-600 hover:text-white transition-all shadow-sm border border-gray-100"
-                                            title="Copiar código"
-                                        >
-                                            <Copy size={16} />
-                                        </button>
-                                        <button 
-                                            onClick={() => handleOpenModal(d)}
-                                            className="h-10 w-10 bg-white text-blue-500 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-gray-100"
-                                            title="Editar cupón"
-                                        >
-                                            <Edit3 size={16} />
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDelete(d.id)} 
-                                            className="h-10 w-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all shadow-sm border border-rose-100"
-                                            title="Eliminar cupón"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-
-                {/* Controles de Paginación */}
-                {totalPages > 1 && (
-                    <div className="p-6 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                            Página {currentPage} de {totalPages}
-                        </p>
-                        <div className="flex gap-2">
-                            <button 
-                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                disabled={currentPage === 1}
-                                className="px-4 py-2 bg-white border border-gray-100 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-purple-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                            >
-                                <ChevronLeft size={14} className="inline mr-1" /> Anterior
-                            </button>
-                            <button 
-                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                disabled={currentPage === totalPages}
-                                className="px-4 py-2 bg-white border border-gray-100 rounded-xl text-[10px] font-black uppercase text-gray-400 hover:text-purple-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                            >
-                                Siguiente <ChevronRight size={14} className="inline ml-1" />
-                            </button>
+    const renderDiscounts = () => (
+        <div className="px-4 space-y-4">
+            {filteredDiscounts.map((d) => (
+                <motion.div key={d.id} whileHover={{ x: 5 }} className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-10">
+                    <div className="flex items-center gap-6 flex-1">
+                        <div className={`h-16 w-16 rounded-[1.8rem] flex items-center justify-center text-2xl font-black shadow-2xl ${d.status === 'active' ? 'bg-[#004d4d] text-white' : 'bg-gray-100 text-gray-400'}`}>
+                            {d.type === 'percentage' ? <Percent size={28}/> : d.type === 'fixed_amount' ? <DollarSign size={28}/> : <Truck size={28}/>}
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-3">
+                                <h4 className="text-xl font-black text-gray-900 tracking-tight uppercase font-mono">{d.code}</h4>
+                                <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${d.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-50 text-gray-400'}`}>
+                                    {d.status === 'active' ? 'Activo' : 'Expirado'}
+                                </span>
+                            </div>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1 italic">Mínimo compra: {formatCurrency(d.min_purchase)}</p>
                         </div>
                     </div>
-                )}
+                    <div className="flex-[1.5] space-y-3">
+                        <div className="flex justify-between items-end">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Meta de redenciones</p>
+                            <p className="text-sm font-black text-[#004d4d]">{d.used_count} / {d.max_uses || '∞'} USOS</p>
+                        </div>
+                        <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden border border-gray-50 p-0.5">
+                            <motion.div initial={{ width: 0 }} animate={{ width: `${d.max_uses ? (d.used_count / d.max_uses) * 100 : 100}%` }} className={`h-full rounded-full shadow-[0_0_10px_rgba(0,242,255,0.3)] ${d.status === 'active' ? 'bg-gradient-to-r from-[#004d4d] to-[#00f2ff]' : 'bg-gray-300'}`}></motion.div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                        <div className="text-right mr-4">
+                            <p className="text-2xl font-black text-gray-900">{d.type === 'percentage' ? `${d.value}%` : d.type === 'fixed_amount' ? formatCurrency(d.value) : 'GRATIS'}</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Valor Descuento</p>
+                        </div>
+                        <button onClick={() => handleOpenModal(d)} className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-400 hover:text-[#004d4d] flex items-center justify-center transition-all"><Edit3 size={20}/></button>
+                        <button onClick={() => copyCode(d.code)} className="h-12 w-12 rounded-2xl bg-gray-900 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"><Copy size={20} /></button>
+                    </div>
+                </motion.div>
+            ))}
+        </div>
+    );
+
+    return (
+        <div className="max-w-[1600px] mx-auto pb-20 space-y-12 animate-in fade-in duration-1000">
+            
+            {/* --- HEADER MAESTRO --- */}
+            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8 px-4 shrink-0">
+                <div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <span className="h-2 w-2 rounded-full bg-[#00f2ff] animate-pulse shadow-[0_0_10px_#00f2ff]"></span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Marketing & Conversión</span>
+                    </div>
+                    <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">
+                        Reglas de <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF] px-2 py-1">Descuento</span>
+                    </h1>
+                    <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed italic">
+                        Gestiona tus campañas de marketing y fidelización con precisión <span className="font-bold text-[#001A1A]">estratégica</span>.
+                    </p>
+                </div>
+                <div className="flex items-center gap-4">
+                    <button onClick={() => handleOpenModal()} className="h-14 px-10 bg-gray-900 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group"><Plus size={18} className="text-[#00f2ff] group-hover:rotate-12 transition-transform" /> Crear Nueva Oferta</button>
+                </div>
             </div>
 
-            {/* MODAL FLOTANTE PREMIUM */}
-            <AnimatePresence>
-                {isModalOpen && (
-                    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="bg-white w-full max-w-2xl rounded-[3.5rem] shadow-2xl overflow-hidden relative border border-white/20"
-                        >
-                            <div className="bg-gray-900 p-8 text-white relative">
-                                <button 
-                                    onClick={() => setIsModalOpen(false)} 
-                                    className="absolute top-6 right-6 h-10 w-10 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-rose-500 transition-all"
-                                >
-                                    <X size={20} />
-                                </button>
-                                <div className="flex items-center gap-4">
-                                    <div className="h-14 w-14 bg-purple-600 rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-purple-500/20">
-                                        <Tag size={28} />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-2xl font-black tracking-tight">{editingDiscount ? 'Editar Cupón' : 'Nuevo Descuento'}</h2>
-                                        <p className="text-purple-400 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Reglas de Fidelización</p>
+            {/* --- KPIs ESTRATÉGICOS --- */}
+            {renderKPIs()}
+
+            {/* --- MENÚ FLOTANTE CENTRAL --- */}
+            <div className="flex items-center justify-center gap-6 shrink-0 relative z-20">
+                <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl shadow-gray-200/50 backdrop-blur-xl flex items-center relative">
+                    {[
+                        { id: 'todos', label: 'Todos', icon: <LayoutGrid size={14}/> },
+                        { id: 'cupones', label: 'Cupones', icon: <Tag size={14}/> },
+                        { id: 'automaticos', label: 'Automáticos', icon: <Zap size={14}/> },
+                        { id: 'bayt', label: 'Bayt Insight', icon: <Sparkles size={14}/> }
+                    ].map((tab) => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`relative px-8 py-3 rounded-full text-[9px] font-black uppercase tracking-widest transition-all duration-500 z-10 flex items-center gap-2 ${isActive ? 'text-white' : 'text-gray-400 hover:text-gray-900'}`}
+                            >
+                                {isActive && (
+                                    <motion.div layoutId="activeDiscountTab" className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+                                )}
+                                {tab.icon}
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* --- CONTENIDO DINÁMICO --- */}
+            <AnimatePresence mode="wait">
+                <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }} className="space-y-10">
+                    {(activeTab === 'todos' || activeTab === 'cupones' || activeTab === 'automaticos') && (
+                        <div className="space-y-8">
+                            {renderActionBar()}
+                            {renderDiscounts()}
+                        </div>
+                    )}
+                    {activeTab === 'bayt' && (
+                        <div className="px-4">
+                            <div className="bg-[#004d4d] p-16 rounded-[4rem] text-white relative overflow-hidden shadow-2xl border border-white/5">
+                                <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12"><Percent size={300} /></div>
+                                <div className="flex flex-col md:flex-row items-center gap-16 relative z-10">
+                                    <div className="h-32 w-32 bg-gray-900 rounded-[3rem] border-2 border-[#00f2ff]/50 flex items-center justify-center animate-pulse"><Bot size={64} className="text-[#00f2ff]" /></div>
+                                    <div className="flex-1 space-y-6">
+                                        <span className="px-4 py-1.5 bg-[#00f2ff]/10 text-[#00f2ff] rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-[#00f2ff]/20">Estrategia de Conversión</span>
+                                        <h3 className="text-4xl font-black uppercase italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-[#00f2ff]">Optimiza tus ofertas en tiempo real</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">"El cupón **VERANO20** está cerca de su meta de usos. Sugerencia: Extender meta un 20% ya que el ROAS es de 5.2x."</p></div>
+                                            <div className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">"Detectado abandono de carrito en pedidos de +$100k. Crear un descuento automático de **Envío Gratis** para este segmento."</p></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    )}
+                </motion.div>
+            </AnimatePresence>
 
-                            <form onSubmit={handleSubmit(onSubmit)} className="p-10 space-y-8">
-                                <div className="flex items-center justify-between p-6 bg-gray-50 rounded-[2rem] border border-gray-100">
-                                    <div>
-                                        <p className="text-sm font-black text-gray-900">Disponibilidad del Cupón</p>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-                                            {isActiveToggle ? 'Cupón activo para clientes' : 'Cupón desactivado temporalmente'}
-                                        </p>
-                                    </div>
-                                    <button 
-                                        type="button"
-                                        onClick={() => setIsActiveToggle(!isActiveToggle)}
-                                        className={`w-14 h-8 rounded-full transition-all relative flex items-center px-1 ${isActiveToggle ? 'bg-purple-600' : 'bg-gray-300'}`}
-                                    >
-                                        <div className={`h-6 w-6 bg-white rounded-full shadow-md transition-all transform ${isActiveToggle ? 'translate-x-6' : 'translate-x-0'}`} />
-                                    </button>
+            {/* MODAL: CREAR/EDITAR (Se mantiene lógica funcional) */}
+            <AnimatePresence>
+                {isModalOpen && (
+                    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-black/70 backdrop-blur-xl" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 100 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 100 }} className="bg-white w-full max-w-2xl rounded-[4rem] shadow-3xl overflow-hidden relative border border-white/20 z-10">
+                            <div className="bg-[#004d4d] p-10 text-white flex items-center gap-6">
+                                <div className="h-16 w-16 bg-[#00f2ff] text-[#004d4d] rounded-2xl flex items-center justify-center shadow-lg"><Percent size={32} /></div>
+                                <div><h2 className="text-2xl font-black uppercase tracking-tight">{editingDiscount ? 'Editar Oferta' : 'Nueva Oferta'}</h2><p className="text-[10px] font-black text-[#00f2ff] uppercase tracking-widest">Configuración de Descuento</p></div>
+                            </div>
+                            <form onSubmit={handleSubmit(onSubmit)} className="p-10 space-y-8 bg-white">
+                                <div className="flex items-center justify-between p-6 bg-gray-50 rounded-[2rem] border border-gray-100 shadow-inner">
+                                    <div><p className="text-sm font-black text-gray-900">Estado de la Oferta</p><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{isActiveToggle ? 'Habilitado para el público' : 'Desactivado temporalmente'}</p></div>
+                                    <button type="button" onClick={() => setIsActiveToggle(!isActiveToggle)} className={`w-14 h-8 rounded-full transition-all relative flex items-center px-1 ${isActiveToggle ? 'bg-[#004d4d] shadow-[0_0_10px_rgba(0,77,77,0.3)]' : 'bg-gray-300'}`}><div className={`h-6 w-6 bg-white rounded-full shadow-md transition-all transform ${isActiveToggle ? 'translate-x-6' : 'translate-x-0'}`} /></button>
                                 </div>
-
                                 <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Código Promocional</label>
-                                        <input 
-                                            {...register('code')} 
-                                            className="w-full p-4 bg-gray-50 border-2 border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-black transition-all shadow-inner" 
-                                            placeholder="EJ: BAYUP2026" 
-                                        />
-                                        {errors.code && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.code.message}</p>}
-                                    </div>
-                                    <div className="space-y-2 relative">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Tipo de Beneficio</label>
-                                        <button 
-                                            type="button"
-                                            onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
-                                            className="w-full flex items-center justify-between p-4 bg-gray-50 border-2 border-transparent hover:border-purple-100 rounded-2xl outline-none text-sm font-bold transition-all cursor-pointer"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="text-purple-600">
-                                                    {typeOptions.find(o => o.id === selectedType)?.icon}
-                                                </div>
-                                                {typeOptions.find(o => o.id === selectedType)?.label}
-                                            </div>
-                                            <motion.div
-                                                animate={{ rotate: isTypeDropdownOpen ? 180 : 0 }}
-                                                className="text-gray-400"
-                                            >
-                                                <ChevronDown size={14} />
+                                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Código Promocional</label><input {...register('code')} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" placeholder="EJ: BAYUP20" /></div>
+                                    <div className="space-y-2 relative"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Tipo de Beneficio</label>
+                                        <button type="button" onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)} className="w-full flex items-center justify-between p-5 bg-gray-50 border-2 border-transparent hover:border-[#004d4d]/20 rounded-2xl text-sm font-bold transition-all"><div className="flex items-center gap-3"><div className="text-[#004d4d]">{typeOptions.find(o => o.id === selectedType)?.icon}</div>{typeOptions.find(o => o.id === selectedType)?.label}</div><ChevronDown size={14} /></button>
+                                        <AnimatePresence>{isTypeDropdownOpen && (
+                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-gray-100 py-3 z-[600] overflow-hidden">
+                                                {typeOptions.map((option) => (
+                                                    <button key={option.id} type="button" onClick={() => { setValue('type', option.id as any); setIsTypeDropdownOpen(false); }} className={`w-full px-6 py-4 text-left flex items-center gap-4 hover:bg-gray-50 transition-colors ${selectedType === option.id ? 'bg-[#004d4d]/5' : ''}`}><div className={`h-8 w-8 rounded-xl flex items-center justify-center ${selectedType === option.id ? 'bg-[#004d4d] text-white' : 'bg-gray-50 text-gray-400'}`}>{option.icon}</div><p className="text-xs font-black uppercase tracking-tight text-gray-600">{option.label}</p></button>
+                                                ))}
                                             </motion.div>
-                                        </button>
-
-                                        <AnimatePresence>
-                                            {isTypeDropdownOpen && (
-                                                <motion.div 
-                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                    className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-gray-100 py-3 z-[600] overflow-hidden"
-                                                >
-                                                    {typeOptions.map((option) => (
-                                                        <button
-                                                            key={option.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setValue('type', option.id as any);
-                                                                setIsTypeDropdownOpen(false);
-                                                            }}
-                                                            className={`w-full px-6 py-4 text-left flex items-center gap-4 hover:bg-purple-50 transition-colors ${selectedType === option.id ? 'bg-purple-50/50' : ''}`}
-                                                        >
-                                                            <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${selectedType === option.id ? 'bg-purple-600 text-white' : 'bg-gray-50 text-gray-400'}`}>
-                                                                {option.icon}
-                                                            </div>
-                                                            <div>
-                                                                <p className={`text-xs font-black uppercase tracking-tight ${selectedType === option.id ? 'text-purple-700' : 'text-gray-600'}`}>
-                                                                    {option.label}
-                                                                </p>
-                                                            </div>
-                                                            {selectedType === option.id && (
-                                                                <div className="ml-auto h-2 w-2 bg-purple-600 rounded-full" />
-                                                            )}
-                                                        </button>
-                                                    ))}
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
+                                        )}</AnimatePresence>
                                     </div>
                                 </div>
-
                                 <div className="grid grid-cols-3 gap-6 pt-6 border-t border-gray-100">
                                     {selectedType !== 'free_shipping' && (
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Valor</label>
-                                            <div className="relative">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black text-xs">
-                                                    {selectedType === 'percentage' ? '%' : '$'}
-                                                </span>
-                                                <input 
-                                                    type="text" 
-                                                    value={formatNumberInput(watch('value'))}
-                                                    onChange={(e) => setValue('value', unformatNumberInput(e.target.value))}
-                                                    className="w-full pl-8 pr-4 py-4 bg-gray-50 border-2 border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-black transition-all" 
-                                                />
-                                            </div>
-                                        </div>
+                                        <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Valor</label><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black text-xs">{selectedType === 'percentage' ? '%' : '$'}</span><input type="text" value={formatNumberInput(watch('value'))} onChange={(e) => setValue('value', unformatNumberInput(e.target.value))} className="w-full pl-8 pr-4 py-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" /></div></div>
                                     )}
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Mín. Compra</label>
-                                        <input 
-                                            type="text" 
-                                            value={formatNumberInput(watch('min_purchase'))}
-                                            onChange={(e) => setValue('min_purchase', unformatNumberInput(e.target.value))}
-                                            className="w-full p-4 bg-gray-50 border-2 border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-black transition-all" 
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Límite Usos</label>
-                                        <input 
-                                            type="number" 
-                                            {...register('max_uses', { valueAsNumber: true })} 
-                                            className="w-full p-4 bg-gray-50 border-2 border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-black transition-all" 
-                                            placeholder="Ilimitado" 
-                                        />
-                                    </div>
+                                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Mín. Compra</label><input type="text" value={formatNumberInput(watch('min_purchase'))} onChange={(e) => setValue('min_purchase', unformatNumberInput(e.target.value))} className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" /></div>
+                                    <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Límite Usos</label><input type="number" {...register('max_uses', { valueAsNumber: true })} className="w-full p-4 bg-gray-50 rounded-2xl outline-none text-sm font-bold" placeholder="∞" /></div>
                                 </div>
-
-                                <div className="flex gap-4 pt-6">
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setIsModalOpen(false)} 
-                                        className="flex-1 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button 
-                                        type="submit" 
-                                        disabled={isSaving}
-                                        className="flex-[2] py-5 bg-gray-900 hover:bg-black text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
-                                    >
-                                        {isSaving ? (
-                                            <>
-                                                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                Procesando...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <CheckCircle2 size={18} />
-                                                {editingDiscount ? 'Guardar Cambios' : 'Activar Descuento'}
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
+                                <div className="flex gap-4 pt-4"><button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-5 rounded-2xl text-[10px] font-black uppercase text-gray-400">Cancelar</button><button type="submit" disabled={isSaving} className="flex-[2] py-5 bg-gray-900 text-white rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest shadow-2xl flex items-center justify-center gap-3">{isSaving ? <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CheckCircle2 size={18}/>} {editingDiscount ? 'Guardar Cambios' : 'Lanzar Oferta'}</button></div>
                             </form>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
+
+            <style jsx global>{`
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 30px; }
+            `}</style>
         </div>
     );
 }
