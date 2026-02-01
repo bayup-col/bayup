@@ -8,7 +8,8 @@ export const TypewriterHeadline = ({ text, className = "", gradientClass = "" }:
   const [isSecondPart, setIsSecondPart] = useState(false);
   
   const baseText = text[0];
-  const highlightText = text[1];
+  const secondLineStart = text[1]; // "ONLINE" (Black)
+  const secondLineEnd = text[2];   // "GRATIS" (Gradient)
 
   useEffect(() => {
     let i = 0;
@@ -23,7 +24,7 @@ export const TypewriterHeadline = ({ text, className = "", gradientClass = "" }:
         clearInterval(typeBase);
         setIsSecondPart(true);
       }
-    }, 80);
+    }, 50); // Speed up slightly
 
     return () => clearInterval(typeBase);
   }, [text, baseText]);
@@ -33,13 +34,28 @@ export const TypewriterHeadline = ({ text, className = "", gradientClass = "" }:
       <span>{displayText}</span>
       {isSecondPart && <br />}
       {isSecondPart && (
-        <motion.span
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className={`text-transparent bg-clip-text bg-gradient-to-r ${gradientClass} inline-block`}
-        >
-          <TypewriterPart text={highlightText} />
-        </motion.span>
+        <div className="inline-block">
+          {/* Parte 2: Texto Negro (ONLINE) */}
+          <motion.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="inline-block mr-3"
+          >
+             <TypewriterPart text={secondLineStart} />
+          </motion.span>
+
+          {/* Parte 3: Texto Gradiente (GRATIS) - Si existe */}
+          {secondLineEnd && (
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className={`text-transparent bg-clip-text bg-gradient-to-r ${gradientClass} inline-block`}
+            >
+              <TypewriterPart text={secondLineEnd} delay={secondLineStart.length * 50} />
+            </motion.span>
+          )}
+        </div>
       )}
       <motion.span
         animate={{ opacity: [0, 1, 0] }}
@@ -50,22 +66,27 @@ export const TypewriterHeadline = ({ text, className = "", gradientClass = "" }:
   );
 };
 
-const TypewriterPart = ({ text }: { text: string }) => {
+const TypewriterPart = ({ text, delay = 0 }: { text: string, delay?: number }) => {
   const [content, setContent] = useState("");
   
   useEffect(() => {
     let i = 0;
     setContent("");
-    const interval = setInterval(() => {
-      if (i < text.length) {
-        setContent(text.slice(0, i + 1));
-        i++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 80);
-    return () => clearInterval(interval);
-  }, [text]);
+    
+    const startTimeout = setTimeout(() => {
+        const interval = setInterval(() => {
+        if (i < text.length) {
+            setContent(text.slice(0, i + 1));
+            i++;
+        } else {
+            clearInterval(interval);
+        }
+        }, 80);
+        return () => clearInterval(interval);
+    }, delay);
+
+    return () => clearTimeout(startTimeout);
+  }, [text, delay]);
 
   return <span>{content}</span>;
 };

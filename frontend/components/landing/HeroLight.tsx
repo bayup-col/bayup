@@ -5,7 +5,10 @@ import { useEffect, useState } from "react";
 import { Play, ArrowRight } from "lucide-react";
 import { WaterRipple } from "./WaterRipple";
 import { TypewriterHeadline } from "./TypewriterHeadline";
+import { TypewriterCycler } from "./TypewriterCycler";
+import { InteractiveText } from "./InteractiveText";
 import { BookButton } from "./BookButton";
+import { GlassButton } from "./GlassButton";
 
 const products = [
   { id: 1, name: "Premium Apparel", image: "/assets/Neon Red Animated and Bright Twitch Logo (1).png", detail: "Quality Fabrics" },
@@ -16,32 +19,8 @@ const products = [
   { id: 6, name: "Street Style", image: "/assets/Neon Red Animated and Bright Twitch Logo (6).png", detail: "Urban Sneakers" },
 ];
 
-const messages = [
-  {
-    badge: "The New Era of E-commerce",
-    headline: ["POTENCIAL", "ILIMITADO."],
-    subline: "Construye, escala y domina tu mercado con la plataforma multi-tenant más avanzada. Tecnología Apple-grade para tu marca.",
-    gradient: "from-petroleum to-cyan"
-  },
-  {
-    badge: "Integrated Intelligence",
-    headline: ["FUTURO", "INTELIGENTE."],
-    subline: "Automatiza tu éxito con Bayt AI. Un ecosistema que predice, gestiona y vende por ti mientras te enfocas en lo que importa: crecer.",
-    gradient: "from-cyan to-petroleum"
-  },
-  {
-    badge: "Infinite Scalability",
-    headline: ["DOMINIO", "GLOBAL."],
-    subline: "Vende en cualquier rincón del mundo con infraestructura de baja latencia y cumplimiento fiscal automático en más de 45 países.",
-    gradient: "from-[#008080] via-cyan to-petroleum"
-  }
-];
-
 export const HeroLight = () => {
   const [productIndex, setProductIndex] = useState(0);
-
-  // El mensaje cambia cada 2 productos
-  const messageIndex = Math.floor(productIndex / 2);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -63,45 +42,54 @@ export const HeroLight = () => {
           <div className="space-y-10">
             <div className="space-y-4">
               <motion.div 
-                key={`badge-${messageIndex}`}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-gray-100 shadow-sm"
               >
                 <span className="h-2 w-2 rounded-full bg-cyan animate-pulse" />
                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-petroleum">
-                  {messages[messageIndex].badge}
+                  La Nueva Era del Comercio Digital
                 </span>
               </motion.div>
               
-              <TypewriterHeadline 
-                text={messages[messageIndex].headline} 
-                className="text-7xl md:text-9xl font-black text-black leading-[0.85] tracking-tighter italic uppercase min-h-[2em]"
-                gradientClass={messages[messageIndex].gradient}
-              />
+              <div className="text-6xl md:text-8xl font-black text-black leading-[0.9] tracking-tighter italic uppercase">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8 }}
+                >
+                  CREA TU TIENDA
+                </motion.div>
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+                  className="flex items-center flex-wrap gap-x-4"
+                >
+                  <span>ONLINE</span>
+                  <TypewriterCycler 
+                    words={["GRATIS", "FACIL", "RAPIDO"]}
+                    className="font-black tracking-tighter italic uppercase min-w-[280px]" // Min-width para evitar saltos
+                    colors={["#00F2FF", "#004D4D"]} 
+                  />
+                </motion.div>
+              </div>
             </div>
             
-            <AnimatePresence mode="wait">
-              <motion.p 
-                key={`sub-${messageIndex}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="max-w-xl text-gray-500 text-xl font-medium leading-relaxed"
-              >
-                {messages[messageIndex].subline}
-              </motion.p>
-            </AnimatePresence>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="max-w-xl text-gray-500 text-xl font-medium leading-relaxed"
+            >
+              Deja de vender solo por chat, crea tu página profesional en minutos y dale a tu negocio la imagen que siempre quisiste.
+            </motion.p>
           </div>
 
           {/* BOTONES 3D BOOK APILADOS */}
           <div className="flex flex-wrap gap-10 pt-4">
-            <BookButton href="/register" variant="primary">
+            <GlassButton href="/register" variant="dark">
               Empieza ahora
-            </BookButton>
-            <BookButton href="/demo" variant="secondary" icon={<Play size={14} className="fill-petroleum text-petroleum" />}>
-              Ver Demo
-            </BookButton>
+            </GlassButton>
           </div>
         </div>
 

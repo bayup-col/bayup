@@ -12,6 +12,8 @@ import { PricingCinematic } from "@/components/landing/PricingCinematic";
 import { Footer } from "@/components/landing/Footer";
 import { InteractiveUP } from "@/components/landing/InteractiveUP";
 import { PremiumButton } from "@/components/landing/PremiumButton";
+import { ExpandableButton } from "@/components/landing/ExpandableButton";
+import { User } from "lucide-react";
 import { PageLoader } from "@/components/landing/PageLoader";
 import { WhatsAppFloatingButton } from "@/components/landing/WhatsAppFloatingButton";
 import { motion, useScroll, useSpring, useMotionValueEvent, AnimatePresence } from "framer-motion";
@@ -139,10 +141,23 @@ export default function HomePage() {
                 </div>
 
                 {/* Columna 3: CTA Derecha */}
-                <div className="flex justify-end pointer-events-auto">
-                  <PremiumButton href="/login">
-                    Iniciar
-                  </PremiumButton>
+                <div className="flex justify-end pointer-events-auto items-center gap-6">
+                  
+                  {/* Botón Registrarse (Texto -> Gratis) */}
+                  <ExpandableButton 
+                    href="/register" 
+                    variant="primary" 
+                    baseText="REGÍSTRATE" 
+                    expandedText="GRATIS" 
+                  />
+
+                  {/* Botón Iniciar Sesión (Icono -> Texto) */}
+                  <ExpandableButton 
+                    href="/login" 
+                    variant="ghost" 
+                    expandedText="INICIAR SESIÓN" 
+                    icon={<User size={22} className="text-black" />} 
+                  />
                 </div>
               </div>
             </motion.nav>

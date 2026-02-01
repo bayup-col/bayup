@@ -33,13 +33,12 @@ export const ValueStatement = () => {
         
         <div className="max-w-6xl mx-auto space-y-20">
           <div className="text-4xl md:text-6xl font-black text-black tracking-tighter leading-[1.1] italic uppercase flex flex-col items-center">
-            <RollingText text="NO SOMOS UNA TIENDA." />
+            <RollingText text="LA FORMA MAS FACIL" />
             <div className="flex gap-2">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum">
-                <RollingText text="SOMOS UN SISTEMA OPERATIVO" />
+                <RollingText text="DE VENDER POR INTERNET." />
               </span>
             </div>
-            <RollingText text="PARA TU NEGOCIO." />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 perspective-2000">
