@@ -1,29 +1,32 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Globe, Zap, Cpu } from "lucide-react";
+import { Palette, ShoppingBag, Banknote, Globe, Zap, Cpu } from "lucide-react";
 import { useState } from "react";
 import { RollingText } from "./RollingText";
 
 export const ValueStatement = () => {
   const pillars = [
     { 
-      title: "Arquitectura Invisible", 
-      desc: "Escalabilidad real sin preocuparte por la infraestructura.", 
-      details: "Infraestructura Serverless que se expande dinámicamente según tu tráfico global, garantizando latencia cero.",
-      icon: <Globe size={28} /> 
+      title: "PERSONALIZA TU TIENDA", 
+      desc: "", 
+      details: "Diseña cada rincón de tu web con herramientas intuitivas.",
+      highlight: "Tu marca, tu estilo, sin límites técnicos.",
+      icon: <Palette size={28} /> 
     },
     { 
-      title: "Velocidad Cuántica", 
-      desc: "La plataforma más rápida del mercado, optimizada para conversión.", 
-      details: "Nodos de computación en el borde (Edge) para procesar órdenes en milisegundos. Instantáneo por definición.",
-      icon: <Zap size={28} /> 
+      title: "AGREGA TU PRIMER PRODUCTO", 
+      desc: "", 
+      details: "Sube tus fotos, define tus precios y organiza tu catálogo en segundos.",
+      highlight: "Publicar nunca fue tan fácil.",
+      icon: <ShoppingBag size={28} /> 
     },
     { 
-      title: "IA Operativa", 
-      desc: "Automatización inteligente que realmente vende por ti.", 
-      details: "Bayt AI predice tendencias, optimiza precios en tiempo real y gestiona procesos de forma autónoma.",
-      icon: <Cpu size={28} /> 
+      title: "COMIENZA A VENDER", 
+      desc: "", 
+      details: "Activa tu pasarela de pagos y empieza a recibir órdenes de inmediato.",
+      highlight: "El mundo está listo para comprarte.",
+      icon: <Banknote size={28} /> 
     },
   ];
 
@@ -85,9 +88,11 @@ const Card3D = ({ pillar, index }: { pillar: any, index: number }) => {
           <div className="absolute inset-0 bg-gradient-to-br from-petroleum/[0.05] to-cyan/[0.05] rounded-[4.5rem] -z-10" />
           
           <div className="space-y-10 flex flex-col items-center w-full">
-            <div className="h-20 w-20 rounded-3xl bg-petroleum text-cyan flex items-center justify-center shadow-2xl relative">
-              <div className="absolute inset-0 bg-cyan/20 blur-2xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              {pillar.icon}
+            <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-[#004D4D] to-black text-white flex items-center justify-center shadow-[0_0_30px_rgba(0,77,77,0.3)] relative group-hover:shadow-[0_0_50px_rgba(0,242,255,0.4)] transition-all duration-700">
+              <div className="absolute inset-0 bg-cyan/10 blur-2xl rounded-full scale-150 opacity-50 group-hover:opacity-100 transition-opacity duration-700" />
+              <div className="relative z-10 filter drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]">
+                {pillar.icon}
+              </div>
             </div>
             <div className="space-y-4 text-center w-full">
               <h3 className="text-2xl font-black uppercase tracking-tight italic text-black leading-tight w-full flex justify-center">
@@ -109,19 +114,26 @@ const Card3D = ({ pillar, index }: { pillar: any, index: number }) => {
           <div className="absolute inset-0 bg-gradient-to-tr from-cyan/[0.05] to-petroleum/[0.05] rounded-[4.5rem] -z-10" />
           
           <div className="space-y-6 text-center relative z-10 w-full flex flex-col items-center">
-            <p className="text-petroleum font-black text-[10px] uppercase tracking-[0.4em]">
-              <RollingText text="ENGINE DETAILS" />
-            </p>
-            <h3 className="text-xl font-black italic uppercase tracking-tighter text-black w-full flex justify-center">
+            {/* Texto ENGINE DETAILS eliminado */}
+            <h3 className="text-xl font-black italic uppercase tracking-tighter text-black w-full flex justify-center mt-8">
               <RollingText text={pillar.title} />
             </h3>
-            <p className="text-gray-600 text-xs font-bold leading-relaxed uppercase tracking-widest italic px-6 mt-2">
+            <p className="text-gray-600 text-[10px] font-bold leading-relaxed uppercase tracking-widest italic px-6 mt-2">
               {pillar.details}
             </p>
-            <div className="pt-6">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-petroleum/10 border border-petroleum/20 text-[8px] font-black uppercase tracking-widest text-petroleum">
-                <RollingText text="STATUS: VERIFIED" />
+            
+            {pillar.highlight && (
+              <div className="pt-4 mt-2 border-t border-petroleum/10 w-full px-8">
+                <p className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum font-black text-sm italic uppercase tracking-tighter leading-tight drop-shadow-sm">
+                  {pillar.highlight}
+                </p>
               </div>
+            )}
+
+            <div className="pt-6">
+              <button className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-br from-[#004D4D] to-black text-white text-[9px] font-black uppercase tracking-widest shadow-[0_0_20px_rgba(0,77,77,0.4)] hover:shadow-[0_0_30px_rgba(0,242,255,0.5)] transition-all duration-500 hover:scale-105 active:scale-95">
+                <span className="drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">Empieza ya!</span>
+              </button>
             </div>
           </div>
 
