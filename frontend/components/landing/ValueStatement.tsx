@@ -24,8 +24,8 @@ export const ValueStatement = () => {
     { 
       title: "COMIENZA A VENDER", 
       desc: "", 
-      details: "Activa tu pasarela de pagos y empieza a recibir órdenes de inmediato.",
-      highlight: "El mundo está listo para comprarte.",
+      details: "Activa tu página web y empieza a recibir órdenes de inmediato.",
+      highlight: "Tus clientes te esperan",
       icon: <Banknote size={28} /> 
     },
   ];

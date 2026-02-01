@@ -107,15 +107,15 @@ export const NarrativeScroll = () => {
         
         {/* Intro Section - Pure White Background */}
         <section className="horizontal-section flex h-screen w-screen flex-col items-center justify-center p-20 bg-[#FFFFFF]">
-          <div className="max-w-4xl space-y-8 text-center flex flex-col items-center">
-            <p className="text-cyan font-black uppercase tracking-[0.5em] text-[10px] mb-4">
-              <RollingText text="Connected Ecosystem" />
-            </p>
-            <div className="text-7xl md:text-9xl font-black text-black italic tracking-tighter uppercase leading-[0.85] flex flex-col items-center">
-              <RollingText text="ESTRATEGIA" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan block w-full">
-                <RollingText text="CONECTADA." />
-              </span>
+          <div className="max-w-5xl space-y-2 text-center flex flex-col items-center">
+            <div className="text-6xl md:text-8xl font-black text-black italic tracking-tighter uppercase leading-[0.9] flex flex-col items-center">
+              <RollingText text="EL MUNDO ESTA LISTO" />
+              <div className="flex flex-wrap items-center justify-center gap-x-4">
+                <RollingText text="PARA" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan">
+                  <RollingText text="COMPRARTE." />
+                </span>
+              </div>
             </div>
             <div className="h-1 w-24 bg-gray-100 mt-12 mx-auto" />
           </div>

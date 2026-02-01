@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Play, ArrowRight } from "lucide-react";
 import { WaterRipple } from "./WaterRipple";
 import { TypewriterHeadline } from "./TypewriterHeadline";
-import { TypewriterCycler } from "./TypewriterCycler";
+import { TypewriterEffect } from "./TypewriterEffect";
 import { InteractiveText } from "./InteractiveText";
 import { BookButton } from "./BookButton";
 import { GlassButton } from "./GlassButton";
@@ -67,9 +67,9 @@ export const HeroLight = () => {
                   className="flex items-center flex-wrap gap-x-4"
                 >
                   <span>ONLINE</span>
-                  <TypewriterCycler 
+                  <TypewriterEffect 
                     words={["GRATIS", "FACIL", "RAPIDO"]}
-                    className="font-black tracking-tighter italic uppercase min-w-[280px]" // Min-width para evitar saltos
+                    className="font-black tracking-tighter italic uppercase"
                     colors={["#00F2FF", "#004D4D"]} 
                   />
                 </motion.div>
