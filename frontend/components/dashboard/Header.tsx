@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Bell, Bot, Package, Users, AlertCircle, CheckCircle2, Ghost, LogOut, User as UserIcon, Truck, Sparkles } from 'lucide-react';
+import { Bell, Bot, Package, Users, AlertCircle, CheckCircle2, Ghost, LogOut, User as UserIcon, Truck, Sparkles, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '@/context/theme-context';
 
 interface HeaderProps {
     pathname: string;
@@ -36,6 +37,7 @@ export const DashboardHeader = ({
     isBaytOpen,
     setIsBaytOpen
 }: HeaderProps) => {
+    const { theme, toggleTheme } = useTheme();
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [isHoveringUser, setIsHoveringUser] = useState(false);
     const [notifications, setNotifications] = useState<Notification[]>([
@@ -108,6 +110,17 @@ export const DashboardHeader = ({
                     </div>
 
                     <div className="px-4 py-1.5 flex items-center gap-4">
+                        {/* 0. Botón de Modo Oscuro */}
+                        <button 
+                            onClick={toggleTheme}
+                            className="p-2 rounded-full text-[#004d4d]/60 hover:text-[#00F2FF] hover:bg-white/50 transition-all duration-300 group"
+                            title={theme === 'light' ? "Activar Modo Oscuro" : "Activar Modo Claro"}
+                        >
+                            {theme === 'light' ? <Moon size={20} className="group-hover:rotate-12 transition-transform" /> : <Sun size={20} className="text-[#00F2FF] animate-pulse" />}
+                        </button>
+
+                        <div className="h-6 w-px bg-[#004d4d]/10"></div>
+
                         {/* 1. Botón de Bayt AI */}
                         <button 
                             onClick={() => setIsBaytOpen(!isBaytOpen)}

@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
+import { useTheme } from '@/context/theme-context';
 import { userService } from '@/lib/api';
 import { DashboardHeader } from '@/components/dashboard/Header';
 import { BaytAssistant } from '@/components/dashboard/BaytAssistant';
@@ -41,6 +42,7 @@ import {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { userEmail: authEmail, userRole: authRole, token, logout } = useAuth();
+  const { theme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
   
@@ -93,13 +95,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       
       if (type === 'super') {
         return (isSub ? subBase : base) + (isActive 
-          ? 'bg-[#f0f9f9] text-[#004d4d] shadow-sm' 
-          : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900');
+          ? (theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF] shadow-[0_0_15px_rgba(0,242,255,0.1)]' : 'bg-[#f0f9f9] text-[#004d4d] shadow-sm')
+          : (theme === 'dark' ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'));
       }
       
       return (isSub ? subBase : base) + (isActive 
-        ? 'backdrop-blur-md bg-white/20 border border-white/30 text-[#004d4d] shadow-[0_8px_16px_-4px_rgba(0,77,77,0.15)] scale-[1.02]' 
-        : 'text-gray-500 hover:bg-[#004d4d]/5 hover:text-[#004d4d]');
+        ? (theme === 'dark' 
+            ? 'backdrop-blur-md bg-[#00F2FF]/10 border border-[#00F2FF]/20 text-[#00F2FF] shadow-[0_8px_32px_-4px_rgba(0,242,255,0.2)] scale-[1.02]'
+            : 'backdrop-blur-md bg-white/20 border border-white/30 text-[#004d4d] shadow-[0_8px_16px_-4px_rgba(0,77,77,0.15)] scale-[1.02]')
+        : (theme === 'dark'
+            ? 'text-slate-400 hover:bg-white/5 hover:text-[#00F2FF]'
+            : 'text-gray-500 hover:bg-[#004d4d]/5 hover:text-[#004d4d]'));
     };
   
     const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
@@ -175,14 +181,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return (
         <>
             <div className="p-4 border-b border-white/10 relative">
-                <div className="bg-white/10 backdrop-blur-md p-6 rounded-[2.5rem] border border-white/30 shadow-sm flex flex-col items-center text-center">
+                <div className={`backdrop-blur-md p-6 rounded-[2.5rem] border shadow-sm flex flex-col items-center text-center transition-all duration-500 ${theme === 'dark' ? 'bg-[#002626]/40 border-[#00F2FF]/10' : 'bg-white/10 border-white/30'}`}>
                     <div className="flex flex-col items-center">
-                        <span className="text-base font-black text-gray-900 leading-tight uppercase tracking-tighter">
+                        <span className={`text-base font-black leading-tight uppercase tracking-tighter transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                             {userEmail?.split('@')[0] || 'Mi Empresa'}
                         </span>
                         <div className="flex items-center gap-1.5 mt-1.5">
                             <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>
-                            <span className="text-[9px] font-black text-[#004d4d] uppercase tracking-widest">En línea</span>
+                            <span className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-[#004d4d]'}`}>En línea</span>
                         </div>
                     </div>
                     
@@ -195,9 +201,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             className="absolute inset-[-200%] bg-[conic-gradient(from_0deg,#00F2FF_0deg,#004d4d_90deg,#9333EA_180deg,#004d4d_270deg,#00F2FF_360deg)] animate-[spin_4s_linear_infinite] opacity-100 group-hover/conic:animate-[spin_2s_linear_infinite]"
                         />
 
-                        {/* Inner Light Glass Body */}
-                        <div className="relative flex items-center justify-center w-full py-4 px-6 bg-white/80 backdrop-blur-2xl rounded-[calc(1rem-1.5px)] transition-all duration-500 group-hover/conic:bg-white/95">
-                            <span className="relative z-10 text-[10px] font-black uppercase tracking-[0.25em] text-[#004d4d] flex items-center gap-2 group-hover/conic:text-black transition-colors">
+                        {/* Inner Body */}
+                        <div className={`relative flex items-center justify-center w-full py-4 px-6 backdrop-blur-2xl rounded-[calc(1rem-1.5px)] transition-all duration-500 ${theme === 'dark' ? 'bg-[#001a1a]/90 group-hover/conic:bg-[#001a1a]' : 'bg-white/80 group-hover/conic:bg-white/95'}`}>
+                            <span className={`relative z-10 text-[10px] font-black uppercase tracking-[0.25em] flex items-center gap-2 transition-colors ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
                                 <ExternalLink size={14} className="opacity-80" />
                                 Ver tienda online
                             </span>
@@ -307,37 +313,39 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="h-screen w-full bg-[#FAFAFA] flex overflow-hidden">
+    <div className={`h-screen w-full flex overflow-hidden transition-colors duration-500 ${theme === 'dark' ? 'bg-[#001212]' : 'bg-[#FAFAFA]'}`}>
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.1); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: ${theme === 'dark' ? 'rgba(0, 242, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: ${theme === 'dark' ? 'rgba(0, 242, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}; }
       `}</style>
       
       {/* Sidebar con efecto Aurora */}
-      <div className="relative group m-4 p-[2px] rounded-[2.5rem] overflow-hidden isolate flex-shrink-0 w-64 shadow-[0_20px_50px_rgba(0,77,77,0.05)]">
+      <div className={`relative group m-4 p-[2px] rounded-[2.5rem] overflow-hidden isolate flex-shrink-0 w-64 shadow-2xl transition-all duration-500 ${theme === 'dark' ? 'shadow-black/40 border border-white/5' : 'shadow-[0_20px_50px_rgba(0,77,77,0.05)]'}`}>
         <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden -z-10">
           <motion.div 
             animate={{ rotate: 360 }}
             transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
             className="absolute top-1/2 left-1/2 w-[300%] aspect-square"
             style={{
-              background: `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)`,
+              background: theme === 'dark' 
+                ? `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #002626 360deg)`
+                : `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)`,
               x: "-50%",
               y: "-50%",
               willChange: 'transform'
             }}
           />
-          <div className="absolute inset-[1px] rounded-[2.45rem] bg-white/90 backdrop-blur-3xl" />
+          <div className={`absolute inset-[1px] rounded-[2.45rem] backdrop-blur-3xl transition-colors duration-500 ${theme === 'dark' ? 'bg-[#001a1a]/90' : 'bg-white/90'}`} />
         </div>
         
-        <aside className="w-full h-full flex flex-col overflow-y-auto custom-scrollbar z-0 transition-all duration-500 hover:bg-white/30">
+        <aside className={`w-full h-full flex flex-col overflow-y-auto custom-scrollbar z-0 transition-all duration-500 ${theme === 'dark' ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-white/30 text-gray-600'}`}>
           {renderSidebar()}
           <div className="p-6 mt-auto flex items-center justify-between border-t border-white/10 bg-transparent relative">
             <div 
               onClick={handleLogoClick}
-              className="text-2xl font-black text-black italic tracking-tighter cursor-pointer w-fit relative group/logo"
+              className={`text-2xl font-black italic tracking-tighter cursor-pointer w-fit relative group/logo transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-black'}`}
             >
               <span>BAY</span><InteractiveUP />
               
@@ -389,8 +397,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             setIsBaytOpen={setIsBaytOpen}
         />
         
-        {/* Atmospheric Top Dissolve Mask */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#FAFAFA] via-[#FAFAFA]/90 to-transparent z-[40] pointer-events-none backdrop-blur-[2px]" />
+        {/* Atmospheric Top Dissolve Mask Adaptable */}
+        <div className={`absolute top-0 left-0 right-0 h-32 z-[40] pointer-events-none backdrop-blur-[2px] transition-all duration-500 ${
+            theme === 'dark' 
+            ? 'bg-gradient-to-b from-[#001212] via-[#001212]/90 to-transparent' 
+            : 'bg-gradient-to-b from-[#FAFAFA] via-[#FAFAFA]/90 to-transparent'
+        }`} />
         
         <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar bg-transparent relative">
             <div className="pt-4"> {/* Extra safe space for the floating header */}
