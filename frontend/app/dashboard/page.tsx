@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/context/auth-context";
+import { useTheme } from "@/context/theme-context";
 import Link from 'next/link';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { 
@@ -49,6 +50,7 @@ function AnimatedNumber({ value, className, type = 'currency' }: { value: number
 
 export default function DashboardPage() {
   const { userEmail, token } = useAuth();
+  const { theme } = useTheme();
   
   // Estados de datos
   const [opportunities, setOpportunities] = useState<any[]>([]);
@@ -181,13 +183,13 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <span className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_10px_#10B981]"></span>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Gestión de Activos</span>
+            <span className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-[#004d4d]/60'}`}>Gestión de Activos</span>
           </div>
-          <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">
+          <h1 className={`text-5xl font-black italic tracking-tighter uppercase leading-tight transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-[#001A1A]'}`}>
             Dashboard <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF] px-2 py-1">Operativo</span>
           </h1>
-          <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed">
-            Resumen de inteligencia y rendimiento en tiempo real para <span className="font-bold text-[#001A1A]">{userEmail?.split('@')[0] || 'tu empresa'}</span>.
+          <p className={`mt-2 font-medium max-w-lg leading-relaxed transition-colors duration-500 ${theme === 'dark' ? 'text-slate-400' : 'text-[#004d4d]/60'}`}>
+            Resumen de inteligencia y rendimiento en tiempo real para <span className={`font-bold transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#001A1A]'}`}>{userEmail?.split('@')[0] || 'tu empresa'}</span>.
           </p>
         </div>
         
@@ -211,17 +213,17 @@ export default function DashboardPage() {
         className="grid grid-cols-1 lg:grid-cols-12 gap-6"
       >
         {/* BLOQUE 1: Estado Operativo (Health Card) */}
-        <motion.div variants={itemVariants} className="lg:col-span-7 p-8 rounded-[2.5rem] bg-white border border-[#004d4d]/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)] flex flex-col justify-between group hover:shadow-[0_20px_60px_rgba(0,77,77,0.05)] transition-all duration-500">
+        <motion.div variants={itemVariants} className={`p-8 rounded-[2.5rem] border shadow-2xl transition-all duration-500 lg:col-span-7 flex flex-col justify-between group ${theme === 'dark' ? 'bg-[#001a1a]/80 border-[#00F2FF]/10 shadow-black/40' : 'bg-white border-[#004d4d]/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_60px_rgba(0,77,77,0.05)]'}`}>
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-2xl bg-[#004d4d]/5 flex items-center justify-center text-[#004d4d]">
+                    <div className={`h-10 w-10 rounded-2xl flex items-center justify-center transition-colors duration-500 ${theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF]' : 'bg-[#004d4d]/5 text-[#004d4d]'}`}>
                         <ShieldCheck size={20} />
                     </div>
-                    <h2 className="text-[10px] font-black text-[#004d4d]/40 uppercase tracking-[0.2em]">Estado de tu tienda</h2>
+                    <h2 className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/40' : 'text-[#004d4d]/40'}`}>Estado de tu tienda</h2>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-full border border-emerald-100">
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500 ${theme === 'dark' ? 'bg-[#10B981]/10 border-[#10B981]/20' : 'bg-emerald-50 border-emerald-100'}`}>
                     <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Bajo Control</span>
+                    <span className={`text-[9px] font-black uppercase tracking-widest ${theme === 'dark' ? 'text-[#10B981]' : 'text-emerald-600'}`}>Bajo Control</span>
                 </div>
             </div>
             
@@ -241,25 +243,25 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* BLOQUE 4: Canales Activos (Compacto) */}
-        <motion.div variants={itemVariants} className="lg:col-span-5 p-8 rounded-[2.5rem] bg-white border border-[#004d4d]/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)] group hover:shadow-[0_20px_60px_rgba(0,77,77,0.05)] transition-all duration-500">
+        <motion.div variants={itemVariants} className={`p-8 rounded-[2.5rem] border shadow-2xl transition-all duration-500 lg:col-span-5 flex flex-col group ${theme === 'dark' ? 'bg-[#001a1a]/80 border-[#00F2FF]/10 shadow-black/40' : 'bg-white border-[#004d4d]/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_60px_rgba(0,77,77,0.05)]'}`}>
             <div className="flex items-center gap-3 mb-6">
-                <div className="h-10 w-10 rounded-2xl bg-[#00F2FF]/10 flex items-center justify-center text-[#004d4d]">
+                <div className={`h-10 w-10 rounded-2xl flex items-center justify-center transition-colors duration-500 ${theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF]' : 'bg-[#004d4d]/5 text-[#004d4d]'}`}>
                     <Globe size={20} />
                 </div>
-                <h2 className="text-[10px] font-black text-[#004d4d]/40 uppercase tracking-[0.2em]">Canales Activos</h2>
+                <h2 className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/40' : 'text-[#004d4d]/40'}`}>Canales Activos</h2>
             </div>
             <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gray-50/50 rounded-2xl border border-gray-100">
+                <div className={`flex items-center justify-between p-3 rounded-2xl border transition-all duration-500 ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-gray-50/50 border-gray-100'}`}>
                     <div className="flex items-center gap-3">
                         <MessageCircle size={14} className="text-[#10B981]" />
-                        <span className="text-[10px] font-black text-[#004d4d]/80 uppercase">WhatsApp CRM</span>
+                        <span className={`text-[10px] font-black uppercase transition-colors duration-500 ${theme === 'dark' ? 'text-white/80' : 'text-[#004d4d]/80'}`}>WhatsApp CRM</span>
                     </div>
                     <span className="text-[9px] font-bold text-[#10B981] bg-emerald-50 px-2 py-0.5 rounded-md">8 chats</span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50/50 rounded-2xl border border-gray-100">
+                <div className={`flex items-center justify-between p-3 rounded-2xl border transition-all duration-500 ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-gray-50/50 border-gray-100'}`}>
                     <div className="flex items-center gap-3">
                         <Zap size={14} className="text-[#10B981]" />
-                        <span className="text-[10px] font-black text-[#004d4d]/80 uppercase">Tienda Online</span>
+                        <span className={`text-[10px] font-black uppercase transition-colors duration-500 ${theme === 'dark' ? 'text-white/80' : 'text-[#004d4d]/80'}`}>Tienda Online</span>
                     </div>
                     <span className="text-[9px] font-bold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded-md">Activa</span>
                 </div>
@@ -267,16 +269,16 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* BLOQUE 2: Acciones Recomendadas (IA) */}
-        <motion.div variants={itemVariants} className="lg:col-span-8 p-10 rounded-[3rem] bg-[#001A1A] text-white shadow-2xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#00F2FF]/10 rounded-full blur-[100px] pointer-events-none"></div>
+        <motion.div variants={itemVariants} className={`p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group transition-all duration-500 lg:col-span-8 ${theme === 'dark' ? 'bg-[#001a1a] border border-[#00F2FF]/20 shadow-black/60' : 'bg-[#001A1A] text-white'}`}>
+            <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-[100px] pointer-events-none transition-colors duration-500 ${theme === 'dark' ? 'bg-[#00F2FF]/20' : 'bg-[#00F2FF]/10'}`}></div>
             <div className="relative z-10">
                 <div className="flex items-center justify-between mb-10">
                     <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-2xl bg-[#004d4d] border border-[#00F2FF]/30 flex items-center justify-center text-[#00F2FF] shadow-[0_0_20px_rgba(0,242,255,0.2)]">
-                            <Lightbulb size={24} className="text-white fill-white" />
+                        <div className={`h-12 w-12 rounded-2xl border flex items-center justify-center shadow-[0_0_20px_rgba(0,242,255,0.2)] transition-all duration-500 ${theme === 'dark' ? 'bg-[#002626] border-[#00F2FF]/40 text-[#00F2FF]' : 'bg-[#004d4d] border-[#00F2FF]/30 text-[#00F2FF]'}`}>
+                            <Lightbulb size={24} className={theme === 'dark' ? 'text-[#00F2FF] fill-[#00F2FF]/20' : 'text-white fill-white'} />
                         </div>
                         <div>
-                            <h3 className="text-xl font-black italic uppercase tracking-wider">Acciones Recomendadas</h3>
+                            <h3 className={`text-xl font-black italic uppercase tracking-wider transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-white'}`}>Acciones Recomendadas</h3>
                             <p className="text-[9px] font-bold text-[#00F2FF] uppercase tracking-[0.2em] mt-1">Inteligencia de Negocio Bayup</p>
                         </div>
                     </div>
@@ -307,19 +309,19 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* BLOQUE 3: Rendimiento Hoy vs Ayer */}
-        <motion.div variants={itemVariants} className="lg:col-span-4 p-10 rounded-[3rem] bg-white border border-[#004d4d]/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)] group hover:shadow-[0_20px_60px_rgba(0,77,77,0.05)] transition-all duration-500 flex flex-col justify-between">
+        <motion.div variants={itemVariants} className={`p-10 rounded-[3rem] border shadow-2xl transition-all duration-500 lg:col-span-4 flex flex-col justify-between group ${theme === 'dark' ? 'bg-[#001a1a]/80 border-[#00F2FF]/10 shadow-black/40' : 'bg-white border-[#004d4d]/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_60px_rgba(0,77,77,0.05)]'}`}>
             <div className="flex items-center gap-3 mb-8">
-                <div className="h-10 w-10 rounded-2xl bg-[#004d4d]/5 flex items-center justify-center text-[#004d4d]">
+                <div className={`h-10 w-10 rounded-2xl flex items-center justify-center transition-colors duration-500 ${theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF]' : 'bg-[#004d4d]/5 text-[#004d4d]'}`}>
                     <TrendingUp size={20} />
                 </div>
-                <h2 className="text-[10px] font-black text-[#004d4d]/40 uppercase tracking-[0.2em]">Rendimiento Hoy</h2>
+                <h2 className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/40' : 'text-[#004d4d]/40'}`}>Rendimiento Hoy</h2>
             </div>
             
             <div className="space-y-8">
                 <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ventas Netas</p>
                     <div className="flex items-end gap-3 mt-1">
-                        <h3 className="text-4xl font-black italic text-[#001A1A] tracking-tighter">
+                        <h3 className={`text-4xl font-black italic tracking-tighter transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-[#001A1A]'}`}>
                             <AnimatedNumber value={1250000} />
                         </h3>
                         <span className="mb-1 text-xs font-black text-emerald-500 flex items-center gap-0.5">
@@ -328,16 +330,16 @@ export default function DashboardPage() {
                     </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-6 pt-6 border-t border-gray-100">
+                <div className={`grid grid-cols-2 gap-6 pt-6 border-t transition-colors duration-500 ${theme === 'dark' ? 'border-white/5' : 'border-gray-100'}`}>
                     <div>
                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Ticket Prom.</p>
-                        <p className="text-lg font-black text-[#004d4d] tracking-tight">
+                        <p className={`text-lg font-black tracking-tight transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
                             <AnimatedNumber value={85400} />
                         </p>
                     </div>
                     <div>
                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Conversión</p>
-                        <p className="text-lg font-black text-[#004d4d] tracking-tight">
+                        <p className={`text-lg font-black tracking-tight transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
                             <AnimatedNumber value={4.8} type="percentage" />
                         </p>
                     </div>
@@ -357,23 +359,22 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="p-10 bg-[#001A1A] text-white rounded-[3rem] shadow-2xl relative overflow-hidden group border border-[#004d4d]/20"
+                className={`p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group border transition-all duration-500 ${theme === 'dark' ? 'bg-[#001a1a] border-[#00F2FF]/20 shadow-black/60' : 'bg-[#001A1A] border-[#004d4d]/20 text-white'}`}
             >
-                <div className="absolute top-0 right-0 w-96 h-96 bg-[#00F2FF]/5 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
+                <div className={`absolute top-0 right-0 w-96 h-96 rounded-full blur-[120px] pointer-events-none animate-pulse transition-colors duration-500 ${theme === 'dark' ? 'bg-[#00F2FF]/10' : 'bg-[#00F2FF]/5'}`}></div>
                 
                 <div className="flex items-center justify-between mb-10 relative z-10">
                     <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-2xl bg-[#004d4d] border border-[#00F2FF]/30 flex items-center justify-center text-[#00F2FF] shadow-[0_0_25px_rgba(0,242,255,0.15)]">
+                        <div className={`h-12 w-12 rounded-2xl border flex items-center justify-center shadow-[0_0_25px_rgba(0,242,255,0.15)] transition-all duration-500 ${theme === 'dark' ? 'bg-[#002626] border-[#00F2FF]/40 text-[#00F2FF]' : 'bg-[#004d4d] border-[#00F2FF]/30 text-[#00F2FF]'}`}>
                             <Sparkles size={24} className="text-[#EAB308] fill-[#EAB308]" />
                         </div>
                         <div>
-                            <h3 className="text-2xl font-black italic uppercase tracking-wider">Oportunidades Detectadas</h3>
+                            <h3 className="text-2xl font-black italic uppercase tracking-wider text-white">Oportunidades Detectadas</h3>
                             <p className="text-[9px] font-bold text-[#00F2FF] uppercase tracking-[0.2em] mt-1">Demanda insatisfecha identificada por Bayup AI</p>
                         </div>
                     </div>
                     <button 
-                        onClick={() => {}} 
-                        className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-white text-[#001A1A] rounded-xl text-[10px] font-black uppercase tracking-widest active:bg-[#00F2FF] transition-all group/btn"
+                        className={`hidden md:flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest active:bg-[#00F2FF] transition-all group/btn ${theme === 'dark' ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-white text-[#001A1A]'}`}
                     >
                         Importar Todo <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
                     </button>
@@ -383,7 +384,7 @@ export default function DashboardPage() {
                     {loadingOpps ? (
                         <div className="col-span-4 py-10 flex flex-col items-center justify-center text-white/20 gap-4">
                             <RefreshCw size={24} className="animate-spin" />
-                            <p className="text-[10px] font-black uppercase tracking-widest">Escaneando mercado global...</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Escaneando mercado global...</p>
                         </div>
                     ) : opportunities.length > 0 ? (
                         opportunities.map((opp, idx) => (
@@ -392,7 +393,7 @@ export default function DashboardPage() {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 whileInView={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: idx * 0.1 }}
-                                className="p-6 bg-white/5 rounded-[2.5rem] border border-white/5 hover:bg-white hover:border-white transition-all group/item cursor-pointer flex flex-col justify-between min-h-[180px]"
+                                className={`p-6 rounded-[2.5rem] border transition-all group/item cursor-pointer flex flex-col justify-between min-h-[180px] ${theme === 'dark' ? 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-[#00F2FF]/30' : 'bg-white/5 border-white/5 hover:bg-white hover:border-white'}`}
                             >
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-start">
@@ -408,11 +409,11 @@ export default function DashboardPage() {
                                 <div className="mt-6 pt-4 border-t border-white/5 group-hover/item:border-[#004d4d]/5 transition-colors space-y-3">
                                     <div className="flex justify-between items-center">
                                         <span className="text-[8px] font-black text-white/30 uppercase group-hover/item:text-[#004d4d]/30 transition-colors">Potencial</span>
-                                        <span className="text-xs font-black text-emerald-400 group-hover/item:text-[#004d4d] transition-colors">
+                                        <span className={`text-xs font-black transition-colors ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-emerald-400 group-hover/item:text-[#004d4d]'}`}>
                                             +<AnimatedNumber value={opp.potential} />
                                         </span>
                                     </div>
-                                    <button className="w-full py-2 bg-white/5 text-white text-[8px] font-black uppercase tracking-widest rounded-lg group-hover/item:bg-[#004d4d] group-hover/item:text-white transition-all">
+                                    <button className={`w-full py-2 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF] hover:bg-[#00F2FF] hover:text-black' : 'bg-white/5 text-white group-hover/item:bg-[#004d4d] group-hover/item:text-white'}`}>
                                         {opp.action.split(' ')[0]}
                                     </button>
                                 </div>
@@ -428,13 +429,13 @@ export default function DashboardPage() {
             </motion.div>
             
             {/* Gráfica de Rendimiento */}
-            <div className="p-10 bg-white rounded-[3rem] shadow-[0_10px_40px_rgba(0,0,0,0.02)] border border-[#004d4d]/5 relative overflow-hidden">
+            <div className={`p-10 rounded-[3rem] border transition-all duration-500 relative overflow-hidden ${theme === 'dark' ? 'bg-[#001a1a]/80 border-[#00F2FF]/10 shadow-black/40' : 'bg-white border-[#004d4d]/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)]'}`}>
                 <div className="flex justify-between items-end mb-4 relative z-10">
                     <div>
-                        <h2 className="text-2xl font-black italic text-[#001A1A] uppercase tracking-tighter">Tendencia Semanal</h2>
-                        <p className="text-xs font-bold text-[#004d4d]/40 uppercase tracking-widest mt-1">Rendimiento Operativo</p>
+                        <h2 className={`text-2xl font-black italic uppercase tracking-tighter transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-[#001A1A]'}`}>Tendencia Semanal</h2>
+                        <p className={`text-xs font-bold uppercase tracking-widest mt-1 transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/40' : 'text-[#004d4d]/40'}`}>Rendimiento Operativo</p>
                     </div>
-                    <button className="px-4 py-2 bg-gray-50 rounded-xl text-[10px] font-black text-[#004d4d] uppercase tracking-widest hover:bg-[#004d4d] hover:text-white transition-colors">
+                    <button className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 ${theme === 'dark' ? 'bg-white/5 text-[#00F2FF] hover:bg-[#00F2FF]/10' : 'bg-gray-50 text-[#004d4d] hover:bg-[#004d4d] hover:text-white'}`}>
                         Detalles
                     </button>
                 </div>

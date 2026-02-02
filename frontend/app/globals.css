@@ -1,3 +1,67 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    /* ... other variables ... */
+  }
+
+  /* MODO OSCURO PETROLEO METALIZADO */
+  .dark {
+    --background: 180 100% 4%; /* #001212 */
+    --foreground: 180 10% 90%;
+  }
+}
+
+@layer utilities {
+  .bg-dark-petrol {
+    background-color: #001212;
+  }
+  
+  .bg-metallic-surface {
+    background: linear-gradient(145deg, #001a1a, #002626);
+    border: 1px solid rgba(0, 242, 255, 0.05);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  }
+
+  .text-cyan-glow {
+    color: #00f2ff;
+    text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+  }
+
+  .border-cyan-metallic {
+    border-color: rgba(0, 242, 255, 0.1);
+  }
+}
+
+/* Transiciones suaves para el cambio de tema */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.dark body {
+  background-color: #001212;
+  color: #e2e8f0;
+}
+
+.dark .bg-white {
+  background-color: #001a1a !important;
+}
+
+.dark .text-black {
+  color: #f1f5f9 !important;
+}
+
+.dark .border-gray-100, 
+.dark .border-gray-200 {
+  border-color: rgba(0, 242, 255, 0.05) !important;
+}
+
+.dark .shadow-sm,
+.dark .shadow-md,
+.dark .shadow-lg {
+  shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7) !important;
+}
