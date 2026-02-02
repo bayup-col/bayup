@@ -4,6 +4,22 @@ import uuid
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 
+# --- Plan Schemas (Moved up to avoid circular dependency) ---
+class PlanBase(BaseModel):
+    name: str
+    description: str | None = None
+    commission_rate: float
+    monthly_fee: float
+    is_default: bool = False
+
+class PlanCreate(PlanBase):
+    pass
+
+class Plan(PlanBase):
+    id: uuid.UUID
+    class Config:
+        orm_mode = True
+
 # --- User Schemas ---
 class UserBase(BaseModel):
     email: str
@@ -18,10 +34,12 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: uuid.UUID
     role: str = "admin_tienda"
+    owner_id: Optional[uuid.UUID] = None
     bank_accounts: List[dict] | None = []
     social_links: dict | None = {}
     whatsapp_lines: List[dict] | None = []
     permissions: Optional[Dict[str, bool]] = {}
+    plan: Optional[Plan] = None
     
     # Loyalty and Customer Stats
     loyalty_points: int = 0
@@ -232,21 +250,6 @@ class Collection(CollectionBase):
 class ClerkLoginRequest(BaseModel):
     clerk_token: str
 
-class PlanBase(BaseModel):
-    name: str
-    description: str | None = None
-    commission_rate: float
-    monthly_fee: float
-    is_default: bool = False
-
-class PlanCreate(PlanBase):
-    pass
-
-class Plan(PlanBase):
-    id: uuid.UUID
-    class Config:
-        orm_mode = True
-
 class PageBase(BaseModel):
     slug: str
     title: str | None = None
@@ -393,6 +396,21 @@ class ProviderCreate(BaseModel):
 class Provider(ProviderCreate):
     id: uuid.UUID
     tenant_id: uuid.UUID
+    class Config:
+        orm_mode = True
+
+class ActivityLogBase(BaseModel):
+    action: str
+    detail: str
+    target_id: Optional[str] = None
+
+class ActivityLog(ActivityLogBase):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    created_at: datetime
+    tenant_id: uuid.UUID
+    user_name: Optional[str] = None # Helper for frontend
+
     class Config:
         orm_mode = True
 

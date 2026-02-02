@@ -37,7 +37,8 @@ import {
   Rocket,
   ShieldAlert,
   Crown,
-  Plus
+  Plus,
+  RefreshCw
 } from 'lucide-react';
 
 import { useAuth } from '@/context/auth-context';
@@ -66,6 +67,8 @@ export default function StaffPage() {
     // DATA STATES
     const [staff, setStaff] = useState<StaffMember[]>([]);
     const [customRoles, setCustomRoles] = useState<any[]>([]);
+    const [currentUserPlan, setCurrentUserPlan] = useState<any>(null);
+    const [logs, setLogs] = useState<any[]>([]);
     
     // MODAL STATES
     const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
@@ -101,15 +104,109 @@ export default function StaffPage() {
         { id: 'vendedor', label: 'Vendedor', icon: <DollarSign size={14} />, desc: 'Ventas y clientes' }
     ];
 
+    // --- COMPONENTE SELECT PREMIUM ---
+    const PremiumSelect = ({ 
+        label, 
+        value, 
+        onChange, 
+        options, 
+        icon: Icon 
+    }: { 
+        label: string, 
+        value: string, 
+        onChange: (val: string) => void, 
+        options: { id: string, label: string, icon?: any }[],
+        icon: any
+    }) => {
+        const [isOpen, setIsOpen] = useState(false);
+        const selectedOption = options.find(o => o.id === value);
+
+        return (
+            <div className="space-y-2 relative">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">{label}</label>
+                <div className="relative">
+                    <button
+                        type="button"
+                        onClick={() => setIsOpen(!isOpen)}
+                        className={`w-full pl-14 p-5 bg-gray-50 rounded-2xl border-2 transition-all text-left flex items-center justify-between group ${
+                            isOpen ? 'border-[#004d4d] bg-white shadow-lg' : 'border-transparent hover:border-[#004d4d]/20 shadow-inner'
+                        }`}
+                    >
+                        <div className="flex items-center gap-3">
+                            <Icon className={`absolute left-5 transition-colors ${isOpen ? 'text-[#004d4d]' : 'text-gray-300'}`} size={18}/>
+                            <span className="text-sm font-bold text-slate-700 truncate mr-4">{selectedOption?.label || 'Seleccionar...'}</span>
+                        </div>
+                        <ChevronDown size={16} className={`text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-[#004d4d]' : ''}`} />
+                    </button>
+
+                    <AnimatePresence>
+                        {isOpen && (
+                            <>
+                                <div className="fixed inset-0 z-[1001]" onClick={() => setIsOpen(false)} />
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    className="absolute left-0 right-0 mt-3 p-2 bg-white rounded-3xl border border-gray-100 shadow-2xl z-[1002] overflow-hidden"
+                                >
+                                    <div className="max-h-60 overflow-y-auto custom-scrollbar p-1 space-y-1">
+                                        {options.map((opt) => (
+                                            <button
+                                                key={opt.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    onChange(opt.id);
+                                                    setIsOpen(false);
+                                                }}
+                                                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${
+                                                    value === opt.id 
+                                                    ? 'bg-[#004d4d] text-white' 
+                                                    : 'hover:bg-gray-50 text-slate-600'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3 overflow-hidden">
+                                                    {opt.icon && <span className={value === opt.id ? 'text-[#00f2ff]' : 'text-gray-400'}>{opt.icon}</span>}
+                                                    <span className="text-xs font-bold uppercase tracking-tight truncate">{opt.label}</span>
+                                                </div>
+                                                {value === opt.id && <Check size={14} className="shrink-0 ml-2" />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </div>
+        );
+    };
+
+    // Combinación dinámica de Roles para el Selector
+    const allRolesOptions = useMemo(() => {
+        return customRoles.map(cr => {
+            const base = baseRoles.find(br => br.id === cr.name);
+            return {
+                id: cr.name,
+                label: base?.label || cr.name,
+                icon: base?.icon || <Shield size={14} />
+            };
+        });
+    }, [customRoles]);
+
     // FETCH DATA
     const fetchData = useCallback(async () => {
         if (!token) return;
         setIsLoading(true);
         try {
-            const [staffData, rolesData] = await Promise.all([
+            const [staffData, rolesData, meData, logsData] = await Promise.all([
                 userService.getAll(token),
-                userService.getRoles(token)
+                userService.getRoles(token),
+                userService.getMe(token),
+                userService.getLogs(token)
             ]);
+            
+            setCurrentUserPlan(meData.plan);
+            setLogs(logsData);
             
             setStaff(staffData.map((u: any) => ({
                 id: u.id,
@@ -171,6 +268,13 @@ export default function StaffPage() {
 
     const handleSaveMember = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // VALIDACIÓN DE LÍMITE DE PLAN
+        if (!editingMember && staff.length >= 3) {
+            showToast("Límite de Staff alcanzado (Máximo 3 miembros en Plan Pro)", "error");
+            return;
+        }
+
         setIsSaving(true);
         try {
             if (editingMember) {
@@ -207,8 +311,8 @@ export default function StaffPage() {
             showToast("Miembro eliminado", "success");
             await fetchData();
             setUserToDelete(null);
-        } catch (e) {
-            showToast("Error al eliminar", "error");
+        } catch (error: any) {
+            showToast(error.message || "Error al eliminar", "error");
         }
     };
 
@@ -247,7 +351,7 @@ export default function StaffPage() {
     const renderKPIs = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 shrink-0">
             {[
-                { label: 'Total Staff', value: staff.length, sub: 'Miembros activos', icon: <Users size={20}/>, color: 'text-[#004d4d]' },
+                { label: 'Total Staff', value: `${staff.length}/3`, sub: 'Miembros activos', icon: <Users size={20}/>, color: 'text-[#004d4d]' },
                 { label: 'En Línea', value: staff.filter(s => s.status === 'Activo').length, sub: 'Operando ahora', icon: <Activity size={20}/>, color: 'text-emerald-500' },
                 { label: 'Roles Activos', value: customRoles.length, sub: 'Estructura RBAC', icon: <ShieldCheck size={20}/>, color: 'text-[#00f2ff]' },
                 { label: 'Invitaciones', value: staff.filter(s => s.status === 'Invitado').length, sub: 'Pendientes', icon: <Mail size={20}/>, color: 'text-amber-500' },
@@ -515,6 +619,78 @@ export default function StaffPage() {
         </div>
     );
 
+    const renderAuditoria = () => (
+        <div className="px-4 space-y-8 animate-in fade-in duration-500 max-w-4xl mx-auto">
+            <div className="flex items-center justify-between bg-white/40 p-8 rounded-[3rem] border border-white/60 shadow-sm mb-10">
+                <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 bg-[#004d4d]/5 text-[#004d4d] rounded-2xl flex items-center justify-center">
+                        <LucideHistory size={24} />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-black text-[#004d4d] uppercase italic">Registro de Auditoría</h3>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Historial completo de acciones tácticas</p>
+                    </div>
+                </div>
+                <button onClick={fetchData} className="h-10 px-4 bg-white border border-gray-100 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center gap-2">
+                    <RefreshCw size={14} /> Actualizar
+                </button>
+            </div>
+
+            <div className="relative space-y-6 before:absolute before:left-[27px] before:top-4 before:bottom-0 before:w-0.5 before:bg-gray-100">
+                {logs.length === 0 ? (
+                    <div className="py-20 text-center text-gray-400">
+                        <Shield size={40} className="mx-auto mb-4 opacity-20" />
+                        <p className="text-[10px] font-black uppercase tracking-widest">Sin registros de actividad recientes</p>
+                    </div>
+                ) : logs.map((log, i) => (
+                    <motion.div 
+                        key={log.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="relative pl-16 group"
+                    >
+                        <div className={`absolute left-0 top-0 h-14 w-14 rounded-2xl border-4 border-white shadow-sm flex items-center justify-center z-10 transition-all group-hover:scale-110 ${
+                            log.action === 'DELETE_USER' ? 'bg-rose-50 text-rose-600' :
+                            log.action === 'CREATE_USER' ? 'bg-emerald-50 text-emerald-600' :
+                            'bg-blue-50 text-blue-600'
+                        }`}>
+                            {log.action === 'DELETE_USER' ? <Trash2 size={20} /> : 
+                             log.action === 'CREATE_USER' ? <UserPlus size={20} /> : <Edit3 size={20} />}
+                        </div>
+                        
+                        <div className="bg-white/60 backdrop-blur-md p-6 rounded-[2rem] border border-white shadow-sm group-hover:bg-white group-hover:shadow-md transition-all">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-black text-[#004d4d] uppercase tracking-widest">{log.user_name}</span>
+                                        <span className="h-1 w-1 rounded-full bg-gray-300"></span>
+                                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${
+                                            log.action === 'DELETE_USER' ? 'bg-rose-100 text-rose-700' :
+                                            log.action === 'CREATE_USER' ? 'bg-emerald-100 text-emerald-700' :
+                                            'bg-blue-100 text-blue-700'
+                                        }`}>
+                                            {log.action.replace('_', ' ')}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm font-bold text-gray-800 leading-tight">{log.detail}</p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
+                                        {new Date(log.created_at).toLocaleDateString()}
+                                    </p>
+                                    <p className="text-[9px] font-bold text-[#00f2ff] uppercase tracking-widest mt-0.5">
+                                        {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+        </div>
+    );
+
     return (
         <div className="max-w-[1600px] mx-auto pb-32 space-y-12 animate-in fade-in duration-1000">
             {/* Header Maestro */}
@@ -574,12 +750,7 @@ export default function StaffPage() {
                 <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
                     {activeTab === 'miembros' && renderMiembros()}
                     {activeTab === 'roles' && renderRoles()}
-                    {activeTab === 'auditoria' && (
-                        <div className="px-4 py-20 flex flex-col items-center justify-center text-gray-300 gap-6 opacity-50">
-                            <Activity size={80} strokeWidth={1} />
-                            <p className="text-xs font-black uppercase tracking-[0.3em] text-center">Registro de auditoría<br/>en construcción</p>
-                        </div>
-                    )}
+                    {activeTab === 'auditoria' && renderAuditoria()}
                 </motion.div>
             </AnimatePresence>
 
@@ -650,24 +821,24 @@ export default function StaffPage() {
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Rol Designado</label>
-                                            <div className="relative">
-                                                <Shield className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300" size={18}/>
-                                                <select value={formData.role} onChange={(e) => setFormData({...formData, role: e.target.value})} className="w-full pl-14 p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner transition-all appearance-none">
-                                                    {baseRoles.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Estado Inicial</label>
-                                            <div className="relative">
-                                                <Activity className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300" size={18}/>
-                                                <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value as any})} className="w-full pl-14 p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner transition-all appearance-none">
-                                                    <option value="Activo">Activo</option><option value="Invitado">Invitado</option><option value="Suspendido">Suspendido</option>
-                                                </select>
-                                            </div>
-                                        </div>
+                                        <PremiumSelect 
+                                            label="Rol Designado"
+                                            value={formData.role}
+                                            onChange={(val) => setFormData({...formData, role: val})}
+                                            options={allRolesOptions}
+                                            icon={Shield}
+                                        />
+                                        <PremiumSelect 
+                                            label="Estado Inicial"
+                                            value={formData.status}
+                                            onChange={(val) => setFormData({...formData, status: val as any})}
+                                            options={[
+                                                { id: 'Activo', label: 'Activo', icon: <Activity size={14} /> },
+                                                { id: 'Invitado', label: 'Invitado', icon: <Mail size={14} /> },
+                                                { id: 'Suspendido', label: 'Suspendido', icon: <ShieldAlert size={14} /> }
+                                            ]}
+                                            icon={Activity}
+                                        />
                                     </div>
 
                                     <div className="p-6 bg-emerald-50/50 rounded-3xl border border-emerald-100 flex items-start gap-4">
@@ -766,6 +937,7 @@ export default function StaffPage() {
 
             <style jsx global>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 30px; }
             `}</style>
         </div>
