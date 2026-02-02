@@ -113,6 +113,9 @@ export const Canvas = () => {
           "relative group transition-all duration-200 cursor-pointer mb-4 last:mb-0",
           selectedElementId === el.id ? "ring-2 ring-blue-500 rounded-lg shadow-lg z-10" : "hover:ring-1 hover:ring-blue-300 rounded-lg"
         )}
+        style={{
+            opacity: (el.props.opacity !== undefined ? el.props.opacity : 100) / 100
+        }}
       >
         {selectedElementId === el.id && (
           <div className="absolute -top-10 left-0 bg-blue-500 text-white flex items-center gap-2 px-2 py-1 rounded-t-lg shadow-md z-30">
@@ -125,7 +128,7 @@ export const Canvas = () => {
           </div>
         )}
 
-        <div className="p-2">
+        <div className="p-2" style={{ backgroundColor: el.props.bgColor }}>
           {/* BARRA DE NAVEGACIÓN (HEADER) */}
           {el.props.isNav && (
             <div className="flex items-center justify-between px-6 py-4 bg-white shadow-sm rounded-xl border border-gray-100">
@@ -153,17 +156,31 @@ export const Canvas = () => {
 
           {/* HERO BANNER */}
           {el.type === "hero-banner" && (
-            <div className="w-full h-[450px] bg-gradient-to-r from-gray-900 to-blue-900 rounded-2xl flex flex-col items-center justify-center text-white p-12 overflow-hidden relative shadow-2xl">
-                <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center" />
+            <div 
+                className="w-full h-[450px] rounded-2xl flex flex-col items-center justify-center text-white p-12 overflow-hidden relative shadow-2xl transition-all"
+                style={{ backgroundColor: el.props.bgColor || "#111827" }}
+            >
+                {el.props.imageUrl ? (
+                    <div className="absolute inset-0 opacity-40 transition-opacity">
+                        <img src={el.props.imageUrl} className="w-full h-full object-cover" />
+                    </div>
+                ) : (
+                    <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center" />
+                )}
                 <div className="absolute inset-0 bg-black/20" />
                 <motion.h1 
+                  key={el.props.title}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="text-6xl font-black mb-6 relative z-10 text-center leading-tight tracking-tighter"
+                  style={{ textAlign: el.props.align as any }}
                 >
                   {el.props.title}
                 </motion.h1>
-                <p className="text-xl opacity-80 relative z-10 text-center max-w-2xl font-medium mb-8">
+                <p 
+                    className="text-xl opacity-80 relative z-10 text-center max-w-2xl font-medium mb-8"
+                    style={{ textAlign: el.props.align as any }}
+                >
                   {el.props.subtitle}
                 </p>
                 <button className="px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold shadow-2xl relative z-10 hover:scale-105 transition-all uppercase tracking-widest text-sm">
@@ -175,12 +192,13 @@ export const Canvas = () => {
           {/* TEXTO ESTÁNDAR */}
           {el.type === "text" && !el.props.isNav && (
              <div 
-              className="py-4"
+              className="py-4 transition-all"
               style={{ 
-                fontSize: el.props.fontSize === "2xl" ? "32px" : el.props.fontSize === "5xl" ? "48px" : "16px", 
+                fontSize: el.props.fontSize === "xs" ? "14px" : el.props.fontSize === "2xl" ? "32px" : el.props.fontSize === "5xl" ? "48px" : "16px", 
                 textAlign: el.props.align as any,
                 fontWeight: el.props.fontSize === "2xl" || el.props.fontSize === "5xl" ? "900" : "400",
-                letterSpacing: "-0.025em"
+                letterSpacing: "-0.025em",
+                color: el.props.bgColor === "#1e293b" || el.props.bgColor === "#111827" ? "white" : "inherit"
               }}
              >
                {el.props.content}
