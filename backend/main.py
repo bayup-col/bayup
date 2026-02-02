@@ -100,6 +100,23 @@ async def lifespan(app: FastAPI):
                     except: pass
             print("Orders table migration check completed.")
 
+        # Automigrate 'ai_assistants' table
+        if 'ai_assistants' in tables:
+            ai_columns = [c['name'] for c in inspector.get_columns('ai_assistants')]
+            with engine.begin() as conn:
+                if 'total_actions' not in ai_columns:
+                    try: conn.execute(text("ALTER TABLE ai_assistants ADD COLUMN total_actions INTEGER DEFAULT 0"))
+                    except: pass
+                if 'success_rate' not in ai_columns:
+                    try: conn.execute(text("ALTER TABLE ai_assistants ADD COLUMN success_rate FLOAT DEFAULT 100.0"))
+                    except: pass
+                if 'last_run' not in ai_columns:
+                    try:
+                        col_type = "TIMESTAMP" if engine.name == 'postgresql' else "DATETIME"
+                        conn.execute(text(f"ALTER TABLE ai_assistants ADD COLUMN last_run {col_type}"))
+                    except: pass
+            print("AI Assistants table migration check completed.")
+
         if not crud.get_default_plan(db):
             print("Creating default 'Free' plan...")
             crud.create_plan(db=db, plan=schemas.PlanCreate(name="Free", description="Default", commission_rate=0.1, monthly_fee=0, is_default=True))
@@ -363,6 +380,29 @@ def get_receivables(db: Session = Depends(get_db), current_user: models.User = D
 @app.get("/ai-assistants", response_model=List[schemas.AIAssistant])
 def get_assistants(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     return db.query(models.AIAssistant).filter(models.AIAssistant.owner_id == current_user.id).all()
+
+@app.post("/ai-assistants", response_model=schemas.AIAssistant)
+def create_assistant(assistant: schemas.AIAssistantCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    db_assistant = models.AIAssistant(
+        id=uuid.uuid4(),
+        **assistant.dict(),
+        owner_id=current_user.id,
+        total_actions=0,
+        success_rate=100.0
+    )
+    db.add(db_assistant)
+    db.commit()
+    db.refresh(db_assistant)
+    return db_assistant
+
+@app.delete("/ai-assistants/{assistant_id}")
+def delete_assistant(assistant_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    db_assistant = db.query(models.AIAssistant).filter(models.AIAssistant.id == assistant_id, models.AIAssistant.owner_id == current_user.id).first()
+    if not db_assistant:
+        raise HTTPException(status_code=404, detail="Assistant not found")
+    db.delete(db_assistant)
+    db.commit()
+    return {"status": "success"}
 
 @app.get("/pages", response_model=List[schemas.Page])
 def get_pages(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):

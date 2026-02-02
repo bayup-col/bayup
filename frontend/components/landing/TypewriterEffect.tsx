@@ -20,13 +20,19 @@ export const TypewriterEffect = ({
   className = "",
   colors
 }: TypewriterEffectProps) => {
+  const [isMounted, setIsMounted] = useState(false);
   const [index, setIndex] = useState(0);
   const [subIndex, setSubIndex] = useState(0);
   const [reverse, setReverse] = useState(false);
   const [blink, setBlink] = useState(true);
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Mecanismo de escritura/borrado
   useEffect(() => {
+    if (!isMounted) return;
     if (subIndex === words[index].length + 1 && !reverse) {
       setReverse(true);
       return;
@@ -55,15 +61,19 @@ export const TypewriterEffect = ({
 
   return (
     <div className={`inline-block min-w-[280px] ${className}`}>
-      <InteractiveText colors={colors}>
-        {`${words[index].substring(0, subIndex)}`}
-        <span className={`
-          ${blink ? 'opacity-100' : 'opacity-0'} 
-          inline-block w-1 h-[0.7em] bg-cyan ml-2 
-          relative -top-[0.05em] align-middle
-          shadow-[0_0_10px_#00f2ff]
-        `}></span>
-      </InteractiveText>
+      {isMounted ? (
+        <InteractiveText colors={colors}>
+          {`${words[index].substring(0, subIndex)}`}
+          <span className={`
+            ${blink ? 'opacity-100' : 'opacity-0'} 
+            inline-block w-1 h-[0.7em] bg-cyan ml-2 
+            relative -top-[0.05em] align-middle
+            shadow-[0_0_10px_#00f2ff]
+          `}></span>
+        </InteractiveText>
+      ) : (
+        <span className="opacity-0">{words[0]}</span>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, ReactNode } from "react";
+import { useRef, useState, ReactNode, useEffect } from "react";
 
 interface InteractiveTextProps {
   children: ReactNode;
@@ -11,10 +11,15 @@ interface InteractiveTextProps {
 export const InteractiveText = ({ 
   children, 
   className = "", 
-  colors = ["#00F2FF", "#004D4D"] // Default: Cyan Highlight, Petroleum Base
+  colors = ["#00F2FF", "#004D4D"] 
 }: InteractiveTextProps) => {
+  const [isMounted, setIsMounted] = useState(false);
   const textRef = useRef<HTMLSpanElement>(null);
-  const [mousePos, setMousePos] = useState({ x: 100, y: 0 }); // Start at Top-Right (Edge of S)
+  const [mousePos, setMousePos] = useState({ x: 100, y: 0 });
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!textRef.current) return;
@@ -33,12 +38,14 @@ export const InteractiveText = ({
       ref={textRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      suppressHydrationWarning
       className={`inline-block transition-all duration-[2500ms] ease-[0.16,1,0.3,1] cursor-default ${className}`}
       style={{ 
-        backgroundImage: `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, ${colors[0]} 0%, ${colors[1]} 80%)`,
+        backgroundImage: isMounted ? `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, ${colors[0]} 0%, ${colors[1]} 80%)` : 'none',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text',
+        color: isMounted ? 'transparent' : colors[1]
       } as React.CSSProperties}
     >
       {children}
