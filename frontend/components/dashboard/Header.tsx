@@ -89,8 +89,15 @@ export const DashboardHeader = ({
     };
 
     return (
-        <header className="h-24 flex-shrink-0 flex items-center justify-end px-10 sticky top-0 z-[50] pointer-events-none">
-            <div className="flex items-center pointer-events-auto">
+        <header className="h-24 flex-shrink-0 flex items-center justify-end px-10 sticky top-0 z-[50] pointer-events-auto transition-all duration-500">
+            {/* Fondo de Cristal Global del Header - Mas transparente y con mas blur */}
+            <div className={`absolute inset-0 -z-10 backdrop-blur-3xl border-b transition-all duration-500 ${
+                theme === 'dark' 
+                ? 'bg-[#001212]/20 border-white/5 shadow-[0_4px_30px_rgba(0,0,0,0.3)]' 
+                : 'bg-white/20 border-white/40 shadow-[0_4px_30px_rgba(0,0,0,0.02)]'
+            }`} />
+            
+            <div className="flex items-center">
                 
                 {/* Contenedor Único Premium (Bayt, Notificaciones, Avatar) */}
                 <div className="relative group p-[2px] rounded-full">

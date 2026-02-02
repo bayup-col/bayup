@@ -110,13 +110,15 @@ export default function StaffPage() {
         value, 
         onChange, 
         options, 
-        icon: Icon 
+        icon: Icon,
+        openUp = false
     }: { 
         label: string, 
         value: string, 
         onChange: (val: string) => void, 
         options: { id: string, label: string, icon?: any }[],
-        icon: any
+        icon: any,
+        openUp?: boolean
     }) => {
         const [isOpen, setIsOpen] = useState(false);
         const selectedOption = options.find(o => o.id === value);
@@ -129,14 +131,16 @@ export default function StaffPage() {
                         type="button"
                         onClick={() => setIsOpen(!isOpen)}
                         className={`w-full pl-14 p-5 bg-gray-50 rounded-2xl border-2 transition-all text-left flex items-center justify-between group ${
-                            isOpen ? 'border-[#004d4d] bg-white shadow-lg' : 'border-transparent hover:border-[#004d4d]/20 shadow-inner'
+                            isOpen ? 'border-[#004d4d] bg-white shadow-xl' : 'border-transparent hover:border-[#004d4d]/20 shadow-inner'
                         }`}
                     >
                         <div className="flex items-center gap-3">
-                            <Icon className={`absolute left-5 transition-colors ${isOpen ? 'text-[#004d4d]' : 'text-gray-300'}`} size={18}/>
-                            <span className="text-sm font-bold text-slate-700 truncate mr-4">{selectedOption?.label || 'Seleccionar...'}</span>
+                            <Icon className={`absolute left-5 transition-all duration-300 ${isOpen ? 'text-[#004d4d]' : 'text-gray-300'}`} size={18}/>
+                            <span className={`text-sm font-bold transition-colors ${isOpen ? 'text-[#004d4d]' : 'text-slate-700'}`}>
+                                {selectedOption?.label || 'Seleccionar...'}
+                            </span>
                         </div>
-                        <ChevronDown size={16} className={`text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-[#004d4d]' : ''}`} />
+                        <ChevronDown size={16} className={`text-gray-400 transition-transform duration-500 ${isOpen ? 'rotate-180 text-[#004d4d]' : ''}`} />
                     </button>
 
                     <AnimatePresence>
@@ -144,33 +148,40 @@ export default function StaffPage() {
                             <>
                                 <div className="fixed inset-0 z-[1001]" onClick={() => setIsOpen(false)} />
                                 <motion.div
-                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    initial={{ opacity: 0, y: openUp ? -10 : 10, scale: 0.98 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    className="absolute left-0 right-0 mt-3 p-2 bg-white rounded-3xl border border-gray-100 shadow-2xl z-[1002] overflow-hidden"
+                                    exit={{ opacity: 0, y: openUp ? -10 : 10, scale: 0.98 }}
+                                    className={`absolute left-0 right-0 p-2 bg-white/95 backdrop-blur-2xl rounded-[2.5rem] border border-white shadow-2xl z-[1002] overflow-hidden ring-1 ring-black/5 ${
+                                        openUp ? 'bottom-full mb-3' : 'mt-3'
+                                    }`}
                                 >
                                     <div className="max-h-60 overflow-y-auto custom-scrollbar p-1 space-y-1">
-                                        {options.map((opt) => (
-                                            <button
-                                                key={opt.id}
-                                                type="button"
-                                                onClick={() => {
-                                                    onChange(opt.id);
-                                                    setIsOpen(false);
-                                                }}
-                                                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${
-                                                    value === opt.id 
-                                                    ? 'bg-[#004d4d] text-white' 
-                                                    : 'hover:bg-gray-50 text-slate-600'
-                                                }`}
-                                            >
-                                                <div className="flex items-center gap-3 overflow-hidden">
-                                                    {opt.icon && <span className={value === opt.id ? 'text-[#00f2ff]' : 'text-gray-400'}>{opt.icon}</span>}
-                                                    <span className="text-xs font-bold uppercase tracking-tight truncate">{opt.label}</span>
-                                                </div>
-                                                {value === opt.id && <Check size={14} className="shrink-0 ml-2" />}
-                                            </button>
-                                        ))}
+                                        {options.map((opt) => {
+                                            const isSelected = value === opt.id;
+                                            return (
+                                                <button
+                                                    key={opt.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        onChange(opt.id);
+                                                        setIsOpen(false);
+                                                    }}
+                                                    className={`w-full flex items-center justify-between p-3.5 rounded-2xl transition-all group/opt ${
+                                                        isSelected 
+                                                        ? 'bg-[#004d4d] text-white shadow-lg' 
+                                                        : 'hover:bg-[#00f2ff]/5 text-slate-600 hover:text-[#004d4d]'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-3 overflow-hidden">
+                                                        <div className={`transition-transform duration-300 ${isSelected ? 'text-[#00f2ff]' : 'text-gray-400'}`}>
+                                                            {opt.icon || <Shield size={14} />}
+                                                        </div>
+                                                        <span className="text-[11px] font-black uppercase tracking-tight truncate">{opt.label}</span>
+                                                    </div>
+                                                    {isSelected && <Check size={14} className="text-[#00f2ff]" />}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </motion.div>
                             </>
@@ -197,41 +208,38 @@ export default function StaffPage() {
     const fetchData = useCallback(async () => {
         if (!token) return;
         setIsLoading(true);
+        
+        // Cargas individuales para evitar que un error en un endpoint bloquee todo el dashboard
         try {
+            const staffPromise = userService.getAll(token).catch(e => { console.error("Staff fail", e); return []; });
+            const rolesPromise = userService.getRoles(token).catch(e => { console.error("Roles fail", e); return []; });
+            const mePromise = userService.getMe(token).catch(e => { console.error("Me fail", e); return { plan: { name: 'Pro' } }; });
+            const logsPromise = userService.getLogs(token).catch(e => { console.error("Logs fail", e); return []; });
+
             const [staffData, rolesData, meData, logsData] = await Promise.all([
-                userService.getAll(token),
-                userService.getRoles(token),
-                userService.getMe(token),
-                userService.getLogs(token)
+                staffPromise, rolesPromise, mePromise, logsPromise
             ]);
             
             setCurrentUserPlan(meData.plan);
             setLogs(logsData);
             
-            setStaff(staffData.map((u: any) => ({
-                id: u.id,
-                full_name: u.full_name || 'Usuario',
-                email: u.email,
-                role: u.role,
-                status: u.status || 'Activo',
-                last_active: 'Hoy, 10:24 AM' // Mock
-            })));
+            if (staffData && Array.isArray(staffData)) {
+                setStaff(staffData.map((u: any) => ({
+                    id: u.id,
+                    full_name: u.full_name || 'Usuario',
+                    email: u.email,
+                    role: u.role,
+                    status: u.status || 'Activo',
+                    last_active: 'Ahora'
+                })));
+            }
 
-            if (rolesData.length === 0) {
-                // Initialize default roles if empty
-                const createdRoles = [];
-                for (const r of baseRoles) {
-                    const defaultPerms: any = {};
-                    modules.forEach(m => defaultPerms[m.id] = true);
-                    const newRole = await userService.createRole(token, { name: r.id, permissions: defaultPerms });
-                    createdRoles.push(newRole);
-                }
-                setCustomRoles(createdRoles);
-            } else {
+            if (rolesData && Array.isArray(rolesData) && rolesData.length > 0) {
                 setCustomRoles(rolesData);
             }
         } catch (error) {
-            showToast("Error al sincronizar el staff", "error");
+            console.error("Critical sync error", error);
+            showToast("Error de conexión parcial con el servidor", "warning");
         } finally {
             setIsLoading(false);
         }
@@ -827,6 +835,7 @@ export default function StaffPage() {
                                             onChange={(val) => setFormData({...formData, role: val})}
                                             options={allRolesOptions}
                                             icon={Shield}
+                                            openUp={false}
                                         />
                                         <PremiumSelect 
                                             label="Estado Inicial"
@@ -838,6 +847,7 @@ export default function StaffPage() {
                                                 { id: 'Suspendido', label: 'Suspendido', icon: <ShieldAlert size={14} /> }
                                             ]}
                                             icon={Activity}
+                                            openUp={false}
                                         />
                                     </div>
 

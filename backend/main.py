@@ -170,39 +170,46 @@ def read_orders(db: Session = Depends(get_db), current_user: models.User = Depen
 @app.get("/admin/users")
 def get_all_users(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     try:
-        # 1. Identificar al dueño de la cuenta (Tenant)
+        # 1. Identificar al dueño de la cuenta (Tenant) de forma segura
         tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
-        print(f"DEBUG: Consultando staff para el tenant {tenant_id}")
+        t_id_str = str(tenant_id)
         
-        # 2. Si es super admin, devolver todo (excepto clientes)
+        print(f"DEBUG: Consultando staff para tenant_id: {t_id_str}")
+        
+        # 2. Si es super admin, ve todo
         if current_user.role == 'super_admin':
             users = db.query(models.User).filter(models.User.role != 'cliente').all()
         else:
-            # 3. Solo usuarios vinculados a este dueño
-            # Usamos filter con condiciones explícitas
-            users = db.query(models.User).filter(
-                models.User.role != 'cliente',
-                ((models.User.owner_id == tenant_id) | (models.User.id == tenant_id))
-            ).all()
+            # 3. Intentar consulta filtrada. Si falla la columna owner_id, capturamos el error.
+            try:
+                users = db.query(models.User).filter(
+                    models.User.role != 'cliente',
+                    ((models.User.owner_id == t_id_str) | (models.User.id == t_id_str))
+                ).all()
+            except Exception as e:
+                print(f"ALERTA: Fallo en consulta filtrada (posible columna faltante): {e}")
+                # Fallback: Al menos devolver el usuario actual
+                users = [current_user]
         
-        # 4. Mapeo ultra-seguro a JSON simple
+        # 4. Mapeo manual ultra-seguro
         staff_list = []
         for u in users:
-            staff_list.append({
-                "id": str(u.id),
-                "full_name": u.full_name or "Sin nombre",
-                "email": u.email,
-                "role": u.role,
-                "status": u.status or "Activo",
-                "owner_id": str(u.owner_id) if u.owner_id else None
-            })
+            try:
+                staff_list.append({
+                    "id": str(u.id),
+                    "full_name": str(u.full_name) if u.full_name else "Usuario",
+                    "email": str(u.email),
+                    "role": str(u.role),
+                    "status": str(u.status) if u.status else "Activo",
+                    "owner_id": str(u.owner_id) if u.owner_id else None
+                })
+            except:
+                continue
         
         return staff_list
     except Exception as e:
-        import traceback
-        error_trace = traceback.format_exc()
-        print(f"ERROR CRITICO EN /admin/users:\n{error_trace}")
-        return JSONResponse(status_code=500, content={"message": "Error interno al cargar staff", "error": str(e)})
+        print(f"ERROR CRITICO EN /admin/users: {e}")
+        return JSONResponse(status_code=500, content={"detail": "Error en el servidor de staff", "error": str(e)})
 
 @app.post("/admin/users", response_model=schemas.User)
 def create_staff_user(user: schemas.UserCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):

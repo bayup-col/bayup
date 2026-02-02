@@ -397,15 +397,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             setIsBaytOpen={setIsBaytOpen}
         />
         
-        {/* Atmospheric Top Dissolve Mask Adaptable */}
-        <div className={`absolute top-0 left-0 right-0 h-32 z-[40] pointer-events-none backdrop-blur-[2px] transition-all duration-500 ${
-            theme === 'dark' 
-            ? 'bg-gradient-to-b from-[#001212] via-[#001212]/90 to-transparent' 
-            : 'bg-gradient-to-b from-[#FAFAFA] via-[#FAFAFA]/90 to-transparent'
-        }`} />
+        {/* Fondo Atmosférico Unificado */}
+        <div className={`absolute inset-0 -z-10 transition-all duration-500 ${theme === 'dark' ? 'opacity-20' : 'opacity-5'}`}>
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+        </div>
         
-        <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar bg-transparent relative">
-            <div className="pt-4"> {/* Extra safe space for the floating header */}
+        <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar bg-transparent relative scroll-smooth">
+            <div className="pt-4"> 
                 {children}
             </div>
         </main>
