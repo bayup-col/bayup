@@ -17,7 +17,7 @@ import { User } from "lucide-react";
 import { PageLoader } from "@/components/landing/PageLoader";
 import { WhatsAppFloatingButton } from "@/components/landing/WhatsAppFloatingButton";
 import { motion, useScroll, useSpring, useMotionValueEvent, AnimatePresence } from "framer-motion";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 // Importaciones dinámicas con fallbacks
 const AntigravityBackground = dynamic(
@@ -40,14 +40,16 @@ export default function HomePage() {
   const { scrollY } = useScroll();
   const [hidden, setHidden] = useState(false);
   const [isAtTop, setIsAtTop] = useState(true);
-  const [isLoading, setIsLoading] = useState(() => {
-    // Verificar en el cliente si ya se cargó en esta sesión
-    if (typeof window !== "undefined") {
-      return !sessionStorage.getItem("bayup_initialized");
-    }
-    return true;
-  });
+  const [isLoading, setIsLoading] = useState(true);
   const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    // Verificar en el cliente si ya se cargó en esta sesión
+    const isInitialized = sessionStorage.getItem("bayup_initialized");
+    if (isInitialized) {
+      setIsLoading(false);
+    }
+  }, []);
 
   const handleLoadingComplete = () => {
     setIsLoading(false);
