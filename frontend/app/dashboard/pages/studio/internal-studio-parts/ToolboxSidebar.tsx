@@ -26,9 +26,12 @@ const AVAILABLE_COMPONENTS = {
   ]
 };
 
-const DraggableItem = ({ comp }: { comp: any }) => {
+const DraggableItem = ({ comp, index, activeSection }: { comp: any, index: number, activeSection: string }) => {
+  // Usamos un ID manual basado en la sección y el índice para que sea 100% estable entre Server y Client
+  const stableId = `draggable-${activeSection}-${comp.type}-${index}`;
+  
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `draggable-${comp.type}-${Math.random()}`,
+    id: stableId,
     data: {
       type: comp.type,
     },
@@ -53,7 +56,7 @@ const DraggableItem = ({ comp }: { comp: any }) => {
 };
 
 export const ToolboxSidebar = () => {
-  const { activeSection, setActiveSection, sidebarView } = useStudio();
+  const { activeSection, sidebarView, setActiveSection } = useStudio();
 
   if (sidebarView !== "toolbox") return null;
 
@@ -75,7 +78,6 @@ export const ToolboxSidebar = () => {
             "p-2 rounded-lg transition-all flex flex-col items-center gap-1 text-xs font-medium",
             activeSection === "header" ? "bg-blue-100 text-blue-600 shadow-sm" : "text-gray-400 hover:bg-gray-100"
           )}
-          title="Editar Inicio (Header)"
         >
           <LayoutTemplate size={18} />
           <span>Inicio</span>
@@ -86,7 +88,6 @@ export const ToolboxSidebar = () => {
             "p-2 rounded-lg transition-all flex flex-col items-center gap-1 text-xs font-medium",
             activeSection === "body" ? "bg-blue-100 text-blue-600 shadow-sm" : "text-gray-400 hover:bg-gray-100"
           )}
-          title="Editar Cuerpo"
         >
           <Monitor size={18} />
           <span>Cuerpo</span>
@@ -97,7 +98,6 @@ export const ToolboxSidebar = () => {
             "p-2 rounded-lg transition-all flex flex-col items-center gap-1 text-xs font-medium",
             activeSection === "footer" ? "bg-blue-100 text-blue-600 shadow-sm" : "text-gray-400 hover:bg-gray-100"
           )}
-          title="Editar Final (Footer)"
         >
           <ArrowDownToLine size={18} />
           <span>Final</span>
@@ -112,7 +112,12 @@ export const ToolboxSidebar = () => {
         
         <div className="grid grid-cols-2 gap-3">
           {currentComponents.map((comp, idx) => (
-            <DraggableItem key={`${activeSection}-${idx}`} comp={comp} />
+            <DraggableItem 
+                key={`${activeSection}-${idx}`} 
+                comp={comp} 
+                index={idx} 
+                activeSection={activeSection} 
+            />
           ))}
         </div>
       </div>

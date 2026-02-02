@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useId } from "react";
 import { useStudio, ComponentType, SectionType } from "../context";
 import { 
   X, Type, Palette, Move, Sliders, Image as ImageIcon, 
@@ -11,9 +11,10 @@ import { cn } from "@/lib/utils";
 
 type TabType = "content" | "style" | "animation";
 
-export const PropertiesPanel = () => {
+export const DesignerInspector = () => {
   const { selectedElementId, selectElement, pageData, updateElement, sidebarView } = useStudio();
   const [activeTab, setActiveTab] = useState<TabType>("content");
+  const panelId = useId();
 
   if (sidebarView !== "properties" || !selectedElementId) return null;
 
@@ -21,7 +22,8 @@ export const PropertiesPanel = () => {
   let element: any = null;
   let sectionKey: SectionType = "body";
 
-  for (const section of ["header", "body", "footer"] as SectionType[]) {
+  const sections: SectionType[] = ["header", "body", "footer"];
+  for (const section of sections) {
     const found = pageData[section].elements.find(el => el.id === selectedElementId);
     if (found) {
       element = found;
@@ -37,7 +39,7 @@ export const PropertiesPanel = () => {
   };
 
   const ControlGroup = ({ title, icon: Icon, children }: { title: string, icon: any, children: React.ReactNode }) => (
-    <div className="space-y-3 mb-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="space-y-3 mb-6">
       <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
         <Icon size={14} className="text-blue-500" />
         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{title}</span>
@@ -49,14 +51,14 @@ export const PropertiesPanel = () => {
   );
 
   return (
-    <div className="w-80 h-full bg-white border-l border-gray-200 flex flex-col shadow-2xl z-30 overflow-hidden">
+    <div id={`props-inspector-${panelId}`} className="w-80 h-full bg-white border-l border-gray-200 flex flex-col shadow-2xl z-30 overflow-hidden">
       {/* HEADER DINÁMICO */}
       <div className="p-4 border-b border-gray-100 bg-gray-50/50">
         <div className="flex justify-between items-start mb-4">
           <div>
             <h2 className="font-bold text-gray-800 text-sm flex items-center gap-2">
               <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-              Editando {element.type.replace("-", " ")}
+              Inspector: {element.type.replace("-", " ")}
             </h2>
             <p className="text-[9px] text-gray-400 font-mono mt-0.5">ID: {element.id.slice(0,8)}</p>
           </div>
@@ -178,8 +180,8 @@ export const PropertiesPanel = () => {
                       style={{ backgroundColor: color }}
                     />
                   ))}
-                  <button className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400">
-                    <Plus size={12} />
+                  <button className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm">
+                    +
                   </button>
                 </div>
               </div>

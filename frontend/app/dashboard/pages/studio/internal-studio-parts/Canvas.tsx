@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { useStudio, SectionType } from "../context";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Trash2, Plus, GripVertical, ShoppingBag, User, Image as ImageIcon } from "lucide-react";
+import { Trash2, Plus as PlusIcon, GripVertical, ShoppingBag, User, Image as ImageIcon } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
 
 const DroppableSection = ({ 
@@ -64,7 +64,7 @@ const DroppableSection = ({
 };
 
 export const Canvas = () => {
-  const { pageData, activeSection, setActiveSection, selectElement, selectedElementId, removeElement } = useStudio();
+  const { pageData, activeSection, setActiveSection, selectElement, selectedElementId, removeElement, viewport } = useStudio();
   
   const headerRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -83,13 +83,19 @@ export const Canvas = () => {
     }
   }, [activeSection]);
 
+  const viewportWidths = {
+    desktop: "max-w-5xl",
+    tablet: "max-w-2xl",
+    mobile: "max-w-sm"
+  };
+
   const renderElements = (section: SectionType) => {
     const data = pageData[section];
     
     if (data.elements.length === 0) {
       return (
         <div className="py-12 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400">
-          <Plus size={24} className="mb-2" />
+          <PlusIcon size={24} className="mb-2" />
           <p className="text-sm font-medium">Arrastra componentes aquí</p>
         </div>
       );
@@ -208,8 +214,8 @@ export const Canvas = () => {
   };
 
   return (
-    <div className="flex-1 bg-gray-100 overflow-y-auto overflow-x-hidden p-8 scroll-smooth custom-scrollbar">
-      <div className="max-w-5xl mx-auto space-y-6 pb-40">
+    <div className="flex-1 bg-gray-100 overflow-y-auto overflow-x-hidden p-8 scroll-smooth custom-scrollbar flex flex-col items-center">
+      <div className={cn("w-full transition-all duration-500 space-y-6 pb-40 mx-auto", viewportWidths[viewport])}>
         
         <DroppableSection 
             section="header" 
