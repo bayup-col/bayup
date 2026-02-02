@@ -67,6 +67,8 @@ const DEFAULT_SCHEMA: PageSchema = {
   },
 };
 
+export type ViewportType = "desktop" | "tablet" | "mobile";
+
 interface StudioContextType {
   activeSection: SectionType;
   setActiveSection: (section: SectionType) => void;
@@ -79,6 +81,8 @@ interface StudioContextType {
   sidebarView: "toolbox" | "properties"; // Toolbox (Left) or Properties (Right)
   toggleSidebar: (view: "toolbox" | "properties") => void;
   handleDragEnd: (event: DragEndEvent) => void;
+  viewport: ViewportType;
+  setViewport: (v: ViewportType) => void;
 }
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
@@ -88,6 +92,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [pageData, setPageData] = useState<PageSchema>(DEFAULT_SCHEMA);
   const [sidebarView, setSidebarView] = useState<"toolbox" | "properties">("toolbox");
+  const [viewport, setViewport] = useState<ViewportType>("desktop");
 
   const selectElement = (id: string | null) => {
     setSelectedElementId(id);
@@ -170,7 +175,9 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
         removeElement,
         sidebarView,
         toggleSidebar,
-        handleDragEnd
+        handleDragEnd,
+        viewport,
+        setViewport
       }}
     >
       {children}
