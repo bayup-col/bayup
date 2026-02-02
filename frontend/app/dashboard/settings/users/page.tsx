@@ -61,6 +61,8 @@ export default function StaffPage() {
     // UI STATES
     const [activeTab, setActiveTab] = useState<'miembros' | 'roles' | 'auditoria'>('miembros');
     const [searchTerm, setSearchTerm] = useState("");
+    const [filterRole, setFilterRole] = useState<string>("all");
+    const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -78,6 +80,7 @@ export default function StaffPage() {
     const [userToDelete, setUserToDelete] = useState<StaffMember | null>(null);
     const [roleToDelete, setRoleToDelete] = useState<any>(null);
     const [selectedRoleForPerms, setSelectedRoleForPerms] = useState<string | null>(null);
+    const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
 
     // FORM STATES
     const [formData, setFormData] = useState({
@@ -103,6 +106,74 @@ export default function StaffPage() {
         { id: 'logistica', label: 'Logística', icon: <Truck size={14} />, desc: 'Pedidos y stock' },
         { id: 'vendedor', label: 'Vendedor', icon: <DollarSign size={14} />, desc: 'Ventas y clientes' }
     ];
+
+    // --- COMPONENTE TILT CARD ---
+    const TiltCard = ({ children }: { children: React.ReactNode }) => {
+        const [rotateX, setRotateX] = useState(0);
+        const [rotateY, setRotateY] = useState(0);
+        const [glarePos, setGlarePos] = useState({ x: 50, y: 50, opacity: 0 });
+
+        const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+            const card = e.currentTarget;
+            const box = card.getBoundingClientRect();
+            const x = e.clientX - box.left;
+            const y = e.clientY - box.top;
+            const centerX = box.width / 2;
+            const centerY = box.height / 2;
+            
+            const rotateX = (y - centerY) / 8;
+            const rotateY = (centerX - x) / 8;
+            
+            setRotateX(rotateX);
+            setRotateY(rotateY);
+            setGlarePos({ 
+                x: (x / box.width) * 100, 
+                y: (y / box.height) * 100,
+                opacity: 0.15 
+            });
+        };
+
+        const handleMouseLeave = () => {
+            setRotateX(0);
+            setRotateY(0);
+            setGlarePos(prev => ({ ...prev, opacity: 0 }));
+        };
+
+        return (
+            <motion.div
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+                animate={{ 
+                    rotateX, 
+                    rotateY,
+                    scale: rotateX !== 0 ? 1.02 : 1
+                }}
+                transition={{ type: "spring", stiffness: 200, damping: 25 }}
+                style={{ 
+                    transformStyle: "preserve-3d",
+                    perspective: "1000px"
+                }}
+                className="bg-white/40 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/80 shadow-2xl flex flex-col justify-between group relative overflow-hidden"
+            >
+                {/* Glare Effect */}
+                <div 
+                    className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+                    style={{
+                        opacity: glarePos.opacity,
+                        background: `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255,255,255,0.8) 0%, transparent 60%)`,
+                        zIndex: 1
+                    }}
+                />
+                
+                <div style={{ transform: "translateZ(60px)", position: "relative", zIndex: 2 }}>
+                    {children}
+                </div>
+
+                {/* Ambient Glow */}
+                <div className="absolute -bottom-20 -right-20 h-40 w-40 bg-[#00f2ff]/10 blur-[60px] rounded-full pointer-events-none" />
+            </motion.div>
+        );
+    };
 
     // --- COMPONENTE SELECT PREMIUM ---
     const PremiumSelect = ({ 
@@ -230,7 +301,7 @@ export default function StaffPage() {
                     email: u.email,
                     role: u.role,
                     status: u.status || 'Activo',
-                    last_active: 'Ahora'
+                    last_active: u.last_active ? new Date(u.last_active).toLocaleDateString() : 'Sin actividad'
                 })));
             }
 
@@ -251,14 +322,17 @@ export default function StaffPage() {
 
     // FILTER LOGIC
     const filteredStaff = useMemo(() => {
-        return staff.filter(s => 
-            s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            s.email.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [staff, searchTerm]);
+        return staff.filter(s => {
+            const matchesSearch = s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                s.email.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesRole = filterRole === "all" || s.role === filterRole;
+            return matchesSearch && matchesRole;
+        });
+    }, [staff, searchTerm, filterRole]);
 
     // HANDLERS
     const handleOpenMemberModal = (member: StaffMember | null = null) => {
+        setGeneratedPassword(null);
         if (member) {
             setEditingMember(member);
             setFormData({
@@ -277,9 +351,17 @@ export default function StaffPage() {
     const handleSaveMember = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // VALIDACIÓN DE LÍMITE DE PLAN
-        if (!editingMember && staff.length >= 3) {
-            showToast("Límite de Staff alcanzado (Máximo 3 miembros en Plan Pro)", "error");
+        // Si la contraseña ya se generó, el botón ahora sirve para cerrar el modal
+        if (generatedPassword) {
+            setIsMemberModalOpen(false);
+            setGeneratedPassword(null);
+            return;
+        }
+
+        // VALIDACIÓN DE LÍMITE DE PLAN DINÁMICO
+        const staffLimit = currentUserPlan?.name === 'Free' ? 1 : 10;
+        if (!editingMember && staff.length >= staffLimit) {
+            showToast(`Límite de Staff alcanzado (Máximo ${staffLimit} en Plan ${currentUserPlan?.name || 'Pro'})`, "error");
             return;
         }
 
@@ -293,18 +375,21 @@ export default function StaffPage() {
                     status: formData.status
                 });
                 showToast("Miembro actualizado", "success");
+                setIsMemberModalOpen(false);
             } else {
+                const tempPassword = Math.random().toString(36).slice(-10) + "Aa1!";
                 await userService.create(token!, {
                     email: formData.email.toLowerCase().trim(),
                     full_name: formData.name.trim(),
-                    password: Math.random().toString(36).slice(-8) + "Aa1!",
+                    password: tempPassword,
                     role: formData.role,
                     status: formData.status
                 });
-                showToast("Invitación enviada", "success");
+                setGeneratedPassword(tempPassword);
+                showToast("Miembro registrado. Copia la contraseña.", "success");
+                // No cerramos el modal aquí para que el usuario pueda copiar la contraseña
             }
             await fetchData();
-            setIsMemberModalOpen(false);
         } catch (error: any) {
             showToast(error.message || "Error al procesar", "error");
         } finally {
@@ -359,12 +444,12 @@ export default function StaffPage() {
     const renderKPIs = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 shrink-0">
             {[
-                { label: 'Total Staff', value: `${staff.length}/3`, sub: 'Miembros activos', icon: <Users size={20}/>, color: 'text-[#004d4d]' },
+                { label: 'Total Staff', value: `${staff.length}/${currentUserPlan?.name === 'Free' ? 1 : 10}`, sub: 'Miembros activos', icon: <Users size={20}/>, color: 'text-[#004d4d]' },
                 { label: 'En Línea', value: staff.filter(s => s.status === 'Activo').length, sub: 'Operando ahora', icon: <Activity size={20}/>, color: 'text-emerald-500' },
                 { label: 'Roles Activos', value: customRoles.length, sub: 'Estructura RBAC', icon: <ShieldCheck size={20}/>, color: 'text-[#00f2ff]' },
                 { label: 'Invitaciones', value: staff.filter(s => s.status === 'Invitado').length, sub: 'Pendientes', icon: <Mail size={20}/>, color: 'text-amber-500' },
             ].map((kpi, i) => (
-                <motion.div key={i} whileHover={{ y: -5, scale: 1.02 }} className="bg-white/60 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/80 shadow-sm flex flex-col justify-between group transition-all">
+                <TiltCard key={i} color={kpi.color}>
                     <div className="flex justify-between items-start">
                         <div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color} group-hover:scale-110 transition-transform`}>
                             {kpi.icon}
@@ -376,7 +461,7 @@ export default function StaffPage() {
                         <h3 className="text-3xl font-black text-gray-900 mt-1">{kpi.value}</h3>
                         <p className="text-[9px] font-bold text-gray-400 mt-1 italic">{kpi.sub}</p>
                     </div>
-                </motion.div>
+                </TiltCard>
             ))}
         </div>
     );
@@ -396,10 +481,42 @@ export default function StaffPage() {
                     />
                 </div>
                 <div className="h-10 w-px bg-slate-200 hidden md:block"></div>
-                <div className="flex items-center gap-3">
-                    <button className="h-12 flex items-center gap-2 px-5 rounded-2xl bg-white text-slate-500 border border-gray-100 hover:bg-gray-50 transition-all">
-                        <Filter size={18}/> <span className="text-[10px] font-black uppercase tracking-widest">Filtros</span>
+                <div className="flex items-center gap-3 relative">
+                    <button 
+                        onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
+                        className={`h-12 flex items-center gap-2 px-5 rounded-2xl border transition-all ${isFilterMenuOpen ? 'bg-gray-900 text-white border-transparent' : 'bg-white text-slate-500 border-gray-100 hover:bg-gray-50'}`}
+                    >
+                        <Filter size={18}/> <span className="text-[10px] font-black uppercase tracking-widest">{filterRole === 'all' ? 'Filtros' : filterRole}</span>
                     </button>
+
+                    <AnimatePresence>
+                        {isFilterMenuOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setIsFilterMenuOpen(false)} />
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 10 }}
+                                    className="absolute top-full mt-2 right-0 w-64 bg-white rounded-3xl shadow-2xl border border-gray-100 p-2 z-50 overflow-hidden"
+                                >
+                                    <div className="p-4 border-b border-gray-50 mb-2">
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Filtrar por Rol</p>
+                                    </div>
+                                    <button onClick={() => { setFilterRole('all'); setIsFilterMenuOpen(false); }} className={`w-full text-left p-3 rounded-2xl text-[10px] font-black uppercase tracking-widest ${filterRole === 'all' ? 'bg-[#004d4d] text-white' : 'hover:bg-gray-50 text-gray-500'}`}>Todos</button>
+                                    {baseRoles.map(role => (
+                                        <button 
+                                            key={role.id}
+                                            onClick={() => { setFilterRole(role.id); setIsFilterMenuOpen(false); }}
+                                            className={`w-full text-left p-3 rounded-2xl text-[10px] font-black uppercase tracking-widest ${filterRole === role.id ? 'bg-[#004d4d] text-white' : 'hover:bg-gray-50 text-gray-500'}`}
+                                        >
+                                            {role.label}
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>
+
                     <button onClick={() => handleOpenMemberModal()} className="h-12 flex items-center gap-2 px-5 bg-gray-900 text-white rounded-2xl shadow-lg hover:bg-black transition-all">
                         <UserPlus size={18} className="text-[#00f2ff]"/> <span className="text-[10px] font-black uppercase tracking-widest">Invitar Miembro</span>
                     </button>
@@ -853,14 +970,32 @@ export default function StaffPage() {
 
                                     <div className="p-6 bg-emerald-50/50 rounded-3xl border border-emerald-100 flex items-start gap-4">
                                         <ShieldCheck className="text-emerald-600 shrink-0" size={20}/>
-                                        <p className="text-[10px] font-medium text-emerald-800 leading-relaxed italic">"El nuevo miembro recibirá una invitación por correo para configurar su contraseña segura y acceder a los módulos asignados."</p>
+                                        <div className="space-y-2">
+                                            <p className="text-[10px] font-medium text-emerald-800 leading-relaxed italic">"El nuevo miembro recibirá una invitación por correo para configurar su contraseña segura y acceder a los módulos asignados."</p>
+                                            {generatedPassword && (
+                                                <div className="mt-4 p-4 bg-white border border-emerald-200 rounded-2xl">
+                                                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-2">Contraseña Generada (Copiar ahora):</p>
+                                                    <code className="text-sm font-black text-[#004d4d] bg-emerald-50 px-3 py-1 rounded-lg block text-center border border-emerald-100 select-all cursor-pointer">
+                                                        {generatedPassword}
+                                                    </code>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </form>
 
                                 <div className="p-10 border-t border-gray-50 bg-gray-50/30 flex gap-4">
-                                    <button onClick={handleSaveMember} disabled={isSaving} className="flex-1 py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3">
-                                        {isSaving ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={18} className="text-[#00f2ff]"/>}
-                                        {editingMember ? 'Actualizar Miembro' : 'Confirmar Invitación'}
+                                    <button 
+                                        onClick={handleSaveMember} 
+                                        disabled={isSaving} 
+                                        className={`flex-1 py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-xl transition-all flex items-center justify-center gap-3 ${
+                                            generatedPassword 
+                                            ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                                            : 'bg-gray-900 text-white hover:bg-black'
+                                        }`}
+                                    >
+                                        {isSaving ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={18} className={generatedPassword ? 'text-white' : 'text-[#00f2ff]'}/>}
+                                        {generatedPassword ? 'Finalizar y Cerrar' : (editingMember ? 'Actualizar Miembro' : 'Confirmar Invitación')}
                                     </button>
                                 </div>
                             </div>
