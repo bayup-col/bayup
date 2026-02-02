@@ -48,6 +48,8 @@ export const userService = {
     delete: (token: string, userId: string) =>
         apiRequest(`/admin/users/${userId}`, { method: 'DELETE', token }),
     
+    getLogs: (token: string) => apiRequest<any[]>('/admin/logs', { token }),
+    
     // Custom Roles
     getRoles: (token: string) => apiRequest<any[]>('/admin/roles', { token }),
     createRole: (token: string, data: any) => 

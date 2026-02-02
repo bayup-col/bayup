@@ -20,6 +20,29 @@ import payment_service
 import clerk_auth_service
 import ai_service
 
+# --- Tenant Isolation Helper ---
+def get_tenant_id(current_user: models.User):
+    # Si el usuario tiene un owner_id, significa que es Staff y su "tienda" es la del dueño.
+    # Si no tiene owner_id, él es el dueño de la tienda.
+    return current_user.owner_id if current_user.owner_id else current_user.id
+
+# --- Admin / Staff Logs Helper ---
+def log_activity(db: Session, user_id: uuid.UUID, tenant_id: uuid.UUID, action: str, detail: str, target_id: str = None):
+    try:
+        log = models.ActivityLog(
+            id=uuid.uuid4(),
+            user_id=user_id,
+            tenant_id=tenant_id,
+            action=action,
+            detail=detail,
+            target_id=target_id
+        )
+        db.add(log)
+        db.commit()
+    except Exception as e:
+        print(f"Error logging activity: {e}")
+        db.rollback()
+
 # Lifespan manager for startup and shutdown events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,113 +59,30 @@ async def lifespan(app: FastAPI):
         # Automigrate: Check for missing columns in 'users' table
         inspector = inspect(engine)
         tables = inspector.get_table_names()
-        print(f"Available tables: {tables}")
         
         if 'users' in tables:
             columns = [c['name'] for c in inspector.get_columns('users')]
-            
             with engine.begin() as conn:
+                if 'owner_id' not in columns:
+                    try: 
+                        print("Migrating: Adding owner_id to users table...")
+                        # Usamos un tipo genérico que funcione en SQLite y Postgres
+                        conn.execute(text("ALTER TABLE users ADD COLUMN owner_id VARCHAR(36)"))
+                        print("owner_id added successfully.")
+                    except Exception as e: 
+                        print(f"Migration Error (owner_id): {e}")
+                
                 if 'loyalty_points' not in columns:
                     try: conn.execute(text("ALTER TABLE users ADD COLUMN loyalty_points INTEGER DEFAULT 0"))
                     except: pass
-                
                 if 'total_spent' not in columns:
                     try: conn.execute(text("ALTER TABLE users ADD COLUMN total_spent FLOAT DEFAULT 0.0"))
                     except: pass
-                
-                if 'last_purchase_date' not in columns:
-                    try:
-                        col_type = "TIMESTAMP" if engine.name == 'postgresql' else "DATETIME"
-                        conn.execute(text(f"ALTER TABLE users ADD COLUMN last_purchase_date {col_type}"))
-                    except: pass
-                
-                if 'last_purchase_summary' not in columns:
-                    try: conn.execute(text("ALTER TABLE users ADD COLUMN last_purchase_summary VARCHAR"))
-                    except: pass
             print("User table migration check completed.")
 
-        # Automigrate 'products' table
-        if 'products' in tables:
-            product_columns = [c['name'] for c in inspector.get_columns('products')]
-            with engine.begin() as conn:
-                if 'wholesale_price' not in product_columns:
-                    try: conn.execute(text("ALTER TABLE products ADD COLUMN wholesale_price FLOAT DEFAULT 0.0"))
-                    except: pass
-                if 'cost' not in product_columns:
-                    try: conn.execute(text("ALTER TABLE products ADD COLUMN cost FLOAT DEFAULT 0.0"))
-                    except: pass
-                if 'status' not in product_columns:
-                    try: conn.execute(text("ALTER TABLE products ADD COLUMN status VARCHAR DEFAULT 'active'"))
-                    except: pass
-                if 'sku' not in product_columns:
-                    try: conn.execute(text("ALTER TABLE products ADD COLUMN sku VARCHAR"))
-                    except: pass
-                if 'add_gateway_fee' not in product_columns:
-                    try: conn.execute(text("ALTER TABLE products ADD COLUMN add_gateway_fee BOOLEAN DEFAULT FALSE"))
-                    except: pass
-            print("Product table migration check completed.")
-
-        # Automigrate 'orders' table
-        if 'orders' in tables:
-            order_columns = [c['name'] for c in inspector.get_columns('orders')]
-            with engine.begin() as conn:
-                if 'customer_phone' not in order_columns:
-                    try: conn.execute(text("ALTER TABLE orders ADD COLUMN customer_phone VARCHAR"))
-                    except: pass
-                if 'customer_type' not in order_columns:
-                    try: conn.execute(text("ALTER TABLE orders ADD COLUMN customer_type VARCHAR DEFAULT 'final'"))
-                    except: pass
-                if 'source' not in order_columns:
-                    try: conn.execute(text("ALTER TABLE orders ADD COLUMN source VARCHAR DEFAULT 'pos'"))
-                    except: pass
-                if 'payment_method' not in order_columns:
-                    try: conn.execute(text("ALTER TABLE orders ADD COLUMN payment_method VARCHAR DEFAULT 'cash'"))
-                    except: pass
-            print("Orders table migration check completed.")
-
-        # Automigrate 'ai_assistants' table
-        if 'ai_assistants' in tables:
-            ai_columns = [c['name'] for c in inspector.get_columns('ai_assistants')]
-            with engine.begin() as conn:
-                if 'total_actions' not in ai_columns:
-                    try: conn.execute(text("ALTER TABLE ai_assistants ADD COLUMN total_actions INTEGER DEFAULT 0"))
-                    except: pass
-                if 'success_rate' not in ai_columns:
-                    try: conn.execute(text("ALTER TABLE ai_assistants ADD COLUMN success_rate FLOAT DEFAULT 100.0"))
-                    except: pass
-                if 'last_run' not in ai_columns:
-                    try:
-                        col_type = "TIMESTAMP" if engine.name == 'postgresql' else "DATETIME"
-                        conn.execute(text(f"ALTER TABLE ai_assistants ADD COLUMN last_run {col_type}"))
-                    except: pass
-            print("AI Assistants table migration check completed.")
-
         if not crud.get_default_plan(db):
-            print("Creating default 'Free' plan...")
             crud.create_plan(db=db, plan=schemas.PlanCreate(name="Free", description="Default", commission_rate=0.1, monthly_fee=0, is_default=True))
             db.commit()
-
-        # Asegurar que existan productos mock para pruebas de POS
-        existing_products = db.query(models.Product).count()
-        if existing_products == 0:
-            print("Injecting initial mock products for testing...")
-            # Buscamos un usuario admin para asignar los productos
-            admin = db.query(models.User).filter(models.User.role == 'admin_tienda').first()
-            if admin:
-                mock_data = [
-                    { "id": "00000000-0000-4000-a000-000000000001", "name": "Zapatillas Nitro Pro Max", "price": 250000, "variants": [{ "id": "00000000-0000-4000-b000-000000000001", "name": "Estándar", "stock": 100, "attributes": {"Talla": ["38", "40", "42"], "Color": ["Negro", "Azul"]} }] },
-                    { "id": "00000000-0000-4000-a000-000000000002", "name": "Camiseta Oversize Cyber", "price": 85000, "variants": [{ "id": "00000000-0000-4000-b000-000000000002", "name": "Estándar", "stock": 100, "attributes": {"Talla": ["S", "M", "L"], "Color": ["Blanco", "Gris"]} }] },
-                    { "id": "00000000-0000-4000-a000-000000000003", "name": "Smartwatch Bayup v2", "price": 450000, "variants": [{ "id": "00000000-0000-4000-b000-000000000003", "name": "Estándar", "stock": 100 }] },
-                    { "id": "00000000-0000-4000-a000-000000000004", "name": "Set de Pesas 20kg", "price": 180000, "variants": [{ "id": "00000000-0000-4000-b000-000000000004", "name": "Estándar", "stock": 100 }] }
-                ]
-                for p_info in mock_data:
-                    p = models.Product(id=uuid.UUID(p_info["id"]), name=p_info["name"], price=p_info["price"], owner_id=admin.id, description="Demo product")
-                    db.add(p)
-                    for v_info in p_info["variants"]:
-                        v = models.ProductVariant(id=uuid.UUID(v_info["id"]), product_id=p.id, name=v_info["name"], stock=v_info["stock"], attributes=v_info.get("attributes"))
-                        db.add(v)
-                db.commit()
-                print("Mock products injected successfully.")
 
     except Exception as e:
         print(f"General Startup Error: {e}")
@@ -152,7 +92,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="BaseCommerce API", lifespan=lifespan)
 
-# Global Exception Handler to fix CORS on 500 errors
+# Global Exception Handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     print(f"CRITICAL ERROR: {exc}")
@@ -189,40 +129,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         raise HTTPException(status_code=401, detail="Incorrect email or password")
     return {"access_token": security.create_access_token(data={"sub": user.email}), "token_type": "bearer"}
 
-@app.post("/auth/clerk-login")
-async def clerk_login(request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)):
-    try:
-        clerk_user_info = await clerk_auth_service.verify_clerk_token(request.clerk_token)
-        email = clerk_user_info.get("email")
-        if not email:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Clerk token does not contain email")
-        
-        user = db.query(models.User).filter(models.User.email == email).first()
-        
-        if not user:
-            # Create user explicitly and commit to local DB
-            hashed_password = security.get_password_hash(str(uuid.uuid4()))
-            default_plan = crud.get_default_plan(db)
-            user = models.User(
-                id=uuid.uuid4(),
-                email=email,
-                full_name=clerk_user_info.get("full_name", "Clerk User"),
-                hashed_password=hashed_password,
-                plan_id=default_plan.id if default_plan else None,
-                role="admin_tienda",
-                status="Activo"
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-        
-        access_token = security.create_access_token(data={"sub": user.email})
-        return {"access_token": access_token, "token_type": "bearer"}
-    except Exception as e:
-        db.rollback()
-        # Return 401 instead of 500 for validation errors as requested
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Clerk login error: {str(e)}")
-
 @app.get("/auth/me", response_model=schemas.User)
 def get_me(current_user: models.User = Depends(security.get_current_user)):
     return current_user
@@ -231,286 +137,205 @@ def get_me(current_user: models.User = Depends(security.get_current_user)):
 
 @app.get("/products", response_model=List[schemas.Product])
 def read_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    return crud.get_products_by_owner(db, owner_id=current_user.id, skip=skip, limit=limit)
+    tenant_id = get_tenant_id(current_user)
+    return crud.get_products_by_owner(db, owner_id=tenant_id, skip=skip, limit=limit)
 
 @app.get("/products/{product_id}", response_model=schemas.Product)
 def read_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    p = crud.get_product(db, product_id=product_id, tenant_id=current_user.id)
+    tenant_id = get_tenant_id(current_user)
+    p = crud.get_product(db, product_id=product_id, tenant_id=tenant_id)
     if not p:
         raise HTTPException(status_code=404, detail="Product not found")
     return p
 
 @app.post("/products", response_model=schemas.Product)
 def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    return crud.create_product(db=db, product=product, owner_id=current_user.id)
-
-@app.put("/products/{product_id}", response_model=schemas.Product)
-def update_product(product_id: uuid.UUID, product: schemas.ProductCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    db_product = crud.get_product(db, product_id=product_id, tenant_id=current_user.id)
-    if not db_product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return crud.update_product(db=db, db_product=db_product, product=product)
-
-@app.post("/products/upload-url")
-def get_upload_url(file_type: str, current_user: models.User = Depends(security.get_current_user)):
-    # Simulación de URL firmada para desarrollo local
-    # En producción esto conectaría con s3_service.py
-    file_id = str(uuid.uuid4())
-    extension = file_type.split('/')[-1]
-    file_name = f"{file_id}.{extension}"
-    
-    # Por ahora devolvemos una URL dummy para no bloquear el flujo
-    return {
-        "upload_url": f"http://localhost:8000/upload-test/{file_name}",
-        "file_url": f"https://bayup-media-test.s3.amazonaws.com/{file_name}"
-    }
-
-# --- Public Store ---
-
-@app.get("/public/stores/{tenant_id}/products", response_model=List[schemas.Product])
-def read_public_products(tenant_id: uuid.UUID, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return crud.get_all_products(db, tenant_id=tenant_id, skip=skip, limit=limit)
-
-@app.get("/public/stores/{tenant_id}/products/{product_id}", response_model=schemas.Product)
-def read_public_product(tenant_id: uuid.UUID, product_id: uuid.UUID, db: Session = Depends(get_db)):
-    p = crud.get_product(db, product_id=product_id, tenant_id=tenant_id)
-    if not p:
-        raise HTTPException(status_code=404, detail="Product not found or does not belong to this store")
-    return p
+    tenant_id = get_tenant_id(current_user)
+    return crud.create_product(db=db, product=product, owner_id=tenant_id)
 
 # --- Orders ---
 
 @app.post("/orders", response_model=schemas.Order)
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    return crud.create_order(db=db, order=order, customer_id=current_user.id)
+    tenant_id = get_tenant_id(current_user)
+    return crud.create_order(db=db, order=order, customer_id=current_user.id, tenant_id=tenant_id)
 
 @app.get("/orders", response_model=List[schemas.Order])
 def read_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    return crud.get_orders_by_customer(db, customer_id=current_user.id)
+    tenant_id = get_tenant_id(current_user)
+    return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).all()
 
-# --- Admin / Customers / Sync ---
+# --- Admin / Staff ---
 
-@app.post("/admin/customers/sync")
-def sync_customer(data: schemas.CustomerSync, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    # Look for existing customer by phone or email
-    customer = None
-    if data.email:
-        customer = db.query(models.User).filter(models.User.email == data.email).first()
-    if not customer and data.phone:
-        customer = db.query(models.User).filter(models.User.nickname == data.phone).first() # Using nickname for phone storage consistency in this context
-
-    if not customer:
-        # Create new customer user
-        customer = models.User(
-            id=uuid.uuid4(),
-            email=data.email or f"anon_{uuid.uuid4().hex[:8]}@bayup.com",
-            full_name=data.name,
-            nickname=data.phone,
-            hashed_password="pos_generated_user", # Placeholder
-            role="cliente",
-            status="Activo",
-            loyalty_points=data.points_to_add,
-            total_spent=data.last_purchase_amount,
-            last_purchase_date=data.last_purchase_date,
-            last_purchase_summary=data.last_purchase_summary
-        )
-        db.add(customer)
-    else:
-        # Update existing
-        customer.loyalty_points = (customer.loyalty_points or 0) + data.points_to_add
-        customer.total_spent = (customer.total_spent or 0.0) + data.last_purchase_amount
-        customer.last_purchase_date = data.last_purchase_date
-        customer.last_purchase_summary = data.last_purchase_summary
-        if data.name: customer.full_name = data.name
-        if data.phone: customer.nickname = data.phone
-
-    db.commit()
-    return {"status": "success", "customer_id": customer.id}
-
-@app.get("/admin/users", response_model=List[schemas.User])
+@app.get("/admin/users")
 def get_all_users(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    # Solo devolvemos personal de staff/admin, excluyendo a los clientes
-    return db.query(models.User).filter(models.User.role != 'cliente').all()
+    try:
+        # 1. Identificar al dueño de la cuenta (Tenant)
+        tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+        print(f"DEBUG: Consultando staff para el tenant {tenant_id}")
+        
+        # 2. Si es super admin, devolver todo (excepto clientes)
+        if current_user.role == 'super_admin':
+            users = db.query(models.User).filter(models.User.role != 'cliente').all()
+        else:
+            # 3. Solo usuarios vinculados a este dueño
+            # Usamos filter con condiciones explícitas
+            users = db.query(models.User).filter(
+                models.User.role != 'cliente',
+                ((models.User.owner_id == tenant_id) | (models.User.id == tenant_id))
+            ).all()
+        
+        # 4. Mapeo ultra-seguro a JSON simple
+        staff_list = []
+        for u in users:
+            staff_list.append({
+                "id": str(u.id),
+                "full_name": u.full_name or "Sin nombre",
+                "email": u.email,
+                "role": u.role,
+                "status": u.status or "Activo",
+                "owner_id": str(u.owner_id) if u.owner_id else None
+            })
+        
+        return staff_list
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"ERROR CRITICO EN /admin/users:\n{error_trace}")
+        return JSONResponse(status_code=500, content={"message": "Error interno al cargar staff", "error": str(e)})
+
+@app.post("/admin/users", response_model=schemas.User)
+def create_staff_user(user: schemas.UserCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    db_user = crud.get_user_by_email(db, email=user.email)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email ya registrado")
+    
+    hashed_password = security.get_password_hash(user.password)
+    tenant_id = get_tenant_id(current_user)
+    
+    new_user = models.User(
+        id=uuid.uuid4(),
+        email=user.email,
+        full_name=user.full_name,
+        hashed_password=hashed_password,
+        role=user.role,
+        status=user.status,
+        owner_id=tenant_id
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    log_activity(db, current_user.id, tenant_id, "CREATE_USER", f"Invitó a {new_user.full_name}", str(new_user.id))
+    return new_user
+
+@app.post("/admin/update-user")
+def update_staff_details(data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = get_tenant_id(current_user)
+    user = db.query(models.User).filter(models.User.email == data.get("email"), models.User.owner_id == tenant_id).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    user.full_name = data.get("full_name", user.full_name)
+    user.role = data.get("new_role", user.role)
+    user.status = data.get("status", user.status)
+    db.commit()
+    
+    log_activity(db, current_user.id, tenant_id, "UPDATE_USER", f"Actualizó a {user.full_name}", str(user.id))
+    return {"status": "success"}
+
+@app.delete("/admin/users/{user_id}")
+def delete_user(user_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = get_tenant_id(current_user)
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="No puedes eliminarte a ti mismo")
+    
+    db_user = db.query(models.User).filter(models.User.id == user_id, models.User.owner_id == tenant_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    name = db_user.full_name
+    db.delete(db_user)
+    db.commit()
+    
+    log_activity(db, current_user.id, tenant_id, "DELETE_USER", f"Eliminó a {name}", str(user_id))
+    return {"status": "success"}
+
+@app.get("/admin/logs")
+def get_admin_logs(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    try:
+        tenant_id = get_tenant_id(current_user)
+        logs = db.query(models.ActivityLog).filter(models.ActivityLog.tenant_id == tenant_id).order_by(models.ActivityLog.created_at.desc()).limit(50).all()
+        
+        result = []
+        for log in logs:
+            actor = db.query(models.User).filter(models.User.id == log.user_id).first()
+            result.append({
+                "id": str(log.id),
+                "action": log.action,
+                "detail": log.detail,
+                "created_at": log.created_at.isoformat(),
+                "user_name": actor.full_name if actor else "Sistema",
+                "target_id": log.target_id
+            })
+        return result
+    except Exception as e:
+        print(f"Error in get_admin_logs: {e}")
+        return []
 
 @app.get("/admin/roles", response_model=List[schemas.CustomRole])
 def get_roles(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    return db.query(models.CustomRole).filter(models.CustomRole.owner_id == current_user.id).all()
+    tenant_id = get_tenant_id(current_user)
+    return db.query(models.CustomRole).filter(models.CustomRole.owner_id == tenant_id).all()
 
 @app.post("/admin/roles", response_model=schemas.CustomRole)
 def create_role(role: schemas.CustomRoleCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    return crud.create_custom_role(db=db, role_in=role, owner_id=current_user.id)
+    tenant_id = get_tenant_id(current_user)
+    return crud.create_custom_role(db=db, role_in=role, owner_id=tenant_id)
 
 @app.put("/admin/roles/{role_id}", response_model=schemas.CustomRole)
 def update_role(role_id: uuid.UUID, role: schemas.CustomRoleCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    db_role = crud.update_custom_role(db=db, role_id=role_id, role_in=role, owner_id=current_user.id)
+    tenant_id = get_tenant_id(current_user)
+    db_role = crud.update_custom_role(db=db, role_id=role_id, role_in=role, owner_id=tenant_id)
     if not db_role:
         raise HTTPException(status_code=404, detail="Role not found")
     return db_role
 
 @app.delete("/admin/roles/{role_id}")
 def delete_role(role_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    success = crud.delete_custom_role(db=db, role_id=role_id, owner_id=current_user.id)
+    tenant_id = get_tenant_id(current_user)
+    success = crud.delete_custom_role(db=db, role_id=role_id, owner_id=tenant_id)
     if not success:
         raise HTTPException(status_code=404, detail="Role not found")
     return {"status": "success"}
 
+# --- Others ---
+
 @app.get("/collections", response_model=List[schemas.Collection])
 def get_collections(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    return crud.get_collections_by_owner(db, owner_id=current_user.id)
-
-@app.post("/collections", response_model=schemas.Collection)
-def create_collection(collection: schemas.CollectionCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    return crud.create_collection(db=db, collection=collection, owner_id=current_user.id)
-
-@app.delete("/collections/{collection_id}")
-def delete_collection(collection_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    success = crud.delete_collection(db=db, collection_id=collection_id, owner_id=current_user.id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Collection not found")
-    return {"status": "success"}
+    tenant_id = get_tenant_id(current_user)
+    return crud.get_collections_by_owner(db, owner_id=tenant_id)
 
 @app.get("/expenses", response_model=List[schemas.Expense])
 def get_expenses(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    return db.query(models.Expense).filter(models.Expense.tenant_id == current_user.id).all()
+    tenant_id = get_tenant_id(current_user)
+    return db.query(models.Expense).filter(models.Expense.tenant_id == tenant_id).all()
 
 @app.get("/receivables", response_model=List[schemas.Receivable])
 def get_receivables(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    return db.query(models.Receivable).filter(models.Receivable.tenant_id == current_user.id).all()
+    tenant_id = get_tenant_id(current_user)
+    return db.query(models.Receivable).filter(models.Receivable.tenant_id == tenant_id).all()
 
 @app.get("/ai-assistants", response_model=List[schemas.AIAssistant])
 def get_assistants(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    return db.query(models.AIAssistant).filter(models.AIAssistant.owner_id == current_user.id).all()
-
-@app.post("/ai-assistants", response_model=schemas.AIAssistant)
-def create_assistant(assistant: schemas.AIAssistantCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    db_assistant = models.AIAssistant(
-        id=uuid.uuid4(),
-        **assistant.dict(),
-        owner_id=current_user.id,
-        total_actions=0,
-        success_rate=100.0
-    )
-    db.add(db_assistant)
-    db.commit()
-    db.refresh(db_assistant)
-    return db_assistant
-
-@app.delete("/ai-assistants/{assistant_id}")
-def delete_assistant(assistant_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    db_assistant = db.query(models.AIAssistant).filter(models.AIAssistant.id == assistant_id, models.AIAssistant.owner_id == current_user.id).first()
-    if not db_assistant:
-        raise HTTPException(status_code=404, detail="Assistant not found")
-    db.delete(db_assistant)
-    db.commit()
-    return {"status": "success"}
+    tenant_id = get_tenant_id(current_user)
+    return db.query(models.AIAssistant).filter(models.AIAssistant.owner_id == tenant_id).all()
 
 @app.get("/pages", response_model=List[schemas.Page])
 def get_pages(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    return db.query(models.Page).filter(models.Page.owner_id == current_user.id).all()
-
-# --- Payments ---
-
-@app.post("/payments/create-preference/{order_id}")
-def create_payment_preference(order_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    try:
-        order = db.query(models.Order).filter(models.Order.id == order_id).first()
-        if not order: 
-            raise HTTPException(status_code=404, detail="Order not found")
-        
-        # Recover seller (tenant) access_token validation
-        tenant = db.query(models.User).filter(models.User.id == order.tenant_id).first()
-        if not tenant:
-            raise HTTPException(status_code=404, detail="Seller (tenant) not found")
-            
-        pref = payment_service.create_mp_preference(db, order.id, current_user.email, order.tenant_id)
-        
-        if not pref or "id" not in pref:
-            raise HTTPException(status_code=500, detail="Failed to create Mercado Pago preference")
-
-        return {
-            "preference_id": pref.get("id"),
-            "init_point": pref.get("init_point")
-        }
-    except HTTPException:
-        raise
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        print(f"Payment Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal Payment Error: {str(e)}")
-
-@app.post("/payments/webhook")
-async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
-    topic = request.query_params.get("topic")
-    payment_id = request.query_params.get("id")
-    if not topic or not payment_id:
-        return JSONResponse(status_code=400, content={"status": "error", "message": "Invalid notification format"})
-    
-    if topic == "payment":
-        try:
-            # Payment_id represents the order_id in our simplified webhook logic
-            order_uuid = uuid.UUID(payment_id)
-            order = db.query(models.Order).filter(models.Order.id == order_uuid).first()
-            if order:
-                # Update status to completed
-                order.status = "completed"
-                
-                # Logic for commission calculation
-                tenant = db.query(models.User).filter(models.User.id == order.tenant_id).first()
-                if tenant and tenant.plan:
-                    commission_amount = order.total_price * tenant.plan.commission_rate
-                    print(f"Commission calculated: {commission_amount}")
-                
-                db.add(order)
-                db.commit() # FINAL COMMIT for persistence
-                db.refresh(order)
-                
-                msg = f"Payment notification for Order ID: {order.id} received. Status updated to 'completed'."
-                return {"status": "success", "message": msg}
-        except Exception as e:
-            db.rollback()
-            print(f"Webhook Error: {e}")
-            
-    return {"status": "success", "message": "Webhook received"}
-
-# --- Plans ---
-
-@app.post("/plans", response_model=schemas.Plan)
-def create_plan(plan: schemas.PlanCreate, db: Session = Depends(get_db)):
-    return crud.create_plan(db=db, plan=plan)
-
-@app.get("/plans", response_model=List[schemas.Plan])
-def read_plans(db: Session = Depends(get_db)):
-    return db.query(models.Plan).all()
-
-# --- S3 ---
-
-@app.post("/products/upload-url")
-def create_upload_url(file_type: str, current_user: models.User = Depends(security.get_current_user)):
-    return s3_service.create_presigned_upload_url(file_type)
-
-@app.get("/analytics/opportunities")
-def get_opportunities(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    """
-    Analiza 'tendencias de mercado' vs 'inventario actual' para detectar oportunidades.
-    Simula una detección de demanda no cubierta.
-    """
-    products = crud.get_products_by_owner(db, owner_id=current_user.id)
-    product_text = " ".join([p.name.lower() + " " + (p.description or "").lower() for p in products])
-    
-    market_trends = [
-        {"term": "zapatillas urbanas", "volume": 1450, "potential": 3200000, "action": "Importar Zapatillas"},
-        {"term": "audifonos inalambricos", "volume": 980, "potential": 1500000, "action": "Crear Oferta Tech"},
-        {"term": "skincare coreano", "volume": 2100, "potential": 4800000, "action": "Buscar Proveedor Belleza"},
-        {"term": "termos motivacionales", "volume": 350, "potential": 450000, "action": "Agregar a Catálogo Hogar"}
-    ]
-    
-    opportunities = []
-    for trend in market_trends:
-        if trend["term"] not in product_text:
-            opportunities.append(trend)
-            
-    return opportunities[:4]
+    tenant_id = get_tenant_id(current_user)
+    return db.query(models.Page).filter(models.Page.owner_id == tenant_id).all()
 
 @app.get("/")
 def read_root(): return {"message": "Welcome to BaseCommerce API"}

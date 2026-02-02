@@ -55,6 +55,9 @@ class User(Base):
     social_links = Column(JSON, default={})
     whatsapp_lines = Column(JSON, default=[])
     
+    # Multi-tenancy: Who owns this user account/staff
+    owner_id = Column(GUID(), ForeignKey("users.id"), nullable=True)
+    
     # Loyalty and Customer Stats
     loyalty_points = Column(Integer, default=0)
     total_spent = Column(Float, default=0.0)
@@ -260,6 +263,16 @@ class CustomRole(Base):
     name = Column(String)
     permissions = Column(JSON)
     owner_id = Column(GUID(), ForeignKey("users.id"))
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID(), ForeignKey("users.id")) # Who did the action
+    action = Column(String) # e.g., "DELETE_USER", "CREATE_USER"
+    target_id = Column(String, nullable=True) # ID of the affected user/role
+    detail = Column(String) # Human readable description
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    tenant_id = Column(GUID(), ForeignKey("users.id")) # Which store this belongs to
 
 class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
