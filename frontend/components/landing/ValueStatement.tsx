@@ -12,21 +12,24 @@ export const ValueStatement = () => {
       desc: "", 
       details: "Diseña cada rincón de tu web con herramientas intuitivas.",
       highlight: "Tu marca, tu estilo, sin límites técnicos.",
-      icon: <Palette size={28} /> 
+      icon: <Palette size={28} />,
+      asset: "/assets/pincel.png"
     },
     { 
       title: "AGREGA TU PRIMER PRODUCTO", 
       desc: "", 
       details: "Sube tus fotos, define tus precios y organiza tu catálogo en segundos.",
       highlight: "Publicar nunca fue tan fácil.",
-      icon: <ShoppingBag size={28} /> 
+      icon: <ShoppingBag size={28} />,
+      asset: "/assets/pcfotos.png"
     },
     { 
       title: "COMIENZA A VENDER", 
       desc: "", 
       details: "Activa tu página web y empieza a recibir órdenes de inmediato.",
       highlight: "Tus clientes te esperan",
-      icon: <Banknote size={28} /> 
+      icon: <Banknote size={28} />,
+      asset: "/assets/cohetedinero.png"
     },
   ];
 
@@ -34,7 +37,7 @@ export const ValueStatement = () => {
     <section className="py-40 bg-surface relative overflow-hidden shadow-inner">
       <div className="container mx-auto px-12 text-center">
         
-        <div className="max-w-6xl mx-auto space-y-20">
+        <div className="max-w-6xl mx-auto space-y-44">
           <div className="text-4xl md:text-6xl font-black text-black tracking-tighter leading-[1.1] italic uppercase flex flex-col items-center">
             <RollingText text="LA FORMA MAS FACIL" />
             <div className="flex gap-2">
@@ -110,12 +113,33 @@ const Card3D = ({ pillar, index }: { pillar: any, index: number }) => {
         </div>
 
         {/* LADO TRASERO */}
-        <div className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-10 rounded-[4.5rem] bg-white/20 backdrop-blur-[100px] border-2 border-white/80 shadow-[0_40px_100px_-20px_rgba(0,77,77,0.1)] rotate-y-180 overflow-hidden isolate">
+        <div className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-10 rounded-[4.5rem] bg-white/20 backdrop-blur-[100px] border-2 border-white/80 shadow-[0_40px_100px_-20px_rgba(0,77,77,0.1)] rotate-y-180 isolate">
           <div className="absolute inset-0 bg-gradient-to-tr from-cyan/[0.05] to-petroleum/[0.05] rounded-[4.5rem] -z-10" />
           
           <div className="space-y-6 text-center relative z-10 w-full flex flex-col items-center">
-            {/* Texto ENGINE DETAILS eliminado */}
-            <h3 className="text-xl font-black italic uppercase tracking-tighter text-black w-full flex justify-center mt-8">
+            
+            {/* Imagen Pop-out con animación premium */}
+            {pillar.asset && (
+              <AnimatePresence>
+                {isHovered && (
+                  <motion.div
+                    initial={{ y: 80, opacity: 0, scale: 0.5 }}
+                    animate={{ y: -30, opacity: 1, scale: 1 }}
+                    exit={{ y: 40, opacity: 0, scale: 0.5 }}
+                    transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute -top-32"
+                  >
+                    <img 
+                      src={pillar.asset} 
+                      alt={pillar.title} 
+                      className="w-44 h-44 object-contain drop-shadow-[0_20px_40px_rgba(0,242,255,0.5)]"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
+
+            <h3 className="text-xl font-black italic uppercase tracking-tighter text-black w-full flex justify-center mt-16">
               <RollingText text={pillar.title} />
             </h3>
             <p className="text-gray-600 text-[10px] font-bold leading-relaxed uppercase tracking-widest italic px-6 mt-2">
