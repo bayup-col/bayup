@@ -1,88 +1,108 @@
 "use client";
 
-import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { 
+  FileText, 
+  Plus, 
+  ExternalLink, 
+  Edit3, 
+  Trash2, 
+  Globe, 
+  Home,
+  Layout,
+  ChevronRight,
+  Settings2
+} from 'lucide-react';
 import Link from 'next/link';
 
-interface WebPage {
-    id: string;
-    title: string;
-    url: string;
-    status: 'published' | 'draft';
-    last_edit: string;
-    is_home: boolean;
-}
-
-const MOCK_PAGES: WebPage[] = [
-    { id: 'p1', title: 'Página de Inicio', url: '/', status: 'published', last_edit: 'Hoy, 10:30 AM', is_home: true },
-    { id: 'p2', title: 'Nueva Colección 2024', url: '/verano', status: 'draft', last_edit: 'Ayer', is_home: false },
-    { id: 'p3', title: 'Sobre Nosotros', url: '/nosotros', status: 'published', last_edit: 'Hace 3 días', is_home: false },
+// --- MOCK DATA ---
+const MOCK_PAGES = [
+    { id: 'p1', title: 'Página de Inicio', url: '/', status: 'published', is_home: true },
+    { id: 'p2', title: 'Colecciones', url: '/colecciones', status: 'draft', is_home: false },
+    { id: 'p3', title: 'Sobre la Marca', url: '/nosotros', status: 'published', is_home: false },
+    { id: 'p4', title: 'Políticas & Legal', url: '/legal', status: 'published', is_home: false },
 ];
 
 export default function PagesDashboard() {
-    const [pages] = useState<WebPage[]>(MOCK_PAGES);
-
     return (
-        <div className="max-w-7xl mx-auto pb-20 space-y-12">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="max-w-[1200px] mx-auto pb-32 space-y-12 animate-in fade-in duration-1000">
+            
+            {/* --- HEADER SIMPLE & PODEROSO --- */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-4">
                 <div>
-                    <h1 className="text-4xl font-black text-gray-900 tracking-tight">Mis Páginas</h1>
-                    <p className="text-gray-500 mt-2 font-medium italic">Diseña y gestiona la presencia web de tu marca.</p>
+                    <h1 className="text-5xl font-black text-[#004d4d] tracking-tight uppercase italic">Mis Páginas</h1>
+                    <p className="text-gray-500 mt-2 font-medium text-lg italic">Gestiona el contenido y la arquitectura de tu sitio web.</p>
                 </div>
-                <Link 
-                    href="/dashboard/pages/new"
-                    className="bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl transition-all"
-                >
-                    + Crear Nueva Página
+                <Link href="/dashboard/pages/new">
+                    <button className="h-14 px-10 bg-[#004d4d] text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4">
+                        <Plus size={18} className="text-[#00f2ff]" />
+                        Crear Nueva Página
+                    </button>
                 </Link>
             </div>
 
-            {/* Listado de Páginas */}
-            <div className="grid grid-cols-1 gap-6">
-                {pages.map((page) => (
-                    <div key={page.id} className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-8 group">
-                        <div className="flex items-center gap-6">
-                            <div className="h-16 w-16 bg-gray-50 rounded-[2rem] flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">📄</div>
-                            <div>
-                                <div className="flex items-center gap-3">
-                                    <h3 className="text-xl font-black text-gray-900 tracking-tight">{page.title}</h3>
-                                    {page.is_home && <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[8px] font-black uppercase rounded-md tracking-widest border border-purple-100">Home</span>}
+            {/* --- LISTADO DE PÁGINAS CON EFECTO AURA --- */}
+            <div className="space-y-12 px-4">
+                {MOCK_PAGES.map((page, i) => (
+                    <motion.div 
+                        key={page.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        className="relative group p-[2px] overflow-hidden rounded-[4rem] transition-all duration-500 hover:shadow-[0_0_50px_rgba(0,242,255,0.15)]"
+                    >
+                        {/* Capa de Aura Neón (Línea corriendo por los bordes) */}
+                        <div className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(from_0deg,transparent_0deg,#00f2ff_20deg,transparent_40deg,#00f2ff_60deg,transparent_80deg)] animate-aurora pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity duration-1000" />
+                        
+                        {/* Contenido del Card (Sobre el Aura) */}
+                        <div className="relative bg-white/90 backdrop-blur-2xl p-10 rounded-[3.9rem] flex flex-col lg:flex-row lg:items-center justify-between gap-10">
+                            <div className="flex items-center gap-8">
+                                <div className={`h-20 w-20 rounded-[2.5rem] flex items-center justify-center shadow-inner transition-transform group-hover:scale-110 duration-500 ${page.is_home ? 'bg-purple-50 text-purple-600' : 'bg-gray-50 text-gray-400'}`}>
+                                    {page.is_home ? <Home size={32}/> : <FileText size={32}/>}
                                 </div>
-                                <p className="text-xs text-gray-400 font-medium mt-1 italic">Ruta: {page.url}</p>
+                                <div>
+                                    <div className="flex items-center gap-4">
+                                        <h3 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter">{page.title}</h3>
+                                        <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${
+                                            page.status === 'published' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'
+                                        }`}>
+                                            {page.status === 'published' ? 'Publicada' : 'Borrador'}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm font-bold text-gray-400 mt-2 flex items-center gap-2">
+                                        <Globe size={14} className="text-[#00f2ff]"/> bayup.com<span className="text-[#004d4d]">{page.url}</span>
+                                    </p>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="flex flex-col md:flex-row items-center gap-8">
-                            <div className="text-right hidden md:block">
-                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Estado</p>
-                                <span className={`text-[10px] font-black uppercase ${page.status === 'published' ? 'text-emerald-500' : 'text-amber-500'}`}>● {page.status === 'published' ? 'Publicada' : 'Borrador'}</span>
-                            </div>
-                            <div className="h-10 w-px bg-gray-100 hidden md:block"></div>
-                            <div className="flex gap-3">
-                                <Link 
-                                    href={`/dashboard/pages/${page.id}/edit`}
-                                    className="px-6 py-3 bg-purple-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-700 shadow-lg shadow-purple-100 transition-all"
-                                >
-                                    Editar Diseño
+                            <div className="flex items-center gap-4 relative z-10">
+                                <Link href={`/dashboard/pages/${page.id}/edit`} className="flex-1 lg:flex-none">
+                                    <button className="w-full lg:w-auto h-14 px-10 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-[#004d4d] transition-all flex items-center justify-center gap-3 group/btn active:scale-95">
+                                        Personalizar Diseño
+                                        <Edit3 size={14} className="text-[#00f2ff] group-hover/btn:rotate-12 transition-transform"/>
+                                    </button>
                                 </Link>
-                                <button className="h-10 w-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all">🗑️</button>
+                                <button className="h-14 w-14 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-[#00f2ff] hover:border-[#00f2ff] transition-all shadow-sm">
+                                    <ExternalLink size={20} />
+                                </button>
+                                <button className="h-14 w-14 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all shadow-sm">
+                                    <Trash2 size={20} />
+                                </button>
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
                 ))}
             </div>
 
-            {/* Banner IA Visual */}
-            <div className="bg-gray-900 rounded-[3rem] p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center gap-10">
-                <div className="h-24 w-24 bg-purple-600 rounded-[2rem] flex items-center justify-center text-5xl shadow-2xl relative z-10">🎨</div>
-                <div className="flex-1 relative z-10">
-                    <h3 className="text-2xl font-black tracking-tight">Editor Visual No-Code</h3>
-                    <p className="text-gray-400 text-sm mt-3 leading-relaxed max-w-2xl font-medium">
-                        Crea experiencias de compra impactantes sin escribir una sola línea de código. Arrastra secciones, personaliza colores y conecta tus productos reales en segundos.
-                    </p>
-                </div>
-                <div className="absolute -right-10 -bottom-10 text-[15rem] opacity-5 rotate-12 font-black italic">BUILDER</div>
-            </div>
+            <style jsx global>{`
+                @keyframes aurora-border {
+                    from { transform: translate(-50%, -50%) rotate(0deg); }
+                    to { transform: translate(-50%, -50%) rotate(360deg); }
+                }
+                .animate-aurora {
+                    animation: aurora-border 4s linear infinite;
+                }
+            `}</style>
         </div>
     );
 }
