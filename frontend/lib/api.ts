@@ -54,6 +54,8 @@ export const userService = {
         apiRequest('/admin/roles', { method: 'POST', token, body: JSON.stringify(data) }),
     updateRole: (token: string, roleId: string, data: any) => 
         apiRequest(`/admin/roles/${roleId}`, { method: 'PUT', token, body: JSON.stringify(data) }),
+    deleteRole: (token: string, roleId: string) =>
+        apiRequest(`/admin/roles/${roleId}`, { method: 'DELETE', token }),
 };
 
 export const productService = {

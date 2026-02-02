@@ -167,6 +167,23 @@ def create_custom_role(db: Session, role_in: schemas.CustomRoleCreate, owner_id:
     db.refresh(db_role)
     return db_role
 
+def update_custom_role(db: Session, role_id: uuid.UUID, role_in: schemas.CustomRoleCreate, owner_id: uuid.UUID):
+    db_role = db.query(models.CustomRole).filter(models.CustomRole.id == role_id, models.CustomRole.owner_id == owner_id).first()
+    if db_role:
+        db_role.name = role_in.name
+        db_role.permissions = role_in.permissions
+        db.commit()
+        db.refresh(db_role)
+    return db_role
+
+def delete_custom_role(db: Session, role_id: uuid.UUID, owner_id: uuid.UUID):
+    db_role = db.query(models.CustomRole).filter(models.CustomRole.id == role_id, models.CustomRole.owner_id == owner_id).first()
+    if db_role:
+        db.delete(db_role)
+        db.commit()
+        return True
+    return False
+
 # --- Shipment CRUD ---
 def get_shipment(db: Session, shipment_id: uuid.UUID, tenant_id: uuid.UUID):
     return db.query(models.Shipment).filter(models.Shipment.id == shipment_id, models.Shipment.tenant_id == tenant_id).first()

@@ -319,6 +319,24 @@ def get_all_users(db: Session = Depends(get_db), current_user: models.User = Dep
 def get_roles(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     return db.query(models.CustomRole).filter(models.CustomRole.owner_id == current_user.id).all()
 
+@app.post("/admin/roles", response_model=schemas.CustomRole)
+def create_role(role: schemas.CustomRoleCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    return crud.create_custom_role(db=db, role_in=role, owner_id=current_user.id)
+
+@app.put("/admin/roles/{role_id}", response_model=schemas.CustomRole)
+def update_role(role_id: uuid.UUID, role: schemas.CustomRoleCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    db_role = crud.update_custom_role(db=db, role_id=role_id, role_in=role, owner_id=current_user.id)
+    if not db_role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    return db_role
+
+@app.delete("/admin/roles/{role_id}")
+def delete_role(role_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    success = crud.delete_custom_role(db=db, role_id=role_id, owner_id=current_user.id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Role not found")
+    return {"status": "success"}
+
 @app.get("/collections", response_model=List[schemas.Collection])
 def get_collections(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     return crud.get_collections_by_owner(db, owner_id=current_user.id)
