@@ -61,44 +61,86 @@ function AnimatedNumber({ value, className, type = 'currency' }: { value: number
     return <motion.span className={className}>{display}</motion.span>;
 }
 
-// --- KPI CARD ---
-const KPICard = ({ title, value, trendValue, icon: Icon, iconColor = "text-[#004D4D]", iconBg = "bg-[#004D4D]/5", valueClassName = "text-gray-900", isCurrency = true }: any) => {
-    const isUp = trendValue >= 0;
-    const x = useMotionValue(0);
-    const y = useMotionValue(0);
-    const mouseXSpring = useSpring(x);
-    const mouseYSpring = useSpring(y);
-    const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["10deg", "-10deg"]);
-    const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-10deg", "10deg"]);
+// --- COMPONENTE TILT CARD PREMIUM ---
+const TiltCard = ({ children }: { children: React.ReactNode }) => {
+    const [rotateX, setRotateX] = useState(0);
+    const [rotateY, setRotateY] = useState(0);
+    const [glarePos, setGlarePos] = useState({ x: 50, y: 50, opacity: 0 });
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        x.set((e.clientX - rect.left) / rect.width - 0.5);
-        y.set((e.clientY - rect.top) / rect.height - 0.5);
+        const card = e.currentTarget;
+        const box = card.getBoundingClientRect();
+        const x = e.clientX - box.left;
+        const y = e.clientY - box.top;
+        const centerX = box.width / 2;
+        const centerY = box.height / 2;
+        
+        const rotateX = (y - centerY) / 10;
+        const rotateY = (centerX - x) / 10;
+        
+        setRotateX(rotateX);
+        setRotateY(rotateY);
+        setGlarePos({ 
+            x: (x / box.width) * 100, 
+            y: (y / box.height) * 100,
+            opacity: 0.15 
+        });
+    };
+
+    const handleMouseLeave = () => {
+        setRotateX(0);
+        setRotateY(0);
+        setGlarePos(prev => ({ ...prev, opacity: 0 }));
     };
 
     return (
-        <motion.div onMouseMove={handleMouseMove} onMouseLeave={() => {x.set(0); y.set(0);}} style={{ rotateY, rotateX, transformStyle: "preserve-3d" }} className="relative h-full text-slate-900">
-            <div style={{ transform: "translateZ(50px)", transformStyle: "preserve-3d" }} className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col justify-between h-full group hover:shadow-2xl hover:shadow-[#004D4D]/10 transition-shadow duration-500">
-                <div style={{ transform: "translateZ(30px)" }} className="flex justify-between items-start mb-6 text-slate-900">
-                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 duration-500 ${iconBg} ${iconColor}`}>
-                        <Icon size={24} />
-                    </div>
-                    {trendValue !== undefined && (
-                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${isUp ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                            {isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                            <span className="text-[10px] font-black">{isUp ? '+' : ''}{trendValue}%</span>
-                        </div>
-                    )}
-                </div>
-                <div style={{ transform: "translateZ(20px)" }} className="text-slate-900">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5"> {title}</p>
-                    <h3 className={`text-3xl font-black tracking-tighter ${valueClassName}`}>
-                        {isCurrency ? (typeof value === 'number' ? <AnimatedNumber value={value} /> : value) : value.toLocaleString()}
-                    </h3>
-                </div>
+        <motion.div
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            animate={{ rotateX, rotateY, scale: rotateX !== 0 ? 1.02 : 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 25 }}
+            style={{ transformStyle: "preserve-3d", perspective: "1000px" }}
+            className="bg-white/40 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/80 shadow-2xl flex flex-col justify-between group relative overflow-hidden h-full"
+        >
+            <div 
+                className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+                style={{
+                    opacity: glarePos.opacity,
+                    background: `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255,255,255,0.8) 0%, transparent 60%)`,
+                    zIndex: 1
+                }}
+            />
+            <div style={{ transform: "translateZ(60px)", position: "relative", zIndex: 2 }}>
+                {children}
             </div>
+            <div className="absolute -bottom-20 -right-20 h-40 w-40 bg-[#00f2ff]/10 blur-[60px] rounded-full pointer-events-none" />
         </motion.div>
+    );
+};
+
+// --- KPI CARD WRAPPER ---
+const KPICard = ({ title, value, trendValue, icon: Icon, iconColor = "text-[#004D4D]", iconBg = "bg-[#004D4D]/5", valueClassName = "text-gray-900", isCurrency = true }: any) => {
+    const isUp = trendValue >= 0;
+    return (
+        <TiltCard>
+            <div className="flex justify-between items-start mb-6">
+                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 duration-500 ${iconBg} ${iconColor}`}>
+                    <Icon size={24} />
+                </div>
+                {trendValue !== 0 && (
+                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${isUp ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                        {isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                        <span className="text-[10px] font-black">{isUp ? '+' : ''}{trendValue}%</span>
+                    </div>
+                )}
+            </div>
+            <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5">{title}</p>
+                <h3 className={`text-3xl font-black tracking-tighter ${valueClassName}`}>
+                    {isCurrency ? (typeof value === 'number' ? <AnimatedNumber value={value} /> : value) : value.toLocaleString()}
+                </h3>
+            </div>
+        </TiltCard>
     );
 };
 
@@ -177,7 +219,7 @@ export default function ProductsPage() {
             if (productsData && Array.isArray(productsData)) {
                 setProducts(productsData.map((p: any) => ({ 
                     ...p, 
-                    status: p.status || (p.variants?.every((v:any) => v.stock === 0) ? 'archived' : 'active'), 
+                    status: p.status || 'active', 
                     category: p.collection?.title || 'General' 
                 })));
             } else { setProducts([]); }
@@ -189,6 +231,28 @@ export default function ProductsPage() {
     }, [token, showToast]);
 
     useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+    const handleUpdateStatus = async (productId: string, currentStatus: string) => {
+        const newStatus = currentStatus === 'active' ? 'draft' : 'active';
+        try {
+            await apiRequest(`/products/${productId}/status?status=${newStatus}`, { method: 'PUT', token });
+            showToast(`Producto marcado como ${newStatus}`, "success");
+            await fetchProducts();
+        } catch (err) {
+            showToast("Error al actualizar estado", "error");
+        }
+    };
+
+    const handleDeleteProduct = async (productId: string) => {
+        if (!confirm("¿Estás seguro de eliminar este producto?")) return;
+        try {
+            await apiRequest(`/products/${productId}`, { method: 'DELETE', token });
+            showToast("Producto eliminado", "success");
+            await fetchProducts();
+        } catch (err) {
+            showToast("Error al eliminar producto", "error");
+        }
+    };
 
     const handleDeleteCategory = async () => {
         if (!categoryToDelete || !token) return;
@@ -275,14 +339,55 @@ export default function ProductsPage() {
                                         <tr><th className="px-10 py-6 text-left text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Producto</th><th className="px-10 py-6 text-center text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Estado</th><th className="px-10 py-6 text-center text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Stock</th><th className="px-10 py-6 text-right text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Precio</th><th className="px-10 py-6 text-right text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Acciones</th></tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {products.length === 0 ? (<tr><td colSpan={5} className="py-20 text-center text-gray-400 font-black uppercase text-[10px]">Catálogo vacío</td></tr>) : (
+                                        {filteredProducts.length === 0 ? (<tr><td colSpan={5} className="py-20 text-center text-gray-400 font-black uppercase text-[10px]">Sin resultados encontrados</td></tr>) : (
                                             filteredProducts.map(p => (
                                                 <tr key={p.id} className="hover:bg-gray-50/50 transition-all group">
-                                                    <td className="px-10 py-8"><div className="flex items-center gap-4"><div className="h-12 w-12 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden border border-gray-100">{p.image_url ? <img src={p.image_url} className="h-full w-full object-cover" /> : <ImageIcon size={20} className="text-gray-200" />}</div><div><p className="text-sm font-black text-gray-900 tracking-tight">{p.name}</p><p className="text-[9px] font-bold text-gray-400 uppercase">{p.category}</p></div></div></td>
-                                                    <td className="px-10 py-8 text-center"><span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase ${p.status === 'active' ? 'bg-[#004D4D] text-white' : 'bg-gray-100 text-gray-400'}`}>{p.status}</span></td>
-                                                    <td className="px-10 py-8 text-center text-sm font-black text-slate-900">{p.variants?.reduce((a,v) => a + (v.stock || 0), 0)}</td>
-                                                    <td className="px-10 py-8 text-right text-sm font-black text-[#004D4D]">${p.price.toLocaleString('de-DE')}</td>
-                                                    <td className="px-10 py-8 text-right"><div className="flex justify-end gap-2"><button onClick={() => router.push(`/dashboard/products/${p.id}/edit`)} className="p-2 hover:bg-[#004D4D]/5 rounded-lg text-slate-400 hover:text-[#004D4D]"><Edit3 size={16}/></button></div></td>
+                                                    <td className="px-10 py-8">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="h-14 w-14 bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100 shadow-inner relative group/img">
+                                                                {p.image_url ? (
+                                                                    <img src={p.image_url} className="h-full w-full object-cover transition-transform group-hover/img:scale-110" />
+                                                                ) : (
+                                                                    <div className="h-full w-full bg-gradient-to-br from-gray-50 to-gray-200 flex items-center justify-center text-gray-300">
+                                                                        <ImageIcon size={24} />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-black text-gray-900 tracking-tight">{p.name}</p>
+                                                                <p className="text-[9px] font-bold text-[#004D4D] uppercase italic">{p.category}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-10 py-8 text-center">
+                                                        <button 
+                                                            onClick={() => handleUpdateStatus(p.id, p.status || 'active')}
+                                                            className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase transition-all border ${
+                                                                p.status === 'active' 
+                                                                ? 'bg-[#004D4D] text-white border-transparent' 
+                                                                : 'bg-white text-gray-400 border-gray-200 hover:border-[#004D4D]/30'
+                                                            }`}
+                                                        >
+                                                            {p.status === 'active' ? 'Activo' : 'Borrador'}
+                                                        </button>
+                                                    </td>
+                                                    <td className="px-10 py-8 text-center">
+                                                        <div className="inline-flex flex-col items-center">
+                                                            <span className={`text-sm font-black ${p.variants?.reduce((a,v) => a + (v.stock || 0), 0) <= 5 ? 'text-rose-500' : 'text-slate-900'}`}>
+                                                                {p.variants?.reduce((a,v) => a + (v.stock || 0), 0) || 0}
+                                                            </span>
+                                                            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">unidades</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-10 py-8 text-right text-sm font-black text-gray-900">
+                                                        <AnimatedNumber value={p.price} />
+                                                    </td>
+                                                    <td className="px-10 py-8 text-right">
+                                                        <div className="flex justify-end gap-2">
+                                                            <button onClick={() => router.push(`/dashboard/products/${p.id}/edit`)} className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-[#004D4D] hover:bg-[#004D4D]/5 flex items-center justify-center transition-all border border-transparent hover:border-[#004D4D]/10"><Edit3 size={16}/></button>
+                                                            <button onClick={() => handleDeleteProduct(p.id)} className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all border border-transparent hover:border-rose-100"><Trash2 size={16}/></button>
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             ))
                                         )}

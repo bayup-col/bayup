@@ -48,6 +48,63 @@ function AnimatedNumber({ value, className, type = 'currency' }: { value: number
     return <motion.span className={className}>{display}</motion.span>;
 }
 
+// --- COMPONENTE TILT CARD PREMIUM ---
+const TiltCard = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => {
+    const [rotateX, setRotateX] = useState(0);
+    const [rotateY, setRotateY] = useState(0);
+    const [glarePos, setGlarePos] = useState({ x: 50, y: 50, opacity: 0 });
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const card = e.currentTarget;
+        const box = card.getBoundingClientRect();
+        const x = e.clientX - box.left;
+        const y = e.clientY - box.top;
+        const centerX = box.width / 2;
+        const centerY = box.height / 2;
+        
+        const rotateX = (y - centerY) / 12;
+        const rotateY = (centerX - x) / 12;
+        
+        setRotateX(rotateX);
+        setRotateY(rotateY);
+        setGlarePos({ 
+            x: (x / box.width) * 100, 
+            y: (y / box.height) * 100,
+            opacity: 0.15 
+        });
+    };
+
+    const handleMouseLeave = () => {
+        setRotateX(0);
+        setRotateY(0);
+        setGlarePos(prev => ({ ...prev, opacity: 0 }));
+    };
+
+    return (
+        <motion.div
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            animate={{ rotateX, rotateY, scale: rotateX !== 0 ? 1.01 : 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 25 }}
+            style={{ transformStyle: "preserve-3d", perspective: "1000px" }}
+            className={`bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-2xl flex flex-col justify-between group relative overflow-hidden ${className}`}
+        >
+            <div 
+                className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+                style={{
+                    opacity: glarePos.opacity,
+                    background: `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255,255,255,0.8) 0%, transparent 60%)`,
+                    zIndex: 1
+                }}
+            />
+            <div style={{ transform: "translateZ(50px)", position: "relative", zIndex: 2 }} className="h-full">
+                {children}
+            </div>
+            <div className="absolute -bottom-20 -right-20 h-40 w-40 bg-[#00f2ff]/10 blur-[60px] rounded-full pointer-events-none" />
+        </motion.div>
+    );
+};
+
 export default function DashboardPage() {
   const { userEmail, token } = useAuth();
   const { theme } = useTheme();
@@ -57,14 +114,10 @@ export default function DashboardPage() {
   const [pendingPayment, setPendingPayment] = useState<any>(null);
   const [pendingCollection, setPendingCollection] = useState<any>(null);
   const [loadingOpps, setLoadingOpps] = useState(true);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(true);
 
-  // Actividad Mock (Mejorada visualmente)
-  const [activities, setActivities] = useState([
-    { id: 1, type: 'order', user: 'Ana García', detail: 'Nueva orden #8241', time: '5m', amount: '$150.000' },
-    { id: 2, type: 'message', user: 'Carlos López', detail: 'Consulta de stock', time: '15m', amount: null },
-    { id: 3, type: 'customer', user: 'María Rodriguez', detail: 'Nuevo registro', time: '1h', amount: null },
-    { id: 4, type: 'order', user: 'Roberto VIP', detail: 'Pago confirmado #8239', time: '2h', amount: '$850.000' },
-  ]);
+  // Actividad Real (Conectada al Backend)
+  const [activities, setActivities] = useState<any[]>([]);
 
   // Carga de datos reales y oportunidades
   useEffect(() => {
@@ -72,10 +125,11 @@ export default function DashboardPage() {
         if (!token) return;
         try {
             const apiBase = "http://localhost:8000";
-            const [expRes, recRes, oppRes] = await Promise.all([
+            const [expRes, recRes, oppRes, logsRes] = await Promise.all([
                 fetch(`${apiBase}/expenses`, { headers: { 'Authorization': `Bearer ${token}` } }),
                 fetch(`${apiBase}/receivables`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch(`${apiBase}/analytics/opportunities`, { headers: { 'Authorization': `Bearer ${token}` } })
+                fetch(`${apiBase}/analytics/opportunities`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch(`${apiBase}/admin/logs`, { headers: { 'Authorization': `Bearer ${token}` } })
             ]);
 
             if (expRes.ok) {
@@ -96,15 +150,30 @@ export default function DashboardPage() {
                 const opps = await oppRes.json();
                 setOpportunities(opps);
             }
+
+            if (logsRes.ok) {
+                const logs = await logsRes.json();
+                setActivities(logs.slice(0, 5).map((log: any) => ({
+                    id: log.id,
+                    type: log.action.includes('USER') ? 'customer' : log.action.includes('PRODUCT') ? 'order' : 'message',
+                    user: log.user_name || 'Sistema',
+                    detail: log.detail,
+                    time: new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    amount: null
+                })));
+            }
         } catch (e) { console.error("Error loading dashboard data"); } finally {
             setLoadingOpps(false);
+            setIsLoadingLogs(false);
         }
     };
     fetchData();
   }, [token]);
 
-  // Mock en tiempo real
+  // Mock en tiempo real (Solo si no hay logs reales)
   useEffect(() => {
+    if (activities.length > 0) return;
+    
     const types = ['order', 'message', 'customer'] as const;
     const names = ['Juan K.', 'Elena M.', 'Santi P.', 'Laura O.', 'Mateo D.'];
     const details = {
@@ -127,7 +196,7 @@ export default function DashboardPage() {
     }, 15000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [activities.length]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
@@ -213,138 +282,146 @@ export default function DashboardPage() {
         className="grid grid-cols-1 lg:grid-cols-12 gap-6"
       >
         {/* BLOQUE 1: Estado Operativo (Health Card) */}
-        <motion.div variants={itemVariants} className={`p-8 rounded-[2.5rem] border shadow-2xl transition-all duration-500 lg:col-span-7 flex flex-col justify-between group ${theme === 'dark' ? 'bg-[#001a1a]/80 border-[#00F2FF]/10 shadow-black/40' : 'bg-white border-[#004d4d]/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_60px_rgba(0,77,77,0.05)]'}`}>
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                    <div className={`h-10 w-10 rounded-2xl flex items-center justify-center transition-colors duration-500 ${theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF]' : 'bg-[#004d4d]/5 text-[#004d4d]'}`}>
-                        <ShieldCheck size={20} />
-                    </div>
-                    <h2 className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/40' : 'text-[#004d4d]/40'}`}>Estado de tu tienda</h2>
-                </div>
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500 ${theme === 'dark' ? 'bg-[#10B981]/10 border-[#10B981]/20' : 'bg-emerald-50 border-emerald-100'}`}>
-                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <span className={`text-[9px] font-black uppercase tracking-widest ${theme === 'dark' ? 'text-[#10B981]' : 'text-emerald-600'}`}>Bajo Control</span>
-                </div>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                {[
-                    { label: 'Pagos', val: 'OK', status: 'success' },
-                    { label: 'Stock Crítico', val: '2 prod.', status: 'critical' },
-                    { label: 'Envíos', val: 'Al día', status: 'success' },
-                    { label: 'Sincronía', val: 'Activa', status: 'success' }
-                ].map((item, i) => (
-                    <div key={i} className="space-y-1">
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{item.label}</p>
-                        <p className={`text-sm font-black uppercase ${item.status === 'success' ? 'text-[#004d4d]' : 'text-rose-600'}`}>{item.val}</p>
-                    </div>
-                ))}
-            </div>
-        </motion.div>
-
-        {/* BLOQUE 4: Canales Activos (Compacto) */}
-        <motion.div variants={itemVariants} className={`p-8 rounded-[2.5rem] border shadow-2xl transition-all duration-500 lg:col-span-5 flex flex-col group ${theme === 'dark' ? 'bg-[#001a1a]/80 border-[#00F2FF]/10 shadow-black/40' : 'bg-white border-[#004d4d]/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_60px_rgba(0,77,77,0.05)]'}`}>
-            <div className="flex items-center gap-3 mb-6">
-                <div className={`h-10 w-10 rounded-2xl flex items-center justify-center transition-colors duration-500 ${theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF]' : 'bg-[#004d4d]/5 text-[#004d4d]'}`}>
-                    <Globe size={20} />
-                </div>
-                <h2 className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/40' : 'text-[#004d4d]/40'}`}>Canales Activos</h2>
-            </div>
-            <div className="space-y-4">
-                <div className={`flex items-center justify-between p-3 rounded-2xl border transition-all duration-500 ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-gray-50/50 border-gray-100'}`}>
+        <motion.div variants={itemVariants} className="lg:col-span-7 h-full">
+            <TiltCard className={`p-8 h-full transition-all duration-500 ${theme === 'dark' ? 'bg-[#001a1a]/80 border-[#00F2FF]/10' : 'bg-white border-[#004d4d]/5'}`}>
+                <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
-                        <MessageCircle size={14} className="text-[#10B981]" />
-                        <span className={`text-[10px] font-black uppercase transition-colors duration-500 ${theme === 'dark' ? 'text-white/80' : 'text-[#004d4d]/80'}`}>WhatsApp CRM</span>
-                    </div>
-                    <span className="text-[9px] font-bold text-[#10B981] bg-emerald-50 px-2 py-0.5 rounded-md">8 chats</span>
-                </div>
-                <div className={`flex items-center justify-between p-3 rounded-2xl border transition-all duration-500 ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-gray-50/50 border-gray-100'}`}>
-                    <div className="flex items-center gap-3">
-                        <Zap size={14} className="text-[#10B981]" />
-                        <span className={`text-[10px] font-black uppercase transition-colors duration-500 ${theme === 'dark' ? 'text-white/80' : 'text-[#004d4d]/80'}`}>Tienda Online</span>
-                    </div>
-                    <span className="text-[9px] font-bold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded-md">Activa</span>
-                </div>
-            </div>
-        </motion.div>
-
-        {/* BLOQUE 2: Acciones Recomendadas (IA) */}
-        <motion.div variants={itemVariants} className={`p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group transition-all duration-500 lg:col-span-8 ${theme === 'dark' ? 'bg-[#001a1a] border border-[#00F2FF]/20 shadow-black/60' : 'bg-[#001A1A] text-white'}`}>
-            <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-[100px] pointer-events-none transition-colors duration-500 ${theme === 'dark' ? 'bg-[#00F2FF]/20' : 'bg-[#00F2FF]/10'}`}></div>
-            <div className="relative z-10">
-                <div className="flex items-center justify-between mb-10">
-                    <div className="flex items-center gap-4">
-                        <div className={`h-12 w-12 rounded-2xl border flex items-center justify-center shadow-[0_0_20px_rgba(0,242,255,0.2)] transition-all duration-500 ${theme === 'dark' ? 'bg-[#002626] border-[#00F2FF]/40 text-[#00F2FF]' : 'bg-[#004d4d] border-[#00F2FF]/30 text-[#00F2FF]'}`}>
-                            <Lightbulb size={24} className={theme === 'dark' ? 'text-[#00F2FF] fill-[#00F2FF]/20' : 'text-white fill-white'} />
+                        <div className={`h-10 w-10 rounded-2xl flex items-center justify-center transition-colors duration-500 ${theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF]' : 'bg-[#004d4d]/5 text-[#004d4d]'}`}>
+                            <ShieldCheck size={20} />
                         </div>
-                        <div>
-                            <h3 className={`text-xl font-black italic uppercase tracking-wider transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-white'}`}>Acciones Recomendadas</h3>
-                            <p className="text-[9px] font-bold text-[#00F2FF] uppercase tracking-[0.2em] mt-1">Inteligencia de Negocio Bayup</p>
-                        </div>
+                        <h2 className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/40' : 'text-[#004d4d]/40'}`}>Estado de tu tienda</h2>
                     </div>
-                    <div className="h-10 w-10 rounded-full border border-white/10 flex items-center justify-center text-white/40 active:text-[#00F2FF] transition-colors cursor-pointer group-active:text-[#00F2FF]">
-                        <RefreshCw size={16} />
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                        { title: 'Reabastecer "Zapatillas"', desc: 'Alta demanda en última semana.', action: 'Ver Stock' },
-                        { title: 'Oferta Clientes Rec.', desc: 'Mejora retención en un 12%.', action: 'Crear' },
-                        { title: 'Campaña WhatsApp', desc: '12 chats pendientes de cierre.', action: 'Ir' },
-                        { title: 'Ajuste de Precio', desc: '"Reloj Tech" 15% arriba del mercado.', action: 'Revisar' }
-                    ].map((item, i) => (
-                        <div key={i} className="p-5 bg-white/5 rounded-[2rem] border border-white/10 hover:bg-white/10 transition-all flex items-center justify-between group/item">
-                            <div className="space-y-1">
-                                <p className="text-xs font-black text-white uppercase tracking-tight">{item.title}</p>
-                                <p className="text-[9px] text-white/40 font-medium">{item.desc}</p>
-                            </div>
-                            <button className="h-8 px-4 bg-white text-[#001A1A] text-[9px] font-black uppercase tracking-widest rounded-full hover:scale-105 transition-transform">
-                                {item.action}
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </motion.div>
-
-        {/* BLOQUE 3: Rendimiento Hoy vs Ayer */}
-        <motion.div variants={itemVariants} className={`p-10 rounded-[3rem] border shadow-2xl transition-all duration-500 lg:col-span-4 flex flex-col justify-between group ${theme === 'dark' ? 'bg-[#001a1a]/80 border-[#00F2FF]/10 shadow-black/40' : 'bg-white border-[#004d4d]/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_60px_rgba(0,77,77,0.05)]'}`}>
-            <div className="flex items-center gap-3 mb-8">
-                <div className={`h-10 w-10 rounded-2xl flex items-center justify-center transition-colors duration-500 ${theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF]' : 'bg-[#004d4d]/5 text-[#004d4d]'}`}>
-                    <TrendingUp size={20} />
-                </div>
-                <h2 className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/40' : 'text-[#004d4d]/40'}`}>Rendimiento Hoy</h2>
-            </div>
-            
-            <div className="space-y-8">
-                <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ventas Netas</p>
-                    <div className="flex items-end gap-3 mt-1">
-                        <h3 className={`text-4xl font-black italic tracking-tighter transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-[#001A1A]'}`}>
-                            <AnimatedNumber value={1250000} />
-                        </h3>
-                        <span className="mb-1 text-xs font-black text-emerald-500 flex items-center gap-0.5">
-                            <TrendingUp size={12} /> <AnimatedNumber value={15} type="percentage" />
-                        </span>
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500 ${theme === 'dark' ? 'bg-[#10B981]/10 border-[#10B981]/20' : 'bg-emerald-50 border-emerald-100'}`}>
+                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <span className={`text-[9px] font-black uppercase tracking-widest ${theme === 'dark' ? 'text-[#10B981]' : 'text-emerald-600'}`}>Bajo Control</span>
                     </div>
                 </div>
                 
-                <div className={`grid grid-cols-2 gap-6 pt-6 border-t transition-colors duration-500 ${theme === 'dark' ? 'border-white/5' : 'border-gray-100'}`}>
-                    <div>
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Ticket Prom.</p>
-                        <p className={`text-lg font-black tracking-tight transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
-                            <AnimatedNumber value={85400} />
-                        </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                    {[
+                        { label: 'Pagos', val: 'OK', status: 'success' },
+                        { label: 'Stock Crítico', val: '2 prod.', status: 'critical' },
+                        { label: 'Envíos', val: 'Al día', status: 'success' },
+                        { label: 'Sincronía', val: 'Activa', status: 'success' }
+                    ].map((item, i) => (
+                        <div key={i} className="space-y-1">
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{item.label}</p>
+                            <p className={`text-sm font-black uppercase ${item.status === 'success' ? 'text-[#004d4d]' : 'text-rose-600'}`}>{item.val}</p>
+                        </div>
+                    ))}
+                </div>
+            </TiltCard>
+        </motion.div>
+
+        {/* BLOQUE 4: Canales Activos (Compacto) */}
+        <motion.div variants={itemVariants} className="lg:col-span-5 h-full">
+            <TiltCard className={`p-8 h-full transition-all duration-500 ${theme === 'dark' ? 'bg-[#001a1a]/80 border-[#00F2FF]/10' : 'bg-white border-[#004d4d]/5'}`}>
+                <div className="flex items-center gap-3 mb-6">
+                    <div className={`h-10 w-10 rounded-2xl flex items-center justify-center transition-colors duration-500 ${theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF]' : 'bg-[#004d4d]/5 text-[#004d4d]'}`}>
+                        <Globe size={20} />
                     </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Conversión</p>
-                        <p className={`text-lg font-black tracking-tight transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
-                            <AnimatedNumber value={4.8} type="percentage" />
-                        </p>
+                    <h2 className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/40' : 'text-[#004d4d]/40'}`}>Canales Activos</h2>
+                </div>
+                <div className="space-y-4">
+                    <div className={`flex items-center justify-between p-3 rounded-2xl border transition-all duration-500 ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-gray-50/50 border-gray-100'}`}>
+                        <div className="flex items-center gap-3">
+                            <MessageCircle size={14} className="text-[#10B981]" />
+                            <span className={`text-[10px] font-black uppercase transition-colors duration-500 ${theme === 'dark' ? 'text-white/80' : 'text-[#004d4d]/80'}`}>WhatsApp CRM</span>
+                        </div>
+                        <span className="text-[9px] font-bold text-[#10B981] bg-emerald-50 px-2 py-0.5 rounded-md">8 chats</span>
+                    </div>
+                    <div className={`flex items-center justify-between p-3 rounded-2xl border transition-all duration-500 ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-gray-50/50 border-gray-100'}`}>
+                        <div className="flex items-center gap-3">
+                            <Zap size={14} className="text-[#10B981]" />
+                            <span className={`text-[10px] font-black uppercase transition-colors duration-500 ${theme === 'dark' ? 'text-white/80' : 'text-[#004d4d]/80'}`}>Tienda Online</span>
+                        </div>
+                        <span className="text-[9px] font-bold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded-md">Activa</span>
                     </div>
                 </div>
-            </div>
+            </TiltCard>
+        </motion.div>
+
+        {/* BLOQUE 2: Acciones Recomendadas (IA) */}
+        <motion.div variants={itemVariants} className="lg:col-span-8 h-full">
+            <TiltCard className={`p-10 h-full relative overflow-hidden transition-all duration-500 ${theme === 'dark' ? 'bg-[#001a1a] border-[#00F2FF]/20 shadow-black/60' : 'bg-[#001A1A] text-white'}`}>
+                <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-[100px] pointer-events-none transition-colors duration-500 ${theme === 'dark' ? 'bg-[#00F2FF]/20' : 'bg-[#00F2FF]/10'}`}></div>
+                <div className="relative z-10 h-full flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-10">
+                        <div className="flex items-center gap-4">
+                            <div className={`h-12 w-12 rounded-2xl border flex items-center justify-center shadow-[0_0_20px_rgba(0,242,255,0.2)] transition-all duration-500 ${theme === 'dark' ? 'bg-[#002626] border-[#00F2FF]/40 text-[#00F2FF]' : 'bg-[#004d4d] border-[#00F2FF]/30 text-[#00F2FF]'}`}>
+                                <Lightbulb size={24} className={theme === 'dark' ? 'text-[#00F2FF] fill-[#00F2FF]/20' : 'text-white fill-white'} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black italic uppercase tracking-wider text-white">Acciones Recomendadas</h3>
+                                <p className="text-[9px] font-bold text-[#00F2FF] uppercase tracking-[0.2em] mt-1">Inteligencia de Negocio Bayup</p>
+                            </div>
+                        </div>
+                        <div className="h-10 w-10 rounded-full border border-white/10 flex items-center justify-center text-white/40 active:text-[#00F2FF] transition-colors cursor-pointer group-active:text-[#00F2FF]">
+                            <RefreshCw size={16} />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[
+                            { title: 'Reabastecer "Zapatillas"', desc: 'Alta demanda en última semana.', action: 'Ver Stock' },
+                            { title: 'Oferta Clientes Rec.', desc: 'Mejora retención en un 12%.', action: 'Crear' },
+                            { title: 'Campaña WhatsApp', desc: '12 chats pendientes de cierre.', action: 'Ir' },
+                            { title: 'Ajuste de Precio', desc: '"Reloj Tech" 15% arriba del mercado.', action: 'Revisar' }
+                        ].map((item, i) => (
+                            <div key={i} className="p-5 bg-white/5 rounded-[2rem] border border-white/10 hover:bg-white/10 transition-all flex items-center justify-between group/item">
+                                <div className="space-y-1">
+                                    <p className="text-xs font-black text-white uppercase tracking-tight">{item.title}</p>
+                                    <p className="text-[9px] text-white/40 font-medium">{item.desc}</p>
+                                </div>
+                                <button className="h-8 px-4 bg-white text-[#001A1A] text-[9px] font-black uppercase tracking-widest rounded-full hover:scale-105 transition-transform">
+                                    {item.action}
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </TiltCard>
+        </motion.div>
+
+        {/* BLOQUE 3: Rendimiento Hoy vs Ayer */}
+        <motion.div variants={itemVariants} className="lg:col-span-4 h-full">
+            <TiltCard className={`p-10 h-full transition-all duration-500 ${theme === 'dark' ? 'bg-[#001a1a]/80 border-[#00F2FF]/10' : 'bg-white border-[#004d4d]/5'}`}>
+                <div className="flex items-center gap-3 mb-8">
+                    <div className={`h-10 w-10 rounded-2xl flex items-center justify-center transition-colors duration-500 ${theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF]' : 'bg-[#004d4d]/5 text-[#004d4d]'}`}>
+                        <TrendingUp size={20} />
+                    </div>
+                    <h2 className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/40' : 'text-[#004d4d]/40'}`}>Rendimiento Hoy</h2>
+                </div>
+                
+                <div className="space-y-8">
+                    <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ventas Netas</p>
+                        <div className="flex items-end gap-3 mt-1">
+                            <h3 className={`text-4xl font-black italic tracking-tighter transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-[#001A1A]'}`}>
+                                <AnimatedNumber value={1250000} />
+                            </h3>
+                            <span className="mb-1 text-xs font-black text-emerald-500 flex items-center gap-0.5">
+                                <TrendingUp size={12} /> <AnimatedNumber value={15} type="percentage" />
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div className={`grid grid-cols-2 gap-6 pt-6 border-t transition-colors duration-500 ${theme === 'dark' ? 'border-white/5' : 'border-gray-100'}`}>
+                        <div>
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Ticket Prom.</p>
+                            <p className={`text-lg font-black tracking-tight transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
+                                <AnimatedNumber value={85400} />
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Conversión</p>
+                            <p className={`text-lg font-black tracking-tight transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
+                                <AnimatedNumber value={4.8} type="percentage" />
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </TiltCard>
         </motion.div>
       </motion.div>
 
