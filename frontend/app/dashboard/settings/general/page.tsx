@@ -250,6 +250,9 @@ export default function GeneralSettings() {
                     <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">
                         Info <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF]">General</span>
                     </h1>
+                    <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed italic">
+                        Control maestro de la identidad, finanzas y <span className="font-bold text-[#001A1A]">canales de tu marca</span> comercial.
+                    </p>
                 </div>
                 <button onClick={handleSaveMain} disabled={isSaving} className="h-14 px-10 bg-gray-900 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4">
                     {isSaving ? <Loader2 className="animate-spin" size={18}/> : <ShieldCheck size={18} className="text-[#00f2ff]" />}

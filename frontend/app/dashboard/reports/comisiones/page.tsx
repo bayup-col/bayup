@@ -29,6 +29,69 @@ interface CommissionSettlement {
 
 const PERIODS = ['Enero 2026', 'Febrero 2026', 'Marzo 2026'];
 
+// --- COMPONENTE TILT CARD PREMIUM ---
+const TiltCard = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => {
+    const [rotateX, setRotateX] = useState(0);
+    const [rotateY, setRotateY] = useState(0);
+    const [glarePos, setGlarePos] = useState({ x: 50, y: 50, opacity: 0 });
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const card = e.currentTarget;
+        const box = card.getBoundingClientRect();
+        const x = e.clientX - box.left;
+        const y = e.clientY - box.top;
+        const centerX = box.width / 2;
+        const centerY = box.height / 2;
+        
+        // Aumento de sensibilidad (divisor menor = más inclinación)
+        const rotateX = (y - centerY) / 7; 
+        const rotateY = (centerX - x) / 7;
+        
+        setRotateX(rotateX);
+        setRotateY(rotateY);
+        setGlarePos({ 
+            x: (x / box.width) * 100, 
+            y: (y / box.height) * 100,
+            opacity: 0.3 // Brillo más intenso
+        });
+    };
+
+    const handleMouseLeave = () => {
+        setRotateX(0);
+        setRotateY(0);
+        setGlarePos(prev => ({ ...prev, opacity: 0 }));
+    };
+
+    return (
+        <motion.div
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            animate={{ 
+                rotateX, 
+                rotateY, 
+                scale: rotateX !== 0 ? 1.05 : 1 // Efecto de elevación más marcado
+            }}
+            transition={{ type: "spring", stiffness: 250, damping: 20 }}
+            style={{ transformStyle: "preserve-3d", perspective: "1000px" }}
+            className={`bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-2xl flex flex-col justify-between group relative overflow-hidden h-full ${className}`}
+        >
+            <div 
+                className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+                style={{
+                    opacity: glarePos.opacity,
+                    background: `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255,255,255,0.9) 0%, transparent 50%)`,
+                    zIndex: 1
+                }}
+            />
+            <div style={{ transform: "translateZ(80px)", position: "relative", zIndex: 2 }} className="h-full flex flex-col justify-between">
+                {children}
+            </div>
+            {/* Ambient Glow Reforzado */}
+            <div className="absolute -bottom-20 -right-20 h-40 w-40 bg-[#00f2ff]/20 blur-[60px] rounded-full pointer-events-none" />
+        </motion.div>
+    );
+};
+
 export default function ComisionesPage() {
     const { token } = useAuth();
     const { showToast } = useToast();
@@ -203,6 +266,9 @@ export default function ComisionesPage() {
                     <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">
                         Liquidación <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF]">PRO</span>
                     </h1>
+                    <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed italic">
+                        Gestión automatizada de incentivos basada en <span className="font-bold text-[#001A1A]">rendimiento, volumen y utilidad neta</span>.
+                    </p>
                 </div>
                 {/* BOTON PERIODO FUNCIONAL */}
                 <div className="relative">
@@ -228,22 +294,24 @@ export default function ComisionesPage() {
                 </div>
             </div>
 
-            {/* KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
-                {[ 
-                    { label: 'Por Liquidar', value: formatCurrency(filteredList.reduce((acc, s) => acc + s.earned, 0)), icon: <DollarSign size={20}/>, color: 'text-[#004d4d]' },
-                    { label: 'Cumplimiento', value: `${Math.round(filteredList.reduce((acc,s)=>acc+s.progress,0)/(filteredList.length || 1))}%`, icon: <Target size={20}/>, color: 'text-[#00f2ff]' },
-                    { label: 'Total Ventas', value: formatCurrency(filteredList.reduce((acc,s)=>acc+s.total_sales,0)), icon: <ShoppingBag size={20}/>, color: 'text-emerald-600' },
-                    { label: 'Asesores', value: filteredList.length, icon: <Users size={20}/>, color: 'text-amber-500' },
-                ].map((kpi, i) => (
-                    <div key={i} className="bg-white/60 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/80 shadow-sm flex flex-col justify-between group transition-all">
-                        <div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color}`}>{kpi.icon}</div>
-                        <div className="mt-6"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p><h3 className="text-3xl font-black text-gray-900 mt-1">{kpi.value}</h3></div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Menu Tabs */}
+                        {/* KPIs */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
+                            {[
+                                { label: 'Por Liquidar', value: formatCurrency(filteredList.reduce((acc, s) => acc + s.earned, 0)), icon: <DollarSign size={20}/>, color: 'text-[#004d4d]' },
+                                { label: 'Cumplimiento', value: `${Math.round(filteredList.reduce((acc,s)=>acc+s.progress,0)/(filteredList.length || 1))}%`, icon: <Target size={20}/>, color: 'text-[#00f2ff]' },
+                                { label: 'Total Ventas', value: formatCurrency(filteredList.reduce((acc,s)=>acc+s.total_sales,0)), icon: <ShoppingBag size={20}/>, color: 'text-emerald-600' },
+                                { label: 'Asesores', value: filteredList.length, icon: <Users size={20}/>, color: 'text-amber-500' },
+                            ].map((kpi, i) => (
+                                <TiltCard key={i} className="p-8">
+                                    <div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color}`}>{kpi.icon}</div>
+                                    <div className="mt-6">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p>
+                                        <h3 className="text-3xl font-black text-gray-900 mt-1">{kpi.value}</h3>
+                                    </div>
+                                </TiltCard>
+                            ))}
+                        </div>
+                        {/* Menu Tabs */}
             <div className="flex justify-center">
                 <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl flex items-center">
                     {[ 
