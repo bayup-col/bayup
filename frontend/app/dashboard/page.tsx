@@ -127,50 +127,73 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
         if (!token) return;
-        try {
-            const apiBase = "http://localhost:8000";
-            const [expRes, recRes, oppRes, logsRes] = await Promise.all([
-                fetch(`${apiBase}/expenses`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch(`${apiBase}/receivables`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch(`${apiBase}/analytics/opportunities`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch(`${apiBase}/admin/logs`, { headers: { 'Authorization': `Bearer ${token}` } })
-            ]);
-
-            if (expRes.ok) {
-                const exps = await expRes.json();
-                const pending = exps.filter((e: any) => e.status === 'pending')
-                    .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
-                setPendingPayment(pending);
-            }
-
-            if (recRes.ok) {
-                const recs = await recRes.json();
-                const pending = recs.filter((r: any) => r.status === 'pending')
-                    .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
-                setPendingCollection(pending);
-            }
-
-            if (oppRes.ok) {
-                const opps = await oppRes.json();
-                setOpportunities(opps);
-            }
-
-            if (logsRes.ok) {
-                const logs = await logsRes.json();
-                setActivities(logs.slice(0, 5).map((log: any) => ({
-                    id: log.id,
-                    type: log.action.includes('USER') ? 'customer' : log.action.includes('PRODUCT') ? 'order' : 'message',
-                    user: log.user_name || 'Sistema',
-                    detail: log.detail,
-                    time: new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    amount: null
-                })));
-            }
-        } catch (e) { console.error("Error loading dashboard data"); } finally {
-            setLoadingOpps(false);
-            setIsLoadingLogs(false);
-        }
-    };
+                try {
+                    const apiBase = "http://localhost:8000";
+                    const [expRes, recRes, oppRes, logsRes] = await Promise.all([
+                        fetch(`${apiBase}/expenses`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                        fetch(`${apiBase}/receivables`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                        fetch(`${apiBase}/analytics/opportunities`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                        fetch(`${apiBase}/admin/logs`, { headers: { 'Authorization': `Bearer ${token}` } })
+                    ]);
+        
+                    // Blindaje contra 401 (Unauthorized)
+                    if (expRes.status === 401 || recRes.status === 401) {
+                        console.warn("Sesión expirada o servidor no disponible. Usando respaldo local.");
+                        loadFallbackData();
+                        return;
+                    }
+        
+                    if (expRes.ok) {
+                        const exps = await expRes.json();
+                        const pending = exps.filter((e: any) => e.status === 'pending')
+                            .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
+                        setPendingPayment(pending);
+                    }
+                    if (recRes.ok) {
+                        const recs = await recRes.json();
+                        const pending = recs.filter((r: any) => r.status === 'pending')
+                            .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
+                        setPendingCollection(pending);
+                    }
+                    if (oppRes.ok) {
+                        const opps = await oppRes.json();
+                        setOpportunities(opps);
+                    }
+                    if (logsRes.ok) {
+                        const logs = await logsRes.json();
+                        setActivities(logs.slice(0, 5).map((log: any) => ({
+                            id: log.id,        
+                            type: log.action.includes('USER') ? 'customer' : log.action.includes('PRODUCT') ? 'order' : 'message',
+                            user: log.user_name || 'Sistema',
+                            detail: log.detail,
+                            time: new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            amount: null       
+                        })));
+                    }
+                } catch (e) { 
+                    console.error("Error conectando con el backend. Activando modo offline.");
+                    loadFallbackData();
+                } finally {
+                    setLoadingOpps(false);     
+                    setIsLoadingLogs(false);   
+                }
+            };
+        
+            const loadFallbackData = () => {
+                // Cargar datos de respaldo desde localStorage para mantener la UI funcional
+                const savedExpenses = localStorage.getItem('bayup_expenses_data');
+                const savedReceivables = localStorage.getItem('bayup_debt_records_v2');
+                
+                if (savedExpenses) {
+                    const exps = JSON.parse(savedExpenses);
+                    setPendingPayment(exps.find((e:any) => e.status === 'pending') || null);
+                }
+                if (savedReceivables) {
+                    const recs = JSON.parse(savedReceivables);
+                    setPendingCollection(recs.find((r:any) => r.type === 'receivable' && r.status === 'pending') || null);
+                }
+            };
+        
     fetchData();
   }, [token]);
 
