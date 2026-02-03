@@ -5,11 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, UserPlus, Shield, Trash2, Edit3, X, 
   ChevronRight, TrendingUp, DollarSign, Activity, 
-  Zap, Target, Bot, Sparkles, Download, Filter, 
+  Zap, Target, Bot, Sparkles, Download, Filter, LayoutGrid,
   Search, ArrowUpRight, Clock, Award, Medal, Trophy, CheckCircle2,
   CreditCard, FileText, Check, ShieldCheck, 
   History as LucideHistory, Scale, ShoppingBag, Info, Loader2, Calendar, RotateCcw,
-  MapPin, Briefcase, Camera, Star, Smartphone
+  MapPin, Briefcase, Camera, Star, Smartphone, Lightbulb, BrainCircuit
 } from 'lucide-react';
 import { useToast } from "@/context/toast-context";
 import { useAuth } from "@/context/auth-context";
@@ -263,6 +263,45 @@ export default function VendedoresPage() {
                             ))}
                         </div>
                     )}
+
+                    {/* BAYT INSIGHT VENDEDORES - RESTAURADO */}
+                    {activeTab === 'bayt' && (
+                        <motion.div key="bayt" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <TiltCard className="p-12 bg-gray-900 text-white relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12"><Medal size={300} /></div>
+                                <div className="space-y-8 h-full flex flex-col justify-between relative z-10">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-14 w-14 bg-[#00f2ff]/10 text-[#00f2ff] rounded-2xl border border-[#00f2ff]/20 flex items-center justify-center shadow-[0_0_20px_rgba(0,242,255,0.2)]"><Bot size={32}/></div>
+                                        <div><h3 className="text-2xl font-black italic uppercase">Team Mastery</h3><p className="text-[10px] font-black text-[#00f2ff] uppercase tracking-widest mt-1">Inteligencia Comercial Predictiva</p></div>
+                                    </div>
+                                    <p className="text-lg font-medium leading-relaxed italic text-gray-300">&quot;Basado en el rendimiento de los últimos 3 meses, proyectamos que un ajuste del 2% en los bonos por utilidad neta incrementará el cierre de ventas Pro en un <span className="text-[#00f2ff] font-black">18.4%</span>.&quot;</p>
+                                    <div className="pt-8 border-t border-white/10 grid grid-cols-2 gap-6">
+                                        <div className="space-y-1"><p className="text-[10px] font-black uppercase text-white/40">Potencial ROI</p><p className="text-xl font-black text-emerald-400">+12.5%</p></div>
+                                        <div className="space-y-1"><p className="text-[10px] font-black uppercase text-white/40">Efficiency Score</p><p className="text-xl font-black text-[#00f2ff]">Superior</p></div>
+                                    </div>
+                                </div>
+                            </TiltCard>
+                            <div className="space-y-8">
+                                <div className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-6">
+                                    <div className="flex items-center gap-3"><Lightbulb className="text-amber-500" size={20}/><h4 className="text-sm font-black uppercase tracking-widest">Recomendaciones Estratégicas</h4></div>
+                                    <div className="space-y-4">
+                                        {[
+                                            { t: 'Optimización de Leads', d: 'Asignar prospectos de alta gama a Carlos Ruiz (Top Performer).', i: <Zap/> },
+                                            { t: 'Acelerador Trimestral', d: 'Implementar meta volante por volumen este fin de semana.', i: <TrendingUp/> }
+                                        ].map((rec, i) => (
+                                            <div key={i} className="flex items-center gap-4 p-5 bg-gray-50 rounded-[2rem] border border-transparent hover:border-[#004d4d]/20 transition-all cursor-pointer group">
+                                                <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-[#004d4d] shadow-sm group-hover:scale-110 transition-transform">{rec.i}</div>
+                                                <div><p className="text-sm font-black text-gray-900">{rec.t}</p><p className="text-[10px] font-medium text-gray-500">{rec.d}</p></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <button onClick={() => showToast("Analizando métricas profundas...", "info")} className="w-full py-6 bg-[#004D4D] text-white rounded-[2.5rem] font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-4 hover:bg-black transition-all group">
+                                    <BrainCircuit size={20} className="group-hover:rotate-12 transition-transform"/> Ejecutar Auditoría de Rendimiento
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
                 </motion.div>
             </AnimatePresence>
 
@@ -382,38 +421,149 @@ export default function VendedoresPage() {
                 )}
             </AnimatePresence>
 
-            {/* MODAL GUÍA ELITE */}
+            {/* MODAL GUÍA ELITE VENDEDORES */}
             <AnimatePresence>
                 {isGuideOpen && (
                     <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsGuideOpen(false)} className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" />
                         <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-6xl h-[80vh] rounded-[4rem] shadow-3xl overflow-hidden relative z-10 border border-white flex flex-col md:flex-row">
-                            <div className="w-full md:w-[300px] bg-gray-50 border-r border-gray-100 p-10 flex flex-col gap-3">
-                                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#004d4d]">Guía Maestro</h3>
+                            
+                            {/* COLUMNA IZQUIERDA: MENÚ TÁCTICO */}
+                            <div className="w-full md:w-[320px] bg-gray-50 border-r border-gray-100 p-10 flex flex-col gap-3">
+                                <div className="h-12 w-12 bg-gray-900 text-[#00f2ff] rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-cyan-500/20"><Bot size={24}/></div>
+                                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#004d4d] mb-4">Guía Comercial</h3>
+                                
                                 {[
-                                    { id: 0, label: 'Gestión de Equipo', icon: <Users size={14}/> },
-                                    { id: 1, label: 'Ranking & KPI', icon: <Award size={14}/> },
-                                    { id: 2, label: 'Metas Tácticas', icon: <Target size={14}/> }
+                                    { id: 0, label: 'Panel de Control', icon: <LayoutGrid size={16}/> },
+                                    { id: 1, label: 'Ranking de Honor', icon: <Trophy size={16}/> },
+                                    { id: 2, label: 'Asignación Metas', icon: <Target size={16}/> },
+                                    { id: 3, label: 'Inteligencia Bayt', icon: <Sparkles size={16}/> }
                                 ].map(step => (
-                                    <button key={step.id} onClick={() => setActiveGuideStep(step.id)} className={`flex items-center gap-4 p-4 rounded-2xl transition-all text-left ${activeGuideStep === step.id ? 'bg-[#004d4d] text-white shadow-lg' : 'text-gray-500 hover:bg-white'}`}>
+                                    <button 
+                                        key={step.id} 
+                                        onClick={() => setActiveGuideStep(step.id)} 
+                                        className={`flex items-center gap-4 p-4 rounded-2xl transition-all text-left ${activeGuideStep === step.id ? 'bg-[#004d4d] text-white shadow-xl shadow-[#004d4d]/20' : 'text-gray-500 hover:bg-white hover:shadow-sm'}`}
+                                    >
                                         <div className={activeGuideStep === step.id ? 'text-[#00f2ff]' : 'text-gray-300'}>{step.icon}</div>
                                         <span className="text-[10px] font-black uppercase tracking-widest">{step.label}</span>
                                     </button>
                                 ))}
-                            </div>
-                            <div className="flex-1 p-12 bg-white flex flex-col justify-between relative overflow-hidden">
-                                <div className="space-y-8 relative z-10">
-                                    <h2 className="text-3xl font-black uppercase italic">Comercial Mastery</h2>
-                                    <p className="text-sm font-medium text-gray-600 leading-relaxed bg-gray-50 p-8 rounded-[2.5rem] border border-gray-100 shadow-inner italic">
-                                        {[
-                                            "Registra a tus asesores y asígnalos a sucursales físicas o digitales. Puedes monitorear su estado de conexión y crecimiento mensual en tiempo real.",
-                                            "El Ranking organiza a tu equipo según su facturación neta del mes. Úsalo para identificar a tus MVPs y detectar brechas de rendimiento antes del cierre.",
-                                            "Define objetivos realistas para cada asesor. Las metas se reflejan en barras de progreso visuales que ayudan al equipo a visualizar su bono de comisión."
-                                        ][activeGuideStep]}
-                                    </p>
+
+                                <div className="mt-auto pt-8 border-t border-gray-100">
+                                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                                        <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Estado Sistema</p>
+                                        <p className="text-[10px] font-bold text-emerald-900 mt-1">Monitoreo Live Activo</p>
+                                    </div>
                                 </div>
-                                <button onClick={() => setIsGuideOpen(false)} className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl">Entendido</button>
-                                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#00f2ff]/5 blur-[100px] rounded-full pointer-events-none" />
+                            </div>
+
+                            {/* COLUMNA DERECHA: CONTENIDO VISUAL */}
+                            <div className="flex-1 p-16 flex flex-col justify-between relative overflow-y-auto custom-scrollbar bg-white">
+                                <button onClick={() => setIsGuideOpen(false)} className="absolute top-10 right-10 text-gray-300 hover:text-rose-500 transition-colors z-[100]"><X size={24}/></button>
+                                
+                                <div className="space-y-12">
+                                    {activeGuideStep === 0 && (
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                            <div className="space-y-4">
+                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Analítica de <span className="text-[#004D4D]">Fuerza</span></h2>
+                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">&quot;Visualiza el impacto real de cada asesor en tu caja mensual.&quot;</p>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-6">
+                                                <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 shadow-sm group hover:bg-white hover:shadow-xl transition-all">
+                                                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-emerald-600 mb-6 shadow-sm"><DollarSign size={24}/></div>
+                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Facturación Equipo</p>
+                                                    <p className="text-sm font-medium text-gray-600 mt-2 italic">Suma total de ventas cerradas por todos los asesores en el periodo actual.</p>
+                                                </div>
+                                                <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 shadow-sm group hover:bg-white hover:shadow-xl transition-all">
+                                                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-[#00f2ff] mb-6 shadow-sm"><Activity size={24}/></div>
+                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Tasa de Conversión</p>
+                                                    <p className="text-sm font-medium text-gray-600 mt-2 italic">Efectividad promedio del equipo al transformar leads en ventas reales.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeGuideStep === 1 && (
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                            <div className="space-y-4">
+                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Ranking & <span className="text-[#004D4D]">Gamificación</span></h2>
+                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">Motiva a tu equipo mediante el reconocimiento público del desempeño.</p>
+                                            </div>
+                                            <div className="relative p-10 bg-[#001A1A] rounded-[3.5rem] overflow-hidden text-white shadow-2xl">
+                                                <div className="absolute top-0 right-0 p-4 opacity-10"><Trophy size={120}/></div>
+                                                <div className="space-y-6 relative z-10">
+                                                    <div className="flex items-center gap-6">
+                                                        <div className="h-14 w-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center shadow-lg"><Trophy size={28}/></div>
+                                                        <div>
+                                                            <p className="text-sm font-black uppercase tracking-widest text-amber-400">Líder del Mes (MVP)</p>
+                                                            <p className="text-xs font-medium text-gray-400 mt-1 italic">El asesor con mayor facturación neta acumulada.</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="h-px w-full bg-white/10"></div>
+                                                    <div className="flex items-center gap-6 opacity-60">
+                                                        <div className="h-14 w-14 rounded-2xl bg-gray-800 text-white flex items-center justify-center"><Users size={28}/></div>
+                                                        <div>
+                                                            <p className="text-sm font-black uppercase tracking-widest">Escalafón General</p>
+                                                            <p className="text-xs font-medium text-gray-400 mt-1">Organización automática por volumen de cierre.</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeGuideStep === 2 && (
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                            <div className="space-y-4">
+                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Gestión de <span className="text-[#004D4D]">Objetivos</span></h2>
+                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">Asigna cuotas realistas y monitorea el progreso visualmente.</p>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-4">
+                                                <div className="p-8 bg-[#004D4D]/5 border border-[#004D4D]/10 rounded-[2.5rem] flex items-center gap-8">
+                                                    <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center text-[#004d4d] shadow-xl"><Target size={32}/></div>
+                                                    <div>
+                                                        <h4 className="text-lg font-black uppercase text-gray-900 tracking-tight">Metas Dinámicas</h4>
+                                                        <p className="text-xs text-gray-500 font-medium mt-1 italic">Cada cambio en la meta se refleja instantáneamente en la barra de progreso del asesor.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="p-8 bg-blue-50 border border-blue-100 rounded-[2.5rem] flex items-center gap-8">
+                                                    <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-xl"><CheckCircle2 size={32}/></div>
+                                                    <div>
+                                                        <h4 className="text-lg font-black uppercase text-gray-900 tracking-tight">Umbral de Éxito</h4>
+                                                        <p className="text-xs text-gray-500 font-medium mt-1 italic">El sistema marca en verde a quienes superan el 100% de su objetivo.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeGuideStep === 3 && (
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                            <div className="space-y-4">
+                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Inteligencia <span className="text-[#004D4D]">Comercial</span></h2>
+                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">Deja que Bayt AI optimice tu estrategia de equipo.</p>
+                                            </div>
+                                            <div className="p-10 bg-gray-900 rounded-[3.5rem] relative overflow-hidden text-white shadow-2xl">
+                                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#00f2ff]/10 rounded-full blur-[80px]"></div>
+                                                <div className="relative z-10 flex flex-col items-center text-center space-y-6">
+                                                    <div className="h-24 w-24 bg-[#00f2ff]/10 text-[#00f2ff] rounded-[2rem] border border-[#00f2ff]/30 flex items-center justify-center shadow-[0_0_30px_rgba(0,242,255,0.2)] animate-pulse"><Bot size={48}/></div>
+                                                    <div className="space-y-4">
+                                                        <p className="text-sm font-black uppercase tracking-[0.3em] text-[#00f2ff]">Bayt Strategist</p>
+                                                        <p className="text-lg font-medium leading-relaxed italic text-gray-300">&quot;Bayt identifica asesores con alto ROAS para asignarles leads de mayor valor, maximizando la utilidad por cada conversación.&quot;</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mt-12 pt-12 border-t border-gray-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-full bg-gray-900 text-[#00f2ff] flex items-center justify-center font-black text-xs shadow-lg italic">B</div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Bayup Training Module v2.0</p>
+                                    </div>
+                                    <button onClick={() => setIsGuideOpen(false)} className="px-12 py-5 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-2xl active:scale-95">Entendido, Continuar Operación</button>
+                                </div>
                             </div>
                         </motion.div>
                     </div>
