@@ -30,15 +30,19 @@ import {
 } from 'lucide-react';
 import { GlassyButton } from "@/components/landing/GlassyButton";
 import { ActionButton } from "@/components/landing/ActionButton";
+import { useSpring, useTransform } from 'framer-motion';
 
 // --- COMPONENTE DE NÚMEROS ANIMADOS ---
 function AnimatedNumber({ value, className, type = 'currency' }: { value: number, className?: string, type?: 'currency' | 'percentage' | 'simple' }) {
-    const { useSpring, useTransform } = require('framer-motion');
     const spring = useSpring(0, { mass: 0.8, stiffness: 75, damping: 15 });
     const display = useTransform(spring, (current: number) => {
-        if (type === 'percentage') return `${current.toFixed(1)}%`;
-        if (type === 'simple') return Math.round(current).toLocaleString();
-        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(current);
+        try {
+            if (type === 'percentage') return `${current.toFixed(1)}%`;
+            if (type === 'simple') return Math.round(current).toLocaleString();
+            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(current);
+        } catch (e) {
+            return current.toString();
+        }
     });
 
     useEffect(() => {
