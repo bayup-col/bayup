@@ -103,16 +103,54 @@ const MOCK_ORDERS: PurchaseOrder[] = [
     }
 ];
 
+// --- COMPONENTE TILT CARD PREMIUM ---
+const TiltCard = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => {
+    const [rotateX, setRotateX] = useState(0);
+    const [rotateY, setRotateY] = useState(0);
+    const [glarePos, setGlarePos] = useState({ x: 50, y: 50, opacity: 0 });
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const card = e.currentTarget;
+        const box = card.getBoundingClientRect();
+        const centerX = box.width / 2;
+        const centerY = box.height / 2;
+        setRotateX((e.clientY - box.top - centerY) / 7); 
+        setRotateY((centerX - (e.clientX - box.left)) / 7);
+        setGlarePos({ x: ((e.clientX - box.left)/box.width)*100, y: ((e.clientY - box.top)/box.height)*100, opacity: 0.3 });
+    };
+
+    return (
+        <motion.div
+            onMouseMove={handleMouseMove}
+            onMouseLeave={() => { setRotateX(0); setRotateY(0); setGlarePos(p => ({...p, opacity: 0})); }}
+            animate={{ rotateX, rotateY, scale: rotateX !== 0 ? 1.05 : 1 }}
+            transition={{ type: "spring", stiffness: 250, damping: 20 }}
+            style={{ transformStyle: "preserve-3d", perspective: "1000px" }}
+            className={`bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-2xl flex flex-col justify-between group relative overflow-hidden h-full ${className}`}
+        >
+            <div className="absolute inset-0 pointer-events-none transition-opacity duration-300" style={{ opacity: glarePos.opacity, background: `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255,255,255,0.9) 0%, transparent 50%)`, zIndex: 1 }} />
+            <div style={{ transform: "translateZ(80px)", position: "relative", zIndex: 2 }} className="h-full flex flex-col justify-between">{children}</div>
+            <div className="absolute -bottom-20 -right-20 h-40 w-40 bg-[#00f2ff]/20 blur-[60px] rounded-full pointer-events-none" />
+        </motion.div>
+    );
+};
+
 export default function PurchaseOrdersPage() {
     const { token } = useAuth();
     const { showToast } = useToast();
     
-    const [activeTab, setActiveTab] = useState<'todos' | 'pendientes' | 'recibidos' | 'proveedores'>('todos');
+    const [activeTab, setActiveTab] = useState<'todos' | 'pendientes' | 'recibidos' | 'proveedores' | 'bayt'>('todos');
     const [orders, setOrders] = useState<PurchaseOrder[]>(MOCK_ORDERS);
     const [searchTerm, setSearchTerm] = useState("");
+    const [dateRange, setDateRange] = useState({ start: '', end: '' });
+    const [isFilterHovered, setIsFilterHovered] = useState(false);
+    const [isDateHovered, setIsDateHovered] = useState(false);
+    const [isExportHovered, setIsExportHovered] = useState(false);
+    const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+    const [isGuideOpen, setIsGuideOpen] = useState(false);
+    const [activeGuideStep, setActiveGuideStep] = useState(0);
     const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [wizardStep, setWizardStep] = useState(1);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount).replace('$', '$ ');
@@ -135,43 +173,97 @@ export default function PurchaseOrdersPage() {
                 { label: 'Proveedores Top', value: '08', sub: 'Aliados activos', icon: <Users size={20}/>, trend: 'OK', color: 'text-amber-500' },
                 { label: 'Cumplimiento', value: '94.2%', sub: 'Items recibidos', icon: <CheckCircle2 size={20}/>, trend: '+2.1%', color: 'text-[#00f2ff]' },
             ].map((kpi, i) => (
-                <motion.div key={i} whileHover={{ y: -5, scale: 1.02 }} className="bg-white/60 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/80 shadow-sm flex flex-col justify-between group transition-all">
+                <TiltCard key={i} className="p-8">
                     <div className="flex justify-between items-start">
                         <div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color} group-hover:scale-110 transition-transform`}>
                             {kpi.icon}
                         </div>
-                        <span className="text-[10px] font-black px-2 py-1 bg-gray-50 text-gray-400 rounded-lg">{kpi.trend}</span>
+                        <span className="text-[10px] font-black px-2 py-1 bg-gray-50 text-gray-400 rounded-lg uppercase tracking-widest">{kpi.trend}</span>
                     </div>
                     <div className="mt-6">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p>
                         <h3 className="text-3xl font-black text-gray-900 mt-1">{kpi.value}</h3>
                         <p className="text-[9px] font-bold text-gray-400 mt-1 italic">{kpi.sub}</p>
                     </div>
-                </motion.div>
+                </TiltCard>
             ))}
         </div>
     );
 
     const renderActionBar = () => (
-        <div className="flex flex-col md:flex-row gap-4 items-center bg-white/60 backdrop-blur-md p-3 rounded-3xl border border-white/60 shadow-sm mx-4 shrink-0 relative z-30">
-            <div className="relative flex-1 w-full">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+        <div className="w-full max-w-[1100px] mx-auto flex justify-between items-center bg-white p-2 rounded-2xl border border-gray-100 shadow-sm transition-all focus-within:shadow-xl focus-within:border-[#004d4d]/20 relative z-30">
+            <div className="relative w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
                 <input 
                     type="text" 
-                    placeholder="Buscar por ID de orden o proveedor..." 
+                    placeholder="Buscar por ID de orden o nombre de proveedor..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-14 pr-6 py-4 bg-transparent text-sm font-bold text-slate-700 outline-none" 
+                    className="w-full pl-12 pr-4 py-3 bg-transparent text-sm font-bold outline-none placeholder:text-gray-300" 
                 />
             </div>
-            <div className="h-10 w-px bg-slate-200 hidden md:block"></div>
-            <div className="flex items-center gap-3">
-                <button className="h-12 flex items-center gap-2 px-5 rounded-2xl bg-white text-slate-500 border border-gray-100 hover:bg-gray-50 transition-all">
-                    <Filter size={18}/> <span className="text-[10px] font-black uppercase tracking-widest">Bodega</span>
-                </button>
-                <button className="h-12 flex items-center gap-2 px-5 bg-gray-900 text-white rounded-2xl shadow-lg hover:bg-black transition-all">
-                    <Download size={18}/> <span className="text-[10px] font-black uppercase tracking-widest">Reporte</span>
-                </button>
+            
+            <div className="flex items-center gap-1">
+                {/* FILTROS */}
+                <div className="relative">
+                    <motion.button 
+                        layout 
+                        onMouseEnter={() => setIsFilterHovered(true)} 
+                        onMouseLeave={() => setIsFilterHovered(false)} 
+                        onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} 
+                        className={`h-12 flex items-center gap-2 px-4 rounded-xl transition-all ${isFilterMenuOpen ? 'bg-[#004d4d] text-white' : 'bg-gray-50 text-gray-500 hover:bg-white hover:border-gray-100'}`}
+                    >
+                        <Filter size={18}/> 
+                        <AnimatePresence>
+                            {isFilterHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase whitespace-nowrap overflow-hidden px-1">Bodega</motion.span>}
+                        </AnimatePresence>
+                    </motion.button>
+                    
+                    <AnimatePresence>
+                        {isFilterMenuOpen && (
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full mt-2 right-0 w-48 bg-white rounded-2xl shadow-2xl p-2 z-50 border border-gray-100">
+                                <button onClick={() => setIsFilterMenuOpen(false)} className="w-full text-left p-3 rounded-xl text-[9px] font-black uppercase hover:bg-gray-50">Todas</button>
+                                <button onClick={() => setIsFilterMenuOpen(false)} className="w-full text-left p-3 rounded-xl text-[9px] font-black uppercase hover:bg-gray-50 text-[#004d4d]">Bodega Central</button>
+                                <button onClick={() => setIsFilterMenuOpen(false)} className="w-full text-left p-3 rounded-xl text-[9px] font-black uppercase hover:bg-gray-50">Sucursal Norte</button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* FECHAS */}
+                <div className="relative group/date">
+                    <motion.button 
+                        layout 
+                        onMouseEnter={() => setIsDateHovered(true)} 
+                        onMouseLeave={() => setIsDateHovered(false)} 
+                        className={`h-12 flex items-center gap-2 px-4 rounded-xl transition-all ${dateRange.start ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-500 hover:bg-white hover:border-gray-100'}`}
+                    >
+                        <Calendar size={18}/> 
+                        <AnimatePresence>
+                            {isDateHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase whitespace-nowrap overflow-hidden px-1">Fechas</motion.span>}
+                        </AnimatePresence>
+                    </motion.button>
+                    
+                    <div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 opacity-0 scale-95 pointer-events-none group-hover/date:opacity-100 group-hover/date:scale-100 group-hover/date:pointer-events-auto transition-all z-50 flex gap-2">
+                        <input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} className="p-2 bg-gray-50 rounded-lg text-[10px] font-bold outline-none border border-transparent focus:border-[#004d4d]" />
+                        <input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} className="p-2 bg-gray-50 rounded-lg text-[10px] font-bold outline-none border border-transparent focus:border-[#004d4d]" />
+                        <button onClick={() => setDateRange({start:'', end:''})} className="p-2 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-100 transition-colors"><RotateCcw size={14}/></button>
+                    </div>
+                </div>
+
+                {/* EXPORTAR */}
+                <motion.button 
+                    layout 
+                    onMouseEnter={() => setIsExportHovered(true)} 
+                    onMouseLeave={() => setIsExportHovered(false)} 
+                    onClick={() => { showToast("Generando reporte de abastecimiento...", "info"); setTimeout(() => showToast("Excel descargado correctamente 📦", "success"), 1500); }}
+                    className="h-12 flex items-center gap-2 px-4 rounded-xl bg-gray-50 border border-transparent hover:bg-white hover:border-gray-100 text-gray-500 transition-all"
+                >
+                    <Download size={18}/> 
+                    <AnimatePresence>
+                        {isExportHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase whitespace-nowrap overflow-hidden px-1">Reporte</motion.span>}
+                    </AnimatePresence>
+                </motion.button>
             </div>
         </div>
     );
@@ -317,6 +409,9 @@ export default function PurchaseOrdersPage() {
                         );
                     })}
                 </div>
+                <button onClick={() => setIsGuideOpen(true)} className="h-12 w-12 rounded-full bg-white border border-gray-100 shadow-xl flex items-center justify-center text-[#004D4D] hover:bg-black hover:text-white transition-all group">
+                    <Info size={20} className="group-hover:scale-110 transition-transform" />
+                </button>
             </div>
 
             {/* --- CONTENIDO DINÁMICO --- */}
@@ -435,6 +530,122 @@ export default function PurchaseOrdersPage() {
                                             ))}
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* MODAL GUÍA ELITE ÓRDENES DE COMPRA */}
+            <AnimatePresence>
+                {isGuideOpen && (
+                    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsGuideOpen(false)} className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" />
+                        <motion.div initial={{ scale: 0.95, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-6xl h-[80vh] rounded-[4rem] shadow-3xl overflow-hidden relative z-10 border border-white flex flex-col md:flex-row">
+                            
+                            {/* COLUMNA IZQUIERDA: MENÚ TÁCTICO */}
+                            <div className="w-full md:w-[320px] bg-gray-50 border-r border-gray-100 p-10 flex flex-col gap-3">
+                                <div className="h-12 w-12 bg-gray-900 text-[#00f2ff] rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-cyan-500/20"><Bot size={24}/></div>
+                                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#004d4d] mb-4">Guía de Abastecimiento</h3>
+                                
+                                {[
+                                    { id: 0, label: 'Control de Órdenes', icon: <ShoppingCart size={16}/> },
+                                    { id: 1, label: 'Aliados Comerciales', icon: <Users size={16}/> },
+                                    { id: 2, label: 'Logística de Arribo', icon: <Truck size={16}/> },
+                                    { id: 3, label: 'Inteligencia Bayt', icon: <Sparkles size={16}/> }
+                                ].map(step => (
+                                    <button 
+                                        key={step.id} 
+                                        onClick={() => setActiveGuideStep(step.id)} 
+                                        className={`flex items-center gap-4 p-4 rounded-2xl transition-all text-left ${activeGuideStep === step.id ? 'bg-[#004d4d] text-white shadow-xl shadow-[#004d4d]/20' : 'text-gray-500 hover:bg-white hover:shadow-sm'}`}
+                                    >
+                                        <div className={activeGuideStep === step.id ? 'text-[#00f2ff]' : 'text-gray-300'}>{step.icon}</div>
+                                        <span className="text-[10px] font-black uppercase tracking-widest">{step.label}</span>
+                                    </button>
+                                ))}
+
+                                <div className="mt-auto pt-8 border-t border-gray-100">
+                                    <div className="p-4 bg-[#004d4d]/5 rounded-2xl">
+                                        <p className="text-[8px] font-black text-[#004d4d] uppercase tracking-widest">Supply Status</p>
+                                        <p className="text-[10px] font-bold text-gray-500 mt-1">Cadena de Suministro OK</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* COLUMNA DERECHA: CONTENIDO VISUAL */}
+                            <div className="flex-1 p-16 flex flex-col justify-between relative overflow-y-auto custom-scrollbar bg-white">
+                                <button onClick={() => setIsGuideOpen(false)} className="absolute top-10 right-10 text-gray-300 hover:text-rose-500 transition-colors z-[100]"><X size={24}/></button>
+                                
+                                <div className="space-y-12">
+                                    {activeGuideStep === 0 && (
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                            <div className="space-y-4">
+                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Arquitectura de <span className="text-[#004D4D]">Compras</span></h2>
+                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">&quot;Mantén tu inventario sano mediante un control estricto de cada solicitud de mercancía.&quot;</p>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-6">
+                                                <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 shadow-sm group hover:bg-white hover:shadow-xl transition-all">
+                                                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-[#004d4d] mb-6 shadow-sm"><ShoppingCart size={24}/></div>
+                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Órdenes Abiertas</p>
+                                                    <p className="text-sm font-medium text-gray-600 mt-2 italic">Solicitudes enviadas que están pendientes de recepción total o parcial.</p>
+                                                </div>
+                                                <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 shadow-sm group hover:bg-white hover:shadow-xl transition-all">
+                                                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-[#00f2ff] mb-6 shadow-sm"><CheckCircle2 size={24}/></div>
+                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Tasa de Cumplimiento</p>
+                                                    <p className="text-sm font-medium text-gray-600 mt-2 italic">Porcentaje de items recibidos sin novedades frente a lo solicitado inicialmente.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeGuideStep === 1 && (
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                            <div className="space-y-4">
+                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Aliados <span className="text-[#004D4D]">Estratégicos</span></h2>
+                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">Gestiona la relación con tus proveedores desde un solo lugar.</p>
+                                            </div>
+                                            <div className="relative p-10 bg-[#001A1A] rounded-[3.5rem] overflow-hidden text-white shadow-2xl">
+                                                <div className="absolute top-0 right-0 p-4 opacity-10"><Users size={120}/></div>
+                                                <div className="space-y-6 relative z-10">
+                                                    <div className="flex items-center gap-6">
+                                                        <div className="h-14 w-14 rounded-2xl bg-[#004d4d] text-[#00f2ff] flex items-center justify-center shadow-lg"><Star size={28}/></div>
+                                                        <div>
+                                                            <p className="text-sm font-black uppercase tracking-widest text-[#00f2ff]">Proveedores Top</p>
+                                                            <p className="text-xs font-medium text-gray-400 mt-1 italic">Bayup clasifica a tus proveedores por tiempo de entrega y calidad de mercancía.</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeGuideStep === 3 && (
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                            <div className="space-y-4">
+                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Inteligencia <span className="text-[#004D4D]">Bayt</span></h2>
+                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">Optimiza tu capital mediante reabastecimiento predictivo.</p>
+                                            </div>
+                                            <div className="p-10 bg-gray-900 rounded-[3.5rem] relative overflow-hidden text-white shadow-2xl">
+                                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#00f2ff]/10 rounded-full blur-[80px]"></div>
+                                                <div className="relative z-10 flex flex-col items-center text-center space-y-6">
+                                                    <div className="h-20 w-20 bg-[#00f2ff]/10 text-[#00f2ff] rounded-[2rem] border border-[#00f2ff]/30 flex items-center justify-center shadow-[0_0_30px_rgba(0,242,255,0.2)] animate-pulse"><Bot size={48}/></div>
+                                                    <div className="space-y-4">
+                                                        <p className="text-sm font-black uppercase tracking-[0.3em] text-[#00f2ff]">Bayt Supply-Strategist</p>
+                                                        <p className="text-lg font-medium leading-relaxed italic text-gray-300">&quot;Bayt analiza tu velocidad de venta para sugerirte exactamente qué pedir y cuándo, evitando tener capital muerto en bodega.&quot;</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mt-12 pt-12 border-t border-gray-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-full bg-gray-900 text-[#00f2ff] flex items-center justify-center font-black text-xs shadow-lg italic">B</div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Bayup Supply Chain v2.0</p>
+                                    </div>
+                                    <button onClick={() => setIsGuideOpen(false)} className="px-12 py-5 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-2xl active:scale-95">Entendido, Continuar Operación</button>
                                 </div>
                             </div>
                         </motion.div>
