@@ -8,7 +8,7 @@ import {
   Filter, Download, Sparkles, Bot, Zap, TrendingUp, 
   Activity, Target, ArrowUpRight, Clock, Briefcase, 
   Users, ShieldCheck, AlertCircle, FileText, CreditCard, 
-  Receipt, ShoppingBag, Loader2, Info
+  Receipt, ShoppingBag, Loader2, Info, RotateCcw
 } from 'lucide-react';
 import { useToast } from "@/context/toast-context";
 import { useAuth } from "@/context/auth-context";
@@ -67,8 +67,12 @@ export default function GastosPage() {
     const [activeTab, setActiveTab] = useState<'resumen' | 'fijos' | 'diarios' | 'bayt'>('resumen');
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
+    const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [filterCategory, setFilterCategory] = useState("all");
     const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+    const [isFilterHovered, setIsFilterHovered] = useState(false);
+    const [isDateHovered, setIsDateHovered] = useState(false);
+    const [isExportHovered, setIsExportHovered] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState("Febrero 2026");
     const [loading, setLoading] = useState(true);
 
@@ -158,9 +162,19 @@ export default function GastosPage() {
             const matchesSearch = e.description.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesTab = activeTab === 'resumen' || (activeTab === 'fijos' && e.category === 'operativo_fijo') || (activeTab === 'diarios' && e.category === 'operativo_diario');
             const matchesFilter = filterCategory === 'all' || e.category === filterCategory;
-            return matchesSearch && matchesTab && matchesFilter;
+            
+            // Lógica de Rango de Fechas
+            let matchesDate = true;
+            if (dateRange.start && dateRange.end) {
+                const recordDate = new Date(e.due_date).getTime();
+                const start = new Date(dateRange.start).getTime();
+                const end = new Date(dateRange.end).getTime();
+                matchesDate = recordDate >= start && recordDate <= end;
+            }
+
+            return matchesSearch && matchesTab && matchesFilter && matchesDate;
         });
-    }, [expenses, searchTerm, activeTab, filterCategory]);
+    }, [expenses, searchTerm, activeTab, filterCategory, dateRange]);
 
     // --- HANDLERS ---
     const handleSaveExpense = (e: React.FormEvent) => {
@@ -225,41 +239,79 @@ export default function GastosPage() {
     };
 
     const renderActionBar = () => (
-        <div className="flex flex-col md:flex-row gap-4 items-center bg-white/60 backdrop-blur-md p-3 rounded-3xl border border-white/60 shadow-sm mx-4 shrink-0 relative z-30">
-            <div className="relative flex-1 w-full">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+        <div className="w-full max-w-[1100px] mx-auto flex justify-between items-center bg-white p-2 rounded-2xl border border-gray-100 shadow-sm transition-all focus-within:shadow-xl focus-within:border-[#004d4d]/20 relative z-30">
+            <div className="relative w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
                 <input 
                     type="text" 
-                    placeholder="Buscar concepto..." 
+                    placeholder="Buscar gasto por concepto o descripción..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-14 pr-6 py-4 bg-transparent text-sm font-bold text-slate-700 outline-none" 
+                    className="w-full pl-12 pr-4 py-3 bg-transparent text-sm font-bold outline-none placeholder:text-gray-300" 
                 />
             </div>
-            <div className="h-10 w-px bg-slate-200 hidden md:block"></div>
-            <div className="flex items-center gap-3 relative">
-                <ExpandableButton 
-                    icon={Filter} 
-                    label="Filtrar" 
-                    onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} 
-                />
-                
-                <AnimatePresence>
-                    {isFilterMenuOpen && (
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full mt-2 right-0 w-48 bg-white rounded-2xl shadow-2xl p-2 z-50 border border-gray-100">
-                            <button onClick={() => { setFilterCategory('all'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 rounded-xl text-[9px] font-black uppercase hover:bg-gray-50">Todos</button>
-                            <button onClick={() => { setFilterCategory('operativo_fijo'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 rounded-xl text-[9px] font-black uppercase hover:bg-gray-50">Costos Fijos</button>
-                            <button onClick={() => { setFilterCategory('operativo_diario'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 rounded-xl text-[9px] font-black uppercase hover:bg-gray-50">Caja Menor</button>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+            
+            <div className="flex items-center gap-1">
+                {/* FILTROS */}
+                <div className="relative">
+                    <motion.button 
+                        layout 
+                        onMouseEnter={() => setIsFilterHovered(true)} 
+                        onMouseLeave={() => setIsFilterHovered(false)} 
+                        onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} 
+                        className={`h-12 flex items-center gap-2 px-4 rounded-xl transition-all ${isFilterMenuOpen ? 'bg-[#004d4d] text-white' : 'bg-gray-50 text-gray-500 hover:bg-white hover:border-gray-100'}`}
+                    >
+                        <Filter size={18}/> 
+                        <AnimatePresence>
+                            {isFilterHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase whitespace-nowrap overflow-hidden px-1">Filtros</motion.span>}
+                        </AnimatePresence>
+                    </motion.button>
+                    
+                    <AnimatePresence>
+                        {isFilterMenuOpen && (
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full mt-2 right-0 w-48 bg-white rounded-2xl shadow-2xl p-2 z-50 border border-gray-100">
+                                <button onClick={() => { setFilterCategory('all'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 rounded-xl text-[9px] font-black uppercase hover:bg-gray-50">Todos</button>
+                                <button onClick={() => { setFilterCategory('operativo_fijo'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 rounded-xl text-[9px] font-black uppercase hover:bg-gray-50">Costos Fijos</button>
+                                <button onClick={() => { setFilterCategory('operativo_diario'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 rounded-xl text-[9px] font-black uppercase hover:bg-gray-50">Caja Menor</button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
 
-                <ExpandableButton 
-                    icon={Download} 
-                    label="Reporte" 
+                {/* FECHAS */}
+                <div className="relative group/date">
+                    <motion.button 
+                        layout 
+                        onMouseEnter={() => setIsDateHovered(true)} 
+                        onMouseLeave={() => setIsDateHovered(false)} 
+                        className={`h-12 flex items-center gap-2 px-4 rounded-xl transition-all ${dateRange.start ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-500 hover:bg-white hover:border-gray-100'}`}
+                    >
+                        <Calendar size={18}/> 
+                        <AnimatePresence>
+                            {isDateHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase whitespace-nowrap overflow-hidden px-1">Fechas</motion.span>}
+                        </AnimatePresence>
+                    </motion.button>
+                    
+                    <div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 opacity-0 scale-95 pointer-events-none group-hover/date:opacity-100 group-hover/date:scale-100 group-hover/date:pointer-events-auto transition-all z-50 flex gap-2">
+                        <input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} className="p-2 bg-gray-50 rounded-lg text-[10px] font-bold outline-none border border-transparent focus:border-[#004d4d]" />
+                        <input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} className="p-2 bg-gray-50 rounded-lg text-[10px] font-bold outline-none border border-transparent focus:border-[#004d4d]" />
+                        <button onClick={() => setDateRange({start:'', end:''})} className="p-2 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-100 transition-colors"><RotateCcw size={14}/></button>
+                    </div>
+                </div>
+
+                {/* EXPORTAR */}
+                <motion.button 
+                    layout 
+                    onMouseEnter={() => setIsExportHovered(true)} 
+                    onMouseLeave={() => setIsExportHovered(false)} 
                     onClick={handleDownloadReport}
-                    variant="black"
-                />
+                    className="h-12 flex items-center gap-2 px-4 rounded-xl bg-gray-50 border border-transparent hover:bg-white hover:border-gray-100 text-gray-500 transition-all"
+                >
+                    <Download size={18}/> 
+                    <AnimatePresence>
+                        {isExportHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase whitespace-nowrap overflow-hidden px-1">Reporte</motion.span>}
+                    </AnimatePresence>
+                </motion.button>
             </div>
         </div>
     );
