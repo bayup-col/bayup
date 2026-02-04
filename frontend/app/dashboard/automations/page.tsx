@@ -30,6 +30,7 @@ import {
   Medal
 } from 'lucide-react';
 import { useToast } from "@/context/toast-context";
+import AutomationsInfoModal from '@/components/dashboard/AutomationsInfoModal';
 
 // --- INTERFACES ---
 interface Automation {
@@ -86,6 +87,8 @@ export default function AutomationsPage() {
     const [automations, setAutomations] = useState<Automation[]>(INITIAL_AUTOMATIONS);
     const [activeTab, setActiveTab] = useState<'mis_flujos' | 'recetas' | 'historial'>('mis_flujos');
     const [isCreatingFlow, setIsCreatingFlow] = useState(false);
+    const [showInfoModal, setShowInfoModal] = useState(false);
+    const [selectedAutomationDetail, setSelectedAutomationDetail] = useState<Automation | null>(null);
     const [newFlow, setNewFlow] = useState({
         name: '',
         trigger: 'Carrito Abandonado',
@@ -121,7 +124,7 @@ export default function AutomationsPage() {
             stats: { executions: 0, hours_saved: 0, revenue_impact: 0 }
         };
 
-        setAutomations([...automations, automation]);
+        setAutomations([automation, ...automations]);
         setIsCreatingFlow(false);
         setNewFlow({ name: '', trigger: 'Carrito Abandonado', logic: 'bayt_ai', action: 'WhatsApp Smart' });
         showToast("Flujo neural activado con éxito", "success");
@@ -158,7 +161,8 @@ export default function AutomationsPage() {
             layout
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm flex flex-col justify-between group hover:shadow-2xl transition-all relative overflow-hidden ${auto.status === 'inactive' ? 'opacity-60' : ''}`}
+            onClick={() => setSelectedAutomationDetail(auto)}
+            className={`bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm flex flex-col justify-between group hover:shadow-2xl transition-all relative overflow-hidden cursor-pointer ${auto.status === 'inactive' ? 'opacity-60' : ''}`}
         >
             {auto.logic === 'bayt_ai' && (
                 <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#00f2ff] to-[#004d4d]"></div>
@@ -174,20 +178,14 @@ export default function AutomationsPage() {
                             <span className="px-3 py-1 bg-[#00f2ff]/10 text-[#00f2ff] rounded-full text-[8px] font-black uppercase tracking-widest border border-[#00f2ff]/20">Bayt AI Core</span>
                         )}
                     </div>
-                    <button 
-                        onClick={() => toggleStatus(auto.id)}
-                        className={`w-14 h-7 rounded-full relative transition-all duration-500 ${auto.status === 'active' ? 'bg-emerald-500' : 'bg-gray-200'}`}
-                    >
-                        <motion.div 
-                            animate={{ x: auto.status === 'active' ? 28 : 4 }}
-                            className="absolute top-1 h-5 w-5 bg-white rounded-full shadow-sm"
-                        />
-                    </button>
+                    <div className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${auto.status === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-400 border-gray-100'}`}>
+                        {auto.status === 'active' ? 'Operando' : 'Pausado'}
+                    </div>
                 </div>
 
                 <div>
-                    <h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase">{auto.name}</h3>
-                    <p className="text-sm font-medium text-gray-500 mt-4 leading-relaxed italic">"{auto.description}"</p>
+                    <h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase group-hover:text-[#004d4d] transition-colors">{auto.name}</h3>
+                    <p className="text-sm font-medium text-gray-500 mt-4 leading-relaxed italic line-clamp-2">"{auto.description}"</p>
                 </div>
 
                 {/* Diagrama de Conexión Neural */}
@@ -210,20 +208,132 @@ export default function AutomationsPage() {
 
             <div className="mt-10 pt-8 border-t border-gray-50 grid grid-cols-2 gap-6">
                 <div>
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Impacto</p>
-                    <p className="text-lg font-black text-emerald-600">{auto.stats.revenue_impact > 0 ? `+${formatCurrency(auto.stats.revenue_impact)}` : 'Optimización'}</p>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Ahorro Tiempo</p>
+                    <p className="text-lg font-black text-emerald-600">{auto.stats.hours_saved} Horas</p>
                 </div>
-                <div className="text-right flex items-center justify-end gap-2">
-                    <button className="h-10 w-10 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center hover:bg-[#004d4d] hover:text-white transition-all"><Settings2 size={16}/></button>
-                    <button className="h-10 w-10 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"><Trash2 size={16}/></button>
+                <div className="text-right flex items-center justify-end">
+                    <button className="h-12 w-12 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center group-hover:bg-[#004d4d] group-hover:text-white transition-all shadow-sm"><ArrowUpRight size={20}/></button>
                 </div>
             </div>
         </motion.div>
     );
 
+    const renderAutomationDetailModal = () => {
+        if (!selectedAutomationDetail) return null;
+        const auto = selectedAutomationDetail;
+
+        const handleToggle = () => {
+            toggleStatus(auto.id);
+            setSelectedAutomationDetail({ ...auto, status: auto.status === 'active' ? 'inactive' : 'active' });
+        };
+
+        const handleDelete = () => {
+            if (window.confirm("¿Cancelar definitivamente este flujo neural?")) {
+                setAutomations(automations.filter(a => a.id !== auto.id));
+                setSelectedAutomationDetail(null);
+                showToast("Flujo eliminado correctamente", "success");
+            }
+        };
+
+        return (
+            <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedAutomationDetail(null)} className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl" />
+                <motion.div initial={{ opacity: 0, scale: 0.9, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 40 }} className="relative bg-white w-full max-w-4xl rounded-[4rem] shadow-3xl overflow-hidden flex flex-col border border-white/20">
+                    <div className="p-10 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                        <div className="flex items-center gap-6">
+                            <div className="h-16 w-16 rounded-3xl bg-white shadow-xl flex items-center justify-center text-[#004d4d]">
+                                {auto.logic === 'bayt_ai' ? <Bot size={32} /> : <Zap size={32} />}
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black text-gray-900 italic uppercase tracking-tighter">{auto.name}</h3>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Status: {auto.status === 'active' ? 'Operativo' : 'Inactivo'}</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setSelectedAutomationDetail(null)} className="h-12 w-12 rounded-2xl bg-white border border-gray-100 text-gray-400 hover:text-rose-500 transition-all shadow-sm"><X size={24}/></button>
+                    </div>
+
+                    <div className="p-12 space-y-12 overflow-y-auto max-h-[70vh] custom-scrollbar">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div className="bg-[#004d4d] p-8 rounded-[3rem] text-white">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[#00f2ff]">Ejecuciones</p>
+                                <h4 className="text-3xl font-black mt-2">{auto.stats.executions}</h4>
+                                <p className="text-[10px] font-bold text-white/40 mt-2 uppercase tracking-tighter">Ciclos Completados</p>
+                            </div>
+                            <div className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Tiempo Ahorrado</p>
+                                <h4 className="text-3xl font-black text-gray-900 mt-2">{auto.stats.hours_saved}h</h4>
+                                <p className="text-[10px] font-bold text-emerald-500 mt-2 italic">Productividad Alta</p>
+                            </div>
+                            <div className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Impacto Econ.</p>
+                                <h4 className="text-3xl font-black text-gray-900 mt-2">{formatCurrency(auto.stats.revenue_impact)}</h4>
+                                <p className="text-[10px] font-bold text-gray-400 mt-2 italic">Retorno Atribuido</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><Settings size={14}/> Configuración del Flujo</h4>
+                            <div className="bg-gray-50 p-8 rounded-[3rem] border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-12">
+                                <div className="space-y-4">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Disparador (Trigger)</p>
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-12 w-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-[#004d4d]">{auto.trigger.icon}</div>
+                                        <p className="text-sm font-black text-gray-900">{auto.trigger.label}</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Acción Final</p>
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-12 w-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-[#004d4d]">{auto.action.icon}</div>
+                                        <p className="text-sm font-black text-gray-900">{auto.action.label}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><Sparkles size={14}/> Auditoría de Bayt AI</h4>
+                            <div className="bg-gray-900 p-10 rounded-[3.5rem] text-white relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-8 opacity-5"><Bot size={150} /></div>
+                                <p className="text-base font-medium italic opacity-90 leading-relaxed relative z-10">
+                                    "{auto.status === 'active' 
+                                        ? `El flujo '${auto.name}' está operando bajo el protocolo de máxima eficiencia. He analizado las últimas ejecuciones y el tiempo de respuesta es óptimo (< 200ms). No se requieren ajustes tácticos.` 
+                                        : `Este flujo neural está pausado. Los eventos disparadores se están acumulando en la cola. Sugiero reanudar para evitar cuellos de botella en la operativa.`}"
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
+                            <button 
+                                onClick={handleToggle}
+                                className={`py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-xl transition-all ${auto.status === 'active' ? 'bg-amber-500 text-white shadow-amber-500/20' : 'bg-[#004d4d] text-white shadow-[#004d4d]/20'}`}
+                            >
+                                {auto.status === 'active' ? 'Pausar Ejecución' : 'Reanudar Ejecución'}
+                            </button>
+                            <button 
+                                onClick={handleDelete}
+                                className="py-5 bg-white border-2 border-rose-100 text-rose-500 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-rose-50 transition-all"
+                            >
+                                Eliminar Flujo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="p-10 border-t border-gray-100 bg-gray-50 flex justify-end">
+                        <button onClick={() => setSelectedAutomationDetail(null)} className="px-12 py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest">Cerrar Detalle</button>
+                    </div>
+                </motion.div>
+            </div>
+        );
+    };
+
     return (
-        <div className="max-w-[1600px] mx-auto pb-32 space-y-12 animate-in fade-in duration-1000">
-            
+        <div className="max-w-[1600px] mx-auto pb-32 space-y-12 animate-in fade-in duration-1000 relative">
+            <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#004d4d]/5 rounded-full blur-[120px]" />
+                <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-[#00f2ff]/5 rounded-full blur-[100px]" />
+            </div>
+
             {/* Header Maestro */}
             <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8 px-4 shrink-0">
                 <div>
@@ -251,8 +361,8 @@ export default function AutomationsPage() {
 
             {renderKPIs()}
 
-            {/* Menú Flotante Central */}
-            <div className="flex items-center justify-center gap-6 shrink-0 relative z-20">
+            {/* Menú Flotante Central con Info */}
+            <div className="flex items-center justify-center gap-4 shrink-0 relative z-20">
                 <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl shadow-gray-200/50 backdrop-blur-xl flex items-center relative">
                     {[
                         { id: 'mis_flujos', label: 'Mis Flujos', icon: <Zap size={14}/> },
@@ -275,7 +385,184 @@ export default function AutomationsPage() {
                         );
                     })}
                 </div>
+
+                <motion.button
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowInfoModal(true)}
+                    className="h-12 w-12 rounded-full bg-white/80 backdrop-blur-xl border border-white shadow-2xl flex items-center justify-center text-[#004d4d] hover:bg-gray-900 hover:text-white transition-all group"
+                >
+                    <Info size={18} />
+                </motion.button>
             </div>
+
+            <AnimatePresence mode="wait">
+                <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
+                    {activeTab === 'mis_flujos' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 px-4">
+                            {automations.map(auto => renderFlowCard(auto))}
+                        </div>
+                    )}
+                    {activeTab === 'recetas' && (
+                        <div className="px-4 space-y-10">
+                            <div className="bg-gradient-to-r from-[#004d4d] to-[#001a1a] p-16 rounded-[4rem] text-white relative overflow-hidden shadow-2xl">
+                                <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12"><Medal size={300} /></div>
+                                <div className="flex flex-col md:flex-row items-center gap-16 relative z-10 text-center md:text-left">
+                                    <div className="h-32 w-32 bg-gray-900 rounded-[3rem] border-2 border-[#00f2ff]/50 flex items-center justify-center shadow-3xl animate-pulse">
+                                        <Sparkles size={64} className="text-[#00f2ff]" />
+                                    </div>
+                                    <div className="flex-1 space-y-6">
+                                        <span className="px-4 py-1.5 bg-[#00f2ff]/10 text-[#00f2ff] rounded-full text-[10px] font-black uppercase tracking-[0.4em] border border-[#00f2ff]/20">Smart Templates</span>
+                                        <h3 className="text-4xl font-black uppercase italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-[#00f2ff]">Recetas de Élite para tu Negocio</h3>
+                                        <p className="text-gray-300 text-lg font-medium italic opacity-80">"No reinventes la rueda. Activa flujos prediseñados por expertos en e-commerce y IA."</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {[
+                                    { title: 'Cobro de Cartera Persuasivo', desc: 'Bayt analiza la confianza del cliente y redacta un mensaje de cobro único para facturas vencidas.', icon: <Scale /> },
+                                    { title: 'Incentivo por Fidelidad', desc: 'Al llegar a 10 compras, Bayt activa una campaña de Marketing exclusiva para ese cliente.', icon: <Crown /> }
+                                ].map((r, i) => (
+                                    <div key={i} className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-sm flex flex-col justify-between group hover:border-[#00f2ff] transition-all">
+                                        <div className="space-y-6">
+                                            <div className="h-14 w-14 bg-gray-50 rounded-2xl flex items-center justify-center text-[#004d4d] shadow-inner group-hover:scale-110 transition-transform">{r.icon}</div>
+                                            <h4 className="text-2xl font-black uppercase italic tracking-tight text-gray-900 leading-none">{r.title}</h4>
+                                            <p className="text-sm font-medium text-gray-500 leading-relaxed italic">{r.desc}</p>
+                                        </div>
+                                        <button className="mt-8 py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-black transition-all">Instalar Receta</button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {activeTab === 'historial' && (
+                        <div className="px-4">
+                            <div className="bg-white rounded-[4rem] border border-gray-100 shadow-sm overflow-hidden">
+                                <div className="p-10 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                                    <h3 className="text-xl font-black uppercase italic text-gray-900">Registro de Actividad Neural</h3>
+                                    <div className="flex gap-2">
+                                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10B981]"></span>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Escaneando Eventos...</p>
+                                    </div>
+                                </div>
+                                <div className="p-20 flex flex-col items-center justify-center text-gray-300 gap-6 opacity-50">
+                                    <Activity size={80} strokeWidth={1} />
+                                    <p className="text-xs font-black uppercase tracking-[0.3em] text-center leading-relaxed">No hay ejecuciones recientes en este periodo.<br/>Tus automatizaciones están en standby.</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </motion.div>
+            </AnimatePresence>
+
+            {/* Banner de Impacto Final */}
+            <div className="px-4 pt-12">
+                <div className="bg-[#001a1a] p-16 rounded-[4rem] text-white relative overflow-hidden flex flex-col md:flex-row items-center gap-16 shadow-2xl border border-white/5">
+                    <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[140%] bg-[radial-gradient(circle_at_center,_rgba(0,242,255,0.08)_0%,_transparent_60%)] animate-pulse"></div>
+                    <div className="h-24 w-24 bg-white/5 rounded-3xl border border-white/10 flex items-center justify-center shadow-3xl">
+                        <ShieldCheck size={48} className="text-[#00f2ff]" />
+                    </div>
+                    <div className="flex-1 relative z-10 space-y-4">
+                        <h3 className="text-3xl font-black tracking-tight italic uppercase">Seguridad en la Ejecución</h3>
+                        <p className="text-gray-400 text-lg font-medium leading-relaxed italic">
+                            "Cada flujo ejecutado por la Terminal Neural es auditado en tiempo real. Bayt garantiza que ninguna acción automatizada comprometa la integridad de tus datos financieros."
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Modales */}
+            <AnimatePresence>
+                {isCreatingFlow && (
+                    <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCreatingFlow(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-10 relative z-10 border border-white overflow-hidden">
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="h-12 w-12 bg-[#004d4d]/5 text-[#004d4d] rounded-2xl flex items-center justify-center shadow-inner"><Workflow size={24}/></div>
+                                <div><h3 className="text-xl font-black text-gray-900 uppercase italic">Configurar Flujo Neural</h3><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">IA Decision-Making Engine</p></div>
+                            </div>
+                            
+                            <div className="space-y-8">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Nombre del Flujo</label>
+                                    <input 
+                                        autoFocus
+                                        type="text" 
+                                        value={newFlow.name} 
+                                        onChange={(e) => setNewFlow({...newFlow, name: e.target.value})}
+                                        placeholder="Ej: Reactivación de Clientes Inactivos"
+                                        className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner transition-all" 
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Disparador (Trigger)</label>
+                                        <select 
+                                            value={newFlow.trigger} 
+                                            onChange={(e) => setNewFlow({...newFlow, trigger: e.target.value})}
+                                            className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner transition-all appearance-none"
+                                        >
+                                            <option>Carrito Abandonado</option>
+                                            <option>Stock Crítico</option>
+                                            <option>Registro Nuevo</option>
+                                            <option>Factura Vencida</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Acción Ejecutiva</label>
+                                        <select 
+                                            value={newFlow.action} 
+                                            onChange={(e) => setNewFlow({...newFlow, action: e.target.value})}
+                                            className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner transition-all appearance-none"
+                                        >
+                                            <option>WhatsApp Smart</option>
+                                            <option>Generar PO</option>
+                                            <option>Email Personalizado</option>
+                                            <option>Crear Ticket</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="p-6 bg-[#001a1a] rounded-[2.5rem] text-white flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center"><Bot size={20} className="text-[#00f2ff]"/></div>
+                                        <div><p className="text-xs font-black uppercase tracking-widest">Lógica Bayt AI</p><p className="text-[9px] text-white/40">Habilitar análisis inteligente</p></div>
+                                    </div>
+                                    <div 
+                                        onClick={() => setNewFlow({...newFlow, logic: newFlow.logic === 'bayt_ai' ? 'static' : 'bayt_ai'})}
+                                        className={`relative inline-flex h-7 w-12 items-center rounded-full cursor-pointer px-1 transition-all ${newFlow.logic === 'bayt_ai' ? 'bg-[#00f2ff]' : 'bg-white/10'}`}
+                                    >
+                                        <div className={`h-5 w-5 rounded-full bg-white shadow-lg transition-transform ${newFlow.logic === 'bayt_ai' ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col gap-3 pt-4">
+                                    <button onClick={handleCreateFlow} disabled={!newFlow.name.trim()} className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50">
+                                        <Zap size={18} className="text-[#00f2ff]"/> Activar Flujo Neural
+                                    </button>
+                                    <button onClick={() => setIsCreatingFlow(false)} className="w-full py-5 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-all">Cancelar</button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {selectedAutomationDetail && renderAutomationDetailModal()}
+            </AnimatePresence>
+
+            <AutomationsInfoModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} />
+
+            <style jsx global>{`
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 30px; }
+            `}</style>
+        </div>
+    );
+}
 
             <AnimatePresence mode="wait">
                 <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
