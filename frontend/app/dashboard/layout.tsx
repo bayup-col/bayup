@@ -56,6 +56,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'prefs'>('profile');
   const [showGhost, setShowGhost] = useState(false);
+  const [companyName, setCompanyName] = useState('Mi Tienda Bayup');
+
+  useEffect(() => {
+    // Inicializar nombre desde localStorage
+    const savedData = localStorage.getItem('bayup_general_settings');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        if (parsed.identity?.name) setCompanyName(parsed.identity.name);
+      } catch (e) { console.error(e); }
+    }
+
+    // Escuchar actualizaciones en tiempo real
+    const handleNameUpdate = (e: any) => {
+      if (e.detail) setCompanyName(e.detail);
+    };
+    window.addEventListener('bayup_name_update', handleNameUpdate);
+    return () => window.removeEventListener('bayup_name_update', handleNameUpdate);
+  }, []);
 
   const userEmail = authEmail || 'usuario@ejemplo.com';
   const userRole = authRole || 'admin';
@@ -184,7 +203,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <div className={`backdrop-blur-md p-6 rounded-[2.5rem] border shadow-sm flex flex-col items-center text-center transition-all duration-500 ${theme === 'dark' ? 'bg-[#002626]/40 border-[#00F2FF]/10' : 'bg-white/10 border-white/30'}`}>
                     <div className="flex flex-col items-center">
                         <span className={`text-base font-black leading-tight uppercase tracking-tighter transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                            {userEmail?.split('@')[0] || 'Mi Empresa'}
+                            {companyName}
                         </span>
                         <div className="flex items-center gap-1.5 mt-1.5">
                             <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>

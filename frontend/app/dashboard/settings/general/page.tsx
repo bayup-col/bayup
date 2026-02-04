@@ -89,6 +89,9 @@ export default function GeneralSettings() {
     const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
     const [whatsappFormData, setWhatsappFormData] = useState({ name: '', number: '' });
 
+    const [isGuideOpen, setIsGuideOpen] = useState(false);
+    const [activeGuideStep, setActiveGuideStep] = useState(0);
+
     const categoriesOptions = [
         { id: 'Moda & Accesorios', label: 'Moda & Accesorios', icon: <ShoppingBag size={14}/> },
         { id: 'Calzado', label: 'Calzado', icon: <ChevronRight size={14}/> },
@@ -111,15 +114,20 @@ export default function GeneralSettings() {
         if (savedData) {
             try {
                 const parsed = JSON.parse(savedData);
+                const loadedName = parsed.identity?.name || identity.name;
                 setIdentity(parsed.identity || identity);
                 setContact(parsed.contact || contact);
                 setAccounts(parsed.accounts || []);
                 setWhatsappLines(parsed.whatsappLines || []);
                 setSocialLinks(parsed.socialLinks || socialLinks);
+                // Forzar sincronización con el Header/Sidebar al cargar
+                window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: loadedName }));
             } catch (e) { console.error(e); }
         } else {
             setAccounts([{ id: '1', bank_name: 'Bancolombia', account_type: 'Ahorros', number: '1234567890', billing_limit: 10000000, current_billed: 2500000, is_primary: true, status: 'active' }]);
             setWhatsappLines([{ id: 'w1', name: 'Ventas Directas', number: '3001112233' }]);
+            // Forzar sincronización con el nombre por defecto
+            window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: identity.name }));
         }
         setLoading(false);
     }, []);
@@ -221,12 +229,27 @@ export default function GeneralSettings() {
                 </button>
             </div>
 
-            <div className="flex justify-center px-4">
-                <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl flex items-center overflow-x-auto">
-                    {[ { id: 'identidad', label: 'Identidad', icon: <Store size={14}/> }, { id: 'contacto', label: 'Contacto & Web', icon: <MapPin size={14}/> }, { id: 'finanzas', label: 'Finanzas & Topes', icon: <CreditCard size={14}/> }, { id: 'canales', label: 'Canales & Social', icon: <Globe size={14}/> } ].map((tab) => (
-                        <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-8 py-3.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id ? 'bg-[#004D4D] text-white shadow-lg' : 'text-gray-400 hover:text-gray-900'}`}>{tab.icon} {tab.label}</button>
-                    ))}
+            <div className="flex items-center justify-center gap-6 relative z-20">
+                <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl flex items-center overflow-x-auto relative">
+                    {[ { id: 'identidad', label: 'Identidad', icon: <Store size={14}/> }, { id: 'contacto', label: 'Contacto & Web', icon: <MapPin size={14}/> }, { id: 'finanzas', label: 'Finanzas & Topes', icon: <CreditCard size={14}/> }, { id: 'canales', label: 'Canales & Social', icon: <Globe size={14}/> } ].map((tab) => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button 
+                                key={tab.id} 
+                                onClick={() => setActiveTab(tab.id as any)} 
+                                className={`relative px-8 py-3.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all z-10 whitespace-nowrap flex items-center gap-2 ${isActive ? 'text-white' : 'text-gray-400 hover:text-gray-900'}`}
+                            >
+                                {isActive && (
+                                    <motion.div layoutId="generalTabGlow" className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+                                )}
+                                {tab.icon} {tab.label}
+                            </button>
+                        );
+                    })}
                 </div>
+                <button onClick={() => setIsGuideOpen(true)} className="h-12 w-12 rounded-full bg-white border border-gray-100 shadow-xl flex items-center justify-center text-[#004D4D] hover:bg-black hover:text-white transition-all group shrink-0">
+                    <Info size={20} className="group-hover:scale-110 transition-transform" />
+                </button>
             </div>
 
             <div className="px-4">
@@ -253,7 +276,16 @@ export default function GeneralSettings() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Nombre de la Empresa</label>
-                                        <input type="text" value={identity.name} onChange={(e) => setIdentity({...identity, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                                        <input 
+                                            type="text" 
+                                            value={identity.name} 
+                                            onChange={(e) => {
+                                                const newName = e.target.value;
+                                                setIdentity({...identity, name: newName});
+                                                window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: newName }));
+                                            }} 
+                                            className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" 
+                                        />
                                     </div>
                                     <PremiumSelect label="Nicho de Mercado" value={identity.category} onChange={(v:any) => setIdentity({...identity, category: v})} options={categoriesOptions} icon={LayoutGrid} />
                                 </div>
@@ -439,6 +471,123 @@ export default function GeneralSettings() {
                     </div>
                 </div>
             </div>
+
+            {/* MODAL GUÍA ELITE INFO GENERAL */}
+            <AnimatePresence>
+                {isGuideOpen && (
+                    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsGuideOpen(false)} className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" />
+                        <motion.div initial={{ scale: 0.95, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-6xl h-[80vh] rounded-[4rem] shadow-3xl overflow-hidden relative z-10 border border-white flex flex-col md:flex-row">
+                            
+                            <div className="w-full md:w-[320px] bg-gray-50 border-r border-gray-100 p-10 flex flex-col gap-3">
+                                <div className="h-12 w-12 bg-gray-900 text-[#00f2ff] rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-cyan-500/20"><Bot size={24}/></div>
+                                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#004d4d] mb-4">Guía Maestro Config</h3>
+                                {[
+                                    { id: 0, label: 'Identidad Digital', icon: <Store size={16}/> },
+                                    { id: 1, label: 'Estructura Fiscal', icon: <ShieldCheck size={16}/> },
+                                    { id: 2, label: 'Cuentas de Recaudo', icon: <CreditCard size={16}/> },
+                                    { id: 3, label: 'Canales Sociales', icon: <Globe size={16}/> }
+                                ].map(step => (
+                                    <button key={step.id} onClick={() => setActiveGuideStep(step.id)} className={`flex items-center gap-4 p-4 rounded-2xl transition-all text-left ${activeGuideStep === step.id ? 'bg-[#004d4d] text-white shadow-xl shadow-[#004d4d]/20' : 'text-gray-500 hover:bg-white hover:shadow-sm'}`}>
+                                        <div className={activeGuideStep === step.id ? 'text-[#00f2ff]' : 'text-gray-300'}>{step.icon}</div>
+                                        <span className="text-[10px] font-black uppercase tracking-widest">{step.label}</span>
+                                    </button>
+                                ))}
+                                <div className="mt-auto pt-8 border-t border-gray-100 px-2"><p className="text-[8px] font-black uppercase text-gray-300 tracking-[0.2em]">Bayup Config Core v2.0</p></div>
+                            </div>
+
+                            <div className="flex-1 p-16 flex flex-col justify-between relative bg-white overflow-y-auto custom-scrollbar">
+                                <button onClick={() => setIsGuideOpen(false)} className="absolute top-10 right-10 text-gray-300 hover:text-rose-500 transition-colors z-[100]"><X size={24}/></button>
+                                <div className="space-y-12">
+                                    {activeGuideStep === 0 && (
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                            <div className="space-y-4">
+                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Identidad <span className="text-[#004D4D]">Maestra</span></h2>
+                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">&quot;Tu nombre y logo son el primer punto de contacto con tu cliente.&quot;</p>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-6">
+                                                <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 shadow-sm group hover:bg-white hover:shadow-xl transition-all">
+                                                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-[#004d4d] mb-6 shadow-sm"><Store size={24}/></div>
+                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Sincronización Real</p>
+                                                    <p className="text-sm font-medium text-gray-600 mt-2 italic">Cualquier cambio en el nombre de tu empresa se refleja instantáneamente en el botón de vista previa superior.</p>
+                                                </div>
+                                                <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 shadow-sm group hover:bg-white hover:shadow-xl transition-all">
+                                                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-[#00f2ff] mb-6 shadow-sm"><Zap size={24}/></div>
+                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Pro-Tip Bayt</p>
+                                                    <p className="text-sm font-medium text-gray-600 mt-2 italic">&quot;Usa nombres cortos y memorables. Bayt sugiere incluir una palabra clave de tu nicho comercial.&quot;</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {activeGuideStep === 1 && (
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                            <div className="space-y-4">
+                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Operación <span className="text-[#004D4D]">Fiscal</span></h2>
+                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">Blinda legalmente tu negocio ante los entes reguladores.</p>
+                                            </div>
+                                            <div className="relative p-10 bg-gray-900 rounded-[3.5rem] overflow-hidden text-white shadow-2xl">
+                                                <div className="absolute top-0 right-0 p-4 opacity-10"><ShieldCheck size={120}/></div>
+                                                <div className="space-y-6 relative z-10">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="h-10 w-10 rounded-xl bg-[#00f2ff]/10 text-[#00f2ff] flex items-center justify-center border border-[#00f2ff]/20"><Settings2 size={20}/></div>
+                                                        <p className="text-sm font-black uppercase tracking-widest text-[#00f2ff]">Automatización Tributaria</p>
+                                                    </div>
+                                                    <p className="text-sm text-gray-400 italic">Con el Plan Empresa, tu NIT y Régimen se inyectan automáticamente en cada factura generada por el sistema POS.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {activeGuideStep === 2 && (
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                            <div className="space-y-4">
+                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Ingeniería de <span className="text-[#004D4D]">Recaudo</span></h2>
+                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">&quot;Gestiona tus flujos de caja mediante cuentas inteligentes con monitoreo de topes.&quot;</p>
+                                            </div>
+                                            <div className="p-10 bg-gray-50 rounded-[3.5rem] border border-gray-100 relative overflow-hidden">
+                                                <div className="flex items-center gap-6 mb-8">
+                                                    <div className="h-14 w-14 bg-white rounded-2xl flex items-center justify-center text-[#004d4d] shadow-lg shadow-gray-200/50"><CreditCard size={28}/></div>
+                                                    <div>
+                                                        <p className="text-xl font-black text-gray-900">Control de Topes</p>
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Gestión de Liquidez</p>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <div className="p-6 bg-white border border-gray-100 rounded-3xl shadow-sm">
+                                                        <p className="text-xs font-bold text-gray-600 leading-relaxed italic">&quot;Bayt te notificará automáticamente cuando una cuenta esté al 90% de su capacidad mensual para evitar bloqueos en tus ventas.&quot;</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 px-4">
+                                                        <div className="h-2 w-2 rounded-full bg-[#00f2ff]"></div>
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase">Cuenta Principal = Destino de checkout automático</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {activeGuideStep === 3 && (
+                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                            <div className="space-y-4">
+                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Omnicanalidad <span className="text-[#004D4D]">Total</span></h2>
+                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">Conecta tu tienda con todo el ecosistema social en un clic.</p>
+                                            </div>
+                                            <div className="p-10 bg-gray-50 rounded-[3.5rem] border border-gray-100 flex items-center gap-10">
+                                                <div className="grid grid-cols-2 gap-4 shrink-0">
+                                                    <div className="h-12 w-12 rounded-xl bg-pink-500 text-white flex items-center justify-center shadow-lg"><Instagram size={20}/></div>
+                                                    <div className="h-12 w-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-lg"><Facebook size={20}/></div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <p className="text-sm font-black uppercase tracking-widest text-gray-900">Efecto Viral</p>
+                                                    <p className="text-xs font-medium text-gray-500 italic">Tus clientes podrán saltar de tu biografía de Instagram directamente al catálogo de productos en tiempo real.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <button onClick={() => setIsGuideOpen(false)} className="w-full py-5 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-2xl mt-12">Entendido, Continuar Operación</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             <style jsx global>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
