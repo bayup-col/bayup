@@ -41,6 +41,8 @@ import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
 import TiltCard from '@/components/dashboard/TiltCard';
 import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
+import ReportsInfoModal from '@/components/dashboard/ReportsInfoModal';
+import LiveMapModal from '@/components/dashboard/LiveMapModal';
 import { generateDetailedReport } from '@/lib/report-generator';
 import { 
     AreaChart, 
@@ -105,6 +107,8 @@ export default function AnalysisGeneralPage() {
     const [activeTab, setActiveTab] = useState<'general' | 'sucursales' | 'asesores' | 'bayt'>('general');
     const [selectedPeriod, setSelectedPeriod] = useState('Este Mes');
     const [isPeriodOpen, setIsPeriodOpen] = useState(false);
+    const [showInfoModal, setShowInfoModal] = useState(false);
+    const [isMapOpen, setIsMapOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedMetric, setSelectedMetric] = useState<any>(null);
 
@@ -343,7 +347,7 @@ export default function AnalysisGeneralPage() {
                     <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mt-1">Comparativa de rentabilidad operativa</p>
                 </div>
                 <div className="flex gap-4">
-                    <button className="h-12 px-6 rounded-2xl bg-white border border-gray-100 text-[10px] font-black uppercase tracking-widest shadow-sm">Ver Mapa Live</button>
+                    <button onClick={() => setIsMapOpen(true)} className="h-12 px-6 rounded-2xl bg-white border border-gray-100 text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-gray-50 transition-colors">Ver Mapa Live</button>
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -377,6 +381,8 @@ export default function AnalysisGeneralPage() {
                     </motion.div>
                 ))}
             </div>
+            
+            <LiveMapModal isOpen={isMapOpen} onClose={() => setIsMapOpen(false)} />
         </div>
     );
 
@@ -548,6 +554,14 @@ export default function AnalysisGeneralPage() {
                         );
                     })}
                 </div>
+                
+                {/* Botón de Información (Separado / Satélite) */}
+                <button
+                    onClick={() => setShowInfoModal(true)}
+                    className="h-12 w-12 rounded-full bg-white border border-gray-100 text-[#004d4d] flex items-center justify-center hover:scale-110 hover:bg-[#004d4d] hover:text-white transition-all shadow-xl active:scale-95 group"
+                >
+                    <Info size={20} />
+                </button>
             </div>
 
             {/* --- CONTENIDO DINÁMICO --- */}
@@ -579,6 +593,11 @@ export default function AnalysisGeneralPage() {
                 isOpen={!!selectedMetric} 
                 onClose={() => setSelectedMetric(null)} 
                 metric={selectedMetric} 
+            />
+
+            <ReportsInfoModal
+                isOpen={showInfoModal}
+                onClose={() => setShowInfoModal(false)}
             />
 
             <style jsx global>{`
