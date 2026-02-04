@@ -27,13 +27,18 @@ import {
   Target,
   Plus,
   ArrowUpRight,
-  Clock
+  Clock,
+  Info,
+  Loader2
 } from 'lucide-react';
 import { useToast } from "@/context/toast-context";
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import TiltCard from '@/components/dashboard/TiltCard';
+import DiscountsInfoModal from '@/components/dashboard/DiscountsInfoModal';
+import DiscountsMetricModal from '@/components/dashboard/DiscountsMetricModal';
 
 interface Discount {
     id: string;
@@ -69,12 +74,22 @@ export default function DiscountsPage() {
     const [activeTab, setActiveTab] = useState<'todos' | 'cupones' | 'automaticos' | 'bayt'>('todos');
     const { showToast } = useToast();
     
-    // UI State para Modal
+    // UI State para Modales
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showInfoModal, setShowInfoModal] = useState(false);
+    const [selectedKPI, setSelectedKPI] = useState<any>(null);
     const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
     const [isActiveToggle, setIsActiveToggle] = useState(true);
     const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Estados para Action Bar Premium
+    const [isFilterHovered, setIsFilterHovered] = useState(false);
+    const [isDateHovered, setIsDateHovered] = useState(false);
+    const [isExportHovered, setIsExportHovered] = useState(false);
+    const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+    const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
+    const [filterType, setFilterType] = useState('all');
 
     const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<DiscountFormData>({
         resolver: zodResolver(discountSchema),
@@ -122,15 +137,29 @@ export default function DiscountsPage() {
         setIsModalOpen(false);
     };
 
+    const copyCode = (code: string) => {
+        navigator.clipboard.writeText(code);
+        showToast(`Código ${code} copiado 📋`, "success");
+    };
+
+    const handleExport = () => {
+        showToast("Generando reporte de campañas...", "info");
+        setTimeout(() => showToast("Reporte descargado correctamente", "success"), 1500);
+    };
+
     const formatCurrency = (amount: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
     const formatNumberInput = (val: number) => val === 0 ? "0" : val?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") || "";
     const unformatNumberInput = (val: string) => parseFloat(val.replace(/\./g, '')) || 0;
 
     const filteredDiscounts = useMemo(() => {
         return discounts
-            .filter(d => d.code.toLowerCase().includes(searchTerm.toLowerCase()))
+            .filter(d => {
+                const matchesSearch = d.code.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesType = filterType === 'all' || d.type === filterType;
+                return matchesSearch && matchesType;
+            })
             .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-    }, [discounts, searchTerm]);
+    }, [discounts, searchTerm, filterType]);
 
     const renderKPIs = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 shrink-0">
@@ -140,37 +169,118 @@ export default function DiscountsPage() {
                 { label: 'Tasa Redención', value: '24.5%', sub: 'Efectividad', icon: <TrendingUp size={20}/>, trend: '+3%', color: 'text-emerald-600' },
                 { label: 'Ahorro Generado', value: '$ 4.2M', sub: 'Ventas con descuento', icon: <DollarSign size={20}/>, trend: '+12%', color: 'text-[#00f2ff]' },
             ].map((kpi, i) => (
-                <motion.div key={i} whileHover={{ y: -5, scale: 1.02 }} className="bg-white/60 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/80 shadow-sm flex flex-col justify-between group transition-all">
-                    <div className="flex justify-between items-start">
-                        <div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color} group-hover:scale-110 transition-transform`}>
-                            {kpi.icon}
+                <TiltCard key={i} onClick={() => setSelectedKPI(kpi)} className="h-full">
+                    <div className="bg-white/95 p-8 rounded-[2.5rem] border border-white shadow-xl flex flex-col justify-between h-full group transition-all">
+                        <div className="flex justify-between items-start">
+                            <div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color} group-hover:scale-110 transition-transform`}>
+                                {kpi.icon}
+                            </div>
+                            <span className="text-[10px] font-black px-3 py-1 bg-gray-50 text-gray-400 rounded-lg uppercase tracking-widest">{kpi.trend}</span>
                         </div>
-                        <span className="text-[10px] font-black px-2 py-1 bg-gray-50 text-gray-400 rounded-lg">{kpi.trend}</span>
+                        <div className="mt-6">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p>
+                            <h3 className="text-3xl font-black text-gray-900 mt-1">{kpi.value}</h3>
+                            <p className="text-[9px] font-bold text-gray-400 mt-1 italic">{kpi.sub}</p>
+                        </div>
                     </div>
-                    <div className="mt-6">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p>
-                        <h3 className="text-3xl font-black text-gray-900 mt-1">{kpi.value}</h3>
-                        <p className="text-[9px] font-bold text-gray-400 mt-1 italic">{kpi.sub}</p>
-                    </div>
-                </motion.div>
+                </TiltCard>
             ))}
         </div>
     );
 
     const renderActionBar = () => (
-        <div className="flex flex-col md:flex-row gap-4 items-center bg-white/60 backdrop-blur-md p-3 rounded-3xl border border-white/60 shadow-sm mx-4 shrink-0 relative z-30">
+        <div className="flex flex-col md:flex-row gap-4 items-center bg-white/60 backdrop-blur-md p-2 rounded-[2rem] border border-white/60 shadow-sm mx-4 shrink-0 relative z-30">
             <div className="relative flex-1 w-full">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                <input type="text" placeholder="Buscar por código promocional..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-14 pr-6 py-4 bg-transparent text-sm font-bold text-slate-700 outline-none" />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input type="text" placeholder="Buscar por código promocional..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-14 pr-6 py-3.5 bg-transparent text-sm font-bold text-slate-700 outline-none" />
             </div>
-            <div className="h-10 w-px bg-slate-200 hidden md:block"></div>
-            <div className="flex items-center gap-3">
-                <button className="h-12 flex items-center gap-2 px-5 rounded-2xl bg-white text-slate-500 border border-gray-100 hover:bg-gray-50 transition-all">
-                    <Filter size={18}/> <span className="text-[10px] font-black uppercase tracking-widest">Tipo</span>
-                </button>
-                <button className="h-12 flex items-center gap-2 px-5 bg-gray-900 text-white rounded-2xl shadow-lg hover:bg-black transition-all">
-                    <Download size={18}/> <span className="text-[10px] font-black uppercase tracking-widest">Reporte</span>
-                </button>
+            
+            <div className="flex items-center gap-2 pr-2">
+                {/* Botón Filtro */}
+                <div className="relative">
+                    <motion.button 
+                        layout
+                        onMouseEnter={() => setIsFilterHovered(true)}
+                        onMouseLeave={() => setIsFilterHovered(false)}
+                        onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setIsDateMenuOpen(false); }}
+                        className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isFilterMenuOpen ? 'bg-[#004d4d] text-white shadow-lg' : 'bg-white text-slate-500 border border-gray-100 hover:text-[#004d4d] shadow-sm'} group`}
+                    >
+                        <motion.div layout><Filter size={18}/></motion.div>
+                        <AnimatePresence mode="popLayout">
+                            {(isFilterHovered || isFilterMenuOpen) && (
+                                <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">
+                                    {filterType === 'all' ? 'Tipo' : filterType}
+                                </motion.span>
+                            )}
+                        </AnimatePresence>
+                    </motion.button>
+
+                    <AnimatePresence>
+                        {isFilterMenuOpen && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50"
+                            >
+                                {['all', 'percentage', 'fixed_amount', 'free_shipping'].map((type) => (
+                                    <button
+                                        key={type}
+                                        onClick={() => { setFilterType(type); setIsFilterMenuOpen(false); }}
+                                        className={`w-full text-left px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${filterType === type ? 'bg-[#004d4d] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        {type === 'all' ? 'Todos' : type.replace('_', ' ')}
+                                    </button>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Botón Fecha */}
+                <div className="relative">
+                    <motion.button 
+                        layout
+                        onMouseEnter={() => setIsDateHovered(true)}
+                        onMouseLeave={() => setIsDateHovered(false)}
+                        onClick={() => { setIsDateMenuOpen(!isDateMenuOpen); setIsFilterMenuOpen(false); }}
+                        className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isDateMenuOpen ? 'bg-[#004d4d] text-white' : 'bg-white text-slate-500 border border-gray-100 shadow-sm'}`}
+                    >
+                        <motion.div layout><Calendar size={18}/></motion.div>
+                        <AnimatePresence mode="popLayout">
+                            {(isDateHovered || isDateMenuOpen) && (
+                                <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Período</motion.span>
+                            )}
+                        </AnimatePresence>
+                    </motion.button>
+
+                    <AnimatePresence>
+                        {isDateMenuOpen && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50"
+                            >
+                                {['Hoy', 'Últimos 7 días', 'Este Mes', 'Histórico'].map((p) => (
+                                    <button key={p} onClick={() => setIsDateMenuOpen(false)} className="w-full text-left px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50">{p}</button>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Botón Exportar */}
+                <motion.button 
+                    layout
+                    onMouseEnter={() => setIsExportHovered(true)}
+                    onMouseLeave={() => setIsExportHovered(false)}
+                    onClick={handleExport}
+                    className="h-12 flex items-center gap-2 px-4 bg-white border border-gray-100 rounded-2xl text-slate-500 hover:text-emerald-600 transition-all shadow-sm"
+                >
+                    <motion.div layout><Download size={18}/></motion.div>
+                    <AnimatePresence mode="popLayout">
+                        {isExportHovered && (
+                            <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Exportar</motion.span>
+                        )}
+                    </AnimatePresence>
+                </motion.button>
             </div>
         </div>
     );
@@ -207,8 +317,8 @@ export default function DiscountsPage() {
                             <p className="text-2xl font-black text-gray-900">{d.type === 'percentage' ? `${d.value}%` : d.type === 'fixed_amount' ? formatCurrency(d.value) : 'GRATIS'}</p>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Valor Descuento</p>
                         </div>
-                        <button onClick={() => handleOpenModal(d)} className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-400 hover:text-[#004d4d] flex items-center justify-center transition-all"><Edit3 size={20}/></button>
-                        <button onClick={() => copyCode(d.code)} className="h-12 w-12 rounded-2xl bg-gray-900 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"><Copy size={20} /></button>
+                        <button onClick={() => handleOpenModal(d)} className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-400 hover:text-[#004d4d] flex items-center justify-center transition-all shadow-inner hover:scale-105 active:scale-95"><Edit3 size={20}/></button>
+                        <button onClick={() => copyCode(d.code)} className="h-12 w-12 rounded-2xl bg-gray-900 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform active:scale-95"><Copy size={20} /></button>
                     </div>
                 </motion.div>
             ))}
@@ -216,7 +326,7 @@ export default function DiscountsPage() {
     );
 
     return (
-        <div className="max-w-[1600px] mx-auto pb-20 space-y-12 animate-in fade-in duration-1000">
+        <div className="max-w-[1600px] mx-auto pb-20 space-y-12 animate-in fade-in duration-1000 relative">
             
             {/* --- HEADER MAESTRO --- */}
             <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8 px-4 shrink-0">
@@ -265,6 +375,14 @@ export default function DiscountsPage() {
                         );
                     })}
                 </div>
+
+                {/* Botón de Información Satélite */}
+                <button
+                    onClick={() => setShowInfoModal(true)}
+                    className="h-12 w-12 rounded-full bg-white border border-gray-100 text-[#004d4d] flex items-center justify-center hover:scale-110 hover:bg-[#004d4d] hover:text-white transition-all shadow-xl active:scale-95 group"
+                >
+                    <Info size={20} />
+                </button>
             </div>
 
             {/* --- CONTENIDO DINÁMICO --- */}
@@ -297,7 +415,16 @@ export default function DiscountsPage() {
                 </motion.div>
             </AnimatePresence>
 
-            {/* MODAL: CREAR/EDITAR (Se mantiene lógica funcional) */}
+            {/* MODALES */}
+            <DiscountsInfoModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} />
+            
+            <DiscountsMetricModal 
+                isOpen={!!selectedKPI} 
+                onClose={() => setSelectedKPI(null)} 
+                metric={selectedKPI} 
+            />
+
+            {/* MODAL: CREAR/EDITAR */}
             <AnimatePresence>
                 {isModalOpen && (
                     <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
