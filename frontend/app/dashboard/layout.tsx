@@ -287,7 +287,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <div>
                     <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Gestión</p>
                     <div className="space-y-1">
-                        <MenuItem href="/dashboard/payroll" label={<><Users2 size={16} className="mr-2" /> Nómina</>} id="m_payroll" />
                         
                         {(!hiddenModules.includes('m_informes') || isEditingMenu) && (
                             <div className={hiddenModules.includes('m_informes') ? 'opacity-30' : ''}>
@@ -298,9 +297,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                         <ChevronDown size={14} className={`transition-transform duration-200 ${reportsOpen ? 'rotate-180' : ''}`} />
                                     </div>
                                 </button>
-                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${reportsOpen ? 'max-h-80 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${reportsOpen ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                                     <div className="space-y-1">
                                         <MenuItem href="/dashboard/reports" label="Análisis General" id="s_reports_gen" isSub />
+                                        <MenuItem href="/dashboard/reports?tab=nomina" label="Gestión de Nómina" id="s_reports_payroll" isSub />
                                         <MenuItem href="/dashboard/reports/purchase-orders" label="Órdenes de Compra" id="s_purchase_orders" isSub />
                                         <MenuItem href="/dashboard/reports/sucursales" label="Sucursales" id="s_sucursales" isSub />
                                         <MenuItem href="/dashboard/reports/vendedores" label="Vendedores" id="s_vendedores" isSub />
