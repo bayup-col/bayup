@@ -44,6 +44,7 @@ import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
 import ReportsInfoModal from '@/components/dashboard/ReportsInfoModal';
 import LiveMapModal from '@/components/dashboard/LiveMapModal';
 import GoalsConfigModal from '@/components/dashboard/GoalsConfigModal';
+import AdvisorDetailModal from '@/components/dashboard/AdvisorDetailModal';
 import { generateDetailedReport } from '@/lib/report-generator';
 import { 
     AreaChart, 
@@ -111,7 +112,13 @@ export default function AnalysisGeneralPage() {
     const [showInfoModal, setShowInfoModal] = useState(false);
     const [isMapOpen, setIsMapOpen] = useState(false);
     const [isGoalsModalOpen, setIsGoalsModalOpen] = useState(false);
+    const [selectedAdvisor, setSelectedAdvisor] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
+    
+    // Estados para animaciones de la barra de acciones de asesores
+    const [isAdvFilterHovered, setIsAdvisorFilterHovered] = useState(false);
+    const [isAdvDateHovered, setIsAdvisorDateHovered] = useState(false);
+    const [isAdvExportHovered, setIsAdvisorExportHovered] = useState(false);
     const [selectedMetric, setSelectedMetric] = useState<any>(null);
 
     const PERIOD_OPTIONS = [
@@ -401,11 +408,16 @@ export default function AnalysisGeneralPage() {
             </div>
             <div className="space-y-4">
                 {ADVISOR_RANKING.map((advisor, i) => (
-                    <motion.div key={i} whileHover={{ x: 10 }} className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-10 relative overflow-hidden">
+                    <motion.div 
+                        key={i} 
+                        whileHover={{ x: 10 }} 
+                        onClick={() => setSelectedAdvisor(advisor)}
+                        className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-10 relative overflow-hidden cursor-pointer group"
+                    >
                         <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${advisor.status === 'high' ? 'bg-emerald-500' : advisor.status === 'normal' ? 'bg-amber-400' : 'bg-rose-500'}`}></div>
                         
                         <div className="flex items-center gap-6 flex-1">
-                            <div className="h-16 w-16 rounded-[1.8rem] bg-[#004d4d] text-white flex items-center justify-center text-2xl font-black shadow-2xl">
+                            <div className="h-16 w-16 rounded-[1.8rem] bg-[#004d4d] text-white flex items-center justify-center text-2xl font-black shadow-2xl group-hover:scale-110 transition-transform italic">
                                 {advisor.name.charAt(0)}
                             </div>
                             <div>
@@ -433,7 +445,7 @@ export default function AnalysisGeneralPage() {
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <button className="h-12 px-6 rounded-2xl bg-gray-50 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#004d4d] transition-all">Reporte Individual</button>
+                            <button className="h-12 px-6 rounded-2xl bg-gray-50 text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-[#004d4d] group-hover:bg-[#004d4d]/5 transition-all">Reporte Individual</button>
                             <button className="h-12 w-12 rounded-2xl bg-gray-900 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"><Zap size={20} className="text-[#00f2ff]" /></button>
                         </div>
                     </motion.div>
@@ -573,14 +585,59 @@ export default function AnalysisGeneralPage() {
                     {activeTab === 'sucursales' && renderBranchComparison()}
                     {activeTab === 'asesores' && (
                         <div className="space-y-8">
-                            <div className="flex flex-col md:flex-row gap-4 items-center bg-white/60 backdrop-blur-md p-3 rounded-3xl border border-white/60 shadow-sm mx-4 shrink-0 relative z-30">
+                            <div className="flex flex-col md:flex-row gap-4 items-center bg-white/60 backdrop-blur-md p-2 rounded-[2rem] border border-white/60 shadow-sm mx-4 shrink-0 relative z-30">
                                 <div className="relative flex-1 w-full">
-                                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                    <input type="text" placeholder="Buscar asesor por nombre..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-14 pr-6 py-4 bg-transparent text-sm font-bold text-slate-700 outline-none" />
+                                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                    <input type="text" placeholder="Buscar asesor por nombre..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-14 pr-6 py-3.5 bg-transparent text-sm font-bold text-slate-700 outline-none" />
                                 </div>
-                                <div className="h-10 w-px bg-slate-200 hidden md:block"></div>
-                                <div className="flex items-center gap-3">
-                                    <button className="h-12 flex items-center gap-2 px-5 rounded-2xl bg-white text-slate-500 border border-gray-100 hover:bg-gray-50 transition-all"><Filter size={18}/> <span className="text-[10px] font-black uppercase tracking-widest">Rendimiento</span></button>
+                                
+                                <div className="flex items-center gap-2 pr-2">
+                                    {/* Botón Filtro */}
+                                    <motion.button 
+                                        layout
+                                        onMouseEnter={() => setIsAdvisorFilterHovered(true)}
+                                        onMouseLeave={() => setIsAdvisorFilterHovered(false)}
+                                        className="h-12 flex items-center gap-2 px-4 rounded-2xl bg-white text-slate-500 border border-gray-100 hover:text-[#004d4d] transition-all shadow-sm group"
+                                    >
+                                        <motion.div layout><Filter size={18}/></motion.div>
+                                        <AnimatePresence mode="popLayout">
+                                            {isAdvFilterHovered && (
+                                                <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Rendimiento</motion.span>
+                                            )}
+                                        </AnimatePresence>
+                                    </motion.button>
+
+                                    {/* Botón Fecha */}
+                                    <motion.button 
+                                        layout
+                                        onMouseEnter={() => setIsAdvisorDateHovered(true)}
+                                        onMouseLeave={() => setIsAdvisorDateHovered(false)}
+                                        onClick={() => setIsPeriodOpen(!isPeriodOpen)}
+                                        className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isPeriodOpen ? 'bg-[#004d4d] text-white' : 'bg-white text-slate-500 border border-gray-100'} shadow-sm`}
+                                    >
+                                        <motion.div layout><Calendar size={18}/></motion.div>
+                                        <AnimatePresence mode="popLayout">
+                                            {isAdvDateHovered && (
+                                                <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Período</motion.span>
+                                            )}
+                                        </AnimatePresence>
+                                    </motion.button>
+
+                                    {/* Botón Exportar */}
+                                    <motion.button 
+                                        layout
+                                        onMouseEnter={() => setIsAdvisorExportHovered(true)}
+                                        onMouseLeave={() => setIsAdvisorExportHovered(false)}
+                                        onClick={handleExport}
+                                        className="h-12 flex items-center gap-2 px-4 bg-white border border-gray-100 rounded-2xl text-slate-500 hover:text-emerald-600 transition-all shadow-sm"
+                                    >
+                                        <motion.div layout><Download size={18}/></motion.div>
+                                        <AnimatePresence mode="popLayout">
+                                            {isAdvExportHovered && (
+                                                <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Exportar PDF</motion.span>
+                                            )}
+                                        </AnimatePresence>
+                                    </motion.button>
                                 </div>
                             </div>
                             {renderAdvisorRanking()}
@@ -611,6 +668,12 @@ export default function AnalysisGeneralPage() {
                 isOpen={isGoalsModalOpen} 
                 onClose={() => setIsGoalsModalOpen(false)} 
                 advisors={ADVISOR_RANKING}
+            />
+
+            <AdvisorDetailModal 
+                isOpen={!!selectedAdvisor} 
+                onClose={() => setSelectedAdvisor(null)} 
+                advisor={selectedAdvisor} 
             />
 
             <style jsx global>{`
