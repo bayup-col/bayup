@@ -104,6 +104,7 @@ export default function ComisionesPage() {
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [activeGuideStep, setActiveGuideStep] = useState(0);
     const [selectedSettlement, setSelectedSettlement] = useState<CommissionSettlement | null>(null);
+    const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     // --- CARGA ---
@@ -169,6 +170,112 @@ export default function ComisionesPage() {
         showToast(`Pago confirmado para ${selectedSettlement.seller_name}`, "success");
     };
 
+    const handleDownloadAudit = (settlement: CommissionSettlement) => {
+        const title = `CERTIFICADO DE LIQUIDACIÓN: ${settlement.seller_name.toUpperCase()}`;
+        const date = new Date().toLocaleDateString();
+        const time = new Date().toLocaleTimeString();
+        const html = `
+            <html><head><meta charset="utf-8"><style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+                .brand { background: #001a1a; color: #00f2ff; text-align: center; padding: 40px; border-bottom: 5px solid #004d4d; }
+                .brand h1 { margin: 0; font-size: 28px; letter-spacing: 2px; }
+                .brand p { margin: 5px 0 0; opacity: 0.7; font-size: 12px; text-transform: uppercase; }
+                .content { padding: 40px; }
+                .card { border: 1px solid #e2e8f0; border-radius: 15px; padding: 25px; margin-bottom: 30px; background: #fafafa; }
+                .card-title { color: #004d4d; font-weight: 900; font-size: 14px; text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid #cbd5e1; padding-bottom: 10px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                th { text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; padding: 12px; background: #f1f5f9; }
+                td { padding: 15px 12px; font-size: 14px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+                .highlight { background: #f0fdf4; font-weight: bold; color: #10b981; }
+                .footer { text-align: center; padding: 20px; color: #94a3b8; font-size: 10px; border-top: 1px solid #f1f5f9; }
+            </style></head><body>
+                <div class="brand">
+                    <h1>BAYUP PLATINUM</h1>
+                    <p>Auditoría de Desempeño Comercial | ID: ${settlement.id}</p>
+                </div>
+                <div class="content">
+                    <div class="card">
+                        <div class="card-title">Información del Asesor</div>
+                        <p><b>Colaborador:</b> ${settlement.seller_name}</p>
+                        <p><b>Periodo de Corte:</b> ${settlement.period}</p>
+                        <p><b>Fecha de Emisión:</b> ${date} - ${time}</p>
+                        <p><b>Estado de Pago:</b> ${settlement.status === 'paid' ? 'CONSOLIDADO ✅' : 'PROCESANDO ⏳'}</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Análisis de Resultados</div>
+                        <table>
+                            <thead><tr><th>Indicador Táctico</th><th>Resultado Obtenido</th></tr></thead>
+                            <tbody>
+                                <tr><td>Volumen Bruto de Ventas</td><td><b>${formatCurrency(settlement.total_sales)}</b></td></tr>
+                                <tr><td>Utilidad Neta Generada</td><td><b>${formatCurrency(settlement.total_profit)}</b></td></tr>
+                                <tr><td>Índice de Cumplimiento</td><td><b>${settlement.progress}%</b></td></tr>
+                                <tr class="highlight"><td>NETO COMISIÓN A LIQUIDAR</td><td style="font-size: 18px;">${formatCurrency(settlement.earned || 0)}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p style="font-style: italic; color: #64748b; font-size: 12px; text-align: center;">&quot;Este documento constituye un soporte oficial de liquidación generado por Bayt AI.&quot;</p>
+                </div>
+                <div class="footer">BAYUP INTERACTIVE UP - All Rights Reserved © 2026</div>
+            </body></html>
+        `;
+        const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Comprobante_${settlement.seller_name.replace(/\s+/g, '_')}_${settlement.period.replace(/\s+/g, '_')}.xls`;
+        a.click();
+        showToast("Comprobante profesional generado 📦", "success");
+    };
+
+    const handleDownloadGlobalReport = () => {
+        const title = `REPORTE GLOBAL DE COMISIONES: ${selectedPeriod.toUpperCase()}`;
+        const date = new Date().toLocaleDateString();
+        const html = `
+            <html><head><meta charset="utf-8"><style>
+                .header { background: #001a1a; color: #00f2ff; padding: 30px; text-align: center; font-family: sans-serif; font-weight: bold; }
+                table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
+                th { background: #f8fafc; color: #64748b; padding: 12px; font-size: 11px; text-transform: uppercase; border: 1px solid #e2e8f0; }
+                td { padding: 12px; font-size: 13px; border: 1px solid #e2e8f0; text-align: center; }
+                .total { background: #f0fdf4; font-weight: bold; color: #10b981; }
+            </style></head><body>
+                <div class="header">${title}<br><small>Reporte Consolidado Bayup | Emitido el ${date}</small></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Asesor</th>
+                            <th>Ventas Totales</th>
+                            <th>Utilidad</th>
+                            <th>Cumplimiento</th>
+                            <th>Comisión Neta</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredList.map(s => `
+                            <tr>
+                                <td style="text-align: left;">${s.seller_name}</td>
+                                <td>${formatCurrency(s.total_sales)}</td>
+                                <td>${formatCurrency(s.total_profit)}</td>
+                                <td>${s.progress}%</td>
+                                <td class="total">${formatCurrency(s.earned || 0)}</td>
+                                <td>${s.status.toUpperCase()}</td>
+                            </tr>
+                        `).join('')}
+                        <tr style="background: #001a1a; color: white; font-weight: bold;">
+                            <td colspan="4" style="text-align: right; padding: 15px;">TOTAL INVERSIÓN PERIODO:</td>
+                            <td colspan="2" style="font-size: 16px; color: #00f2ff;">${formatCurrency(globalStats.totalEarned)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </body></html>
+        `;
+        const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Reporte_Global_Comisiones_${selectedPeriod.replace(/\s+/g, '_')}.xls`;
+        a.click();
+        showToast("Reporte global exportado correctamente 📊", "success");
+    };
+
     if (loading) return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="animate-spin text-[#004d4d]" size={40} /></div>;
 
     return (
@@ -189,24 +296,27 @@ export default function ComisionesPage() {
                 </div>
             </div>
 
-            {/* KPIs Dinámicos */}
+            {/* KPIs Dinámicos Interactivos */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
-                <TiltCard className="p-8">
-                    <div className="h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center text-[#004d4d]"><DollarSign size={24}/></div>
-                    <div className="mt-6"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Inversión en Comisiones</p><h3 className="text-2xl font-black text-gray-900 mt-1">$ <AnimatedNumber value={globalStats.totalEarned} /></h3></div>
-                </TiltCard>
-                <TiltCard className="p-8">
-                    <div className="h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center text-[#00f2ff]"><Target size={24}/></div>
-                    <div className="mt-6"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cumplimiento Global</p><h3 className="text-2xl font-black text-gray-900 mt-1">{globalStats.avgProgress}%</h3></div>
-                </TiltCard>
-                <TiltCard className="p-8">
-                    <div className="h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center text-emerald-600"><ShoppingBag size={24}/></div>
-                    <div className="mt-6"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Volumen Total Ventas</p><h3 className="text-2xl font-black text-gray-900 mt-1">$ <AnimatedNumber value={globalStats.totalSales} /></h3></div>
-                </TiltCard>
-                <TiltCard className="p-8">
-                    <div className="h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center text-amber-500"><Users size={24}/></div>
-                    <div className="mt-6"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Equipo Activo</p><h3 className="text-2xl font-black text-gray-900 mt-1">{filteredList.length} Asesores</h3></div>
-                </TiltCard>
+                {[
+                    { id: 'inversion', label: 'Inversión en Comisiones', value: globalStats.totalEarned, prefix: '$ ', icon: <DollarSign size={24}/>, color: 'text-[#004d4d]' },
+                    { id: 'cumplimiento', label: 'Cumplimiento Global', value: globalStats.avgProgress, prefix: '', suffix: '%', icon: <Target size={24}/>, color: 'text-[#00f2ff]' },
+                    { id: 'volumen', label: 'Volumen Total Ventas', value: globalStats.totalSales, prefix: '$ ', icon: <ShoppingBag size={24}/>, color: 'text-emerald-600' },
+                    { id: 'equipo', label: 'Equipo Activo', value: filteredList.length, prefix: '', suffix: ' Asesores', icon: <Users size={24}/>, color: 'text-amber-500' },
+                ].map((kpi, i) => (
+                    <div key={i} onClick={() => setSelectedKPI(kpi.id)} className="cursor-pointer h-full">
+                        <TiltCard className="p-8">
+                            <div className="flex justify-between items-start">
+                                <div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color} group-hover:scale-110 transition-transform`}>{kpi.icon}</div>
+                                <span className="text-[10px] font-black px-2 py-1 bg-gray-50 text-gray-400 rounded-lg uppercase tracking-widest">Stats</span>
+                            </div>
+                            <div className="mt-6">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p>
+                                <h3 className="text-2xl font-black text-gray-900 mt-1">{kpi.prefix}<AnimatedNumber value={kpi.value} />{kpi.suffix}</h3>
+                            </div>
+                        </TiltCard>
+                    </div>
+                ))}
             </div>
 
             {/* Menu Tabs & Suite Platinum */}
@@ -228,7 +338,18 @@ export default function ComisionesPage() {
                             <AnimatePresence>{isFilterMenuOpen && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50"><button onClick={() => { setFilterStatus('all'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 rounded-xl text-[10px] font-bold uppercase hover:bg-gray-50 rounded-xl">Todos</button><button onClick={() => { setFilterStatus('met'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 rounded-xl text-[10px] font-bold uppercase hover:bg-gray-50 rounded-xl text-emerald-600">Metas Cumplidas</button></motion.div>}</AnimatePresence>
                         </div>
                         <div className="relative group/date"><motion.button layout onMouseEnter={() => setIsDateHovered(true)} onMouseLeave={() => setIsDateHovered(false)} className="h-12 flex items-center gap-2 px-4 rounded-xl bg-gray-50 text-gray-500 hover:bg-white hover:border-gray-100 transition-all"><Calendar size={18}/> <AnimatePresence>{isDateHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase px-1">Fechas</motion.span>}</AnimatePresence></motion.button><div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 opacity-0 scale-95 pointer-events-none group-hover/date:opacity-100 group-hover/date:scale-100 group-hover/date:pointer-events-auto transition-all z-50 flex gap-2"><input type="date" className="p-2 bg-gray-50 rounded-lg text-[10px] outline-none border border-transparent focus:border-[#004d4d]"/><input type="date" className="p-2 bg-gray-50 rounded-lg text-[10px] outline-none border border-transparent focus:border-[#004d4d]"/><button onClick={() => setDateRange({start:'', end:''})} className="p-2 bg-rose-50 text-rose-500 rounded-lg"><RotateCcw size={14}/></button></div></div>
-                        <motion.button layout onMouseEnter={() => setIsExportHovered(true)} onMouseLeave={() => setIsExportHovered(false)} onClick={() => showToast("Exportando Reporte...", "info")} className="h-12 flex items-center gap-2 px-4 rounded-xl bg-gray-50 text-gray-500 hover:bg-white hover:border-gray-100 transition-all"><Download size={18}/> <AnimatePresence>{isExportHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase px-1">Excel</motion.span>}</AnimatePresence></motion.button>
+                        <motion.button 
+                            layout 
+                            onMouseEnter={() => setIsExportHovered(true)} 
+                            onMouseLeave={() => setIsExportHovered(false)} 
+                            onClick={handleDownloadGlobalReport}
+                            className="h-12 flex items-center gap-2 px-4 rounded-xl bg-gray-50 text-gray-500 hover:bg-white hover:border-gray-100 transition-all"
+                        >
+                            <Download size={18}/> 
+                            <AnimatePresence>
+                                {isExportHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase px-1">Excel</motion.span>}
+                            </AnimatePresence>
+                        </motion.button>
                     </div>
                 </div>
             </div>
@@ -310,17 +431,79 @@ export default function ComisionesPage() {
                 </AnimatePresence>
             </div>
 
+            {/* MODAL DETALLE KPI DINÁMICO */}
+            <AnimatePresence>
+                {selectedKPI && (
+                    <div className="fixed inset-0 z-[2500] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedKPI(null)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-3xl overflow-hidden border border-white">
+                            <div className="p-10 bg-gradient-to-br from-gray-900 to-[#001a1a] text-white relative">
+                                <button onClick={() => setSelectedKPI(null)} className="absolute top-6 right-6 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all group">
+                                    <X size={20} className="group-hover:rotate-90 transition-transform"/>
+                                </button>
+                                <div className="space-y-4">
+                                    <h3 className="text-3xl font-black italic uppercase tracking-tighter">
+                                        {selectedKPI === 'inversion' ? 'Análisis de Inversión' : 
+                                         selectedKPI === 'cumplimiento' ? 'Eficiencia Comercial' : 
+                                         selectedKPI === 'volumen' ? 'Volumen de Ventas' : 'Fuerza de Ventas'}
+                                    </h3>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00f2ff]">Inteligencia de Datos Bayup</p>
+                                </div>
+                            </div>
+                            <div className="p-10 space-y-8">
+                                {selectedKPI === 'inversion' && (
+                                    <div className="space-y-6">
+                                        <div className="flex justify-between items-end"><p className="text-xs font-bold text-gray-400 uppercase">Crecimiento vs Enero</p><p className="text-xl font-black text-emerald-600">+8.4%</p></div>
+                                        <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                                            <p className="text-xs font-medium text-gray-600 leading-relaxed italic">&quot;Bayt sugiere: El aumento en la inversión de comisiones está correlacionado con un ticket promedio más alto. Mantén este modelo para incentivar ventas premium.&quot;</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {selectedKPI === 'cumplimiento' && (
+                                    <div className="space-y-6">
+                                        <div className="flex justify-between items-end"><p className="text-xs font-bold text-gray-400 uppercase">Meta Global Periodo</p><p className="text-xl font-black text-[#004d4d]">{globalStats.avgProgress}%</p></div>
+                                        <div className="p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                                            <p className="text-xs font-medium text-emerald-900 leading-relaxed italic">&quot;Tu equipo está operando en un nivel de alto rendimiento. Sugiero subir la meta un 5% para el próximo mes para evitar el estancamiento de ventas.&quot;</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {selectedKPI === 'volumen' && (
+                                    <div className="space-y-6">
+                                        <div className="flex justify-between items-end"><p className="text-xs font-bold text-gray-400 uppercase">Proyección a Cierre</p><p className="text-xl font-black text-emerald-600">+15.2M</p></div>
+                                        <div className="p-10 bg-gray-900 rounded-[2.5rem] relative overflow-hidden text-white shadow-xl">
+                                            <div className="absolute top-0 right-0 p-4 opacity-10"><TrendingUp size={100}/></div>
+                                            <p className="text-sm font-medium text-gray-300 italic leading-relaxed">&quot;El volumen de ventas actual es récord para este canal. Asegúrate de que el inventario de top-sellers esté cubierto para evitar quiebres.&quot;</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {selectedKPI === 'equipo' && (
+                                    <div className="space-y-6">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="p-5 bg-gray-50 rounded-2xl text-center"><p className="text-[10px] font-black text-gray-400 uppercase mb-1">Activos</p><p className="text-2xl font-black text-gray-900">{filteredList.length}</p></div>
+                                            <div className="p-5 bg-gray-50 rounded-2xl text-center"><p className="text-[10px] font-black text-gray-400 uppercase mb-1">En Meta</p><p className="text-2xl font-black text-emerald-600">{filteredList.filter(s => (s.progress||0) >= 100).length}</p></div>
+                                        </div>
+                                        <p className="text-[10px] font-medium text-gray-500 italic text-center">&quot;Bayt analizó tu equipo: 2 asesores están superando la meta por más del 20%. Considera promoverlos a Mentores.&quot;</p>
+                                    </div>
+                                )}
+                                <button onClick={() => setSelectedKPI(null)} className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all">Cerrar Desglose</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* MODAL DETALLE / AUDITORIA / PAGO RECONECTADO */}
             <AnimatePresence>
                 {selectedSettlement && (
                     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedSettlement(null)} className="absolute inset-0 bg-black/70 backdrop-blur-xl" />
                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-4xl rounded-[4rem] shadow-3xl overflow-hidden flex flex-col md:flex-row relative z-10 border border-white">
+                            <button onClick={() => setSelectedSettlement(null)} className="absolute top-8 right-8 h-12 w-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all z-50 group">
+                                <X size={24} className="group-hover:rotate-90 transition-transform" />
+                            </button>
+                            
                             <div className="w-full md:w-[350px] bg-gray-50 border-r border-gray-100 p-12 space-y-10">
-                                <button onClick={() => setSelectedSettlement(null)} className="h-10 w-10 bg-white rounded-full flex items-center justify-center text-gray-400 hover:text-rose-500 shadow-sm transition-all group">
-                                    <X size={20} className="group-hover:rotate-90 transition-transform" />
-                                </button>
-                                <div className="text-center space-y-4">
+                                <div className="text-center space-y-4 pt-8">
                                     <div className="h-24 w-24 bg-[#004d4d] text-white rounded-[2rem] flex items-center justify-center text-4xl font-black mx-auto shadow-2xl">{selectedSettlement.avatar}</div>
                                     <h3 className="text-2xl font-black text-gray-900 tracking-tight">{selectedSettlement.seller_name}</h3>
                                 </div>
@@ -328,7 +511,10 @@ export default function ComisionesPage() {
                                     <div className="flex justify-between text-[10px] font-black text-gray-400 uppercase"><span>Ventas:</span><span className="text-gray-900">{formatCurrency(selectedSettlement.total_sales)}</span></div>
                                     <div className="flex justify-between text-[10px] font-black text-gray-400 uppercase"><span>Comisión:</span><span className="text-[#004d4d]">{formatCurrency(selectedSettlement.earned || 0)}</span></div>
                                 </div>
-                                <button onClick={() => { showToast("Generando comprobante...", "info"); }} className="w-full py-5 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3">
+                                <button 
+                                    onClick={() => handleDownloadAudit(selectedSettlement)}
+                                    className="w-full py-5 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:bg-[#004d4d] transition-colors"
+                                >
                                     <Download size={16} className="text-[#00f2ff]"/> Descargar Auditoría
                                 </button>
                             </div>
@@ -337,7 +523,7 @@ export default function ComisionesPage() {
                                     <div className="h-12 w-12 bg-[#00f2ff]/10 text-[#00f2ff] rounded-2xl flex items-center justify-center shadow-lg"><Bot size={24}/></div>
                                     <div><h2 className="text-3xl font-black uppercase italic tracking-tighter">Análisis Bayt</h2></div>
                                 </div>
-                                <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100"><p className="text-sm font-medium text-gray-600 leading-relaxed italic">&quot;El asesor presenta un cumplimiento verificado. Se procede a la liberación de fondos.&quot;</p></div>
+                                <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100"><p className="text-sm font-medium text-gray-600 leading-relaxed italic">&quot;El asesor presenta un cumplimiento verificado. Se procede a la liberación de fondos basándose en el modelo de {commissionModel === 'revenue' ? 'Venta Bruta' : 'Utilidad Neta'}.&quot;</p></div>
                                 {selectedSettlement.status === 'pending' && (
                                     <button onClick={handleConfirmPayment} className="mt-auto w-full py-6 bg-[#004D4D] text-white rounded-[2.5rem] font-black text-xs uppercase tracking-widest shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-4 group">
                                         <CheckCircle2 size={24} className="group-hover:scale-110 transition-transform"/> Confirmar Pago
