@@ -34,10 +34,14 @@ import {
     ArrowRight, 
     RefreshCcw,
     History as LucideHistory
-  } from 'lucide-react';import { useState, useEffect, useMemo, useCallback } from 'react';
+  } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
+import TiltCard from '@/components/dashboard/TiltCard';
+import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
+import { generateDetailedReport } from '@/lib/report-generator';
 import { 
     AreaChart, 
     Area, 
@@ -99,38 +103,33 @@ export default function AnalysisGeneralPage() {
     const { token } = useAuth();
     const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState<'general' | 'sucursales' | 'asesores' | 'bayt'>('general');
-    const [selectedPeriod, setSelectedPeriod] = useState('Febrero 2026');
+    const [selectedPeriod, setSelectedPeriod] = useState('Este Mes');
+    const [isPeriodOpen, setIsPeriodOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedMetric, setSelectedMetric] = useState<any>(null);
+
+    const PERIOD_OPTIONS = [
+        "Hoy",
+        "Ayer",
+        "Esta Semana",
+        "Este Mes",
+        "Mes Pasado",
+        "Últimos 3 Meses",
+        "Este Año"
+    ];
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount).replace('$', '$ ');
     };
 
-    const renderKPIs = () => (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 px-4 shrink-0">
-            {[
-                { label: 'Ventas Brutas', value: '$ 25.1M', sub: 'Total ingresos', icon: <DollarSign size={18}/>, color: 'text-[#004d4d]', trend: '+12.5%' },
-                { label: 'Utilidad Neta', value: '$ 16.2M', sub: 'Margen real', icon: <TrendingUp size={18}/>, color: 'text-emerald-600', trend: '+8.2%' },
-                { label: 'Gastos Operativos', value: '$ 8.9M', sub: 'Fijos y variables', icon: <CreditCard size={18}/>, color: 'text-rose-600', trend: '+2.1%' },
-                { label: 'Ticket Promedio', value: '$ 145k', sub: 'Valor por venta', icon: <ShoppingBag size={18}/>, color: 'text-amber-600', trend: '+5.4%' },
-                { label: 'Conversion', value: '8.4%', sub: 'Efectividad web', icon: <Activity size={18}/>, color: 'text-[#00f2ff]', trend: '+1.2%' },
-                { label: 'Staff ROI', value: '4.2x', sub: 'Retorno personal', icon: <Briefcase size={18}/>, color: 'text-blue-600', trend: 'OK' },
-            ].map((kpi, i) => (
-                <motion.div key={i} whileHover={{ y: -5 }} className="bg-white/60 backdrop-blur-md p-6 rounded-[2.2rem] border border-white/80 shadow-sm flex flex-col justify-between group cursor-pointer">
-                    <div className="flex justify-between items-start">
-                        <div className={`h-10 w-10 rounded-xl bg-white shadow-inner flex items-center justify-center ${kpi.color} group-hover:scale-110 transition-transform`}>
-                            {kpi.icon}
-                        </div>
-                        <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${kpi.trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{kpi.trend}</span>
-                    </div>
-                    <div className="mt-4">
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p>
-                        <h3 className="text-xl font-black text-gray-900 mt-1">{kpi.value}</h3>
-                    </div>
-                </motion.div>
-            ))}
-        </div>
-    );
+    const KPIS = [
+        { label: 'Ventas Brutas', value: '$ 25.1M', sub: 'Total ingresos', icon: <DollarSign size={18}/>, color: 'text-[#004d4d]', trend: '+12.5%' },
+        { label: 'Utilidad Neta', value: '$ 16.2M', sub: 'Margen real', icon: <TrendingUp size={18}/>, color: 'text-emerald-600', trend: '+8.2%' },
+        { label: 'Gastos Operativos', value: '$ 8.9M', sub: 'Fijos y variables', icon: <CreditCard size={18}/>, color: 'text-rose-600', trend: '+2.1%' },
+        { label: 'Ticket Promedio', value: '$ 145k', sub: 'Valor por venta', icon: <ShoppingBag size={18}/>, color: 'text-amber-600', trend: '+5.4%' },
+        { label: 'Conversion', value: '8.4%', sub: 'Efectividad web', icon: <Activity size={18}/>, color: 'text-[#00f2ff]', trend: '+1.2%' },
+        { label: 'Staff ROI', value: '4.2x', sub: 'Retorno personal', icon: <Briefcase size={18}/>, color: 'text-blue-600', trend: 'OK' },
+    ];
 
     const [activeHistoryTab, setActiveHistoryTab] = useState<'maestro' | 'riesgos' | 'hitos'>('maestro');
 
@@ -148,6 +147,46 @@ export default function AnalysisGeneralPage() {
         if (activeHistoryTab === 'maestro') return all.filter(i => i.tab === 'maestro');
         return all.filter(i => i.tab === activeHistoryTab);
     }, [activeHistoryTab]);
+
+    const handleExport = () => {
+        try {
+            showToast("Generando reporte PDF...", "info");
+            generateDetailedReport({
+                kpis: KPIS,
+                salesTrend: SALES_TREND,
+                revenueByChannel: REVENUE_BY_CHANNEL,
+                branchComparison: BRANCH_COMPARISON,
+                advisorRanking: ADVISOR_RANKING,
+                historyData: historyData, // Uses the currently filtered or memoized data, but function will augment it
+                period: selectedPeriod
+            });
+            showToast("¡Reporte generado con éxito!", "success");
+        } catch (error) {
+            console.error("Error generating PDF:", error);
+            showToast("Error al generar el reporte", "error");
+        }
+    };
+
+    const renderKPIs = () => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 px-4 shrink-0">
+            {KPIS.map((kpi, i) => (
+                <TiltCard key={i} onClick={() => setSelectedMetric(kpi)} className="h-full">
+                    <div className="bg-white/95 p-6 rounded-[2.2rem] border border-white shadow-xl flex flex-col justify-between h-full group">
+                        <div className="flex justify-between items-start">
+                            <div className={`h-10 w-10 rounded-xl bg-white shadow-inner flex items-center justify-center ${kpi.color} group-hover:scale-110 transition-transform`}>
+                                {kpi.icon}
+                            </div>
+                            <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${kpi.trend.startsWith('+') || kpi.trend === 'OK' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{kpi.trend}</span>
+                        </div>
+                        <div className="mt-4">
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p>
+                            <h3 className="text-xl font-black text-gray-900 mt-1">{kpi.value}</h3>
+                        </div>
+                    </div>
+                </TiltCard>
+            ))}
+        </div>
+    );
 
     const renderGeneralCharts = () => (
         <div className="space-y-12">
@@ -407,11 +446,11 @@ export default function AnalysisGeneralPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10 space-y-4">
                                 <div className="flex items-center gap-3"><Sparkles className="text-[#00f2ff]" size={20}/><p className="text-[10px] font-black uppercase tracking-widest text-[#00f2ff]">Oportunidad Detectada</p></div>
-                                <p className="text-sm font-medium italic leading-relaxed">"Tu rentabilidad ha subido un 4.2% gracias a la reducción del costo logístico en la Sucursal Norte. Recomiendo replicar su modelo de empaque en la Principal."</p>
+                                <p className="text-sm font-medium italic leading-relaxed">&quot;Tu rentabilidad ha subido un 4.2% gracias a la reducción del costo logístico en la Sucursal Norte. Recomiendo replicar su modelo de empaque en la Principal.&quot;</p>
                             </div>
                             <div className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10 space-y-4">
                                 <div className="flex items-center gap-3"><TrendingDown className="text-rose-400" size={20}/><p className="text-[10px] font-black uppercase tracking-widest text-rose-400">Alerta de Rendimiento</p></div>
-                                <p className="text-sm font-medium italic leading-relaxed">"El canal de Instagram tiene el CAC más alto ($22.500). Sugiero pausar pauta en este canal y mover el 20% del presupuesto a WhatsApp, que es un 3x más eficiente."</p>
+                                <p className="text-sm font-medium italic leading-relaxed">&quot;El canal de Instagram tiene el CAC más alto ($22.500). Sugiero pausar pauta en este canal y mover el 20% del presupuesto a WhatsApp, que es un 3x más eficiente.&quot;</p>
                             </div>
                         </div>
                     </div>
@@ -421,7 +460,7 @@ export default function AnalysisGeneralPage() {
     );
 
     return (
-        <div className="max-w-[1600px] mx-auto pb-20 space-y-12 animate-in fade-in duration-1000">
+        <div className="max-w-[1600px] mx-auto pb-20 space-y-12 animate-in fade-in duration-1000 relative">
             
             {/* --- HEADER MAESTRO --- */}
             <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8 px-4 shrink-0">
@@ -438,14 +477,46 @@ export default function AnalysisGeneralPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <div className="bg-white p-2 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4">
-                        <div className="px-6 py-2">
-                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Período de Análisis</p>
-                            <p className="text-sm font-black text-gray-900">{selectedPeriod}</p>
-                        </div>
-                        <button className="h-12 w-12 bg-gray-900 text-white rounded-2xl flex items-center justify-center hover:bg-black transition-all shadow-lg"><Calendar size={20} className="text-[#00f2ff]"/></button>
+                    <div className="relative z-50">
+                        <button 
+                            onClick={() => setIsPeriodOpen(!isPeriodOpen)}
+                            className="bg-white p-2 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all active:scale-95"
+                        >
+                            <div className="px-6 py-2 text-left">
+                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Período de Análisis</p>
+                                <p className="text-sm font-black text-gray-900 w-32 truncate">{selectedPeriod}</p>
+                            </div>
+                            <div className={`h-12 w-12 bg-gray-900 text-white rounded-2xl flex items-center justify-center transition-all shadow-lg ${isPeriodOpen ? 'bg-[#004d4d] rotate-180' : ''}`}>
+                                <Calendar size={20} className="text-[#00f2ff]"/>
+                            </div>
+                        </button>
+
+                        <AnimatePresence>
+                            {isPeriodOpen && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    className="absolute top-full right-0 mt-2 w-full bg-white rounded-[1.5rem] shadow-2xl border border-gray-100 overflow-hidden p-2"
+                                >
+                                    {PERIOD_OPTIONS.map((option) => (
+                                        <button
+                                            key={option}
+                                            onClick={() => {
+                                                setSelectedPeriod(option);
+                                                setIsPeriodOpen(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between group ${selectedPeriod === option ? 'bg-[#004d4d] text-white' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
+                                        >
+                                            {option}
+                                            {selectedPeriod === option && <div className="h-2 w-2 rounded-full bg-[#00f2ff]" />}
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
-                    <button className="h-14 px-8 bg-[#004d4d] text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-3 hover:scale-105 transition-all"><Download size={18} className="text-[#00f2ff]"/> Exportar Auditoría</button>
+                    <button onClick={handleExport} className="h-14 px-8 bg-[#004d4d] text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-3 hover:scale-105 transition-all"><Download size={18} className="text-[#00f2ff]"/> Exportar Auditoría</button>
                 </div>
             </div>
 
@@ -502,6 +573,13 @@ export default function AnalysisGeneralPage() {
                     {activeTab === 'bayt' && renderBaytInsight()}
                 </motion.div>
             </AnimatePresence>
+
+            {/* --- MODAL DE DETALLE (FLOTANTE) --- */}
+            <MetricDetailModal 
+                isOpen={!!selectedMetric} 
+                onClose={() => setSelectedMetric(null)} 
+                metric={selectedMetric} 
+            />
 
             <style jsx global>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
