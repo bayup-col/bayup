@@ -214,7 +214,7 @@ export default function AnalysisGeneralPage() {
                         <BarChart3 className="text-gray-200" size={24} />
                     </div>
                     <div className="flex-1 min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                             <AreaChart data={SALES_TREND}>
                                 <defs>
                                     <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
