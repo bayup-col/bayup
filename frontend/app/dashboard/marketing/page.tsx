@@ -81,6 +81,7 @@ import {
 import TiltCard from '@/components/dashboard/TiltCard';
 import MarketingInfoModal from '@/components/dashboard/MarketingInfoModal';
 import MarketingMetricModal from '@/components/dashboard/MarketingMetricModal';
+import { generateMarketingPDF } from '@/lib/marketing-report';
 
 // --- CONFIGURACIÓN DE COLORES ---
 const COLORS = {
@@ -117,15 +118,18 @@ const CAMPAIGN_FUNNEL = [
 const MOCK_CAMPAIGNS: any[] = [
     { 
         id: 'c1', name: 'Cyber Monday Bayup', status: 'active', objective: 'Conversión', 
-        channels: ['whatsapp', 'instagram'], budget: 1500000, sales: 8400000, roas: 5.6, performance: 'excelente'
+        channels: ['whatsapp', 'instagram'], budget: 1500000, sales: 8400000, roas: 5.6, performance: 'excelente',
+        createdAt: new Date().toISOString()
     },
     { 
         id: 'c2', name: 'Reactivación Inactivos', status: 'active', objective: 'Fidelización', 
-        channels: ['email', 'whatsapp'], budget: 500000, sales: 1200000, roas: 2.4, performance: 'normal'
+        channels: ['email', 'whatsapp'], budget: 500000, sales: 1200000, roas: 2.4, performance: 'normal',
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
     },
     { 
         id: 'c3', name: 'Liquidación Verano', status: 'paused', objective: 'Liquidación', 
-        channels: ['web', 'marketplace'], budget: 2000000, sales: 3100000, roas: 1.55, performance: 'bajo'
+        channels: ['web', 'marketplace'], budget: 2000000, sales: 3100000, roas: 1.55, performance: 'bajo',
+        createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
     },
 ];
 
@@ -206,19 +210,48 @@ export default function MarketingPage() {
     // UI States para Auditoría
     const [showInfoModal, setShowInfoModal] = useState(false);
     const [selectedKPI, setSelectedKPI] = useState<any>(null);
-    const [isFilterHovered, setIsFilterHovered] = useState(false);
-    const [isExportHovered, setIsExportHovered] = useState(false);
-    const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedCampaignDetail, setSelectedCampaignDetail] = useState<any | null>(null);
     const [filterObjective, setFilterObjective] = useState('all');
+    const [filterDateRange, setFilterDateRange] = useState('all');
+    const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+    const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
+    const [isFilterHovered, setIsFilterHovered] = useState(false);
+    const [isDateHovered, setIsDateHovered] = useState(false);
+    const [isExportHovered, setIsExportHovered] = useState(false);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount).replace('$', '$ ');
     };
 
     const handleExport = () => {
-        showToast("Generando reporte de ROI detallado...", "info");
-        setTimeout(() => showToast("Reporte descargado correctamente", "success"), 1500);
+        showToast("Generando reporte estratégico Platinum...", "info");
+        
+        // Calcular estadísticas globales reales basadas en las campañas actuales
+        const totalSales = campaigns.reduce((acc, c) => acc + c.sales, 0);
+        const totalBudget = campaigns.reduce((acc, c) => acc + c.budget, 0);
+        const activeCount = campaigns.filter(c => c.status === 'active').length;
+        const avgRoas = campaigns.length > 0 
+            ? Number((campaigns.reduce((acc, c) => acc + c.roas, 0) / campaigns.length).toFixed(1))
+            : 0;
+
+        setTimeout(() => {
+            try {
+                generateMarketingPDF({
+                    campaigns: campaigns,
+                    globalStats: {
+                        totalSales: totalSales,
+                        totalBudget: totalBudget,
+                        avgRoas: avgRoas,
+                        activeCampaigns: activeCount
+                    }
+                });
+                showToast("Reporte exportado con éxito 📄", "success");
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                showToast("Error al generar el reporte", "danger");
+            }
+        }, 1500);
     };
 
     const renderKPIs = () => (
@@ -268,7 +301,7 @@ export default function MarketingPage() {
                         layout
                         onMouseEnter={() => setIsFilterHovered(true)}
                         onMouseLeave={() => setIsFilterHovered(false)}
-                        onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
+                        onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setIsDateMenuOpen(false); }}
                         className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isFilterMenuOpen ? 'bg-[#004d4d] text-white shadow-lg' : 'bg-white text-slate-500 border border-gray-100 hover:text-[#004d4d] shadow-sm'} group`}
                     >
                         <motion.div layout><Filter size={18}/></motion.div>
@@ -294,6 +327,52 @@ export default function MarketingPage() {
                                         className={`w-full text-left px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${filterObjective === obj ? 'bg-[#004d4d] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
                                     >
                                         {obj === 'all' ? 'Todos' : obj}
+                                    </button>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Filtro de Fecha */}
+                <div className="relative">
+                    <motion.button 
+                        layout
+                        onMouseEnter={() => setIsDateHovered(true)}
+                        onMouseLeave={() => setIsDateHovered(false)}
+                        onClick={() => { setIsDateMenuOpen(!isDateMenuOpen); setIsFilterMenuOpen(false); }}
+                        className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isDateMenuOpen ? 'bg-[#004d4d] text-white shadow-lg' : 'bg-white text-slate-500 border border-gray-100 hover:text-[#004d4d] shadow-sm'} group`}
+                    >
+                        <motion.div layout><Calendar size={18}/></motion.div>
+                        <AnimatePresence mode="popLayout">
+                            {(isDateHovered || isDateMenuOpen) && (
+                                <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">
+                                    {filterDateRange === 'all' ? 'Fecha' : 
+                                     filterDateRange === 'today' ? 'Hoy' : 
+                                     filterDateRange === 'week' ? '7 días' : 'Este Mes'}
+                                </motion.span>
+                            )}
+                        </AnimatePresence>
+                    </motion.button>
+
+                    <AnimatePresence>
+                        {isDateMenuOpen && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50"
+                            >
+                                {[
+                                    { id: 'all', label: 'Siempre' },
+                                    { id: 'today', label: 'Hoy' },
+                                    { id: 'week', label: 'Últimos 7 días' },
+                                    { id: 'month', label: 'Este Mes' }
+                                ].map((range) => (
+                                    <button
+                                        key={range.id}
+                                        onClick={() => { setFilterDateRange(range.id); setIsDateMenuOpen(false); }}
+                                        className={`w-full text-left px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${filterDateRange === range.id ? 'bg-[#004d4d] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        {range.label}
                                     </button>
                                 ))}
                             </motion.div>
@@ -422,9 +501,25 @@ export default function MarketingPage() {
         return campaigns.filter(c => {
             const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesObjective = filterObjective === 'all' || c.objective === filterObjective;
-            return matchesSearch && matchesObjective;
+            
+            // Lógica de filtrado por fecha
+            let matchesDate = true;
+            if (filterDateRange !== 'all') {
+                const campaignDate = new Date(c.createdAt);
+                const now = new Date();
+                if (filterDateRange === 'today') {
+                    matchesDate = campaignDate.toDateString() === now.toDateString();
+                } else if (filterDateRange === 'week') {
+                    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    matchesDate = campaignDate >= weekAgo;
+                } else if (filterDateRange === 'month') {
+                    matchesDate = campaignDate.getMonth() === now.getMonth() && campaignDate.getFullYear() === now.getFullYear();
+                }
+            }
+
+            return matchesSearch && matchesObjective && matchesDate;
         });
-    }, [searchTerm, filterObjective, campaigns]);
+    }, [searchTerm, filterObjective, filterDateRange, campaigns]);
 
     const renderCampaignList = () => (
         <div className="px-4 space-y-6">
@@ -440,15 +535,16 @@ export default function MarketingPage() {
                     <motion.div 
                         key={c.id} 
                         whileHover={{ x: 5 }}
-                        className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative overflow-hidden"
+                        onClick={() => setSelectedCampaignDetail(c)}
+                        className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative overflow-hidden cursor-pointer group"
                     >
-                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${c.performance === 'excelente' ? 'bg-[#00f2ff]' : c.performance === 'normal' ? 'bg-amber-400' : 'bg-rose-500'}`}></div>
+                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-all group-hover:w-3 ${c.performance === 'excelente' ? 'bg-[#00f2ff]' : c.performance === 'normal' ? 'bg-amber-400' : 'bg-rose-500'}`}></div>
                         <div className="flex items-center gap-6 flex-1">
-                            <div className="h-16 w-16 rounded-[1.5rem] bg-gray-50 flex items-center justify-center text-[#004d4d] border border-gray-100 shadow-inner">
+                            <div className="h-16 w-16 rounded-[1.5rem] bg-gray-50 flex items-center justify-center text-[#004d4d] border border-gray-100 shadow-inner group-hover:scale-110 transition-transform">
                                 <Target size={32} />
                             </div>
                             <div>
-                                <h5 className="text-xl font-black text-gray-900 tracking-tight">{c.name}</h5>
+                                <h5 className="text-xl font-black text-gray-900 tracking-tight group-hover:text-[#004d4d] transition-colors">{c.name}</h5>
                                 <div className="flex items-center gap-3 mt-1.5">
                                     <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-gray-100 text-gray-500">{c.objective}</span>
                                     <div className="flex -space-x-1">
@@ -472,13 +568,126 @@ export default function MarketingPage() {
                                     {c.status === 'active' ? 'En Curso' : 'Pausada'}
                                 </span>
                             </div>
-                            <button className="h-12 w-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-[#004d4d] transition-all shadow-sm active:scale-95"><ArrowUpRight size={20} /></button>
+                            <button className="h-12 w-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#004d4d] group-hover:text-white transition-all shadow-sm active:scale-95"><ArrowUpRight size={20} /></button>
                         </div>
                     </motion.div>
                 ))}
             </div>
         </div>
     );
+
+    const renderCampaignDetailModal = () => {
+        if (!selectedCampaignDetail) return null;
+        const c = selectedCampaignDetail;
+
+        const handleToggleStatus = () => {
+            const updated = campaigns.map(camp => 
+                camp.id === c.id ? { ...camp, status: camp.status === 'active' ? 'paused' : 'active' } : camp
+            );
+            setCampaigns(updated);
+            setSelectedCampaignDetail({ ...c, status: c.status === 'active' ? 'paused' : 'active' });
+            showToast(c.status === 'active' ? "Campaña pausada" : "Campaña reanudada", "info");
+        };
+
+        const handleCancelCampaign = () => {
+            if (window.confirm("¿Estás seguro de cancelar definitivamente esta campaña? Esta acción no se puede deshacer.")) {
+                setCampaigns(campaigns.filter(camp => camp.id !== c.id));
+                setSelectedCampaignDetail(null);
+                showToast("Campaña cancelada y eliminada", "success");
+            }
+        };
+
+        return (
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedCampaignDetail(null)} className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl" />
+                <motion.div initial={{ opacity: 0, scale: 0.9, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 40 }} className="relative bg-white w-full max-w-4xl rounded-[4rem] shadow-3xl overflow-hidden flex flex-col border border-white/20">
+                    <div className="p-10 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                        <div className="flex items-center gap-6">
+                            <div className="h-16 w-16 rounded-3xl bg-white shadow-xl flex items-center justify-center text-[#004d4d]">
+                                <Target size={32} />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black text-gray-900 italic uppercase tracking-tighter">{c.name}</h3>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">ID: {c.id} • Creada: {new Date(c.createdAt).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setSelectedCampaignDetail(null)} className="h-12 w-12 rounded-2xl bg-white border border-gray-100 text-gray-400 hover:text-rose-500 transition-all shadow-sm"><X size={24}/></button>
+                    </div>
+
+                    <div className="p-12 space-y-12 overflow-y-auto max-h-[70vh] custom-scrollbar">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div className="bg-[#004d4d] p-8 rounded-[3rem] text-white">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[#00f2ff]">Ventas Totales</p>
+                                <h4 className="text-3xl font-black mt-2">{formatCurrency(c.sales)}</h4>
+                                <div className="mt-4 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                                    <div className="h-full bg-[#00f2ff]" style={{ width: '70%' }}></div>
+                                </div>
+                            </div>
+                            <div className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Retorno ROAS</p>
+                                <h4 className="text-3xl font-black text-gray-900 mt-2">{c.roas}x</h4>
+                                <p className="text-[10px] font-bold text-emerald-500 mt-2 italic">Rendimiento Óptimo</p>
+                            </div>
+                            <div className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Presupuesto</p>
+                                <h4 className="text-3xl font-black text-gray-900 mt-2">{formatCurrency(c.budget)}</h4>
+                                <p className="text-[10px] font-bold text-gray-400 mt-2 italic">54% Ejecutado</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><Activity size={14}/> Análisis Táctico de Bayt</h4>
+                            <div className="bg-gray-900 p-8 rounded-[3rem] text-white relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:rotate-12 transition-transform"><Sparkles size={100} /></div>
+                                <p className="text-sm font-medium italic opacity-90 leading-relaxed">
+                                    "{c.roas > 4 
+                                        ? `La campaña ${c.name} está superando el ROAS objetivo por un 22%. Mantener activa y considerar un aumento del 10% en el presupuesto diario para maximizar el cierre de ventas.` 
+                                        : `El rendimiento es estable pero el CPA ha subido ligeramente. Sugiero optimizar los copies antes de aumentar la inversión.`}"
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Información Base</h4>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between p-4 bg-gray-50 rounded-2xl"><span className="text-xs text-gray-500">Objetivo</span><span className="text-xs font-black uppercase">{c.objective}</span></div>
+                                    <div className="flex justify-between p-4 bg-gray-50 rounded-2xl"><span className="text-xs text-gray-500">Canales</span><span className="text-xs font-black uppercase">{c.channels.join(', ')}</span></div>
+                                    <div className="flex justify-between p-4 bg-gray-50 rounded-2xl"><span className="text-xs text-gray-500">Estado</span><span className={`text-xs font-black uppercase ${c.status === 'active' ? 'text-emerald-500' : 'text-amber-500'}`}>{c.status === 'active' ? 'En Curso' : 'Pausada'}</span></div>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones de Control</h4>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <button 
+                                        onClick={handleToggleStatus}
+                                        className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${c.status === 'active' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'}`}
+                                    >
+                                        {c.status === 'active' ? 'Pausar Campaña' : 'Reanudar Campaña'}
+                                    </button>
+                                    <button 
+                                        onClick={handleCancelCampaign}
+                                        className="w-full py-4 bg-white border-2 border-rose-100 text-rose-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-50 transition-all"
+                                    >
+                                        Cancelar Definitivamente
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-10 border-t border-gray-100 bg-gray-50 flex justify-end">
+                        <button 
+                            onClick={() => setSelectedCampaignDetail(null)}
+                            className="px-12 py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-black transition-all"
+                        >
+                            Cerrar Panel
+                        </button>
+                    </div>
+                </motion.div>
+            </div>
+        );
+    };
 
     const renderCampaignAnalytics = () => (
         <div className="space-y-10 animate-in fade-in duration-500">
@@ -1229,7 +1438,7 @@ export default function MarketingPage() {
                 {renderKPIs()}
             </div>
 
-            <div className="flex items-center justify-center gap-6 shrink-0 relative z-20 pt-4">
+            <div className="flex items-center justify-center gap-4 shrink-0 relative z-20 pt-4">
                 <div className="p-2 bg-white/60 backdrop-blur-2xl border border-white shadow-2xl rounded-full flex items-center relative gap-2">
                     {[
                         { id: 'todos', label: 'Todos', icon: <LayoutGrid size={14}/> },
@@ -1257,16 +1466,19 @@ export default function MarketingPage() {
                             </button>
                         );
                     })}
-                    
-                    <div className="w-px h-8 bg-gray-200 mx-2" />
-                    
-                    <button
-                        onClick={() => setShowInfoModal(true)}
-                        className="h-12 w-12 rounded-full bg-white border border-gray-100 text-[#004d4d] flex items-center justify-center hover:scale-110 hover:bg-[#004d4d] hover:text-white transition-all shadow-xl active:scale-95 group"
-                    >
-                        <Info size={20} />
-                    </button>
                 </div>
+
+                {/* Botón de Información (Alineado al lado del menú) */}
+                <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowInfoModal(true)}
+                    className="h-14 w-14 rounded-full bg-white/80 backdrop-blur-xl border border-white shadow-2xl flex items-center justify-center text-[#004d4d] hover:bg-gray-900 hover:text-white transition-all group"
+                >
+                    <Info size={20} className="group-hover:scale-110 transition-transform" />
+                </motion.button>
             </div>
 
             <div className="relative px-4">
@@ -1289,6 +1501,10 @@ export default function MarketingPage() {
 
             <AnimatePresence>
                 {isCreateModalOpen && renderCreateWizard()}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {selectedCampaignDetail && renderCampaignDetailModal()}
             </AnimatePresence>
 
             <MarketingInfoModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} />
