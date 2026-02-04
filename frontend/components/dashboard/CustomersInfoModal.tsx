@@ -16,23 +16,10 @@ import {
   ArrowUpRight,
   Bot,
   PieChart,
-  ShoppingBag
-} from "lucide-center";
-import { useState } from "react";
-import { 
-    X as LucideX, 
-    Users as LucideUsers, 
-    Star as LucideStar, 
-    Activity as LucideActivity, 
-    PieChart as LucidePie, 
-    Bot as LucideBot,
-    ArrowUpRight as LucideArrow,
-    ShieldCheck as LucideShield,
-    Sparkles as LucideSparkles,
-    Clock as LucideClock,
-    Zap as LucideZap,
-    LayoutGrid as LucideGrid
+  ShoppingBag,
+  Briefcase
 } from "lucide-react";
+import { useState } from "react";
 
 interface CustomersInfoModalProps {
   isOpen: boolean;
@@ -45,42 +32,42 @@ export default function CustomersInfoModal({ isOpen, onClose }: CustomersInfoMod
   const guideContent: any = {
     todos: {
         title: 'Gestión 360° de Cartera',
-        icon: <LucideGrid size={20}/>,
+        icon: <LayoutGrid size={20}/>,
         color: 'text-[#004d4d]',
         bgColor: 'bg-[#004d4d]/5',
         description: 'Visión consolidada de tu activo más valioso: la base de datos de clientes sincronizada.',
         strategy: 'No trates a todos por igual. El 20% de tus clientes suele generar el 80% de tus ingresos (Pareto). Aquí identificas quiénes son para proteger esa relación.',
         kpis: [
-            { label: 'Total Cartera', value: '1,240', sub: 'Registrados', icon: <LucideUsers size={12}/> },
-            { label: 'LTV Promedio', value: '$ 420k', sub: 'Valor Vida', icon: <LucideActivity size={12}/> }
+            { label: 'Total Cartera', value: '1,240', sub: 'Registrados', icon: <Users size={12}/> },
+            { label: 'LTV Promedio', value: '$ 420k', sub: 'Valor Vida', icon: <Activity size={12}/> }
         ],
         whyItMatters: 'Permite centralizar la data de ventas online y POS físico en un solo perfil unificado del comprador.',
         baytTip: "He sincronizado 42 nuevos clientes desde la tienda física hoy. Sugiéreles un cupón de segunda compra para aumentar la recurrencia."
     },
     vip: {
         title: 'Segmento VIP & Oro',
-        icon: <LucideStar size={20}/>,
+        icon: <Star size={20}/>,
         color: 'text-amber-500',
         bgColor: 'bg-amber-500/5',
         description: 'Tus mejores compradores. Aquellos con un ticket promedio alto y alta frecuencia.',
         strategy: 'Los VIP no buscan descuentos, buscan exclusividad. Ofréceles acceso anticipado a nuevas colecciones o soporte prioritario.',
         kpis: [
-            { label: 'Clientes VIP', value: '156', sub: 'Top Tier', icon: <LucideStar size={12}/> },
-            { label: 'Ticket VIP', value: '$ 850k', sub: '+120% vs avg', icon: <LucideArrow size={12}/> }
+            { label: 'Clientes VIP', value: '156', sub: 'Top Tier', icon: <Star size={12}/> },
+            { label: 'Ticket VIP', value: '$ 850k', sub: '+120% vs avg', icon: <ArrowUpRight size={12}/> }
         ],
         whyItMatters: 'Retener un VIP es 7 veces más económico que adquirir un cliente nuevo desde cero.',
         baytTip: "Tus VIP compran mayoritariamente los fines de semana. Evita saturarlos con mensajes los lunes o martes."
     },
     retencion: {
         title: 'Estrategias de Retención',
-        icon: <LucideZap size={20}/>,
+        icon: <Zap size={20}/>,
         color: 'text-[#00f2ff]',
         bgColor: 'bg-[#00f2ff]/5',
         description: 'Análisis de inactividad y protocolos de reactivación de clientes "en riesgo".',
         strategy: 'Un cliente inactivo es una fuga de capital. Identificamos a quienes no compran hace +90 días para lanzar campañas de retoma.',
         kpis: [
-            { label: 'Tasa Retención', value: '68%', sub: 'Healthy', icon: <LucideShield size={12}/> },
-            { label: 'En Riesgo', value: '42', sub: 'Inactivos', icon: <LucideClock size={12}/> }
+            { label: 'Tasa Retención', value: '68%', sub: 'Healthy', icon: <ShieldCheck size={12}/> },
+            { label: 'En Riesgo', value: '42', sub: 'Inactivos', icon: <Clock size={12}/> }
         ],
         whyItMatters: 'La recurrencia es la clave de la rentabilidad a largo plazo. Un negocio que solo vive de clientes nuevos es frágil.',
         baytTip: "He detectado 12 clientes que solían comprar cada mes y llevan 45 días sin actividad. Sugiero una campaña de 'Te extrañamos'."
@@ -108,7 +95,7 @@ export default function CustomersInfoModal({ isOpen, onClose }: CustomersInfoMod
                 <div>
                     <div className="flex items-center gap-3 mb-10 px-2">
                         <div className="h-10 w-10 bg-gray-900 rounded-2xl flex items-center justify-center shadow-lg">
-                            <LucideUsers className="text-[#00f2ff]" size={20}/>
+                            <Users className="text-[#00f2ff]" size={20}/>
                         </div>
                         <div>
                             <h3 className="text-xs font-black uppercase tracking-[0.3em] text-gray-900">Guía Cartera</h3>
@@ -139,7 +126,7 @@ export default function CustomersInfoModal({ isOpen, onClose }: CustomersInfoMod
                 </div>
 
                 <div className="mt-10 p-6 bg-gray-900 rounded-[2.5rem] text-white relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform"><LucideSparkles size={40} className="text-[#00f2ff]"/></div>
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform"><Sparkles size={40} className="text-[#00f2ff]"/></div>
                     <p className="text-[9px] font-black uppercase tracking-widest text-[#00f2ff]/60 mb-2">CRM Status</p>
                     <p className="text-[10px] font-medium italic opacity-80 leading-relaxed">Sincronización neural de clientes activa.</p>
                 </div>
@@ -170,7 +157,7 @@ export default function CustomersInfoModal({ isOpen, onClose }: CustomersInfoMod
                         onClick={onClose} 
                         className="h-12 w-12 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:rotate-90 transition-all shadow-sm active:scale-95"
                     >
-                        <LucideX size={24}/>
+                        <X size={24}/>
                     </button>
                 </div>
 
@@ -192,7 +179,7 @@ export default function CustomersInfoModal({ isOpen, onClose }: CustomersInfoMod
 
                             <section>
                                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-                                    <LucideActivity size={14} className="text-gray-900"/> Indicadores de Cartera
+                                    <Activity size={14} className="text-gray-900"/> Indicadores de Cartera
                                 </h4>
                                 <div className="grid grid-cols-2 gap-4">
                                     {guideContent[activeGuideTab].kpis.map((kpi: any, i: number) => (
@@ -214,16 +201,16 @@ export default function CustomersInfoModal({ isOpen, onClose }: CustomersInfoMod
                         {/* Columna 2: Estratégica */}
                         <div className="space-y-10">
                             <section className="bg-gray-900 p-10 rounded-[3.5rem] text-white relative overflow-hidden shadow-2xl group">
-                                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-1000"><LucideUsers size={150} /></div>
+                                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-1000"><Users size={150} /></div>
                                 <h4 className="text-[10px] font-black text-[#00f2ff] uppercase tracking-[0.3em] mb-6 flex items-center gap-3 relative z-10">
-                                    <LucideZap size={14}/> Visión de Valor
+                                    <Zap size={14}/> Visión de Valor
                                 </h4>
                                 <p className="text-base font-medium leading-relaxed opacity-90 italic relative z-10">
                                     "{guideContent[activeGuideTab].strategy}"
                                 </p>
                                 <div className="mt-10 pt-10 border-t border-white/10 relative z-10">
                                     <button className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[#00f2ff] hover:gap-5 transition-all">
-                                        Explorar Customer Analytics <LucideArrow size={14}/>
+                                        Explorar Customer Analytics <ArrowUpRight size={14}/>
                                     </button>
                                 </div>
                             </section>
@@ -231,7 +218,7 @@ export default function CustomersInfoModal({ isOpen, onClose }: CustomersInfoMod
                             <section className="bg-[#00f2ff]/10 border border-[#00f2ff]/20 p-10 rounded-[3.5rem] relative overflow-hidden group">
                                 <div className="flex items-center gap-3 mb-6 relative z-10">
                                     <div className="h-10 w-10 bg-gray-900 rounded-2xl flex items-center justify-center shadow-lg">
-                                        <LucideBot className="text-[#00f2ff]" size={18}/>
+                                        <Bot className="text-[#00f2ff]" size={18}/>
                                     </div>
                                     <h4 className="text-[10px] font-black text-gray-900 uppercase tracking-[0.3em]">Consejo de Bayt AI</h4>
                                 </div>
@@ -251,7 +238,7 @@ export default function CustomersInfoModal({ isOpen, onClose }: CustomersInfoMod
                         onClick={onClose}
                         className="px-12 py-5 bg-gray-900 text-white rounded-full font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl hover:bg-black hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
                     >
-                        Entendido <LucideArrow size={16}/>
+                        Entendido <ArrowUpRight size={16}/>
                     </button>
                 </div>
             </div>
