@@ -100,6 +100,7 @@ export default function GastosPage() {
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [activeGuideStep, setActiveGuideStep] = useState(0);
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+    const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
 
     const [formData, setFormData] = useState({
         description: '',
@@ -169,10 +170,85 @@ export default function GastosPage() {
     };
 
     const handleDownloadReport = () => {
-        const html = `<html><body style="font-family: sans-serif; padding: 40px;"><h1>REPORTE DE GASTOS BAYUP</h1><p>TOTAL: ${formatCurrency(totals.total)}</p></body></html>`;
+        const reportTitle = activeTab === 'resumen' ? 'REPORTE GENERAL DE EGRESOS' : 
+                           activeTab === 'fijos' ? 'AUDITORÍA DE COSTOS FIJOS' : 'CONTROL DE CAJA MENOR';
+        
+        const date = new Date().toLocaleDateString();
+        const time = new Date().toLocaleTimeString();
+
+        const html = `
+            <html><head><meta charset="utf-8"><style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+                .header { background: #001a1a; color: #00f2ff; text-align: center; padding: 40px; border-bottom: 5px solid #004d4d; }
+                .header h1 { margin: 0; font-size: 26px; letter-spacing: 2px; text-transform: uppercase; }
+                .header p { margin: 5px 0 0; opacity: 0.7; font-size: 12px; }
+                .info-section { padding: 30px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+                .info-grid { display: table; width: 100%; }
+                .info-item { display: table-cell; font-size: 13px; color: #64748b; }
+                .info-item b { color: #0f172a; }
+                table { width: 100%; border-collapse: collapse; margin-top: 0; }
+                th { background: #f1f5f9; color: #475569; text-align: left; font-size: 11px; text-transform: uppercase; padding: 15px 12px; border-bottom: 2px solid #e2e8f0; }
+                td { padding: 15px 12px; font-size: 13px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+                .category-tag { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+                .amount { font-weight: 900; color: #0f172a; text-align: right; }
+                .status-paid { color: #10b981; font-weight: bold; }
+                .status-pending { color: #f59e0b; font-weight: bold; }
+                .footer { background: #001a1a; color: white; padding: 20px; }
+                .total-row { background: #f0fdf4; }
+                .total-label { text-align: right; font-weight: 900; color: #004d4d; text-transform: uppercase; font-size: 12px; }
+            </style></head><body>
+                <div class="header">
+                    <h1>${reportTitle}</h1>
+                    <p>Sistema de Gestión Financiera Bayup | Platinum v2.0</p>
+                </div>
+                <div class="info-section">
+                    <div class="info-grid">
+                        <div class="info-item"><b>Periodo:</b> ${selectedPeriod}</div>
+                        <div class="info-item"><b>Fecha Emisión:</b> ${date}</div>
+                        <div class="info-item"><b>Hora:</b> ${time}</div>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Descripción del Concepto</th>
+                            <th>Categoría</th>
+                            <th>Método Pago</th>
+                            <th>Vencimiento</th>
+                            <th>Estado</th>
+                            <th style="text-align: right;">Monto (COP)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredExpenses.map(e => `
+                            <tr>
+                                <td>${e.description}</td>
+                                <td><span class="category-tag">${e.category.replace('_', ' ')}</span></td>
+                                <td>${e.payment_method}</td>
+                                <td>${e.due_date}</td>
+                                <td class="${e.status === 'paid' ? 'status-paid' : 'status-pending'}">
+                                    ${e.status === 'paid' ? 'LIQUIDADO' : 'PENDIENTE'}
+                                </td>
+                                <td class="amount">${formatCurrency(e.amount)}</td>
+                            </tr>
+                        `).join('')}
+                        <tr class="total-row">
+                            <td colspan="5" class="total-label">Balance Total Exportado:</td>
+                            <td class="amount" style="color: #ef4444; font-size: 16px;">${formatCurrency(filteredExpenses.reduce((acc, e) => acc + e.amount, 0))}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="padding: 20px; text-align: center; color: #94a3b8; font-size: 10px;">
+                    © 2026 BAYUP INTERACTIVE UP. Documento generado por Bayt AI para fines de auditoría corporativa.
+                </div>
+            </body></html>
+        `;
         const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Gastos_Bayup.xls'; a.click();
-        showToast("Reporte descargado", "success");
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Reporte_${activeTab.toUpperCase()}_${selectedPeriod.replace(/\s+/g, '_')}.xls`;
+        a.click();
+        showToast("Reporte Platinum generado correctamente 📦", "success");
     };
 
     const renderActionBar = () => (
@@ -237,12 +313,16 @@ export default function GastosPage() {
                                     <motion.div key={e.id} whileHover={{ x: 5 }} className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-10">
                                         <div className="flex items-center gap-6 flex-1"><div className={`h-16 w-16 rounded-[1.8rem] flex items-center justify-center text-xl font-black shadow-2xl ${e.category === 'operativo_fijo' ? 'bg-[#004d4d] text-[#00f2ff]' : 'bg-rose-50 text-rose-600'}`}>{e.category === 'operativo_fijo' ? <Briefcase size={24} /> : <ShoppingBag size={24} />}</div><div><div className="flex items-center gap-3"><h4 className="text-xl font-black text-gray-900 tracking-tight">{e.description}</h4><span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${e.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>{e.status === 'paid' ? 'Liquidado' : 'Pendiente'}</span></div><p className="text-[10px] text-gray-400 font-bold uppercase mt-1 italic">{e.category.replace('_', ' ')}</p></div></div>
                                         <div className="flex-[1.5] grid grid-cols-3 gap-8 px-10 border-x border-gray-50"><div className="text-center"><p className="text-[9px] font-black text-gray-400 uppercase">Método</p><p className="text-xs font-black text-gray-900 mt-1">{e.payment_method}</p></div><div className="text-center"><p className="text-[9px] font-black text-gray-400 uppercase">Fecha</p><p className="text-xs font-black text-gray-900 mt-1">{e.due_date}</p></div><div className="text-center"><p className="text-[9px] font-black text-gray-400 uppercase">Monto</p><p className="text-sm font-black text-rose-600 mt-1">{formatCurrency(e.amount)}</p></div></div>
-                                        <div className="flex items-center gap-4"><button onClick={() => { setEditingExpense(e); setFormData({ description: e.description, amount: e.amount.toString(), due_date: e.due_date, category: e.category, payment_method: e.payment_method }); setIsModalOpen(true); }} className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-400 hover:text-[#004d4d] flex items-center justify-center transition-all shadow-inner"><Edit3 size={20}/></button><button onClick={() => { saveExpenses(expenses.filter(ex => ex.id !== e.id)); showToast("Eliminado", "info"); }} className="h-12 w-12 rounded-2xl bg-rose-50 text-rose-400 hover:text-rose-600 flex items-center justify-center transition-all shadow-inner"><Trash2 size={20}/></button></div>
-                                    </motion.div>
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
+                                                                                <div className="flex items-center gap-4">
+                                                                                    <button onClick={() => { setEditingExpense(e); setFormData({ description: e.description, amount: e.amount.toString(), due_date: e.due_date, category: e.category, payment_method: e.payment_method }); setIsModalOpen(true); }} className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-400 hover:text-[#004d4d] flex items-center justify-center transition-all shadow-inner"><Edit3 size={20}/></button>
+                                                                                    <button onClick={() => setExpenseToDelete(e)} className="h-12 w-12 rounded-2xl bg-rose-50 text-rose-400 hover:text-rose-600 flex items-center justify-center transition-all shadow-inner"><Trash2 size={20}/></button>
+                                                                                </div>
+                                                                            </motion.div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                        
                         <div className="px-4"><div className="bg-[#004d4d] p-16 rounded-[4rem] text-white relative overflow-hidden shadow-2xl border border-white/5"><div className="absolute top-0 right-0 p-10 opacity-5 rotate-12"><DollarSign size={300} /></div><div className="flex flex-col md:flex-row items-center gap-16 relative z-10"><div className="h-32 w-32 bg-gray-900 rounded-[3rem] border-2 border-[#00f2ff]/50 flex items-center justify-center animate-pulse"><Bot size={64} className="text-[#00f2ff]" /></div><div className="flex-1 space-y-6"><h3 className="text-4xl font-black uppercase italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-[#00f2ff]">Expense Insight</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><div className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">"Tus gastos fijos representan el 65% de tu operación. Centralizar proveedores podría ahorrarte un 8% mensual."</p></div><div className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">"Se detectó un pico de gastos en Caja Menor la semana pasada. Recomiendo revisar facturas de logística."</p></div></div></div></div></div></div>
                     )}
                 </motion.div>
@@ -413,6 +493,44 @@ export default function GastosPage() {
                                     </div>
                                     <button onClick={() => setIsGuideOpen(false)} className="px-12 py-5 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-2xl">Entendido, Continuar Operación</button>
                                 </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* MODAL CONFIRMACIÓN ELIMINACIÓN GASTO */}
+            <AnimatePresence>
+                {expenseToDelete && (
+                    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setExpenseToDelete(null)} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center relative z-10 border border-white">
+                            <div className="h-20 w-20 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-rose-100 animate-bounce">
+                                <AlertCircle size={40} />
+                            </div>
+                            <h3 className="text-xl font-black text-gray-900 uppercase italic">¿Remover Registro?</h3>
+                            <p className="text-gray-500 text-sm mt-4 font-medium italic leading-relaxed">
+                                Estás por eliminar el concepto:<br/>
+                                <span className="font-bold text-gray-900">&quot;{expenseToDelete.description}&quot;</span><br/>
+                                Esta acción es irreversible.
+                            </p>
+                            <div className="flex flex-col gap-3 mt-10">
+                                <button 
+                                    onClick={() => {
+                                        saveExpenses(expenses.filter(ex => ex.id !== expenseToDelete.id));
+                                        setExpenseToDelete(null);
+                                        showToast("Gasto eliminado correctamente 🗑️", "info");
+                                    }} 
+                                    className="w-full py-5 bg-rose-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-rose-700 transition-all active:scale-95"
+                                >
+                                    Eliminar Definitivamente
+                                </button>
+                                <button 
+                                    onClick={() => setExpenseToDelete(null)} 
+                                    className="w-full py-5 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-all"
+                                >
+                                    Cancelar
+                                </button>
                             </div>
                         </motion.div>
                     </div>
