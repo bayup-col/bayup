@@ -9,7 +9,7 @@ import {
   ArrowUpRight, ArrowDownRight, Clock, Briefcase, Users, 
   ShieldCheck, AlertCircle, FileText, CreditCard, 
   ShoppingBag, Info, Loader2, ChevronRight, Hash, 
-  Printer, Send, Save, QrCode, RotateCcw
+  Printer, Send, Save, QrCode, RotateCcw, BarChart3, TrendingDown, PieChart
 } from 'lucide-react';
 import { useToast } from "@/context/toast-context";
 import { useAuth } from "@/context/auth-context";
@@ -77,12 +77,27 @@ const TiltCard = ({ children, className = "" }: { children: React.ReactNode, cla
 
 // --- HELPERS FINANCIEROS ---
 const numberToLetters = (num: number) => {
-    try {
-        return `SON: ${num.toLocaleString('es-CO')} PESOS M/CTE`.toUpperCase();
-    } catch (e) {
-        return `SON: ${num} PESOS`.toUpperCase();
-    }
+    try { return `SON: ${num.toLocaleString('es-CO')} PESOS M/CTE`.toUpperCase(); } 
+    catch (e) { return `SON: ${num} PESOS`.toUpperCase(); }
 };
+
+// --- COMPONENTE NÚMEROS ANIMADOS ---
+function AnimatedNumber({ value }: { value: number }) {
+    const [display, setDisplay] = useState(0);
+    useEffect(() => {
+        let start = 0;
+        const end = value;
+        const duration = 1000;
+        const increment = end / (duration / 16);
+        const timer = setInterval(() => {
+            start += increment;
+            if (start >= end) { setDisplay(end); clearInterval(timer); }
+            else { setDisplay(Math.floor(start)); }
+        }, 16);
+        return () => clearInterval(timer);
+    }, [value]);
+    return <span>{display.toLocaleString('es-CO')}</span>;
+}
 
 export default function CuentasCarteraPage() {
     const { token } = useAuth();
@@ -105,6 +120,7 @@ export default function CuentasCarteraPage() {
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [activeGuideStep, setActiveGuideStep] = useState(0);
     const [recordToDelete, setRecordToDelete] = useState<DebtRecord | null>(null);
+    const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
 
     // --- ESTADO DEL CREADOR DE FACTURA ---
     const [invoiceHeader, setInvoiceHeader] = useState({
@@ -211,8 +227,49 @@ export default function CuentasCarteraPage() {
     };
 
     const handleExport = () => {
-        showToast("Generando reporte Excel...", "info");
-        setTimeout(() => showToast("Reporte descargado con éxito 📈", "success"), 1500);
+        const title = `REPORTE MAESTRO DE CARTERA: ${new Date().toLocaleDateString()}`;
+        const html = `
+            <html><head><meta charset="utf-8"><style>
+                .header { background: #001a1a; color: #00f2ff; padding: 30px; text-align: center; font-family: sans-serif; font-weight: bold; }
+                table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
+                th { background: #f8fafc; color: #64748b; padding: 12px; font-size: 11px; text-transform: uppercase; border: 1px solid #e2e8f0; }
+                td { padding: 12px; font-size: 13px; border: 1px solid #e2e8f0; text-align: center; }
+                .receivable { color: #10b981; font-weight: bold; }
+                .payable { color: #ef4444; font-weight: bold; }
+            </style></head><body>
+                <div class="header">${title}<br><small>Auditoría de Activos Bayup</small></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Entidad</th>
+                            <th>Nro Factura</th>
+                            <th>Tipo</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                            <th>Vencimiento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${records.map(r => `
+                            <tr>
+                                <td style="text-align: left;">${r.entity_name}</td>
+                                <td>${r.invoice_num}</td>
+                                <td class="${r.type}">${r.type === 'receivable' ? 'COBRAR' : 'PAGAR'}</td>
+                                <td>${formatCurrency(r.amount)}</td>
+                                <td>${r.status.toUpperCase()}</td>
+                                <td>${r.due_date}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </body></html>
+        `;
+        const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Reporte_Cartera_${new Date().toISOString().split('T')[0]}.xls`;
+        a.click();
+        showToast("Reporte Platinum generado 📈", "success");
     };
 
     const formatCurrency = (amount: number) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount).replace('$', '$ ');
@@ -262,21 +319,29 @@ export default function CuentasCarteraPage() {
                 </button>
             </div>
 
-            {/* KPIs */}
+            {/* KPIs INTERACTIVOS */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
                 {[
-                    { label: 'Cartera por Cobrar', value: formatCurrency(records.filter(r=>r.type==='receivable'&&r.status!=='paid').reduce((a,b)=>a+b.amount,0)), icon: <Users size={20}/>, color: 'text-emerald-600', trend: 'Activo' },
-                    { label: 'Cuentas por Pagar', value: formatCurrency(records.filter(r=>r.type==='payable'&&r.status!=='paid').reduce((a,b)=>a+b.amount,0)), icon: <CreditCard size={20}/>, color: 'text-rose-600', trend: 'Pasivo' },
-                    { label: 'Balance Neto', value: formatCurrency(records.filter(r=>r.type==='receivable').reduce((a,b)=>a+b.amount,0) - records.filter(r=>r.type==='payable').reduce((a,b)=>a+b.amount,0)), icon: <Activity size={20}/>, color: 'text-[#004d4d]', trend: 'OK' },
-                    { label: 'Facturas en Mora', value: records.filter(r=>r.status==='overdue').length, icon: <AlertCircle size={20}/>, color: 'text-amber-500', trend: 'Revisar' },
+                    { id: 'cobrar', label: 'Cartera por Cobrar', value: records.filter(r=>r.type==='receivable'&&r.status!=='paid').reduce((a,b)=>a+b.amount,0), icon: <Users size={20}/>, color: 'text-emerald-600', trend: 'Activo' },
+                    { id: 'pagar', label: 'Cuentas por Pagar', value: records.filter(r=>r.type==='payable'&&r.status!=='paid').reduce((a,b)=>a+b.amount,0), icon: <CreditCard size={20}/>, color: 'text-rose-600', trend: 'Pasivo' },
+                    { id: 'balance', label: 'Balance Neto', value: records.filter(r=>r.type==='receivable').reduce((a,b)=>a+b.amount,0) - records.filter(r=>r.type==='payable').reduce((a,b)=>a+b.amount,0), icon: <Activity size={20}/>, color: 'text-[#004d4d]', trend: 'OK' },
+                    { id: 'mora', label: 'Facturas en Mora', value: records.filter(r=>r.status==='overdue').length, icon: <AlertCircle size={20}/>, color: 'text-amber-500', trend: 'Revisar', isCount: true },
                 ].map((kpi, i) => (
-                    <TiltCard key={i} className="p-8">
-                        <div className="flex justify-between items-start">
-                            <div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color}`}>{kpi.icon}</div>
-                            <span className="text-[10px] font-black px-2 py-1 bg-gray-50 text-gray-400 rounded-lg uppercase">{kpi.trend}</span>
-                        </div>
-                        <div className="mt-6"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p><h3 className="text-2xl font-black text-gray-900 mt-1">{kpi.value}</h3></div>
-                    </TiltCard>
+                    <div key={i} onClick={() => setSelectedKPI(kpi.id)} className="cursor-pointer h-full">
+                        <TiltCard className="p-8">
+                            <div className="flex justify-between items-start">
+                                <div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color}`}>{kpi.icon}</div>
+                                <span className="text-[10px] font-black px-2 py-1 bg-gray-50 text-gray-400 rounded-lg uppercase tracking-widest">Stats</span>
+                            </div>
+                            <div className="mt-6">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p>
+                                <h3 className="text-2xl font-black text-gray-900 mt-1">
+                                    {!kpi.isCount && "$ "}<AnimatedNumber value={kpi.value} />
+                                </h3>
+                                <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase tracking-tighter">{kpi.trend}</p>
+                            </div>
+                        </TiltCard>
+                    </div>
                 ))}
             </div>
 
@@ -343,35 +408,146 @@ export default function CuentasCarteraPage() {
                 </div>
             </div>
 
-            {/* LISTA DE REGISTROS */}
-            <div className="px-4 space-y-4">
-                {filteredRecords.map((r) => (
-                    <motion.div key={r.id} whileHover={{ x: 5 }} className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-10">
-                        <div className="flex items-center gap-6 flex-1">
-                            <div className={`h-16 w-16 rounded-[1.8rem] flex items-center justify-center text-xl font-black shadow-2xl ${r.type === 'payable' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>{r.type === 'payable' ? <ArrowUpRight size={24}/> : <ArrowDownRight size={24}/>}</div>
-                            <div>
-                                <h4 className="text-xl font-black text-gray-900 tracking-tight">{r.entity_name}</h4>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Factura: {r.invoice_num} · Fecha: {r.created_at}</p>
+            {/* LISTA DE REGISTROS / TABS CONTENT */}
+            <div className="px-4">
+                <AnimatePresence mode="wait">
+                    {(activeTab === 'pagar' || activeTab === 'cobrar' || activeTab === 'historial') && (
+                        <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4">
+                            {filteredRecords.map((r) => (
+                                <motion.div key={r.id} whileHover={{ x: 5 }} className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-10">
+                                    <div className="flex items-center gap-6 flex-1">
+                                        <div className={`h-16 w-16 rounded-[1.8rem] flex items-center justify-center text-xl font-black shadow-2xl ${r.status === 'paid' ? 'bg-gray-50 text-gray-400' : r.type === 'payable' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                            {r.status === 'paid' ? <CheckCircle2 size={24}/> : r.type === 'payable' ? <ArrowUpRight size={24}/> : <ArrowDownRight size={24}/>}
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xl font-black text-gray-900 tracking-tight">{r.entity_name}</h4>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                                                {r.status === 'paid' ? `Saldado el ${r.due_date}` : `Vence el ${r.due_date}`} · Factura: {r.invoice_num}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-12">
+                                        <div className="text-right">
+                                            <p className="text-[9px] font-black text-gray-400 uppercase">Monto Total</p>
+                                            <p className={`text-xl font-black ${r.status === 'paid' ? 'text-gray-900' : r.type === 'payable' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                                {formatCurrency(r.amount)}
+                                            </p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => handleViewInvoice(r)} className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-400 hover:text-[#004d4d] flex items-center justify-center shadow-inner transition-all"><FileText size={20}/></button>
+                                            {r.status !== 'paid' && <button onClick={() => handleLiquidar(r.id)} className="h-12 w-12 rounded-2xl bg-gray-900 text-[#00f2ff] flex items-center justify-center shadow-xl hover:scale-110 transition-transform"><CheckCircle2 size={20}/></button>}
+                                            <button onClick={() => setRecordToDelete(r)} className="h-12 w-12 rounded-2xl bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white flex items-center justify-center shadow-inner transition-all"><Trash2 size={20}/></button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    )}
+
+                    {activeTab === 'bayt' && (
+                        <motion.div key="bayt" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in duration-500">
+                            <TiltCard className="p-12 bg-gray-900 text-white">
+                                <div className="space-y-8 h-full flex flex-col justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-14 w-14 bg-[#00f2ff]/10 text-[#00f2ff] rounded-2xl border border-[#00f2ff]/20 flex items-center justify-center shadow-[0_0_20px_rgba(0,242,255,0.2)]"><Bot size={32}/></div>
+                                        <div><h3 className="text-2xl font-black italic uppercase">Bayt Strategist</h3><p className="text-[10px] font-black text-[#00f2ff] uppercase tracking-widest mt-1">Análisis de Cartera & Flujo</p></div>
+                                    </div>
+                                    <p className="text-lg font-medium leading-relaxed italic text-gray-300">&quot;Tu índice de cobro (DSO) se mantiene en <span className="text-[#00f2ff] font-black">12 días</span>. Tienes una salud de activos superior al promedio del nicho. Sugiero reinvertir el excedente en stock de alta rotación.&quot;</p>
+                                    <div className="pt-8 border-t border-white/10 grid grid-cols-2 gap-6">
+                                        <div className="space-y-1"><p className="text-[10px] font-black uppercase text-white/40">Índice Liquidez</p><p className="text-xl font-black text-[#00f2ff]">2.4x</p></div>
+                                        <div className="space-y-1"><p className="text-[10px] font-black uppercase text-white/40">Riesgo Mora</p><p className="text-xl font-black text-rose-400">0.5%</p></div>
+                                    </div>
+                                </div>
+                            </TiltCard>
+                            <div className="space-y-8">
+                                <div className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-6">
+                                    <div className="flex items-center gap-3"><TrendingUp className="text-emerald-500" size={20}/><h4 className="text-sm font-black uppercase">Próximos Cobros</h4></div>
+                                    <div className="space-y-4">
+                                        {[
+                                            { t: 'Elena Rodriguez', d: 'Vence en 2 días', m: '$ 450.000', i: <Clock/> },
+                                            { t: 'Textiles SAS', d: 'Proyectado para mañana', m: '$ 1.200.000', i: <Activity/> }
+                                        ].map((rec, i) => (
+                                            <div key={i} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-emerald-100 transition-all cursor-pointer group">
+                                                <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-gray-400 shadow-sm group-hover:text-emerald-500 transition-colors">{rec.i}</div>
+                                                <div className="flex-1">
+                                                    <p className="text-xs font-black text-gray-900">{rec.t}</p>
+                                                    <p className="text-[10px] font-medium text-gray-500">{rec.d}</p>
+                                                </div>
+                                                <p className="text-sm font-black text-emerald-600">{rec.m}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <button onClick={handleExport} className="w-full py-6 bg-[#004D4D] text-white rounded-[2.5rem] font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-4 hover:bg-black transition-all group">
+                                    <Download size={20} className="group-hover:translate-y-1 transition-transform"/> Descargar Reporte de Activos
+                                </button>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-12">
-                            <div className="text-right">
-                                <p className="text-[9px] font-black text-gray-400 uppercase">Estado</p>
-                                <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${r.status === 'paid' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>{r.status}</span>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[9px] font-black text-gray-400 uppercase">Monto Total</p>
-                                <p className={`text-xl font-black ${r.type === 'payable' ? 'text-rose-600' : 'text-emerald-600'}`}>{formatCurrency(r.amount)}</p>
-                            </div>
-                            <div className="flex gap-2">
-                                <button onClick={() => handleViewInvoice(r)} className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-400 hover:text-[#004d4d] flex items-center justify-center shadow-inner"><FileText size={20}/></button>
-                                {r.status !== 'paid' && <button onClick={() => handleLiquidar(r.id)} className="h-12 w-12 rounded-2xl bg-gray-900 text-[#00f2ff] flex items-center justify-center shadow-xl"><CheckCircle2 size={20}/></button>}
-                                <button onClick={() => setRecordToDelete(r)} className="h-12 w-12 rounded-2xl bg-rose-50 text-rose-400 flex items-center justify-center shadow-inner"><Trash2 size={20}/></button>
-                            </div>
-                        </div>
-                    </motion.div>
-                ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
+
+            {/* MODAL DETALLE KPI DINÁMICO */}
+            <AnimatePresence>
+                {selectedKPI && (
+                    <div className="fixed inset-0 z-[2500] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedKPI(null)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-3xl overflow-hidden border border-white">
+                            <div className="p-10 bg-gradient-to-br from-gray-900 to-[#001a1a] text-white relative">
+                                <button onClick={() => setSelectedKPI(null)} className="absolute top-6 right-6 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all group">
+                                    <X size={20} className="group-hover:rotate-90 transition-transform"/>
+                                </button>
+                                <div className="space-y-4">
+                                    <h3 className="text-3xl font-black italic uppercase tracking-tighter">
+                                        {selectedKPI === 'cobrar' ? 'Cartera Activa' : 
+                                         selectedKPI === 'pagar' ? 'Pasivos Corrientes' : 
+                                         selectedKPI === 'balance' ? 'Salud Financiera' : 'Auditoría de Mora'}
+                                    </h3>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00f2ff]">Bayup Financial Strategist</p>
+                                </div>
+                            </div>
+                            <div className="p-10 space-y-8">
+                                {selectedKPI === 'cobrar' && (
+                                    <div className="space-y-6">
+                                        <div className="flex justify-between items-end"><p className="text-xs font-bold text-gray-400 uppercase">Proyección de Cobro</p><p className="text-xl font-black text-emerald-600">+15.4M Estimado</p></div>
+                                        <div className="p-6 bg-emerald-50 rounded-2xl border border-emerald-100">
+                                            <p className="text-xs font-medium text-emerald-900 leading-relaxed italic">&quot;Bayt detectó: El 80% de tu cartera por cobrar tiene menos de 15 días de emitida. Tu ciclo de caja es saludable.&quot;</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {selectedKPI === 'pagar' && (
+                                    <div className="space-y-6">
+                                        <div className="flex justify-between items-end"><p className="text-xs font-bold text-gray-400 uppercase">Obligaciones Próximas</p><p className="text-xl font-black text-rose-600">3 Facturas</p></div>
+                                        <div className="p-10 bg-gray-900 rounded-[2.5rem] relative overflow-hidden text-white shadow-xl">
+                                            <div className="absolute top-0 right-0 p-4 opacity-10"><TrendingUp size={100}/></div>
+                                            <p className="text-sm font-medium text-[#00f2ff] italic leading-relaxed">&quot;Sugiero liquidar los pasivos operativos hoy para aprovechar el descuento por pronto pago disponible con Textiles del Norte.&quot;</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {selectedKPI === 'balance' && (
+                                    <div className="space-y-6">
+                                        <div className="flex justify-between items-end"><p className="text-xs font-bold text-gray-400 uppercase">Liquidez Neta Real</p><p className="text-xl font-black text-[#004d4d]">Positiva</p></div>
+                                        <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                                            <p className="text-[10px] font-medium text-gray-600 italic">&quot;Tu capital de trabajo está protegido. La relación activos/pasivos es de 2.4x, muy por encima del mínimo de seguridad.&quot;</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {selectedKPI === 'mora' && (
+                                    <div className="space-y-6">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Monitor Crítico</p>
+                                        <div className="p-8 bg-rose-50 border border-rose-100 rounded-[2.5rem] text-center">
+                                            <p className="text-3xl font-black text-rose-600">{records.filter(r=>r.status==='overdue').length}</p>
+                                            <p className="text-[10px] font-bold text-rose-800 uppercase mt-1">Facturas Vencidas</p>
+                                        </div>
+                                        <p className="text-[10px] font-medium text-gray-500 text-center italic">&quot;Protocolo Bayt: Activa recordatorios automáticos vía WhatsApp para las facturas en mora superior a 5 días.&quot;</p>
+                                    </div>
+                                )}
+                                <button onClick={() => setSelectedKPI(null)} className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl">Cerrar Análisis</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* MODAL CREADOR DE FACTURA */}
             <AnimatePresence>
