@@ -37,22 +37,22 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
     return (
         <ToastContext.Provider value={{ showToast }}>
             {children}
-            {/* Toast Container - MOVIDO AL TOP CENTER CON Z-INDEX MÁXIMO */}
-            <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[10000] flex flex-col gap-3 pointer-events-none w-full max-w-md px-4">
+            {/* Toast Container - REUBICADO AL TOP RIGHT BAJO EL HEADER */}
+            <div className="fixed top-24 right-10 z-[10000] flex flex-col gap-4 pointer-events-none items-end w-full max-w-sm">
                 <AnimatePresence>
                     {toasts.map((toast) => (
                         <motion.div
                             key={toast.id}
-                            initial={{ opacity: 0, y: -50, scale: 0.9 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9, y: -20 }}
-                            className="pointer-events-auto"
+                            initial={{ opacity: 0, x: 100, scale: 0.9 }}
+                            animate={{ opacity: 1, x: 0, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9, x: 50 }}
+                            className="pointer-events-auto w-full"
                         >
                             <div className={`
-                                flex items-center gap-4 px-6 py-5 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] border-2 backdrop-blur-xl
-                                ${toast.type === 'success' ? 'bg-white border-emerald-500/20' : 
-                                  toast.type === 'error' ? 'bg-white border-rose-500/20' : 
-                                  'bg-white border-blue-500/20'}
+                                flex items-center gap-4 px-6 py-5 rounded-[2.2rem] shadow-[0_30px_60px_rgba(0,0,0,0.12)] border-2 backdrop-blur-2xl
+                                ${toast.type === 'success' ? 'bg-white/95 border-emerald-500/10' : 
+                                  toast.type === 'error' ? 'bg-white/95 border-rose-500/10' : 
+                                  'bg-white/95 border-[#00f2ff]/10'}
                             `}>
                                 <div className={`
                                     h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm
