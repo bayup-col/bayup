@@ -43,6 +43,7 @@ import TiltCard from '@/components/dashboard/TiltCard';
 import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
 import ReportsInfoModal from '@/components/dashboard/ReportsInfoModal';
 import LiveMapModal from '@/components/dashboard/LiveMapModal';
+import GoalsConfigModal from '@/components/dashboard/GoalsConfigModal';
 import { generateDetailedReport } from '@/lib/report-generator';
 import { 
     AreaChart, 
@@ -109,6 +110,7 @@ export default function AnalysisGeneralPage() {
     const [isPeriodOpen, setIsPeriodOpen] = useState(false);
     const [showInfoModal, setShowInfoModal] = useState(false);
     const [isMapOpen, setIsMapOpen] = useState(false);
+    const [isGoalsModalOpen, setIsGoalsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedMetric, setSelectedMetric] = useState<any>(null);
 
@@ -394,7 +396,7 @@ export default function AnalysisGeneralPage() {
                     <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mt-1">Ranking de facturación y crecimiento mensual</p>
                 </div>
                 <div className="flex gap-4">
-                    <button className="h-12 px-6 rounded-2xl bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest shadow-xl">Configurar Metas</button>
+                    <button onClick={() => setIsGoalsModalOpen(true)} className="h-12 px-6 rounded-2xl bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-transform">Configurar Metas</button>
                 </div>
             </div>
             <div className="space-y-4">
@@ -588,7 +590,7 @@ export default function AnalysisGeneralPage() {
                 </motion.div>
             </AnimatePresence>
 
-            {/* --- MODAL DE DETALLE (FLOTANTE) --- */}
+            {/* --- MODALES --- */}
             <MetricDetailModal 
                 isOpen={!!selectedMetric} 
                 onClose={() => setSelectedMetric(null)} 
@@ -598,6 +600,17 @@ export default function AnalysisGeneralPage() {
             <ReportsInfoModal
                 isOpen={showInfoModal}
                 onClose={() => setShowInfoModal(false)}
+            />
+
+            <LiveMapModal 
+                isOpen={isMapOpen} 
+                onClose={() => setIsMapOpen(false)} 
+            />
+
+            <GoalsConfigModal 
+                isOpen={isGoalsModalOpen} 
+                onClose={() => setIsGoalsModalOpen(false)} 
+                advisors={ADVISOR_RANKING}
             />
 
             <style jsx global>{`
