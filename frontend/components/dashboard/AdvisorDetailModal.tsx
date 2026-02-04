@@ -190,7 +190,7 @@ export default function AdvisorDetailModal({ isOpen, onClose, advisor }: Advisor
                             <h4 className="text-lg font-black uppercase italic tracking-tighter">Análisis Estratégico Bayt</h4>
                         </div>
                         <p className="text-sm font-medium leading-relaxed italic text-cyan-50/80">
-                            &quot;{advisor.name} ha demostrado una habilidad excepcional para el upsell en productos de calzado. Recomiendo que lidere la capacitación del próximo lunes sobre 'Técnicas de cierre cruzado' para el resto del equipo.&quot;
+                            &quot;{advisor.name} ha demostrado una habilidad excepcional para el upsell en productos de calzado. Recomiendo que lidere la capacitación del próximo lunes sobre &apos;Técnicas de cierre cruzado&apos; para el resto del equipo.&quot;
                         </p>
                     </div>
                 </div>
