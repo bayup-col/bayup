@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Bayup",
   description: "A business operating system powered by Bayup",
   icons: {
-    icon: '/assets/favicon.png',
+    icon: '/assets/favicon.png?v=1',
   },
 };
 
