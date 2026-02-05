@@ -1,0 +1,3 @@
+/* esm.sh - @turf/invariant@6.5.0 */
+import "/@turf/helpers@^6.5.0?target=es2022";
+export * from "/@turf/invariant@6.5.0/es2022/invariant.mjs";
