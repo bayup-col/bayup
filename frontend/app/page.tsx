@@ -167,10 +167,11 @@ export default function HomePage() {
             <main className="relative z-10">
               <HeroLight />
               <ValueStatement />
-                      <NarrativeScroll />
-                      <TemplateShowcase />
-                      <MobileShoppingSection />
-                      <GlobeSection3D />              <Testimonials />
+              <NarrativeScroll />
+              <TemplateShowcase />
+              <MobileShoppingSection />
+              <GlobeSection3D />
+              <Testimonials />
               <PricingCinematic />
             </main>
 

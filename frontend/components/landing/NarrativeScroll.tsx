@@ -9,6 +9,7 @@ import { motion, useMotionValue, useSpring, useTransform, useScroll } from 'fram
 import { NumberTicker } from './NumberTicker';
 import { RollingText } from './RollingText';
 import { WorldMap } from './WorldMap';
+import { InteractiveDistortion } from './InteractiveDistortion';
 
 export const NarrativeScroll = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -126,60 +127,51 @@ export const NarrativeScroll = () => {
                   <div className="absolute inset-0 bg-gradient-to-tr from-cyan/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 
-                                                <div style={{ transform: "translateZ(30px)" }} className="space-y-6">
-                                                  <h3 className="text-6xl font-black text-black italic uppercase tracking-tighter leading-none">Pagas solo <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan uppercase tracking-widest">si vendes</span></h3>
-                                                  <p className="text-petroleum font-black uppercase tracking-[0.2em] text-[10px]">Sin mensualidades ni pagos fijos</p>                                  <p className="text-gray-400 text-sm font-medium leading-relaxed max-w-sm uppercase tracking-[0.2em] text-[10px]">Solo cobras comisión cuando haces una venta. Sin sorpresas, sin costos mensuales escondidos. ¡Transparencia total!</p>
-                                </div>
-                              </div>
-                            </NarrativeCard>
-                            <NarrativeCard className="relative group">
-                              <div className="absolute -inset-20 bg-petroleum/10 rounded-full blur-[120px] animate-pulse" />
-                              <div className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/5 backdrop-blur-[120px] border-2 border-white/60 shadow-[0_50px_100px_-20px_rgba(0,77,77,0.15)] p-12 flex flex-col gap-8 overflow-hidden isolate text-center group-hover:border-cyan/30 transition-all duration-700">
-                                <div style={{ transform: "translateZ(30px)" }} className="h-6 w-32 bg-petroleum/20 rounded-full border border-petroleum/10 shadow-inner mx-auto" />
-                                <div style={{ transform: "translateZ(50px)" }} className="flex-1 bg-background rounded-[3.5rem] border border-white/40 shadow-2xl flex items-center justify-center group/screen overflow-hidden relative p-8">
-                                  <div className="absolute inset-0 bg-gradient-to-tr from-cyan/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                
-                                  {/* Sombra proyectada en el "suelo" del card que reacciona a la flotación */}
-                                  <motion.div 
-                                    className="absolute bottom-12 left-1/2 -translate-x-1/2 w-1/2 h-6 bg-black/30 blur-2xl rounded-[100%] z-0"
-                                    animate={{
-                                      scale: [0.8, 1.1, 0.8],
-                                      opacity: [0.3, 0.15, 0.3],
-                                    }}
-                                    transition={{
-                                      duration: 4,
-                                      repeat: Infinity,
-                                      ease: "easeInOut"
-                                    }}
-                                  />
-                
-                                  <motion.img 
-                                    src="/assets/ahorro.png" 
-                                    alt="Ahorra con Bayup" 
-                                    className="w-full h-full object-contain rounded-[2rem] relative z-10"
-                                    style={{ filter: "drop-shadow(0 30px 40px rgba(0,0,0,0.4))" }}
-                                    animate={{
-                                      y: [0, -20, 0],
-                                    }}
-                                    transition={{
-                                      duration: 4,
-                                      repeat: Infinity,
-                                      ease: "easeInOut"
-                                    }}
-                                    whileHover={{ 
-                                      scale: 1.05,
-                                      filter: "drop-shadow(0 40px 60px rgba(0,0,0,0.5))"
-                                    }}
-                                  />
-                
-                                  {/* Destello de luz superior */}
-                                  <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-20 pointer-events-none" />   
-                                </div>
-                                <div className="absolute inset-0 shadow-[inset_0_0_60px_rgba(255,255,255,0.2)] rounded-[5rem] pointer-events-none" />        
-                              </div>
-                            </NarrativeCard>
-                          </div>
-                        </section>
+                <div style={{ transform: "translateZ(30px)" }} className="space-y-6">
+                  <h3 className="text-6xl font-black text-black italic uppercase tracking-tighter leading-none">Pagas solo <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan uppercase tracking-widest">si vendes</span></h3>
+                  <p className="text-petroleum font-black uppercase tracking-[0.2em] text-[10px]">Sin mensualidades ni pagos fijos</p>
+                  <p className="text-gray-400 text-sm font-medium leading-relaxed max-w-sm uppercase tracking-[0.2em] text-[10px]">Solo cobras comisión cuando haces una venta. Sin sorpresas, sin costos mensuales escondidos. ¡Transparencia total!</p>
+                </div>
+              </div>
+            </NarrativeCard>
+
+            <div className="relative group">
+              <div className="absolute -inset-20 bg-petroleum/10 rounded-full blur-[120px] animate-pulse" />
+              <div className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/5 backdrop-blur-[120px] border-2 border-white/60 shadow-[0_50px_100px_-20px_rgba(0,77,77,0.15)] p-12 flex flex-col gap-8 overflow-hidden isolate text-center group-hover:border-cyan/30 transition-all duration-700">
+                <div style={{ transform: "translateZ(30px)" }} className="h-6 w-32 bg-petroleum/20 rounded-full border border-petroleum/10 shadow-inner mx-auto" />
+                <div style={{ transform: "translateZ(50px)" }} className="flex-1 bg-background rounded-[3.5rem] border border-white/40 shadow-2xl flex items-center justify-center group/screen overflow-hidden relative p-8">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-cyan/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+
+                  {/* Sombra proyectada en el "suelo" del card que reacciona a la flotación */}
+                  <motion.div 
+                    className="absolute bottom-12 left-1/2 -translate-x-1/2 w-1/2 h-6 bg-black/30 blur-2xl rounded-[100%] z-0"
+                    animate={{
+                      scale: [0.8, 1.1, 0.8],
+                      opacity: [0.3, 0.15, 0.3],
+                    }}
+                    transition={{
+                      duration: 4,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  />
+
+                  {/* Imagen con Distorsión Interactiva Premium */}
+                  <InteractiveDistortion 
+                    src="/assets/ahorro.png" 
+                    alt="Ahorra con Bayup" 
+                    className="w-full h-full relative z-10"
+                    strength={0.2}
+                  />
+
+                  {/* Destello de luz superior */}
+                  <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-20 pointer-events-none" />   
+                </div>
+                <div className="absolute inset-0 shadow-[inset_0_0_60px_rgba(255,255,255,0.2)] rounded-[5rem] pointer-events-none" />        
+              </div>
+            </div>
+          </div>
+        </section>
                 
                         {/* 2. Marketing ROI */}
                         <section className="horizontal-section flex h-screen w-screen items-center justify-center p-20 bg-[#FFFFFF]">
