@@ -3,10 +3,10 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Bayup | E-commerce Intelligence",
+  title: "Bayup",
   description: "A business operating system powered by Bayup",
   icons: {
-    icon: '/favicon.ico',
+    icon: '/assets/favicon.png',
   },
 };
 
