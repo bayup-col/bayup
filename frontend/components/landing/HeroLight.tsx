@@ -1,7 +1,7 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { useEffect, useState, useRef } from "react";
 import { Play, ArrowRight } from "lucide-react";
 import { WaterRipple } from "./WaterRipple";
 import { TypewriterHeadline } from "./TypewriterHeadline";
@@ -19,16 +19,135 @@ const products = [
   { id: 6, name: "Street Style", image: "/assets/Neon Red Animated and Bright Twitch Logo (6).png", detail: "Urban Sneakers" },
 ];
 
+// --- COMPONENTE INTERNO: TARJETA 3D INTERACTIVA ---
+const ProductCard3D = ({ product, onHover }: { product: typeof products[0], onHover: (hovering: boolean) => void }) => {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  // Suavizado del movimiento del mouse
+  const mouseX = useSpring(x, { stiffness: 150, damping: 15 });
+  const mouseY = useSpring(y, { stiffness: 150, damping: 15 });
+
+  // Transformaciones 3D (Tilt)
+  const rotateX = useTransform(mouseY, [-0.5, 0.5], ["15deg", "-15deg"]);
+  const rotateY = useTransform(mouseX, [-0.5, 0.5], ["-15deg", "15deg"]);
+  
+  // Parallax de la imagen (Se mueve opuesto y más fuerte para salir del marco)
+  const imgX = useTransform(mouseX, [-0.5, 0.5], ["-25px", "25px"]);
+  const imgY = useTransform(mouseY, [-0.5, 0.5], ["-25px", "25px"]);
+
+  // Brillo dinámico sobre el cristal
+  const shineOpacity = useTransform(mouseX, [-0.5, 0.5], [0, 0.4]);
+  const shineX = useTransform(mouseX, [-0.5, 0.5], ["0%", "100%"]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    onHover(true);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    
+    // Calcular posición normalizada (-0.5 a 0.5)
+    const mouseXPos = (e.clientX - rect.left) / width - 0.5;
+    const mouseYPos = (e.clientY - rect.top) / height - 0.5;
+    
+    x.set(mouseXPos);
+    y.set(mouseYPos);
+  };
+
+  const handleMouseLeave = () => {
+    onHover(false);
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.8, rotateY: 30, z: -500 }}
+      animate={{ opacity: 1, scale: 1, rotateY: 0, z: 0 }}
+      exit={{ opacity: 0, scale: 1.2, rotateY: -30, z: 500 }}
+      transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+      className="relative w-full h-full flex items-center justify-center perspective-2000"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="absolute w-[500px] h-[500px] bg-cyan/10 rounded-full blur-[150px] animate-pulse" />
+      
+      {/* Contenedor Giratorio 3D */}
+      <motion.div 
+        style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+        className="relative z-20 p-2 cursor-pointer group"
+      >
+        {/* Marco de Cristal */}
+        <div className="relative w-[450px] h-[550px] rounded-[5rem] shadow-[0_60px_120px_-20px_rgba(0,77,77,0.25)] flex items-center justify-center transition-all duration-700 isolate transform-gpu bg-black/5">
+          
+          {/* 1. AURORA BORDER (Fondo Animado) */}
+          <div className="absolute inset-0 rounded-[5rem] overflow-hidden -z-20">
+            <div 
+              className="absolute top-1/2 left-1/2 w-[250%] aspect-square animate-aurora opacity-60 group-hover:opacity-100 transition-opacity duration-700"
+              style={{
+                background: `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)`,
+                willChange: 'transform'
+              }}
+            />
+          </div>
+
+          {/* 2. Glass Panel Body */}
+          <div className="absolute inset-[3px] rounded-[4.8rem] bg-white/[0.03] backdrop-blur-[40px] border border-white/20 z-0 overflow-hidden">
+             {/* Reflejo Dinámico (Glare) */}
+             <motion.div 
+                style={{ opacity: shineOpacity, left: shineX }}
+                className="absolute top-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 blur-2xl pointer-events-none"
+             />
+          </div>
+
+          {/* 3. Imagen con Parallax (Pop-out effect) */}
+          <div className="relative z-10 w-[95%] h-[95%] flex items-center justify-center" style={{ transformStyle: "preserve-3d" }}>
+            <motion.img 
+              style={{ x: imgX, y: imgY, z: 60 }}
+              src={product.image} 
+              alt={product.name}
+              className="w-full h-full object-contain drop-shadow-[0_50px_80px_rgba(0,0,0,0.5)] filter brightness-110 contrast-110 transition-transform duration-100"
+            />
+          </div>
+          
+          {/* Brillo interior estático */}
+          <div className="absolute inset-0 shadow-[inset_0_0_80px_rgba(255,255,255,0.2)] rounded-[5rem] pointer-events-none z-20" />
+        </div>
+
+        {/* Sombra de suelo flotante */}
+        <motion.div 
+          animate={{ scaleX: [1, 0.8, 1], opacity: [0.3, 0.1, 0.3] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-72 h-12 bg-black/20 blur-3xl rounded-full"
+        />
+        
+        {/* Info Tag Flotante */}
+        <motion.div 
+          style={{ z: 100, x: imgX, y: imgY }}
+          className="absolute -bottom-6 -right-6 bg-white/90 backdrop-blur-md p-6 rounded-[2rem] space-y-1 shadow-[0_30px_60px_-10px_rgba(0,0,0,0.2)] border border-white/40"
+        >
+          <p className="text-petroleum text-[9px] font-black uppercase tracking-[0.3em]">{product.name}</p>
+          <p className="text-black/60 text-xs font-bold italic uppercase tracking-tighter">{product.detail}</p>
+        </motion.div>
+
+      </motion.div>
+    </motion.div>
+  );
+};
+
 export const HeroLight = () => {
   const [productIndex, setProductIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
+    if (isPaused) return;
+
     const timer = setInterval(() => {
       setProductIndex((prev) => (prev + 1) % products.length);
     }, 5000); 
 
     return () => clearInterval(timer);
-  }, []);
+  }, [isPaused]);
 
   return (
     <section id="inicio" className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-background pt-20">
@@ -93,56 +212,14 @@ export const HeroLight = () => {
           </div>
         </div>
 
-        {/* Right Section: XL EXTREME GLASS Showcase */}
+        {/* Right Section: XL EXTREME GLASS Showcase (Interactive 3D) */}
         <div className="lg:col-span-2 relative h-[700px] flex items-center justify-center isolate">
           <AnimatePresence mode="wait">
-            <motion.div
-              key={productIndex}
-              initial={{ opacity: 0, scale: 0.8, rotateY: 30, z: -500 }}
-              animate={{ opacity: 1, scale: 1, rotateY: 0, z: 0 }}
-              exit={{ opacity: 0, scale: 1.2, rotateY: -30, z: 500 }}
-              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="relative w-full h-full flex items-center justify-center"
-            >
-              <div className="absolute w-[500px] h-[500px] bg-cyan/10 rounded-full blur-[150px] animate-pulse" />
-              
-              <div className="relative group perspective-2000">
-                <motion.div 
-                  animate={{ y: [0, -30, 0] }}
-                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                  className="relative z-20 p-2"
-                >
-                  <div className="relative w-[450px] h-[550px] bg-white/[0.02] backdrop-blur-[120px] border-2 border-white/50 rounded-[5rem] shadow-[0_60px_120px_-20px_rgba(0,77,77,0.12)] overflow-hidden flex items-center justify-center group-hover:border-cyan/40 transition-all duration-700 isolate">
-                    <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent pointer-events-none" />
-                    <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-to-br from-white/20 via-transparent to-transparent rotate-12 pointer-events-none group-hover:rotate-45 transition-transform duration-1000" />
-                    
-                    <img 
-                      src={products[productIndex].image} 
-                      alt={products[productIndex].name}
-                      className="w-[95%] h-[95%] object-contain relative z-10 drop-shadow-[0_50px_80px_rgba(0,0,0,0.3)] filter brightness-110 contrast-110 group-hover:scale-110 transition-transform duration-700"
-                    />
-                    
-                    <div className="absolute inset-0 shadow-[inset_0_0_80px_rgba(255,255,255,0.3)] rounded-[5rem] pointer-events-none" />
-                  </div>
-
-                  <motion.div 
-                    animate={{ scaleX: [1, 0.8, 1], opacity: [0.3, 0.1, 0.3] }}
-                    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-72 h-12 bg-black/5 blur-3xl rounded-full"
-                  />
-                </motion.div>
-                
-                <motion.div 
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="absolute -bottom-10 -right-10 bg-black p-10 rounded-[3rem] space-y-2 shadow-[0_30px_60px_-10px_rgba(0,0,0,0.4)] z-30 border border-white/10"
-                >
-                  <p className="text-cyan text-[10px] font-black uppercase tracking-[0.3em]">{products[productIndex].name}</p>
-                  <p className="text-white text-sm font-bold italic opacity-80 uppercase tracking-tighter">{products[productIndex].detail}</p>
-                </motion.div>
-              </div>
-            </motion.div>
+            <ProductCard3D 
+              key={products[productIndex].id} 
+              product={products[productIndex]} 
+              onHover={setIsPaused}
+            />
           </AnimatePresence>
         </div>
 
