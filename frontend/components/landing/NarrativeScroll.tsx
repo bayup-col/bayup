@@ -4,8 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 import { useGSAP } from "@gsap/react";
-import { PiggyBank, Target, LineChart, Zap } from 'lucide-react';
-import { motion, useMotionValue, useSpring, useTransform, useScroll } from 'framer-motion';
+import { PiggyBank, Target, LineChart, Zap, TrendingUp, Activity } from 'lucide-react';
+import { motion, useMotionValue, useSpring, useTransform, useScroll, useMotionTemplate } from 'framer-motion';
 import { NumberTicker } from './NumberTicker';
 import { RollingText } from './RollingText';
 import { WorldMap } from './WorldMap';
@@ -266,13 +266,28 @@ export const NarrativeScroll = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
             <NarrativeCard className="space-y-10 group relative">
               <div className="absolute -inset-10 bg-petroleum/5 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              <div className="relative p-12 rounded-[4.5rem] bg-white/5 backdrop-blur-[80px] border-2 border-white/40 shadow-[0_30px_60px_-10px_rgba(0,0,0,0.05)] space-y-10 overflow-hidden isolate group-hover:border-cyan/30 transition-all duration-700">
-                <div style={{ transform: "translateZ(40px)" }} className="h-20 w-20 rounded-full bg-white border border-gray-100 flex items-center justify-center text-petroleum shadow-2xl relative overflow-hidden group-hover:scale-110 transition-all duration-500"><LineChart size={32} /></div>
-                <div style={{ transform: "translateZ(30px)" }} className="space-y-6"><h3 className="text-6xl font-black text-black italic uppercase tracking-tighter leading-none">03. ANALYTICS <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan uppercase tracking-widest">GLOBAL</span></h3></div>
+              
+              <div className="relative p-12 rounded-[4.5rem] bg-white/5 backdrop-blur-[100px] border-2 border-white/60 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] space-y-10 overflow-hidden isolate group-hover:border-cyan/40 transition-all duration-700">
+                {/* Glow Card Effect Layer */}
+                <GlowEffect />
+                
+                <div style={{ transform: "translateZ(40px)" }} className="h-20 w-20 rounded-full bg-white border border-gray-100 flex items-center justify-center text-petroleum shadow-2xl relative overflow-hidden group-hover:scale-110 transition-all duration-500 z-10">
+                  <LineChart size={32} />
+                </div>
+
+                <div style={{ transform: "translateZ(30px)" }} className="space-y-6 relative z-10">
+                  <h3 className="text-6xl font-black text-black italic uppercase tracking-tighter leading-none">Estadísticas <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan uppercase tracking-widest">claras</span></h3>
+                  <p className="text-cyan font-black uppercase tracking-[0.2em] text-[10px]">Entiende a tus clientes</p>
+                  <p className="text-gray-400 text-sm font-medium leading-relaxed max-w-sm uppercase tracking-[0.2em] text-[10px]">Ve de donde vienen tus visitas, qué productos se venden más y qué está funcionando en tu tienda</p>
+                </div>
               </div>
             </NarrativeCard>
             <div className="grid grid-cols-1 gap-8 pt-10">
-              {[ { val: '98%', label: 'Precision' }, { val: '4.2x', label: 'Conversion' }, { val: 'Realtime', label: 'Feedback' } ].map((stat, i) => (
+              {[ 
+                { val: '98%', label: 'Precisión' }, 
+                { val: '4.2x', label: 'Más Ventas' }, 
+                { val: 'En tiempo real', label: '' } 
+              ].map((stat, i) => (
                 <AnalyticsCard key={i} stat={stat} />
               ))}
             </div>
@@ -280,6 +295,59 @@ export const NarrativeScroll = () => {
         </section>
 
       </div>
+    </div>
+  );
+};
+
+const GlowEffect = () => {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
+    const { left, top } = currentTarget.getBoundingClientRect();
+    mouseX.set(clientX - left);
+    mouseY.set(clientY - top);
+  }
+
+  return (
+    <div
+      onMouseMove={handleMouseMove}
+      className="group/glow absolute inset-0 z-0 pointer-events-auto"
+    >
+      <motion.div
+        className="absolute inset-0 z-0 opacity-0 group-hover/glow:opacity-100 transition-opacity duration-500"
+        style={{
+          background: useMotionTemplate`
+            radial-gradient(
+              650px circle at ${mouseX}px ${mouseY}px,
+              rgba(0, 242, 255, 0.15),
+              transparent 80%
+            )
+          `,
+        }}
+      />
+      <motion.div
+        className="absolute inset-0 z-10 opacity-0 group-hover/glow:opacity-100 transition-opacity duration-500 border-[3px] border-transparent rounded-[4.5rem]"
+        style={{
+          WebkitMaskImage: useMotionTemplate`
+            radial-gradient(
+              300px circle at ${mouseX}px ${mouseY}px,
+              black 0%,
+              transparent 100%
+            )
+          `,
+          maskImage: useMotionTemplate`
+            radial-gradient(
+              300px circle at ${mouseX}px ${mouseY}px,
+              black 0%,
+              transparent 100%
+            )
+          `,
+          borderImageSource: "linear-gradient(to right, #00f2ff, #004d4d)",
+          borderImageSlice: 1,
+          borderColor: "#00f2ff"
+        }}
+      />
     </div>
   );
 };
@@ -305,20 +373,133 @@ const NarrativeCard = ({ children, className = "" }: { children: React.ReactNode
 };
 
 const AnalyticsCard = ({ stat }: { stat: any }) => {
+  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+  const cardRef = useRef<HTMLDivElement>(null);
+  
+  // Valores para el efecto 3D
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const mouseXSpring = useSpring(x);
+  const mouseYSpring = useSpring(y);
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["15deg", "-15deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-15deg", "15deg"]);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    
+    // Gradiente interactivo (estilo UP)
+    const gradientX = ((e.clientX - rect.left) / rect.width) * 100;
+    const gradientY = ((e.clientY - rect.top) / rect.height) * 100;
+    setMousePos({ x: gradientX, y: gradientY });
+    
+    // Rotación 3D
+    x.set((e.clientX - rect.left) / rect.width - 0.5);
+    y.set((e.clientY - rect.top) / rect.height - 0.5);
+  };
+
+  const handleMouseLeave = () => {
+    setMousePos({ x: 50, y: 50 });
+    x.set(0);
+    y.set(0);
+  };
+
+  const getIcon = () => {
+    if (stat.label === 'Precisión') {
+      return (
+        <img 
+          src="/assets/grafica.png" 
+          alt="Precisión" 
+          className="w-20 h-20 object-contain relative z-10"
+          style={{ filter: "drop-shadow(0 15px 20px rgba(0,242,255,0.4))" }}
+        />
+      );
+    }
+    if (stat.label === 'Más Ventas') {
+      return (
+        <img 
+          src="/assets/dinero.png" 
+          alt="Ventas" 
+          className="w-20 h-20 object-contain relative z-10"
+          style={{ filter: "drop-shadow(0 15px 20px rgba(0,242,255,0.4))" }}
+        />
+      );
+    }
+    return <Activity size={32} />;
+  };
+
   return (
-    <div className="group relative p-12 rounded-[4rem] overflow-hidden isolate flex items-center justify-between w-[400px] mx-auto transition-all duration-700 bg-white/10 backdrop-blur-xl border border-white/20">
-      <div className="relative z-10">
-        <div className="text-5xl font-black text-black italic tracking-tighter flex items-baseline">
-          {stat.val === 'Realtime' ? (<span>Realtime</span>) : (
+    <motion.div 
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ 
+        rotateX, 
+        rotateY, 
+        transformStyle: "preserve-3d",
+        perspective: "1000px"
+      }}
+      className="group relative p-8 rounded-full overflow-hidden isolate flex items-center justify-center gap-10 w-[420px] mx-auto transition-all duration-700 bg-white/10 backdrop-blur-xl border-2 border-white/60 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] hover:border-cyan/40"
+    >
+      {/* Lado Izquierdo: Texto con Profundidad Z */}
+      <div className="relative z-10 flex flex-col" style={{ transform: "translateZ(60px)" }}>
+        <div 
+          className="text-5xl font-black italic tracking-tighter flex items-baseline transition-all duration-700 ease-out"
+          style={{ 
+            backgroundImage: `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, #00f2ff 0%, #004d4d 70%)`,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }}
+        >
+          {stat.val === 'En tiempo real' ? (<span>En tiempo real</span>) : (
             <><NumberTicker value={parseFloat(stat.val)} className="text-5xl font-black" /><span className="text-3xl ml-1">{stat.val.includes('%') ? '%' : 'x'}</span></>
           )}
         </div>
-        <p className="text-[11px] font-black text-petroleum uppercase mt-3 tracking-[0.4em]">{stat.label}</p>
+        {stat.label && <p className="text-[11px] font-black text-petroleum uppercase mt-3 tracking-[0.4em]">{stat.label}</p>}
       </div>
-      <div className="relative flex items-center justify-center">
-        <div className="absolute h-12 w-12 bg-cyan/10 rounded-full blur-xl animate-pulse" />
-        <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_15px_#00f2ff] relative z-10" />
+
+      {/* Lado Derecho: Icono 3D Estilo "Pantalla" con Profundidad Z Superior */}
+      <div className="relative group/icon" style={{ transform: "translateZ(100px)" }}>
+        <motion.div 
+          className="relative h-24 w-24 rounded-2xl bg-white/10 backdrop-blur-2xl border border-white/40 shadow-2xl flex items-center justify-center text-cyan overflow-hidden group-hover:scale-110 transition-transform duration-500"
+          animate={{
+            y: [0, -8, 0],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
+          {/* Reflejo de luz interna superior */}
+          <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
+          
+          <div className="relative z-10 w-full h-full p-2 flex items-center justify-center">
+            {getIcon()}
+          </div>
+
+          {/* Sombra interna para profundidad */}
+          <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(255,255,255,0.1)] rounded-2xl pointer-events-none" />
+        </motion.div>
+
+        {/* Sombra proyectada en el fondo del card que reacciona a la flotación */}
+        <motion.div 
+          className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3/4 h-2 bg-black/20 blur-md rounded-full z-0"
+          animate={{
+            scale: [0.8, 1.2, 0.8],
+            opacity: [0.2, 0.1, 0.2],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
       </div>
-    </div>
+
+      {/* Reflejo de cristal global dinámico */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+    </motion.div>
   );
 };
