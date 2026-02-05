@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 import { useGSAP } from "@gsap/react";
-import { Layout, Target, LineChart, Zap } from 'lucide-react';
+import { PiggyBank, Target, LineChart, Zap } from 'lucide-react';
 import { motion, useMotionValue, useSpring, useTransform, useScroll } from 'framer-motion';
 import { NumberTicker } from './NumberTicker';
 import { RollingText } from './RollingText';
@@ -115,14 +115,13 @@ export const NarrativeScroll = () => {
                 <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent" />
                 
                 <div style={{ transform: "translateZ(40px)" }} className="h-20 w-20 rounded-3xl bg-petroleum flex items-center justify-center text-cyan shadow-2xl relative overflow-hidden group-hover:scale-110 group-hover:shadow-cyan/20 transition-all duration-500">
-                  <Layout size={32} />
+                  <PiggyBank size={32} />
                   <div className="absolute inset-0 bg-gradient-to-tr from-cyan/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 
-                                <div style={{ transform: "translateZ(30px)" }} className="space-y-6">
-                                  <h3 className="text-6xl font-black text-black italic uppercase tracking-tighter leading-none">Pagas solo <br /> <span className="text-petroleum uppercase tracking-widest">si vendes</span></h3>
-                                  <p className="text-petroleum font-black uppercase tracking-[0.2em] text-[10px]">Sin mensualidades ni pagos fijos</p>
-                                  <p className="text-gray-400 text-sm font-medium leading-relaxed max-w-sm uppercase tracking-[0.2em] text-[10px]">Solo cobras comisión cuando haces una venta. Sin sorpresas, sin costos mensuales escondidos. ¡Transparencia total!</p>
+                                                <div style={{ transform: "translateZ(30px)" }} className="space-y-6">
+                                                  <h3 className="text-6xl font-black text-black italic uppercase tracking-tighter leading-none">Pagas solo <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan uppercase tracking-widest">si vendes</span></h3>
+                                                  <p className="text-petroleum font-black uppercase tracking-[0.2em] text-[10px]">Sin mensualidades ni pagos fijos</p>                                  <p className="text-gray-400 text-sm font-medium leading-relaxed max-w-sm uppercase tracking-[0.2em] text-[10px]">Solo cobras comisión cuando haces una venta. Sin sorpresas, sin costos mensuales escondidos. ¡Transparencia total!</p>
                                 </div>
                               </div>
                             </NarrativeCard>
@@ -245,12 +244,19 @@ export const NarrativeScroll = () => {
                                   <div className="absolute inset-0 bg-gradient-to-tr from-cyan/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </div>
                 
-                                <div style={{ transform: "translateZ(30px)" }} className="space-y-6">
-                                  <h3 className="text-6xl font-black text-black italic uppercase tracking-tighter leading-none">MARKETING <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan uppercase tracking-widest">ROI</span></h3>                  <p className="text-cyan font-black uppercase tracking-[0.2em] text-[10px]">Campañas inteligentes · Conoce tus datos reales</p>
-                  <p className="text-gray-400 text-sm font-medium leading-relaxed max-w-sm uppercase tracking-[0.2em] text-[10px]">
-                    Crea campañas basándote en datos reales de tus plataformas de venta. Utiliza nuestras herramientas de IA que te recomendarán las mejores acciones para lograr campañas realmente efectivas.
-                  </p>
-                </div>
+                                                <div style={{ transform: "translateZ(30px)" }} className="space-y-6">
+                
+                                                  <h3 className="text-6xl font-black text-black italic uppercase tracking-tighter leading-none">Campañas <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan uppercase tracking-widest">Inteligentes</span></h3>
+                
+                                                  <p className="text-cyan font-black uppercase tracking-[0.2em] text-[10px]">Conoce tus datos reales</p>
+                
+                                                  <p className="text-gray-400 text-sm font-medium leading-relaxed max-w-sm uppercase tracking-[0.2em] text-[10px]">
+                
+                                                    Crea campañas basándote en datos reales de tus plataformas de venta. Utiliza nuestras herramientas de IA que te recomendarán las mejores acciones para lograr campañas realmente efectivas.
+                
+                                                  </p>
+                
+                                                </div>
               </div>
             </NarrativeCard>
           </div>
