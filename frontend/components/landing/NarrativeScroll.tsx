@@ -8,7 +8,7 @@ import { PiggyBank, Target, LineChart, Zap } from 'lucide-react';
 import { motion, useMotionValue, useSpring, useTransform, useScroll } from 'framer-motion';
 import { NumberTicker } from './NumberTicker';
 import { RollingText } from './RollingText';
-import { LiquidImage } from './LiquidImage';
+import { WorldMap } from './WorldMap';
 
 export const NarrativeScroll = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -61,16 +61,10 @@ export const NarrativeScroll = () => {
     <div id="ecosystem" ref={containerRef} className="overflow-hidden bg-background">
       <div ref={horizontalRef} className="flex h-screen w-fit">
         
-        {/* Intro Section - Liquid Background */}
-        <LiquidImage
-          image="/assets/mundobayup.png"
-          alt="Fondo de red global Bayup"
-          className="horizontal-section h-screen w-screen"
-          distortionScale={0.4}
-          speed={0.3}
-          tint="#000000"
-          opacity={0.8}
-        >
+        {/* Intro Section - World Map Background */}
+        <div className="horizontal-section h-screen w-screen relative flex items-center justify-center bg-[#050505]">
+          <WorldMap />
+          
           <div className="max-w-5xl text-center flex flex-col items-center relative z-10 px-6">
             <div className="text-6xl md:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] flex flex-col items-center">
               <div className="text-white filter drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]">
@@ -80,6 +74,19 @@ export const NarrativeScroll = () => {
                 <RollingText text="PARA COMPRARTE." className="flex-nowrap" />
               </div>
             </div>
+
+            {/* Subtítulo con Efecto Glow Premium */}
+            <div className="mt-8 relative group">
+              <motion.div 
+                className="absolute -inset-x-20 -inset-y-10 bg-cyan/20 blur-[60px] rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-1000"
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 4, repeat: Infinity }}
+              />
+              <p className="text-xl md:text-2xl font-black text-white italic tracking-[0.3em] uppercase relative z-10 drop-shadow-[0_0_10px_rgba(0,242,255,0.8)]">
+                Bayup te da las herramientas <span className="text-cyan">para lograrlo</span>
+              </p>
+            </div>
+
             <motion.div 
               style={{ width: lineWidth, opacity: lineOpacity }}
               className="h-[2px] bg-cyan mt-12 mx-auto shadow-[0_0_20px_#00f2ff] relative"
@@ -88,7 +95,7 @@ export const NarrativeScroll = () => {
               <div className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 bg-cyan blur-md rounded-full" />
             </motion.div>
           </div>
-        </LiquidImage>
+        </div>
 
         {/* 1. Web Strategy */}
         <section className="horizontal-section flex h-screen w-screen items-center justify-center p-20 bg-background">
