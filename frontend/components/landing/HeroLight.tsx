@@ -179,12 +179,13 @@ export const HeroLight = () => {
                 <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan/20 to-transparent" />
               </motion.div>
               
-              <div className="text-6xl md:text-8xl font-black text-black leading-[0.9] tracking-tighter italic uppercase drop-shadow-xl">
+              <div className="font-black text-black leading-[0.85] tracking-tighter italic uppercase drop-shadow-2xl">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8 }}
-                  className="bg-clip-text text-transparent bg-gradient-to-b from-black via-black to-petroleum/60"
+                  className="bg-clip-text text-transparent bg-gradient-to-b from-black via-black to-petroleum/60 whitespace-nowrap"
+                  style={{ fontSize: "clamp(3rem, 8vw, 6rem)" }}
                 >
                   CREA TU TIENDA
                 </motion.div>
@@ -192,7 +193,8 @@ export const HeroLight = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.2 }}
-                  className="flex items-center flex-wrap gap-x-4"
+                  className="flex items-center flex-wrap lg:flex-nowrap gap-x-4 whitespace-nowrap"
+                  style={{ fontSize: "clamp(3rem, 8vw, 6rem)" }}
                 >
                   <span className="bg-clip-text text-transparent bg-gradient-to-b from-black to-petroleum/80">ONLINE</span>
                   <TypewriterEffect 
