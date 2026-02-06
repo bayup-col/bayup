@@ -42,14 +42,16 @@ export const ValueStatement = () => {
 
       <div className="container mx-auto px-12 text-center relative z-10">
         
-        <div className="max-w-6xl mx-auto space-y-44">
-          <div className="text-5xl md:text-7xl font-black text-black tracking-[-0.05em] leading-[0.9] italic uppercase flex flex-col items-center drop-shadow-xl">
-            <RollingText text="LA NUEVA FORMA" />
-            <div className="flex gap-2">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum drop-shadow-[0_0_15px_rgba(0,242,255,0.3)]">
-                <RollingText text="DE VENDER POR INTERNET." />
-              </span>
-            </div>
+        <div className="max-w-6xl mx-auto space-y-44 text-center">
+          <div className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] italic uppercase flex flex-col items-center gap-4 drop-shadow-2xl">
+            <RollingText 
+              text="LA NUEVA FORMA" 
+              className="text-black" 
+            />
+            <RollingText 
+              text="DE VENDER POR INTERNET." 
+              className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum" 
+            />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-16 perspective-2000">
