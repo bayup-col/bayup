@@ -193,9 +193,9 @@ export const GlobeSection3D = () => {
             <div className="h-1 w-12 bg-cyan shadow-[0_0_15px_#00f2ff]" />
             <p className="text-[10px] font-black tracking-[0.5em] text-cyan uppercase italic">Infraestructura Global</p>
           </div>
-          <h2 className="text-6xl md:text-8xl font-black text-white italic tracking-tighter leading-[0.9]">
-            PRESENCIA <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan to-petroleum uppercase">SIN BORDES.</span>
+          <h2 className="text-6xl md:text-[5.5rem] font-black text-white italic tracking-tighter leading-[0.85] uppercase">
+            VENDE EN TODO <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan to-petroleum">EL MUNDO.</span>
           </h2>
           <p className="max-w-md text-white/40 text-sm font-medium leading-relaxed uppercase tracking-widest text-[10px]">
             Nodos distribuidos en 45 países. Tu comercio electrónico no conoce fronteras. Velocidad luz, seguridad perimetral y escalabilidad masiva garantizada.
