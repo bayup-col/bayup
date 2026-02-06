@@ -175,7 +175,44 @@ function CometSystem() {
   return <>{comets.map((ref, i) => (<mesh key={i} ref={ref} visible={states[i].active}><sphereGeometry args={[0.08, 8, 8]} /><meshBasicMaterial color="#00f2ff" /><pointLight intensity={8} distance={15} color="#00f2ff" /></mesh>))}</>;
 }
 
+function GlowHeading({ children, mousePos }: { children: React.ReactNode, mousePos: { x: number, y: number } }) {
+  return (
+    <div className="relative group">
+      {/* Capas de Glow Dinámico */}
+      <motion.div
+        className="absolute inset-0 -z-10 blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+        style={{
+          background: `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, rgba(0, 242, 255, 0.4), transparent 70%)`
+        }}
+      />
+      <motion.div
+        className="absolute inset-0 -z-20 blur-[100px] opacity-20"
+        animate={{ 
+          scale: [1, 1.2, 1],
+          opacity: [0.1, 0.3, 0.1]
+        }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          background: 'radial-gradient(circle at center, #00f2ff, transparent 70%)'
+        }}
+      />
+      {children}
+    </div>
+  );
+}
+
 export const GlobeSection3D = () => {
+  const [headingMousePos, setHeadingMousePos] = useState({ x: 50, y: 50 });
+  const headingRef = useRef<HTMLDivElement>(null);
+
+  const handleHeadingMouseMove = (e: React.MouseEvent) => {
+    if (!headingRef.current) return;
+    const rect = headingRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setHeadingMousePos({ x, y });
+  };
+
   return (
     <section id="global" className="relative h-screen w-full bg-[#050505] flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0 z-0">
@@ -188,19 +225,25 @@ export const GlobeSection3D = () => {
         </Canvas>
       </div>
       <div className="container mx-auto px-12 relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-        <div className="space-y-10 order-2 lg:order-1 pointer-events-none">
+        <div 
+          ref={headingRef}
+          onMouseMove={handleHeadingMouseMove}
+          className="space-y-10 order-2 lg:order-1 pointer-events-auto"
+        >
           <div className="space-y-2">
-            <div className="h-1 w-12 bg-cyan shadow-[0_0_15px_#00f2ff]" />
-            <p className="text-sm font-black tracking-[0.5em] text-cyan uppercase italic drop-shadow-[0_0_8px_rgba(0,242,255,0.6)]">NO TE LIMITES</p>
+            <div className="h-1.5 w-16 bg-cyan shadow-[0_0_20px_#00f2ff]" />
+            <p className="text-lg font-black tracking-[0.5em] text-cyan uppercase italic drop-shadow-[0_0_10px_rgba(0,242,255,0.8)]">NO TE LIMITES</p>
           </div>
-          <h2 className="text-6xl md:text-[5.5rem] font-black text-white italic tracking-tighter leading-[0.85] uppercase">
-            VENDE EN TODO <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan to-petroleum">EL MUNDO.</span>
-          </h2>
+          <GlowHeading mousePos={headingMousePos}>
+            <h2 className="text-6xl md:text-[5.5rem] font-black text-white italic tracking-tighter leading-[0.85] uppercase relative z-10">
+              VENDE EN TODO <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan to-petroleum">EL MUNDO.</span>
+            </h2>
+          </GlowHeading>
           <p className="max-w-md text-white text-sm font-black leading-relaxed uppercase tracking-[0.2em] text-[11px] drop-shadow-[0_0_15px_rgba(0,242,255,0.8)] drop-shadow-[0_0_30px_rgba(0,242,255,0.4)]">
             Tu local físico ya no es el límite. Lleva tus productos a cualquier rincón del planeta y convierte al mundo entero en tu cliente.
           </p>
-          <div className="grid grid-cols-2 gap-8 border-t border-white/10 pt-10">
+          <div className="flex gap-12 border-t border-white/10 pt-10">
             <div>
               <p className="text-2xl font-black text-cyan italic flex items-baseline">
                 <span>+200</span>
@@ -209,9 +252,15 @@ export const GlobeSection3D = () => {
             </div>
             <div>
               <p className="text-2xl font-black text-cyan italic flex items-baseline">
-                <span>+1000</span>
+                <span>+50K</span>
               </p>
-              <p className="text-[8px] font-bold text-gray-500 uppercase mt-1">Pedidos Diarios</p>
+              <p className="text-[8px] font-bold text-gray-500 uppercase mt-1">Ventas Exitosas</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-cyan italic flex items-baseline">
+                <span>REAL</span>
+              </p>
+              <p className="text-[8px] font-bold text-gray-500 uppercase mt-1">Soporte Humano</p>
             </div>
           </div>
         </div>
