@@ -169,12 +169,14 @@ export const HeroLight = () => {
               <motion.div 
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-gray-100 shadow-sm"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white border border-gray-100 shadow-[0_10px_30px_-5px_rgba(0,77,77,0.15)] relative group/tag overflow-hidden"
               >
-                <span className="h-2 w-2 rounded-full bg-cyan animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-petroleum">
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan/5 to-transparent opacity-0 group-hover/tag:opacity-100 transition-opacity" />
+                <span className="h-2 w-2 rounded-full bg-cyan animate-pulse shadow-[0_0_10px_#00f2ff]" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-petroleum relative z-10">
                   La Nueva Era del Comercio Digital
                 </span>
+                <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan/20 to-transparent" />
               </motion.div>
               
               <div className="text-6xl md:text-8xl font-black text-black leading-[0.9] tracking-tighter italic uppercase drop-shadow-xl">
@@ -215,10 +217,13 @@ export const HeroLight = () => {
           {/* BOTONES 3D BOOK APILADOS */}
           <div className="flex flex-wrap gap-10 pt-4">
             <div className="relative group">
-              <div className="absolute -inset-1 bg-cyan/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
-              <GlassButton href="/register" variant="dark">
-                Empieza ahora
-              </GlassButton>
+              {/* Sombra masiva para efecto 3D real */}
+              <div className="absolute -inset-1 bg-cyan/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
+              <div className="relative shadow-[0_30px_60px_-10px_rgba(0,0,0,0.5)] rounded-2xl group-hover:shadow-[0_40px_80px_-15px_rgba(0,242,255,0.3)] transition-all duration-500">
+                <GlassButton href="/register" variant="dark">
+                  Empieza ahora
+                </GlassButton>
+              </div>
             </div>
           </div>
         </div>

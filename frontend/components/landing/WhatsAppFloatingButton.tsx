@@ -8,8 +8,10 @@ interface WhatsAppFloatingButtonProps {
 }
 
 export const WhatsAppFloatingButton = ({ hidden }: WhatsAppFloatingButtonProps) => {
-  // Número de WhatsApp placeholder (el cliente puede cambiarlo luego)
-  const whatsappUrl = "https://wa.me/573000000000"; 
+  // Número de WhatsApp oficial de Bayup
+  const phoneNumber = "573014484127";
+  const message = encodeURIComponent("¡quiero tener mi pagina web hoy!, ¿me puedes ayudar?");
+  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`; 
 
   return (
     <motion.div

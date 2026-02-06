@@ -27,7 +27,30 @@ export const MobileShoppingSection = () => {
       <div className="absolute top-1/2 left-1/4 w-[700px] h-[700px] bg-petroleum/10 rounded-full blur-[180px] -z-10 animate-pulse" />
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-cyan/5 rounded-full blur-[150px] -z-10" />
 
-      <div className="container mx-auto px-6 max-w-5xl text-center flex flex-col items-center">
+      {/* Imagen de fondo sutil: Chica sorprendida (Local Asset) - Derecha Ultra XL */}
+      <motion.div
+        initial={{ opacity: 0, x: 200 }}
+        whileInView={{ 
+          opacity: 0.25, 
+          x: 0, 
+        }}
+        transition={{ duration: 2, ease: "easeOut" }}
+        className="absolute bottom-[-5%] right-[-10%] w-[1200px] h-auto pointer-events-none z-0"
+      >
+        <motion.img 
+          src="/assets/sorpresa.png" 
+          alt="Surprised Entrepreneur"
+          animate={{ 
+            y: [0, -30, 0],
+          }}
+          transition={{ 
+            y: { duration: 10, repeat: Infinity, ease: "easeInOut" },
+          }}
+          className="w-full h-auto filter contrast-110"
+        />
+      </motion.div>
+
+      <div className="container mx-auto px-6 max-w-5xl text-center flex flex-col items-center relative z-10">
         
         <div className="space-y-12 w-full">
           <div className="space-y-4">

@@ -11,6 +11,7 @@ import { RollingText } from './RollingText';
 import { WorldMap } from './WorldMap';
 import { InteractiveDistortion } from './InteractiveDistortion';
 import { FloatingParticlesBackground } from './FloatingParticlesBackground';
+import { InteractiveAuraBackground } from './InteractiveAuraBackground';
 
 const AuroraBorder = () => {
   return (
@@ -48,7 +49,7 @@ export const NarrativeScroll = () => {
     setMounted(true);
   }, []);
 
-  // Lógica de Framer Motion (Solo se activa cuando está montado)
+  // Lógica de Framer Motion
   const { scrollYProgress } = useScroll({
     target: mounted ? containerRef : undefined,
     offset: ["start end", "end start"]
@@ -90,40 +91,17 @@ export const NarrativeScroll = () => {
     <div id="ecosystem" ref={containerRef} className="overflow-hidden bg-background">
       <div ref={horizontalRef} className="flex h-screen w-fit">
         
-        {/* Intro Section - World Map Background */}
+        {/* 0. Intro Section - PREMIUM INTERACTIVE BACKGROUND */}
         <div className="horizontal-section h-screen w-screen relative flex items-center justify-center bg-[#050505] overflow-hidden">
-          
-          <WorldMap />
-          
-          <div className="max-w-5xl text-center flex flex-col items-center relative z-10 px-6">
-            <div className="text-6xl md:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] flex flex-col items-center">
-              <div className="text-white filter drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]">
-                <RollingText text="EL MUNDO ESTA LISTO" className="flex-nowrap" />
-              </div>
-              <div className="text-transparent bg-clip-text bg-gradient-to-r from-cyan via-white to-cyan">
-                <RollingText text="PARA COMPRARTE." className="flex-nowrap" />
-              </div>
-            </div>
-
-            {/* Subtítulo con Efecto Glow Premium */}
-            <div className="mt-8 relative group">
-              <motion.div 
-                className="absolute -inset-x-20 -inset-y-10 bg-cyan/20 blur-[60px] rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-1000"
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 4, repeat: Infinity }}
-              />
-              <p className="text-xl md:text-2xl font-black text-white italic tracking-[0.3em] uppercase relative z-10 drop-shadow-[0_0_10px_rgba(0,242,255,0.8)]">
-                Bayup te da las herramientas <span className="text-cyan">para lograrlo</span>
-              </p>
-            </div>
-
-            <motion.div 
-              style={{ width: lineWidth, opacity: lineOpacity }}
-              className="h-[2px] bg-cyan mt-12 mx-auto shadow-[0_0_20px_#00f2ff] relative"
-            >
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-4 bg-cyan blur-md rounded-full" />
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 bg-cyan blur-md rounded-full" />
-            </motion.div>
+          <InteractiveAuraBackground />
+          <div className="max-w-7xl text-center flex flex-col items-center relative z-10 px-6 gap-8">
+            <h2 className="text-6xl md:text-8xl lg:text-[7rem] font-black tracking-tighter uppercase leading-[1] italic flex flex-col items-center">
+              <span className="text-white whitespace-nowrap">EL MUNDO ESTÁ LISTO</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan via-white to-cyan whitespace-nowrap">PARA COMPRARTE.</span>
+            </h2>
+            <p className="text-xl md:text-2xl font-black text-white italic tracking-[0.3em] uppercase drop-shadow-[0_0_10px_rgba(0,242,255,0.8)]">
+              Bayup te da las herramientas <span className="text-cyan">para lograrlo</span>
+            </p>
           </div>
         </div>
 
@@ -220,7 +198,7 @@ export const NarrativeScroll = () => {
               
               <div 
                 style={{ transformStyle: "preserve-3d" }}
-                className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[120px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col gap-8 isolate text-center group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
+                className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[120px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col gap-8 isolate text-center group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.25)]"
               >
                 <AuroraBorder />
                 {/* Reflejo de luz interna (Volumen superior) */}
@@ -276,7 +254,7 @@ export const NarrativeScroll = () => {
                               initial={{ opacity: 0, x: 100, rotate: 15, scale: 1 }}
                               whileInView={{ 
                                 opacity: 0.2, 
-                                x: 0, 
+                                x: -100, 
                                 scale: 1.3,
                                 rotate: [15, 12, 15],
                                 y: [0, 25, 0]
@@ -342,7 +320,7 @@ export const NarrativeScroll = () => {
                 
                               <div 
                                 style={{ transformStyle: "preserve-3d" }}
-                                className="relative p-12 rounded-[4.5rem] bg-white/10 backdrop-blur-[100px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
+                                className="relative p-12 rounded-[4.5rem] bg-white/10 backdrop-blur-[80px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
                               >
                                 <AuroraBorder />
                                 {/* Reflejo de luz interna (Volumen superior) */}
@@ -467,59 +445,6 @@ export const NarrativeScroll = () => {
         </section>
 
       </div>
-    </div>
-  );
-};
-
-const GlowEffect = () => {
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
-    const { left, top } = currentTarget.getBoundingClientRect();
-    mouseX.set(clientX - left);
-    mouseY.set(clientY - top);
-  }
-
-  return (
-    <div
-      onMouseMove={handleMouseMove}
-      className="group/glow absolute inset-0 z-0 pointer-events-auto"
-    >
-      <motion.div
-        className="absolute inset-0 z-0 opacity-0 group-hover/glow:opacity-100 transition-opacity duration-500"
-        style={{
-          background: useMotionTemplate`
-            radial-gradient(
-              650px circle at ${mouseX}px ${mouseY}px,
-              rgba(0, 242, 255, 0.15),
-              transparent 80%
-            )
-          `,
-        }}
-      />
-      <motion.div
-        className="absolute inset-0 z-10 opacity-0 group-hover/glow:opacity-100 transition-opacity duration-500 border-[3px] border-transparent rounded-[4.5rem]"
-        style={{
-          WebkitMaskImage: useMotionTemplate`
-            radial-gradient(
-              300px circle at ${mouseX}px ${mouseY}px,
-              black 0%,
-              transparent 100%
-            )
-          `,
-          maskImage: useMotionTemplate`
-            radial-gradient(
-              300px circle at ${mouseX}px ${mouseY}px,
-              black 0%,
-              transparent 100%
-            )
-          `,
-          borderImageSource: "linear-gradient(to right, #00f2ff, #004d4d)",
-          borderImageSlice: 1,
-          borderColor: "#00f2ff"
-        }}
-      />
     </div>
   );
 };
