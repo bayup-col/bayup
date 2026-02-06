@@ -1,13 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Smartphone, ShoppingCart, Zap } from "lucide-react";
+import { Smartphone, ShoppingCart, Zap, Palette, Activity } from "lucide-react";
 import { useRef, useState } from "react";
 import { PixelTransition } from "./PixelTransition";
 
 export const MobileShoppingSection = () => {
   const textRef = useRef<HTMLSpanElement>(null);
   const [mousePos, setMousePos] = useState({ x: 95, y: 15 });
+  const [activeColumn, setActiveColumn] = useState<'bayup' | 'others'>('bayup');
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!textRef.current) return;
@@ -26,62 +27,12 @@ export const MobileShoppingSection = () => {
       <div className="absolute top-1/2 left-1/4 w-[700px] h-[700px] bg-petroleum/10 rounded-full blur-[180px] -z-10 animate-pulse" />
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-cyan/5 rounded-full blur-[150px] -z-10" />
 
-      <div className="container mx-auto px-12 grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
+      <div className="container mx-auto px-6 max-w-5xl text-center flex flex-col items-center">
         
-        <div className="relative flex justify-center order-2 lg:order-1 h-[700px] items-center">
-          {/* Contenedor relativo para agrupar todo el visual móvil */}
-          <div className="relative w-full max-w-md group">
-            
-            {/* 1. LA TARJETA DE CRISTAL (FONDO) */}
-            <PixelTransition delay={0.5} gridSize={12}>
-              <div className="relative w-[320px] h-[500px] mx-auto rounded-[4rem] bg-white/[0.03] backdrop-blur-[100px] border-2 border-white/80 shadow-[0_40px_100px_-20px_rgba(0,77,77,0.2)] transition-all duration-700 group-hover:border-cyan/40">
-                <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent pointer-events-none" />
-                <div className="absolute inset-0 shadow-[inset_0_0_80px_rgba(255,255,255,0.3)] rounded-[4rem] pointer-events-none" />
-              </div>
-            </PixelTransition>
-
-            {/* 2. EL CELULAR (FLOTANDO POR FUERA) */}
-            <motion.div
-              initial={{ opacity: 0, scale: 1.3, y: 20, rotateY: 5 }}
-              whileInView={{ opacity: 1, scale: 1.5, y: -20, rotateY: 0 }}
-              whileHover={{ scale: 1.6, y: -30, rotateY: -5, rotateX: 5 }}
-              transition={{ 
-                duration: 1.2, 
-                ease: [0.16, 1, 0.3, 1],
-                scale: { type: "spring", stiffness: 100, damping: 15 }
-              }}
-              className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
-            >
-              <img 
-                src="/assets/Cel catalogo.png" 
-                alt="Mobile Experience" 
-                className="w-full h-auto drop-shadow-[0_60px_100px_rgba(0,0,0,0.5)] filter brightness-110 pointer-events-auto"
-              />
-            </motion.div>
-            
-            {/* 3. PILL FLOTANTE (Movido abajo) */}
-            <motion.div 
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -left-4 bottom-10 bg-white/10 backdrop-blur-[80px] border-2 border-white/80 p-6 rounded-[2rem] shadow-2xl z-[60] space-y-3 hidden md:block"
-            >
-              <div className="flex gap-2">
-                <div className="h-2 w-10 bg-cyan rounded-full shadow-[0_0_15px_#00f2ff]" />
-                <div className="h-2 w-5 bg-petroleum/30 rounded-full" />
-              </div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-petroleum">Experience Active</p>
-            </motion.div>
-
-            {/* Sombra de suelo */}
-            <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-[80%] h-10 bg-petroleum/15 blur-[50px] rounded-full" />
-          </div>
-        </div>
-
-        <div className="space-y-12 order-1 lg:order-2">
+        <div className="space-y-12 w-full">
           <div className="space-y-4">
-            <p className="text-cyan font-black uppercase tracking-[0.5em] text-[10px]">Mobile-First DNA</p>
-            <h2 className="text-6xl md:text-8xl font-black text-black tracking-tighter italic leading-[0.85] uppercase">
-              TUS CLIENTES, <br />
+            <h2 className="text-5xl md:text-7xl lg:text-8xl font-black text-black tracking-tighter italic leading-none uppercase whitespace-nowrap">
+              ¿POR QUÉ{" "}
               <span 
                 ref={textRef}
                 onMouseMove={handleMouseMove}
@@ -94,33 +45,76 @@ export const MobileShoppingSection = () => {
                   backgroundClip: 'text',
                 } as React.CSSProperties}
               >
-                DONDE SEA.
+                BAYUP?
               </span>
             </h2>
           </div>
-          <p className="max-w-xl text-gray-500 text-lg font-medium leading-relaxed">
-            La experiencia de compra más fluida del planeta. Nuestras interfaces móviles están diseñadas para convertir usuarios en fans, con tiempos de carga instantáneos y navegación gestual intuitiva.
+          <p className="max-w-2xl mx-auto text-gray-500 text-lg md:text-xl font-medium leading-relaxed">
+            Hemos reinventado las reglas del juego. Mientras otros te cobran por intentar vender, nosotros nos convertimos en tus socios estratégicos para asegurar que lo logres.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
-            <div className="group space-y-4">
-              <div className="h-16 w-16 rounded-[1.5rem] bg-white border-2 border-gray-100 text-petroleum flex items-center justify-center shadow-xl group-hover:bg-petroleum group-hover:text-cyan transition-all duration-500 border-b-cyan/30">
-                <Smartphone size={28} />
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
+            className="w-full max-w-5xl mx-auto mt-16 p-6 md:p-16 rounded-[3rem] md:rounded-[4rem] bg-white/10 backdrop-blur-2xl border border-white/20 shadow-[0_80px_150px_-30px_rgba(0,0,0,0.3)] relative overflow-hidden group/table"
+          >
+            {/* Background Aura Glow */}
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan/10 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-petroleum/10 rounded-full blur-[100px] pointer-events-none" />
+
+            <div className="w-full">
+              {/* Header de la Tabla */}
+              <div className="grid grid-cols-12 gap-2 md:gap-4 pb-12 items-end border-b border-gray-200/20">
+                <div className="col-span-6 text-left">
+                  <h4 className="text-xl md:text-3xl font-black italic uppercase text-black leading-none">Comparativa <br /><span className="text-cyan">Estratégica</span></h4>
+                </div>
+                <div 
+                  className={`col-span-3 text-center cursor-pointer transition-all duration-500 ${activeColumn === 'others' ? 'opacity-100 scale-105' : 'opacity-60 grayscale hover:opacity-80'}`}
+                  onClick={() => setActiveColumn('others')}
+                >
+                  <p className={`text-[8px] md:text-[10px] font-black uppercase tracking-[0.1em] md:tracking-[0.3em] mb-2 md:mb-4 transition-colors ${activeColumn === 'others' ? 'text-gray-600' : 'text-gray-400'}`}>Otras Plataformas</p>
+                  <div className={`h-12 md:h-16 w-full rounded-2xl md:rounded-3xl flex items-center justify-center font-black italic text-[10px] md:text-base transition-all ${activeColumn === 'others' ? 'bg-gray-700 text-white shadow-xl' : 'bg-gray-200 text-gray-500'}`}>OTRAS</div>
+                </div>
+                <div 
+                  className={`col-span-3 text-center cursor-pointer transition-all duration-500 ${activeColumn === 'bayup' ? 'opacity-100 scale-105' : 'opacity-60 grayscale hover:opacity-80'}`}
+                  onClick={() => setActiveColumn('bayup')}
+                >
+                  <p className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.1em] md:tracking-[0.3em] text-cyan mb-2 md:mb-4">Experiencia Premium</p>
+                  <div className={`h-12 md:h-16 w-full rounded-2xl md:rounded-3xl flex items-center justify-center font-black italic border-2 text-[10px] md:text-base transition-all ${activeColumn === 'bayup' ? 'bg-petroleum text-cyan shadow-[0_20px_40px_rgba(0,242,255,0.25)] border-cyan/30' : 'bg-gray-100/50 border-transparent text-gray-400'}`}>BAYUP</div>
+                </div>
               </div>
-              <div>
-                <h4 className="text-xl font-black uppercase italic text-black">PWA Ready</h4>
-                <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">Instalable sin App Store</p>
-              </div>
+
+              {/* Filas de la Tabla */}
+              {[
+                { label: "Planes Mensuales", bayup: "Gratis por siempre", others: "Desde $30 USD/mes", detail: "Bayup devuelve la barrera de los costos fijos mensuales." },
+                { label: "Venta Omnicanal", bayup: "Sincronización Nativa", others: "Venta Fragmentada", detail: "Controla tu stock y pedidos de Web, WhatsApp y Redes en un solo lugar." },
+                { label: "Canal de WhatsApp", bayup: "Integración Nativa", others: "Costo Adicional", detail: "Vende y recibe pedidos directamente en tu chat de forma fluida." },
+                { label: "Marketing y Fidelización", bayup: "Sistema Pro Incluido", others: "Pago por Aplicaciones", detail: "Cupones, programas de puntos y analítica real sin pagar ni un peso extra." },
+                { label: "Configuración", bayup: "Lista en minutos", others: "Setup prolongado", detail: "Sube tus productos y lanza tu tienda el mismo día." },
+                { label: "Soporte y Ayuda", bayup: "Atención VIP en Español", others: "Soporte Lento", detail: "Te acompañamos personalmente en el crecimiento de tu marca." },
+                { label: "Escalabilidad", bayup: "Crecimiento Sin Límites", others: "Topes y Restricciones", detail: "Sin límites de productos o visitas. Nuestra tecnología escala contigo." }
+              ].map((row, i) => (
+                <div key={i} className="grid grid-cols-12 gap-2 md:gap-4 py-6 md:py-8 border-b border-white/5 group transition-all">
+                  <div className="col-span-6 text-left flex flex-col justify-center gap-1">
+                    <p className="text-sm md:text-lg font-black uppercase italic text-black leading-none transition-opacity">{row.label}</p>
+                    <p className="text-[8px] md:text-[10px] text-gray-500/60 font-medium">{row.detail}</p>
+                  </div>
+                  
+                  {/* Columna Otras */}
+                  <div className={`col-span-3 flex items-center justify-center transition-all duration-500 rounded-xl md:rounded-2xl ${activeColumn === 'others' ? 'bg-black/5 scale-[1.02] z-10 shadow-sm' : 'opacity-60'}`}>
+                    <span className={`text-[9px] md:text-sm font-bold uppercase italic transition-colors ${activeColumn === 'others' ? 'text-gray-800' : 'text-gray-500'}`}>{row.others}</span>
+                  </div>
+
+                  {/* Columna Bayup */}
+                  <div className={`col-span-3 flex items-center justify-center transition-all duration-500 rounded-xl md:rounded-2xl relative ${activeColumn === 'bayup' ? 'bg-cyan/5 scale-[1.02] z-10 shadow-sm' : 'opacity-60'}`}>
+                    <div className={`absolute inset-y-0 left-0 w-1 bg-cyan transition-opacity duration-500 ${activeColumn === 'bayup' ? 'opacity-100' : 'opacity-0'}`} />
+                    <span className={`text-[9px] md:text-sm font-black uppercase italic tracking-tight transition-colors ${activeColumn === 'bayup' ? 'text-petroleum' : 'text-gray-400'}`}>{row.bayup}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="group space-y-4">
-              <div className="h-16 w-16 rounded-[1.5rem] bg-white border-2 border-gray-100 text-petroleum flex items-center justify-center shadow-xl group-hover:bg-petroleum group-hover:text-cyan transition-all duration-500 border-b-cyan/30">
-                <Zap size={28} />
-              </div>
-              <div>
-                <h4 className="text-xl font-black uppercase italic text-black">Ultra Fast</h4>
-                <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">Carga en 0.4 segundos</p>
-              </div>
-            </div>
-          </div>
+          </motion.div>
         </div>
 
       </div>
