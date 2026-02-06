@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Check, ArrowRight } from "lucide-react";
 import { useRef, useState } from "react";
+import Link from "next/link";
 
 export const PricingCinematic = () => {
   const textRef = useRef<HTMLSpanElement>(null);
@@ -105,11 +106,19 @@ export const PricingCinematic = () => {
                   ))}
                 </ul>
 
-                <button 
-                  disabled={plan.status === 'upcoming'}
-                  className={`w-full py-6 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 active:scale-95 ${plan.status === 'upcoming' ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : plan.popular ? 'bg-white text-black hover:bg-cyan shadow-2xl' : 'bg-petroleum text-white hover:bg-black shadow-xl'}`}>
-                  {plan.button} {plan.status === 'active' && <ArrowRight size={14} />}
-                </button>
+                {plan.status === 'active' ? (
+                  <Link href="/planes" className="w-full">
+                    <button className={`w-full py-6 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 active:scale-95 ${plan.popular ? 'bg-white text-black hover:bg-cyan shadow-2xl' : 'bg-petroleum text-white hover:bg-black shadow-xl'}`}>
+                      {plan.button} <ArrowRight size={14} />
+                    </button>
+                  </Link>
+                ) : (
+                  <button 
+                    disabled
+                    className="w-full py-6 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.3em] bg-gray-200 text-gray-400 cursor-not-allowed">
+                    {plan.button}
+                  </button>
+                )}
               </div>
 
               {/* Brillo de barrido cinemático */}
