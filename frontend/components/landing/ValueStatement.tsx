@@ -34,20 +34,25 @@ export const ValueStatement = () => {
   ];
 
   return (
-    <section className="py-40 bg-surface relative overflow-hidden shadow-inner">
-      <div className="container mx-auto px-12 text-center">
+    <section className="py-40 bg-[#F8FAFB] relative overflow-hidden">
+      {/* Patrón de micro-puntos técnico */}
+      <div className="absolute inset-0 opacity-[0.05] pointer-events-none" 
+           style={{ backgroundImage: 'radial-gradient(#004D4D 1px, transparent 1px)', backgroundSize: '30px 30px' }} 
+      />
+
+      <div className="container mx-auto px-12 text-center relative z-10">
         
         <div className="max-w-6xl mx-auto space-y-44">
-          <div className="text-4xl md:text-6xl font-black text-black tracking-tighter leading-[1.1] italic uppercase flex flex-col items-center">
-            <RollingText text="LA FORMA MAS FACIL" />
+          <div className="text-5xl md:text-7xl font-black text-black tracking-[-0.05em] leading-[0.9] italic uppercase flex flex-col items-center drop-shadow-xl">
+            <RollingText text="LA NUEVA FORMA" />
             <div className="flex gap-2">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum drop-shadow-[0_0_15px_rgba(0,242,255,0.3)]">
                 <RollingText text="DE VENDER POR INTERNET." />
               </span>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 perspective-2000">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-16 perspective-2000">
             {pillars.map((p, i) => (
               <Card3D key={i} pillar={p} index={i} />
             ))}
@@ -87,37 +92,37 @@ const Card3D = ({ pillar, index }: { pillar: any, index: number }) => {
         className="relative w-full h-full preserve-3d"
       >
         {/* LADO FRONTAL */}
-        <div className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-10 rounded-[4.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.05)] isolate">
+        <div className="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-10 rounded-[4.5rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.1)] isolate">
           
           {/* AURORA TRACING BEAM EFFECT - FRONTAL */}
           <div className="absolute inset-0 rounded-[4.5rem] overflow-hidden -z-10">
             <div 
-              className="absolute top-1/2 left-1/2 w-[250%] aspect-square animate-aurora opacity-40 group-hover:opacity-100 transition-opacity duration-700"
+              className="absolute top-1/2 left-1/2 w-[250%] aspect-square animate-aurora opacity-50 group-hover:opacity-100 transition-opacity duration-700"
               style={{
                 background: `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)`,
                 willChange: 'transform'
               }}
             />
             {/* Relleno que actúa como máscara del borde */}
-            <div className="absolute inset-[2px] rounded-[4.4rem] bg-white/90 backdrop-blur-[100px]" />
+            <div className="absolute inset-[3px] rounded-[4.4rem] bg-white/95 backdrop-blur-[120px]" />
           </div>
 
-          <div className="absolute inset-0 bg-gradient-to-br from-petroleum/[0.05] to-cyan/[0.05] rounded-[4.5rem] -z-10" />
+          <div className="absolute inset-0 bg-gradient-to-br from-petroleum/[0.08] to-transparent rounded-[4.5rem] -z-10" />
           
           <div className="space-y-10 flex flex-col items-center w-full relative z-10">
             {/* El número como Icono Principal */}
-            <div className="h-28 w-28 rounded-[2.5rem] bg-gradient-to-br from-[#004D4D] to-black text-white flex items-center justify-center shadow-[0_0_40px_rgba(0,77,77,0.4)] relative group-hover:shadow-[0_0_60px_rgba(0,242,255,0.5)] transition-all duration-700">
-              <div className="absolute inset-0 bg-cyan/20 blur-2xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              <span className="relative z-10 text-4xl font-black italic tracking-tighter text-cyan drop-shadow-[0_0_10px_rgba(0,242,255,0.8)]">
+            <div className="h-28 w-28 rounded-[2.5rem] bg-gradient-to-br from-[#004D4D] to-black text-white flex items-center justify-center shadow-[0_20px_40px_rgba(0,77,77,0.3)] relative group-hover:shadow-[0_0_60px_rgba(0,242,255,0.4)] transition-all duration-700">
+              <div className="absolute inset-0 bg-cyan/30 blur-2xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              <span className="relative z-10 text-5xl font-black italic tracking-tighter text-cyan drop-shadow-[0_0_12px_rgba(0,242,255,0.9)]">
                 {pillar.step}
               </span>
             </div>
 
             <div className="space-y-4 text-center w-full">
-              <h3 className="text-2xl font-black uppercase tracking-tight italic text-black leading-tight w-full flex justify-center">
+              <h3 className="text-3xl font-black uppercase tracking-[-0.03em] italic text-black leading-tight w-full flex justify-center drop-shadow-sm">
                 <RollingText text={pillar.title} delay={0.5 + index * 0.1} />
               </h3>
-              <div className="text-gray-500 text-[10px] font-black leading-relaxed uppercase tracking-[0.2em] w-full px-4">
+              <div className="text-gray-400 text-[11px] font-black leading-relaxed uppercase tracking-[0.3em] w-full px-4">
                 <RollingText text={pillar.desc} delay={0.7 + index * 0.1} />
               </div>
             </div>
