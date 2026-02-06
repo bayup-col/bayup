@@ -28,46 +28,53 @@ export const MobileShoppingSection = () => {
 
       <div className="container mx-auto px-12 grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
         
-        <div className="relative flex justify-center order-2 lg:order-1">
+        <div className="relative flex justify-center order-2 lg:order-1 h-[700px] items-center">
           {/* Contenedor relativo para agrupar todo el visual móvil */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, rotateY: 15 }}
-            whileInView={{ opacity: 1, scale: 1, rotateY: 0 }}
-            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative z-10 w-full max-w-lg group isolate"
-          >
-            {/* 1. VITRINA PRINCIPAL CON PIXEL TRANSITION (Solo envuelve el vidrio) */}
+          <div className="relative w-full max-w-md group">
+            
+            {/* 1. LA TARJETA DE CRISTAL (FONDO) */}
             <PixelTransition delay={0.5} gridSize={12}>
-              <div className="relative p-12 rounded-[5.5rem] bg-white/[0.02] backdrop-blur-[120px] border-2 border-white/80 shadow-[0_60px_120px_-20px_rgba(0,77,77,0.3)] overflow-hidden transition-all duration-700 group-hover:border-cyan/40">
+              <div className="relative w-[320px] h-[500px] mx-auto rounded-[4rem] bg-white/[0.03] backdrop-blur-[100px] border-2 border-white/80 shadow-[0_40px_100px_-20px_rgba(0,77,77,0.2)] transition-all duration-700 group-hover:border-cyan/40">
                 <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent pointer-events-none" />
-                <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-to-br from-white/20 via-transparent to-transparent rotate-12 pointer-events-none group-hover:rotate-45 transition-transform duration-1000" />
-                
-                <img 
-                  src="/assets/Cel catalogo.png" 
-                  alt="Mobile Experience" 
-                  className="w-full h-auto rounded-[3.5rem] relative z-10 drop-shadow-[0_40px_60px_rgba(0,0,0,0.3)] group-hover:scale-[1.03] transition-transform duration-700 filter brightness-105"
-                />
-
-                <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(255,255,255,0.4)] rounded-[5.5rem] pointer-events-none" />
+                <div className="absolute inset-0 shadow-[inset_0_0_80px_rgba(255,255,255,0.3)] rounded-[4rem] pointer-events-none" />
               </div>
             </PixelTransition>
+
+            {/* 2. EL CELULAR (FLOTANDO POR FUERA) */}
+            <motion.div
+              initial={{ opacity: 0, scale: 1.3, y: 20, rotateY: 5 }}
+              whileInView={{ opacity: 1, scale: 1.5, y: -20, rotateY: 0 }}
+              whileHover={{ scale: 1.6, y: -30, rotateY: -5, rotateX: 5 }}
+              transition={{ 
+                duration: 1.2, 
+                ease: [0.16, 1, 0.3, 1],
+                scale: { type: "spring", stiffness: 100, damping: 15 }
+              }}
+              className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
+            >
+              <img 
+                src="/assets/Cel catalogo.png" 
+                alt="Mobile Experience" 
+                className="w-full h-auto drop-shadow-[0_60px_100px_rgba(0,0,0,0.5)] filter brightness-110 pointer-events-auto"
+              />
+            </motion.div>
             
-            {/* 2. PILL FLOTANTE (Fuera de PixelTransition para evitar recortes) */}
+            {/* 3. PILL FLOTANTE (Movido abajo) */}
             <motion.div 
-              animate={{ y: [0, -20, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -right-12 top-1/4 bg-white/10 backdrop-blur-[80px] border-2 border-white/80 p-8 rounded-[2.5rem] shadow-2xl z-20 space-y-3 hidden md:block"
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -left-4 bottom-10 bg-white/10 backdrop-blur-[80px] border-2 border-white/80 p-6 rounded-[2rem] shadow-2xl z-[60] space-y-3 hidden md:block"
             >
               <div className="flex gap-2">
                 <div className="h-2 w-10 bg-cyan rounded-full shadow-[0_0_15px_#00f2ff]" />
                 <div className="h-2 w-5 bg-petroleum/30 rounded-full" />
               </div>
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-petroleum">Experience Active</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-petroleum">Experience Active</p>
             </motion.div>
 
             {/* Sombra de suelo */}
-            <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[85%] h-14 bg-petroleum/20 blur-[60px] rounded-full" />
-          </motion.div>
+            <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-[80%] h-10 bg-petroleum/15 blur-[50px] rounded-full" />
+          </div>
         </div>
 
         <div className="space-y-12 order-1 lg:order-2">
