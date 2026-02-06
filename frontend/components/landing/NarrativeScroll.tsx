@@ -12,6 +12,33 @@ import { WorldMap } from './WorldMap';
 import { InteractiveDistortion } from './InteractiveDistortion';
 import { FloatingParticlesBackground } from './FloatingParticlesBackground';
 
+const AuroraBorder = () => {
+  return (
+    <div 
+      className="absolute inset-0 rounded-[inherit] z-50 pointer-events-none"
+      style={{
+        mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+        maskComposite: 'exclude',
+        WebkitMaskComposite: 'xor',
+        padding: '2px', // Grosor del borde aurora
+      }}
+    >
+      <motion.div
+        className="absolute inset-[-50%]"
+        style={{ 
+          width: '200%', 
+          height: '200%', 
+          left: '-50%', 
+          top: '-50%',
+          background: 'conic-gradient(from 0deg, transparent 0deg, transparent 60deg, #00f2ff 100deg, transparent 140deg, transparent 200deg, #004d4d 240deg, transparent 280deg)'
+        }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+      />
+    </div>
+  );
+};
+
 export const NarrativeScroll = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const horizontalRef = useRef<HTMLDivElement>(null);
@@ -125,8 +152,9 @@ export const NarrativeScroll = () => {
 
               <div 
                 style={{ transformStyle: "preserve-3d" }}
-                className="relative p-12 rounded-[4.5rem] bg-white/10 backdrop-blur-[100px] border-2 border-white/60 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate group-hover:border-cyan/40 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
+                className="relative p-12 rounded-[4.5rem] bg-white/10 backdrop-blur-[100px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
               >
+                <AuroraBorder />
                 {/* Reflejo de luz interna (Volumen superior) */}
                 <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
                 
@@ -170,8 +198,9 @@ export const NarrativeScroll = () => {
               
               <div 
                 style={{ transformStyle: "preserve-3d" }}
-                className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[120px] border-2 border-white/60 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col gap-8 isolate text-center group-hover:border-cyan/30 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
+                className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[120px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col gap-8 isolate text-center group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
               >
+                <AuroraBorder />
                 {/* Reflejo de luz interna (Volumen superior) */}
                 <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
                 
@@ -224,8 +253,9 @@ export const NarrativeScroll = () => {
                 
                               <div 
                                 style={{ transformStyle: "preserve-3d" }}
-                                className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[120px] border-2 border-white/60 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col items-center justify-center text-center gap-10 isolate group-hover:border-cyan/30 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
+                                className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[120px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col items-center justify-center text-center gap-10 isolate group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
                               >
+                                <AuroraBorder />
                                 {/* Reflejo de luz interna (Volumen superior) */}
                                 <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
 
@@ -264,8 +294,9 @@ export const NarrativeScroll = () => {
                 
                               <div 
                                 style={{ transformStyle: "preserve-3d" }}
-                                className="relative p-12 rounded-[4.5rem] bg-white/10 backdrop-blur-[80px] border-2 border-white/40 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate group-hover:border-cyan/30 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
+                                className="relative p-12 rounded-[4.5rem] bg-white/10 backdrop-blur-[80px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
                               >
+                                <AuroraBorder />
                                 {/* Reflejo de luz interna (Volumen superior) */}
                                 <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
 
@@ -308,24 +339,45 @@ export const NarrativeScroll = () => {
                         </section>
 
         {/* 3. Global Analytics */}
-        <section className="horizontal-section flex h-screen w-screen items-center justify-center p-20 bg-background">
+        <section className="horizontal-section flex h-screen w-screen items-center justify-center p-20 bg-background relative overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
-            <NarrativeCard className="space-y-10 group relative">
+            <NarrativeCard className="space-y-10 group relative z-20 perspective-[1000px]">
               <div className="absolute -inset-10 bg-petroleum/5 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
               
-              <div className="relative p-12 rounded-[4.5rem] bg-white/5 backdrop-blur-[100px] border-2 border-white/60 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] space-y-10 overflow-hidden isolate group-hover:border-cyan/40 transition-all duration-700">
-                {/* Glow Card Effect Layer */}
-                <GlowEffect />
+              <div 
+                style={{ transformStyle: "preserve-3d" }}
+                className="relative p-12 rounded-[4.5rem] bg-white/5 backdrop-blur-[100px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
+              >
+                <AuroraBorder />
+                {/* Reflejo de luz interna (Volumen superior) */}
+                <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
                 
-                <div style={{ transform: "translateZ(40px)" }} className="h-20 w-20 rounded-full bg-white border border-gray-100 flex items-center justify-center text-petroleum shadow-2xl relative overflow-hidden group-hover:scale-110 transition-all duration-500 z-10">
-                  <LineChart size={32} />
+                <div 
+                  style={{ 
+                    transform: "translateZ(120px)",
+                    transformStyle: "preserve-3d"
+                  }} 
+                  className="h-24 w-24 rounded-[2rem] bg-gradient-to-br from-petroleum to-[#001A1A] flex items-center justify-center text-cyan shadow-[0_40px_70px_-10px_rgba(0,0,0,0.6)] relative overflow-visible group-hover:scale-110 group-hover:shadow-[0_50px_90px_-20px_rgba(0,242,255,0.5)] transition-all duration-500 mx-auto"
+                >
+                  <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-4 bg-black/40 blur-xl rounded-full" />
+                  <motion.div
+                    animate={{ rotateY: [0, 10, 0], rotateX: [0, 5, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    className="relative z-10"
+                    style={{ transform: "translateZ(30px)" }}
+                  >
+                    <LineChart size={36} />
+                  </motion.div>
                 </div>
 
-                <div style={{ transform: "translateZ(30px)" }} className="space-y-6 relative z-10">
-                  <h3 className="text-6xl font-black text-black italic uppercase tracking-tighter leading-none">Estadísticas <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan uppercase tracking-widest">claras</span></h3>
-                  <p className="text-cyan font-black uppercase tracking-[0.2em] text-[10px]">Entiende a tus clientes</p>
-                  <p className="text-gray-400 text-sm font-medium leading-relaxed max-w-sm uppercase tracking-[0.2em] text-[10px]">Ve de donde vienen tus visitas, qué productos se venden más y qué está funcionando en tu tienda</p>
+                <div style={{ transform: "translateZ(80px)" }} className="space-y-6 relative z-10">
+                  <h3 className="text-6xl font-black text-black italic uppercase tracking-tighter leading-none drop-shadow-[0_20px_30px_rgba(0,0,0,0.2)]">Estadísticas <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum to-cyan uppercase tracking-widest">claras</span></h3>
+                  <p className="text-cyan font-black uppercase tracking-[0.2em] text-[10px] drop-shadow-sm">Entiende a tus clientes</p>
+                  <p className="text-gray-500 text-sm font-medium leading-relaxed max-w-sm uppercase tracking-[0.2em] text-[10px] drop-shadow-sm">Ve de donde vienen tus visitas, qué productos se venden más y qué está funcionando en tu tienda</p>
                 </div>
+
+                {/* Brillo en el borde inferior para simular grosor de cristal */}
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan/40 to-transparent blur-[2px]" />
               </div>
             </NarrativeCard>
             <div className="grid grid-cols-1 gap-8 pt-10">
@@ -485,8 +537,9 @@ const AnalyticsCard = ({ stat }: { stat: any }) => {
             transformStyle: "preserve-3d",
             perspective: "1000px"
           }}
-          className={`group relative p-8 rounded-full overflow-hidden isolate flex items-center transition-all duration-700 bg-white/10 backdrop-blur-xl border-2 border-white/60 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] hover:border-cyan/40 ${stat.val === 'En tiempo real' ? 'justify-center w-[340px]' : 'justify-center gap-10 w-[420px]'} mx-auto`}
+          className={`group relative p-8 rounded-full overflow-visible isolate flex items-center transition-all duration-700 bg-white/10 backdrop-blur-xl border border-white/10 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] hover:border-cyan/20 hover:shadow-[0_40px_80px_-20px_rgba(0,242,255,0.15)] ${stat.val === 'En tiempo real' ? 'justify-center w-[340px]' : 'justify-center gap-10 w-[420px]'} mx-auto`}
         >
+          <AuroraBorder />
           {/* Lado Izquierdo: Texto con Profundidad Z */}
           <div className="relative z-10 flex flex-col" style={{ transform: "translateZ(60px)" }}>
             <div 
