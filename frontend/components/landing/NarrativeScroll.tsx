@@ -5,7 +5,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 import { useGSAP } from "@gsap/react";
 import { PiggyBank, Target, LineChart, Zap, TrendingUp, Activity } from 'lucide-react';
-import { motion, useMotionValue, useSpring, useTransform, useScroll, useMotionTemplate } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform, useScroll, useMotionTemplate, AnimatePresence } from 'framer-motion';
 import { NumberTicker } from './NumberTicker';
 import { RollingText } from './RollingText';
 import { WorldMap } from './WorldMap';
@@ -220,7 +220,7 @@ export const NarrativeScroll = () => {
               
               <div 
                 style={{ transformStyle: "preserve-3d" }}
-                className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[120px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col gap-8 isolate text-center group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.25)]"
+                className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[120px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col gap-8 isolate text-center group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
               >
                 <AuroraBorder />
                 {/* Reflejo de luz interna (Volumen superior) */}
@@ -268,6 +268,32 @@ export const NarrativeScroll = () => {
                 
                         {/* 2. Marketing ROI */}
                         <section className="horizontal-section flex h-screen w-screen items-center justify-center p-20 bg-[#FFFFFF] relative overflow-hidden">
+                          <div className="absolute inset-0 z-0">
+                            {/* Imagen de fondo sutil: Megáfono de Marketing */}
+                            <motion.img 
+                              src="https://framerusercontent.com/images/4vXvOnZ6ZpZ6z6ZpZ6z6ZpZ6z6.png" 
+                              alt="Marketing Outreach"
+                              initial={{ opacity: 0, x: 100, rotate: 15, scale: 1 }}
+                              whileInView={{ 
+                                opacity: 0.2, 
+                                x: 0, 
+                                scale: 1.3,
+                                rotate: [15, 12, 15],
+                                y: [0, 25, 0]
+                              }}
+                              transition={{ 
+                                opacity: { duration: 2 },
+                                x: { duration: 2 },
+                                scale: { duration: 2 },
+                                rotate: { duration: 7, repeat: Infinity, ease: "easeInOut" },
+                                y: { duration: 6, repeat: Infinity, ease: "easeInOut" }
+                              }}
+                              className="absolute bottom-[-10%] right-[15%] w-[700px] h-auto pointer-events-none filter blur-[1px]"
+                              onError={(e) => {
+                                e.currentTarget.src = "/assets/marketing.png";
+                              }}
+                            />
+                          </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center relative z-10">
                             {/* Card Izquierda: Imagen Marketing */}
                             <NarrativeCard className="order-2 md:order-1 relative group z-20 perspective-[1000px]">       
@@ -316,7 +342,7 @@ export const NarrativeScroll = () => {
                 
                               <div 
                                 style={{ transformStyle: "preserve-3d" }}
-                                className="relative p-12 rounded-[4.5rem] bg-white/10 backdrop-blur-[80px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
+                                className="relative p-12 rounded-[4.5rem] bg-white/10 backdrop-blur-[100px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
                               >
                                 <AuroraBorder />
                                 {/* Reflejo de luz interna (Volumen superior) */}
@@ -362,7 +388,33 @@ export const NarrativeScroll = () => {
 
         {/* 3. Global Analytics */}
         <section className="horizontal-section flex h-screen w-screen items-center justify-center p-20 bg-background relative overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
+          <div className="absolute inset-0 z-0">
+            {/* Imagen de fondo sutil: Gráfica de Estadísticas */}
+            <motion.img 
+              src="https://framerusercontent.com/images/5zYvOnZ6ZpZ6z6ZpZ6z6ZpZ6z6.png" 
+              alt="Analytics Data"
+              initial={{ opacity: 0, x: 100, rotate: 10, scale: 1 }}
+              whileInView={{ 
+                opacity: 0.2, 
+                x: 0, 
+                scale: 1.2,
+                rotate: [10, 8, 10],
+                y: [0, -20, 0]
+              }}
+              transition={{ 
+                opacity: { duration: 2 },
+                x: { duration: 2 },
+                scale: { duration: 2 },
+                rotate: { duration: 8, repeat: Infinity, ease: "easeInOut" },
+                y: { duration: 6, repeat: Infinity, ease: "easeInOut" }
+              }}
+              className="absolute bottom-[-5%] right-[-5%] w-[700px] h-auto pointer-events-none filter blur-[1px]"
+              onError={(e) => {
+                e.currentTarget.src = "/assets/grafica.png";
+              }}
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center relative z-10">
             <NarrativeCard className="space-y-10 group relative z-20 perspective-[1000px]">
               <div className="absolute -inset-10 bg-petroleum/5 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
               
