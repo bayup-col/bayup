@@ -191,28 +191,27 @@ export const GlobeSection3D = () => {
         <div className="space-y-10 order-2 lg:order-1 pointer-events-none">
           <div className="space-y-2">
             <div className="h-1 w-12 bg-cyan shadow-[0_0_15px_#00f2ff]" />
-            <p className="text-[10px] font-black tracking-[0.5em] text-cyan uppercase italic">Infraestructura Global</p>
+            <p className="text-sm font-black tracking-[0.5em] text-cyan uppercase italic drop-shadow-[0_0_8px_rgba(0,242,255,0.6)]">NO TE LIMITES</p>
           </div>
           <h2 className="text-6xl md:text-[5.5rem] font-black text-white italic tracking-tighter leading-[0.85] uppercase">
             VENDE EN TODO <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan to-petroleum">EL MUNDO.</span>
           </h2>
-          <p className="max-w-md text-white/40 text-sm font-medium leading-relaxed uppercase tracking-widest text-[10px]">
-            Nodos distribuidos en 45 países. Tu comercio electrónico no conoce fronteras. Velocidad luz, seguridad perimetral y escalabilidad masiva garantizada.
+          <p className="max-w-md text-white text-sm font-black leading-relaxed uppercase tracking-[0.2em] text-[11px] drop-shadow-[0_0_15px_rgba(0,242,255,0.8)] drop-shadow-[0_0_30px_rgba(0,242,255,0.4)]">
+            Tu local físico ya no es el límite. Lleva tus productos a cualquier rincón del planeta y convierte al mundo entero en tu cliente.
           </p>
           <div className="grid grid-cols-2 gap-8 border-t border-white/10 pt-10">
             <div>
-              <p className="text-2xl font-black text-white italic flex items-baseline">
-                <span>+</span>
-                <NumberTicker value={42} className="text-white font-black" />
+              <p className="text-2xl font-black text-cyan italic flex items-baseline">
+                <span>+200</span>
               </p>
-              <p className="text-[8px] font-bold text-gray-500 uppercase mt-1">Mercados Activos</p>
+              <p className="text-[8px] font-bold text-gray-500 uppercase mt-1">Comercios Activos</p>
             </div>
             <div>
-              <p className="text-2xl font-black text-white italic">
-                <NumberTicker value={1.2} className="text-2xl font-black" />ms
+              <p className="text-2xl font-black text-cyan italic flex items-baseline">
+                <span>+1000</span>
               </p>
-              <p className="text-[8px] font-bold text-gray-500 uppercase mt-1">Latencia Global</p>
+              <p className="text-[8px] font-bold text-gray-500 uppercase mt-1">Pedidos Diarios</p>
             </div>
           </div>
         </div>
@@ -226,7 +225,7 @@ export const GlobeSection3D = () => {
           </Canvas>
           <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute top-1/4 right-1/4 bg-white/[0.02] backdrop-blur-[100px] border-2 border-white/40 p-8 rounded-[3rem] space-y-2 pointer-events-none shadow-[0_40px_80px_-15px_rgba(0,77,77,0.4)] border-b-cyan/30 isolate">
             <div className="absolute inset-0 bg-petroleum/10 rounded-[3rem] -z-10" />
-            <p className="text-cyan text-[10px] font-black uppercase tracking-[0.3em]">LIVE TRAFFIC</p>
+            <p className="text-cyan text-[10px] font-black uppercase tracking-[0.3em]">TRÁFICO EN VIVO</p>
             <p className="text-white text-2xl font-black italic">
               <NumberTicker value={854200} className="text-2xl font-black" /> 
               <span className="text-xs uppercase not-italic text-white/40 ml-1">ops/s</span>
