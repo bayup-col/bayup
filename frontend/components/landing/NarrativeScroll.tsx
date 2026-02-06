@@ -131,6 +131,28 @@ export const NarrativeScroll = () => {
         <section className="horizontal-section flex h-screen w-screen items-center justify-center p-20 bg-background relative overflow-hidden">
           <div className="absolute inset-0 z-0">
             <FloatingParticlesBackground />
+            
+            {/* Imagen de fondo sutil: Alcancía */}
+            <motion.img 
+              src="/assets/alcancia.png"
+              alt="Ahorro"
+              initial={{ opacity: 0, x: -100, rotate: -15, scale: 1 }}
+              whileInView={{ 
+                opacity: 0.22, 
+                x: 0, 
+                scale: 1.4,
+                rotate: [-10, -12, -10],
+                y: [0, -20, 0]
+              }}
+              transition={{ 
+                opacity: { duration: 2 },
+                x: { duration: 2 },
+                scale: { duration: 2 },
+                rotate: { duration: 6, repeat: Infinity, ease: "easeInOut" },
+                y: { duration: 5, repeat: Infinity, ease: "easeInOut" }
+              }}
+              className="absolute bottom-[-15%] left-[5%] w-[800px] h-auto pointer-events-none filter blur-[1px]"
+            />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center relative z-10">
             <NarrativeCard className="space-y-10 group relative z-20 perspective-[1000px]">
@@ -198,7 +220,7 @@ export const NarrativeScroll = () => {
               
               <div 
                 style={{ transformStyle: "preserve-3d" }}
-                className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[120px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col gap-8 isolate text-center group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.2)]"
+                className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[120px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col gap-8 isolate text-center group-hover:border-cyan/20 transition-all duration-700 group-hover:shadow-[0_80px_150px_-30px_rgba(0,242,255,0.25)]"
               >
                 <AuroraBorder />
                 {/* Reflejo de luz interna (Volumen superior) */}
@@ -246,7 +268,7 @@ export const NarrativeScroll = () => {
                 
                         {/* 2. Marketing ROI */}
                         <section className="horizontal-section flex h-screen w-screen items-center justify-center p-20 bg-[#FFFFFF] relative overflow-hidden">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center relative z-10">
                             {/* Card Izquierda: Imagen Marketing */}
                             <NarrativeCard className="order-2 md:order-1 relative group z-20 perspective-[1000px]">       
                               <div className="absolute -inset-20 bg-cyan/5 rounded-full blur-[120px] animate-pulse" />

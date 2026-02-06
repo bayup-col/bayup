@@ -2,14 +2,14 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, LayoutTemplate, Palette, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Library, Palette, Zap } from "lucide-react";
 
 const templates = [
   { id: 1, title: "Luxe Fashion", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1200&auto=format&fit=crop", category: "Moda" },
   { id: 2, title: "Tech Pulse", image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1200&auto=format&fit=crop", category: "Tecnología" },
   { id: 3, title: "Organic Essence", image: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?q=80&w=1200&auto=format&fit=crop", category: "Salud" },
   { id: 4, title: "Urban Gear", image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1200&auto=format&fit=crop", category: "Deportes" },
-  { id: 5, title: "Gourmet Studio", image: "https://images.unsplash.com/photo-1556910103-1c02745a309e?q=80&w=1200&auto=format&fit=crop", category: "Alimentos" },
+  { id: 5, title: "Audio Elite", image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1200&auto=format&fit=crop", category: "Electrónica" },
 ];
 
 export const TemplateShowcase = () => {
@@ -75,7 +75,7 @@ export const TemplateShowcase = () => {
           <div className="flex flex-wrap justify-center gap-16 pt-8 relative z-50">
             {[
               { 
-                icon: <LayoutTemplate size={32} />, 
+                icon: <Library size={32} />, 
                 label: "+80 plantillas",
                 title: "Catálogo de Conversión",
                 desc: "Nuestras plantillas no solo son estéticas, están diseñadas con psicología de ventas para convertir visitantes en compradores desde el primer clic. Cada diseño ha sido probado para maximizar el ROI."
@@ -93,7 +93,11 @@ export const TemplateShowcase = () => {
                 desc: "Construye interfaces complejas con la simplicidad de un juego. Arrastra, suelta y publica. Elimina las barreras técnicas y enfócate 100% en hacer crecer tu negocio."
               }
             ].map((f, i) => (
-              <div key={i} className="relative group">
+              <div 
+                key={i} 
+                className="relative group"
+                onMouseEnter={() => setSelectedFeature(i)}
+              >
                 <motion.div 
                   initial={{ y: 0 }}
                   animate={{ 
@@ -102,12 +106,11 @@ export const TemplateShowcase = () => {
                     rotateY: selectedFeature === i ? 180 : 0
                   }}
                   transition={{ 
-                    y: selectedFeature === i ? { duration: 0.8 } : { duration: 4, repeat: Infinity, ease: "easeInOut", delay: i * 0.4 },
-                    scale: { duration: 0.8 },
-                    rotateY: { duration: 1, ease: "easeInOut" }
+                    y: selectedFeature === i ? { duration: 0.5 } : { duration: 4, repeat: Infinity, ease: "easeInOut", delay: i * 0.4 },
+                    scale: { duration: 0.5 },
+                    rotateY: { duration: 0.6, ease: "easeInOut" }
                   }}
                   className="flex flex-col items-center gap-4 cursor-pointer"
-                  onClick={() => setSelectedFeature(i)}
                 >
                   <div 
                     className={`h-20 w-20 rounded-3xl flex items-center justify-center shadow-sm border border-gray-100 transition-all duration-700 
@@ -128,21 +131,21 @@ export const TemplateShowcase = () => {
           <AnimatePresence>
             {selectedFeature !== null && (
               <>
-                {/* Backdrop Blur */}
+                {/* Backdrop Blur - Interactive to close */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.8 }}
                   onClick={() => setSelectedFeature(null)}
-                  className="fixed inset-0 bg-black/80 backdrop-blur-xl z-[9999] cursor-pointer"
+                  className="fixed inset-0 bg-black/60 backdrop-blur-md z-[9998] cursor-pointer"
                 />
                 
-                {/* Modal Content */}
+                {/* Modal Content Container */}
                 <div className="fixed inset-0 flex items-center justify-center z-[10000] pointer-events-none">
                   {[
               { 
-                icon: <LayoutTemplate size={48} />, 
+                icon: <Library size={48} />, 
                 title: "Catálogo de Conversión",
                 desc: "Nuestras plantillas no solo son estéticas, están diseñadas con psicología de ventas para convertir visitantes en compradores desde el primer clic. Cada diseño ha sido probado para maximizar el ROI."
               },
@@ -166,9 +169,9 @@ export const TemplateShowcase = () => {
                         transition={{ 
                           type: "spring", 
                           damping: 25, 
-                          stiffness: 100,
-                          duration: 1,
-                          delay: 0.2 // Wait for icon flip to start
+                          stiffness: 150,
+                          duration: 0.5,
+                          delay: 0 // Removed delay for instant feel
                         }}
                         className="bg-white/95 backdrop-blur-2xl border border-white/40 p-12 rounded-[4rem] shadow-2xl max-w-xl w-[90%] text-center pointer-events-auto relative overflow-hidden"
                       >
