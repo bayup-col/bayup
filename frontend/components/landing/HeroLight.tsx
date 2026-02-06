@@ -152,6 +152,12 @@ export const HeroLight = () => {
   return (
     <section id="inicio" className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-background pt-20">
       
+      {/* Dynamic Background Mesh */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,#F0F7F8_0%,transparent_50%)] opacity-70" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_70%,#F4F4F4_0%,transparent_50%)] opacity-50" />
+      </div>
+
       <WaterRipple />
       
       <div className="container mx-auto px-12 relative z-10 grid grid-cols-1 lg:grid-cols-5 gap-16 items-center">
@@ -171,11 +177,12 @@ export const HeroLight = () => {
                 </span>
               </motion.div>
               
-              <div className="text-6xl md:text-8xl font-black text-black leading-[0.9] tracking-tighter italic uppercase">
+              <div className="text-6xl md:text-8xl font-black text-black leading-[0.9] tracking-tighter italic uppercase drop-shadow-xl">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8 }}
+                  className="bg-clip-text text-transparent bg-gradient-to-b from-black via-black to-petroleum/60"
                 >
                   CREA TU TIENDA
                 </motion.div>
@@ -185,9 +192,9 @@ export const HeroLight = () => {
                   transition={{ duration: 0.8, delay: 0.2 }}
                   className="flex items-center flex-wrap gap-x-4"
                 >
-                  <span>ONLINE</span>
+                  <span className="bg-clip-text text-transparent bg-gradient-to-b from-black to-petroleum/80">ONLINE</span>
                   <TypewriterEffect 
-                    words={["GRATIS", "FACIL", "RAPIDO"]}
+                    words={["GRATIS", "FÁCIL", "RÁPIDO"]}
                     className="font-black tracking-tighter italic uppercase"
                     colors={["#00F2FF", "#004D4D"]} 
                   />
@@ -196,8 +203,9 @@ export const HeroLight = () => {
             </div>
             
             <motion.p 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
               className="max-w-xl text-gray-500 text-xl font-medium leading-relaxed"
             >
               Deja de vender solo por chat, crea tu página profesional en minutos y dale a tu negocio la imagen que siempre quisiste.
@@ -206,9 +214,12 @@ export const HeroLight = () => {
 
           {/* BOTONES 3D BOOK APILADOS */}
           <div className="flex flex-wrap gap-10 pt-4">
-            <GlassButton href="/register" variant="dark">
-              Empieza ahora
-            </GlassButton>
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-cyan/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
+              <GlassButton href="/register" variant="dark">
+                Empieza ahora
+              </GlassButton>
+            </div>
           </div>
         </div>
 
