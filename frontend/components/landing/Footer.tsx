@@ -80,7 +80,7 @@ export const Footer = () => {
                 { Icon: Facebook, href: "https://www.facebook.com/bayup.com.co/?_rdc=1&_rdr#" },
                 { Icon: Instagram, href: "https://www.instagram.com/bayup.co?igsh=NGM5M3h1MTg2bzAy&utm_source=qr" },
                 { Icon: Linkedin, href: "https://www.linkedin.com/company/bayupco/about/?viewAsMember=true" },
-                { Icon: Music2, href: "https://www.tiktok.com/@bayup567" }
+                { Icon: Music2, href: "https://www.tiktok.com/@bayup.co" }
               ].map((item, i) => (
                 <MagneticIcon key={i} href={item.href}>
                   <item.Icon size={22} />
