@@ -129,8 +129,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   
     const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
       // BLOQUEO REAL: Si el permiso está en false, no renderizamos el componente
-      const permissionKey = id.replace('m_', ''); // convertimos m_facturacion a facturacion
-      if (permissions[permissionKey] === false && !isEditingMenu) return null;
+      // EXCEPCIÓN: Si es admin o super_admin, siempre mostramos todo
+      const permissionKey = id.replace('m_', ''); 
+      if (userRole !== 'admin' && userRole !== 'admin_tienda' && userRole !== 'super_admin' && permissions[permissionKey] === false && !isEditingMenu) return null;
       
       if (hiddenModules.includes(id) && !isEditingMenu) return null;
       
@@ -154,85 +155,85 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       );
     };
   
-    const renderSidebar = () => {
-      if (userRole === 'super_admin') {
-          return (
-              <>
-                <div className="p-6 border-b border-white/10">
-                  <Link href="/dashboard/super-admin" className="text-2xl font-black bg-gradient-to-r from-[#004d4d] to-[#008080] bg-clip-text text-transparent">
-                    Super Admin
-                  </Link>
-                </div>              <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-                <Link href="/dashboard/super-admin" className={getLinkStyles('/dashboard/super-admin', 'super')}><LayoutDashboard size={16} /> Dashboard</Link>
-                <Link href="/dashboard/super-admin/empresas" className={getLinkStyles('/dashboard/super-admin/empresas', 'super')}><Store size={16} /> Empresas</Link>
-                <Link href="/dashboard/super-admin/afiliados" className={getLinkStyles('/dashboard/super-admin/afiliados', 'super')}><Users2 size={16} /> Afiliados</Link>
-                <Link href="/dashboard/super-admin/tesoreria" className={getLinkStyles('/dashboard/super-admin/tesoreria', 'super')}><Gem size={16} /> Tesorería</Link>
-                <div className="my-2 border-t border-gray-100/10"></div>
-                <Link href="/dashboard/super-admin/web-analytics" className={getLinkStyles('/dashboard/super-admin/web-analytics', 'super')}><BarChart3 size={16} /> Estadísticas Web</Link>
-                <Link href="/dashboard/super-admin/marketing" className={getLinkStyles('/dashboard/super-admin/marketing', 'super')}><TrendingUp size={16} /> Marketing</Link>
-                <Link href="/dashboard/super-admin/soporte" className={getLinkStyles('/dashboard/super-admin/soporte', 'super')}><MessageSquare size={16} /> Soporte</Link>
-                <div className="my-2 border-t border-gray-100/10"></div>
-                <Link href="/dashboard/super-admin/apis" className={getLinkStyles('/dashboard/super-admin/apis', 'super')}><Link2 size={16} /> APIs & Integraciones</Link>
-                <Link href="/dashboard/super-admin/feature-flags" className={getLinkStyles('/dashboard/super-admin/feature-flags', 'super')}><Tag size={16} /> Feature Flags</Link>
-                <Link href="/dashboard/super-admin/risk" className={getLinkStyles('/dashboard/super-admin/risk', 'super')}><ShieldCheck size={16} /> Riesgos & Fraude</Link>
-                <div className="my-2 border-t border-gray-100/10"></div>
-                <Link href="/dashboard/super-admin/legal" className={getLinkStyles('/dashboard/super-admin/legal', 'super')}><FileText size={16} /> Legal & Fiscal</Link>
-                <Link href="/dashboard/super-admin/docs" className={getLinkStyles('/dashboard/super-admin/docs', 'super')}><FileText size={16} /> Documentación</Link>
-                <Link href="/dashboard/super-admin/observability" className={getLinkStyles('/dashboard/super-admin/observability', 'super')}><Camera size={16} /> Observabilidad</Link>
-                <Link href="/dashboard/super-admin/users" className={getLinkStyles('/dashboard/super-admin/users', 'super')}><Users size={16} /> Usuarios & Roles</Link>
-                <Link href="/dashboard/super-admin/settings" className={getLinkStyles('/dashboard/super-admin/settings', 'super')}><Settings size={16} /> Configuración</Link>
-              </nav>
-            </>
-        );
-    }
+  const [isRedirectingStore, setIsRedirectingStore] = useState(false);
 
-    const [isRedirectingStore, setIsRedirectingStore] = useState(false);
+  const handleStoreClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsRedirectingStore(true);
+    setTimeout(() => {
+      router.push('/dashboard/my-store');
+      setTimeout(() => setIsRedirectingStore(false), 500); // Reset after navigation starts
+    }, 800);
+  };
 
-    const handleStoreClick = (e: React.MouseEvent) => {
-      e.preventDefault();
-      setIsRedirectingStore(true);
-      setTimeout(() => {
-        router.push('/dashboard/my-store');
-        setTimeout(() => setIsRedirectingStore(false), 500); // Reset after navigation starts
-      }, 800);
-    };
+  const renderSidebar = () => {
+    if (userRole === 'super_admin') {
+        return (
+            <>
+              <div className="p-6 border-b border-white/10">
+                <Link href="/dashboard/super-admin" className="text-2xl font-black bg-gradient-to-r from-[#004d4d] to-[#008080] bg-clip-text text-transparent">
+                  Super Admin
+                </Link>
+              </div>              <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
+              <Link href="/dashboard/super-admin" className={getLinkStyles('/dashboard/super-admin', 'super')}><LayoutDashboard size={16} /> Dashboard</Link>
+              <Link href="/dashboard/super-admin/empresas" className={getLinkStyles('/dashboard/super-admin/empresas', 'super')}><Store size={16} /> Empresas</Link>
+              <Link href="/dashboard/super-admin/afiliados" className={getLinkStyles('/dashboard/super-admin/afiliados', 'super')}><Users2 size={16} /> Afiliados</Link>
+              <Link href="/dashboard/super-admin/tesoreria" className={getLinkStyles('/dashboard/super-admin/tesoreria', 'super')}><Gem size={16} /> Tesorería</Link>
+              <div className="my-2 border-t border-gray-100/10"></div>
+              <Link href="/dashboard/super-admin/web-analytics" className={getLinkStyles('/dashboard/super-admin/web-analytics', 'super')}><BarChart3 size={16} /> Estadísticas Web</Link>
+              <Link href="/dashboard/super-admin/marketing" className={getLinkStyles('/dashboard/super-admin/marketing', 'super')}><TrendingUp size={16} /> Marketing</Link>
+              <Link href="/dashboard/super-admin/soporte" className={getLinkStyles('/dashboard/super-admin/soporte', 'super')}><MessageSquare size={16} /> Soporte</Link>
+              <div className="my-2 border-t border-gray-100/10"></div>
+              <Link href="/dashboard/super-admin/apis" className={getLinkStyles('/dashboard/super-admin/apis', 'super')}><Link2 size={16} /> APIs & Integraciones</Link>
+              <Link href="/dashboard/super-admin/feature-flags" className={getLinkStyles('/dashboard/super-admin/feature-flags', 'super')}><Tag size={16} /> Feature Flags</Link>
+              <Link href="/dashboard/super-admin/risk" className={getLinkStyles('/dashboard/super-admin/risk', 'super')}><ShieldCheck size={16} /> Riesgos & Fraude</Link>
+              <div className="my-2 border-t border-gray-100/10"></div>
+              <Link href="/dashboard/super-admin/legal" className={getLinkStyles('/dashboard/super-admin/legal', 'super')}><FileText size={16} /> Legal & Fiscal</Link>
+              <Link href="/dashboard/super-admin/docs" className={getLinkStyles('/dashboard/super-admin/docs', 'super')}><FileText size={16} /> Documentación</Link>
+              <Link href="/dashboard/super-admin/observability" className={getLinkStyles('/dashboard/super-admin/observability', 'super')}><Camera size={16} /> Observabilidad</Link>
+              <Link href="/dashboard/super-admin/users" className={getLinkStyles('/dashboard/super-admin/users', 'super')}><Users size={16} /> Usuarios & Roles</Link>
+              <Link href="/dashboard/super-admin/settings" className={getLinkStyles('/dashboard/super-admin/settings', 'super')}><Settings size={16} /> Configuración</Link>
+            </nav>
+          </>
+      );
+  }
 
-    return (
-        <>
-            <div className="p-4 border-b border-white/10 relative">
-                <div className={`backdrop-blur-md p-6 rounded-[2.5rem] border shadow-sm flex flex-col items-center text-center transition-all duration-500 ${theme === 'dark' ? 'bg-[#002626]/40 border-[#00F2FF]/10' : 'bg-white/10 border-white/30'}`}>
-                    <div className="flex flex-col items-center">
-                        <span className={`text-base font-black leading-tight uppercase tracking-tighter transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                            {companyName}
-                        </span>
-                        <div className="flex items-center gap-1.5 mt-1.5">
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>
-                            <span className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-[#004d4d]'}`}>En línea</span>
-                        </div>
-                    </div>
-                    
-                    <button 
-                        onClick={handleStoreClick}
-                        className="mt-4 group/conic relative w-full p-[1.5px] overflow-hidden rounded-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(0,242,255,0.2)]"
-                    >
-                        {/* Rotating Conic Gradient Border */}
-                        <div 
-                            className="absolute inset-[-200%] bg-[conic-gradient(from_0deg,#00F2FF_0deg,#004d4d_90deg,#9333EA_180deg,#004d4d_270deg,#00F2FF_360deg)] animate-[spin_4s_linear_infinite] opacity-100 group-hover/conic:animate-[spin_2s_linear_infinite]"
-                        />
+  return (
+      <>
+          <div className="p-4 border-b border-white/10 relative">
+              <div className={`backdrop-blur-md p-6 rounded-[2.5rem] border shadow-sm flex flex-col items-center text-center transition-all duration-500 ${theme === 'dark' ? 'bg-[#002626]/40 border-[#00F2FF]/10' : 'bg-white/10 border-white/30'}`}>
+                  <div className="flex flex-col items-center">
+                      <span className={`text-base font-black leading-tight uppercase tracking-tighter transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                          {companyName}
+                      </span>
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>
+                          <span className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-[#004d4d]'}`}>En línea</span>
+                      </div>
+                  </div>
+                  
+                  <button 
+                      onClick={handleStoreClick}
+                      className="mt-4 group/conic relative w-full p-[1.5px] overflow-hidden rounded-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(0,242,255,0.2)]"
+                  >
+                      {/* Rotating Conic Gradient Border */}
+                      <div 
+                          className="absolute inset-[-200%] bg-[conic-gradient(from_0deg,#00F2FF_0deg,#004d4d_90deg,#9333EA_180deg,#004d4d_270deg,#00F2FF_360deg)] animate-[spin_4s_linear_infinite] opacity-100 group-hover/conic:animate-[spin_2s_linear_infinite]"
+                      />
 
-                        {/* Inner Body */}
-                        <div className={`relative flex items-center justify-center w-full py-4 px-6 backdrop-blur-2xl rounded-[calc(1rem-1.5px)] transition-all duration-500 ${theme === 'dark' ? 'bg-[#001a1a]/90 group-hover/conic:bg-[#001a1a]' : 'bg-white/80 group-hover/conic:bg-white/95'}`}>
-                            <span className={`relative z-10 text-[10px] font-black uppercase tracking-[0.25em] flex items-center gap-2 transition-colors ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
-                                <ExternalLink size={14} className="opacity-80" />
-                                Ver tienda online
-                            </span>
-                        </div>
+                      {/* Inner Body */}
+                      <div className={`relative flex items-center justify-center w-full py-4 px-6 backdrop-blur-2xl rounded-[calc(1rem-1.5px)] transition-all duration-500 ${theme === 'dark' ? 'bg-[#001a1a]/90 group-hover/conic:bg-[#001a1a]' : 'bg-white/80 group-hover/conic:bg-white/95'}`}>
+                          <span className={`relative z-10 text-[10px] font-black uppercase tracking-[0.25em] flex items-center gap-2 transition-colors ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
+                              <ExternalLink size={14} className="opacity-80" />
+                              Ver tienda online
+                          </span>
+                      </div>
 
-                        {/* Subtle Outer Glow */}
-                        <div className="absolute inset-0 rounded-2xl border border-white/10 pointer-events-none" />
-                    </button>
-                </div>
-            </div>
+                      {/* Subtle Outer Glow */}
+                      <div className="absolute inset-0 rounded-2xl border border-white/10 pointer-events-none" />
+                  </button>
+              </div>
+          </div>
 
             <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar">
                 <div>
