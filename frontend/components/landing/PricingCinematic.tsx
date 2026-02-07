@@ -21,6 +21,39 @@ export const PricingCinematic = () => {
     setMousePos({ x: 95, y: 15 }); // Reset to top of R
   };
 
+  const plans = [
+    { 
+      name: 'Plan Básico', 
+      slug: 'básico',
+      price: '$0', 
+      accent: 'text-gray-400', 
+      popular: false, 
+      features: ['Tienda Personalizada', 'WhatsApp CRM (1 Línea)', 'Gestión de Inventario', 'Pasarela de Pagos'], 
+      button: 'Empezar Gratis', 
+      status: 'active' 
+    },
+    { 
+      name: 'Pro Elite', 
+      slug: 'pro_elite',
+      price: '$0', 
+      accent: 'text-cyan', 
+      popular: true, 
+      features: ['Todo lo del Plan Básico', 'Respuestas con IA 24/7', 'Web Mayoristas', 'Separados con IA'], 
+      button: 'Activar Pro', 
+      status: 'active' 
+    },
+    { 
+      name: 'Plan Empresa', 
+      slug: 'empresa',
+      price: 'Próximamente', 
+      accent: 'text-gray-300', 
+      popular: false, 
+      features: ['Bayt (Agente de Acción)', 'Automatización & N8N', 'Facturación Electrónica', 'Multiventa'], 
+      button: 'Próximamente', 
+      status: 'upcoming' 
+    },
+  ];
+
   return (
     <section id="planes" className="py-40 bg-surface relative overflow-hidden isolate shadow-inner">
       {/* Auras de fondo */}
@@ -53,19 +86,14 @@ export const PricingCinematic = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-7xl mx-auto">
-          {[
-            { name: 'Plan Básico', price: '$0', color: 'bg-white/10', accent: 'text-gray-400', popular: false, features: ['Tienda Personalizada', 'Botón de WhatsApp', 'Gestión de Productos', 'Seguridad SSL'], button: 'Empezar Gratis', status: 'active' },
-            { name: 'Pro Elite', price: '$0', color: 'bg-petroleum text-white', accent: 'text-cyan', popular: true, features: ['Todo lo del Plan Básico', 'Dominio Propio', 'Analítica Avanzada', 'Funciones Pro'], button: 'Activar Pro', status: 'active' },
-            { name: 'Plan Empresa', price: '-', color: 'bg-white/5', accent: 'text-gray-300', popular: false, features: ['Soporte VIP 24/7', 'Múltiples Sucursales', 'API de Integración', 'Consultoría Estratégica'], button: 'Próximamente', status: 'upcoming' },
-          ].map((plan, i) => (
+          {plans.map((plan, i) => (
             <motion.div
               key={i}
               whileHover={plan.status === 'active' ? { y: -15, scale: 1.02 } : {}}
-              className={`relative p-12 rounded-[4.5rem] overflow-hidden group transition-all duration-700 isolate flex flex-col ${plan.popular ? 'shadow-[0_50px_100px_-20px_rgba(0,77,77,0.4)]' : 'shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)]'} ${plan.status === 'upcoming' ? 'opacity-60 grayscale cursor-not-allowed' : ''}`}
+              className={`relative p-12 rounded-[4.5rem] overflow-hidden group transition-all duration-700 isolate flex flex-col ${plan.popular ? 'shadow-[0_60px_120px_-20px_rgba(0,242,255,0.4)]' : 'shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)]'} ${plan.status === 'upcoming' ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
-              {/* AURORA TRACING BEAM EFFECT - RE-ENGINEERED */}
+              {/* AURORA TRACING BEAM EFFECT */}
               <div className="absolute inset-0 rounded-[4.5rem] overflow-hidden -z-10">
-                {/* Rayo de luz rotativo con animación forzada */}
                 <div 
                   className={`absolute top-1/2 left-1/2 w-[250%] aspect-square animate-aurora transition-opacity duration-700 ${plan.status === 'upcoming' ? 'opacity-0' : 'opacity-60 group-hover:opacity-100'}`}
                   style={{
@@ -88,8 +116,8 @@ export const PricingCinematic = () => {
                 <h3 className={`text-3xl font-black italic uppercase tracking-tighter ${plan.accent}`}>{plan.name}</h3>
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex items-baseline gap-2">
-                    <span className={`text-7xl font-black italic tracking-tighter ${plan.popular ? 'text-white' : 'text-black'}`}>{plan.price}</span>
-                    {plan.status === 'active' && <span className={`text-[10px] font-black uppercase tracking-widest ${plan.popular ? 'text-white/40' : 'text-black/20'}`}>/Mensual</span>}
+                    <span className={`${plan.price.length > 8 ? 'text-4xl' : 'text-7xl'} font-black italic tracking-tighter ${plan.popular ? 'text-white' : 'text-black'}`}>{plan.price}</span>
+                    {plan.status === 'active' && plan.price !== 'Gratis' && <span className={`text-[10px] font-black uppercase tracking-widest ${plan.popular ? 'text-white/40' : 'text-black/20'}`}>/Mensual</span>}
                   </div>
                 </div>
                 
