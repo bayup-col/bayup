@@ -59,7 +59,7 @@ const AuroraCard = ({ children, className = "", popular = false }: { children: R
 const planDetails = [
   {
     name: "Básico",
-    price: "Gratis",
+    price: "$0",
     desc: "Operación esencial para lanzar tu imperio digital.",
     popular: false,
     status: "active",
@@ -74,7 +74,7 @@ const planDetails = [
   },
   {
     name: "Pro Elite",
-    price: "Gratis",
+    price: "$0",
     desc: "Potencia tu marca con IA y herramientas avanzadas.",
     popular: true,
     status: "active",
