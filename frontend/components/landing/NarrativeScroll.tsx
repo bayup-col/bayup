@@ -91,13 +91,26 @@ export const NarrativeScroll = () => {
     <div id="ecosystem" ref={containerRef} className="overflow-hidden bg-background">
       <div ref={horizontalRef} className="flex h-screen w-fit">
         
-        {/* 0. Intro Section - PREMIUM INTERACTIVE BACKGROUND */}
-        <div className="horizontal-section h-screen w-screen relative flex items-center justify-center bg-[#050505] overflow-hidden">
-          <InteractiveAuraBackground />
-          <div className="max-w-7xl text-center flex flex-col items-center relative z-10 px-6 gap-8">
-            <h2 className="text-6xl md:text-8xl lg:text-[7rem] font-black tracking-tighter uppercase leading-[1] italic flex flex-col items-center">
-              <span className="text-white whitespace-nowrap">EL MUNDO ESTÁ LISTO</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan via-white to-cyan whitespace-nowrap">PARA COMPRARTE.</span>
+        {/* 0. Intro Section - CINEMATIC VIDEO BACKGROUND */}
+        <div className="horizontal-section h-screen w-screen relative flex items-center justify-center overflow-hidden bg-black">
+          {/* Video de Fondo en Bucle */}
+          <video 
+            autoPlay 
+            muted 
+            loop 
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover opacity-50 z-0"
+          >
+            <source src="/assets/video.mp4" type="video/mp4" />
+          </video>
+
+          {/* Overlay para asegurar legibilidad del texto */}
+          <div className="absolute inset-0 bg-black/40 z-10" />
+
+          <div className="max-w-7xl text-center flex flex-col items-center relative z-20 px-6 gap-8">
+            <h2 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter uppercase leading-[1.1] italic flex flex-col items-center">
+              <span className="text-white whitespace-nowrap drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">EL MUNDO ESTÁ LISTO</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan via-white to-cyan whitespace-nowrap drop-shadow-[0_0_20px_rgba(0,242,255,0.6)]">PARA COMPRARTE.</span>
             </h2>
             <p className="text-xl md:text-2xl font-black text-white italic tracking-[0.3em] uppercase drop-shadow-[0_0_10px_rgba(0,242,255,0.8)]">
               Bayup te da las herramientas <span className="text-cyan">para lograrlo</span>
