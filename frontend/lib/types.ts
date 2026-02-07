@@ -1,4 +1,4 @@
-// Centralized Type Definitions for BaseCommerce
+// Centralized Type Definitions for Bayup
 
 export interface MonthData {
     month: string;

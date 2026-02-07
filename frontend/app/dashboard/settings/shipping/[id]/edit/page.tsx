@@ -30,7 +30,8 @@ export default function EditShippingOptionPage() {
     const fetchShippingOption = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`http://localhost:8000/shipping/${shippingOptionId}`, { // TODO: Use env variable
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${apiUrl}/shipping/${shippingOptionId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -65,13 +66,8 @@ export default function EditShippingOptionPage() {
     }
 
     try {
-      const payload = {
-        name,
-        cost,
-        min_order_total: minOrderTotal !== null ? minOrderTotal : undefined,
-      };
-
-      const response = await fetch(`http://localhost:8000/shipping/${shippingOptionId}`, { // TODO: Use env variable
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/shipping/${shippingOptionId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

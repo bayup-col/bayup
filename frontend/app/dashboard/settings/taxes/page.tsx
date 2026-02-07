@@ -26,7 +26,8 @@ export default function TaxesPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:8000/taxes', { // TODO: Usar variable de entorno
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/taxes`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -55,7 +56,8 @@ export default function TaxesPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/taxes/${taxRateId}`, { // TODO: Usar variable de entorno
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/taxes/${taxRateId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

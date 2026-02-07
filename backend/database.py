@@ -3,8 +3,12 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import StaticPool
 import os
+from dotenv import load_dotenv
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://admin:secret@db/basecommerce")
+# Cargar variables de entorno desde .env
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db") # Fallback seguro a SQLite local si no hay env
 
 # For SQLite in-memory, we need StaticPool to share the same database between sessions
 if DATABASE_URL.startswith("sqlite"):

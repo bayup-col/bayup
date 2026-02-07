@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Agregar el directorio padre (backend) al path de Python
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from database import engine, Base
 import models  # Importa los modelos para que Base los reconozca
 

@@ -78,7 +78,7 @@ def get_auth_headers(email: str):
 def test_read_root_redirect():
     response = client.get("/")
     assert response.status_code == 200
-    assert "BaseCommerce API is running" not in response.text
+    assert "Bayup API is running" not in response.text
 
 def test_create_plan_success():
     response = client.post(

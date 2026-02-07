@@ -25,7 +25,8 @@ export default function NewTaxRatePage() {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/taxes', { // TODO: Usar variable de entorno
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/taxes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -46,7 +46,7 @@ def log_activity(db: Session, user_id: uuid.UUID, tenant_id: uuid.UUID, action: 
 # Lifespan manager for startup and shutdown events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Starting BaseCommerce API...")
+    print("Starting Bayup API...")
     # Startup: Initialize tables and default plan
     try:
         models.Base.metadata.create_all(bind=engine)
@@ -90,7 +90,7 @@ async def lifespan(app: FastAPI):
         db.close()
     yield
 
-app = FastAPI(title="BaseCommerce API", lifespan=lifespan)
+app = FastAPI(title="Bayup API", lifespan=lifespan)
 
 # Global Exception Handler
 @app.exception_handler(Exception)
@@ -345,4 +345,4 @@ def get_pages(db: Session = Depends(get_db), current_user: models.User = Depends
     return db.query(models.Page).filter(models.Page.owner_id == tenant_id).all()
 
 @app.get("/")
-def read_root(): return {"message": "Welcome to BaseCommerce API"}
+def read_root(): return {"message": "Welcome to Bayup API"}

@@ -30,7 +30,8 @@ export default function EditTaxRatePage() {
     const fetchTaxRate = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`http://localhost:8000/taxes/${taxRateId}`, { // TODO: Use env variable
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${apiUrl}/taxes/${taxRateId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -65,7 +66,8 @@ export default function EditTaxRatePage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/taxes/${taxRateId}`, { // TODO: Use env variable
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/taxes/${taxRateId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

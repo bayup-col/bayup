@@ -15,3 +15,5 @@ pydantic[email]
 python-multipart
 clerk-sdk-python
 openai
+python-dotenv
+requests

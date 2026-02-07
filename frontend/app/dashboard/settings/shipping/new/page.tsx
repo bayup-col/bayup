@@ -31,7 +31,8 @@ export default function NewShippingOptionPage() {
         min_order_total: minOrderTotal !== null ? minOrderTotal : undefined, // Enviar como undefined si es nulo
       };
 
-      const response = await fetch('http://localhost:8000/shipping', { // TODO: Usar variable de entorno
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/shipping`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: BaseCommerce API - MVP
+  title: Bayup API - MVP
   version: 1.0.0
   description: |
-    Definición de la API para el Producto Mínimo Viable (Hito 1) de la plataforma BaseCommerce.
+    Definición de la API para el Producto Mínimo Viable (Hito 1) de la plataforma Bayup.
     Se enfoca en las funcionalidades core para que un solo tenant pueda vender.
 
 paths:
