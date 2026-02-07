@@ -689,7 +689,7 @@ export default function AutomationsPage() {
                                                         </div>
                                                         <h5 className="text-3xl font-black italic uppercase italic">Protocolo Listo para Despegue</h5>
                                                         <p className="text-gray-400 text-lg font-medium leading-relaxed italic italic">
-                                                            "He analizado tu flujo: **{newFlow.trigger}** + **{newFlow.logic === 'bayt_ai' ? 'Bayt Engine' : 'Lógica Base'}** -> **{newFlow.action}**. Estimo un ahorro operativo de **12 horas semanales**."
+                                                            "He analizado tu flujo: **{newFlow.trigger}** + **{newFlow.logic === 'bayt_ai' ? 'Bayt Engine' : 'Lógica Base'}** {"->"} **{newFlow.action}**. Estimo un ahorro operativo de **12 horas semanales**."
                                                         </p>
                                                     </div>
                                                     <button 
