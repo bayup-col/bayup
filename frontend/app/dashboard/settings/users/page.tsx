@@ -260,7 +260,13 @@ export default function StaffPage() {
                 <div className="flex items-center gap-1">
                     <div className="relative"><motion.button layout onMouseEnter={() => setIsFilterHovered(true)} onMouseLeave={() => setIsFilterHovered(false)} onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className={`h-12 flex items-center gap-2 px-4 rounded-xl transition-all ${isFilterMenuOpen ? 'bg-[#004d4d] text-white' : 'bg-gray-50 text-gray-500 hover:bg-white hover:border-gray-100'}`}><Filter size={18}/> <AnimatePresence>{isFilterHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase whitespace-nowrap overflow-hidden px-1">Cargo</motion.span>}</AnimatePresence></motion.button><AnimatePresence>{isFilterMenuOpen && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50"><button onClick={() => { setFilterRole('all'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 rounded-xl text-[10px] font-black uppercase hover:bg-gray-50">Todos</button></motion.div>}</AnimatePresence></div>
                     <div className="relative group/date"><motion.button layout onMouseEnter={() => setIsDateHovered(true)} onMouseLeave={() => setIsDateHovered(false)} className={`h-12 flex items-center gap-2 px-4 rounded-xl transition-all ${dateRange.start ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-500 hover:bg-white hover:border-gray-100'}`}><Calendar size={18}/> <AnimatePresence>{isDateHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase whitespace-nowrap overflow-hidden px-1">Fechas</motion.span>}</AnimatePresence></motion.button><div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 opacity-0 scale-95 pointer-events-none group-hover/date:opacity-100 group-hover/date:scale-100 group-hover/date:pointer-events-auto transition-all z-50 flex gap-2"><input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} className="p-2 bg-gray-50 rounded-lg text-[10px] outline-none"/><input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} className="p-2 bg-gray-50 rounded-lg text-[10px] outline-none"/><button onClick={() => setDateRange({start:'', end:''})} className="p-2 bg-rose-50 text-rose-500 rounded-lg"><RotateCcw size={14}/></button></div></div>
-                    <button onClick={() => handleOpenMemberModal()} className="h-12 flex items-center gap-2 px-5 bg-gray-900 text-white rounded-xl shadow-lg hover:bg-black transition-all"><UserPlus size={18} className="text-[#00f2ff]"/><span className="text-[10px] font-black uppercase">Invitar</span></button>
+                    <button 
+                        onClick={() => handleOpenMemberModal()} 
+                        className="h-12 flex items-center gap-2 px-5 bg-gray-900 text-white rounded-xl shadow-lg hover:bg-black transition-all active:scale-95 group"
+                    >
+                        <UserPlus size={18} className="text-[#00f2ff] group-hover:rotate-12 transition-transform"/>
+                        <span className="text-[10px] font-black uppercase">Invitar</span>
+                    </button>
                 </div>
             </div>
             <div className="px-4 space-y-4">
@@ -435,7 +441,23 @@ export default function StaffPage() {
                                         </div>
                                     )}
                                 </form>
-                                <div className="p-10 border-t border-gray-50 bg-gray-50/30 flex gap-4"><button onClick={handleSaveMember} disabled={isSaving} className="flex-1 py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl flex items-center justify-center gap-3">{isSaving ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={18} className="text-[#00f2ff]"/>} {generatedPassword ? 'Cerrar' : (editingMember ? 'Actualizar' : 'Confirmar')}</button></div>
+                                <div className="p-10 border-t border-gray-50 bg-gray-50/30 flex gap-4">
+                                    <button 
+                                        type="button"
+                                        onClick={handleSaveMember} 
+                                        disabled={isSaving} 
+                                        className="flex-1 py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl flex items-center justify-center gap-3 hover:bg-black transition-all active:scale-95"
+                                    >
+                                        {isSaving ? (
+                                            <Loader2 className="animate-spin" size={16} />
+                                        ) : generatedPassword ? (
+                                            <CheckCircle2 size={18} className="text-[#00f2ff]"/>
+                                        ) : (
+                                            <UserPlus size={18} className="text-[#00f2ff]"/>
+                                        )} 
+                                        {generatedPassword ? 'Finalizar' : (editingMember ? 'Actualizar Miembro' : 'Enviar Invitación')}
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     </div>
