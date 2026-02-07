@@ -40,9 +40,20 @@ import {
   ExternalLink
 } from 'lucide-react';
 
+// Definición de permisos por plan
+const PLAN_PERMISSIONS: Record<string, string[]> = {
+  'Free': ['m_inicio', 'm_facturacion', 'm_pedidos', 'm_envios', 'm_productos', 'm_multiventa', 'm_mensajes', 'm_clientes', 'm_garantias', 'm_informes'], // Plan Básico
+  'Pro Elite': ['m_inicio', 'm_facturacion', 'm_pedidos', 'm_envios', 'm_productos', 'm_multiventa', 'm_mensajes', 'm_clientes', 'm_garantias', 'm_web_analytics', 'm_marketing', 'm_loyalty', 'm_discounts', 'm_automations', 'm_ai_assistants', 'm_informes'], // Plan Pro
+  'Enterprise': ['m_inicio', 'm_facturacion', 'm_pedidos', 'm_envios', 'm_productos', 'm_multiventa', 'm_mensajes', 'm_clientes', 'm_garantias', 'm_web_analytics', 'm_marketing', 'm_loyalty', 'm_discounts', 'm_automations', 'm_ai_assistants', 'm_informes'], // Plan Empresa
+};
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { userEmail: authEmail, userRole: authRole, token, logout } = useAuth();
+  const { userEmail: authEmail, userRole: authRole, token, logout, userPlan } = useAuth();
   const { theme } = useTheme();
+  
+  // Determinar módulos permitidos según el plan
+  const currentPlan = userPlan?.name || 'Free';
+  const allowedModules = PLAN_PERMISSIONS[currentPlan] || PLAN_PERMISSIONS['Free'];
   const router = useRouter();
   const pathname = usePathname();
   
@@ -128,8 +139,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     };
   
     const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
-      // BLOQUEO REAL: Si el permiso está en false, no renderizamos el componente
-      // EXCEPCIÓN: Si es admin o super_admin, siempre mostramos todo
+      // 1. Bloqueo por Plan (Si no está en allowedModules, chao)
+      if (!isSub && !allowedModules.includes(id) && userRole !== 'super_admin') return null;
+
+      // 2. Bloqueo por Rol de Staff (Si es empleado con permisos limitados)
       const permissionKey = id.replace('m_', ''); 
       if (userRole !== 'admin' && userRole !== 'admin_tienda' && userRole !== 'super_admin' && permissions[permissionKey] === false && !isEditingMenu) return null;
       

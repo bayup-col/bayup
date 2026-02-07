@@ -86,21 +86,6 @@ const planDetails = [
       "Separados con IA",
       "Staff (Hasta 3 miembros)"
     ]
-  },
-  {
-    name: "Empresa",
-    price: "Próximamente",
-    desc: "Arquitectura ilimitada para el control total.",
-    popular: false,
-    status: "coming_soon",
-    specs: [
-      "Bayt (Agente de Acción)",
-      "Automatización & N8N",
-      "Facturación Electrónica",
-      "Nómina & Sucursales",
-      "Multiventa (Amazon/ML)",
-      "Staff Ilimitado"
-    ]
   }
 ];
 
