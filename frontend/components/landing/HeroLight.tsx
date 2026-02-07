@@ -11,12 +11,12 @@ import { BookButton } from "./BookButton";
 import { GlassButton } from "./GlassButton";
 
 const products = [
-  { id: 1, name: "Premium Apparel", image: "/assets/Neon Red Animated and Bright Twitch Logo (1).png", detail: "Quality Fabrics" },
-  { id: 2, name: "Computing Power", image: "/assets/Neon Red Animated and Bright Twitch Logo (2).png", detail: "Tech Engine" },
-  { id: 3, name: "Beauty Luxe", image: "/assets/Neon Red Animated and Bright Twitch Logo (3).png", detail: "High-End Cosmetics" },
-  { id: 4, name: "Smart Mobility", image: "/assets/Neon Red Animated and Bright Twitch Logo (4).png", detail: "Eco-Friendly Gear" },
-  { id: 5, name: "Next Gen Devices", image: "/assets/Neon Red Animated and Bright Twitch Logo (5).png", detail: "Mobile Innovation" },
-  { id: 6, name: "Street Style", image: "/assets/Neon Red Animated and Bright Twitch Logo (6).png", detail: "Urban Sneakers" },
+  { id: 1, name: "Moda Exclusiva", image: "/assets/Neon Red Animated and Bright Twitch Logo (1).png", detail: "Vende tu marca de ropa con estilo profesional." },
+  { id: 2, name: "Tecnología Pro", image: "/assets/Neon Red Animated and Bright Twitch Logo (2).png", detail: "Tus gadgets y hardware llegando a todo el país." },
+  { id: 3, name: "Belleza & Estética", image: "/assets/Neon Red Animated and Bright Twitch Logo (3).png", detail: "Cosméticos listos para conquistar el mercado." },
+  { id: 4, name: "Deportes & Salud", image: "/assets/Neon Red Animated and Bright Twitch Logo (4).png", detail: "Todo el equipo deportivo en un solo lugar." },
+  { id: 5, name: "Electrónica Smart", image: "/assets/Neon Red Animated and Bright Twitch Logo (5).png", detail: "Vende lo último en móviles y accesorios." },
+  { id: 6, name: "Calzado Urbano", image: "/assets/Neon Red Animated and Bright Twitch Logo (6).png", detail: "Tus mejores sneakers a un clic de tus clientes." },
 ];
 
 // --- COMPONENTE INTERNO: TARJETA 3D INTERACTIVA ---
