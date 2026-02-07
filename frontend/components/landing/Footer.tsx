@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { Github, Twitter, Instagram, Linkedin, Globe } from "lucide-react";
+import { Facebook, Instagram, Linkedin, Globe, Music2 } from "lucide-react";
 import Link from "next/link";
 import { useRef } from "react";
 import { InteractiveUP } from "./InteractiveUP";
@@ -74,10 +74,10 @@ export const Footer = () => {
             {/* ICONOS SOCIALES MAGNÉTICOS */}
             <div className="flex gap-6 -ml-2">
               {[
-                { Icon: Twitter, href: "#" },
+                { Icon: Facebook, href: "#" },
                 { Icon: Instagram, href: "#" },
                 { Icon: Linkedin, href: "#" },
-                { Icon: Github, href: "#" }
+                { Icon: Music2, href: "#" }
               ].map((item, i) => (
                 <MagneticIcon key={i} href={item.href}>
                   <item.Icon size={22} />
@@ -89,20 +89,20 @@ export const Footer = () => {
           <div className="space-y-8">
             <h4 className="text-[10px] font-black text-white uppercase tracking-[0.5em] opacity-40">Plataforma</h4>
             <ul className="space-y-5 text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">
-              <li><Link href="#" className="hover:text-cyan transition-colors">Características</Link></li>
-              <li><Link href="#" className="hover:text-cyan transition-colors">Tecnología</Link></li>
-              <li><Link href="#" className="hover:text-cyan transition-colors">Planes</Link></li>
-              <li><Link href="#" className="hover:text-cyan transition-colors">Seguridad</Link></li>
+              <li><Link href="/caracteristicas" className="hover:text-cyan transition-colors">Características</Link></li>
+              <li><Link href="/tecnologia" className="hover:text-cyan transition-colors">Tecnología</Link></li>
+              <li><Link href="/planes" className="hover:text-cyan transition-colors">Planes</Link></li>
+              <li><Link href="/seguridad" className="hover:text-cyan transition-colors">Seguridad</Link></li>
             </ul>
           </div>
 
           <div className="space-y-8">
             <h4 className="text-[10px] font-black text-white uppercase tracking-[0.5em] opacity-40">Compañía</h4>
             <ul className="space-y-5 text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">
-              <li><Link href="#" className="hover:text-cyan transition-colors">Acerca de</Link></li>
-              <li><Link href="#" className="hover:text-cyan transition-colors">Soporte</Link></li>
-              <li><Link href="#" className="hover:text-cyan transition-colors">Términos</Link></li>
-              <li><Link href="#" className="hover:text-cyan transition-colors">Privacidad</Link></li>
+              <li><Link href="/acerca" className="hover:text-cyan transition-colors">Acerca de</Link></li>
+              <li><Link href="/soporte" className="hover:text-cyan transition-colors">Soporte</Link></li>
+              <li><Link href="/terms" className="hover:text-cyan transition-colors">Términos</Link></li>
+              <li><Link href="/privacidad" className="hover:text-cyan transition-colors">Privacidad</Link></li>
             </ul>
           </div>
 

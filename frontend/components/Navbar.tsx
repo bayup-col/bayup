@@ -1,73 +1,88 @@
-// frontend/components/Navbar.tsx
 "use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { motion, useScroll, useMotionValueEvent, AnimatePresence } from "framer-motion";
+import { useState, useRef } from "react";
+import Link from "next/link";
+import { User } from "lucide-react";
+import { InteractiveUP } from "./landing/InteractiveUP";
+import { ExpandableButton } from "./landing/ExpandableButton";
 
-interface NavbarProps {
-  isScrolled: boolean;
-}
+export const Navbar = () => {
+  const { scrollY } = useScroll();
+  const [hidden, setHidden] = useState(false);
+  const [isAtTop, setIsAtTop] = useState(true);
+  const lastScrollY = useRef(0);
 
-export default function Navbar({ isScrolled }: NavbarProps) {
-  const router = useRouter();
-
-  const handleLoginClick = () => {
-    router.push('/register');
-  };
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    const previous = lastScrollY.current;
+    if (latest > previous && latest > 150) {
+      setHidden(true);
+    } else if (latest < previous) {
+      setHidden(false);
+    }
+    setIsAtTop(latest < 50);
+    lastScrollY.current = latest;
+  });
 
   return (
-    <nav
-      className={`fixed w-full z-50 transition-all duration-300 ease-in-out
-        backdrop-blur-lg bg-black/40 border-b border-white/10
-        ${isScrolled
-          ? 'bg-black/60 shadow-lg'
-          : 'bg-black/40'
-        }`}
+    <motion.nav 
+      initial="visible"
+      animate={hidden ? "hidden" : "visible"}
+      variants={{
+        visible: { y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
+        hidden: { y: "-100%", transition: { duration: 0.3, ease: "easeInOut" } },
+      }}
+      className={`fixed top-0 w-full z-[100] pointer-events-none transition-all duration-500 ${isAtTop ? 'py-10' : 'py-6'}`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
-          {/* Left: Logo */}
-          <div className="flex-shrink-0 flex items-center">
-            <Link href="/" className="h-10 w-auto">
-              <img src="/assets/Logo Bayup sin fondo blanca.png" alt="Bayup Logo" className="h-full object-contain" />
-            </Link>
-          </div>
-
-          {/* Right: Navigation Links and Button */}
-          <div className="flex items-center space-x-4 md:space-x-8">
-            {/* Nav Links (hidden on small screens, adjust as needed for a mobile menu) */}
-            <div className="hidden md:flex items-center space-x-4">
-              <Link href="#" className="text-white text-sm font-medium hover:text-gray-300">
-                INICIO
+      <div className="container mx-auto px-12 grid grid-cols-3 items-center">
+        
+        {/* Columna 1: Logo */}
+        <Link href="/" className="pointer-events-auto">
+          <motion.div 
+            className={`text-2xl font-black italic tracking-tighter cursor-pointer w-fit transition-colors duration-500 ${isAtTop ? 'text-white' : 'text-black'}`}
+          >
+            <span>BAY</span><InteractiveUP />
+          </motion.div>
+        </Link>
+        
+        {/* Columna 2: Links */}
+        <div className="hidden md:flex items-center justify-center">
+          <div className={`flex items-center gap-12 px-10 py-4 rounded-full border border-white/40 bg-white/20 backdrop-blur-xl shadow-sm transition-all duration-500 pointer-events-auto ${isAtTop ? '' : 'border-gray-100 bg-white/40 shadow-md'}`}>
+            {[
+              { label: 'Afiliados', href: '/afiliados' },
+              { label: 'Inicio', href: '/' },
+              { label: 'Planes', href: '/planes' }
+            ].map((item) => (
+              <Link 
+                key={item.label} 
+                href={item.href} 
+                className={`text-[12px] font-black uppercase tracking-[0.5em] transition-all duration-500 relative group ${isAtTop ? 'text-white hover:text-cyan' : 'text-gray-500 hover:text-black'}`}
+              >
+                {item.label}
+                <span className={`absolute -bottom-1 left-0 h-[1.5px] bg-cyan transition-all duration-500 group-hover:w-full ${item.label === 'Inicio' ? 'w-full' : 'w-0'}`}></span>
               </Link>
-              <Link href="#" className="text-white text-sm font-medium hover:text-gray-300">
-                TECNOLOGÍA
-              </Link>
-              <Link href="#" className="text-white text-sm font-medium hover:text-gray-300">
-                PLANES
-              </Link>
-            </div>
-            
-            {/* Action Button */}
-            <button
-              onClick={handleLoginClick}
-              className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-md shadow-md
-                         hover:bg-red-700 transition-colors duration-200 ease-in-out
-                         focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-            >
-              INICIAR SESIÓN
-            </button>
-
-            {/* Mobile menu button (optional, not implemented for this scope) */}
-            {/* <button className="md:hidden text-white focus:outline-none">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
-              </svg>
-            </button> */}
+            ))}
           </div>
         </div>
+
+        {/* Columna 3: CTA Derecha */}
+        <div className="flex justify-end pointer-events-auto items-center gap-6">
+          <ExpandableButton 
+            href="/register" 
+            variant="primary" 
+            baseText="REGÍSTRATE" 
+            expandedText="GRATIS" 
+          />
+
+          <ExpandableButton 
+            href="/login" 
+            variant="ghost" 
+            expandedText="INICIAR SESIÓN" 
+            className={isAtTop ? "text-white" : "text-black"}
+            icon={<User size={22} className={isAtTop ? "text-white" : "text-black"} />} 
+          />
+        </div>
       </div>
-    </nav>
+    </motion.nav>
   );
-}
+};
