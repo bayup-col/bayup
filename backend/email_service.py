@@ -21,7 +21,7 @@ def send_email(to_email: str, subject: str, html_content: str):
     }
     
     payload = {
-        "from": "Bayup <hola@bayup.com.co>",
+        "from": "Bayup <hola@info.bayup.com.co>",
         "to": [to_email],
         "subject": subject,
         "html": html_content
