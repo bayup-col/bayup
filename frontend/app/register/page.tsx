@@ -37,8 +37,7 @@ function RegisterForm() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [plans] = useState<any[]>([
     { id: '1', name: 'Básico', slug: 'básico' },
-    { id: '2', name: 'Pro Elite', slug: 'pro_elite' },
-    { id: '3', name: 'Empresa', slug: 'empresa' }
+    { id: '2', name: 'Pro Elite', slug: 'pro_elite' }
   ]);
   
   const [isPlanOpen, setIsPlanOpen] = useState(false);
