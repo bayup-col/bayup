@@ -66,7 +66,7 @@ export const ExpandableButton = ({ href, baseText, expandedText, icon, variant =
                     animate={{ opacity: 1, width: "auto", x: 0 }}
                     exit={{ opacity: 0, width: 0, x: -5 }}
                     transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className={`overflow-hidden pl-1 ${isPrimary ? 'text-[#00F2FF] drop-shadow-[0_0_8px_rgba(0,242,255,0.5)]' : 'text-black'}`}
+                    className={`overflow-hidden pl-1 ${isPrimary ? 'text-[#00F2FF] drop-shadow-[0_0_8px_rgba(0,242,255,0.5)]' : 'text-current'}`}
                   >
                     {expandedText}
                   </motion.span>

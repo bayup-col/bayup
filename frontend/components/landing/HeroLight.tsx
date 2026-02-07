@@ -11,12 +11,11 @@ import { BookButton } from "./BookButton";
 import { GlassButton } from "./GlassButton";
 
 const products = [
-  { id: 1, name: "Moda Exclusiva", image: "/assets/Neon Red Animated and Bright Twitch Logo (1).png", detail: "Vende tu marca de ropa con estilo profesional." },
-  { id: 2, name: "Tecnología Pro", image: "/assets/Neon Red Animated and Bright Twitch Logo (2).png", detail: "Tus gadgets y hardware llegando a todo el país." },
-  { id: 3, name: "Belleza & Estética", image: "/assets/Neon Red Animated and Bright Twitch Logo (3).png", detail: "Cosméticos listos para conquistar el mercado." },
-  { id: 4, name: "Deportes & Salud", image: "/assets/Neon Red Animated and Bright Twitch Logo (4).png", detail: "Todo el equipo deportivo en un solo lugar." },
-  { id: 5, name: "Electrónica Smart", image: "/assets/Neon Red Animated and Bright Twitch Logo (5).png", detail: "Vende lo último en móviles y accesorios." },
-  { id: 6, name: "Calzado Urbano", image: "/assets/Neon Red Animated and Bright Twitch Logo (6).png", detail: "Tus mejores sneakers a un clic de tus clientes." },
+  { id: 1, name: "Diseños Diferentes", image: "/assets/gift.gif", detail: "Muestra tus productos \n de manera diferente a tu competencia." },
+  { id: 2, name: "Tu Tienda Tech", image: "/assets/Neon Red Animated and Bright Twitch Logo (2).png", detail: "Digitaliza tu stock tecnológico y escala \n tus ventas a un nivel profesional." },
+  { id: 4, name: "Expertos en Hardware", image: "/assets/Neon Red Animated and Bright Twitch Logo (4).png", detail: "Vende laptops, PCs y componentes con \n una interfaz optimizada." },
+  { id: 5, name: "Moda con Identidad", image: "/assets/Neon Red Animated and Bright Twitch Logo (5).png", detail: "Lanza tu línea de ropa con una tienda \n que resalta cada detalle de tu diseño." },
+  { id: 6, name: "Alcance Global", image: "/assets/Neon Red Animated and Bright Twitch Logo (6).png", detail: "Todos tus productos a un solo click \n de distancia de tus nuevos clientes." },
 ];
 
 // --- COMPONENTE INTERNO: TARJETA 3D INTERACTIVA ---
@@ -92,7 +91,7 @@ const ProductCard3D = ({ product, onHover }: { product: typeof products[0], onHo
           </div>
 
           {/* 2. Glass Panel Body */}
-          <div className="absolute inset-[3px] rounded-[4.8rem] bg-white/[0.03] backdrop-blur-[40px] border border-white/20 z-0 overflow-hidden">
+          <div className="absolute inset-[3px] rounded-[4.8rem] bg-white/10 backdrop-blur-[40px] border border-white/30 z-0 overflow-hidden">
              {/* Reflejo Dinámico (Glare) */}
              <motion.div 
                 style={{ opacity: shineOpacity, left: shineX }}
@@ -101,9 +100,9 @@ const ProductCard3D = ({ product, onHover }: { product: typeof products[0], onHo
           </div>
 
           {/* 3. Imagen con Parallax (Pop-out effect) */}
-          <div className="relative z-10 w-[95%] h-[95%] flex items-center justify-center" style={{ transformStyle: "preserve-3d" }}>
+          <div className="relative z-10 w-[110%] h-[110%] flex items-center justify-center" style={{ transformStyle: "preserve-3d" }}>
             <motion.img 
-              style={{ x: imgX, y: imgY, z: 60 }}
+              style={{ x: imgX, y: imgY, z: 100 }}
               src={product.image} 
               alt={product.name}
               className="w-full h-full object-contain drop-shadow-[0_50px_80px_rgba(0,0,0,0.5)] filter brightness-110 contrast-110 transition-transform duration-100"
@@ -127,7 +126,7 @@ const ProductCard3D = ({ product, onHover }: { product: typeof products[0], onHo
           className="absolute -bottom-6 -right-6 bg-white/90 backdrop-blur-md p-6 rounded-[2rem] space-y-1 shadow-[0_30px_60px_-10px_rgba(0,0,0,0.2)] border border-white/40"
         >
           <p className="text-petroleum text-[9px] font-black uppercase tracking-[0.3em]">{product.name}</p>
-          <p className="text-black/60 text-xs font-bold italic uppercase tracking-tighter">{product.detail}</p>
+          <p className="text-black/60 text-xs font-bold italic uppercase tracking-tighter whitespace-pre-line">{product.detail}</p>
         </motion.div>
 
       </motion.div>
@@ -150,15 +149,23 @@ export const HeroLight = () => {
   }, [isPaused]);
 
   return (
-    <section id="inicio" className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-background pt-20">
+    <section id="inicio" className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#050505] pt-20">
       
-      {/* Dynamic Background Mesh */}
+      {/* Dynamic Background: Cinematic Video OM (Increased Luminosity) */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,#F0F7F8_0%,transparent_50%)] opacity-70" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_70%,#F4F4F4_0%,transparent_50%)] opacity-50" />
+        <video 
+          key="om-video-luminous"
+          autoPlay 
+          muted 
+          loop 
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover opacity-55 filter brightness-130 contrast-110 pointer-events-none"
+        >
+          <source src="/assets/om.mp4" type="video/mp4" />
+        </video>
+        {/* Overlay Capa de Contraste Suavizada */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/60 via-transparent to-[#050505]/70 z-10" />
       </div>
-
-      <WaterRipple />
       
       <div className="container mx-auto px-12 relative z-10 grid grid-cols-1 lg:grid-cols-5 gap-16 items-center">
         
@@ -184,7 +191,7 @@ export const HeroLight = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8 }}
-                  className="bg-clip-text text-transparent bg-gradient-to-b from-black via-black to-petroleum/60 whitespace-nowrap"
+                  className="bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/60 whitespace-nowrap"
                   style={{ fontSize: "clamp(3rem, 8vw, 6rem)" }}
                 >
                   CREA TU TIENDA
@@ -196,7 +203,7 @@ export const HeroLight = () => {
                   className="flex items-center flex-wrap lg:flex-nowrap gap-x-4 whitespace-nowrap"
                   style={{ fontSize: "clamp(3rem, 8vw, 6rem)" }}
                 >
-                  <span className="bg-clip-text text-transparent bg-gradient-to-b from-black to-petroleum/80">ONLINE</span>
+                  <span className="bg-clip-text text-transparent bg-gradient-to-b from-white to-white/80">ONLINE</span>
                   <TypewriterEffect 
                     words={["GRATIS", "FÁCIL", "RÁPIDO"]}
                     className="font-black tracking-tighter italic uppercase"
@@ -210,7 +217,7 @@ export const HeroLight = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="max-w-xl text-gray-500 text-xl font-medium leading-relaxed"
+              className="max-w-xl text-gray-400 text-xl font-medium leading-relaxed"
             >
               Deja de vender solo por chat, crea tu página profesional en minutos y dale a tu negocio la imagen que siempre quisiste.
             </motion.p>
@@ -244,7 +251,7 @@ export const HeroLight = () => {
       </div>
 
       <div className="absolute inset-0 pointer-events-none opacity-[0.03]" 
-           style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '40px 40px' }} 
+           style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} 
       />
 
       <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/5 to-transparent pointer-events-none z-20" />

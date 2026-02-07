@@ -29,7 +29,7 @@ export const GlassButton = ({ children, href, onClick, className = "", icon, var
         cursor-pointer overflow-hidden group
         transition-all duration-300
         ${isDark 
-          ? 'bg-black/80 border-white/10 shadow-black/20 text-white hover:bg-black/90' 
+          ? 'bg-white/25 border-white/30 shadow-black/10 text-white hover:bg-white/35' 
           : 'bg-white/30 border-white/60 shadow-gray-200/50 text-gray-900 hover:bg-white/50'
         }
         ${className}

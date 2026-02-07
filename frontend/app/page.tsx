@@ -118,7 +118,7 @@ export default function HomePage() {
                 <motion.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-2xl font-black text-black italic tracking-tighter cursor-pointer w-fit pointer-events-auto"
+                  className={`text-2xl font-black italic tracking-tighter cursor-pointer w-fit pointer-events-auto transition-colors duration-500 ${isAtTop ? 'text-white' : 'text-black'}`}
                 >
                   <span>BAY</span><InteractiveUP />
                 </motion.div>
@@ -133,7 +133,7 @@ export default function HomePage() {
                       <Link 
                         key={item.label} 
                         href={item.href} 
-                        className="text-[12px] font-black text-gray-500 hover:text-black uppercase tracking-[0.5em] transition-all duration-500 relative group"
+                        className={`text-[12px] font-black uppercase tracking-[0.5em] transition-all duration-500 relative group ${isAtTop ? 'text-white hover:text-cyan' : 'text-gray-500 hover:text-black'}`}
                       >
                         {item.label}
                         <span className={`absolute -bottom-1 left-0 h-[1.5px] bg-cyan transition-all duration-500 group-hover:w-full ${item.label === 'Inicio' ? 'w-full' : 'w-0'}`}></span>
@@ -158,7 +158,8 @@ export default function HomePage() {
                     href="/login" 
                     variant="ghost" 
                     expandedText="INICIAR SESIÓN" 
-                    icon={<User size={22} className="text-black" />} 
+                    className={isAtTop ? "text-white" : "text-black"}
+                    icon={<User size={22} className={isAtTop ? "text-white" : "text-black"} />} 
                   />
                 </div>
               </div>
