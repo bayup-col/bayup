@@ -1,3 +1,4 @@
+/* FOOTER_REBUILD_FORCE_V2 */
 "use client";
 
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
@@ -56,7 +57,7 @@ const MagneticIcon = ({ children, href }: { children: React.ReactNode, href: str
 
 export const Footer = () => {
   return (
-    <footer className="py-24 bg-[#0A0A0B] relative overflow-hidden isolate">
+    <footer className="py-24 bg-[#0A0A0B] relative overflow-hidden isolate shadow-2xl">
       {/* Efecto de Reflejo y Profundidad (Verde Petróleo) */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-cyan/30 to-transparent" />
       <div className="absolute top-0 left-1/4 w-[600px] h-[300px] bg-petroleum/20 rounded-full blur-[120px] -z-10 opacity-50" />
@@ -65,7 +66,9 @@ export const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-24">
           
           <div className="col-span-1 md:col-span-2 space-y-10">
-            <TextHoverIcon />
+            <div className="scale-110 origin-left">
+              <TextHoverIcon />
+            </div>
             <p className="max-w-xs text-gray-500 text-[10px] font-black leading-relaxed uppercase tracking-[0.3em] opacity-80">
               El sistema operativo para el comercio del futuro. <br /> 
               Diseñado para impactar, construido para escalar.
@@ -112,7 +115,10 @@ export const Footer = () => {
           <p className="text-[9px] font-black text-gray-700 uppercase tracking-[0.4em]">
             © 2026 BAYUP INTEL. ALL RIGHTS RESERVED.
           </p>
-          <div className="flex items-center gap-3 text-[9px] font-black text-gray-600 uppercase tracking-widest group cursor-pointer hover:text-white transition-colors">
+          <div 
+            className="flex items-center gap-3 text-[9px] font-black text-gray-600 uppercase tracking-widest group hover:text-white transition-colors"
+            style={{ cursor: "url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjMDBGMkZGIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0xMiA1Yy42NyAwIDEuMzUuMDkgMiAuMjYgMS43OC0yIDUuMDMtMi44NCA2LjQyLTIuNDUuNDQuMTIuNy42LjU4IDEuMDQtLjIgMS4zOS0uNzMgMi43Ni0xLjU4IDMuOTUuMTIuNC4xOC44MS4xOCAxLjIgMCA0LjQyLTMuNTggOC04IDhzLTgtMy41OC04LThjMC0uMzkuMDYtLjguMTgtMS4yQzIuMTEgNi42MSAxLjU4IDUuMjQgMS4zOCAzLjg1Yy0uMTItLjQ0LjE0LS45Mi41OC0xLjA0IDEuMzktLjM5IDQuNjQuNDUgNi40MiAyLjQ1LjY1LS4xNyAxLjMzLS4yNiAyLS4yNlonLz48Y2lyY2xlIGN4PSI5IiBjeT0iMTIiIHI9IjEiLz48Y2lyY2xlIGN4PSIxNSIgY3k9IjEyIiByPSIxIi8+PHBhdGggZD0iTTEyIDE2Yy41IDAgMS41IDAgMS41LTEiLz48L3N2Zz4=') 16 16, auto" }}
+          >
             <Globe size={14} className="group-hover:text-cyan transition-colors" />
             <span>GLOBAL / ENGLISH (US)</span>
           </div>
