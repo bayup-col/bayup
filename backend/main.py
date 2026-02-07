@@ -9,6 +9,11 @@ from datetime import timedelta
 from typing import List, Optional
 import uuid
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+import os
+
+# Cargar variables de entorno inmediatamente
+load_dotenv()
 
 from database import SessionLocal, engine, get_db
 import crud
