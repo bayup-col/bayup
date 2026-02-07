@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException, status, Request
+from fastapi import Depends, FastAPI, HTTPException, status, Request, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -123,16 +123,13 @@ app.add_middleware(
 # --- Auth ---
 
 @app.post("/auth/register", response_model=schemas.User)
-def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+def register_user(user: schemas.UserCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user: raise HTTPException(status_code=400, detail="Email already registered")
     new_user = crud.create_user(db=db, user=user)
     
-    # Enviar correo de bienvenida
-    try:
-        email_service.send_welcome_email(new_user.email, new_user.full_name)
-    except Exception as e:
-        print(f"Error enviando correo de bienvenida: {e}")
+    # Enviar correo de bienvenida en segundo plano
+    background_tasks.add_task(email_service.send_welcome_email, new_user.email, new_user.full_name)
         
     return new_user
 
@@ -144,12 +141,27 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     return {"access_token": security.create_access_token(data={"sub": user.email}), "token_type": "bearer"}
 
 @app.post("/auth/forgot-password")
-def forgot_password(data: dict, db: Session = Depends(get_db)):
-    # ... (lógica existente)
+def forgot_password(data: dict, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    email = data.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    
+    user = crud.get_user_by_email(db, email=email)
+    if not user:
+        return {"status": "success", "message": "Si el correo existe, recibirá instrucciones en breve."}
+    
+    # Generar nueva clave temporal
+    temp_pass = security.generate_random_password()
+    user.hashed_password = security.get_password_hash(temp_pass)
+    db.commit()
+    
+    # Enviar correo en segundo plano
+    background_tasks.add_task(email_service.send_password_reset, user.email, temp_pass)
+        
     return {"status": "success", "message": "Nueva clave enviada al correo."}
 
 @app.post("/auth/register-affiliate")
-def register_affiliate(data: dict, db: Session = Depends(get_db)):
+def register_affiliate(data: dict, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     email = data.get("email")
     full_name = data.get("full_name")
     phone = data.get("phone")
@@ -168,23 +180,20 @@ def register_affiliate(data: dict, db: Session = Depends(get_db)):
     # Crear el usuario afiliado
     new_user = models.User(
         id=uuid.uuid4(),
-        email=email.lower().trim(),
-        full_name=full_name.trim(),
+        email=email.lower().strip(),
+        full_name=full_name.strip(),
         hashed_password=hashed_pass,
         role='afiliado',
-        status='Invitado' # Empieza como invitado hasta que el asesor lo contacte
+        status='Invitado'
     )
     
     db.add(new_user)
     db.commit()
     
-    # Enviar correo elegante de Partners
-    try:
-        email_service.send_affiliate_welcome(new_user.email, new_user.full_name, temp_pass)
-    except Exception as e:
-        print(f"Error enviando correo de afiliado: {e}")
+    # Enviar correo en segundo plano
+    background_tasks.add_task(email_service.send_affiliate_welcome, new_user.email, new_user.full_name, temp_pass)
         
-    return {"status": "success", "message": "Registro completado exitosamente"}
+    return {"status": "success", "message": "Registro completado"}
 
 @app.get("/auth/me", response_model=schemas.User)
 def get_me(current_user: models.User = Depends(security.get_current_user)):
@@ -270,7 +279,7 @@ def get_all_users(db: Session = Depends(get_db), current_user: models.User = Dep
         return JSONResponse(status_code=500, content={"detail": "Error en el servidor de staff", "error": str(e)})
 
 @app.post("/admin/users", response_model=schemas.User)
-def create_staff_user(user: schemas.UserCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+def create_staff_user(user: schemas.UserCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     print(f"--- INICIANDO CREACIÓN DE STAFF: {user.email} ---")
     
     # 1. Verificar duplicados
@@ -308,19 +317,16 @@ def create_staff_user(user: schemas.UserCreate, db: Session = Depends(get_db), c
         db.refresh(new_user)
         print("ÉXITO: Usuario guardado en base de datos.")
 
-        # 5. Enviar Correo (Fuera del commit para no bloquear)
-        try:
-            inviter = current_user.full_name or "Dani"
-            email_service.send_staff_invitation(
-                user_email=user.email,
-                user_name=user.full_name,
-                temp_pass=user.password,
-                inviter_name=inviter,
-                permissions=perms # Incluimos los permisos aquí
-            )
-            print("ÉXITO: Correo de invitación enviado con permisos.")
-        except Exception as e:
-            print(f"AVISO: El usuario se creó pero el correo falló: {e}")
+        # 5. Enviar Correo en segundo plano (No bloquea la respuesta al cliente)
+        inviter = current_user.full_name or "Dani"
+        background_tasks.add_task(
+            email_service.send_staff_invitation,
+            user.email,
+            user.full_name,
+            user.password,
+            inviter,
+            perms
+        )
 
         # 6. Log de actividad
         log_activity(db, current_user.id, tenant_id, "CREATE_USER", f"Invitó a {new_user.full_name}", str(new_user.id))
