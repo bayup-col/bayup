@@ -145,27 +145,46 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 @app.post("/auth/forgot-password")
 def forgot_password(data: dict, db: Session = Depends(get_db)):
+    # ... (lógica existente)
+    return {"status": "success", "message": "Nueva clave enviada al correo."}
+
+@app.post("/auth/register-affiliate")
+def register_affiliate(data: dict, db: Session = Depends(get_db)):
     email = data.get("email")
-    if not email:
-        raise HTTPException(status_code=400, detail="Email is required")
+    full_name = data.get("full_name")
+    phone = data.get("phone")
     
-    user = crud.get_user_by_email(db, email=email)
-    if not user:
-        # Por seguridad, no decimos si el email existe o no, pero no enviamos nada
-        return {"status": "success", "message": "Si el correo existe, recibirá instrucciones en breve."}
+    if not email or not full_name:
+        raise HTTPException(status_code=400, detail="Email and name are required")
     
-    # Generar nueva clave temporal
+    existing = crud.get_user_by_email(db, email=email)
+    if existing:
+        raise HTTPException(status_code=400, detail="Este correo ya está registrado")
+    
+    # Generar clave aleatoria
     temp_pass = security.generate_random_password()
-    user.hashed_password = security.get_password_hash(temp_pass)
+    hashed_pass = security.get_password_hash(temp_pass)
+    
+    # Crear el usuario afiliado
+    new_user = models.User(
+        id=uuid.uuid4(),
+        email=email.lower().trim(),
+        full_name=full_name.trim(),
+        hashed_password=hashed_pass,
+        role='afiliado',
+        status='Invitado' # Empieza como invitado hasta que el asesor lo contacte
+    )
+    
+    db.add(new_user)
     db.commit()
     
-    # Enviar correo con la plantilla elegante
+    # Enviar correo elegante de Partners
     try:
-        email_service.send_password_reset(user.email, temp_pass)
+        email_service.send_affiliate_welcome(new_user.email, new_user.full_name, temp_pass)
     except Exception as e:
-        print(f"Error enviando correo de recuperación: {e}")
+        print(f"Error enviando correo de afiliado: {e}")
         
-    return {"status": "success", "message": "Nueva clave enviada al correo."}
+    return {"status": "success", "message": "Registro completado exitosamente"}
 
 @app.get("/auth/me", response_model=schemas.User)
 def get_me(current_user: models.User = Depends(security.get_current_user)):

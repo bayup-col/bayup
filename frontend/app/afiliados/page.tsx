@@ -37,9 +37,15 @@ const SectionHeading = ({ title, highlight, subtitle }: { title: string, highlig
   </div>
 );
 
-export default function AffiliatesPage() {
+function AffiliatesPage() {
   const [isSubmitted, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
+  const [error, setError] = useState<string | null>(null);
   
   // Lógica de Header Inteligente
   const { scrollY } = useScroll();
@@ -55,13 +61,34 @@ export default function AffiliatesPage() {
     lastScrollY.current = latest;
   });
 
-  const handleApply = (e: React.FormEvent) => {
+  const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    setError(null);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/auth/register-affiliate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: formData.name,
+          email: formData.email,
+          phone: formData.phone
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.detail || 'Error al procesar la solicitud');
+      }
+
       setIsSuccess(true);
-    }, 2000);
+    } catch (err: any) {
+      setError(err.message || 'Ocurrió un error inesperado');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -244,7 +271,7 @@ export default function AffiliatesPage() {
                       <label className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em] ml-6">Nombre Completo</label>
                       <div className="relative group">
                         <User className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-cyan transition-colors" />
-                        <input type="text" placeholder="Ej. Alexander Bayup" className="w-full pl-16 pr-8 py-6 bg-white/[0.02] border border-white/5 focus:border-cyan/30 rounded-[2.5rem] outline-none text-sm text-white font-bold transition-all focus:bg-white/[0.05]" required />
+                        <input type="text" placeholder="Ej. Alexander Bayup" className="w-full pl-16 pr-8 py-6 bg-white/[0.02] border border-white/5 focus:border-cyan/30 rounded-[2.5rem] outline-none text-sm text-white font-bold transition-all focus:bg-white/[0.05]" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} disabled={isSubmitting} />
                       </div>
                     </div>
                     
@@ -253,18 +280,24 @@ export default function AffiliatesPage() {
                         <label className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em] ml-6">Teléfono de Contacto</label>
                         <div className="relative group">
                           <Phone className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-cyan transition-colors" />
-                          <input type="tel" placeholder="+57 ..." className="w-full pl-16 pr-8 py-6 bg-white/[0.02] border border-white/5 focus:border-cyan/30 rounded-[2.5rem] outline-none text-sm text-white font-bold transition-all focus:bg-white/[0.05]" required />
+                          <input type="tel" placeholder="+57 ..." className="w-full pl-16 pr-8 py-6 bg-white/[0.02] border border-white/5 focus:border-cyan/30 rounded-[2.5rem] outline-none text-sm text-white font-bold transition-all focus:bg-white/[0.05]" required value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} disabled={isSubmitting} />
                         </div>
                       </div>
                       <div className="space-y-2">
                         <label className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em] ml-6">Correo Electrónico</label>
                         <div className="relative group">
                           <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-cyan transition-colors" />
-                          <input type="email" placeholder="partner@domain.com" className="w-full pl-16 pr-8 py-6 bg-white/[0.02] border border-white/5 focus:border-cyan/30 rounded-[2.5rem] outline-none text-sm text-white font-bold transition-all focus:bg-white/[0.05]" required />
+                          <input type="email" placeholder="partner@domain.com" className="w-full pl-16 pr-8 py-6 bg-white/[0.02] border border-white/5 focus:border-cyan/30 rounded-[2.5rem] outline-none text-sm text-white font-bold transition-all focus:bg-white/[0.05]" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} disabled={isSubmitting} />
                         </div>
                       </div>
                     </div>
                   </div>
+
+                  {error && (
+                    <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-500 text-[10px] font-black uppercase text-center">
+                      {error}
+                    </div>
+                  )}
 
                   <div className="pt-10 space-y-8 flex flex-col items-center">
                     <button type="submit" disabled={isSubmitting} className="group relative w-full max-w-md">
