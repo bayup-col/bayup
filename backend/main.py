@@ -143,6 +143,30 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         raise HTTPException(status_code=401, detail="Incorrect email or password")
     return {"access_token": security.create_access_token(data={"sub": user.email}), "token_type": "bearer"}
 
+@app.post("/auth/forgot-password")
+def forgot_password(data: dict, db: Session = Depends(get_db)):
+    email = data.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    
+    user = crud.get_user_by_email(db, email=email)
+    if not user:
+        # Por seguridad, no decimos si el email existe o no, pero no enviamos nada
+        return {"status": "success", "message": "Si el correo existe, recibirá instrucciones en breve."}
+    
+    # Generar nueva clave temporal
+    temp_pass = security.generate_random_password()
+    user.hashed_password = security.get_password_hash(temp_pass)
+    db.commit()
+    
+    # Enviar correo con la plantilla elegante
+    try:
+        email_service.send_password_reset(user.email, temp_pass)
+    except Exception as e:
+        print(f"Error enviando correo de recuperación: {e}")
+        
+    return {"status": "success", "message": "Nueva clave enviada al correo."}
+
 @app.get("/auth/me", response_model=schemas.User)
 def get_me(current_user: models.User = Depends(security.get_current_user)):
     return current_user

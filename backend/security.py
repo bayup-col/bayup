@@ -20,6 +20,17 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 # --- Password Hashing ---
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
+import secrets
+import string
+
+def generate_random_password(length: int = 10) -> str:
+    """Genera una contraseña aleatoria elegante para Bayup."""
+    # Usamos letras y números para que sea fácil de escribir pero segura
+    characters = string.ascii_letters + string.digits
+    # Aseguramos un prefijo para que el usuario sepa que es de Bayup
+    password = "Byp-" + "".join(secrets.choice(characters) for _ in range(length - 4))
+    return password
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
