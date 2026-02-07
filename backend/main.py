@@ -258,7 +258,8 @@ def get_all_users(db: Session = Depends(get_db), current_user: models.User = Dep
                     "email": str(u.email),
                     "role": str(u.role),
                     "status": str(u.status) if u.status else "Activo",
-                    "owner_id": str(u.owner_id) if u.owner_id else None
+                    "owner_id": str(u.owner_id) if u.owner_id else None,
+                    "permissions": u.permissions or {} # Incluimos los permisos reales
                 })
             except:
                 continue
@@ -270,39 +271,66 @@ def get_all_users(db: Session = Depends(get_db), current_user: models.User = Dep
 
 @app.post("/admin/users", response_model=schemas.User)
 def create_staff_user(user: schemas.UserCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    db_user = crud.get_user_by_email(db, email=user.email)
+    print(f"--- INICIANDO CREACIÓN DE STAFF: {user.email} ---")
+    
+    # 1. Verificar duplicados
+    db_user = db.query(models.User).filter(models.User.email == user.email.lower().strip()).first()
     if db_user:
+        print("ERROR: Email ya registrado.")
         raise HTTPException(status_code=400, detail="Email ya registrado")
     
-    hashed_password = security.get_password_hash(user.password)
-    tenant_id = get_tenant_id(current_user)
-    
-    new_user = models.User(
-        id=uuid.uuid4(),
-        email=user.email,
-        full_name=user.full_name,
-        hashed_password=hashed_password,
-        role=user.role,
-        status=user.status,
-        owner_id=tenant_id
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    
-    # Enviar correo de invitación
     try:
-        email_service.send_staff_invitation(
-            user_email=new_user.email,
-            user_name=new_user.full_name,
-            temp_pass=user.password, # Usamos la contraseña enviada en el formulario
-            inviter_name=current_user.full_name
+        # 2. Preparar datos
+        hashed_password = security.get_password_hash(user.password)
+        tenant_id = get_tenant_id(current_user)
+        
+        # Asegurar que los permisos sean un diccionario válido
+        perms = user.permissions if user.permissions else {}
+        
+        print(f"DEBUG: Registrando con permisos: {perms}")
+
+        # 3. Crear el modelo
+        new_user = models.User(
+            id=uuid.uuid4(),
+            email=user.email.lower().strip(),
+            full_name=user.full_name.strip(),
+            hashed_password=hashed_password,
+            role=user.role,
+            status=user.status or 'Invitado',
+            owner_id=tenant_id,
+            permissions=perms,
+            is_global_staff=True # MARCA DE FAMILIA BAYUP
         )
+        
+        # 4. Guardar en DB
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        print("ÉXITO: Usuario guardado en base de datos.")
+
+        # 5. Enviar Correo (Fuera del commit para no bloquear)
+        try:
+            inviter = current_user.full_name or "Dani"
+            email_service.send_staff_invitation(
+                user_email=user.email,
+                user_name=user.full_name,
+                temp_pass=user.password,
+                inviter_name=inviter,
+                permissions=perms # Incluimos los permisos aquí
+            )
+            print("ÉXITO: Correo de invitación enviado con permisos.")
+        except Exception as e:
+            print(f"AVISO: El usuario se creó pero el correo falló: {e}")
+
+        # 6. Log de actividad
+        log_activity(db, current_user.id, tenant_id, "CREATE_USER", f"Invitó a {new_user.full_name}", str(new_user.id))
+        
+        return new_user
+
     except Exception as e:
-        print(f"Error enviando invitación por correo: {e}")
-    
-    log_activity(db, current_user.id, tenant_id, "CREATE_USER", f"Invitó a {new_user.full_name}", str(new_user.id))
-    return new_user
+        db.rollback()
+        print(f"ERROR CRÍTICO EN BACKEND: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
 @app.post("/admin/update-user")
 def update_staff_details(data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
@@ -330,8 +358,8 @@ def delete_user(user_id: uuid.UUID, db: Session = Depends(get_db), current_user:
     if not db_user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
-    # PROTECCIÓN BAYUP: No se puede eliminar al Super Admin principal
-    if db_user.role == 'super_admin':
+    # PROTECCIÓN BAYUP: El Super Administrador principal (Dani) es intocable.
+    if db_user.email == 'bayupcol@gmail.com':
         raise HTTPException(status_code=403, detail="Acceso denegado: El Super Administrador principal es intocable.")
     
     name = db_user.full_name

@@ -51,9 +51,11 @@ class User(Base):
     hashed_password = Column(String)
     role = Column(String, default="admin_tienda")
     status = Column(String, default="Activo")
+    is_global_staff = Column(Boolean, default=False)
     bank_accounts = Column(JSON, default=[])
     social_links = Column(JSON, default={})
     whatsapp_lines = Column(JSON, default=[])
+    permissions = Column(JSON, default={})
     
     # Multi-tenancy: Who owns this user account/staff
     owner_id = Column(GUID(), ForeignKey("users.id"), nullable=True)

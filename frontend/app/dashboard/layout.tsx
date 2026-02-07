@@ -48,7 +48,7 @@ const PLAN_PERMISSIONS: Record<string, string[]> = {
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { userEmail: authEmail, userRole: authRole, token, logout, userPlan } = useAuth();
+  const { userEmail: authEmail, userRole: authRole, token, logout, userPlan, isGlobalStaff, userPermissions } = useAuth();
   const { theme } = useTheme();
   
   // Determinar módulos permitidos según el plan
@@ -139,12 +139,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     };
   
     const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
-      // 1. Bloqueo por Plan (Si no está en allowedModules, chao)
-      if (!isSub && !allowedModules.includes(id) && userRole !== 'super_admin') return null;
+      // 1. Bloqueo por Plan (Solo si no es personal de Bayup)
+      if (!isSub && !allowedModules.includes(id) && !isGlobalStaff && !pathname?.includes('/super-admin')) return null;
 
-      // 2. Bloqueo por Rol de Staff (Si es empleado con permisos limitados)
-      const permissionKey = id.replace('m_', ''); 
-      if (userRole !== 'admin' && userRole !== 'admin_tienda' && userRole !== 'super_admin' && permissions[permissionKey] === false && !isEditingMenu) return null;
+      // 2. Bloqueo por Permisos Granulares (RBAC)
+      // DANI ES EL ÚNICO INMUNE (por correo)
+      const isDani = userEmail === 'bayupcol@gmail.com';
+      
+      if (!isDani && (isGlobalStaff || pathname?.includes('/super-admin'))) {
+          const permissionKey = id.replace('m_', '').replace('s_', '');
+          // Si el permiso es false, ocultamos
+          if (userPermissions && userPermissions[permissionKey] === false) {
+              return null;
+          }
+      }
       
       if (hiddenModules.includes(id) && !isEditingMenu) return null;
       
@@ -180,36 +188,44 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   const renderSidebar = () => {
-    if (userRole === 'super_admin') {
+    // Si el usuario es Staff Global (Dani o invitados), ve el menú de Bayup
+    if (isGlobalStaff) {
         return (
             <>
               <div className="p-6 border-b border-white/10">
                 <Link href="/dashboard/super-admin" className="text-2xl font-black bg-gradient-to-r from-[#004d4d] to-[#008080] bg-clip-text text-transparent">
                   Super Admin
                 </Link>
-              </div>              <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-              <Link href="/dashboard/super-admin" className={getLinkStyles('/dashboard/super-admin', 'super')}><LayoutDashboard size={16} /> Dashboard</Link>
-              <Link href="/dashboard/super-admin/empresas" className={getLinkStyles('/dashboard/super-admin/empresas', 'super')}><Store size={16} /> Empresas</Link>
-              <Link href="/dashboard/super-admin/afiliados" className={getLinkStyles('/dashboard/super-admin/afiliados', 'super')}><Users2 size={16} /> Afiliados</Link>
-              <Link href="/dashboard/super-admin/tesoreria" className={getLinkStyles('/dashboard/super-admin/tesoreria', 'super')}><Gem size={16} /> Tesorería</Link>
-              <div className="my-2 border-t border-gray-100/10"></div>
-              <Link href="/dashboard/super-admin/web-analytics" className={getLinkStyles('/dashboard/super-admin/web-analytics', 'super')}><BarChart3 size={16} /> Estadísticas Web</Link>
-              <Link href="/dashboard/super-admin/marketing" className={getLinkStyles('/dashboard/super-admin/marketing', 'super')}><TrendingUp size={16} /> Marketing</Link>
-              <Link href="/dashboard/super-admin/soporte" className={getLinkStyles('/dashboard/super-admin/soporte', 'super')}><MessageSquare size={16} /> Soporte</Link>
-              <div className="my-2 border-t border-gray-100/10"></div>
-              <Link href="/dashboard/super-admin/apis" className={getLinkStyles('/dashboard/super-admin/apis', 'super')}><Link2 size={16} /> APIs & Integraciones</Link>
-              <Link href="/dashboard/super-admin/feature-flags" className={getLinkStyles('/dashboard/super-admin/feature-flags', 'super')}><Tag size={16} /> Feature Flags</Link>
-              <Link href="/dashboard/super-admin/risk" className={getLinkStyles('/dashboard/super-admin/risk', 'super')}><ShieldCheck size={16} /> Riesgos & Fraude</Link>
-              <div className="my-2 border-t border-gray-100/10"></div>
-              <Link href="/dashboard/super-admin/legal" className={getLinkStyles('/dashboard/super-admin/legal', 'super')}><FileText size={16} /> Legal & Fiscal</Link>
-              <Link href="/dashboard/super-admin/docs" className={getLinkStyles('/dashboard/super-admin/docs', 'super')}><FileText size={16} /> Documentación</Link>
-              <Link href="/dashboard/super-admin/observability" className={getLinkStyles('/dashboard/super-admin/observability', 'super')}><Camera size={16} /> Observabilidad</Link>
-              <Link href="/dashboard/super-admin/users" className={getLinkStyles('/dashboard/super-admin/users', 'super')}><Users size={16} /> Usuarios & Roles</Link>
-              <Link href="/dashboard/super-admin/settings" className={getLinkStyles('/dashboard/super-admin/settings', 'super')}><Settings size={16} /> Configuración</Link>
-            </nav>
-          </>
-      );
-  }
+              </div>
+              <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
+                <MenuItem href="/dashboard/super-admin" label={<><LayoutDashboard size={16} /> Dashboard</>} id="m_inicio" />
+                <MenuItem href="/dashboard/super-admin/empresas" label={<><Store size={16} /> Empresas</>} id="m_empresas" />
+                <MenuItem href="/dashboard/super-admin/afiliados" label={<><Users2 size={16} /> Afiliados</>} id="m_afiliados" />
+                <MenuItem href="/dashboard/super-admin/tesoreria" label={<><Gem size={16} /> Tesorería</>} id="m_tesoreria" />
+                
+                <div className="my-2 border-t border-gray-100/10"></div>
+                
+                <MenuItem href="/dashboard/super-admin/web-analytics" label={<><BarChart3 size={16} /> Estadísticas Web</>} id="m_web_analytics" />
+                <MenuItem href="/dashboard/super-admin/marketing" label={<><TrendingUp size={16} /> Marketing</>} id="m_marketing" />
+                <MenuItem href="/dashboard/super-admin/soporte" label={<><MessageSquare size={16} /> Soporte</>} id="m_soporte" />
+                
+                <div className="my-2 border-t border-gray-100/10"></div>
+                
+                <MenuItem href="/dashboard/super-admin/apis" label={<><Link2 size={16} /> APIs & Integraciones</>} id="m_apis" />
+                <MenuItem href="/dashboard/super-admin/feature-flags" label={<><Tag size={16} /> Feature Flags</>} id="m_feature_flags" />
+                <MenuItem href="/dashboard/super-admin/risk" label={<><ShieldCheck size={16} /> Riesgos & Fraude</>} id="m_riesgos" />
+                <MenuItem href="/dashboard/super-admin/legal" label={<><FileText size={16} /> Legal & Fiscal</>} id="m_legal" />
+                <MenuItem href="/dashboard/super-admin/docs" label={<><FileText size={16} /> Documentación</>} id="m_docs" />
+                <MenuItem href="/dashboard/super-admin/observability" label={<><Camera size={16} /> Observabilidad</>} id="m_observabilidad" />
+                
+                <div className="my-2 border-t border-gray-100/10"></div>
+                
+                <MenuItem href="/dashboard/super-admin/settings" label={<><Settings size={16} /> Configuración</>} id="m_settings" />
+                <MenuItem href="/dashboard/super-admin/users" label={<><Users size={16} /> Usuarios & Roles</>} id="m_staff" />
+              </nav>
+            </>
+        );
+    }
 
   return (
       <>
@@ -257,7 +273,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         <MenuItem href="/dashboard/orders" label={<><Package size={16} className="mr-2" /> Pedidos</>} id="m_pedidos" />
                         <MenuItem href="/dashboard/shipping" label={<><Truck size={16} className="mr-2" /> Envíos</>} id="m_envios" />
                         
-                        {(!hiddenModules.includes('m_productos') || isEditingMenu) && (
+                        {/* BLINDAJE PRODUCTOS */}
+                        {(userRole === 'super_admin' || permissions?.productos !== false) && (!hiddenModules.includes('m_productos') || isEditingMenu) && (
                             <div className={hiddenModules.includes('m_productos') ? 'opacity-30' : ''}>
                                 <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
                                     <span className="flex items-center gap-2 text-sm font-medium"><Store size={16} /> Productos</span>
@@ -302,7 +319,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Gestión</p>
                     <div className="space-y-1">
                         
-                        {(!hiddenModules.includes('m_informes') || isEditingMenu) && (
+                        {/* BLINDAJE INFORMES */}
+                        {(userRole === 'super_admin' || permissions?.informes !== false) && (!hiddenModules.includes('m_informes') || isEditingMenu) && (
                             <div className={hiddenModules.includes('m_informes') ? 'opacity-30' : ''}>
                                 <button onClick={() => setReportsOpen(!reportsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/reports')}`}>
                                     <span className="flex items-center gap-2 text-sm font-medium"><BarChart3 size={16} /> Informes</span>
@@ -326,18 +344,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             </div>
                         )}
 
-                        <div>
-                            <button onClick={() => setSettingsOpen(!settingsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/settings')}`}>
-                                <span className="flex items-center gap-2 text-sm font-medium"><Settings size={16} /> Config. Tienda</span>
-                                <ChevronDown size={14} className={`transition-transform duration-200 ${settingsOpen ? 'rotate-180' : ''}`} />
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${settingsOpen ? 'max-h-60 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                <div className="space-y-1">
-                                                                    <Link href="/dashboard/settings/general" className={getLinkStyles('/dashboard/settings/general', 'admin', true)}>Info General</Link>
-                                                                    <Link href="/dashboard/settings/plan" className={getLinkStyles('/dashboard/settings/plan', 'admin', true)}>Mi Plan</Link>
-                                                                    <Link href="/dashboard/settings/users" className={getLinkStyles('/dashboard/settings/users', 'admin', true)}>Staff</Link>                                </div>
+                        {/* BLINDAJE CONFIGURACIÓN */}
+                        {(userRole === 'super_admin' || permissions?.settings !== false) && (
+                            <div>
+                                <button onClick={() => setSettingsOpen(!settingsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/settings')}`}>
+                                    <span className="flex items-center gap-2 text-sm font-medium"><Settings size={16} /> Config. Tienda</span>
+                                    <ChevronDown size={14} className={`transition-transform duration-200 ${settingsOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${settingsOpen ? 'max-h-60 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                    <div className="space-y-1">
+                                                                        <Link href="/dashboard/settings/general" className={getLinkStyles('/dashboard/settings/general', 'admin', true)}>Info General</Link>
+                                                                        <Link href="/dashboard/settings/plan" className={getLinkStyles('/dashboard/settings/plan', 'admin', true)}>Mi Plan</Link>
+                                                                        <Link href="/dashboard/settings/users" className={getLinkStyles('/dashboard/settings/users', 'admin', true)}>Staff</Link>                                </div>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </nav>

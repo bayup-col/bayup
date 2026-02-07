@@ -30,11 +30,13 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     role: str | None = "admin_tienda"
+    permissions: Optional[Dict[str, bool]] = {}
 
 class User(UserBase):
     id: uuid.UUID
     role: str = "admin_tienda"
     owner_id: Optional[uuid.UUID] = None
+    is_global_staff: bool = False # Nuevo campo
     bank_accounts: List[dict] | None = []
     social_links: dict | None = {}
     whatsapp_lines: List[dict] | None = []

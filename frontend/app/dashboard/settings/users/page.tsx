@@ -185,23 +185,52 @@ export default function StaffPage() {
 
     const handleSaveMember = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (generatedPassword) { setIsMemberModalOpen(false); setGeneratedPassword(null); return; }
+        console.log("BOTÓN PRESIONADO: Iniciando proceso de guardado...");
+        
+        if (generatedPassword) { 
+            console.log("Limpiando contraseña generada y cerrando modal.");
+            setIsMemberModalOpen(false); 
+            setGeneratedPassword(null); 
+            return; 
+        }
+        
         setIsSaving(true);
         try {
             if (editingMember) {
+                console.log("Editando miembro existente:", editingMember.email);
                 await userService.updateDetails(token!, { email: formData.email, new_role: formData.role, full_name: formData.name, status: formData.status });
-                showToast("Miembro actualizado", "success"); setIsMemberModalOpen(false);
+                showToast("Miembro actualizado", "success"); 
+                setIsMemberModalOpen(false);
             } else {
+                console.log("Creando nuevo miembro...");
                 const tempPassword = Math.random().toString(36).slice(-10) + "Aa1!";
-                await userService.create(token!, { email: formData.email.toLowerCase().trim(), full_name: formData.name.trim(), password: tempPassword, role: formData.role, status: formData.status });
-                setGeneratedPassword(tempPassword); showToast("Invitación enviada", "success");
+                console.log("Datos a enviar:", { email: formData.email, name: formData.name, role: formData.role });
+                
+                const response = await userService.create(token!, { 
+                    email: formData.email.toLowerCase().trim(), 
+                    full_name: formData.name.trim(), 
+                    password: tempPassword, 
+                    role: formData.role, 
+                    status: formData.status 
+                });
+                
+                console.log("RESPUESTA DEL SERVIDOR:", response);
+                setGeneratedPassword(tempPassword); 
+                showToast("Invitación enviada", "success");
             }
             await fetchData();
-        } catch (error: any) { showToast(error.message || "Error", "error"); }
-        finally { setIsSaving(false); }
+        } catch (error: any) { 
+            console.error("ERROR CRÍTICO AL GUARDAR:", error);
+            showToast(error.message || "Error al procesar la solicitud", "error"); 
+        }
+        finally { 
+            console.log("Proceso finalizado.");
+            setIsSaving(false); 
+        }
     };
 
     const handleOpenMemberModal = (member: StaffMember | null = null) => {
+        console.log("CLICK DETECTADO: Abriendo modal de miembro...");
         setGeneratedPassword(null);
         if (member) {
             setEditingMember(member); setFormData({ name: member.full_name, email: member.email, role: member.role, status: member.status, payroll_active: member.payroll_active });
@@ -261,7 +290,10 @@ export default function StaffPage() {
                     <div className="relative"><motion.button layout onMouseEnter={() => setIsFilterHovered(true)} onMouseLeave={() => setIsFilterHovered(false)} onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className={`h-12 flex items-center gap-2 px-4 rounded-xl transition-all ${isFilterMenuOpen ? 'bg-[#004d4d] text-white' : 'bg-gray-50 text-gray-500 hover:bg-white hover:border-gray-100'}`}><Filter size={18}/> <AnimatePresence>{isFilterHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase whitespace-nowrap overflow-hidden px-1">Cargo</motion.span>}</AnimatePresence></motion.button><AnimatePresence>{isFilterMenuOpen && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50"><button onClick={() => { setFilterRole('all'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 rounded-xl text-[10px] font-black uppercase hover:bg-gray-50">Todos</button></motion.div>}</AnimatePresence></div>
                     <div className="relative group/date"><motion.button layout onMouseEnter={() => setIsDateHovered(true)} onMouseLeave={() => setIsDateHovered(false)} className={`h-12 flex items-center gap-2 px-4 rounded-xl transition-all ${dateRange.start ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-500 hover:bg-white hover:border-gray-100'}`}><Calendar size={18}/> <AnimatePresence>{isDateHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase whitespace-nowrap overflow-hidden px-1">Fechas</motion.span>}</AnimatePresence></motion.button><div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 opacity-0 scale-95 pointer-events-none group-hover/date:opacity-100 group-hover/date:scale-100 group-hover/date:pointer-events-auto transition-all z-50 flex gap-2"><input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} className="p-2 bg-gray-50 rounded-lg text-[10px] outline-none"/><input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} className="p-2 bg-gray-50 rounded-lg text-[10px] outline-none"/><button onClick={() => setDateRange({start:'', end:''})} className="p-2 bg-rose-50 text-rose-500 rounded-lg"><RotateCcw size={14}/></button></div></div>
                     <button 
-                        onClick={() => handleOpenMemberModal()} 
+                        onClick={() => {
+                            console.log("BOTÓN INVITAR PRESIONADO");
+                            handleOpenMemberModal();
+                        }} 
                         className="h-12 flex items-center gap-2 px-5 bg-gray-900 text-white rounded-xl shadow-lg hover:bg-black transition-all active:scale-95 group"
                     >
                         <UserPlus size={18} className="text-[#00f2ff] group-hover:rotate-12 transition-transform"/>
@@ -440,23 +472,20 @@ export default function StaffPage() {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Botón de envío inyectado directamente en el flujo del formulario */}
+                                    <div className="pt-6">
+                                        <button 
+                                            type="submit"
+                                            className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl flex items-center justify-center gap-3 hover:bg-black transition-all active:scale-95"
+                                        >
+                                            {isSaving ? <Loader2 className="animate-spin" size={16} /> : <UserPlus size={18} className="text-[#00f2ff]"/>}
+                                            {generatedPassword ? 'Cerrar y Finalizar' : (editingMember ? 'Actualizar Cambios' : 'Enviar Invitación Ahora')}
+                                        </button>
+                                    </div>
                                 </form>
-                                <div className="p-10 border-t border-gray-50 bg-gray-50/30 flex gap-4">
-                                    <button 
-                                        type="button"
-                                        onClick={handleSaveMember} 
-                                        disabled={isSaving} 
-                                        className="flex-1 py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl flex items-center justify-center gap-3 hover:bg-black transition-all active:scale-95"
-                                    >
-                                        {isSaving ? (
-                                            <Loader2 className="animate-spin" size={16} />
-                                        ) : generatedPassword ? (
-                                            <CheckCircle2 size={18} className="text-[#00f2ff]"/>
-                                        ) : (
-                                            <UserPlus size={18} className="text-[#00f2ff]"/>
-                                        )} 
-                                        {generatedPassword ? 'Finalizar' : (editingMember ? 'Actualizar Miembro' : 'Enviar Invitación')}
-                                    </button>
+                                <div className="p-10 border-t border-gray-50 bg-gray-50/30 flex gap-4 hidden">
+                                    {/* Este bloque viejo lo ocultamos para no romper el diseño mientras probamos */}
                                 </div>
                             </div>
                         </motion.div>

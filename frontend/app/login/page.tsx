@@ -39,7 +39,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const apiBase = "http://localhost:8000";
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const response = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -60,15 +60,31 @@ export default function LoginPage() {
       });
 
       let userRole = 'admin_tienda';
+      let userPermissions = {};
+      let userPlan = null;
+      let isGlobalStaff = false;
+
       if (userResponse.ok) {
         const userData = await userResponse.json();
         userRole = userData.role || 'admin_tienda';
+        userPermissions = userData.permissions || {};
+        userPlan = userData.plan || null;
+        isGlobalStaff = userData.is_global_staff || false;
       }
       
-      login(data.access_token, email, userRole);
+      // Guardamos TODO en el contexto de Auth
+      login(data.access_token, email, userRole, userPermissions, userPlan, isGlobalStaff);
+      
+      console.log("LOGIN EXITOSO - ROL:", userRole, "ES GLOBAL:", isGlobalStaff);
+
       let targetPath = '/dashboard';
-      if (userRole === 'super_admin') targetPath = '/dashboard/super-admin';
-      else if (userRole === 'afiliado') targetPath = '/afiliado/dashboard';
+      
+      // SI ES STAFF GLOBAL (DANI O INVITADOS DE DANI), VA AL SUPER ADMIN
+      if (isGlobalStaff) {
+          targetPath = '/dashboard/super-admin';
+      } else if (userRole === 'afiliado') {
+          targetPath = '/afiliado/dashboard';
+      }
       
       setRedirectUrl(targetPath);
       setTimeout(() => {
@@ -86,12 +102,28 @@ export default function LoginPage() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setIsLoading(true);
-    // Simulación de envío de correo de recuperación
-    setTimeout(() => {
+
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiBase}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail }),
+      });
+
+      if (response.ok) {
+        setIsResetSuccess(true);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Error al solicitar nueva clave');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Ocurrió un error inesperado');
+    } finally {
       setIsLoading(false);
-      setIsResetSuccess(true);
-    }, 2000);
+    }
   };
 
   return (
