@@ -39,7 +39,7 @@ import {
     Pencil,
     FileText
   } from 'lucide-react';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
@@ -112,7 +112,7 @@ const ADVISOR_RANKING = [
     { name: 'Roberto Gómez', ventas: 2100000, conversion: '6.2%', growth: '-2%', status: 'low' },
 ];
 
-export default function AnalysisGeneralPage() {
+function ReportsContent() {
     const { token } = useAuth();
     const { showToast } = useToast();
     const searchParams = useSearchParams();
@@ -719,5 +719,13 @@ export default function AnalysisGeneralPage() {
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 30px; }
             `}</style>
         </div>
+    );
+}
+
+export default function AnalysisGeneralPage() {
+    return (
+        <Suspense fallback={<div className="p-20 text-center font-black uppercase tracking-widest text-[#004d4d]">Cargando Inteligencia...</div>}>
+            <ReportsContent />
+        </Suspense>
     );
 }
