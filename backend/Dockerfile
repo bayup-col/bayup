@@ -15,4 +15,5 @@ COPY . .
 # Asegurar que el directorio actual esté en el PATH de Python
 ENV PYTHONPATH=/app
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Comando de inicio compatible con Railway
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
