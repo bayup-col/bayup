@@ -24,6 +24,7 @@ import s3_service
 import payment_service
 import clerk_auth_service
 import ai_service
+import email_service
 
 # --- Tenant Isolation Helper ---
 def get_tenant_id(current_user: models.User):
@@ -125,7 +126,15 @@ app.add_middleware(
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user: raise HTTPException(status_code=400, detail="Email already registered")
-    return crud.create_user(db=db, user=user)
+    new_user = crud.create_user(db=db, user=user)
+    
+    # Enviar correo de bienvenida
+    try:
+        email_service.send_welcome_email(new_user.email, new_user.full_name)
+    except Exception as e:
+        print(f"Error enviando correo de bienvenida: {e}")
+        
+    return new_user
 
 @app.post("/auth/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -237,6 +246,17 @@ def create_staff_user(user: schemas.UserCreate, db: Session = Depends(get_db), c
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    
+    # Enviar correo de invitación
+    try:
+        email_service.send_staff_invitation(
+            user_email=new_user.email,
+            user_name=new_user.full_name,
+            temp_pass=user.password, # Usamos la contraseña enviada en el formulario
+            inviter_name=current_user.full_name
+        )
+    except Exception as e:
+        print(f"Error enviando invitación por correo: {e}")
     
     log_activity(db, current_user.id, tenant_id, "CREATE_USER", f"Invitó a {new_user.full_name}", str(new_user.id))
     return new_user
