@@ -5,12 +5,14 @@ import { motion, useScroll, useMotionValueEvent, AnimatePresence } from "framer-
 import { 
   Check, 
   ArrowRight,
-  Info
+  Info,
+  User
 } from "lucide-react";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { InteractiveUP } from "@/components/landing/InteractiveUP";
 import { PremiumButton } from "@/components/landing/PremiumButton";
+import { ExpandableButton } from "@/components/landing/ExpandableButton";
 import { Footer } from "@/components/landing/Footer";
 
 const FloatingParticlesBackground = dynamic(
@@ -20,24 +22,33 @@ const FloatingParticlesBackground = dynamic(
 
 const AuroraCard = ({ children, className = "", popular = false }: { children: React.ReactNode, className?: string, popular?: boolean }) => (
   <motion.div 
-    whileHover={{ y: -10 }}
-    className={`relative group p-[2px] rounded-[4rem] overflow-hidden isolate flex flex-col ${popular ? 'shadow-[0_50px_100px_-20px_rgba(0,77,77,0.3)]' : 'shadow-xl'} ${className}`}
+    whileHover={{ y: -15, scale: popular ? 1.05 : 1.02 }}
+    className={`relative group p-[2px] rounded-[4rem] overflow-visible isolate flex flex-col transition-all duration-500 ${popular ? 'shadow-[0_60px_120px_-20px_rgba(0,242,255,0.4)] z-20 scale-105' : 'shadow-xl z-10'} ${className}`}
   >
+    {/* BADGE RECOMENDADO (Solo para Popular) */}
+    {popular && (
+      <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-[100] whitespace-nowrap">
+        <div className="bg-gradient-to-r from-petroleum to-cyan px-8 py-2.5 rounded-full shadow-[0_10px_30px_rgba(0,242,255,0.4)] border border-white/20">
+          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white italic">Motor Recomendado</span>
+        </div>
+      </div>
+    )}
+
     <div className="absolute inset-0 rounded-[4rem] overflow-hidden -z-10">
       <motion.div 
         animate={{ rotate: 360 }}
-        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+        transition={{ duration: popular ? 6 : 10, repeat: Infinity, ease: "linear" }}
         className="absolute top-1/2 left-1/2 w-[300%] aspect-square"
         style={{
           background: popular 
-            ? `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)`
+            ? `conic-gradient(from 0deg, transparent 0deg, transparent 200deg, #00f2ff 280deg, #004d4d 360deg)`
             : `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #004d4d 320deg, #cbd5e1 360deg)`,
           x: "-50%",
           y: "-50%",
           willChange: 'transform'
         }}
       />
-      <div className={`absolute inset-[1.5px] rounded-[3.9rem] backdrop-blur-3xl ${popular ? 'bg-white/95' : 'bg-white/90'}`} />
+      <div className={`absolute inset-[1.5px] rounded-[3.9rem] backdrop-blur-3xl ${popular ? 'bg-white/98' : 'bg-white/90'}`} />
     </div>
     <div className="relative z-10 h-full p-10 md:p-14 flex flex-col">
       {children}
@@ -48,67 +59,68 @@ const AuroraCard = ({ children, className = "", popular = false }: { children: R
 const planDetails = [
   {
     name: "Básico",
-    price: "$0",
-    desc: "Todo lo necesario para lanzar tu tienda hoy mismo.",
+    price: "Gratis",
+    desc: "Operación esencial para lanzar tu imperio digital.",
     popular: false,
     status: "active",
     specs: [
       "Tienda personalizada",
-      "Botón de WhatsApp",
+      "WhatsApp CRM (1 Línea)",
       "Gestión de inventario ilimitado",
-      "Catálogo Digital Interactivo",
       "Pasarela de pagos integrada",
+      "Estadísticas de Venta",
       "Soporte Base"
     ]
   },
   {
     name: "Pro Elite",
-    price: "$0",
-    desc: "Identidad propia y herramientas avanzadas para escalar.",
+    price: "Gratis",
+    desc: "Potencia tu marca con IA y herramientas avanzadas.",
     popular: true,
     status: "active",
     specs: [
       "Todo lo del Plan Básico",
-      "Chat Multicanal Integrado",
-      "Dominio propio personalizado",
-      "Analítica Avanzada de Ventas",
-      "Herramientas de Marketing Pro",
-      "Prioridad de Soporte 24/7"
+      "Respuestas con IA 24/7",
+      "Marketing & Fidelización",
+      "Web Exclusiva Mayoristas",
+      "Separados con IA",
+      "Staff (Hasta 3 miembros)"
     ]
   },
   {
     name: "Empresa",
-    price: "Custom",
-    desc: "Arquitectura a medida para corporaciones globales.",
+    price: "Próximamente",
+    desc: "Arquitectura ilimitada para el control total.",
     popular: false,
     status: "coming_soon",
     specs: [
-      "Infraestructura Dedicada",
-      "Comisión Negociable",
-      "Bayt AI Nivel 3 (Entrenamiento Custom)",
-      "API de Acceso Total",
-      "Account Manager Dedicado",
-      "SLA Garantizado 99.9%"
+      "Bayt (Agente de Acción)",
+      "Automatización & N8N",
+      "Facturación Electrónica",
+      "Nómina & Sucursales",
+      "Multiventa (Amazon/ML)",
+      "Staff Ilimitado"
     ]
   }
 ];
 
 const SectionHeading = ({ title, highlight, subtitle }: { title: string, highlight?: string, subtitle?: string }) => (
-  <div className="text-center space-y-8 mb-20">
-    <motion.p 
-      initial={{ opacity: 0 }} 
-      whileInView={{ opacity: 1 }}
-      className="text-[#00F2FF] font-black uppercase tracking-[0.5em] text-[10px]"
-    >
-      Bayup Engineering
-    </motion.p>
+  <div className="text-center space-y-6 mb-20">
     <motion.h2 
       initial={{ opacity: 0, y: 20 }} 
       whileInView={{ opacity: 1, y: 0 }}
       className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-[0.9] text-black"
     >
-      {title} <br />
-      {highlight && <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum drop-shadow-[0_0_15px_rgba(0,242,255,0.3)]">{highlight}</span>}
+      {!highlight ? (
+        <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum drop-shadow-[0_0_15px_rgba(0,242,255,0.3)]">
+          {title}
+        </span>
+      ) : (
+        <>
+          {title} <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum drop-shadow-[0_0_15px_rgba(0,242,255,0.3)]">{highlight}</span>
+        </>
+      )}
     </motion.h2>
     {subtitle && (
       <p className="max-w-2xl mx-auto text-gray-500 text-lg font-medium leading-relaxed italic">
@@ -289,21 +301,21 @@ export default function PlanesPage() {
       >
         <div className="container mx-auto px-12 grid grid-cols-3 items-center">
           <Link href="/" className="pointer-events-auto">
-            <div className={`text-2xl font-black italic tracking-tighter cursor-pointer w-fit transition-colors duration-500 ${isAtTop ? 'text-black' : 'text-black'}`}>
+            <div className="text-2xl font-black italic tracking-tighter cursor-pointer w-fit text-black">
               <span>BAY</span><InteractiveUP />
             </div>
           </Link>
           <div className="hidden md:flex items-center justify-center">
             <div className={`flex items-center gap-12 px-10 py-4 rounded-full border border-white/40 bg-white/20 backdrop-blur-xl shadow-sm transition-all duration-500 pointer-events-auto ${isAtTop ? '' : 'bg-white/40 shadow-md'}`}>
               {[
+                { label: 'Afiliados', href: '/afiliados' },
                 { label: 'Inicio', href: '/' },
-                { label: 'Planes', href: '/planes' },
-                { label: 'Afiliados', href: '/afiliados' }
+                { label: 'Planes', href: '/planes' }
               ].map((item) => (
                 <Link 
                   key={item.label} 
                   href={item.href} 
-                  className="text-[12px] font-black text-gray-500 hover:text-black uppercase tracking-[0.5em] transition-all duration-500 relative group"
+                  className={`text-[12px] font-black uppercase tracking-[0.5em] transition-all duration-500 relative group text-gray-500 hover:text-black`}
                 >
                   {item.label}
                   <span className={`absolute -bottom-1 left-0 h-[1.5px] bg-cyan transition-all duration-500 group-hover:w-full ${item.label === 'Planes' ? 'w-full' : 'w-0'}`}></span>
@@ -311,8 +323,23 @@ export default function PlanesPage() {
               ))}
             </div>
           </div>
-          <div className="flex justify-end pointer-events-auto">
-            <PremiumButton href="/login">Iniciar</PremiumButton>
+          <div className="flex justify-end pointer-events-auto items-center gap-6">
+            {/* Botón Registrarse (Texto -> Gratis) */}
+            <ExpandableButton 
+              href="/register" 
+              variant="primary" 
+              baseText="REGÍSTRATE" 
+              expandedText="GRATIS" 
+            />
+
+            {/* Botón Iniciar Sesión (Icono -> Texto) */}
+            <ExpandableButton 
+              href="/login" 
+              variant="ghost" 
+              expandedText="INICIAR SESIÓN" 
+              className="text-black"
+              icon={<User size={22} className="text-black" />} 
+            />
           </div>
         </div>
       </motion.nav>
@@ -320,8 +347,8 @@ export default function PlanesPage() {
       <section className="relative pt-56 pb-24 px-6">
         <div className="container mx-auto max-w-7xl">
           <SectionHeading 
-            title="INGENIERÍA DE" 
-            highlight="CRECIMIENTO." 
+            title="ESCOGE TU MOTOR DE CRECIMIENTO." 
+            highlight="" 
             subtitle="Nuestra infraestructura multi-tenant está diseñada para escalar con tu ambición. Elige el motor que mejor se adapte a tu volumen operativo."
           />
         </div>
@@ -341,8 +368,10 @@ export default function PlanesPage() {
 
                   <div className="flex flex-col items-center lg:items-start gap-2">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-7xl font-black italic tracking-tighter">{plan.price}</span>
-                      {plan.price !== "Custom" && (
+                      <span className={`${plan.price.length > 8 ? 'text-4xl' : 'text-7xl'} font-black italic tracking-tighter transition-all duration-500`}>
+                        {plan.price}
+                      </span>
+                      {plan.price !== "Custom" && plan.price !== "Próximamente" && (
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">/Mes</span>
                       )}
                     </div>
@@ -361,21 +390,25 @@ export default function PlanesPage() {
                     ))}
                   </ul>
 
-                  <div className="flex-1" />
-
-                  <Link href={plan.status === "coming_soon" ? "#" : "/register"} className="pt-20 mt-auto">
+                  <Link 
+                    href={plan.status === "coming_soon" ? "#" : `/register?plan=${plan.name.toLowerCase().replace(" ", "_")}`} 
+                    className="pt-12 mt-auto"
+                  >
                     <button 
                       disabled={plan.status === "coming_soon"}
                       className={`w-full py-6 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 active:scale-95 
                         ${plan.status === "coming_soon" 
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' 
                           : plan.popular 
-                            ? 'bg-[#001A1A] text-white hover:bg-black shadow-2xl' 
+                            ? 'bg-gradient-to-r from-petroleum to-black text-white hover:shadow-[0_0_40px_rgba(0,242,255,0.4)] shadow-2xl relative overflow-hidden group/btn' 
                             : 'bg-white text-[#004d4d] border border-[#004d4d]/10 hover:bg-gray-50'
                         }`}
                     >
+                      {plan.popular && (
+                        <div className="absolute inset-0 bg-cyan opacity-0 group-hover/btn:opacity-10 transition-opacity" />
+                      )}
                       {plan.status === "coming_soon" ? "Próximamente" : "Seleccionar Plan"}
-                      {plan.status !== "coming_soon" && <ArrowRight size={14} />}
+                      {plan.status !== "coming_soon" && <ArrowRight size={14} className={plan.popular ? "text-cyan" : ""} />}
                     </button>
                   </Link>
                 </div>
@@ -389,8 +422,8 @@ export default function PlanesPage() {
       <section className="pb-40 px-6">
         <div className="container mx-auto max-w-7xl">
           <SectionHeading 
-            title="COMPARATIVA" 
-            highlight="DE POTENCIA." 
+            title="COMPARATIVA DE POTENCIA." 
+            highlight="" 
             subtitle="Analiza a fondo cada característica técnica de nuestros motores de crecimiento."
           />
 

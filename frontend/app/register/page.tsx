@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from "@/context/auth-context";
 import { InteractiveUP } from "@/components/landing/InteractiveUP";
 import { GlassyButton } from "@/components/landing/GlassyButton";
@@ -18,7 +18,11 @@ const FloatingParticlesBackground = dynamic(
   }
 );
 
-export default function RegisterPage() {
+function RegisterForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login } = useAuth();
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -31,18 +35,27 @@ export default function RegisterPage() {
   });
   
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [plans, setPlans] = useState<any[]>([
-    { id: '1', name: 'Básico' },
-    { id: '2', name: 'Pro' },
-    { id: '3', name: 'Empresa' }
+  const [plans] = useState<any[]>([
+    { id: '1', name: 'Básico', slug: 'básico' },
+    { id: '2', name: 'Pro Elite', slug: 'pro_elite' },
+    { id: '3', name: 'Empresa', slug: 'empresa' }
   ]);
   
   const [isPlanOpen, setIsPlanOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const router = useRouter();
-  const { login } = useAuth();
+
+  // Auto-selección de plan basada en URL
+  useEffect(() => {
+    const planParam = searchParams.get('plan');
+    if (planParam) {
+      const matchedPlan = plans.find(p => p.slug === planParam || p.id === planParam);
+      if (matchedPlan) {
+        setFormData(prev => ({ ...prev, planId: matchedPlan.id }));
+      }
+    }
+  }, [searchParams, plans]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -113,18 +126,7 @@ export default function RegisterPage() {
   const selectedPlan = plans.find(p => p.id === formData.planId);
 
   return (
-    <div className="fixed inset-0 w-full h-screen flex items-center justify-center overflow-hidden bg-[#FAFAFA] selection:bg-[#00F2FF] selection:text-black">
-      
-      <FloatingParticlesBackground />
-
-      {/* Botón de Regreso a Home (Elegante y blanco premium) */}
-      <div className="fixed top-8 left-8 z-[100]">
-        <GlassyButton href="/" variant="light">
-          <Home size={18} />
-        </GlassyButton>
-      </div>
-
-      <div className="relative z-10 w-full max-w-[640px] p-6 max-h-screen overflow-y-auto no-scrollbar">
+    <div className="relative z-10 w-full max-w-[640px] p-6 max-h-screen overflow-y-auto no-scrollbar">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -219,7 +221,7 @@ export default function RegisterPage() {
                   </AnimatePresence>
                 </div>
                 <div className="flex justify-end mt-1 pr-2">
-                  <Link href="#planes" className="text-[8px] font-black text-[#004d4d]/60 hover:text-[#004d4d] uppercase tracking-widest underline underline-offset-2 transition-colors"> Ver planes </Link>
+                  <Link href="/planes" className="text-[8px] font-black text-[#004d4d]/60 hover:text-[#004d4d] uppercase tracking-widest underline underline-offset-2 transition-colors"> Ver planes </Link>
                 </div>
               </div>
             </div>
@@ -283,7 +285,26 @@ export default function RegisterPage() {
             </div>
           </form>
         </motion.div>
+    </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <div className="fixed inset-0 w-full h-screen flex items-center justify-center overflow-hidden bg-[#FAFAFA] selection:bg-[#00F2FF] selection:text-black">
+      
+      <FloatingParticlesBackground />
+
+      {/* Botón de Regreso a Home (Elegante y blanco premium) */}
+      <div className="fixed top-8 left-8 z-[100]">
+        <GlassyButton href="/" variant="light">
+          <Home size={18} />
+        </GlassyButton>
       </div>
+
+      <Suspense fallback={<div className="text-black font-black uppercase tracking-widest">Cargando Terminal...</div>}>
+        <RegisterForm />
+      </Suspense>
 
       <style jsx global>{`
         @keyframes aurora-border { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
