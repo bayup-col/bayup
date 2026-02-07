@@ -258,9 +258,13 @@ def delete_user(user_id: uuid.UUID, db: Session = Depends(get_db), current_user:
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="No puedes eliminarte a ti mismo")
     
-    db_user = db.query(models.User).filter(models.User.id == user_id, models.User.owner_id == tenant_id).first()
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # PROTECCIÓN BAYUP: No se puede eliminar al Super Admin principal
+    if db_user.role == 'super_admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado: El Super Administrador principal es intocable.")
     
     name = db_user.full_name
     db.delete(db_user)
