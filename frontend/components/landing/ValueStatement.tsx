@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Layout, PlusCircle, Rocket, Globe, Zap, Cpu } from "lucide-react";
 import { useState } from "react";
-import { RollingText } from "./RollingText";
+import { TextCarousel } from "./TextCarousel";
 
 export const ValueStatement = () => {
   const pillars = [
@@ -45,9 +45,14 @@ export const ValueStatement = () => {
         <div className="max-w-6xl mx-auto space-y-44 text-center">
           <div className="text-5xl md:text-7xl font-black text-black tracking-tighter leading-[0.9] italic uppercase flex flex-col items-center gap-2 drop-shadow-xl">
             <span>LA NUEVA FORMA</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum drop-shadow-[0_0_15px_rgba(0,242,255,0.3)]">
-              DE VENDER POR INTERNET.
-            </span>
+            <TextCarousel 
+              items={[
+                "DE VENDER POR INTERNET.",
+                "DE CREAR TU MARCA.",
+                "DE ESCALAR TU NEGOCIO."
+              ]}
+              className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum drop-shadow-[0_0_15px_rgba(0,242,255,0.3)] pb-2"
+            />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-16 perspective-2000">
@@ -118,10 +123,10 @@ const Card3D = ({ pillar, index }: { pillar: any, index: number }) => {
 
             <div className="space-y-4 text-center w-full">
               <h3 className="text-3xl font-black uppercase tracking-[-0.03em] italic text-black leading-tight w-full flex justify-center drop-shadow-sm">
-                <RollingText text={pillar.title} delay={0.5 + index * 0.1} />
+                {pillar.title}
               </h3>
               <div className="text-gray-400 text-[11px] font-black leading-relaxed uppercase tracking-[0.3em] w-full px-4">
-                <RollingText text={pillar.desc} delay={0.7 + index * 0.1} />
+                {pillar.desc}
               </div>
             </div>
           </div>
@@ -173,7 +178,7 @@ const Card3D = ({ pillar, index }: { pillar: any, index: number }) => {
             )}
 
             <h3 className="text-xl font-black italic uppercase tracking-tighter text-black w-full flex justify-center mt-16">
-              <RollingText text={pillar.title} />
+              {pillar.title}
             </h3>
             <p className="text-gray-600 text-[10px] font-bold leading-relaxed uppercase tracking-widest italic px-6 mt-2">
               {pillar.details}
