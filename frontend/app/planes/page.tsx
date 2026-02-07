@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useRef } from 'react';
-import { motion, useScroll, useMotionValueEvent } from "framer-motion";
+import { motion, useScroll, useMotionValueEvent, AnimatePresence } from "framer-motion";
 import { 
   Check, 
-  ArrowRight
+  ArrowRight,
+  Info
 } from "lucide-react";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -38,7 +39,7 @@ const AuroraCard = ({ children, className = "", popular = false }: { children: R
       />
       <div className={`absolute inset-[1.5px] rounded-[3.9rem] backdrop-blur-3xl ${popular ? 'bg-white/95' : 'bg-white/90'}`} />
     </div>
-    <div className="relative z-10 h-full p-10 md:p-14">
+    <div className="relative z-10 h-full p-10 md:p-14 flex flex-col">
       {children}
     </div>
   </motion.div>
@@ -117,6 +118,63 @@ const SectionHeading = ({ title, highlight, subtitle }: { title: string, highlig
   </div>
 );
 
+const FeatureRow = ({ row }: { row: any }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <tr 
+      className="hover:bg-[#00F2FF]/5 transition-all duration-500 group border-b border-[#004d4d]/5 last:border-0"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <td className="py-10 px-14 border-l border-[#004d4d]/5 relative overflow-hidden min-w-[380px]">
+        <div className="relative h-14 flex items-center">
+          <AnimatePresence mode="wait">
+            {!isHovered ? (
+              <motion.div
+                key="title"
+                initial={{ x: 0, opacity: 1 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -30, opacity: 0, filter: "blur(8px)" }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className="absolute inset-0 flex items-center gap-4"
+              >
+                <span className="text-[12px] font-black uppercase tracking-[0.4em] text-petroleum italic leading-none">
+                  {row.feature}
+                </span>
+                <div className="h-1.5 w-1.5 rounded-full bg-cyan animate-pulse shadow-[0_0_8px_#00f2ff]" />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="description"
+                initial={{ x: 30, opacity: 0, filter: "blur(8px)" }}
+                animate={{ x: 0, opacity: 1, filter: "blur(0px)" }}
+                exit={{ x: 30, opacity: 0, filter: "blur(8px)" }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className="absolute inset-0 flex items-center"
+              >
+                <p className="text-[11px] font-bold text-[#004d4d]/60 leading-relaxed italic uppercase tracking-[0.15em]">
+                  {row.description}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </td>
+      <td className="py-10 px-10 text-center border-l border-[#004d4d]/5">
+        {typeof row.basic === "boolean" ? (row.basic ? <Check className="mx-auto text-cyan drop-shadow-[0_0_8px_rgba(0,242,255,0.5)]" size={24} /> : <span className="text-gray-200 text-lg font-light opacity-30">—</span>) : <span className="text-[12px] font-black tracking-tighter text-[#004d4d]">{row.basic}</span>}
+      </td>
+      <td className="py-10 px-10 text-center border-l border-[#004d4d]/5 bg-cyan/5 relative group/pro">
+        <div className="absolute inset-0 bg-cyan opacity-0 group-hover/pro:opacity-[0.03] transition-opacity duration-500" />
+        {typeof row.pro === "boolean" ? (row.pro ? <Check className="mx-auto text-petroleum drop-shadow-[0_0_5px_rgba(0,77,77,0.3)]" size={24} /> : <span className="text-gray-200 text-lg font-light opacity-30">—</span>) : <span className="text-[13px] font-black tracking-tighter text-petroleum">{row.pro}</span>}
+      </td>
+      <td className="py-10 px-10 text-center border-l border-[#004d4d]/5">
+        {typeof row.enterprise === "boolean" ? (row.enterprise ? <Check className="mx-auto text-cyan drop-shadow-[0_0_8px_rgba(0,242,255,0.5)]" size={24} /> : <span className="text-gray-200 text-lg font-light opacity-30">—</span>) : <span className="text-[12px] font-black tracking-tighter text-[#004d4d]">{row.enterprise}</span>}
+      </td>
+    </tr>
+  );
+};
+
 export default function PlanesPage() {
   const { scrollY } = useScroll();
   const [hidden, setHidden] = useState(false);
@@ -131,6 +189,94 @@ export default function PlanesPage() {
     lastScrollY.current = latest;
   });
 
+  const comparisonData = [
+    { 
+      feature: "Mensualidad", 
+      basic: "Gratis", pro: "Gratis", enterprise: "Próximamente",
+      description: "Inversión fija mensual para el mantenimiento y uso de la infraestructura tecnológica de Bayup." 
+    },
+    { 
+      feature: "Comisiones", 
+      basic: "2.5%", pro: "3.0%", enterprise: "Próximamente",
+      description: "Porcentaje cobrado únicamente por cada venta exitosa. Si no vendes, no pagas nada." 
+    },
+    { 
+      feature: "Inicio & Estadísticas", 
+      basic: true, pro: true, enterprise: true,
+      description: "Panel de control central con métricas clave de ventas, visitas y rendimiento de tu tienda en tiempo real." 
+    },
+    { 
+      feature: "Facturación POS", 
+      basic: "Estándar", pro: "Estándar", enterprise: "+ Electrónica",
+      description: "Punto de venta físico y digital. El plan Empresa incluye integración legal con facturación electrónica automatizada." 
+    },
+    { 
+      feature: "Pedidos & Envíos", 
+      basic: true, pro: true, enterprise: true,
+      description: "Gestión completa del ciclo de vida del pedido, desde la compra hasta la entrega logística final." 
+    },
+    { 
+      feature: "Gestión de Inventario", 
+      basic: "Ilimitado", pro: "Ilimitado", enterprise: "Ilimitado",
+      description: "Control total de stock, variantes de producto y alertas de inventario bajo sin límites de cantidad." 
+    },
+    { 
+      feature: "Clientes & Descuentos", 
+      basic: true, pro: true, enterprise: true,
+      description: "Base de datos centralizada de tus compradores y potente motor para crear cupones, ofertas y promociones relámpago." 
+    },
+    { 
+      feature: "Mensajes (Omnicanal)", 
+      basic: true, pro: "Respuestas IA 24/7", enterprise: "Respuestas IA 24/7",
+      description: "Centraliza chats de Web, WhatsApp y Redes Sociales. El plan Pro incluye agentes de IA que responden y venden por ti de forma autónoma." 
+    },
+    { 
+      feature: "Config. Tienda Full", 
+      basic: true, pro: true, enterprise: true,
+      description: "Personalización total de la apariencia, métodos de pago, moneda y ajustes generales de tu ecosistema." 
+    },
+    { 
+      feature: "Marketing & Fidelización", 
+      basic: false, pro: true, enterprise: true,
+      description: "Club de puntos por compras y herramientas avanzadas para crear campañas que aumenten el ROI." 
+    },
+    { 
+      feature: "Asistente Bayt AI", 
+      basic: false, pro: "Chat & Soporte", enterprise: "Agente de Acción (Ejecuta)",
+      description: "Bayt no solo responde dudas; en el Plan Empresa puede realizar acciones como crear productos o registrar gastos por voz." 
+    },
+    { 
+      feature: "Analítica Web Precisa", 
+      basic: false, pro: "Estándar", enterprise: "Pixel Tracking Avanzado",
+      description: "Seguimiento ultra-detallado del comportamiento del usuario usando píxeles de rastreo y mapas de calor." 
+    },
+    { 
+      feature: "Automatización & N8N", 
+      basic: false, pro: false, enterprise: "Conexión Nativa",
+      description: "Conecta Bayup con miles de aplicaciones externas y crea flujos de trabajo automáticos complejos mediante N8N." 
+    },
+    { 
+      feature: "Nómina & Sucursales", 
+      basic: false, pro: false, enterprise: true,
+      description: "Gestión administrativa de empleados, pagos de nómina y control multi-tienda para diferentes sedes físicas." 
+    },
+    { 
+      feature: "Cotizaciones Automáticas", 
+      basic: false, pro: false, enterprise: true,
+      description: "Generación instantánea de presupuestos y cotizaciones profesionales para clientes mayoristas o corporativos." 
+    },
+    { 
+      feature: "Multiventa (Omnicanal)", 
+      basic: false, pro: false, enterprise: true,
+      description: "Vende en Amazon, Mercado Libre y Redes Sociales sincronizando todo el inventario desde un solo lugar: Bayup." 
+    },
+    { 
+      feature: "CRM Avanzado Integrado", 
+      basic: false, pro: false, enterprise: true,
+      description: "Gestión profunda de relaciones con clientes, segmentación inteligente y seguimiento de leads para maximizar conversiones." 
+    },
+  ];
+
   return (
     <div className="relative min-h-screen w-full bg-[#FAFAFA] text-[#004d4d] overflow-x-hidden">
       <FloatingParticlesBackground />
@@ -143,7 +289,7 @@ export default function PlanesPage() {
       >
         <div className="container mx-auto px-12 grid grid-cols-3 items-center">
           <Link href="/" className="pointer-events-auto">
-            <div className="text-2xl font-black italic tracking-tighter cursor-pointer w-fit">
+            <div className={`text-2xl font-black italic tracking-tighter cursor-pointer w-fit transition-colors duration-500 ${isAtTop ? 'text-black' : 'text-black'}`}>
               <span>BAY</span><InteractiveUP />
             </div>
           </Link>
@@ -187,7 +333,7 @@ export default function PlanesPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             {planDetails.map((plan, i) => (
               <AuroraCard key={i} popular={plan.popular}>
-                <div className="space-y-10">
+                <div className="space-y-10 flex-1 flex flex-col">
                   <div className="space-y-4 text-center lg:text-left">
                     <h3 className={`text-3xl font-black italic uppercase tracking-tighter ${plan.popular ? 'text-[#004d4d]' : 'text-gray-400'}`}>{plan.name}</h3>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">{plan.desc}</p>
@@ -253,40 +399,15 @@ export default function PlanesPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-petroleum text-white">
-                    <th className="py-8 px-10 text-[11px] font-black uppercase tracking-[0.4em] italic">Característica</th>
+                    <th className="py-8 px-12 text-[11px] font-black uppercase tracking-[0.4em] italic">Característica</th>
                     <th className="py-8 px-6 text-center text-[11px] font-black uppercase tracking-[0.4em] italic border-l border-white/10">Básico</th>
                     <th className="py-8 px-6 text-center text-[11px] font-black uppercase tracking-[0.4em] italic border-l border-white/10 bg-cyan text-petroleum">Pro Elite</th>
                     <th className="py-8 px-6 text-center text-[11px] font-black uppercase tracking-[0.4em] italic border-l border-white/10">Empresa</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#004d4d]/5">
-                  {[
-                    { feature: "Inicio & Estadísticas", basic: true, pro: true, enterprise: true },
-                    { feature: "Facturación POS", basic: "Estándar", pro: "Estándar", enterprise: "+ Electrónica" },
-                    { feature: "Pedidos & Envíos", basic: true, pro: true, enterprise: true },
-                    { feature: "Gestión de Inventario", basic: "Ilimitado", pro: "Ilimitado", enterprise: "Ilimitado" },
-                    { feature: "Mensajes (Web/RRSS)", basic: true, pro: true, enterprise: true },
-                    { feature: "WhatsApp CRM", basic: "1 Línea", pro: "Catálogo IA", enterprise: "Full IA" },
-                    { feature: "Clientes & Descuentos", basic: true, pro: true, enterprise: true },
-                    { feature: "Informes de Ventas", basic: "General", pro: "Pro (+Gastos)", enterprise: "Full Business" },
-                    { feature: "Marketing & Fidelización", basic: false, pro: true, enterprise: true },
-                    { feature: "Web Mayoristas", basic: false, pro: true, enterprise: true },
-                    { feature: "Separados con IA", basic: false, pro: true, enterprise: true },
-                    { feature: "Staff (Miembros)", basic: false, pro: "Hasta 3", enterprise: "Ilimitado" },
-                    { feature: "Config. Tienda Full", basic: true, pro: true, enterprise: true },
-                  ].map((row, idx) => (
-                    <tr key={idx} className="hover:bg-[#00F2FF]/5 transition-colors group">
-                      <td className="py-6 px-10 text-[10px] font-black uppercase tracking-widest text-[#004d4d]/80 italic group-hover:text-black transition-colors">{row.feature}</td>
-                      <td className="py-6 px-6 text-center border-l border-[#004d4d]/5">
-                        {typeof row.basic === "boolean" ? (row.basic ? <Check className="mx-auto text-cyan" size={18} /> : <span className="text-gray-200">—</span>) : <span className="text-[10px] font-bold">{row.basic}</span>}
-                      </td>
-                      <td className="py-6 px-6 text-center border-l border-[#004d4d]/5 bg-cyan/5">
-                        {typeof row.pro === "boolean" ? (row.pro ? <Check className="mx-auto text-petroleum" size={18} /> : <span className="text-gray-200">—</span>) : <span className="text-[10px] font-black">{row.pro}</span>}
-                      </td>
-                      <td className="py-6 px-6 text-center border-l border-[#004d4d]/5">
-                        {typeof row.enterprise === "boolean" ? (row.enterprise ? <Check className="mx-auto text-cyan" size={18} /> : <span className="text-gray-200">—</span>) : <span className="text-[10px] font-bold">{row.enterprise}</span>}
-                      </td>
-                    </tr>
+                  {comparisonData.map((row, idx) => (
+                    <FeatureRow key={idx} row={row} />
                   ))}
                 </tbody>
               </table>
