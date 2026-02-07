@@ -416,5 +416,30 @@ def get_pages(db: Session = Depends(get_db), current_user: models.User = Depends
     tenant_id = get_tenant_id(current_user)
     return db.query(models.Page).filter(models.Page.owner_id == tenant_id).all()
 
+# --- Super Admin Stats ---
+
+@app.get("/super-admin/stats", response_model=schemas.SuperAdminStats)
+def get_super_admin_stats(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_super_admin_user)):
+    # 1. Contar empresas (dueños de tienda)
+    active_companies = db.query(models.User).filter(models.User.role == 'admin_tienda').count()
+    
+    # 2. Contar afiliados
+    active_affiliates = db.query(models.User).filter(models.User.role == 'afiliado').count()
+    
+    # 3. Calcular ingresos totales (suma de todos los pedidos)
+    total_revenue = db.query(func.sum(models.Order.total_price)).scalar() or 0.0
+    
+    # 4. Calcular comisión (suponiendo un 3% promedio para Bayup)
+    total_commission = total_revenue * 0.03
+    
+    return {
+        "total_revenue": total_revenue,
+        "total_commission": total_commission,
+        "active_companies": active_companies,
+        "active_affiliates": active_affiliates,
+        "top_companies": [], # Se puede implementar luego
+        "recent_alerts": []  # Se puede implementar luego
+    }
+
 @app.get("/")
 def read_root(): return {"message": "Welcome to Bayup API"}
