@@ -99,37 +99,33 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
-# 1. CORS - Configuración Maestra (Debe ir primero)
-origins = [
-    "https://bayup.com.co",
-    "https://www.bayup.com.co",
-    "https://bayup-col.vercel.app",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-
+# 1. CORS - CONFIGURACIÓN UNIVERSAL (A PRUEBA DE BALAS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
-    expose_headers=["*"]
+    allow_origins=["*"], # Permitir TODO
+    allow_credentials=False, # Obligatorio cuando se usa "*"
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# 2. Manejador de Errores Global (Blindado con CORS)
+# 2. Inyector de cabeceras manual (Segunda capa de seguridad)
+@app.middleware("http")
+async def add_cors_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+# 3. Manejador de Errores Global (Blindado)
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    print(f"ERROR CRITICO DETECTADO: {str(exc)}")
-    origin = request.headers.get("origin")
-    allow_origin = origin if origin in origins else origins[0]
-    
+    print(f"CRITICAL ERROR: {exc}")
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal Server Error", "message": str(exc)},
         headers={
-            "Access-Control-Allow-Origin": allow_origin,
-            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "*",
             "Access-Control-Allow-Headers": "*",
         }
