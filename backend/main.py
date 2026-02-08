@@ -99,46 +99,23 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
-# --- ESCUDO TOTAL DE CONEXIÓN (CORS MANUAL) ---
-@app.middleware("http")
-async def force_cors_middleware(request: Request, call_next):
-    # 1. Manejo Manual de Pre-vuelo (OPTIONS)
-    if request.method == "OPTIONS":
-        return JSONResponse(
-            status_code=200,
-            content="OK",
-            headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-                "Access-Control-Allow-Headers": "Authorization, Content-Type, Accept, Origin, X-Requested-With",
-                "Access-Control-Max-Age": "86400",
-            },
-        )
-    
-    # 2. Procesar la petición
-    try:
-        response = await call_next(request)
-    except Exception as e:
-        # Si el servidor explota, devolvemos el error con CORS para poder verlo
-        print(f"CRITICAL SERVER ERROR: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={"detail": "Error Interno del Servidor", "msg": str(e)},
-            headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "*",
-                "Access-Control-Allow-Headers": "*",
-            }
-        )
-    
-    # 3. Inyectar cabeceras a la respuesta exitosa
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
+# --- CONFIGURACIÓN DE CONEXIÓN GLOBAL (CORS) ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Eliminamos el CORSMiddleware oficial para evitar conflictos
-# app.add_middleware(CORSMiddleware, ...) 
+# Manejador de Errores Global
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    print(f"CRITICAL ERROR: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "message": str(exc)},
+    )
 
 # --- Auth ---
 
