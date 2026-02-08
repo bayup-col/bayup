@@ -84,10 +84,13 @@ def update_product(db: Session, db_product: models.Product, product: schemas.Pro
     return db_product
 
 # --- Order CRUD ---
-def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID) -> models.Order:
+def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID, tenant_id: Optional[uuid.UUID] = None) -> models.Order:
     subtotal = 0
     items_to_create = []
-    tenant_id = None
+    
+    # Si no nos pasan el tenant_id, lo buscamos del primer producto
+    actual_tenant_id = tenant_id
+
     for item in order.items:
         v = get_product_variant(db, item.product_variant_id)
         if not v:
@@ -95,8 +98,8 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
         if v.stock < item.quantity:
             raise HTTPException(status_code=400, detail=f"Not enough stock for variant {v.name}")
         
-        if tenant_id is None:
-            tenant_id = v.product.owner_id
+        if actual_tenant_id is None:
+            actual_tenant_id = v.product.owner_id
         
         price = v.product.price + v.price_adjustment
         subtotal += price * item.quantity
@@ -105,7 +108,7 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
     db_order = models.Order(
         total_price=subtotal,
         customer_id=customer_id,
-        tenant_id=tenant_id,
+        tenant_id=actual_tenant_id,
         customer_name=order.customer_name,
         customer_email=order.customer_email,
         customer_phone=order.customer_phone,

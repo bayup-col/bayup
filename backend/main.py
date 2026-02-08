@@ -229,6 +229,22 @@ def register_affiliate(data: dict, background_tasks: BackgroundTasks, db: Sessio
 def get_me(current_user: models.User = Depends(security.get_current_user)):
     return current_user
 
+@app.put("/admin/update-profile")
+def update_user_profile(data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    # 1. Verificar si el slug ya existe (si se está cambiando)
+    new_slug = data.get("shop_slug")
+    if new_slug:
+        existing = db.query(models.User).filter(models.User.shop_slug == new_slug, models.User.id != current_user.id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Este nombre de tienda ya está en uso")
+        current_user.shop_slug = new_slug
+
+    # 2. Actualizar otros datos
+    current_user.full_name = data.get("full_name", current_user.full_name)
+    
+    db.commit()
+    return {"status": "success", "shop_slug": current_user.shop_slug}
+
 # --- Image Management (Supabase Storage) ---
 
 @app.post("/admin/upload-image")
