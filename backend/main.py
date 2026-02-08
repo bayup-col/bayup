@@ -100,12 +100,20 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
 # --- CONFIGURACIÓN DE CONEXIÓN GLOBAL (CORS) ---
+origins = [
+    "http://localhost:3000",
+    "https://bayup.com.co",
+    "https://www.bayup.com.co",
+    "https://bayup-app.vercel.app", # Agregamos vercel por si acaso
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Manejador de Errores Global
