@@ -63,10 +63,10 @@ export const ValueStatement = () => {
                 delay: 0.2
               }}
               viewport={{ once: true }}
-              className="text-lg md:text-2xl font-bold text-black drop-shadow-[0_0_12px_rgba(0,0,0,0.3)] mt-4 md:mt-8 px-6 flex flex-col items-center"
+              className="text-lg md:text-2xl font-bold text-black drop-shadow-[0_0_12px_rgba(0,0,0,0.3)] mt-4 md:mt-8 px-6 flex flex-col md:flex-row items-center justify-center md:gap-2"
             >
-              <span>Crea tu tienda profesional</span>
-              <span>en 3 pasos simples</span>
+              <span className="whitespace-nowrap">Crea tu tienda profesional</span>
+              <span className="whitespace-nowrap">en 3 pasos simples</span>
             </motion.p>
           </div>
           
@@ -154,11 +154,17 @@ const Card3D = ({ pillar, index }: { pillar: any, index: number }) => {
 
   // Lógica de Auto-flip secuencial para todas las tarjetas
   useMotionValueEvent(scrollY, "change", (latest) => {
-    // Definimos rangos de scroll específicos para cada tarjeta (ajustables según altura de página)
-    const ranges = [
-      { min: 1100, max: 1900 }, // Card 01
-      { min: 1400, max: 2200 }, // Card 02
-      { min: 1700, max: 2500 }, // Card 03
+    // Definimos rangos de scroll específicos para cada tarjeta (ajustados para PC y móvil)
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    
+    const ranges = isMobile ? [
+      { min: 1100, max: 1900 }, // Card 01 Móvil
+      { min: 1400, max: 2200 }, // Card 02 Móvil
+      { min: 1700, max: 2500 }, // Card 03 Móvil
+    ] : [
+      { min: 1500, max: 2300 }, // Card 01 Desktop (Punto equilibrado)
+      { min: 1500, max: 2300 }, // Card 02 Desktop
+      { min: 1500, max: 2300 }, // Card 03 Desktop
     ];
 
     const currentRange = ranges[index];

@@ -91,8 +91,8 @@ export const Footer = () => {
 
           <div className="flex justify-center md:contents gap-12 w-full">
             <div className="space-y-6 md:space-y-8 text-left">
-              <h4 className="text-[8px] md:text-[10px] font-black text-white uppercase tracking-[0.4em] md:tracking-[0.5em] opacity-40 text-center">Plataforma</h4>
-              <ul className="space-y-4 md:space-y-5 text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] md:tracking-[0.2em]">
+              <h4 className="text-[8px] md:text-[10px] font-black text-white uppercase tracking-[0.4em] md:tracking-[0.5em] opacity-40 text-center md:text-center">Plataforma</h4>
+              <ul className="space-y-4 md:space-y-5 text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] md:tracking-[0.2em] md:text-center">
                 <li><Link href="/caracteristicas" className="hover:text-cyan transition-colors">Características</Link></li>
                 <li><Link href="/tecnologia" className="hover:text-cyan transition-colors">Tecnología</Link></li>
                 <li><Link href="/planes" className="hover:text-cyan transition-colors">Planes</Link></li>
@@ -101,8 +101,8 @@ export const Footer = () => {
             </div>
 
             <div className="space-y-6 md:space-y-8 text-left">
-              <h4 className="text-[8px] md:text-[10px] font-black text-white uppercase tracking-[0.4em] md:tracking-[0.5em] opacity-40 text-center">Compañía</h4>
-              <ul className="space-y-4 md:space-y-5 text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] md:tracking-[0.2em]">
+              <h4 className="text-[8px] md:text-[10px] font-black text-white uppercase tracking-[0.4em] md:tracking-[0.5em] opacity-40 text-center md:text-center">Compañía</h4>
+              <ul className="space-y-4 md:space-y-5 text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] md:tracking-[0.2em] md:text-center">
                 <li><Link href="/acerca" className="hover:text-cyan transition-colors">Acerca de</Link></li>
                 <li><Link href="/soporte" className="hover:text-cyan transition-colors">Soporte</Link></li>
                 <li><Link href="/terms" className="hover:text-cyan transition-colors">Términos</Link></li>

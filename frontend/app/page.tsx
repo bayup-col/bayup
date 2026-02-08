@@ -65,7 +65,9 @@ export default function HomePage() {
     restDelta: 0.001
   });
 
-  // Lógica de Header Inteligente con Animación Asimétrica
+  // Lógica de Header Inteligente con Animación Asimétrica y Cambio de Color
+  const [headerColor, setHeaderColor] = useState<'white' | 'black'>('white');
+
   useMotionValueEvent(scrollY, "change", (latest) => {
     const previous = lastScrollY.current;
     if (latest > previous && latest > 150) {
@@ -75,6 +77,21 @@ export default function HomePage() {
     }
     setIsAtTop(latest < 50);
     lastScrollY.current = latest;
+
+    // Lógica de cambio de color según secciones (Valores aproximados de scroll)
+    // 0-900: Hero (Oscuro) -> White
+    // 1700-3800: Narrative (Oscuro) -> White
+    // 5200-6500: Globe (Oscuro) -> White
+    // Resto: Claro -> Black
+    if (latest < 900) {
+      setHeaderColor('white');
+    } else if (latest > 1700 && latest < 3800) {
+       setHeaderColor('white');
+    } else if (latest > 5200 && latest < 6500) {
+       setHeaderColor('white');
+    } else {
+       setHeaderColor('black');
+    }
   });
 
   const navLinks = [
@@ -125,9 +142,9 @@ export default function HomePage() {
                 <div className="flex items-center gap-4 pointer-events-auto">
                   <button 
                     onClick={() => setIsMobileMenuOpen(true)}
-                    className={`md:hidden p-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur-md transition-all duration-500`}
+                    className={`md:hidden p-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur-md transition-all duration-500 ${headerColor === 'white' ? 'text-white' : 'text-black'}`}
                   >
-                    <Menu size={24} className="text-cyan drop-shadow-[0_0_8px_#00f2ff]" />
+                    <Menu size={24} className={headerColor === 'white' ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
                   </button>
 
                   <Link href="/">
@@ -136,20 +153,22 @@ export default function HomePage() {
                       animate={{ opacity: 1 }}
                       className={`text-2xl font-black italic tracking-tighter cursor-pointer w-fit transition-all duration-500 flex items-center`}
                     >
-                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan/80 to-white drop-shadow-[0_0_10px_rgba(0,242,255,0.4)]">BAY</span>
+                      <span className={`transition-all duration-500 ${
+                        headerColor === 'white' ? "text-white" : "text-black"
+                      }`}>BAY</span>
                       <InteractiveUP />
                     </motion.div>
                   </Link>
                 </div>
-
-                {/* ... (centro del nav se mantiene igual) */}
+                
+                {/* CENTRO: Menu Desktop */}
                 <div className="hidden md:flex items-center justify-center pointer-events-auto">
-                  <div className={`flex items-center gap-12 px-10 py-4 rounded-full border border-white/40 bg-white/20 backdrop-blur-xl shadow-sm transition-all duration-500 ${isAtTop ? '' : 'border-gray-100 bg-white/40 shadow-md'}`}>
+                  <div className={`flex items-center gap-12 px-10 py-4 rounded-full border bg-white/20 backdrop-blur-xl shadow-sm transition-all duration-500 ${headerColor === 'white' ? 'border-white/40 text-white' : 'border-gray-200 bg-white/60 text-black shadow-md'}`}>
                     {navLinks.map((item) => (
                       <Link 
                         key={item.label} 
                         href={item.href} 
-                        className={`text-[12px] font-black uppercase tracking-[0.5em] transition-all duration-500 relative group ${isAtTop ? 'text-white hover:text-cyan' : 'text-gray-500 hover:text-black'}`}
+                        className={`text-[12px] font-black uppercase tracking-[0.5em] transition-all duration-500 relative group ${headerColor === 'white' ? 'text-white hover:text-cyan' : 'text-gray-600 hover:text-black'}`}
                       >
                         {item.label}
                         <span className={`absolute -bottom-1 left-0 h-[1.5px] bg-cyan transition-all duration-500 group-hover:w-full ${item.label === 'Inicio' ? 'w-full' : 'w-0'}`}></span>
@@ -170,15 +189,15 @@ export default function HomePage() {
                     href="/login" 
                     variant="ghost" 
                     expandedText="INICIAR SESIÓN" 
-                    className={isAtTop ? "text-white" : "text-black"}
-                    icon={<User size={22} className={isAtTop ? "text-white" : "text-black"} />} 
+                    className={headerColor === 'white' ? "text-white hover:bg-white/10" : "text-black hover:bg-black/5"}
+                    icon={<User size={22} className={headerColor === 'white' ? "text-white" : "text-black"} />} 
                   />
                 </div>
 
                 {/* CTA Móvil (Solo icono login para ahorrar espacio) */}
                 <div className="md:hidden pointer-events-auto">
-                   <Link href="/login" className={`p-2 rounded-xl transition-all duration-500`}>
-                      <User size={24} className="text-cyan drop-shadow-[0_0_8px_#00f2ff]" />
+                   <Link href="/login" className={`p-2 rounded-xl transition-all duration-500 ${headerColor === 'white' ? 'text-white' : 'text-black'}`}>
+                      <User size={24} className={headerColor === 'white' ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
                    </Link>
                 </div>
               </div>

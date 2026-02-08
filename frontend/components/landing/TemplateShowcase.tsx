@@ -16,6 +16,7 @@ export const TemplateShowcase = () => {
   const [rotation, setRotation] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedFeature, setSelectedFeature] = useState<number | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
   const textRef = useRef<HTMLSpanElement>(null);
 
@@ -40,6 +41,11 @@ export const TemplateShowcase = () => {
     const timer = setInterval(() => rotate(-1), 6000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleIconInteraction = (i: number) => {
+    setSelectedFeature(i);
+    setHasInteracted(true);
+  };
 
   return (
     <section id="templates" className="py-20 md:py-40 bg-[#FFFFFF] relative overflow-hidden isolate">
@@ -73,6 +79,34 @@ export const TemplateShowcase = () => {
           </div>
 
           <div className="flex flex-row justify-center gap-4 md:gap-16 pt-8 relative z-50 w-full px-2">
+            {/* INDICADOR DE CLICK (Solo móvil, desaparece al pulsar) */}
+            <AnimatePresence>
+              {!hasInteracted && selectedFeature === null && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none md:hidden"
+                >
+                  <div className="flex flex-col items-center gap-2 bg-white/60 backdrop-blur-md px-6 py-4 rounded-3xl border border-white/40 shadow-lg">
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1], y: [0, -5, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      className="text-cyan drop-shadow-[0_0_8px_#00f2ff]"
+                    >
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+                        <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+                        <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+                        <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+                      </svg>
+                    </motion.div>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-petroleum">Toca para ver detalles</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {[
               { icon: <Library size={20} />, label: "+80 plantillas" },
               { icon: <Palette size={20} />, label: "Personalización" },
@@ -81,7 +115,8 @@ export const TemplateShowcase = () => {
               <div 
                 key={i} 
                 className="relative group flex-1 max-w-[100px]"
-                onClick={() => setSelectedFeature(i)}
+                onMouseEnter={() => handleIconInteraction(i)}
+                onClick={() => handleIconInteraction(i)}
               >
                 <motion.div 
                   className="flex flex-col items-center gap-2 cursor-pointer"
