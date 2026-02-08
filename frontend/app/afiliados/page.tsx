@@ -341,3 +341,5 @@ function AffiliatesPage() {
     </div>
   );
 }
+
+export default AffiliatesPage;
