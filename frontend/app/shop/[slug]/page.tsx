@@ -32,11 +32,85 @@ export default function PublicShopPage() {
     const [shopData, setShopData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("all");
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-    const { scrollY } = useScroll();
-    const navBg = useTransform(scrollY, [0, 100], ["rgba(255,255,255,0)", "rgba(255,255,255,0.9)"]);
+        const [selectedCategory, setSelectedCategory] = useState("all");
+        const [isMenuOpen, setIsMenuOpen] = useState(false);
+        
+        // --- LÓGICA DE CARRITO ---
+        const [cart, setCart] = useState<any[]>([]);
+        const [isCartOpen, setIsCartOpen] = useState(false);
+        const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+        const [customerData, setCustomerData] = useState({
+            name: "",
+            phone: "",
+            address: "",
+            city: "",
+            notes: ""
+        });
+        const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+    
+        const addToCart = (product: any) => {
+            setCart(prev => {
+                const exists = prev.find(item => item.id === product.id);
+                if (exists) {
+                    return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+                }
+                return [...prev, { ...product, quantity: 1 }];
+            });
+            setIsCartOpen(true);
+        };
+    
+        const removeFromCart = (productId: string) => {
+            setCart(prev => prev.filter(item => item.id !== productId));
+        };
+    
+        const cartTotal = useMemo(() => {
+            return cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+        }, [cart]);
+    
+        const handlePlaceOrder = async (e: React.FormEvent) => {
+            e.preventDefault();
+            if (cart.length === 0) return;
+            setIsPlacingOrder(true);
+    
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                const payload = {
+                    customer_name: customerData.name,
+                    customer_phone: customerData.phone,
+                    shipping_address: `${customerData.address}, ${customerData.city}`,
+                    notes: customerData.notes,
+                    tenant_id: shopData.owner_id, // El backend necesitará esto
+                    items: cart.map(item => ({
+                        product_id: item.id,
+                        quantity: item.quantity,
+                        price: item.price
+                    }))
+                };
+    
+                const res = await fetch(`${apiUrl}/public/orders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+    
+                if (res.ok) {
+                    const order = await res.json();
+                    // Redirigir a WhatsApp con el resumen del pedido
+                    const message = `¡Hola! Acabo de realizar un pedido en tu tienda ${shopData.store_name}.\n\n*Pedido #* : ${order.id.slice(0,8)}\n*Cliente*: ${customerData.name}\n*Total*: $${cartTotal.toLocaleString()}\n\n¿Me confirmas la recepción?`;
+                    window.open(`https://wa.me/${shopData.store_phone || '573000000000'}?text=${encodeURIComponent(message)}`, '_blank');
+                    
+                    setCart([]);
+                    setIsCheckoutOpen(false);
+                    alert("¡Pedido realizado con éxito! Te hemos redirigido a WhatsApp para confirmar.");
+                }
+            } catch (error) {
+                alert("Error al procesar el pedido. Intenta de nuevo.");
+            } finally {
+                setIsPlacingOrder(false);
+            }
+        };
+    
+        const { scrollY } = useScroll();    const navBg = useTransform(scrollY, [0, 100], ["rgba(255,255,255,0)", "rgba(255,255,255,0.9)"]);
     const navShadow = useTransform(scrollY, [0, 100], ["none", "0 10px 30px rgba(0,0,0,0.05)"]);
 
     // --- DATOS DE PLANTILLA MAESTRA (Si la tienda está vacía) ---
@@ -199,9 +273,16 @@ export default function PublicShopPage() {
                             <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Soporte Vital</span>
                             <span className="text-[10px] font-bold text-gray-900">{shopData.store_email}</span>
                         </div>
-                        <button className="h-14 w-14 rounded-2xl bg-[#004d4d] text-[#00f2ff] flex items-center justify-center shadow-2xl relative group hover:scale-105 transition-all">
+                        <button 
+                            onClick={() => setIsCartOpen(true)}
+                            className="h-14 w-14 rounded-2xl bg-[#004d4d] text-[#00f2ff] flex items-center justify-center shadow-2xl relative group hover:scale-105 transition-all"
+                        >
                             <ShoppingBag size={24} />
-                            <span className="absolute -top-2 -right-2 h-6 w-6 bg-[#00f2ff] text-[#004d4d] text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-lg">0</span>
+                            {cart.length > 0 && (
+                                <span className="absolute -top-2 -right-2 h-6 w-6 bg-[#00f2ff] text-[#004d4d] text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+                                    {cart.reduce((acc, i) => acc + i.quantity, 0)}
+                                </span>
+                            )}
                         </button>
                     </div>
                 </div>
@@ -356,7 +437,10 @@ export default function PublicShopPage() {
                                                 ${product.price.toLocaleString('de-DE')}
                                             </p>
                                         </div>
-                                        <button className="h-16 w-16 rounded-[2rem] bg-gray-900 text-[#00f2ff] flex items-center justify-center hover:bg-black hover:scale-105 transition-all shadow-2xl active:scale-95 group/btn">
+                                        <button 
+                                            onClick={() => addToCart(product)}
+                                            className="h-16 w-16 rounded-[2rem] bg-gray-900 text-[#00f2ff] flex items-center justify-center hover:bg-black hover:scale-105 transition-all shadow-2xl active:scale-95 group/btn"
+                                        >
                                             <ShoppingBag size={24} className="group-hover/btn:rotate-12 transition-transform" />
                                         </button>
                                     </div>
@@ -424,6 +508,94 @@ export default function PublicShopPage() {
                     <p className="text-[9px] font-black uppercase tracking-[0.5em] text-gray-200">© 2026 {shopData.store_name} | Powered by InteractiveUP</p>
                 </div>
             </footer>
+
+            {/* --- CARRITO LATERAL (SIDEBAR) --- */}
+            <AnimatePresence>
+                {isCartOpen && (
+                    <div className="fixed inset-0 z-[2000] flex justify-end">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCartOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                        <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="relative w-full max-w-md bg-white h-screen shadow-2xl flex flex-col">
+                            <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-[#001A1A] text-white">
+                                <h3 className="text-xl font-black uppercase italic tracking-widest">Tu Selección</h3>
+                                <button onClick={() => setIsCartOpen(false)} className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"><X size={20}/></button>
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                                {cart.length === 0 ? (
+                                    <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-30">
+                                        <ShoppingBag size={64} />
+                                        <p className="text-[10px] font-black uppercase tracking-widest">Carrito Vacío</p>
+                                    </div>
+                                ) : cart.map((item) => (
+                                    <div key={item.id} className="flex gap-4 p-4 bg-gray-50 rounded-[2rem] border border-gray-100 group">
+                                        <div className="h-20 w-20 rounded-2xl overflow-hidden bg-white border border-gray-100 shrink-0">
+                                            <img src={item.image_url || 'https://via.placeholder.com/100'} className="h-full w-full object-cover" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-black text-gray-900 line-clamp-1">{item.name}</p>
+                                            <p className="text-xs font-bold text-[#004d4d] mt-1">${item.price.toLocaleString()}</p>
+                                            <div className="flex items-center gap-3 mt-2">
+                                                <span className="text-[10px] font-black text-gray-400 uppercase">Cantidad: {item.quantity}</span>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-rose-500 transition-colors self-center"><Trash2 size={18}/></button>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {cart.length > 0 && (
+                                <div className="p-8 border-t border-gray-100 space-y-6 bg-gray-50/50">
+                                    <div className="flex justify-between items-end">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Estimado</p>
+                                        <p className="text-3xl font-black text-gray-900 tracking-tighter">${cartTotal.toLocaleString()}</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }}
+                                        className="w-full py-6 bg-gray-900 text-[#00f2ff] rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all"
+                                    >
+                                        Finalizar Compra
+                                    </button>
+                                </div>
+                            )}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* --- MODAL DE CHECKOUT --- */}
+            <AnimatePresence>
+                {isCheckoutOpen && (
+                    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCheckoutOpen(false)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-xl" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="relative bg-white w-full max-w-xl rounded-[4rem] shadow-3xl p-12 overflow-hidden border border-white/20">
+                            <div className="absolute top-0 left-0 w-full h-2 bg-[#00f2ff]" />
+                            <h3 className="text-3xl font-black italic uppercase tracking-tighter text-[#001A1A] mb-8">Información de <span className="text-[#004d4d]">Envío</span></h3>
+                            
+                            <form onSubmit={handlePlaceOrder} className="space-y-6">
+                                <div className="space-y-4">
+                                    <input required placeholder="Nombre Completo" value={customerData.name} onChange={e => setCustomerData({...customerData, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                                    <input required placeholder="WhatsApp (10 dígitos)" maxLength={10} value={customerData.phone} onChange={e => setCustomerData({...customerData, phone: e.target.value.replace(/\D/g,'')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <input required placeholder="Dirección" value={customerData.address} onChange={e => setCustomerData({...customerData, address: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                                        <input required placeholder="Ciudad" value={customerData.city} onChange={e => setCustomerData({...customerData, city: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                                    </div>
+                                    <textarea placeholder="Notas adicionales (opcional)..." rows={3} value={customerData.notes} onChange={e => setCustomerData({...customerData, notes: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-medium shadow-inner resize-none" />
+                                </div>
+
+                                <div className="pt-6">
+                                    <button 
+                                        type="submit" 
+                                        disabled={isPlacingOrder}
+                                        className="w-full py-6 bg-[#004d4d] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-4"
+                                    >
+                                        {isPlacingOrder ? "Procesando..." : <>Confirmar Pedido <ArrowRight size={18}/></>}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             <style jsx global>{`
                 .no-scrollbar::-webkit-scrollbar { display: none; }

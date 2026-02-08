@@ -320,6 +320,11 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
 
 # --- Orders ---
 
+@app.get("/orders", response_model=List[schemas.Order])
+def get_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = get_tenant_id(current_user)
+    return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).order_by(models.Order.created_at.desc()).all()
+
 @app.post("/orders", response_model=schemas.Order)
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = get_tenant_id(current_user)
@@ -610,18 +615,80 @@ def get_public_shop(slug: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Tienda no encontrada")
     
     # 2. Obtener sus productos activos
-    products = db.query(models.Product).filter(
+    products_db = db.query(models.Product).filter(
         models.Product.owner_id == store_owner.id,
         models.Product.status == "active"
     ).all()
 
-    # 3. Obtener sus categorías (colecciones)
-    collections = db.query(models.Collection).filter(models.Collection.owner_id == store_owner.id).all()
+    # 3. Obtener sus categorías
+    collections_db = db.query(models.Collection).filter(models.Collection.owner_id == store_owner.id).all()
     
+    # Convertir a formato JSON simple para evitar error 500
+    products = []
+    for p in products_db:
+        products.append({
+            "id": str(p.id),
+            "name": p.name,
+            "price": p.price,
+            "image_url": p.image_url,
+            "collection_id": str(p.collection_id) if p.collection_id else None,
+            "sku": p.sku
+        })
+
+    categories = []
+    for c in collections_db:
+        categories.append({
+            "id": str(c.id),
+            "title": c.title
+        })
+
     return {
+        "owner_id": str(store_owner.id),
         "store_name": store_owner.full_name,
         "store_email": store_owner.email,
-        "logo_url": None,
+        "store_phone": store_owner.phone,
         "products": products,
-        "categories": collections
+        "categories": categories
     }
+
+@app.post("/public/orders")
+async def create_public_order(data: dict, db: Session = Depends(get_db)):
+    # 1. Validar que vengan items
+    items = data.get("items", [])
+    if not items:
+        raise HTTPException(status_code=400, detail="El carrito está vacío")
+    
+    tenant_id = uuid.UUID(data.get("tenant_id"))
+    
+    # 2. Crear el objeto de pedido
+    new_order = models.Order(
+        id=uuid.uuid4(),
+        total_price=sum(i["price"] * i["quantity"] for i in items),
+        customer_name=data.get("customer_name"),
+        customer_email=data.get("customer_email", ""),
+        customer_phone=data.get("customer_phone"),
+        shipping_address=data.get("shipping_address"),
+        notes=data.get("notes", ""),
+        status="pending",
+        source="web", # Marcamos que viene de la tienda pública
+        tenant_id=tenant_id
+    )
+    
+    db.add(new_order)
+    
+    # 3. Guardar los items del pedido
+    for item in items:
+        # En una versión más pro, validaríamos el stock aquí
+        db_item = models.OrderItem(
+            id=uuid.uuid4(),
+            order_id=new_order.id,
+            product_variant_id=uuid.UUID(item["product_id"]), # Por simplicidad usamos el id directo
+            quantity=item["quantity"],
+            price_at_purchase=item["price"]
+        )
+        db.add(db_item)
+    
+    db.commit()
+    db.refresh(new_order)
+    
+    return {"id": str(new_order.id), "status": "success"}

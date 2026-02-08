@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { useEffect } from 'react';
+import { useAuth } from "@/context/auth-context";
 
 // --- COMPONENTE DE NÚMEROS ANIMADOS ---
 function AnimatedNumber({ value, className, type = 'currency' }: { value: number, className?: string, type?: 'currency' | 'percentage' | 'simple' }) {
@@ -327,9 +328,58 @@ const StatusBadge = ({ status }: { status: OrderStatus }) => {
 };
 
 export default function OrdersPage() {
+  const { token } = useAuth();
   const { showToast } = useToast();
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  // Carga de pedidos reales
+  useEffect(() => {
+    const fetchOrders = async () => {
+        if (!token) return;
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const res = await fetch(`${apiUrl}/orders`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const mapped = data.map((o: any) => ({
+                    id: o.id.slice(0, 8).toUpperCase(),
+                    customer: { 
+                        name: o.customer_name || "Cliente Final", 
+                        email: o.customer_email, 
+                        phone: o.customer_phone, 
+                        address: o.shipping_address || "No especificada",
+                        city: ""
+                    },
+                    channel: o.source || 'web',
+                    status: o.status || 'pending',
+                    date: o.created_at,
+                    total: o.total_price,
+                    paymentMethod: o.payment_method || "Contra Entrega",
+                    paymentStatus: o.status === 'paid' ? 'paid' : 'pending',
+                    items: o.items || [],
+                    invoiced: o.status === 'processing' || o.status === 'shipped',
+                    hasTracking: !!o.tracking_number
+                }));
+                setOrders(mapped);
+            }
+        } catch (err) { console.error(err); }
+        finally { setLoading(false); }
+    };
+    fetchOrders();
+  }, [token]);
+
+  // KPIs dinámicos basados en datos reales
+  const stats = useMemo(() => {
+    const totalVentas = orders.reduce((acc, o) => acc + o.total, 0);
+    const pendientes = orders.filter(o => o.status === 'pending').length;
+    const promedio = orders.length > 0 ? totalVentas / orders.length : 0;
+    return { totalVentas, pendientes, promedio };
+  }, [orders]);
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -653,132 +703,44 @@ Gracias por tu paciencia.`;
     }
   };
 
-  // --- KPI Logic ---
   const kpiData = useMemo(() => [
       {
           id: 'sales_today',
-          title: 'Ventas de Hoy',
-          value: <AnimatedNumber value={2450000} />,
-          trend: '+12% vs ayer',
-          trendUp: true,
+          title: 'Ventas Totales',
+          value: <AnimatedNumber value={stats.totalVentas} />,
           icon: <DollarSign size={20}/>,
           color: 'text-emerald-600',
           bg: 'from-emerald-50 to-teal-50',
-          description: 'Total facturado hoy a través de todos los canales conectados (Web, WhatsApp, Marketplace).',
-          detailContent: (
-              <div className="space-y-4">
-                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                      <span className="text-xs font-bold text-slate-500 uppercase">Canal Web</span>
-                      <span className="text-sm font-black text-slate-900"><AnimatedNumber value={1200000}/></span>
-                  </div>
-                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                      <span className="text-xs font-bold text-slate-500 uppercase">MercadoLibre</span>
-                      <span className="text-sm font-black text-slate-900"><AnimatedNumber value={850000}/></span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-slate-500 uppercase">WhatsApp</span>
-                      <span className="text-sm font-black text-slate-900"><AnimatedNumber value={400000}/></span>
-                  </div>
-              </div>
-          )
+          description: 'Acumulado histórico de facturación en tu ecosistema.'
       },
       {
         id: 'pending_invoice',
-        title: 'Pendientes Facturar',
-        value: <div className="flex items-baseline gap-1"><AnimatedNumber value={5} type="simple"/> <span className="text-sm">Pedidos</span></div>,
-        icon: <FileText size={20}/>,
+        title: 'Por Procesar',
+        value: <div className="flex items-baseline gap-1"><AnimatedNumber value={stats.pendientes} type="simple"/> <span className="text-sm">Pedidos</span></div>,
+        icon: <Clock size={20}/>,
         color: 'text-amber-600',
         bg: 'from-amber-50 to-orange-50',
-        description: 'Órdenes confirmadas y pagadas que aún no cuentan con documento de facturación electrónica generado.',
-        detailContent: (
-            <div className="space-y-2">
-                <p className="text-xs text-slate-400 mb-2">Sugerencia: Revisar datos fiscales del cliente antes de emitir.</p>
-                {orders.filter(o => o.status === 'paid' && !o.invoiced).slice(0,3).map(o => (
-                    <div key={o.id} className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-100">
-                        <span className="text-xs font-bold text-slate-700">{o.id}</span>
-                        <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-full">Sin Factura</span>
-                    </div>
-                ))}
-            </div>
-        )
+        description: 'Ventas nuevas que esperan tu validación y despacho.'
       },
       {
         id: 'aov',
         title: 'Ticket Promedio',
-        value: <AnimatedNumber value={185000} />,
-        trend: '-2% vs ayer',
-        trendUp: false,
+        value: <AnimatedNumber value={stats.promedio} />,
         icon: <BarChart3 size={20}/>,
         color: 'text-cyan-600',
         bg: 'from-cyan-50 to-sky-50',
-        description: 'Valor promedio de compra por cliente en tiempo real.',
-        detailContent: (
-            <div className="space-y-6">
-                 {/* Insight Banner */}
-                 <div className="bg-cyan-50 p-4 rounded-xl flex items-start gap-3 border border-cyan-100">
-                    <div className="bg-white p-1.5 rounded-lg shadow-sm">
-                        <TrendingUp size={16} className="text-cyan-600"/>
-                    </div>
-                    <div>
-                        <p className="text-xs font-black text-cyan-900 uppercase tracking-wide">Desempeño Saludable</p>
-                        <p className="text-[10px] text-cyan-700 font-medium mt-1">
-                            Los clientes están gastando un <span className="font-bold">15% más</span> en accesorios que el mes pasado.
-                        </p>
-                    </div>
-                 </div>
-
-                 {/* Visualización de Barras (Simulada) */}
-                 <div className="space-y-2">
-                    <div className="flex justify-between items-end h-24 gap-2 px-2">
-                        {[40, 65, 45, 80, 55, 90, 70].map((h, i) => (
-                            <div key={i} className="w-full bg-slate-100 rounded-t-lg relative group overflow-hidden">
-                                <div 
-                                    className={`absolute bottom-0 w-full rounded-t-lg transition-all duration-500 ${i === 6 ? 'bg-cyan-500' : 'bg-slate-200 group-hover:bg-cyan-200'}`} 
-                                    style={{ height: `${h}%` }}
-                                ></div>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase px-1">
-                        <span>Lun</span><span>Dom</span>
-                    </div>
-                 </div>
-
-                 {/* Métricas Secundarias */}
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 border border-slate-100 rounded-xl bg-white shadow-sm">
-                        <p className="text-[9px] text-slate-400 uppercase font-bold">Ticket Mínimo</p>
-                        <p className="text-sm font-black text-slate-900 mt-1"><AnimatedNumber value={50000}/></p>
-                    </div>
-                    <div className="p-3 border border-slate-100 rounded-xl bg-white shadow-sm">
-                        <p className="text-[9px] text-slate-400 uppercase font-bold">Ticket Máximo</p>
-                        <p className="text-sm font-black text-slate-900 mt-1"><AnimatedNumber value={820000}/></p>
-                    </div>
-                 </div>
-            </div>
-        )
+        description: 'Valor promedio de compra por cliente en tu tienda.'
       },
       {
-        id: 'pending_ship',
-        title: 'Pendientes Enviar',
-        value: <div className="flex items-baseline gap-1"><AnimatedNumber value={8} type="simple"/> <span className="text-sm">Pedidos</span></div>,
-        icon: <Truck size={20}/>,
+        id: 'growth',
+        title: 'Salud de Red',
+        value: "Óptima",
+        icon: <ShieldCheck size={20}/>,
         color: 'text-indigo-600',
         bg: 'from-indigo-50 to-violet-50',
-        description: 'Pedidos facturados que están listos en bodega pero no tienen guía de transporte generada.',
-        detailContent: (
-            <div className="space-y-3">
-                 <div className="p-3 bg-indigo-50 rounded-xl flex items-start gap-3">
-                    <AlertCircle size={16} className="text-indigo-600 mt-0.5"/>
-                    <p className="text-xs text-indigo-800 font-medium">Recuerda generar las guías antes de las 4:00 PM para despacho el mismo día.</p>
-                 </div>
-                 <button className="w-full py-2 bg-white border border-indigo-100 text-indigo-600 text-xs font-bold rounded-lg hover:bg-indigo-50 transition-colors">
-                     Ver lista de despachos
-                 </button>
-            </div>
-        )
+        description: 'Estado de conexión con los servidores centrales de Bayup.'
       }
-  ], [orders]);
+  ], [stats]);
 
   // Filtrado
   const filteredOrders = useMemo(() => {

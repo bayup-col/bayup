@@ -48,6 +48,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     full_name = Column(String)
     nickname = Column(String)
+    phone = Column(String, nullable=True) # Pilar 2: Para el botón de WhatsApp
     hashed_password = Column(String)
     role = Column(String, default="admin_tienda")
     status = Column(String, default="Activo")
