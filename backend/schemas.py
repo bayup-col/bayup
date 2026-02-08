@@ -10,6 +10,7 @@ class PlanBase(BaseModel):
     description: str | None = None
     commission_rate: float
     monthly_fee: float
+    modules: List[str] | None = []
     is_default: bool = False
 
 class PlanCreate(PlanBase):

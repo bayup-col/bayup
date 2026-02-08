@@ -39,6 +39,7 @@ class Plan(Base):
     description = Column(String)
     commission_rate = Column(Float)
     monthly_fee = Column(Float)
+    modules = Column(JSON, default=[]) # Lista de módulos permitidos (ej: ["products", "orders"])
     is_default = Column(Boolean, default=False)
     users = relationship("User", back_populates="plan")
 

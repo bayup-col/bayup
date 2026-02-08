@@ -55,22 +55,21 @@ export default function LoginPage() {
       }
 
       const data = await response.json();
-      const userResponse = await fetch(`${apiBase}/auth/me`, {
-        headers: { 'Authorization': `Bearer ${data.access_token}` }
-      });
+      
+      // El backend ahora devuelve el objeto user completo en el login
+      const userData = data.user;
+      const isGlobalStaff = userData.is_global_staff || false;
 
-      let userRole = 'admin_tienda';
-      let userPermissions = {};
-      let userPlan = null;
-      let isGlobalStaff = false;
-
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
-        userRole = userData.role || 'admin_tienda';
-        userPermissions = userData.permissions || {};
-        userPlan = userData.plan || null;
-        isGlobalStaff = userData.is_global_staff || false;
+      // 1. BLOQUEO PARA LA FAMILIA (Deben ir por /bayup-family)
+      if (isGlobalStaff) {
+          setError("Acceso Restringido: Tu cuenta pertenece a la Familia Bayup. Por favor, usa la entrada exclusiva en /bayup-family");
+          setIsLoading(false);
+          return;
       }
+      
+      const userRole = userData.role || 'admin_tienda';
+      const userPermissions = userData.permissions || {};
+      const userPlan = userData.plan || null;
       
       // Guardamos TODO en el contexto de Auth
       login(data.access_token, email, userRole, userPermissions, userPlan, isGlobalStaff);

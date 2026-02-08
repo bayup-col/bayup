@@ -168,7 +168,25 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     user = crud.get_user_by_email(db, email=form_data.username)
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
-    return {"access_token": security.create_access_token(data={"sub": user.email}), "token_type": "bearer"}
+    
+    access_token = security.create_access_token(data={"sub": user.email})
+    
+    # Devolvemos todo el perfil para que el frontend no tenga que hacer otra llamada
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user": {
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "is_global_staff": user.is_global_staff,
+            "permissions": user.permissions,
+            "plan": {
+                "name": user.plan.name if user.plan else "Básico",
+                "modules": user.plan.modules if user.plan and user.plan.modules else ['inicio', 'productos', 'pedidos', 'settings']
+            }
+        }
+    }
 
 @app.post("/auth/forgot-password")
 def forgot_password(data: dict, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
