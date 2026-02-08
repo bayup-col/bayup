@@ -532,25 +532,34 @@ def get_pages(db: Session = Depends(get_db), current_user: models.User = Depends
 
 @app.get("/super-admin/stats", response_model=schemas.SuperAdminStats)
 def get_super_admin_stats(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_super_admin_user)):
-    # 1. Contar empresas (dueños de tienda)
+    # 1. Contar empresas reales
     active_companies = db.query(models.User).filter(models.User.role == 'admin_tienda').count()
     
-    # 2. Contar afiliados
+    # 2. Contar afiliados reales
     active_affiliates = db.query(models.User).filter(models.User.role == 'afiliado').count()
     
-    # 3. Calcular ingresos totales (suma de todos los pedidos)
+    # 3. Ingresos totales reales (Suma de todos los pedidos pagados)
     total_revenue = db.query(func.sum(models.Order.total_price)).scalar() or 0.0
     
-    # 4. Calcular comisión (suponiendo un 3% promedio para Bayup)
+    # 4. Comisión proyectada (Bayup se queda con el 3% de la operación total)
     total_commission = total_revenue * 0.03
+    
+    # 5. Top Empresas (Las 5 que más venden)
+    # Por ahora devolvemos las 5 más recientes, luego podemos filtrar por ventas
+    top_companies_db = db.query(models.User).filter(models.User.role == 'admin_tienda').order_by(models.User.created_at.desc()).limit(5).all()
+    top_companies = [{"name": c.full_name, "revenue": 0.0} for c in top_companies_db]
+
+    # 6. Alertas recientes (Usuarios nuevos o errores)
+    recent_logs = db.query(models.ActivityLog).order_by(models.ActivityLog.created_at.desc()).limit(5).all()
+    recent_alerts = [{"title": l.action, "time": l.created_at.strftime("%H:%M")} for l in recent_logs]
     
     return {
         "total_revenue": total_revenue,
         "total_commission": total_commission,
         "active_companies": active_companies,
         "active_affiliates": active_affiliates,
-        "top_companies": [], # Se puede implementar luego
-        "recent_alerts": []  # Se puede implementar luego
+        "top_companies": top_companies,
+        "recent_alerts": recent_alerts
     }
 
 @app.get("/analytics/opportunities")

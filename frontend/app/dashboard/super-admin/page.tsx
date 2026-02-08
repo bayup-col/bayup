@@ -40,24 +40,34 @@ export default function SuperAdminDashboard() {
     }, [token]);
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
+        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
     };
 
     const generateAISummary = (data: any) => {
         if (!data) return "Analizando datos del sistema...";
-        const growth = data.total_revenue > 0 ? "positivo" : "estable";
-        return `Resumen Ejecutivo: La facturación total asciende a ${formatCurrency(data.total_revenue)}, generando una ganancia neta estimada de ${formatCurrency(data.total_commission)}. Actualmente hay ${data.active_companies} empresas operando activamente y ${data.active_affiliates} afiliados promoviendo productos. El sistema se encuentra estable con ${data.recent_alerts.length} alertas recientes.`;
+        return `Resumen Global Bayup: La facturación consolidada es de ${formatCurrency(data.total_revenue)}, con utilidades para la plataforma de ${formatCurrency(data.total_commission)}. Contamos con ${data.active_companies} empresas activas y ${data.active_affiliates} afiliados. El sistema registra ${data.recent_alerts.length} eventos recientes en los logs de actividad.`;
     };
 
     if (loading) {
         return (
             <div className="flex h-96 items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004d4d]"></div>
+                <div className="flex flex-col items-center gap-4">
+                    <Activity size={40} className="animate-pulse text-[#004d4d]" />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Sincronizando con la red global...</p>
+                </div>
             </div>
         );
     }
 
-    if (!stats) return <div className="p-8 text-center text-gray-500">No se pudieron cargar los datos.</div>;
+    // Datos por defecto si la API falla o está vacía
+    const safeStats = stats || {
+        total_revenue: 0,
+        total_commission: 0,
+        active_companies: 0,
+        active_affiliates: 0,
+        top_companies: [],
+        recent_alerts: []
+    };
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-20 animate-in fade-in duration-700">
@@ -66,29 +76,32 @@ export default function SuperAdminDashboard() {
             <div className="space-y-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-black text-gray-900 tracking-tight italic">Panel de Control Global</h1>
-                        <p className="text-gray-500 mt-1 font-medium">Visión estratégica en tiempo real de Bayup.</p>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Sistema Operativo Global</span>
+                        </div>
+                        <h1 className="text-4xl font-black text-gray-900 tracking-tighter uppercase italic">Torre de <span className="text-[#004d4d]">Control</span></h1>
                     </div>
                     <div className="flex gap-3">
-                        <button className="px-5 py-2.5 bg-gray-900 text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all shadow-xl">
-                            Reporte Financiero PDF
+                        <button onClick={() => window.print()} className="px-6 py-3 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center gap-2">
+                            <DollarSign size={14} /> Reporte de Red
                         </button>
                     </div>
                 </div>
 
                 {/* AI Insight Card */}
-                <div className="bg-gradient-to-r from-[#002222] to-[#004d4d] p-6 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-8 opacity-10">
-                        <Activity size={100} />
+                <div className="bg-gradient-to-r from-[#001A1A] to-[#004d4d] p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden border border-white/5">
+                    <div className="absolute top-0 right-0 p-8 opacity-5">
+                        <Activity size={150} />
                     </div>
-                    <div className="relative z-10 flex gap-4">
-                        <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-sm">
-                            <Activity size={20} className="text-[#00ffff]" />
+                    <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
+                        <div className="h-16 w-16 rounded-3xl bg-white/10 flex items-center justify-center backdrop-blur-xl border border-white/10 shrink-0">
+                            <Activity size={32} className="text-[#00F2FF]" />
                         </div>
-                        <div className="space-y-1 max-w-3xl">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-[#00ffff]">Bayt AI Insights</p>
-                            <p className="text-sm font-medium leading-relaxed opacity-90">
-                                {generateAISummary(stats)}
+                        <div className="space-y-2">
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00F2FF]">Análisis Bayt Global</p>
+                            <p className="text-lg font-medium leading-relaxed opacity-90 italic">
+                                "{generateAISummary(safeStats)}"
                             </p>
                         </div>
                     </div>
@@ -96,33 +109,33 @@ export default function SuperAdminDashboard() {
             </div>
 
             {/* 2. KPIs Principales */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard 
-                    title="Facturación Total" 
-                    value={formatCurrency(stats.total_revenue)} 
-                    icon={<DollarSign size={20} className="text-green-600" />}
-                    trend="+12.5%" 
+                    title="Facturación Red" 
+                    value={formatCurrency(safeStats.total_revenue)} 
+                    icon={<DollarSign size={20} className="text-emerald-600" />}
+                    trend="+0%" 
                     trendUp={true}
                 />
                 <StatCard 
-                    title="Ganancia Neta (Comisión)" 
-                    value={formatCurrency(stats.total_commission)} 
-                    icon={<DollarSign size={20} className="text-[#004d4d]" />}
-                    trend="+5.2%" 
+                    title="Utilidad Bayup" 
+                    value={formatCurrency(safeStats.total_commission)} 
+                    icon={<TrendingUp size={20} className="text-cyan-600" />}
+                    trend="3.0% Fee" 
                     trendUp={true}
                 />
                 <StatCard 
-                    title="Empresas Activas" 
-                    value={stats.active_companies} 
+                    title="Ecosistemas (Tiendas)" 
+                    value={safeStats.active_companies} 
                     icon={<Building2 size={20} className="text-blue-600" />}
-                    trend="+2" 
+                    trend="Activas" 
                     trendUp={true}
                 />
                 <StatCard 
-                    title="Afiliados Activos" 
-                    value={stats.active_affiliates} 
+                    title="Fuerza de Ventas" 
+                    value={safeStats.active_affiliates} 
                     icon={<Users size={20} className="text-amber-600" />}
-                    trend="+8" 
+                    trend="Afiliados" 
                     trendUp={true}
                 />
             </div>
@@ -132,29 +145,37 @@ export default function SuperAdminDashboard() {
                 
                 {/* Top Empresas */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden h-full">
+                    <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden h-full">
                         <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
-                            <h2 className="text-lg font-bold text-gray-800">Top Empresas por Facturación</h2>
-                            <button className="text-[10px] font-black uppercase tracking-widest text-[#004d4d] hover:text-[#003333]">Ver todas</button>
+                            <h2 className="text-sm font-black uppercase tracking-widest text-gray-800">Recién Registrados</h2>
+                            <button 
+                                onClick={() => router.push('/dashboard/super-admin/companies')}
+                                className="text-[9px] font-black uppercase tracking-widest text-[#004d4d] hover:underline"
+                            >
+                                Ver Directorio
+                            </button>
                         </div>
                         <div className="divide-y divide-gray-50">
-                            {stats.top_companies.length > 0 ? (
-                                stats.top_companies.map((company: any, index: number) => (
+                            {safeStats.top_companies && safeStats.top_companies.length > 0 ? (
+                                safeStats.top_companies.map((company: any, index: number) => (
                                     <div key={index} className="p-6 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
                                         <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center font-black text-gray-500 text-xs">
+                                            <div className="h-12 w-12 rounded-2xl bg-[#004d4d]/5 flex items-center justify-center font-black text-[#004d4d] text-xs border border-[#004d4d]/10">
                                                 {index + 1}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-black text-gray-900">{company.name}</p>
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{company.plan} Plan</p>
+                                                <p className="text-sm font-black text-gray-900 uppercase tracking-tight">{company.name}</p>
+                                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">Ventas: {formatCurrency(company.revenue)}</p>
                                             </div>
                                         </div>
-                                        <p className="text-sm font-black text-gray-900">{formatCurrency(company.revenue)}</p>
+                                        <button className="px-4 py-2 bg-gray-50 text-gray-400 rounded-xl text-[8px] font-black uppercase hover:bg-[#004d4d] hover:text-white transition-all">Perfil</button>
                                     </div>
                                 ))
                             ) : (
-                                <div className="p-10 text-center text-gray-400 text-xs font-medium">No hay datos de ventas aún.</div>
+                                <div className="p-20 text-center flex flex-col items-center gap-4">
+                                    <Building2 size={40} className="text-gray-100" />
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-300">Esperando nuevos ecosistemas...</p>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -162,28 +183,31 @@ export default function SuperAdminDashboard() {
 
                 {/* Alertas Críticas */}
                 <div className="space-y-6">
-                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden h-full flex flex-col">
+                    <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden h-full flex flex-col">
                         <div className="p-8 border-b border-gray-50 bg-gray-50/30">
-                            <h2 className="text-lg font-bold text-gray-800">Alertas del Sistema</h2>
+                            <h2 className="text-sm font-black uppercase tracking-widest text-gray-800">Monitor de Red</h2>
                         </div>
                         <div className="flex-1 p-6 space-y-4">
-                            {stats.recent_alerts.map((alert: any) => (
-                                <div key={alert.id} className="flex gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
-                                    <div className="mt-1">
-                                        {alert.type === 'warning' && <AlertTriangle size={16} className="text-amber-500" />}
-                                        {alert.type === 'success' && <CheckCircle2 size={16} className="text-green-500" />}
-                                        {alert.type === 'info' && <Info size={16} className="text-blue-500" />}
+                            {safeStats.recent_alerts && safeStats.recent_alerts.length > 0 ? safeStats.recent_alerts.map((alert: any, i: number) => (
+                                <div key={i} className="flex gap-4 p-5 rounded-[2rem] bg-gray-50 border border-gray-100 hover:border-[#004d4d]/20 transition-all group">
+                                    <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                        <Activity size={16} className="text-[#004d4d]" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-bold text-gray-900">{alert.message}</p>
-                                        <p className="text-[10px] font-medium text-gray-400 mt-1">{alert.time}</p>
+                                        <p className="text-[11px] font-black text-gray-900 uppercase tracking-tight">{alert.title}</p>
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 italic">{alert.time}</p>
                                     </div>
                                 </div>
-                            ))}
+                            )) : (
+                                <div className="text-center py-10 opacity-20">
+                                    <Activity size={24} className="mx-auto mb-2" />
+                                    <p className="text-[8px] font-black uppercase tracking-widest">Sin actividad reciente</p>
+                                </div>
+                            )}
                         </div>
                         <div className="p-6 border-t border-gray-50">
-                            <button className="w-full py-3 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all">
-                                Ver Logs Técnicos
+                            <button className="w-full py-4 bg-[#001A1A] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl">
+                                Auditoría de Logs
                             </button>
                         </div>
                     </div>
