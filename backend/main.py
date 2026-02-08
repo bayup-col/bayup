@@ -113,23 +113,27 @@ async def global_exception_handler(request: Request, exc: Exception):
         }
     )
 
-# Configuración de CORS Robusta
-origins = [
-    "https://bayup.com.co",
-    "https://www.bayup.com.co",
-    "https://bayup-col.vercel.app",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-
+# Configuración de CORS Totalmente Permisiva para Producción
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_origins=["*"],
+    allow_credentials=False, # Cambiamos a False para permitir el comodín "*"
+    allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
 )
+
+# Manejador de errores global para asegurar CORS en caso de fallo
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "message": str(exc)},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
 
 # --- Auth ---
 
