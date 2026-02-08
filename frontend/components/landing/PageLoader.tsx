@@ -1,3 +1,4 @@
+/* LOADER_VERSION_3.0_STABLE */
 "use client";
 
 import { motion } from "framer-motion";
