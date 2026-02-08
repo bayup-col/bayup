@@ -18,4 +18,4 @@ COPY . .
 EXPOSE 8000
 
 # Comando de inicio delegando el manejo del puerto al script Python
-CMD ["python", "main.py"]
+CMD python main.py
