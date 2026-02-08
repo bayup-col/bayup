@@ -113,12 +113,22 @@ async def global_exception_handler(request: Request, exc: Exception):
         }
     )
 
+# Configuración de CORS Robusta
+origins = [
+    "https://bayup.com.co",
+    "https://www.bayup.com.co",
+    "https://bayup-col.vercel.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # --- Auth ---
