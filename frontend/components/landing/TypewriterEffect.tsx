@@ -60,7 +60,7 @@ export const TypewriterEffect = ({
   }, [blink]);
 
   return (
-    <div className={`inline-block min-w-[280px] ${className}`}>
+    <div className={`inline-block ${className}`}>
       {isMounted ? (
         <InteractiveText colors={colors}>
           {`${words[index].substring(0, subIndex)}`}

@@ -13,7 +13,7 @@ import { Footer } from "@/components/landing/Footer";
 import { InteractiveUP } from "@/components/landing/InteractiveUP";
 import { PremiumButton } from "@/components/landing/PremiumButton";
 import { ExpandableButton } from "@/components/landing/ExpandableButton";
-import { User } from "lucide-react";
+import { User, Menu, X } from "lucide-react";
 import { PageLoader } from "@/components/landing/PageLoader";
 import { WhatsAppFloatingButton } from "@/components/landing/WhatsAppFloatingButton";
 import { motion, useScroll, useSpring, useMotionValueEvent, AnimatePresence } from "framer-motion";
@@ -41,6 +41,7 @@ export default function HomePage() {
   const [hidden, setHidden] = useState(false);
   const [isAtTop, setIsAtTop] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
 
   useEffect(() => {
@@ -76,6 +77,12 @@ export default function HomePage() {
     lastScrollY.current = latest;
   });
 
+  const navLinks = [
+    { label: 'Afiliados', href: '/afiliados' },
+    { label: 'Inicio', href: '/' },
+    { label: 'Planes', href: '/planes' }
+  ];
+
   return (
     <div className="bg-background min-h-screen selection:bg-cyan selection:text-black">
       
@@ -110,26 +117,35 @@ export default function HomePage() {
                   transition: { duration: 0.3, ease: "easeInOut" } 
                 },
               }}
-              className={`fixed top-0 w-full z-[100] pointer-events-none transition-all duration-500 ${isAtTop ? 'py-10' : 'py-6'}`}
+              className={`fixed top-0 w-full z-[100] transition-all duration-500 ${isAtTop ? 'py-10' : 'py-6'}`}
             >
-              <div className="container mx-auto px-12 grid grid-cols-3 items-center">
+              <div className="container mx-auto px-6 md:px-12 flex items-center justify-between">
                 
-                {/* Columna 1: Logo */}
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className={`text-2xl font-black italic tracking-tighter cursor-pointer w-fit pointer-events-auto transition-colors duration-500 ${isAtTop ? 'text-white' : 'text-black'}`}
-                >
-                  <span>BAY</span><InteractiveUP />
-                </motion.div>
-                
-                <div className="hidden md:flex items-center justify-center">
-                  <div className={`flex items-center gap-12 px-10 py-4 rounded-full border border-white/40 bg-white/20 backdrop-blur-xl shadow-sm transition-all duration-500 pointer-events-auto ${isAtTop ? '' : 'border-gray-100 bg-white/40 shadow-md'}`}>
-                    {[
-                      { label: 'Afiliados', href: '/afiliados' },
-                      { label: 'Inicio', href: '/' },
-                      { label: 'Planes', href: '/planes' }
-                    ].map((item) => (
+                {/* LADO IZQUIERDO: Hamburguesa (Solo Móvil) y Logo */}
+                <div className="flex items-center gap-4 pointer-events-auto">
+                  <button 
+                    onClick={() => setIsMobileMenuOpen(true)}
+                    className={`md:hidden p-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur-md transition-all duration-500`}
+                  >
+                    <Menu size={24} className="text-cyan drop-shadow-[0_0_8px_#00f2ff]" />
+                  </button>
+
+                  <Link href="/">
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className={`text-2xl font-black italic tracking-tighter cursor-pointer w-fit transition-all duration-500 flex items-center`}
+                    >
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan/80 to-white drop-shadow-[0_0_10px_rgba(0,242,255,0.4)]">BAY</span>
+                      <InteractiveUP />
+                    </motion.div>
+                  </Link>
+                </div>
+
+                {/* ... (centro del nav se mantiene igual) */}
+                <div className="hidden md:flex items-center justify-center pointer-events-auto">
+                  <div className={`flex items-center gap-12 px-10 py-4 rounded-full border border-white/40 bg-white/20 backdrop-blur-xl shadow-sm transition-all duration-500 ${isAtTop ? '' : 'border-gray-100 bg-white/40 shadow-md'}`}>
+                    {navLinks.map((item) => (
                       <Link 
                         key={item.label} 
                         href={item.href} 
@@ -142,18 +158,14 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Columna 3: CTA Derecha */}
-                <div className="flex justify-end pointer-events-auto items-center gap-6">
-                  
-                  {/* Botón Registrarse (Texto -> Gratis) */}
+                {/* DERECHA: CTAs Desktop */}
+                <div className="hidden md:flex justify-end pointer-events-auto items-center gap-6">
                   <ExpandableButton 
                     href="/register" 
                     variant="primary" 
                     baseText="REGÍSTRATE" 
                     expandedText="GRATIS" 
                   />
-
-                  {/* Botón Iniciar Sesión (Icono -> Texto) */}
                   <ExpandableButton 
                     href="/login" 
                     variant="ghost" 
@@ -162,8 +174,89 @@ export default function HomePage() {
                     icon={<User size={22} className={isAtTop ? "text-white" : "text-black"} />} 
                   />
                 </div>
+
+                {/* CTA Móvil (Solo icono login para ahorrar espacio) */}
+                <div className="md:hidden pointer-events-auto">
+                   <Link href="/login" className={`p-2 rounded-xl transition-all duration-500`}>
+                      <User size={24} className="text-cyan drop-shadow-[0_0_8px_#00f2ff]" />
+                   </Link>
+                </div>
               </div>
             </motion.nav>
+
+            {/* PANEL MENÚ MÓVIL (SIDEBAR GLASS) */}
+            <AnimatePresence>
+              {isMobileMenuOpen && (
+                <>
+                  {/* Backdrop */}
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150]"
+                  />
+                  
+                  {/* Sidebar */}
+                  <motion.div 
+                    initial={{ x: "-100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "-100%" }}
+                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                    className="fixed top-0 left-0 bottom-0 w-[85%] max-w-xs bg-white/10 backdrop-blur-[40px] z-[160] border-r border-white/20 p-8 flex flex-col shadow-2xl"
+                  >
+                    <div className="flex items-center justify-between mb-12">
+                      <div className="text-2xl font-black italic tracking-tighter text-white">
+                        <span>BAY</span><InteractiveUP />
+                      </div>
+                      <button 
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"
+                      >
+                        <X size={24} />
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col gap-8 flex-grow">
+                      {[
+                        { label: 'Inicio', href: '/' },
+                        { label: 'Planes', href: '/planes' },
+                        { label: 'Afiliados', href: '/afiliados' }
+                      ].map((item) => (
+                        <Link 
+                          key={item.label} 
+                          href={item.href} 
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="text-2xl font-black text-white uppercase tracking-tighter border-b border-white/10 pb-4 flex justify-between items-center group"
+                        >
+                          {item.label}
+                          <motion.div whileHover={{ x: 5 }} className="text-cyan opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Menu size={20} />
+                          </motion.div>
+                        </Link>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-col gap-4 pt-8 border-t border-white/10">
+                      <Link 
+                        href="/login" 
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="w-full py-4 text-center text-white font-black uppercase tracking-widest text-sm border border-white/20 rounded-2xl bg-white/5 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
+                      >
+                        Iniciar Sesión
+                      </Link>
+                      <Link 
+                        href="/register" 
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="w-full py-4 text-center text-[#004D4D] font-black uppercase tracking-widest text-sm bg-cyan rounded-2xl shadow-[0_10px_20px_rgba(0,242,255,0.3)]"
+                      >
+                        Registrarse Gratis
+                      </Link>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
 
             <main className="relative z-10">
               <HeroLight />
