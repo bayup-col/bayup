@@ -99,33 +99,38 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
-# 1. CORS - CONFIGURACIÓN UNIVERSAL (A PRUEBA DE BALAS)
+# 1. CORS - CONFIGURACIÓN ESPECÍFICA (ELIMINA ERRORES DE PREFLIGHT)
+origins = [
+    "https://bayup.com.co",
+    "https://www.bayup.com.co",
+    "https://bayup-col.vercel.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Permitir TODO
-    allow_credentials=False, # Obligatorio cuando se usa "*"
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=origins,
+    allow_credentials=True, # Permitir tokens y cookies
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
+    expose_headers=["*"]
 )
 
-# 2. Inyector de cabeceras manual (Segunda capa de seguridad)
-@app.middleware("http")
-async def add_cors_headers(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
-
-# 3. Manejador de Errores Global (Blindado)
+# 2. Manejador de Errores Global (Blindado con CORS dinámico)
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     print(f"CRITICAL ERROR: {exc}")
+    origin = request.headers.get("origin")
+    # Si el origen es conocido, lo usamos, si no, usamos el primero de la lista
+    allow_origin = origin if origin in origins else origins[0]
+    
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal Server Error", "message": str(exc)},
         headers={
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": allow_origin,
+            "Access-Control-Allow-Credentials": "true",
             "Access-Control-Allow-Methods": "*",
             "Access-Control-Allow-Headers": "*",
         }
@@ -342,6 +347,11 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
 def get_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = get_tenant_id(current_user)
     return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).order_by(models.Order.created_at.desc()).all()
+
+@app.get("/notifications")
+def get_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = get_tenant_id(current_user)
+    return db.query(models.Notification).filter(models.Notification.tenant_id == tenant_id).order_by(models.Notification.created_at.desc()).limit(20).all()
 
 @app.post("/orders", response_model=schemas.Order)
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
@@ -581,27 +591,7 @@ def get_pages(db: Session = Depends(get_db), current_user: models.User = Depends
 
 @app.get("/super-admin/stats", response_model=schemas.SuperAdminStats)
 def get_super_admin_stats(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_super_admin_user)):
-    # 1. Contar empresas reales
-    active_companies = db.query(models.User).filter(models.User.role == 'admin_tienda').count()
-    
-    # 2. Contar afiliados reales
-    active_affiliates = db.query(models.User).filter(models.User.role == 'afiliado').count()
-    
-    # 3. Ingresos totales reales (Suma de todos los pedidos pagados)
-    total_revenue = db.query(func.sum(models.Order.total_price)).scalar() or 0.0
-    
-    # 4. Comisión proyectada (Bayup se queda con el 3% de la operación total)
-    total_commission = total_revenue * 0.03
-    
-    # 5. Top Empresas (Las 5 que más venden)
-    # Por ahora devolvemos las 5 más recientes, luego podemos filtrar por ventas
-    top_companies_db = db.query(models.User).filter(models.User.role == 'admin_tienda').order_by(models.User.created_at.desc()).limit(5).all()
-    top_companies = [{"name": c.full_name, "revenue": 0.0} for c in top_companies_db]
-
-    # 6. Alertas recientes (Usuarios nuevos o errores)
-    recent_logs = db.query(models.ActivityLog).order_by(models.ActivityLog.created_at.desc()).limit(5).all()
-    recent_alerts = [{"title": l.action, "time": l.created_at.strftime("%H:%M")} for l in recent_logs]
-    
+    # ... (lógica existente)
     return {
         "total_revenue": total_revenue,
         "total_commission": total_commission,
@@ -609,6 +599,35 @@ def get_super_admin_stats(db: Session = Depends(get_db), current_user: models.Us
         "active_affiliates": active_affiliates,
         "top_companies": top_companies,
         "recent_alerts": recent_alerts
+    }
+
+@app.post("/super-admin/impersonate/{user_id}")
+def impersonate_user(user_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_super_admin_user)):
+    # 1. Buscar al usuario objetivo
+    target_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # 2. Generar token para el usuario objetivo
+    access_token = security.create_access_token(data={"sub": target_user.email})
+    
+    # 3. Registrar la acción en los logs por seguridad
+    log_activity(db, current_user.id, current_user.id, "IMPERSONATION", f"Super Admin entró a la cuenta de {target_user.email}", str(target_user.id))
+    
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user": {
+            "email": target_user.email,
+            "full_name": target_user.full_name,
+            "role": target_user.role,
+            "is_global_staff": target_user.is_global_staff,
+            "permissions": target_user.permissions,
+            "plan": {
+                "name": target_user.plan.name if target_user.plan else "Básico",
+                "modules": target_user.plan.modules if target_user.plan and target_user.plan.modules else []
+            }
+        }
     }
 
 @app.get("/analytics/opportunities")
@@ -708,5 +727,19 @@ async def create_public_order(data: dict, db: Session = Depends(get_db)):
     
     db.commit()
     db.refresh(new_order)
+
+    # 4. Crear Notificación para el dueño de la tienda
+    try:
+        notif = models.Notification(
+            id=uuid.uuid4(),
+            tenant_id=tenant_id,
+            title="¡Nueva Venta! 💰",
+            message=f"Has recibido un nuevo pedido de {data.get('customer_name')} por {sum(i['price'] * i['quantity'] for i in items):,.0f} COP.",
+            type="success"
+        )
+        db.add(notif)
+        db.commit()
+    except Exception as e:
+        print(f"Error creando notificación: {e}")
     
     return {"id": str(new_order.id), "status": "success"}
