@@ -99,37 +99,37 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
-# Global Exception Handler
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    print(f"CRITICAL ERROR: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal Server Error", "message": str(exc)},
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "*",
-            "Access-Control-Allow-Headers": "*",
-        }
-    )
+# 1. CORS - Configuración Maestra (Debe ir primero)
+origins = [
+    "https://bayup.com.co",
+    "https://www.bayup.com.co",
+    "https://bayup-col.vercel.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
 
-# Configuración de CORS Totalmente Permisiva para Producción
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False, # Cambiamos a False para permitir el comodín "*"
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
+    expose_headers=["*"]
 )
 
-# Manejador de errores global para asegurar CORS en caso de fallo
+# 2. Manejador de Errores Global (Blindado con CORS)
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    print(f"ERROR CRITICO DETECTADO: {str(exc)}")
+    origin = request.headers.get("origin")
+    allow_origin = origin if origin in origins else origins[0]
+    
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal Server Error", "message": str(exc)},
         headers={
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": allow_origin,
+            "Access-Control-Allow-Credentials": "true",
             "Access-Control-Allow-Methods": "*",
             "Access-Control-Allow-Headers": "*",
         }
