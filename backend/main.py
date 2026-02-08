@@ -145,7 +145,7 @@ def register_user(user: schemas.UserCreate, background_tasks: BackgroundTasks, d
     new_user = models.User(
         id=uuid.uuid4(),
         email=user.email.lower().strip(),
-        full_name=user.full_name.strip(),
+        full_name=user.full_name.strip() if user.full_name else user.email.split('@')[0],
         hashed_password=hashed_password,
         role="admin_tienda", # Rol base de cliente
         status="Activo",
