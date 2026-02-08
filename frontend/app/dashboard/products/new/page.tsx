@@ -233,70 +233,96 @@ export default function NewProductPage() {
         
                 setIsSubmitting(true);
                 try {
-                    let finalImageUrl = null;
-        
-                    // 1. Intento de Subida Multimedia (Opcional)
-                    if (media.length > 0 && media[0].file) {
-                        try {
-                            const file = media[0].file;
-                            const uploadData = await apiRequest<any>(`/products/upload-url?file_type=${file.type}`, { 
-                                method: 'POST', 
-                                token 
-                            });
-        
-                            if (uploadData && uploadData.upload_url) {
-                                // En desarrollo local esto puede fallar si no hay un endpoint de subida real, 
-                                // pero capturamos el error para no bloquear.
-                                try {
-                                    await fetch(uploadData.upload_url, {
-                                        method: 'PUT',
-                                        body: file,
-                                        headers: { 'Content-Type': file.type }
-                                    });
-                                    finalImageUrl = uploadData.file_url;
-                                } catch (fErr) { console.warn("Fallo fetch PUT", fErr); }
-                            }
-                        } catch (uErr) { console.warn("Fallo obtención URL", uErr); }
+                    // Verificamos si hay algún blob atrapado que no se subió
+                    const isStillUploading = media.some(m => m.preview.startsWith('blob:'));
+                    if (isStillUploading) {
+                        showToast("Sincronizando últimas imágenes...", "info");
+                        // Damos 1 segundo extra de gracia por si la red es lenta
+                        await new Promise(resolve => setTimeout(resolve, 1000));
                     }
-        
-                    // 2. Guardar Producto
+
+                    const finalImageUrl = media.length > 0 ? media[0].preview : null;
+                    
+                    if (finalImageUrl && finalImageUrl.startsWith('blob:')) {
+                        throw new Error("La imagen no se ha subido a la nube correctamente. Reintenta subirla.");
+                    }
+
+                    console.log("INTENTANDO GUARDAR EN DB...");
+                    const payload = {
+                        name: formData.name,
+                        description: formData.description,
+                        price: formData.price,
+                        wholesale_price: formData.wholesale_price,
+                        cost: formData.cost,
+                        collection_id: formData.collection_id,
+                        status: formData.status,
+                        sku: formData.sku,
+                        add_gateway_fee: formData.add_gateway_fee,
+                        image_url: finalImageUrl,
+                        variants: variants.map(v => ({ 
+                            name: v.name || 'Estándar',
+                            sku: v.sku,
+                            stock: v.stock
+                        }))
+                    };
+
                     await apiRequest('/products', {
                         method: 'POST', token,
-                        body: JSON.stringify({
-                            name: formData.name,
-                            description: formData.description,
-                            price: formData.price,
-                            wholesale_price: formData.wholesale_price,
-                            cost: formData.cost,
-                            collection_id: formData.collection_id,
-                            status: formData.status,
-                            sku: formData.sku,
-                            add_gateway_fee: formData.add_gateway_fee,
-                            image_url: finalImageUrl,
-                            variants: variants.map(v => ({ 
-                                name: v.name || 'Estándar',
-                                sku: v.sku,
-                                stock: v.stock
-                            }))
-                        })
+                        body: JSON.stringify(payload)
                     });
         
                     showToast("¡Producto creado con éxito!", "success");
                     router.push('/dashboard/products');
                 } catch (err: any) { 
-                    console.error("Error al publicar:", err);
-                    showToast("Error al procesar el guardado. Verifica los datos.", "error"); 
+                    console.error("ERROR FINAL AL PUBLICAR:", err);
+                    showToast(err.message || "Error al guardar. Revisa los datos.", "error"); 
                 } finally { setIsSubmitting(false); }
-            };    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+            };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (media.length + files.length > 5) return showToast("Máximo 5 archivos", "info");
-        const newMedia = files.map(f => ({ 
-            file: f, 
-            preview: URL.createObjectURL(f),
-            type: f.type.startsWith('video') ? 'video' as const : 'image' as const,
-            isMuted: true
-        }));
-        setMedia([...media, ...newMedia]);
+        
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        
+        for (const file of files) {
+            // 1. Mostrar preview con marca unica
+            const fileKey = `${file.name}-${Date.now()}`;
+            setMedia(prev => [...prev, { 
+                preview: URL.createObjectURL(file),
+                type: file.type.startsWith('video') ? 'video' : 'image',
+                isMuted: true,
+                key: fileKey
+            }]);
+
+            // 2. Subida real al servidor
+            try {
+                const formDataUpload = new FormData();
+                formDataUpload.append('file', file);
+
+                const res = await fetch(`${apiUrl}/admin/upload-image`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formDataUpload
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    // Reemplazamos exactamente el que corresponde por su key única
+                    setMedia(prev => prev.map(m => 
+                        (m as any).key === fileKey ? { ...m, preview: data.url } : m
+                    ));
+                    showToast("Imagen sincronizada en la nube ☁️", "success");
+                } else {
+                    setMedia(prev => prev.filter(m => (m as any).key !== fileKey));
+                    const errorMsg = await res.json().catch(() => ({ detail: 'Error' }));
+                    showToast(`Error: ${errorMsg.detail}`, "error");
+                }
+            } catch (err) {
+                setMedia(prev => prev.filter(m => (m as any).key !== fileKey));
+                showToast("Error de conexión", "error");
+            }
+        }
     };
 
     const toggleMute = (index: number) => {

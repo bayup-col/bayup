@@ -518,7 +518,7 @@ export default function DashboardPage() {
                                         </span>
                                     </div>
                                     <button className={`w-full py-2 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF] hover:bg-[#00F2FF] hover:text-black' : 'bg-white/5 text-white group-hover/item:bg-[#004d4d] group-hover/item:text-white'}`}>
-                                        {opp.action.split(' ')[0]}
+                                        {opp.action ? opp.action.split(' ')[0] : 'Explorar'}
                                     </button>
                                 </div>
                             </motion.div>

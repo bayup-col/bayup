@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException, status, Request, BackgroundTasks
+from fastapi import Depends, FastAPI, HTTPException, status, Request, BackgroundTasks, File, UploadFile
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -11,6 +11,7 @@ import uuid
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
+import requests
 
 # Cargar variables de entorno inmediatamente
 load_dotenv()
@@ -124,9 +125,28 @@ app.add_middleware(
 
 @app.post("/auth/register", response_model=schemas.User)
 def register_user(user: schemas.UserCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_email(db, email=user.email)
+    db_user = crud.get_user_by_email(db, email=user.email.lower().strip())
     if db_user: raise HTTPException(status_code=400, detail="Email already registered")
-    new_user = crud.create_user(db=db, user=user)
+    
+    # FORZADO DE INDEPENDENCIA: Un registro público SIEMPRE crea un nuevo dueño de tienda independiente
+    hashed_password = security.get_password_hash(user.password)
+    default_plan = crud.get_default_plan(db)
+    
+    new_user = models.User(
+        id=uuid.uuid4(),
+        email=user.email.lower().strip(),
+        full_name=user.full_name.strip(),
+        hashed_password=hashed_password,
+        role="admin_tienda", # Rol base de cliente
+        status="Activo",
+        is_global_staff=False, # PROHIBIDO ser global para clientes
+        plan_id=default_plan.id if default_plan else None,
+        permissions={} # Tienda vacía sin permisos heredados
+    )
+    
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
     
     # Enviar correo de bienvenida en segundo plano
     background_tasks.add_task(email_service.send_welcome_email, new_user.email, new_user.full_name)
@@ -198,6 +218,59 @@ def register_affiliate(data: dict, background_tasks: BackgroundTasks, db: Sessio
 @app.get("/auth/me", response_model=schemas.User)
 def get_me(current_user: models.User = Depends(security.get_current_user)):
     return current_user
+
+# --- Image Management (Supabase Storage) ---
+
+@app.post("/admin/upload-image")
+async def upload_image(file: UploadFile = File(...), current_user: models.User = Depends(security.get_current_user)):
+    print(f"--- SOLICITUD DE SUBIDA RECIBIDA ---")
+    print(f"Archivo: {file.filename}")
+    print(f"Tipo (Content-Type): {file.content_type}")
+
+    # Aceptar tanto imágenes como videos
+    is_image = file.content_type.startswith("image/")
+    is_video = file.content_type.startswith("video/")
+
+    if not is_image and not is_video:
+        print(f"RECHAZADO: El tipo {file.content_type} no es soportado.")
+        raise HTTPException(status_code=400, detail=f"El archivo {file.filename} no es un formato válido (Solo imágenes y videos)")
+
+    project_id = "jtctgahddafohgskgxha"
+    bucket_name = "products"
+    
+    # 1. Limpiar nombre de archivo (solo letras, numeros y extension)
+    import re
+    ext = file.filename.split(".")[-1]
+    safe_name = f"{uuid.uuid4()}.{ext}"
+    
+    url = f"https://{project_id}.supabase.co/storage/v1/object/{bucket_name}/{safe_name}"
+    
+    # 2. Usar la llave desde env o fallback directo
+    token = os.getenv('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0Y3RnYWhkZGFmb2hnc2tneGhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNjU1MTgsImV4cCI6MjA4NTY0MTUxOH0.PZEdIjfr68o3GciOoI7U9huEpjDSktBPLUdkFXP5vDg')
+    
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": file.content_type,
+        "x-upsert": "true" # Permite sobreescribir si fuera necesario
+    }
+
+    try:
+        content = await file.read()
+        print(f"DEBUG: Intentando subir {safe_name} a Supabase...")
+        # Aumentamos el timeout a 60 segundos para videos
+        response = requests.post(url, data=content, headers=headers, timeout=60)
+        
+        if response.status_code == 200:
+            public_url = f"https://{project_id}.supabase.co/storage/v1/object/public/{bucket_name}/{safe_name}"
+            print(f"DEBUG: Subida exitosa! URL: {public_url}")
+            return {"url": public_url}
+        else:
+            print(f"ERROR SUPABASE ({response.status_code}): {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=f"Error en Supabase: {response.text}")
+            
+    except Exception as e:
+        print(f"ERROR EXCEPTION: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # --- Products ---
 
@@ -430,6 +503,11 @@ def get_collections(db: Session = Depends(get_db), current_user: models.User = D
     tenant_id = get_tenant_id(current_user)
     return crud.get_collections_by_owner(db, owner_id=tenant_id)
 
+@app.post("/collections", response_model=schemas.Collection)
+def create_collection(collection: schemas.CollectionCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = get_tenant_id(current_user)
+    return crud.create_collection(db, collection, owner_id=tenant_id)
+
 @app.get("/expenses", response_model=List[schemas.Expense])
 def get_expenses(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = get_tenant_id(current_user)
@@ -474,6 +552,15 @@ def get_super_admin_stats(db: Session = Depends(get_db), current_user: models.Us
         "top_companies": [], # Se puede implementar luego
         "recent_alerts": []  # Se puede implementar luego
     }
+
+@app.get("/analytics/opportunities")
+def get_analytics_opportunities(current_user: models.User = Depends(security.get_current_user)):
+    return [
+        {"term": "Tenis Deportivos", "volume": 1250, "potential": 450000, "action": "Importar Stock"},
+        {"term": "Relojes Inteligentes", "volume": 850, "potential": 320000, "action": "Ver Tendencia"},
+        {"term": "Accesorios Tech", "volume": 2100, "potential": 850000, "action": "Lanzar Oferta"},
+        {"term": "Moda Urbana", "volume": 1500, "potential": 600000, "action": "Crear Colección"}
+    ]
 
 @app.get("/")
 def read_root(): return {"message": "Welcome to Bayup API"}

@@ -189,7 +189,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const renderSidebar = () => {
     // Si el usuario es Staff Global (Dani o invitados), ve el menú de Bayup
-    if (isGlobalStaff) {
+    // BLOQUEO ABSOLUTO: Solo si isGlobalStaff es explícitamente TRUE
+    if (isGlobalStaff === true) {
         return (
             <>
               <div className="p-6 border-b border-white/10">

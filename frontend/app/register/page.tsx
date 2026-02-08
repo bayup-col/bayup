@@ -85,7 +85,12 @@ function RegisterForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/auth/register', {
+      // 1. LIMPIEZA ATÓMICA DE SESIONES ANTERIORES
+      localStorage.clear(); 
+      sessionStorage.clear();
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
