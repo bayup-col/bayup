@@ -17,5 +17,5 @@ COPY . .
 # Exponemos el puerto que usa Railway
 EXPOSE 8000
 
-# Comando de inicio usando la variable de entorno PORT que da Railway
-CMD uvicorn main:app --host 0.0.0.0 --port $PORT
+# Comando de inicio delegando el manejo del puerto al script Python
+CMD ["python", "main.py"]

@@ -732,3 +732,9 @@ async def create_public_order(data: dict, db: Session = Depends(get_db)):
         print(f"Error creando notificación: {e}")
     
     return {"id": str(new_order.id), "status": "success"}
+
+if __name__ == "__main__":
+    import uvicorn
+    # Leemos el puerto de la variable de entorno PORT que asigna Railway, por defecto 8000
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
