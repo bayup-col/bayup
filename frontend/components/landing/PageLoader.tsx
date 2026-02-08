@@ -8,10 +8,10 @@ export const PageLoader = ({ onComplete }: { onComplete: () => void }) => {
   const [showBar, setShowBar] = useState(false);
 
   useEffect(() => {
-    // PASO 1: El logo aparece solo durante 2 segundos para máxima presencia
+    // PASO 1: El logo aparece solo durante 1 segundo
     const barTimer = setTimeout(() => {
       setShowBar(true);
-    }, 2000);
+    }, 1000);
 
     return () => clearTimeout(barTimer);
   }, []);
@@ -19,9 +19,8 @@ export const PageLoader = ({ onComplete }: { onComplete: () => void }) => {
   useEffect(() => {
     if (!showBar) return;
 
-    // PASO 2: Carga de la barra extremadamente lenta y fluida (8 segundos)
-    // Total experiencia: 10 segundos
-    const duration = 8000; 
+    // PASO 2: Carga de la barra fluida (2 segundos)
+    const duration = 2000; 
     const startTime = Date.now();
 
     const updateProgress = () => {
@@ -33,7 +32,7 @@ export const PageLoader = ({ onComplete }: { onComplete: () => void }) => {
       if (newProgress < 100) {
         requestAnimationFrame(updateProgress);
       } else {
-        setTimeout(onComplete, 1000); // Respiro final antes de entrar
+        setTimeout(onComplete, 500); // Respiro final rápido
       }
     };
 
