@@ -52,6 +52,7 @@ class User(Base):
     role = Column(String, default="admin_tienda")
     status = Column(String, default="Activo")
     is_global_staff = Column(Boolean, default=False)
+    shop_slug = Column(String, unique=True, index=True, nullable=True) # Pilar 2: Link de tienda
     bank_accounts = Column(JSON, default=[])
     social_links = Column(JSON, default={})
     whatsapp_lines = Column(JSON, default=[])

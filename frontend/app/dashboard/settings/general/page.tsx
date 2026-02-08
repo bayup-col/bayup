@@ -62,7 +62,8 @@ export default function GeneralSettings() {
         city: "Bogotá",
         country: "Colombia",
         hours: "Lun - Vie: 8am - 6pm",
-        website: "mitienda.bayup.com",
+        website: "",
+        shop_slug: "", // Pilar 2
         nit: "",
         tax_regime: "Simplificado",
         legal_rep: ""
@@ -104,6 +105,26 @@ export default function GeneralSettings() {
     ];
 
     useEffect(() => {
+        const fetchStoreData = async () => {
+            if (!token) return;
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                const res = await fetch(`${apiUrl}/auth/me`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setIdentity(prev => ({ ...prev, name: data.full_name || prev.name }));
+                    setContact(prev => ({ 
+                        ...prev, 
+                        email: data.email, 
+                        shop_slug: data.shop_slug || "" 
+                    }));
+                }
+            } catch (err) { console.error("Error al cargar perfil", err); }
+        };
+        fetchStoreData();
+
         const savedData = localStorage.getItem('bayup_general_settings');
         const savedPlan = localStorage.getItem('bayup_user_plan');
         
@@ -114,29 +135,18 @@ export default function GeneralSettings() {
         if (savedData) {
             try {
                 const parsed = JSON.parse(savedData);
-                const loadedName = parsed.identity?.name || identity.name;
-                setIdentity(parsed.identity || identity);
-                setContact(parsed.contact || contact);
+                setIdentity(prev => ({ ...prev, ...parsed.identity }));
+                setContact(prev => ({ ...prev, ...parsed.contact }));
                 setAccounts(parsed.accounts || []);
                 setWhatsappLines(parsed.whatsappLines || []);
                 setSocialLinks(parsed.socialLinks || socialLinks);
-                // Forzar sincronización con el Header/Sidebar al cargar
-                window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: loadedName }));
             } catch (e) { console.error(e); }
         } else {
             setAccounts([{ id: '1', bank_name: 'Bancolombia', account_type: 'Ahorros', number: '1234567890', billing_limit: 10000000, current_billed: 2500000, is_primary: true, status: 'active' }]);
             setWhatsappLines([{ id: 'w1', name: 'Ventas Directas', number: '3001112233' }]);
-            // Forzar sincronización con el nombre por defecto
-            window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: identity.name }));
         }
         setLoading(false);
-    }, []);
-
-    const handleUpgrade = () => {
-        setCurrentPlan('Empresa');
-        localStorage.setItem('bayup_user_plan', 'Empresa');
-        showToast("¡Plan Empresa Activado! 🚀 Datos fiscales desbloqueados.", "success");
-    };
+    }, [token]);
 
     const formatCurrency = (val: string | number) => {
         try {
@@ -158,12 +168,30 @@ export default function GeneralSettings() {
         if (!validatePhone(contact.phone)) { showToast("Teléfono de 10 dígitos requerido", "error"); return; }
         setIsSaving(true);
         try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const response = await fetch(`${apiUrl}/admin/update-profile`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    full_name: identity.name,
+                    shop_slug: contact.shop_slug
+                }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.detail || "Error al actualizar en el servidor");
+            }
+
             localStorage.setItem('bayup_general_settings', JSON.stringify({ identity, contact, accounts, whatsappLines, socialLinks }));
             window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: identity.name }));
-            await new Promise(r => setTimeout(r, 1000));
-            showToast("Configuración guardada 🚀", "success");
-        } catch (e) { showToast("Error al guardar", "error"); }
-        finally { setIsSaving(false); }
+            showToast("Configuración sincronizada con éxito 🚀", "success");
+        } catch (e: any) { 
+            showToast(e.message || "Error al sincronizar", "error"); 
+        } finally { setIsSaving(false); }
     };
 
     const handleAccountAction = (e: React.FormEvent) => {
@@ -289,41 +317,6 @@ export default function GeneralSettings() {
                                     </div>
                                     <PremiumSelect label="Nicho de Mercado" value={identity.category} onChange={(v:any) => setIdentity({...identity, category: v})} options={categoriesOptions} icon={LayoutGrid} />
                                 </div>
-                                <div className="pt-8 border-t border-gray-100 space-y-6">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3"><ShieldCheck className={currentPlan === 'Empresa' ? "text-emerald-500" : "text-gray-300"} size={20}/><h4 className="text-sm font-black uppercase tracking-widest text-gray-900">Datos Fiscales</h4></div>
-                                        {currentPlan !== 'Empresa' && <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[8px] font-black uppercase rounded-lg border border-amber-100">Requiere Plan Empresa</span>}
-                                    </div>
-                                    {currentPlan === 'Empresa' ? (
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in duration-500">
-                                            <div className="space-y-2">
-                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">NIT / RUT</label>
-                                                <input type="text" value={contact.nit} onChange={e => setContact({...contact, nit: e.target.value})} placeholder="900.xxx.xxx-x" className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-xs font-bold shadow-inner" />
-                                            </div>
-                                            <PremiumSelect 
-                                                label="Régimen Tributario" 
-                                                value={contact.tax_regime} 
-                                                onChange={(v:any) => setContact({...contact, tax_regime: v})} 
-                                                options={[
-                                                    { id: 'Simplificado', label: 'Simplificado', icon: <Zap size={14} className="text-amber-500"/> },
-                                                    { id: 'Común', label: 'Régimen Común', icon: <ShieldCheck size={14} className="text-emerald-500"/> },
-                                                    { id: 'Gran Contribuyente', label: 'Gran Contribuyente', icon: <Briefcase size={14} className="text-[#004d4d]"/> }
-                                                ]}
-                                                icon={Activity}
-                                            />
-                                            <div className="space-y-2">
-                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Representante Legal</label>
-                                                <input type="text" value={contact.legal_rep} onChange={e => setContact({...contact, legal_rep: e.target.value})} placeholder="Nombre completo" className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-xs font-bold shadow-inner" />
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-dashed border-gray-200 flex flex-col items-center text-center space-y-4">
-                                            <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-amber-500 shadow-sm"><Lock size={20}/></div>
-                                            <p className="text-xs font-medium text-gray-400 max-w-sm">Sube al Plan Empresa para automatizar tu facturación legal.</p>
-                                            <button onClick={handleUpgrade} className="px-8 py-3 bg-gray-900 text-[#00f2ff] rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all">Mejorar a Empresa</button>
-                                        </div>
-                                    )}
-                                </div>
                                 <div className="space-y-2 pt-4">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Historia / Biografía</label>
                                     <textarea rows={4} value={identity.story} onChange={(e) => setIdentity({...identity, story: e.target.value})} className="w-full p-6 bg-gray-50 rounded-[2.5rem] border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-medium shadow-inner resize-none" />
@@ -337,13 +330,41 @@ export default function GeneralSettings() {
                             <div className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
                                 <div className="flex items-center gap-3 mb-4"><div className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><Mail size={20}/></div><h4 className="text-sm font-black uppercase tracking-widest">Atención al Cliente</h4></div>
                                 <div className="space-y-6">
-                                    <input value={contact.email} onChange={e => setContact({...contact, email: e.target.value})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validateEmail(contact.email) ? 'border-transparent' : 'border-rose-200'}`} />
-                                    <input maxLength={10} value={contact.phone} onChange={e => setContact({...contact, phone: e.target.value.replace(/\D/g, '')})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validatePhone(contact.phone) ? 'border-transparent' : 'border-rose-200'}`} />
-                                    <div className="space-y-4">
-                                        <input value={contact.website} onChange={e => setContact({...contact, website: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border border-transparent outline-none text-sm font-bold shadow-inner" />
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Email de Soporte</label>
+                                        <input value={contact.email} onChange={e => setContact({...contact, email: e.target.value})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validateEmail(contact.email) ? 'border-transparent' : 'border-rose-200'}`} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Teléfono Público</label>
+                                        <input maxLength={10} value={contact.phone} onChange={e => setContact({...contact, phone: e.target.value.replace(/\D/g, '')})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validatePhone(contact.phone) ? 'border-transparent' : 'border-rose-200'}`} />
+                                    </div>
+                                    
+                                    <div className="space-y-4 pt-4 border-t border-gray-100">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-[#004d4d] uppercase tracking-widest ml-2 flex items-center gap-2">
+                                                <Zap size={12} /> Link de Tienda Único (Slug)
+                                            </label>
+                                            <div className="relative group">
+                                                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 text-xs font-bold">bayup.com.co/shop/</span>
+                                                <input 
+                                                    value={contact.shop_slug} 
+                                                    onChange={e => setContact({...contact, shop_slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} 
+                                                    placeholder="mi-tienda"
+                                                    className="w-full p-5 pl-36 bg-[#004d4d]/5 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-black text-[#004d4d] shadow-inner" 
+                                                />
+                                            </div>
+                                            <p className="text-[9px] text-gray-400 ml-2 italic">Este es el link que pondrás en tu Instagram o TikTok.</p>
+                                        </div>
+
                                         <div className="flex flex-col gap-3">
-                                            <button className="flex items-center justify-between p-4 bg-gray-900 text-white rounded-2xl group"><span className="text-[10px] font-black uppercase">Vincular Dominio</span><Globe size={16} className="text-[#00f2ff]"/></button>
-                                            <button className="flex items-center justify-between p-4 bg-white border border-gray-200 text-gray-900 rounded-2xl"><span className="text-[10px] font-black uppercase">Comprar Dominio</span><ShoppingCart size={16} className="text-[#004d4d]"/></button>
+                                            <button 
+                                                onClick={() => window.open(`/shop/${contact.shop_slug || 'preview'}`, '_blank')}
+                                                disabled={!contact.shop_slug}
+                                                className="flex items-center justify-between p-5 bg-gray-900 text-white rounded-2xl group hover:bg-black transition-all disabled:opacity-50"
+                                            >
+                                                <span className="text-[10px] font-black uppercase tracking-widest">Ver mi tienda ahora</span>
+                                                <ExternalLink size={16} className="text-[#00f2ff]"/>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -455,135 +476,6 @@ export default function GeneralSettings() {
                                 </div>
                                 <button type="submit" className="w-full py-5 bg-[#004d4d] text-white rounded-2xl font-black text-[10px] uppercase shadow-xl">Activar Línea</button>
                             </form>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            <div className="px-4 pt-12">
-                <div className="bg-[#004953] p-16 rounded-[4rem] text-white relative overflow-hidden flex flex-col md:flex-row items-center gap-16 shadow-2xl border border-white/5">
-                    <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[140%] bg-[radial-gradient(circle_at_center,_rgba(0,242,255,0.08)_0%,_transparent_60%)] animate-pulse"></div>
-                    <div className="h-32 w-32 bg-gray-900 rounded-[3rem] border-2 border-[#00f2ff]/50 flex items-center justify-center shadow-3xl"><Bot size={64} className="text-[#00f2ff]" /></div>
-                    <div className="flex-1 relative z-10 space-y-6 text-center md:text-left">
-                        <span className="px-4 py-1.5 bg-[#00f2ff]/10 text-[#00f2ff] rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-[#00f2ff]/20">Bayt Master-Config</span>
-                        <h3 className="text-4xl font-black tracking-tight italic uppercase">Estado del Onboarding</h3>
-                        <p className="text-gray-300 text-lg font-medium leading-relaxed italic">&quot;Tu identidad digital está completa al 94%. Recuerda que la cuenta Bancolombia está próxima a superar el tope de facturación mensual.&quot;</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* MODAL GUÍA ELITE INFO GENERAL */}
-            <AnimatePresence>
-                {isGuideOpen && (
-                    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsGuideOpen(false)} className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" />
-                        <motion.div initial={{ scale: 0.95, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-6xl h-[80vh] rounded-[4rem] shadow-3xl overflow-hidden relative z-10 border border-white flex flex-col md:flex-row">
-                            
-                            <div className="w-full md:w-[320px] bg-gray-50 border-r border-gray-100 p-10 flex flex-col gap-3">
-                                <div className="h-12 w-12 bg-gray-900 text-[#00f2ff] rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-cyan-500/20"><Bot size={24}/></div>
-                                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#004d4d] mb-4">Guía Maestro Config</h3>
-                                {[
-                                    { id: 0, label: 'Identidad Digital', icon: <Store size={16}/> },
-                                    { id: 1, label: 'Estructura Fiscal', icon: <ShieldCheck size={16}/> },
-                                    { id: 2, label: 'Cuentas de Recaudo', icon: <CreditCard size={16}/> },
-                                    { id: 3, label: 'Canales Sociales', icon: <Globe size={16}/> }
-                                ].map(step => (
-                                    <button key={step.id} onClick={() => setActiveGuideStep(step.id)} className={`flex items-center gap-4 p-4 rounded-2xl transition-all text-left ${activeGuideStep === step.id ? 'bg-[#004d4d] text-white shadow-xl shadow-[#004d4d]/20' : 'text-gray-500 hover:bg-white hover:shadow-sm'}`}>
-                                        <div className={activeGuideStep === step.id ? 'text-[#00f2ff]' : 'text-gray-300'}>{step.icon}</div>
-                                        <span className="text-[10px] font-black uppercase tracking-widest">{step.label}</span>
-                                    </button>
-                                ))}
-                                <div className="mt-auto pt-8 border-t border-gray-100 px-2"><p className="text-[8px] font-black uppercase text-gray-300 tracking-[0.2em]">Bayup Config Core v2.0</p></div>
-                            </div>
-
-                            <div className="flex-1 p-16 flex flex-col justify-between relative bg-white overflow-y-auto custom-scrollbar">
-                                <button onClick={() => setIsGuideOpen(false)} className="absolute top-10 right-10 text-gray-300 hover:text-rose-500 transition-colors z-[100]"><X size={24}/></button>
-                                <div className="space-y-12">
-                                    {activeGuideStep === 0 && (
-                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                                            <div className="space-y-4">
-                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Identidad <span className="text-[#004D4D]">Maestra</span></h2>
-                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">&quot;Tu nombre y logo son el primer punto de contacto con tu cliente.&quot;</p>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-6">
-                                                <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 shadow-sm group hover:bg-white hover:shadow-xl transition-all">
-                                                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-[#004d4d] mb-6 shadow-sm"><Store size={24}/></div>
-                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Sincronización Real</p>
-                                                    <p className="text-sm font-medium text-gray-600 mt-2 italic">Cualquier cambio en el nombre de tu empresa se refleja instantáneamente en el botón de vista previa superior.</p>
-                                                </div>
-                                                <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 shadow-sm group hover:bg-white hover:shadow-xl transition-all">
-                                                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-[#00f2ff] mb-6 shadow-sm"><Zap size={24}/></div>
-                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Pro-Tip Bayt</p>
-                                                    <p className="text-sm font-medium text-gray-600 mt-2 italic">&quot;Usa nombres cortos y memorables. Bayt sugiere incluir una palabra clave de tu nicho comercial.&quot;</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {activeGuideStep === 1 && (
-                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                                            <div className="space-y-4">
-                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Operación <span className="text-[#004D4D]">Fiscal</span></h2>
-                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">Blinda legalmente tu negocio ante los entes reguladores.</p>
-                                            </div>
-                                            <div className="relative p-10 bg-gray-900 rounded-[3.5rem] overflow-hidden text-white shadow-2xl">
-                                                <div className="absolute top-0 right-0 p-4 opacity-10"><ShieldCheck size={120}/></div>
-                                                <div className="space-y-6 relative z-10">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="h-10 w-10 rounded-xl bg-[#00f2ff]/10 text-[#00f2ff] flex items-center justify-center border border-[#00f2ff]/20"><Settings2 size={20}/></div>
-                                                        <p className="text-sm font-black uppercase tracking-widest text-[#00f2ff]">Automatización Tributaria</p>
-                                                    </div>
-                                                    <p className="text-sm text-gray-400 italic">Con el Plan Empresa, tu NIT y Régimen se inyectan automáticamente en cada factura generada por el sistema POS.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {activeGuideStep === 2 && (
-                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                                            <div className="space-y-4">
-                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Ingeniería de <span className="text-[#004D4D]">Recaudo</span></h2>
-                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">&quot;Gestiona tus flujos de caja mediante cuentas inteligentes con monitoreo de topes.&quot;</p>
-                                            </div>
-                                            <div className="p-10 bg-gray-50 rounded-[3.5rem] border border-gray-100 relative overflow-hidden">
-                                                <div className="flex items-center gap-6 mb-8">
-                                                    <div className="h-14 w-14 bg-white rounded-2xl flex items-center justify-center text-[#004d4d] shadow-lg shadow-gray-200/50"><CreditCard size={28}/></div>
-                                                    <div>
-                                                        <p className="text-xl font-black text-gray-900">Control de Topes</p>
-                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Gestión de Liquidez</p>
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-4">
-                                                    <div className="p-6 bg-white border border-gray-100 rounded-3xl shadow-sm">
-                                                        <p className="text-xs font-bold text-gray-600 leading-relaxed italic">&quot;Bayt te notificará automáticamente cuando una cuenta esté al 90% de su capacidad mensual para evitar bloqueos en tus ventas.&quot;</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-3 px-4">
-                                                        <div className="h-2 w-2 rounded-full bg-[#00f2ff]"></div>
-                                                        <p className="text-[10px] font-black text-gray-400 uppercase">Cuenta Principal = Destino de checkout automático</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {activeGuideStep === 3 && (
-                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                                            <div className="space-y-4">
-                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Omnicanalidad <span className="text-[#004D4D]">Total</span></h2>
-                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">Conecta tu tienda con todo el ecosistema social en un clic.</p>
-                                            </div>
-                                            <div className="p-10 bg-gray-50 rounded-[3.5rem] border border-gray-100 flex items-center gap-10">
-                                                <div className="grid grid-cols-2 gap-4 shrink-0">
-                                                    <div className="h-12 w-12 rounded-xl bg-pink-500 text-white flex items-center justify-center shadow-lg"><Instagram size={20}/></div>
-                                                    <div className="h-12 w-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-lg"><Facebook size={20}/></div>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <p className="text-sm font-black uppercase tracking-widest text-gray-900">Efecto Viral</p>
-                                                    <p className="text-xs font-medium text-gray-500 italic">Tus clientes podrán saltar de tu biografía de Instagram directamente al catálogo de productos en tiempo real.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                <button onClick={() => setIsGuideOpen(false)} className="w-full py-5 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-2xl mt-12">Entendido, Continuar Operación</button>
-                            </div>
                         </motion.div>
                     </div>
                 )}

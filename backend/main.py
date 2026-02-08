@@ -599,3 +599,29 @@ def get_analytics_opportunities(current_user: models.User = Depends(security.get
 
 @app.get("/")
 def read_root(): return {"message": "Welcome to Bayup API"}
+
+# --- Public Shop Endpoints ---
+
+@app.get("/public/shop/{slug}")
+def get_public_shop(slug: str, db: Session = Depends(get_db)):
+    # 1. Buscar al dueño de la tienda por su slug
+    store_owner = db.query(models.User).filter(models.User.shop_slug == slug).first()
+    if not store_owner:
+        raise HTTPException(status_code=404, detail="Tienda no encontrada")
+    
+    # 2. Obtener sus productos activos
+    products = db.query(models.Product).filter(
+        models.Product.owner_id == store_owner.id,
+        models.Product.status == "active"
+    ).all()
+
+    # 3. Obtener sus categorías (colecciones)
+    collections = db.query(models.Collection).filter(models.Collection.owner_id == store_owner.id).all()
+    
+    return {
+        "store_name": store_owner.full_name,
+        "store_email": store_owner.email,
+        "logo_url": None,
+        "products": products,
+        "categories": collections
+    }
