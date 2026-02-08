@@ -19,6 +19,7 @@ import {
     ChevronRight,
     LayoutGrid,
     Truck,
+    Trash2,
     CreditCard,
     Menu,
     X,
