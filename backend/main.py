@@ -99,41 +99,25 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
-# 1. CORS - CONFIGURACIÓN UNIVERSAL TOTAL
-# Usamos allow_origins=["*"] para máxima compatibilidad en producción
+# --- CONFIGURACIÓN DE CONEXIÓN GLOBAL (CORS) ---
+# Esta es la única configuración necesaria. FastAPI se encarga de responder a OPTIONS automáticamente.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
-# 2. Manejador manual de solicitudes OPTIONS (Preflight)
-# Esto asegura que CUALQUIER ruta responda bien a la pregunta de seguridad del navegador
-@app.options("/{rest_of_path:path}")
-async def preflight_handler(request: Request, rest_of_path: str):
-    return JSONResponse(
-        content="OK",
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "*",
-            "Access-Control-Allow-Headers": "*",
-        },
-    )
-
-# 3. Manejador de Errores Global
+# Manejador de Errores Global (Mantiene la estabilidad del servidor)
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     print(f"CRITICAL ERROR: {exc}")
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal Server Error", "message": str(exc)},
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "*",
-            "Access-Control-Allow-Headers": "*",
-        }
+        headers={"Access-Control-Allow-Origin": "*"}
     )
 
 # --- Auth ---
