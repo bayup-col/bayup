@@ -9,6 +9,7 @@ export const MobileShoppingSection = () => {
   const textRef = useRef<HTMLSpanElement>(null);
   const [mousePos, setMousePos] = useState({ x: 95, y: 15 });
   const [activeColumn, setActiveColumn] = useState<'bayup' | 'others'>('bayup');
+  const [hasDragged, setHasDragged] = useState(false);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!textRef.current) return;
@@ -22,40 +23,43 @@ export const MobileShoppingSection = () => {
     setMousePos({ x: 95, y: 15 });
   };
 
+  const comparisonRows = [
+    { label: "Planes Mensuales", bayup: "Gratis por siempre", others: "Desde $30 USD/mes", detail: "Bayup devuelve la barrera de los costos fijos mensuales." },
+    { label: "Venta Omnicanal", bayup: "Sincronización Nativa", others: "Venta Fragmentada", detail: "Controla tu stock y pedidos en un solo lugar." },
+    { label: "Canal de WhatsApp", bayup: "Integración Nativa", others: "Costo Adicional", detail: "Vende y recibe pedidos directamente en tu chat." },
+    { label: "Marketing y Fidelización", bayup: "Sistema Pro Incluido", others: "Pago por Apps", detail: "Cupones y puntos sin pagar extra." },
+    { label: "Configuración", bayup: "Lista en minutos", others: "Setup prolongado", detail: "Lanza tu tienda el mismo día." },
+    { label: "Soporte y Ayuda", bayup: "Atención VIP", others: "Soporte Lento", detail: "Te acompañamos personalmente." },
+    { label: "Escalabilidad", bayup: "Sin Límites", others: "Topes y Restricciones", detail: "Nuestra tecnología escala contigo." }
+  ];
+
   return (
-    <section className="py-40 bg-surface relative overflow-hidden isolate shadow-inner">
+    <section className="py-20 md:py-40 bg-surface relative overflow-hidden isolate shadow-inner">
       <div className="absolute top-1/2 left-1/4 w-[700px] h-[700px] bg-petroleum/10 rounded-full blur-[180px] -z-10 animate-pulse" />
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-cyan/5 rounded-full blur-[150px] -z-10" />
 
-      {/* Imagen de fondo sutil: Chica sorprendida (Local Asset) - Derecha Ultra XL */}
+      {/* ... (Imagen de fondo sorpresa se mantiene igual) */}
       <motion.div
         initial={{ opacity: 0, x: 200 }}
-        whileInView={{ 
-          opacity: 0.25, 
-          x: 0, 
-        }}
+        whileInView={{ opacity: 0.25, x: 0 }}
         transition={{ duration: 2, ease: "easeOut" }}
         className="absolute bottom-[-5%] right-[-10%] w-[1200px] h-auto pointer-events-none z-0"
       >
         <motion.img 
           src="/assets/sorpresa.png" 
           alt="Surprised Entrepreneur"
-          animate={{ 
-            y: [0, -30, 0],
-          }}
-          transition={{ 
-            y: { duration: 10, repeat: Infinity, ease: "easeInOut" },
-          }}
+          animate={{ y: [0, -30, 0] }}
+          transition={{ y: { duration: 10, repeat: Infinity, ease: "easeInOut" } }}
           className="w-full h-auto filter contrast-110"
         />
       </motion.div>
 
       <div className="container mx-auto px-6 max-w-5xl text-center flex flex-col items-center relative z-10">
         
-        <div className="space-y-12 w-full">
+        <div className="space-y-8 md:space-y-12 w-full">
           <div className="space-y-4">
-            <h2 className="text-5xl md:text-7xl lg:text-8xl font-black text-black tracking-tighter italic leading-none uppercase whitespace-nowrap">
-              ¿POR QUÉ{" "}
+            <h2 className="text-4xl md:text-7xl lg:text-8xl font-black text-black tracking-tighter italic leading-[1] uppercase text-center flex flex-col items-center">
+              <span>¿POR QUÉ</span>
               <span 
                 ref={textRef}
                 onMouseMove={handleMouseMove}
@@ -72,8 +76,8 @@ export const MobileShoppingSection = () => {
               </span>
             </h2>
           </div>
-          <p className="max-w-2xl mx-auto text-gray-500 text-lg md:text-xl font-medium leading-relaxed">
-            Hemos reinventado las reglas del juego. Mientras otros te cobran por intentar vender, nosotros nos convertimos en tus socios estratégicos para asegurar que lo logres.
+          <p className="max-w-xl mx-auto text-gray-500 text-sm md:text-xl font-medium leading-relaxed px-4">
+            Hemos reinventado las reglas del juego para que te conviertas en el líder de tu industria.
           </p>
           
           <motion.div 
@@ -109,15 +113,7 @@ export const MobileShoppingSection = () => {
               </div>
 
               {/* Filas de la Tabla */}
-              {[
-                { label: "Planes Mensuales", bayup: "Gratis por siempre", others: "Desde $30 USD/mes", detail: "Bayup devuelve la barrera de los costos fijos mensuales." },
-                { label: "Venta Omnicanal", bayup: "Sincronización Nativa", others: "Venta Fragmentada", detail: "Controla tu stock y pedidos de Web, WhatsApp y Redes en un solo lugar." },
-                { label: "Canal de WhatsApp", bayup: "Integración Nativa", others: "Costo Adicional", detail: "Vende y recibe pedidos directamente en tu chat de forma fluida." },
-                { label: "Marketing y Fidelización", bayup: "Sistema Pro Incluido", others: "Pago por Aplicaciones", detail: "Cupones, programas de puntos y analítica real sin pagar ni un peso extra." },
-                { label: "Configuración", bayup: "Lista en minutos", others: "Setup prolongado", detail: "Sube tus productos y lanza tu tienda el mismo día." },
-                { label: "Soporte y Ayuda", bayup: "Atención VIP en Español", others: "Soporte Lento", detail: "Te acompañamos personalmente en el crecimiento de tu marca." },
-                { label: "Escalabilidad", bayup: "Crecimiento Sin Límites", others: "Topes y Restricciones", detail: "Sin límites de productos o visitas. Nuestra tecnología escala contigo." }
-              ].map((row, i) => (
+              {comparisonRows.map((row, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 md:gap-4 py-6 md:py-8 border-b border-white/5 group transition-all">
                   <div className="col-span-6 text-left flex flex-col justify-center gap-1">
                     <p className="text-sm md:text-lg font-black uppercase italic text-black leading-none transition-opacity">{row.label}</p>

@@ -178,7 +178,6 @@ function CometSystem() {
 function GlowHeading({ children, mousePos }: { children: React.ReactNode, mousePos: { x: number, y: number } }) {
   return (
     <div className="relative group">
-      {/* Capas de Glow Dinámico */}
       <motion.div
         className="absolute inset-0 -z-10 blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-700"
         style={{
@@ -214,7 +213,9 @@ export const GlobeSection3D = () => {
   };
 
   return (
-    <section id="global" className="relative h-screen w-full bg-[#050505] flex items-center justify-center overflow-hidden">
+    <section id="global" className="relative h-screen w-full bg-[#050505] flex flex-col items-center justify-center overflow-hidden">
+      
+      {/* BACKGROUND CANVAS (Starfield + Particles) */}
       <div className="absolute inset-0 z-0">
         <Canvas camera={{ position: [0, 0, 15] }}>
           <MouseLight />
@@ -224,47 +225,60 @@ export const GlobeSection3D = () => {
           <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
         </Canvas>
       </div>
-      <div className="container mx-auto px-12 relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+
+      {/* MOBILE GLOBE BACKGROUND */}
+      <div className="absolute inset-0 z-1 lg:hidden">
+        <Canvas>
+          <PerspectiveCamera makeDefault position={[0, 0, 8]} />
+          <OrbitControls enableZoom={false} enablePan={false} makeDefault rotateSpeed={0.5} />
+          <ambientLight intensity={0.5} />
+          <pointLight position={[10, 10, 10]} color="#00f2ff" intensity={1} />
+          <Suspense fallback={null}><GlobeMesh /></Suspense>
+        </Canvas>
+      </div>
+
+      <div className="container mx-auto px-6 md:px-12 relative z-10 flex flex-col lg:grid lg:grid-cols-2 gap-10 md:gap-20 items-center justify-center h-full">
+        
+        {/* TEXT CONTENT */}
         <div 
           ref={headingRef}
           onMouseMove={handleHeadingMouseMove}
-          className="space-y-10 order-2 lg:order-1 pointer-events-auto"
+          className="space-y-8 md:space-y-10 flex flex-col items-center lg:items-start text-center lg:text-left pointer-events-auto"
         >
-          <div className="space-y-2">
+          <div className="space-y-3 flex flex-col items-center lg:items-start">
             <div className="h-1.5 w-16 bg-cyan shadow-[0_0_20px_#00f2ff]" />
-            <p className="text-lg font-black tracking-[0.5em] text-cyan uppercase italic drop-shadow-[0_0_10px_rgba(0,242,255,0.8)]">NO TE LIMITES</p>
+            <p className="text-xs md:text-lg font-black tracking-[0.5em] text-cyan uppercase italic drop-shadow-[0_0:10px_rgba(0,242,255,0.8)]">NO TE LIMITES</p>
           </div>
+          
           <GlowHeading mousePos={headingMousePos}>
-            <h2 className="text-6xl md:text-[5.5rem] font-black text-white italic tracking-tighter leading-[0.85] uppercase relative z-10">
+            <h2 className="text-5xl md:text-[5.5rem] font-black text-white italic tracking-tighter leading-[0.9] md:leading-[0.85] uppercase relative z-10">
               VENDE EN TODO <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan to-petroleum">EL MUNDO.</span>
             </h2>
           </GlowHeading>
-          <p className="max-w-md text-white text-sm font-black leading-relaxed uppercase tracking-[0.2em] text-[11px] drop-shadow-[0_0_15px_rgba(0,242,255,0.8)] drop-shadow-[0_0_30px_rgba(0,242,255,0.4)]">
+
+          <p className="max-w-xs md:max-w-md text-white/90 text-sm md:text-sm font-black leading-relaxed uppercase tracking-[0.2em] drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">
             Tu local físico ya no es el límite. Lleva tus productos a cualquier rincón del planeta y convierte al mundo entero en tu cliente.
           </p>
-          <div className="flex gap-12 border-t border-white/10 pt-10">
-            <div>
-              <p className="text-2xl font-black text-cyan italic flex items-baseline">
-                <span>+200</span>
-              </p>
-              <p className="text-[8px] font-bold text-gray-500 uppercase mt-1">Comercios Activos</p>
+
+          <div className="flex gap-10 md:gap-12 border-t border-white/10 pt-10 w-full justify-center lg:justify-start">
+            <div className="flex flex-col items-center lg:items-start">
+              <p className="text-3xl md:text-2xl font-black text-cyan italic">+200</p>
+              <p className="text-[9px] md:text-[8px] font-bold text-gray-500 uppercase mt-1">Comercios</p>
             </div>
-            <div>
-              <p className="text-2xl font-black text-cyan italic flex items-baseline">
-                <span>+50K</span>
-              </p>
-              <p className="text-[8px] font-bold text-gray-500 uppercase mt-1">Ventas Exitosas</p>
+            <div className="flex flex-col items-center lg:items-start">
+              <p className="text-3xl md:text-2xl font-black text-cyan italic">+50K</p>
+              <p className="text-[9px] md:text-[8px] font-bold text-gray-500 uppercase mt-1">Ventas</p>
             </div>
-            <div>
-              <p className="text-2xl font-black text-cyan italic flex items-baseline">
-                <span>REAL</span>
-              </p>
-              <p className="text-[8px] font-bold text-gray-500 uppercase mt-1">Soporte Humano</p>
+            <div className="flex flex-col items-center lg:items-start">
+              <p className="text-3xl md:text-2xl font-black text-cyan italic">REAL</p>
+              <p className="text-[9px] md:text-[8px] font-bold text-gray-500 uppercase mt-1">Soporte</p>
             </div>
           </div>
         </div>
-        <div className="relative h-[600px] flex items-center justify-center order-1 lg:order-2 cursor-grab active:cursor-grabbing">
+
+        {/* DESKTOP GLOBE (HIDDEN ON MOBILE) */}
+        <div className="hidden lg:flex relative h-[600px] items-center justify-center cursor-grab active:cursor-grabbing">
           <Canvas>
             <PerspectiveCamera makeDefault position={[0, 0, 6]} />
             <OrbitControls enableZoom={false} enablePan={false} makeDefault rotateSpeed={0.5} enableDamping={true} dampingFactor={0.05} />
@@ -272,6 +286,7 @@ export const GlobeSection3D = () => {
             <pointLight position={[10, 10, 10]} color="#00f2ff" intensity={1} />
             <Suspense fallback={null}><GlobeMesh /></Suspense>
           </Canvas>
+          
           <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute top-1/4 right-1/4 bg-white/[0.02] backdrop-blur-[100px] border-2 border-white/40 p-8 rounded-[3rem] space-y-2 pointer-events-none shadow-[0_40px_80px_-15px_rgba(0,77,77,0.4)] border-b-cyan/30 isolate">
             <div className="absolute inset-0 bg-petroleum/10 rounded-[3rem] -z-10" />
             <p className="text-cyan text-[10px] font-black uppercase tracking-[0.3em]">TRÁFICO EN VIVO</p>

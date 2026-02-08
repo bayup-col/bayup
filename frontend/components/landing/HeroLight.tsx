@@ -12,10 +12,10 @@ import { GlassButton } from "./GlassButton";
 
 const products = [
   { id: 1, name: "Diseños Diferentes", image: "/assets/gift.gif", detail: "Muestra tus productos \n de manera diferente a tu competencia." },
-  { id: 2, name: "Tu Tienda Tech", image: "/assets/Neon Red Animated and Bright Twitch Logo (2).png", detail: "Digitaliza tu stock tecnológico y escala \n tus ventas a un nivel profesional." },
+  { id: 2, name: "Tu Tienda Tech", image: "/assets/gatgets.png", detail: "Digitaliza tu stock tecnológico y escala \n tus ventas a un nivel profesional." },
   { id: 4, name: "Expertos en Hardware", image: "/assets/Neon Red Animated and Bright Twitch Logo (4).png", detail: "Vende laptops, PCs y componentes con \n una interfaz optimizada." },
   { id: 5, name: "Moda con Identidad", image: "/assets/Neon Red Animated and Bright Twitch Logo (5).png", detail: "Lanza tu línea de ropa con una tienda \n que resalta cada detalle de tu diseño." },
-  { id: 6, name: "Alcance Global", image: "/assets/Neon Red Animated and Bright Twitch Logo (6).png", detail: "Todos tus productos a un solo click \n de distancia de tus nuevos clientes." },
+  { id: 6, name: "Alcance Global", image: "/assets/maquillaje.png", detail: "Todos tus productos a un solo click \n de distancia de tus nuevos clientes." },
 ];
 
 // --- COMPONENTE INTERNO: TARJETA 3D INTERACTIVA ---
@@ -123,10 +123,10 @@ const ProductCard3D = ({ product, onHover }: { product: typeof products[0], onHo
         {/* Info Tag Flotante */}
         <motion.div 
           style={{ z: 100, x: imgX, y: imgY }}
-          className="absolute -bottom-6 -right-6 bg-white/90 backdrop-blur-md p-6 rounded-[2rem] space-y-1 shadow-[0_30px_60px_-10px_rgba(0,0,0,0.2)] border border-white/40"
+          className="absolute bottom-12 -right-6 bg-white/90 backdrop-blur-md p-6 rounded-[2rem] space-y-1 shadow-[0_30px_60px_-10px_rgba(0,0,0,0.2)] border border-white/40"
         >
-          <p className="text-petroleum text-[9px] font-black uppercase tracking-[0.3em]">{product.name}</p>
-          <p className="text-black/60 text-xs font-bold italic uppercase tracking-tighter whitespace-pre-line">{product.detail}</p>
+          <p className="text-petroleum text-[10px] font-black uppercase tracking-[0.3em]">{product.name.toUpperCase()}</p>
+          <p className="text-black/60 text-xs font-bold italic tracking-tighter whitespace-pre-line lowercase first-letter:uppercase">{product.detail}</p>
         </motion.div>
 
       </motion.div>
@@ -167,78 +167,105 @@ export const HeroLight = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/60 via-transparent to-[#050505]/70 z-10" />
       </div>
       
-      <div className="container mx-auto px-12 relative z-10 grid grid-cols-1 lg:grid-cols-5 gap-16 items-center">
+      <div className="container mx-auto px-6 md:px-12 relative z-10 grid grid-cols-1 lg:grid-cols-5 gap-16 items-center">
         
         {/* Left Section: Text & CTAs (Sincronizado) */}
-        <div className="lg:col-span-3 space-y-10 min-h-[500px] flex flex-col justify-center">
-          <div className="space-y-10">
-            <div className="space-y-4">
+        <div className="lg:col-span-3 space-y-8 md:space-y-10 min-h-[400px] md:min-h-[500px] flex flex-col justify-center items-center lg:items-start text-center lg:text-left">
+          <div className="space-y-6 md:space-y-10 flex flex-col items-center lg:items-start">
+            <div className="space-y-4 flex flex-col items-center lg:items-start">
               <motion.div 
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white border border-gray-100 shadow-[0_10px_30px_-5px_rgba(0,77,77,0.15)] relative group/tag overflow-hidden"
+                className="inline-flex items-center gap-2 px-4 md:px-6 py-2 rounded-full bg-white border border-gray-100 shadow-[0_10px_30px_-5px_rgba(0,77,77,0.15)] relative group/tag overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan/5 to-transparent opacity-0 group-hover/tag:opacity-100 transition-opacity" />
-                <span className="h-2 w-2 rounded-full bg-cyan animate-pulse shadow-[0_0_10px_#00f2ff]" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-petroleum relative z-10">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan animate-pulse shadow-[0_0_10px_#00f2ff]" />
+                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-petroleum relative z-10">
                   La Nueva Era del Comercio Digital
                 </span>
                 <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan/20 to-transparent" />
               </motion.div>
               
-              <div className="font-black text-black leading-[0.85] tracking-tighter italic uppercase drop-shadow-2xl">
+              <motion.div 
+                initial={{ opacity: 0, x: -100 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ 
+                  type: "spring", 
+                  stiffness: 100, 
+                  damping: 15,
+                  duration: 0.8 
+                }}
+                className="font-black text-black leading-[0.9] md:leading-[0.85] tracking-tighter italic uppercase drop-shadow-2xl"
+              >
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8 }}
                   className="bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/60 whitespace-nowrap"
-                  style={{ fontSize: "clamp(3rem, 8vw, 6rem)" }}
+                  style={{ fontSize: "clamp(1.8rem, 8vw, 6rem)" }}
                 >
                   CREA TU TIENDA
                 </motion.div>
                 <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.2 }}
-                  className="flex items-center flex-wrap lg:flex-nowrap gap-x-4 whitespace-nowrap"
-                  style={{ fontSize: "clamp(3rem, 8vw, 6rem)" }}
+                  className="flex flex-col lg:flex-row items-center justify-center lg:justify-start whitespace-nowrap"
+                  style={{ fontSize: "clamp(1.8rem, 8vw, 6rem)" }}
                 >
-                  <span className="bg-clip-text text-transparent bg-gradient-to-b from-white to-white/80">ONLINE</span>
-                  <TypewriterEffect 
-                    words={["GRATIS", "FÁCIL", "RÁPIDO"]}
-                    className="font-black tracking-tighter italic uppercase"
-                    colors={["#00F2FF", "#004D4D"]} 
-                  />
+                  <div className="flex items-center">
+                    <span className="bg-clip-text text-transparent bg-gradient-to-b from-white to-white/80 mr-1 md:mr-3">ONLINE</span>
+                    <div className="scale-90 md:scale-100 origin-left">
+                      <TypewriterEffect 
+                        words={["GRATIS", "FÁCIL", "RÁPIDO"]}
+                        className="font-black tracking-tighter italic uppercase"
+                        colors={["#00F2FF", "#004D4D"]} 
+                      />
+                    </div>
+                  </div>
                 </motion.div>
-              </div>
+              </motion.div>
             </div>
             
             <motion.p 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="max-w-xl text-gray-400 text-xl font-medium leading-relaxed"
+              className="max-w-[280px] md:max-w-xl text-white text-xs md:text-xl font-bold leading-relaxed drop-shadow-[0_0_20px_rgba(255,255,255,0.8)] px-4 lg:px-0"
             >
               Deja de vender solo por chat, crea tu página profesional en minutos y dale a tu negocio la imagen que siempre quisiste.
             </motion.p>
           </div>
 
           {/* BOTONES 3D BOOK APILADOS */}
-          <div className="flex flex-wrap gap-10 pt-4">
-            <div className="relative group">
-              {/* Sombra masiva para efecto 3D real */}
-              <div className="absolute -inset-1 bg-cyan/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
-              <div className="relative shadow-[0_30px_60px_-10px_rgba(0,0,0,0.5)] rounded-2xl group-hover:shadow-[0_40px_80px_-15px_rgba(0,242,255,0.3)] transition-all duration-500">
-                <GlassButton href="/register" variant="dark">
-                  Empieza ahora
-                </GlassButton>
+          <div className="flex flex-col gap-6 pt-6 items-center lg:items-start w-full">
+            <div className="flex flex-col items-center lg:items-start w-full px-8 md:px-0">
+              <div className="relative group scale-110 md:scale-100 w-full md:w-fit flex justify-center">
+                {/* Sombra masiva para efecto 3D real */}
+                <div className="absolute -inset-1 bg-cyan/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
+                <div className="relative shadow-[0_30px_60px_-10px_rgba(0,0,0,0.5)] rounded-2xl group-hover:shadow-[0_40px_80px_-15px_rgba(0,242,255,0.4)] transition-all duration-500 w-full md:w-auto">
+                  <GlassButton href="/register" variant="primary" className="w-full md:w-auto py-6 md:py-5">
+                    Empieza ahora
+                  </GlassButton>
+                </div>
               </div>
+              
+              {/* Texto de confianza debajo del botón */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="flex items-center gap-3 pt-8 md:pt-4 px-2 justify-center lg:justify-start"
+              >
+                <div className="flex items-center justify-center w-5 h-5 md:w-5 md:h-5 rounded-full bg-green-500/20 border border-green-500/50 shadow-[0_0_10px_rgba(34,197,94,0.3)]">
+                  <svg className="w-3 h-3 md:w-3 md:h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="text-white text-sm md:text-sm font-bold drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">
+                  Sin tarjetas de crédito
+                </span>
+              </motion.div>
             </div>
           </div>
         </div>
 
-        {/* Right Section: XL EXTREME GLASS Showcase (Interactive 3D) */}
-        <div className="lg:col-span-2 relative h-[700px] flex items-center justify-center isolate">
+        {/* Right Section: XL EXTREME GLASS Showcase (Oculto en móvil o reducido) */}
+        <div className="hidden lg:flex lg:col-span-2 relative h-[700px] items-center justify-center isolate">
           <AnimatePresence mode="wait">
             <ProductCard3D 
               key={products[productIndex].id} 

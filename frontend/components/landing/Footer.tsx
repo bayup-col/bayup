@@ -62,20 +62,20 @@ export const Footer = () => {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-cyan/30 to-transparent" />
       <div className="absolute top-0 left-1/4 w-[600px] h-[300px] bg-petroleum/20 rounded-full blur-[120px] -z-10 opacity-50" />
       
-      <div className="container mx-auto px-12 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-24">
+      <div className="container mx-auto px-6 md:px-12 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-16 mb-16 md:mb-24">
           
-          <div className="col-span-1 md:col-span-2 space-y-10">
-            <div className="scale-110 origin-left">
+          <div className="col-span-1 md:col-span-2 flex flex-col items-center md:items-start text-center md:text-left space-y-8 md:space-y-10">
+            <div className="scale-100 md:scale-110 origin-center md:origin-left">
               <TextHoverIcon />
             </div>
-            <p className="max-w-xs text-gray-500 text-[10px] font-black leading-relaxed uppercase tracking-[0.3em] opacity-80">
+            <p className="max-w-xs text-gray-500 text-[9px] md:text-[10px] font-black leading-relaxed uppercase tracking-[0.2em] md:tracking-[0.3em] opacity-80">
               El sistema operativo para el comercio del futuro. <br /> 
               Diseñado para impactar, construido para escalar.
             </p>
             
             {/* ICONOS SOCIALES MAGNÉTICOS */}
-            <div className="flex gap-6 -ml-2">
+            <div className="flex gap-6 justify-center md:justify-start">
               {[
                 { Icon: Facebook, href: "https://www.facebook.com/bayup.com.co/?_rdc=1&_rdr#" },
                 { Icon: Instagram, href: "https://www.instagram.com/bayup.co?igsh=NGM5M3h1MTg2bzAy&utm_source=qr" },
@@ -83,30 +83,32 @@ export const Footer = () => {
                 { Icon: Music2, href: "https://www.tiktok.com/@bayup.co" }
               ].map((item, i) => (
                 <MagneticIcon key={i} href={item.href}>
-                  <item.Icon size={22} />
+                  <item.Icon className="w-5 h-5 md:w-6 md:h-6" />
                 </MagneticIcon>
               ))}
             </div>
           </div>
 
-          <div className="space-y-8">
-            <h4 className="text-[10px] font-black text-white uppercase tracking-[0.5em] opacity-40">Plataforma</h4>
-            <ul className="space-y-5 text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">
-              <li><Link href="/caracteristicas" className="hover:text-cyan transition-colors">Características</Link></li>
-              <li><Link href="/tecnologia" className="hover:text-cyan transition-colors">Tecnología</Link></li>
-              <li><Link href="/planes" className="hover:text-cyan transition-colors">Planes</Link></li>
-              <li><Link href="/seguridad" className="hover:text-cyan transition-colors">Seguridad</Link></li>
-            </ul>
-          </div>
+          <div className="flex justify-center md:contents gap-12 w-full">
+            <div className="space-y-6 md:space-y-8 text-left">
+              <h4 className="text-[8px] md:text-[10px] font-black text-white uppercase tracking-[0.4em] md:tracking-[0.5em] opacity-40 text-center md:text-center">Plataforma</h4>
+              <ul className="space-y-4 md:space-y-5 text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] md:tracking-[0.2em] md:text-center">
+                <li><Link href="/caracteristicas" className="hover:text-cyan transition-colors">Características</Link></li>
+                <li><Link href="/tecnologia" className="hover:text-cyan transition-colors">Tecnología</Link></li>
+                <li><Link href="/planes" className="hover:text-cyan transition-colors">Planes</Link></li>
+                <li><Link href="/seguridad" className="hover:text-cyan transition-colors">Seguridad</Link></li>
+              </ul>
+            </div>
 
-          <div className="space-y-8">
-            <h4 className="text-[10px] font-black text-white uppercase tracking-[0.5em] opacity-40">Compañía</h4>
-            <ul className="space-y-5 text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">
-              <li><Link href="/acerca" className="hover:text-cyan transition-colors">Acerca de</Link></li>
-              <li><Link href="/soporte" className="hover:text-cyan transition-colors">Soporte</Link></li>
-              <li><Link href="/terms" className="hover:text-cyan transition-colors">Términos</Link></li>
-              <li><Link href="/privacidad" className="hover:text-cyan transition-colors">Privacidad</Link></li>
-            </ul>
+            <div className="space-y-6 md:space-y-8 text-left">
+              <h4 className="text-[8px] md:text-[10px] font-black text-white uppercase tracking-[0.4em] md:tracking-[0.5em] opacity-40 text-center md:text-center">Compañía</h4>
+              <ul className="space-y-4 md:space-y-5 text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] md:tracking-[0.2em] md:text-center">
+                <li><Link href="/acerca" className="hover:text-cyan transition-colors">Acerca de</Link></li>
+                <li><Link href="/soporte" className="hover:text-cyan transition-colors">Soporte</Link></li>
+                <li><Link href="/terms" className="hover:text-cyan transition-colors">Términos</Link></li>
+                <li><Link href="/privacidad" className="hover:text-cyan transition-colors">Privacidad</Link></li>
+              </ul>
+            </div>
           </div>
 
         </div>
@@ -120,7 +122,7 @@ export const Footer = () => {
             style={{ cursor: "url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjMDBGMkZGIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0xMiA1Yy42NyAwIDEuMzUuMDkgMiAuMjYgMS43OC0yIDUuMDMtMi44NCA2LjQyLTIuNDUuNDQuMTIuNy42LjU4IDEuMDQtLjIgMS4zOS0uNzMgMi43Ni0xLjU4IDMuOTUuMTIuNC4xOC44MS4xOCAxLjIgMCA0LjQyLTMuNTggOC04IDhzLTgtMy41OC04LThjMC0uMzkuMDYtLjguMTgtMS4yQzIuMTEgNi42MSAxLjU4IDUuMjQgMS4zOCAzLjg1Yy0uMTItLjQ0LjE0LS45Mi41OC0xLjA0IDEuMzktLjM5IDQuNjQuNDUgNi40MiAyLjQ1LjY1LS4xNyAxLjMzLS4yNiAyLS4yNlonLz48Y2lyY2xlIGN4PSI5IiBjeT0iMTIiIHI9IjEiLz48Y2lyY2xlIGN4PSIxNSIgY3k9IjEyIiByPSIxIi8+PHBhdGggZD0iTTEyIDE2Yy41IDAgMS41IDAgMS41LTEiLz48L3N2Zz4=') 16 16, auto" }}
           >
             <Globe size={14} className="group-hover:text-cyan transition-colors" />
-            <span>GLOBAL / ENGLISH (US)</span>
+            <span>GLOBAL / COLOMBIA</span>
           </div>
         </div>
       </div>

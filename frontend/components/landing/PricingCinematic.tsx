@@ -39,7 +39,7 @@ const PricingCard = ({ plan, i }: { plan: any, i: number }) => {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ delay: i * 0.1 }}
-        className={`relative p-12 rounded-[4.5rem] overflow-visible group transition-all duration-700 isolate flex flex-col h-full ${plan.popular ? 'shadow-[0_80px_150px_-20px_rgba(0,242,255,0.5)] z-20' : 'shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] z-10'} ${plan.status === 'upcoming' ? 'opacity-60 cursor-not-allowed' : ''}`}
+        className={`relative p-8 md:p-12 rounded-[3.5rem] md:rounded-[4.5rem] overflow-visible group transition-all duration-700 isolate flex flex-col h-full min-h-[550px] ${plan.popular ? 'shadow-[0_80px_150px_-20px_rgba(0,242,255,0.5)] z-20' : 'shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] z-10'} ${plan.status === 'upcoming' ? 'opacity-60 cursor-not-allowed' : ''}`}
       >
         <motion.div 
           style={{ 
@@ -50,7 +50,7 @@ const PricingCard = ({ plan, i }: { plan: any, i: number }) => {
           className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[90%] h-12 bg-black/30 blur-[40px] rounded-full -z-20 pointer-events-none" 
         />
 
-        <div className="absolute inset-0 rounded-[4.5rem] overflow-hidden -z-10">
+        <div className="absolute inset-0 rounded-[3.5rem] md:rounded-[4.5rem] overflow-hidden -z-10">
           <div 
             className={`absolute top-1/2 left-1/2 w-[250%] aspect-square animate-aurora transition-opacity duration-700 ${plan.status === 'upcoming' ? 'opacity-0' : 'opacity-60 group-hover:opacity-100'}`}
             style={{
@@ -58,7 +58,7 @@ const PricingCard = ({ plan, i }: { plan: any, i: number }) => {
               willChange: 'transform'
             }}
           />
-          <div className={`absolute inset-[2.5px] rounded-[4.4rem] backdrop-blur-[100px] ${plan.popular ? 'bg-petroleum' : 'bg-white/95'}`} />
+          <div className={`absolute inset-[2.5px] rounded-[3.4rem] md:rounded-[4.4rem] backdrop-blur-[100px] ${plan.popular ? 'bg-petroleum' : 'bg-white/95'}`} />
         </div>
 
         {plan.popular && (
@@ -67,18 +67,18 @@ const PricingCard = ({ plan, i }: { plan: any, i: number }) => {
           </div>
         )}
         
-        <div className="space-y-10 relative z-10 flex-1 flex flex-col" style={{ transform: "translateZ(120px)" }}>
-          <h3 className={`text-3xl font-black italic uppercase tracking-tighter ${plan.accent}`}>{plan.name}</h3>
+        <div className="space-y-8 md:space-y-10 relative z-10 flex-1 flex flex-col" style={{ transform: "translateZ(120px)" }}>
+          <h3 className={`text-2xl md:text-3xl font-black italic uppercase tracking-tighter ${plan.accent}`}>{plan.name}</h3>
           <div className="flex flex-col items-center gap-2">
             <div className="flex items-baseline gap-2">
-              <span className={`${plan.price.length > 8 ? 'text-4xl' : 'text-7xl'} font-black italic tracking-tighter ${plan.popular ? 'text-white' : 'text-black'}`}>{plan.price}</span>
+              <span className={`${plan.price.length > 8 ? 'text-3xl md:text-4xl' : 'text-5xl md:text-7xl'} font-black italic tracking-tighter ${plan.popular ? 'text-white' : 'text-black'}`}>{plan.price}</span>
               {plan.status === 'active' && plan.price !== 'Gratis' && plan.price !== '$0' && <span className={`text-[10px] font-black uppercase tracking-widest ${plan.popular ? 'text-white/40' : 'text-black/20'}`}>/Mensual</span>}
             </div>
           </div>
           
           <div className={`h-[1px] w-full ${plan.popular ? 'bg-white/10' : 'bg-petroleum/10'}`} />
           
-          <ul className="space-y-5 flex-1">
+          <ul className="space-y-4 md:space-y-5 flex-1">
             {plan.features.map((feat: string, j: number) => (
               <li key={j} className={`flex items-center gap-4 text-[10px] font-black uppercase tracking-widest ${plan.popular ? 'text-white/70' : 'text-gray-500'}`}>
                 <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 ${plan.popular ? 'bg-white/10' : 'bg-petroleum/10'}`}>
@@ -91,14 +91,14 @@ const PricingCard = ({ plan, i }: { plan: any, i: number }) => {
 
           {plan.status === 'active' ? (
             <Link href="/planes" className="w-full">
-              <button className={`w-full py-6 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 active:scale-95 ${plan.popular ? 'bg-white text-black hover:bg-cyan shadow-2xl' : 'bg-petroleum text-white hover:bg-black shadow-xl'}`}>
+              <button className={`w-full py-5 md:py-6 rounded-[2.5rem] font-black text-[10px] md:text-[11px] uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 active:scale-95 ${plan.popular ? 'bg-white text-black hover:bg-cyan shadow-2xl' : 'bg-petroleum text-white hover:bg-black shadow-xl'}`}>
                 {plan.button} <ArrowRight size={14} />
               </button>
             </Link>
           ) : (
             <button 
               disabled
-              className="w-full py-6 rounded-[2.5rem] font-black text-[11px] uppercase tracking-[0.3em] bg-gray-200 text-gray-400 cursor-not-allowed">
+              className="w-full py-5 md:py-6 rounded-[2.5rem] font-black text-[10px] md:text-[11px] uppercase tracking-[0.3em] bg-gray-200 text-gray-400 cursor-not-allowed">
               {plan.button}
             </button>
           )}
@@ -115,6 +115,7 @@ const PricingCard = ({ plan, i }: { plan: any, i: number }) => {
 export const PricingCinematic = () => {
   const textRef = useRef<HTMLSpanElement>(null);
   const [mousePos, setMousePos] = useState({ x: 95, y: 15 });
+  const [hasDragged, setHasDragged] = useState(false);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!textRef.current) return;
@@ -135,26 +136,61 @@ export const PricingCinematic = () => {
   ];
 
   return (
-    <section id="planes" className="py-40 bg-surface relative overflow-hidden isolate shadow-inner">
+    <section id="planes" className="py-20 md:py-40 bg-surface relative overflow-hidden isolate shadow-inner">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-petroleum/5 rounded-full blur-[180px] -z-10" />
-      <div className="container mx-auto px-12 text-center">
-        <div className="max-w-4xl mx-auto mb-24 space-y-6">
-          <h2 className="text-5xl md:text-7xl lg:text-8xl font-black text-black italic tracking-tighter uppercase leading-none whitespace-nowrap">
-            ESCALA TU{" "}
+      <div className="container mx-auto px-6 md:px-12 text-center">
+        <div className="max-w-4xl mx-auto mb-16 md:mb-24 space-y-6">
+          <h2 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-black italic tracking-tighter uppercase leading-none flex flex-col md:block items-center">
+            <span>ESCALA TU</span>{" "}
             <span ref={textRef} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} className="dynamic-gradient-text inline-block transition-all duration-[2500ms] ease-[0.16,1,0.3,1] cursor-default" style={{ backgroundImage: `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, #00f2ff 0%, #004d4d 70%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' } as any}>
               NEGOCIO.
             </span>
           </h2>
-          <h3 className="text-2xl md:text-3xl font-medium text-gray-500 tracking-tight max-w-3xl mx-auto leading-tight">
-            Selecciona el plan perfecto para llevar tu marca <br />
+          <h3 className="text-sm md:text-3xl font-medium text-gray-500 tracking-tight max-w-3xl mx-auto leading-relaxed px-4">
+            Selecciona el plan perfecto para llevar tu marca <br className="hidden md:block" />
             <span className="text-petroleum font-black italic">al siguiente nivel.</span>
           </h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-7xl mx-auto items-stretch">
+
+        {/* Desktop Grid */}
+        <div className="hidden md:grid grid-cols-1 md:grid-cols-3 gap-10 max-w-7xl mx-auto items-stretch">
           {plans.map((plan, i) => (
             <PricingCard key={i} plan={plan} i={i} />
           ))}
         </div>
+
+        {/* Mobile Swipe Carousel */}
+        <div className="md:hidden w-full relative">
+          
+          {/* Alerta de Swipe (Solo móvil) */}
+          {!hasDragged && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none animate-pulse">
+              <div className="bg-white/80 backdrop-blur-md p-4 rounded-full shadow-xl border border-white/50">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-petroleum">
+                  <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+                  <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+                  <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+                  <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+                </svg>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-petroleum bg-white/60 px-3 py-1 rounded-full backdrop-blur-sm">Desliza</span>
+            </div>
+          )}
+
+          <motion.div 
+            className="flex gap-4 px-4 w-full cursor-grab active:cursor-grabbing overflow-visible"
+            drag="x"
+            dragConstraints={{ right: 0, left: -650 }}
+            onDragStart={() => setHasDragged(true)}
+          >
+            {plans.map((plan, i) => (
+              <div key={i} className="min-w-[85vw]">
+                <PricingCard plan={plan} i={i} />
+              </div>
+            ))}
+          </motion.div>
+        </div>
+
       </div>
     </section>
   );
