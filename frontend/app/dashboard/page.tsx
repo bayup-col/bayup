@@ -31,6 +31,7 @@ import {
 import { GlassyButton } from "@/components/landing/GlassyButton";
 import { ActionButton } from "@/components/landing/ActionButton";
 import { useSpring, useTransform } from 'framer-motion';
+import OnboardingModal from '@/components/dashboard/OnboardingModal';
 
 // --- COMPONENTE DE NÚMEROS ANIMADOS ---
 function AnimatedNumber({ value, className, type = 'currency' }: { value: number, className?: string, type?: 'currency' | 'percentage' | 'simple' }) {
@@ -110,15 +111,50 @@ const TiltCard = ({ children, className = "" }: { children: React.ReactNode, cla
 };
 
 export default function DashboardPage() {
-  const { userEmail, token } = useAuth();
+  const { userEmail, token, isGlobalStaff } = useAuth();
   const { theme } = useTheme();
   
+  // Onboarding Pilar 4
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
   // Estados de datos
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [pendingPayment, setPendingPayment] = useState<any>(null);
   const [pendingCollection, setPendingCollection] = useState<any>(null);
   const [loadingOpps, setLoadingOpps] = useState(true);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
+
+  useEffect(() => {
+    const checkOnboarding = async () => {
+        if (!token || isGlobalStaff) return;
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const res = await fetch(`${apiUrl}/auth/me`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (!data.onboarding_completed) setIsOnboardingOpen(true);
+            }
+        } catch (e) { console.error(e); }
+    };
+    checkOnboarding();
+  }, [token, isGlobalStaff]);
+
+  const handleCompleteOnboarding = async () => {
+    try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        await fetch(`${apiUrl}/admin/update-profile`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({ onboarding_completed: true })
+        });
+        setIsOnboardingOpen(false);
+    } catch (err) { console.error(err); }
+  };
 
   // Actividad Real (Conectada al Backend)
   const [activities, setActivities] = useState<any[]>([]);
@@ -632,7 +668,14 @@ export default function DashboardPage() {
             </div>
 
         </div>
-      </div>
-    </div>
-  );
-}
+                  </div>
+      
+                  {/* Modal de Onboarding Pilar 4 */}
+                  <OnboardingModal 
+                      isOpen={isOnboardingOpen} 
+                      onClose={() => setIsOnboardingOpen(false)}
+                      onComplete={handleCompleteOnboarding}
+                  />
+              </div>
+          );
+      }

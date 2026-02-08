@@ -53,6 +53,7 @@ class User(Base):
     status = Column(String, default="Activo")
     is_global_staff = Column(Boolean, default=False)
     shop_slug = Column(String, unique=True, index=True, nullable=True) # Pilar 2: Link de tienda
+    onboarding_completed = Column(Boolean, default=False) # Pilar 4: Guía de inicio
     bank_accounts = Column(JSON, default=[])
     social_links = Column(JSON, default={})
     whatsapp_lines = Column(JSON, default=[])
