@@ -315,3 +315,13 @@ class Shipment(Base):
     carrier = Column(String, nullable=True)
     tracking_number = Column(String, nullable=True)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(GUID(), ForeignKey("users.id"))
+    title = Column(String)
+    message = Column(String)
+    type = Column(String, default="info") # info, success, warning, error
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)

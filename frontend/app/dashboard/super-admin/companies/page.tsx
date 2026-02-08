@@ -41,7 +41,7 @@ interface Company {
 }
 
 export default function CompaniesDirectory() {
-    const { token } = useAuth();
+    const { token, login } = useAuth();
     const { showToast } = useToast();
     const router = useRouter();
     
@@ -49,6 +49,36 @@ export default function CompaniesDirectory() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
+    const [isImpersonating, setIsImpersonating] = useState<string | null>(null);
+
+    const handleImpersonate = async (userId: string) => {
+        if (!token) return;
+        setIsImpersonating(userId);
+        try {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const res = await fetch(`${apiBase}/super-admin/impersonate/${userId}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                const user = data.user;
+                
+                // Teletransporte: Sobreescribimos la sesión con la del cliente
+                login(data.access_token, user.email, user.role, user.permissions, user.plan, user.is_global_staff);
+                
+                showToast(`Entrando al ecosistema de ${user.full_name}...`, "success");
+                router.push('/dashboard');
+            } else {
+                showToast("Error en el túnel de impersonación", "error");
+            }
+        } catch (error) {
+            showToast("Error de conexión con la red global", "error");
+        } finally {
+            setIsImpersonating(null);
+        }
+    };
 
     useEffect(() => {
         const fetchCompanies = async () => {
@@ -190,10 +220,12 @@ export default function CompaniesDirectory() {
                                         </div>
                                         <div className="flex gap-2">
                                             <button 
+                                                onClick={() => handleImpersonate(company.id)}
+                                                disabled={isImpersonating !== null}
                                                 title="Entrar a la tienda"
-                                                className="h-10 w-10 rounded-xl bg-[#004d4d]/5 text-[#004d4d] flex items-center justify-center hover:bg-[#004d4d] hover:text-white transition-all"
+                                                className="h-10 w-10 rounded-xl bg-[#004d4d]/5 text-[#004d4d] flex items-center justify-center hover:bg-[#004d4d] hover:text-white transition-all disabled:opacity-50"
                                             >
-                                                <ExternalLink size={16} />
+                                                {isImpersonating === company.id ? <Loader2 className="animate-spin" size={16} /> : <ExternalLink size={16} />}
                                             </button>
                                             <button 
                                                 title="Gestionar Empresa"
