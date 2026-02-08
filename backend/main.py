@@ -99,38 +99,38 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
-# 1. CORS - CONFIGURACIÓN ESPECÍFICA (ELIMINA ERRORES DE PREFLIGHT)
-origins = [
-    "https://bayup.com.co",
-    "https://www.bayup.com.co",
-    "https://bayup-col.vercel.app",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-
+# 1. CORS - CONFIGURACIÓN UNIVERSAL TOTAL
+# Usamos allow_origins=["*"] para máxima compatibilidad en producción
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True, # Permitir tokens y cookies
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
-    expose_headers=["*"]
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# 2. Manejador de Errores Global (Blindado con CORS dinámico)
+# 2. Manejador manual de solicitudes OPTIONS (Preflight)
+# Esto asegura que CUALQUIER ruta responda bien a la pregunta de seguridad del navegador
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(request: Request, rest_of_path: str):
+    return JSONResponse(
+        content="OK",
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
+
+# 3. Manejador de Errores Global
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     print(f"CRITICAL ERROR: {exc}")
-    origin = request.headers.get("origin")
-    # Si el origen es conocido, lo usamos, si no, usamos el primero de la lista
-    allow_origin = origin if origin in origins else origins[0]
-    
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal Server Error", "message": str(exc)},
         headers={
-            "Access-Control-Allow-Origin": allow_origin,
-            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "*",
             "Access-Control-Allow-Headers": "*",
         }
