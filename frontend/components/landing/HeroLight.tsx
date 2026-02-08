@@ -12,10 +12,10 @@ import { GlassButton } from "./GlassButton";
 
 const products = [
   { id: 1, name: "Diseños Diferentes", image: "/assets/gift.gif", detail: "Muestra tus productos \n de manera diferente a tu competencia." },
-  { id: 2, name: "Tu Tienda Tech", image: "/assets/Neon Red Animated and Bright Twitch Logo (2).png", detail: "Digitaliza tu stock tecnológico y escala \n tus ventas a un nivel profesional." },
+  { id: 2, name: "Tu Tienda Tech", image: "/assets/gatgets.png", detail: "Digitaliza tu stock tecnológico y escala \n tus ventas a un nivel profesional." },
   { id: 4, name: "Expertos en Hardware", image: "/assets/Neon Red Animated and Bright Twitch Logo (4).png", detail: "Vende laptops, PCs y componentes con \n una interfaz optimizada." },
   { id: 5, name: "Moda con Identidad", image: "/assets/Neon Red Animated and Bright Twitch Logo (5).png", detail: "Lanza tu línea de ropa con una tienda \n que resalta cada detalle de tu diseño." },
-  { id: 6, name: "Alcance Global", image: "/assets/Neon Red Animated and Bright Twitch Logo (6).png", detail: "Todos tus productos a un solo click \n de distancia de tus nuevos clientes." },
+  { id: 6, name: "Alcance Global", image: "/assets/maquillaje.png", detail: "Todos tus productos a un solo click \n de distancia de tus nuevos clientes." },
 ];
 
 // --- COMPONENTE INTERNO: TARJETA 3D INTERACTIVA ---
@@ -123,10 +123,10 @@ const ProductCard3D = ({ product, onHover }: { product: typeof products[0], onHo
         {/* Info Tag Flotante */}
         <motion.div 
           style={{ z: 100, x: imgX, y: imgY }}
-          className="absolute -bottom-6 -right-6 bg-white/90 backdrop-blur-md p-6 rounded-[2rem] space-y-1 shadow-[0_30px_60px_-10px_rgba(0,0,0,0.2)] border border-white/40"
+          className="absolute bottom-12 -right-6 bg-white/90 backdrop-blur-md p-6 rounded-[2rem] space-y-1 shadow-[0_30px_60px_-10px_rgba(0,0,0,0.2)] border border-white/40"
         >
-          <p className="text-petroleum text-[9px] font-black uppercase tracking-[0.3em]">{product.name}</p>
-          <p className="text-black/60 text-xs font-bold italic uppercase tracking-tighter whitespace-pre-line">{product.detail}</p>
+          <p className="text-petroleum text-[10px] font-black uppercase tracking-[0.3em]">{product.name.toUpperCase()}</p>
+          <p className="text-black/60 text-xs font-bold italic tracking-tighter whitespace-pre-line lowercase first-letter:uppercase">{product.detail}</p>
         </motion.div>
 
       </motion.div>
@@ -217,22 +217,41 @@ export const HeroLight = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="max-w-xl text-gray-400 text-xl font-medium leading-relaxed"
+              className="max-w-xl text-white text-xl font-bold leading-relaxed drop-shadow-[0_0_25px_rgba(255,255,255,0.7)]"
             >
               Deja de vender solo por chat, crea tu página profesional en minutos y dale a tu negocio la imagen que siempre quisiste.
             </motion.p>
           </div>
 
           {/* BOTONES 3D BOOK APILADOS */}
-          <div className="flex flex-wrap gap-10 pt-4">
-            <div className="relative group">
-              {/* Sombra masiva para efecto 3D real */}
-              <div className="absolute -inset-1 bg-cyan/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
-              <div className="relative shadow-[0_30px_60px_-10px_rgba(0,0,0,0.5)] rounded-2xl group-hover:shadow-[0_40px_80px_-15px_rgba(0,242,255,0.3)] transition-all duration-500">
-                <GlassButton href="/register" variant="dark">
-                  Empieza ahora
-                </GlassButton>
+          <div className="flex flex-col gap-4 pt-4 items-center lg:items-start">
+            <div className="flex flex-col items-center lg:items-start">
+              <div className="relative group">
+                {/* Sombra masiva para efecto 3D real */}
+                <div className="absolute -inset-1 bg-cyan/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
+                <div className="relative shadow-[0_30px_60px_-10px_rgba(0,0,0,0.5)] rounded-2xl group-hover:shadow-[0_40px_80px_-15px_rgba(0,242,255,0.4)] transition-all duration-500">
+                  <GlassButton href="/register" variant="primary">
+                    Empieza ahora
+                  </GlassButton>
+                </div>
               </div>
+              
+              {/* Texto de confianza debajo del botón */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="flex items-center gap-2 pt-4 px-2 justify-center lg:justify-start"
+              >
+                <div className="flex items-center justify-center w-5 h-5 rounded-full bg-green-500/20 border border-green-500/50 shadow-[0_0_10px_rgba(34,197,94,0.3)]">
+                  <svg className="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="text-white text-sm font-medium drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">
+                  Sin tarjetas de crédito
+                </span>
+              </motion.div>
             </div>
           </div>
         </div>
