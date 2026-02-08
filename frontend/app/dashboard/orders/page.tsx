@@ -20,6 +20,7 @@ import {
   RefreshCcw,
   ShoppingBag,
   Globe,
+  ShieldCheck,
   Smartphone,
   CreditCard,
   Edit3,
