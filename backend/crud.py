@@ -20,6 +20,9 @@ def create_plan(db: Session, plan: schemas.PlanCreate) -> models.Plan:
 def get_user_by_email(db: Session, email: str) -> models.User | None:
     return db.query(models.User).filter(models.User.email == email).first()
 
+def get_user_by_slug(db: Session, slug: str) -> models.User | None:
+    return db.query(models.User).filter(models.User.shop_slug == slug).first()
+
 def create_user(db: Session, user: schemas.UserCreate) -> models.User:
     hashed_password = security.get_password_hash(user.password)
     default_plan = get_default_plan(db)

@@ -553,6 +553,48 @@ function ReportsContent() {
         </div>
     );
 
+    const renderPayrollKPIs = () => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-4">
+            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Nómina</p>
+                <h4 className="text-3xl font-black text-slate-900 mt-2">{formatCurrency(totalPayroll)}</h4>
+            </div>
+            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Colaboradores</p>
+                <h4 className="text-3xl font-black text-slate-900 mt-2">{payrollStaff.length} Activos</h4>
+            </div>
+            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Estado de Pago</p>
+                <h4 className="text-xl font-black text-emerald-600 mt-2 uppercase italic">Al día</h4>
+            </div>
+        </div>
+    );
+
+    const renderPayrollStaff = () => (
+        <div className="px-4 space-y-4">
+            {filteredPayrollStaff.map((member) => (
+                <div key={member.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-[#004d4d] text-white flex items-center justify-center font-black">{member.name.charAt(0)}</div>
+                        <div>
+                            <p className="font-black text-slate-900">{member.name}</p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase">{member.role}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-8">
+                        <div className="text-right">
+                            <p className="text-[9px] font-black text-gray-400 uppercase">Neto a pagar</p>
+                            <p className="font-black text-[#004d4d]">{formatCurrency(member.base_salary + member.commissions + member.bonuses - member.deductions)}</p>
+                        </div>
+                        <button onClick={() => handleLiquidar(member)} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${member.status === 'paid' ? 'bg-emerald-50 text-emerald-600 cursor-default' : 'bg-gray-900 text-white hover:bg-black'}`}>
+                            {member.status === 'paid' ? 'Pagado' : 'Liquidar'}
+                        </button>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
     return (
         <div className="max-w-[1600px] mx-auto pb-20 space-y-12 animate-in fade-in duration-1000 relative">
             

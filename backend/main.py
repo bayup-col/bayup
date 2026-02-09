@@ -100,20 +100,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
 # --- CONFIGURACIÓN DE CONEXIÓN GLOBAL (CORS) ---
-origins = [
-    "http://localhost:3000",
-    "https://bayup.com.co",
-    "https://www.bayup.com.co",
-    "https://bayup-app.vercel.app", # Agregamos vercel por si acaso
-]
-
+# Usamos la configuración más abierta y compatible posible para evitar bloqueos en preflight (OPTIONS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False, # Debe ser False si se usa "*"
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
 )
 
 # Manejador de Errores Global
@@ -124,6 +117,27 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"detail": "Internal Server Error", "message": str(exc)},
     )
+
+# --- Health Check (Diagnóstico de Conexión) ---
+@app.get("/health")
+def health_check(db: Session = Depends(get_db)):
+    try:
+        # Intentar una consulta simple para verificar la DB
+        db.execute(text("SELECT 1"))
+        db_engine = engine.name # 'postgresql' o 'sqlite'
+        return {
+            "status": "ok",
+            "message": "Backend is running",
+            "database": "Connected",
+            "engine": db_engine,
+            "environment": os.getenv("RAILWAY_ENVIRONMENT", "production")
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "database": "Disconnected"
+        }
 
 # --- Auth ---
 
@@ -136,6 +150,14 @@ def register_user(user: schemas.UserCreate, background_tasks: BackgroundTasks, d
     hashed_password = security.get_password_hash(user.password)
     default_plan = crud.get_default_plan(db)
     
+    # Generar shop_slug automático
+    base_slug = user.email.split('@')[0].replace('.', '-').lower()
+    shop_slug = base_slug
+    counter = 1
+    while crud.get_user_by_slug(db, shop_slug):
+        shop_slug = f"{base_slug}-{counter}"
+        counter += 1
+
     new_user = models.User(
         id=uuid.uuid4(),
         email=user.email.lower().strip(),
@@ -145,7 +167,8 @@ def register_user(user: schemas.UserCreate, background_tasks: BackgroundTasks, d
         status="Activo",
         is_global_staff=False, # PROHIBIDO ser global para clientes
         plan_id=default_plan.id if default_plan else None,
-        permissions={} # Tienda vacía sin permisos heredados
+        permissions={}, # Tienda vacía sin permisos heredados
+        shop_slug=shop_slug # Slug automático
     )
     
     db.add(new_user)
@@ -732,3 +755,9 @@ async def create_public_order(data: dict, db: Session = Depends(get_db)):
         print(f"Error creando notificación: {e}")
     
     return {"id": str(new_order.id), "status": "success"}
+
+if __name__ == "__main__":
+    import uvicorn
+    # Leemos el puerto de la variable de entorno PORT que asigna Railway, por defecto 8000
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)

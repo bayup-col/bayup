@@ -449,6 +449,41 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             isBaytOpen={isBaytOpen}
             setIsBaytOpen={setIsBaytOpen}
         />
+
+        {/* MENÚ DESPLEGABLE DEL USUARIO (AVATAR) */}
+        <AnimatePresence>
+          {userMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-[100]" onClick={() => setUserMenuOpen(false)}></div>
+              <motion.div 
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute right-10 top-24 w-64 bg-white/95 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-white overflow-hidden z-[110]"
+              >
+                <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Conectado como</p>
+                  <p className="text-sm font-black text-gray-900 truncate mt-1">{userEmail}</p>
+                </div>
+                <div className="p-2">
+                  <button 
+                    onClick={() => { setIsUserSettingsOpen(true); setUserMenuOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-gray-600 hover:bg-[#004d4d]/5 hover:text-[#004d4d] transition-all"
+                  >
+                    <User size={16} /> Perfil y Ajustes
+                  </button>
+                  <div className="my-1 border-t border-gray-100"></div>
+                  <button 
+                    onClick={() => { logout(); setUserMenuOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-rose-600 hover:bg-rose-50 transition-all"
+                  >
+                    <LogOut size={16} /> Cerrar Sesión
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
         
         {/* Fondo Atmosférico Unificado */}
         <div className={`absolute inset-0 -z-10 transition-all duration-500 ${theme === 'dark' ? 'opacity-20' : 'opacity-5'}`}>

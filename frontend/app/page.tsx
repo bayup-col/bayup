@@ -2,38 +2,32 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { HeroLight } from "@/components/landing/HeroLight";
-import { ValueStatement } from "@/components/landing/ValueStatement";
-import { NarrativeScroll } from "@/components/landing/NarrativeScroll";
-import { MobileShoppingSection } from "@/components/landing/MobileShoppingSection";
-import { TemplateShowcase } from "@/components/landing/TemplateShowcase";
-import { Testimonials } from "@/components/landing/Testimonials";
-import { PricingCinematic } from "@/components/landing/PricingCinematic";
-import { Footer } from "@/components/landing/Footer";
-import { InteractiveUP } from "@/components/landing/InteractiveUP";
-import { PremiumButton } from "@/components/landing/PremiumButton";
-import { ExpandableButton } from "@/components/landing/ExpandableButton";
 import { User, Menu, X } from "lucide-react";
-import { PageLoader } from "@/components/landing/PageLoader";
-import { WhatsAppFloatingButton } from "@/components/landing/WhatsAppFloatingButton";
 import { motion, useScroll, useSpring, useMotionValueEvent, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
 
-// Importaciones dinámicas con fallbacks
+// Importaciones dinámicas optimizadas
+const HeroLight = dynamic(() => import("@/components/landing/HeroLight").then(mod => mod.HeroLight));
+const ValueStatement = dynamic(() => import("@/components/landing/ValueStatement").then(mod => mod.ValueStatement));
+const NarrativeScroll = dynamic(() => import("@/components/landing/NarrativeScroll").then(mod => mod.NarrativeScroll));
+const MobileShoppingSection = dynamic(() => import("@/components/landing/MobileShoppingSection").then(mod => mod.MobileShoppingSection));
+const TemplateShowcase = dynamic(() => import("@/components/landing/TemplateShowcase").then(mod => mod.TemplateShowcase));
+const Testimonials = dynamic(() => import("@/components/landing/Testimonials").then(mod => mod.Testimonials));
+const PricingCinematic = dynamic(() => import("@/components/landing/PricingCinematic").then(mod => mod.PricingCinematic));
+const Footer = dynamic(() => import("@/components/landing/Footer").then(mod => mod.Footer));
+const PageLoader = dynamic(() => import("@/components/landing/PageLoader").then(mod => mod.PageLoader));
+const WhatsAppFloatingButton = dynamic(() => import("@/components/landing/WhatsAppFloatingButton").then(mod => mod.WhatsAppFloatingButton));
+const InteractiveUP = dynamic(() => import("@/components/landing/InteractiveUP").then(mod => mod.InteractiveUP));
+const ExpandableButton = dynamic(() => import("@/components/landing/ExpandableButton").then(mod => mod.ExpandableButton));
+
 const AntigravityBackground = dynamic(
   () => import("@/components/landing/AntigravityBackground").then((mod) => mod.AntigravityBackground),
-  { 
-    ssr: false,
-    loading: () => <div className="fixed inset-0 bg-white" /> 
-  }
+  { ssr: false }
 );
 
 const GlobeSection3D = dynamic(
   () => import("@/components/landing/GlobeSection3D").then((mod) => mod.GlobeSection3D),
-  { 
-    ssr: false,
-    loading: () => <div className="h-screen w-full bg-[#050505] flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-gray-700">Iniciando Red Global...</div> 
-  }
+  { ssr: false }
 );
 
 export default function HomePage() {
