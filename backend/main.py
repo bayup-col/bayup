@@ -118,6 +118,11 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "Internal Server Error", "message": str(exc)},
     )
 
+# --- Health Check (Sin DB) ---
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "message": "Backend is running and CORS is working"}
+
 # --- Auth ---
 
 @app.post("/auth/register", response_model=schemas.User)
