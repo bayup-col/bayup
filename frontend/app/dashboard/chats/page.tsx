@@ -213,30 +213,42 @@ export default function MensajesPage() {
                                     </div>
                                 )}
                                 <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#FAFAFA]/30 pb-10 pt-2">
-                                    {filteredChats.map((chat) => {
-                                        const currentStage = stages.find(s => s.key === chat.status);
-                                        return (
-                                            <div key={chat.id} onClick={() => setSelectedChatId(chat.id)} className={`flex items-center cursor-pointer transition-all border-b border-gray-50/50 ${isSidebarCollapsed ? 'p-6 justify-center' : 'p-8 gap-4'} ${selectedChatId === chat.id ? 'bg-white shadow-xl z-10' : 'hover:bg-white/80'}`}>
-                                                <div className="relative flex-shrink-0">
-                                                    <div className={`${isSidebarCollapsed ? 'h-12 w-12' : 'h-14 w-14'} rounded-2xl flex items-center justify-center text-xl font-black text-[#004d4d] bg-gray-50 transition-all`} style={{ boxShadow: `inset 0 0 0 3px ${currentStage?.color || '#eee'}` }}>{chat.customer.name.charAt(0)}</div>
-                                                    <div className="absolute -bottom-1 -right-1 h-7 w-7 bg-white rounded-xl flex items-center justify-center shadow-xl border border-gray-100 p-1.5 z-10"><img src={(CHANNEL_CONFIG as any)[chat.source].logo} className="w-full h-full object-contain" /></div>
+                                    {filteredChats.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 text-center">
+                                            <MessageSquare size={48} className="mb-4 opacity-20" />
+                                            <p className="text-xs font-bold uppercase tracking-widest">No hay mensajes</p>
+                                        </div>
+                                    ) : (
+                                        filteredChats.map((chat) => {
+                                            const currentStage = stages.find(s => s.key === chat.status);
+                                            return (
+                                                <div key={chat.id} onClick={() => setSelectedChatId(chat.id)} className={`flex items-center cursor-pointer transition-all border-b border-gray-50/50 ${isSidebarCollapsed ? 'p-6 justify-center' : 'p-8 gap-4'} ${selectedChatId === chat.id ? 'bg-white shadow-xl z-10' : 'hover:bg-white/80'}`}>
+                                                    <div className="relative flex-shrink-0">
+                                                        <div className={`${isSidebarCollapsed ? 'h-12 w-12' : 'h-14 w-14'} rounded-2xl flex items-center justify-center text-xl font-black text-[#004d4d] bg-gray-50 transition-all`} style={{ boxShadow: `inset 0 0 0 3px ${currentStage?.color || '#eee'}` }}>{chat.customer.name.charAt(0)}</div>
+                                                        <div className="absolute -bottom-1 -right-1 h-7 w-7 bg-white rounded-xl flex items-center justify-center shadow-xl border border-gray-100 p-1.5 z-10"><img src={(CHANNEL_CONFIG as any)[chat.source]?.logo || '/assets/logowhatsapp.webp'} className="w-full h-full object-contain" /></div>
+                                                    </div>
+                                                    {!isSidebarCollapsed && <div className="flex-1 min-w-0"><p className="text-sm font-black truncate">{chat.customer.name}</p><span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: currentStage?.color }}>{currentStage?.label}</span></div>}
                                                 </div>
-                                                {!isSidebarCollapsed && <div className="flex-1 min-w-0"><p className="text-sm font-black truncate">{chat.customer.name}</p><span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: currentStage?.color }}>{currentStage?.label}</span></div>}
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })
+                                    )}
                                 </div>
                             </motion.div>
                             <div className="flex-1 flex flex-col bg-white relative">
-                                {selectedChat && (
+                                {selectedChat ? (
                                     <>
                                         <div className="px-12 py-8 border-b border-gray-100 flex items-center justify-between">
-                                            <div className="flex items-center gap-6 relative"><div className="relative"><button onClick={() => setShowCustomerProfile(true)} className="h-20 w-20 rounded-[2.2rem] text-white flex items-center justify-center text-3xl font-black shadow-2xl transition-all hover:scale-105 active:scale-95" style={{ backgroundColor: stages.find(s => s.key === selectedChat.status)?.color }}>{selectedChat.customer.name.charAt(0)}</button><div className="absolute -bottom-2 -right-2 h-10 w-10 bg-white rounded-2xl flex items-center justify-center shadow-2xl border-4 border-gray-50 p-2"><img src={(CHANNEL_CONFIG as any)[selectedChat.source].logo} className="w-full h-full object-contain" /></div></div><div><h3 className="text-3xl font-black text-gray-900 tracking-tighter uppercase italic">{selectedChat.customer.name}</h3><div className="flex gap-3 items-center mt-1"><span className="h-2 w-2 rounded-full animate-pulse" style={{ backgroundColor: stages.find(s => s.key === selectedChat.status)?.color }}></span><p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#004d4d]">Vía {(CHANNEL_CONFIG as any)[selectedChat.source].name}</p></div></div></div>
+                                            <div className="flex items-center gap-6 relative"><div className="relative"><button onClick={() => setShowCustomerProfile(true)} className="h-20 w-20 rounded-[2.2rem] text-white flex items-center justify-center text-3xl font-black shadow-2xl transition-all hover:scale-105 active:scale-95" style={{ backgroundColor: stages.find(s => s.key === selectedChat.status)?.color }}>{selectedChat.customer.name.charAt(0)}</button><div className="absolute -bottom-2 -right-2 h-10 w-10 bg-white rounded-2xl flex items-center justify-center shadow-2xl border-4 border-gray-50 p-2"><img src={(CHANNEL_CONFIG as any)[selectedChat.source]?.logo || '/assets/logowhatsapp.webp'} className="w-full h-full object-contain" /></div></div><div><h3 className="text-3xl font-black text-gray-900 tracking-tighter uppercase italic">{selectedChat.customer.name}</h3><div className="flex gap-3 items-center mt-1"><span className="h-2 w-2 rounded-full animate-pulse" style={{ backgroundColor: stages.find(s => s.key === selectedChat.status)?.color }}></span><p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#004d4d]">Vía {(CHANNEL_CONFIG as any)[selectedChat.source]?.name || 'Desconocido'}</p></div></div></div>
                                             <div className="flex items-center gap-4"><button className="h-12 w-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400"><Settings2 size={20}/></button></div>
                                         </div>
                                         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-16 space-y-12 custom-scrollbar bg-gray-50/30"><div className="flex justify-center"><span className="px-4 py-1.5 bg-white border border-gray-100 rounded-full text-[8px] font-black text-gray-300 uppercase tracking-[0.3em]">Cifrado Activo</span></div></div>
                                         <div className="p-10 bg-white border-t border-gray-100 flex gap-6 items-center"><div className="flex gap-3"><button className="h-16 w-16 bg-gray-50 rounded-[1.5rem] flex items-center justify-center hover:bg-gray-100 transition-all"><Paperclip size={28}/></button></div><input type="text" placeholder="Escribe tu respuesta..." className="flex-1 bg-gray-50 border-2 border-transparent rounded-[2.2rem] px-10 py-6 text-base font-bold outline-none focus:bg-white focus:border-[#00f2ff]/30 transition-all shadow-inner" /><button className="bg-[#004d4d] text-white h-20 w-20 rounded-[2rem] shadow-xl flex items-center justify-center hover:bg-black transition-all group"><Send size={32} className="text-[#00f2ff]"/></button></div>
                                     </>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center h-full text-gray-300">
+                                        <MessageSquare size={64} className="mb-4 opacity-20" />
+                                        <p className="text-sm font-black uppercase tracking-widest">Selecciona un chat</p>
+                                    </div>
                                 )}
                             </div>
                         </div>
