@@ -73,7 +73,9 @@ export default function MensajesPage() {
     const { showToast } = useToast();
     const [view, setView] = useState<'inbox' | 'crm' | 'channels'>('inbox');
     const [chats, setChats] = useState(MOCK_CHATS_INIT);
-    const [selectedChatId, setSelectedChatId] = useState<string | null>(MOCK_CHATS_INIT.length > 0 ? MOCK_CHATS_INIT[0].id : null);
+    const [selectedChatId, setSelectedChatId] = useState<string | null>(() => {
+        return MOCK_CHATS_INIT.length > 0 ? MOCK_CHATS_INIT[0].id : null;
+    });
     const [showCustomerProfile, setShowCustomerProfile] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [showInfoModal, setShowInfoModal] = useState(false);
