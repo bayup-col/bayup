@@ -38,7 +38,8 @@ import {
   Camera,
   X,
   Ghost,
-  ExternalLink
+  ExternalLink,
+  LogOut
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
