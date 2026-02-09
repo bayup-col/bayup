@@ -150,6 +150,14 @@ def register_user(user: schemas.UserCreate, background_tasks: BackgroundTasks, d
     hashed_password = security.get_password_hash(user.password)
     default_plan = crud.get_default_plan(db)
     
+    # Generar shop_slug automático
+    base_slug = user.email.split('@')[0].replace('.', '-').lower()
+    shop_slug = base_slug
+    counter = 1
+    while crud.get_user_by_slug(db, shop_slug):
+        shop_slug = f"{base_slug}-{counter}"
+        counter += 1
+
     new_user = models.User(
         id=uuid.uuid4(),
         email=user.email.lower().strip(),
@@ -159,7 +167,8 @@ def register_user(user: schemas.UserCreate, background_tasks: BackgroundTasks, d
         status="Activo",
         is_global_staff=False, # PROHIBIDO ser global para clientes
         plan_id=default_plan.id if default_plan else None,
-        permissions={} # Tienda vacía sin permisos heredados
+        permissions={}, # Tienda vacía sin permisos heredados
+        shop_slug=shop_slug # Slug automático
     )
     
     db.add(new_user)
