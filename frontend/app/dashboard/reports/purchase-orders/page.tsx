@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
-  Plus, ShoppingCart, ChevronDown, Search, X, CheckCircle2, Mail, MessageSquare, Bell, Calendar,
+  Plus, ShoppingCart, ChevronDown, Search, X, CheckCircle2, Mail, MessageSquare, Bell, Calendar as CalendarIcon,
   Filter, ArrowUpRight, MoreVertical, ExternalLink, Users, Package, Clock, DollarSign, Rocket,
   Trash2, Send, History as LucideHistory, Truck, Store, ChevronRight, Download, ShieldCheck,
   AlertCircle, FileText, Zap, ArrowRight, Layers, LayoutGrid, Sparkles, Bot, CreditCard, Target,
-  Info, RotateCcw, Star, BarChart3, PieChart, TrendingUp, Activity, QrCode, Save
+  Info, RotateCcw, Star, BarChart3, Activity, QrCode, Save, RefreshCw, ArrowDownRight, Printer
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
 import jsPDF from 'jspdf';
@@ -23,12 +23,25 @@ interface PurchaseOrder {
     id: string;
     provider: { name: string; email: string; phone: string };
     warehouse: string;
-    status: 'sent' | 'partially_received' | 'received' | 'canceled';
+    status: 'sent' | 'received' | 'canceled';
     items: POItem[];
     total: number;
     created_at: string;
     expected_at: string;
     history: { date: string; status: string; user: string; comment: string }[];
+}
+
+interface MetricData {
+    id: string;
+    title: string;
+    value: any;
+    trend?: string;
+    trendUp?: boolean;
+    icon: any;
+    color: string;
+    bg: string;
+    description: string;
+    detailContent?: React.ReactNode;
 }
 
 // --- MOCK DATA ---
@@ -46,222 +59,338 @@ const MOCK_ORDERS: PurchaseOrder[] = [
     }
 ];
 
-// --- COMPONENTE NÚMEROS ANIMADOS ---
-function AnimatedNumber({ value }: { value: number }) {
-    const [display, setDisplay] = useState(0);
-    useEffect(() => {
-        let start = 0; const end = value; const duration = 1000; const increment = end / (duration / 16);
-        const timer = setInterval(() => {
-            start += increment; if (start >= end) { setDisplay(end); clearInterval(timer); } else { setDisplay(Math.floor(start)); }
-        }, 16);
-        return () => clearInterval(timer);
-    }, [value]);
-    return <span>{display.toLocaleString('es-CO')}</span>;
+// --- COMPONENTES DE APOYO ---
+function AnimatedNumber({ value, type = 'simple' }: { value: number, type?: 'simple' | 'currency' | 'percent' }) {
+    const spring = useSpring(0, { mass: 0.8, stiffness: 75, damping: 15 });
+    const display = useTransform(spring, (current: number) => {
+        if (type === 'percent') return `${current.toFixed(1)}%`;
+        if (type === 'simple') return Math.round(current).toLocaleString();
+        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(current);
+    });
+    useEffect(() => { spring.set(value); }, [value, spring]);
+    return <motion.span>{display}</motion.span>;
 }
 
-// --- COMPONENTE TILT CARD ---
-const TiltCard = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => {
-    const [rotateX, setRotateX] = useState(0); const [rotateY, setRotateY] = useState(0);
-    const [glarePos, setGlarePos] = useState({ x: 50, y: 50, opacity: 0 });
+const TiltCard = ({ data, onClick }: { data: MetricData, onClick: () => void }) => {
+    const x = useMotionValue(0);
+    const y = useMotionValue(0);
+    const mouseXSpring = useSpring(x);
+    const mouseYSpring = useSpring(y);
+    const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["10deg", "-10deg"]);
+    const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-10deg", "10deg"]);
+
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        const card = e.currentTarget; const box = card.getBoundingClientRect();
-        const centerX = box.width / 2; const centerY = box.height / 2;
-        setRotateX((e.clientY - box.top - centerY) / 7); setRotateY((centerX - (e.clientX - box.left)) / 7);
-        setGlarePos({ x: ((e.clientX - box.left)/box.width)*100, y: ((e.clientY - box.top)/box.height)*100, opacity: 0.3 });
+        const rect = e.currentTarget.getBoundingClientRect();
+        x.set((e.clientX - rect.left) / rect.width - 0.5);
+        y.set((e.clientY - rect.top) / rect.height - 0.5);
     };
+
     return (
-        <motion.div onMouseMove={handleMouseMove} onMouseLeave={() => { setRotateX(0); setRotateY(0); setGlarePos(p => ({...p, opacity: 0})); }} animate={{ rotateX, rotateY, scale: rotateX !== 0 ? 1.05 : 1 }} transition={{ type: "spring", stiffness: 250, damping: 20 }} style={{ transformStyle: "preserve-3d", perspective: "1000px" }} className={`bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-2xl flex flex-col justify-between group relative overflow-hidden h-full ${className}`}>
-            <div className="absolute inset-0 pointer-events-none transition-opacity duration-300" style={{ opacity: glarePos.opacity, background: `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255,255,255,0.9) 0%, transparent 50%)`, zIndex: 1 }} />
-            <div style={{ transform: "translateZ(80px)", position: "relative", zIndex: 2 }}>{children}</div>
-            <div className="absolute -bottom-20 -right-20 h-40 w-40 bg-[#00f2ff]/20 blur-[60px] rounded-full pointer-events-none" />
+        <motion.div
+            onMouseMove={handleMouseMove}
+            onMouseLeave={() => { x.set(0); y.set(0); }}
+            onClick={onClick}
+            style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+            className="relative h-48 cursor-pointer group"
+            whileHover={{ scale: 1.02 }}
+        >
+            <div className="relative h-full bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm transition-all duration-300 group-hover:shadow-2xl overflow-hidden text-left">
+                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${data.bg} opacity-20 rounded-bl-[4rem] -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-700`}></div>
+                <div className="relative z-10 flex flex-col h-full justify-between" style={{ transform: "translateZ(30px)" }}>
+                    <div className="flex items-start justify-between">
+                        <div className={`p-3 rounded-2xl ${data.bg} ${data.color} shadow-lg shadow-current/10 border border-white/50`}>{data.icon}</div>
+                        {data.trend && (
+                             <div className={`flex items-center gap-1 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider ${data.trendUp ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                {data.trendUp ? <ArrowUpRight size={12}/> : <ArrowDownRight size={12}/>} {data.trend}
+                             </div>
+                        )}
+                    </div>
+                    <div className="mt-4">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{data.title}</p>
+                        <h3 className="text-4xl font-black text-slate-900 tracking-tighter italic">
+                            <AnimatedNumber value={data.value} type={data.id === 'inversion' ? 'currency' : data.id === 'cumplimiento' ? 'percent' : 'simple'} />
+                        </h3>
+                    </div>
+                </div>
+            </div>
         </motion.div>
     );
 };
 
+const MetricModal = ({ metric, onClose }: { metric: MetricData | null, onClose: () => void }) => {
+    if (!metric) return null;
+    return (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" />
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden border border-white">
+                <div className={`p-10 bg-gradient-to-br ${metric.bg} relative overflow-hidden`}>
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/30 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                    <div className="relative z-10 flex items-center justify-between">
+                        <div className={`h-14 w-14 rounded-2xl bg-white flex items-center justify-center ${metric.color} shadow-xl`}>{metric.icon}</div>
+                        <button onClick={onClose} className="h-10 w-10 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-slate-900 transition-colors"><X size={20}/></button>
+                    </div>
+                    <div className="relative z-10 mt-8">
+                        <h3 className="text-4xl font-black text-slate-900 tracking-tighter italic">
+                            {metric.id === 'inversion' ? `$ ${metric.value.toLocaleString()}` : metric.id === 'cumplimiento' ? `${metric.value}%` : metric.value}
+                        </h3>
+                        <p className="text-xs font-bold text-slate-600 uppercase tracking-widest opacity-70 mt-1">{metric.title}</p>
+                    </div>
+                </div>
+                <div className="p-10">
+                     <p className="text-slate-500 font-medium mb-8 text-sm leading-relaxed">{metric.description}</p>
+                     <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100">{metric.detailContent}</div>
+                     <button onClick={onClose} className="w-full mt-8 py-5 rounded-2xl bg-[#004D4D] text-white font-black text-xs uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl shadow-cyan-900/20">Cerrar Análisis</button>
+                </div>
+            </motion.div>
+        </div>
+    );
+};
+
+// --- COMPONENTE PRINCIPAL ---
 export default function PurchaseOrdersPage() {
     const { showToast } = useToast();
-    
-    // --- ESTADOS ---
-    const [activeTab, setActiveTab] = useState<'todos' | 'pendientes' | 'recibidos' | 'proveedores' | 'bayt'>('todos');
-    const [orders, setOrders] = useState<PurchaseOrder[]>(MOCK_ORDERS);
+    const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+    const [activeTab, setActiveTab] = useState<'todos' | 'sent' | 'received' | 'proveedores' | 'bayt'>('todos');
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
-    const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
+    const [selectedMetric, setSelectedMetric] = useState<MetricData | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isGuideOpen, setIsGuideOpen] = useState(false);
-    const [activeGuideStep, setActiveGuideStep] = useState(0);
+    const [activeGuideTab, setActiveGuideTab] = useState('ciclo');
+    
+    // UI States
+    const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+    const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
+    const [isFilterHovered, setIsFilterHovered] = useState(false);
+    const [isDateHovered, setIsDateHovered] = useState(false);
+    const [isExportHovered, setIsExportHovered] = useState(false);
+    const [dateRange, setDateRange] = useState({ from: '', to: '' });
 
-    // --- ESTADOS CREADOR ---
+    // Empresa Info para el preview
     const [companyInfo, setCompanyInfo] = useState<any>(null);
-    const [newPOHeader, setNewPOHeader] = useState({ provider_name: '', warehouse: 'Bodega Central', expected_at: new Date().toISOString().split('T')[0] });
-    const [newPOItems, setNewPOItems] = useState<POItem[]>([{ id: '1', name: '', sku: '', qty: 1, cost: 0, received: 0 }]);
+
+    // Formulario Nueva Orden
+    const [newPO, setNewPO] = useState({ 
+        provider: '', 
+        warehouse: 'Bodega Central', 
+        expected_at: new Date().toISOString().split('T')[0], 
+        items: [{ id: '1', name: '', sku: '', qty: 1, cost: 0, received: 0 }] 
+    });
 
     useEffect(() => {
+        const savedOrders = localStorage.getItem('bayup_purchase_orders');
+        if (savedOrders) setOrders(JSON.parse(savedOrders));
+        else setOrders(MOCK_ORDERS);
+
         const savedSettings = localStorage.getItem('bayup_general_settings');
         if (savedSettings) setCompanyInfo(JSON.parse(savedSettings));
     }, []);
 
-    const newPOTotal = useMemo(() => newPOItems.reduce((acc, i) => acc + (i.qty * i.cost), 0), [newPOItems]);
-    const formatCurrency = (amount: number) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount).replace('$', '$ ');
+    useEffect(() => {
+        if (orders.length > 0) localStorage.setItem('bayup_purchase_orders', JSON.stringify(orders));
+    }, [orders]);
+
+    const formatCurrency = (amount: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
+
+    const kpiData: MetricData[] = useMemo(() => [
+        { id: 'abiertas', title: 'Órdenes Abiertas', value: orders.filter(o=>o.status==='sent').length, trend: 'En tránsito', trendUp: true, icon: <ShoppingCart size={24}/>, color: 'text-slate-600', bg: 'from-slate-50 to-slate-100', description: 'Volumen total de pedidos a proveedores esperando recepción.', detailContent: <div className="space-y-2"><p className="text-[10px] font-bold text-slate-500 uppercase italic">Stock entrante valorado en: {formatCurrency(orders.filter(o=>o.status==='sent').reduce((a,b)=>a+b.total,0))}</p></div> },
+        { id: 'inversion', title: 'Inversión Total', value: orders.reduce((a,b)=>a+b.total,0), trend: '+12% vs dic', trendUp: true, icon: <DollarSign size={24}/>, color: 'text-emerald-600', bg: 'from-emerald-50 to-teal-50', description: 'Capital total invertido en inventario históricamente.', detailContent: <div className="h-12 flex items-end gap-1">{[40, 70, 45, 90, 60, 80].map((h, i) => (<div key={i} className="w-full bg-emerald-500 rounded-t-sm" style={{ height: `${h}%` }}></div>))}</div> },
+        { id: 'proveedores', title: 'Proveedores', value: new Set(orders.map(o=>o.provider.name)).size, trend: 'Red Activa', trendUp: true, icon: <Users size={24}/>, color: 'text-blue-600', bg: 'from-blue-50 to-cyan-50', description: 'Número de aliados estratégicos registrados en la cadena.', detailContent: <div className="p-4 bg-blue-500 rounded-xl text-white text-center font-black uppercase text-[10px]">Supply Score: 9.2/10</div> },
+        { id: 'cumplimiento', title: 'Efectividad', value: 94.2, trend: 'SLA Óptimo', trendUp: true, icon: <CheckCircle2 size={24}/>, color: 'text-cyan-600', bg: 'from-cyan-50 to-blue-50', description: 'Porcentaje de órdenes recibidas sin novedades de stock.', detailContent: <div className="flex items-center gap-2 text-emerald-600 font-bold text-xs"><CheckCircle2 size={14}/> 98% Precisión SKUs</div> }
+    ], [orders]);
+
+    const filteredOrders = useMemo(() => {
+        return orders.filter(o => {
+            const matchesSearch = o.id.toLowerCase().includes(searchTerm.toLowerCase()) || o.provider.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesTab = activeTab === 'todos' || o.status === activeTab;
+            let matchesDate = true;
+            if (dateRange.from && dateRange.to) {
+                const date = new Date(o.created_at).getTime();
+                matchesDate = date >= new Date(dateRange.from).getTime() && date <= new Date(dateRange.to).getTime();
+            }
+            return matchesSearch && matchesTab && matchesDate;
+        });
+    }, [orders, searchTerm, activeTab, dateRange]);
+
+    const handleSavePO = () => {
+        if (!newPO.provider || newPO.items.some(i => !i.name)) return;
+        const total = newPO.items.reduce((acc, i) => acc + (i.qty * i.cost), 0);
+        const order: PurchaseOrder = {
+            id: `PO-${Date.now().toString().slice(-6)}`,
+            provider: { name: newPO.provider, email: '', phone: '' },
+            warehouse: newPO.warehouse, status: 'sent',
+            items: newPO.items, total, created_at: new Date().toISOString().split('T')[0],
+            expected_at: newPO.expected_at, history: [{ date: 'Hoy', status: 'Enviada', user: 'Admin', comment: 'Orden emitida' }]
+        };
+        setOrders([order, ...orders]); setIsCreateModalOpen(false);
+        setNewPO({ provider: '', warehouse: 'Bodega Central', expected_at: new Date().toISOString().split('T')[0], items: [{ id: '1', name: '', sku: '', qty: 1, cost: 0, received: 0 }] });
+        showToast("Orden de Compra enviada con éxito 🚀", "success");
+    };
 
     const handleDownloadPO = (order: PurchaseOrder) => {
         const doc = new jsPDF();
-        
-        // Estética Platinum
-        doc.setFillColor(0, 26, 26);
-        doc.rect(0, 0, 210, 40, 'F');
-        doc.setTextColor(0, 242, 255);
-        doc.setFontSize(22);
-        doc.text("BAYUP SUPPLY CHAIN", 105, 20, { align: 'center' });
-        doc.setFontSize(10);
-        doc.text(`ORDEN DE COMPRA: ${order.id} | Emisión: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' });
-
-        doc.setTextColor(40, 40, 40);
-        doc.setFontSize(12);
-        doc.text("DATOS DEL PROVEEDOR:", 14, 55);
-        doc.setFontSize(10);
-        doc.text([
-            `Nombre: ${order.provider.name}`,
-            `Email: ${order.provider.email || 'N/A'}`,
-            `Teléfono: ${order.provider.phone || 'N/A'}`,
-            `Bodega de Recepción: ${order.warehouse}`
-        ], 14, 62);
-
-        autoTable(doc, {
-            startY: 90,
-            head: [['Producto', 'SKU', 'Cant.', 'Costo Unit.', 'Subtotal']],
-            body: order.items.map(i => [i.name, i.sku, i.qty, formatCurrency(i.cost), formatCurrency(i.qty * i.cost)]),
-            headStyles: { fillColor: [0, 77, 77], textColor: [255, 255, 255], fontStyle: 'bold' },
-            foot: [['', '', '', 'TOTAL ORDEN:', formatCurrency(order.total)]],
-            footStyles: { fillColor: [240, 253, 244], textColor: [16, 185, 129], fontStyle: 'bold' },
-            theme: 'striped'
-        });
-
-        doc.save(`Orden_Compra_${order.id}.pdf`);
-        showToast("PDF generado con éxito 📄", "success");
+        doc.setFillColor(0, 26, 26); doc.rect(0, 0, 210, 40, 'F');
+        doc.setTextColor(0, 242, 255); doc.setFontSize(22); doc.text("ORDEN DE COMPRA", 105, 20, { align: 'center' });
+        autoTable(doc, { startY: 60, head: [['Ítem', 'SKU', 'Cant.', 'Costo', 'Subtotal']], body: order.items.map(i => [i.name, i.sku, i.qty, formatCurrency(i.cost), formatCurrency(i.qty * i.cost)]), headStyles: { fillColor: [0, 77, 77] } });
+        doc.save(`PO_${order.id}.pdf`);
     };
 
-    const renderKPIs = () => (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 shrink-0">
-            {[
-                { id: 'abiertas', label: 'Órdenes Abiertas', value: 12, icon: <ShoppingCart size={20}/>, color: 'text-[#004d4d]' },
-                { id: 'inversion', label: 'Inversión Mensual', value: 45200000, isCurrency: true, icon: <DollarSign size={20}/>, color: 'text-emerald-600' },
-                { id: 'proveedores', label: 'Proveedores Top', value: 8, icon: <Users size={20}/>, color: 'text-amber-500' },
-                { id: 'cumplimiento', label: 'Cumplimiento', value: 94.2, isPercent: true, icon: <CheckCircle2 size={20}/>, color: 'text-[#00f2ff]' },
-            ].map((kpi, i) => (
-                <div key={i} onClick={() => setSelectedKPI(kpi.id)} className="cursor-pointer h-full">
-                    <TiltCard className="p-8">
-                        <div className="flex justify-between items-start"><div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color}`}>{kpi.icon}</div><span className="text-[10px] font-black px-2 py-1 bg-gray-50 text-gray-400 rounded-lg uppercase">Stats</span></div>
-                        <div className="mt-6"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p><h3 className="text-3xl font-black text-gray-900 mt-1">{kpi.isCurrency && "$ "}<AnimatedNumber value={kpi.value} />{kpi.isPercent && "%"}</h3></div>
-                    </TiltCard>
-                </div>
-            ))}
-        </div>
-    );
-
-    const renderOrderList = () => (
-        <div className="px-4 space-y-4">
-            {orders.filter(o => activeTab === 'todos' || (activeTab === 'pendientes' && o.status !== 'received') || (activeTab === 'recibidos' && o.status === 'received')).map((o) => (
-                <motion.div key={o.id} onClick={() => setSelectedOrder(o)} whileHover={{ x: 5 }} className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-10 cursor-pointer group">
-                    <div className="flex items-center gap-6 flex-1"><div className="h-16 w-16 rounded-[1.8rem] bg-gray-900 text-white flex items-center justify-center text-xl font-black shadow-2xl"><ShoppingCart size={24} /></div><div><h4 className="text-xl font-black text-gray-900 tracking-tight">{o.id}</h4><p className="text-sm font-bold text-[#004d4d] italic">{o.provider.name}</p></div></div>
-                    <div className="flex items-center gap-6"><div className="text-right"><p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total</p><p className="text-xl font-black text-gray-900">{formatCurrency(o.total)}</p></div><button onClick={(e) => { e.stopPropagation(); handleDownloadPO(o); }} className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-400 hover:text-[#004d4d] flex items-center justify-center transition-all shadow-inner"><Download size={20}/></button><button className="h-12 w-12 rounded-2xl bg-gray-900 text-white flex items-center justify-center shadow-lg"><ArrowUpRight size={20} /></button></div>
-                </motion.div>
-            ))}
-        </div>
-    );
+    const guideContent = {
+        ciclo: { title: 'Ciclo Abasto', icon: <ShoppingCart size={20}/>, color: 'text-blue-500', how: 'Crea órdenes para reponer stock basado en alertas de Bayt. La orden nace como "Enviada" y bloquea el capital en proyecciones.', tip: 'No pidas más de lo que vendes en 30 días.' },
+        recepcion: { title: 'Recepción', icon: <CheckCircle2 size={20}/>, color: 'text-emerald-500', how: 'Al llegar la mercancía física, usa "Recepcionar". Esto carga el stock automáticamente a tu bodega y cierra la orden financiera.', tip: 'Cuenta cada unidad antes de confirmar.' },
+        aliados: { title: 'Aliados', icon: <Users size={20}/>, color: 'text-cyan-500', how: 'Mide el SLA (Tiempo de Entrega) de cada proveedor. Bayt califica a tus aliados según la precisión de lo enviado.', tip: 'Diversifica para evitar quiebres de stock.' },
+        bayt: { title: 'IA Supply', icon: <Bot size={20}/>, color: 'text-[#004D4D]', how: 'Bayt analiza tendencias de venta y te sugiere qué productos pedir hoy para evitar agotados el próximo mes.', tip: 'Sigue las sugerencias marcadas con chispa ✨.' }
+    };
 
     return (
-        <div className="max-w-[1600px] mx-auto pb-20 space-y-12 animate-in fade-in duration-1000">
-            {/* Header */}
-            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8 px-4 shrink-0">
-                <div><div className="flex items-center gap-3 mb-2"><span className="h-2 w-2 rounded-full bg-[#00f2ff] animate-pulse"></span><span className="text-[10px] font-black uppercase text-[#004d4d]/60 tracking-[0.2em]">Supply Chain Intelligence</span></div><h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">Órdenes de <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF]">Compra</span></h1><p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed italic">Gestión de abastecimiento certificada.</p></div>
-                <button onClick={() => setIsCreateModalOpen(true)} className="h-14 px-10 bg-gray-900 text-white rounded-full font-black text-[10px] uppercase shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group"><Rocket size={18} className="text-[#00f2ff] group-hover:rotate-12 transition-transform" /> Nueva Orden</button>
+        <div className="min-h-screen bg-[#FAFAFA] text-slate-900 font-sans pb-20">
+            <div className="px-8 py-10 max-w-[1600px] mx-auto flex justify-between items-end">
+                <div><h1 className="text-5xl font-black italic uppercase tracking-tighter text-[#001A1A]">Órdenes de <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF]">Compra</span></h1><p className="text-[#004d4d]/60 mt-2 font-medium">Gestión estratégica de abastecimiento.</p></div>
+                <button onClick={() => setIsCreateModalOpen(true)} className="h-14 px-10 bg-gray-900 text-white rounded-full font-black text-[10px] uppercase shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group">
+                    <Rocket size={18} className="text-[#00f2ff] group-hover:rotate-12 transition-transform" />
+                    Nueva Orden
+                </button>
             </div>
 
-            {renderKPIs()}
-
-            <div className="flex items-center justify-center gap-6 relative z-20">
-                <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl flex items-center overflow-x-auto relative">
-                    {[ { id: 'todos', label: 'Todos', icon: <LayoutGrid size={14}/> }, { id: 'pendientes', label: 'Pendientes', icon: <Clock size={14}/> }, { id: 'recibidos', label: 'Recibidos', icon: <CheckCircle2 size={14}/> }, { id: 'proveedores', label: 'Proveedores', icon: <Users size={14}/> }, { id: 'bayt', label: 'Bayt Insight', icon: <Sparkles size={14}/> } ].map((tab) => (
-                        <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`relative px-8 py-3.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab.id ? 'text-white' : 'text-gray-400 hover:text-gray-900'}`}>{activeTab === tab.id && <motion.div layoutId="activePOtab" className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" />}{tab.icon} {tab.label}</button>
-                    ))}
+            <main className="px-8 max-w-[1600px] mx-auto space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {kpiData.map((data) => ( <TiltCard key={data.id} data={data} onClick={() => setSelectedMetric(data)} /> ))}
                 </div>
-                <button onClick={() => setIsGuideOpen(true)} className="h-12 w-12 rounded-full bg-white border border-gray-100 shadow-xl flex items-center justify-center text-[#004D4D] hover:bg-black hover:text-white transition-all group shrink-0"><Info size={20} className="group-hover:scale-110 transition-transform" /></button>
-            </div>
 
-            <AnimatePresence mode="wait">
-                <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
-                    {(activeTab === 'todos' || activeTab === 'pendientes' || activeTab === 'recibidos') && renderOrderList()}
-                    {activeTab === 'bayt' && (
-                        <div className="px-4"><div className="bg-[#004d4d] p-16 rounded-[4rem] text-white relative overflow-hidden shadow-2xl"><div className="flex items-center gap-16 relative z-10"><div className="h-32 w-32 bg-gray-900 rounded-[3rem] flex items-center justify-center"><Bot size={64} className="text-[#00f2ff]" /></div><div className="flex-1 space-y-6"><h3 className="text-4xl font-black italic uppercase">Supply Insight</h3><p className="text-lg font-medium italic">"Bayt detectó un retraso potencial en textiles. Sugiero diversificar proveedores."</p></div></div></div></div>
-                    )}
-                </motion.div>
-            </AnimatePresence>
-
-            {/* MODAL DETALLE KPI DINÁMICO */}
-            <AnimatePresence>
-                {selectedKPI && (
-                    <div className="fixed inset-0 z-[2500] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedKPI(null)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-3xl overflow-hidden border border-white">
-                            <div className="p-10 bg-gradient-to-br from-gray-900 to-[#001a1a] text-white relative">
-                                <button onClick={() => setSelectedKPI(null)} className="absolute top-6 right-6 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all group"><X size={20} className="group-hover:rotate-90 transition-transform"/></button>
-                                <div className="space-y-4">
-                                    <h3 className="text-3xl font-black italic uppercase tracking-tighter">
-                                        {selectedKPI === 'abiertas' ? 'Órdenes Activas' : 
-                                         selectedKPI === 'inversion' ? 'Análisis Inversión' : 
-                                         selectedKPI === 'proveedores' ? 'Red de Aliados' : 'Tasa Cumplimiento'}
-                                    </h3>
-                                    <p className="text-[10px] font-black uppercase text-[#00f2ff] mt-2 tracking-[0.3em]">Supply Strategist Bayup</p>
-                                </div>
-                            </div>
-                            <div className="p-10 space-y-8">
-                                {selectedKPI === 'abiertas' && (<div className="p-6 bg-gray-50 rounded-2xl"><p className="text-xs font-medium italic">"12 órdenes en tránsito. El 40% llega esta semana según la promesa de entrega."</p></div>)}
-                                {selectedKPI === 'inversion' && (<div className="p-6 bg-gray-50 rounded-2xl"><p className="text-xs font-medium italic">"Inversión mensual de $45.2M. Has optimizado el costo unitario un 5.2% vs Diciembre."</p></div>)}
-                                {selectedKPI === 'proveedores' && (<div className="p-6 bg-gray-50 rounded-2xl"><p className="text-xs font-medium italic">"8 proveedores activos. Textiles del Norte lidera con un 98% de cumplimiento."</p></div>)}
-                                {selectedKPI === 'cumplimiento' && (<div className="p-6 bg-gray-50 rounded-2xl"><p className="text-xs font-medium italic">"Índice de 94.2%. Solo se reportaron novedades en 3 de cada 50 items recibidos."</p></div>)}
-                                <button onClick={() => setSelectedKPI(null)} className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl hover:bg-black transition-all">Cerrar</button>
-                            </div>
-                        </motion.div>
+                <div className="flex flex-col items-center gap-6">
+                    <div className="flex items-center gap-4">
+                        <div className="p-1.5 bg-white border border-slate-200 rounded-full shadow-xl flex items-center relative z-10 overflow-x-auto">
+                            {[ { id: 'todos', label: 'Todos' }, { id: 'sent', label: 'Enviadas' }, { id: 'received', label: 'Cerradas' } ].map((tab) => (
+                                <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`relative px-8 py-3 rounded-full text-xs font-black uppercase transition-all z-10 whitespace-nowrap ${activeTab === tab.id ? 'text-white' : 'text-slate-500'}`}>
+                                    {activeTab === tab.id && <motion.div layoutId="activePOtab" className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" />}
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+                        <button onClick={() => setIsGuideOpen(true)} className="h-12 w-12 rounded-full bg-white border border-slate-200 shadow-lg flex items-center justify-center text-[#004D4D] hover:bg-black hover:text-white transition-all active:scale-95 group"><Info size={20}/></button>
                     </div>
-                )}
-            </AnimatePresence>
 
-            {/* MODAL NUEVA ORDEN MAESTRO */}
+                    <div className="w-full flex justify-between items-center bg-white p-2 rounded-2xl border border-slate-100 shadow-sm relative z-30">
+                        <div className="relative w-full max-w-md"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} /><input type="text" placeholder="Buscar folio o proveedor..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-transparent text-sm outline-none" /></div>
+                        <div className="flex items-center gap-1">
+                            <div className="relative">
+                                <motion.button layout onMouseEnter={() => setIsFilterHovered(true)} onMouseLeave={() => setIsFilterHovered(false)} onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isFilterMenuOpen ? 'bg-[#004D4D] text-white' : 'bg-white border border-slate-100 text-slate-500'}`}><Filter size={18}/> {isFilterHovered && <motion.span className="text-[10px] font-black uppercase px-1">Filtros</motion.span>}</motion.button>
+                                {isFilterMenuOpen && (<div className="absolute top-full mt-2 right-0 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-[60]">{['todos', 'sent', 'received'].map(f => (<button key={f} onClick={() => { setActiveTab(f as any); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 text-[10px] font-black uppercase text-slate-500 hover:bg-slate-50 rounded-xl">{f === 'sent' ? 'Enviadas' : f === 'received' ? 'Recibidas' : 'Todas'}</button>))}</div>)}
+                            </div>
+                            <div className="relative">
+                                <motion.button layout onMouseEnter={() => setIsDateHovered(true)} onMouseLeave={() => setIsDateHovered(false)} onClick={() => setIsDateMenuOpen(!isDateMenuOpen)} className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isDateMenuOpen ? 'bg-[#004D4D] text-white' : 'bg-white border border-slate-100 text-slate-500'}`}><CalendarIcon size={18}/> {isDateHovered && <motion.span className="text-[10px] font-black uppercase px-1">Fecha</motion.span>}</motion.button>
+                                {isDateMenuOpen && (<div className="absolute top-full mt-2 right-0 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 z-[60] space-y-4"><div className="grid grid-cols-2 gap-2"><input type="date" value={dateRange.from} onChange={e=>setDateRange({...dateRange, from: e.target.value})} className="w-full p-2 bg-slate-50 rounded-lg text-[10px] outline-none"/><input type="date" value={dateRange.to} onChange={e=>setDateRange({...dateRange, to: e.target.value})} className="w-full p-2 bg-slate-50 rounded-lg text-[10px] outline-none"/></div><button onClick={()=>setIsDateMenuOpen(false)} className="w-full py-2 bg-[#004D4D] text-white rounded-lg text-[9px] font-black uppercase tracking-widest">Aplicar Rango</button></div>)}
+                            </div>
+                            <motion.button layout onMouseEnter={() => setIsExportHovered(true)} onMouseLeave={() => setIsExportHovered(false)} onClick={()=>{}} className="h-12 flex items-center gap-2 px-4 rounded-2xl bg-white border border-slate-100 text-slate-500 hover:text-emerald-600 transition-all"><Download size={18}/> {isExportHovered && <motion.span className="text-[10px] font-black uppercase px-1">PDF Global</motion.span>}</motion.button>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-[3rem] shadow-sm overflow-hidden relative z-10">
+                    <table className="w-full text-left">
+                        <thead><tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest"><th className="p-8">Orden</th><th className="p-8">Proveedor</th><th className="p-8 text-center">Estado</th><th className="p-8 text-right">Total</th></tr></thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {filteredOrders.map((o) => (
+                                <tr key={o.id} onClick={() => setSelectedOrder(o)} className="group hover:bg-slate-50 transition-all cursor-pointer">
+                                    <td className="p-8"><p className="text-sm font-black">{o.id}</p><p className="text-[10px] text-slate-400 font-bold uppercase">{o.warehouse}</p></td>
+                                    <td className="p-8"><p className="text-sm font-bold">{o.provider.name}</p><p className="text-[10px] text-slate-400">{o.created_at}</p></td>
+                                    <td className="p-8 text-center"><span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${o.status === 'received' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>{o.status === 'received' ? 'Cerrada' : 'Enviada'}</span></td>
+                                    <td className="p-8 text-right font-black text-slate-900">{formatCurrency(o.total)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+
+            <AnimatePresence>{selectedMetric && <MetricModal metric={selectedMetric} onClose={() => setSelectedMetric(null)} />}</AnimatePresence>
+
+            {/* MODAL NUEVA ORDEN (DISEÑO PROFESIONAL DUAL) */}
             <AnimatePresence>
                 {isCreateModalOpen && (
                     <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCreateModalOpen(false)} className="absolute inset-0 bg-black/90 backdrop-blur-xl" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-[1400px] h-[90vh] rounded-[4rem] shadow-3xl overflow-hidden relative z-10 border border-white flex flex-col lg:flex-row">
-                            <button onClick={() => setIsCreateModalOpen(false)} className="absolute top-8 right-8 h-12 w-12 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-rose-500 shadow-xl group z-[100] transition-all"><X size={24} className="group-hover:rotate-90 transition-transform"/></button>
-                            <div className="w-full lg:w-[500px] bg-gray-50 border-r border-gray-100 p-10 overflow-y-auto custom-scrollbar flex flex-col space-y-8">
-                                <div className="flex items-center gap-4"><div className="h-12 w-12 bg-gray-900 rounded-2xl flex items-center justify-center text-[#00f2ff] shadow-lg"><Plus size={24}/></div><h3 className="text-xl font-black uppercase italic text-gray-900">Editor de Orden</h3></div>
-                                <div className="space-y-6">
-                                    <input value={newPOHeader.provider_name} onChange={e => setNewPOHeader({...newPOHeader, provider_name: e.target.value})} placeholder="Proveedor" className="w-full p-5 bg-white border border-gray-100 rounded-2xl outline-none text-sm font-bold shadow-sm" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-[#FAFAFA] w-full max-w-7xl h-[90vh] rounded-[4rem] shadow-3xl overflow-hidden relative border border-white/20 z-10 flex flex-col md:flex-row">
+                            
+                            {/* EDITOR (IZQUIERDA) */}
+                            <div className="flex-1 overflow-y-auto p-12 space-y-10 border-r border-gray-100 custom-scrollbar">
+                                <h2 className="text-3xl font-black text-[#004d4d] uppercase italic tracking-tighter">Configurar Orden</h2>
+                                
+                                <section className="space-y-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Proveedor Maestro</label>
+                                        <input value={newPO.provider} onChange={e => setNewPO({...newPO, provider: e.target.value})} placeholder="Nombre de la entidad proveedora..." className="w-full p-5 bg-white border border-gray-100 rounded-2xl outline-none focus:border-[#004d4d] text-sm font-bold shadow-sm" />
+                                    </div>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <select value={newPOHeader.warehouse} onChange={e => setNewPOHeader({...newPOHeader, warehouse: e.target.value})} className="w-full p-4 bg-white border border-gray-100 rounded-2xl outline-none text-xs font-bold"><option>Bodega Central</option><option>Sucursal Norte</option></select>
-                                        <input type="date" value={newPOHeader.expected_at} onChange={e => setNewPOHeader({...newPOHeader, expected_at: e.target.value})} className="w-full p-4 bg-white border border-gray-100 rounded-2xl outline-none text-xs font-bold" />
+                                        <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Bodega Destino</label><select value={newPO.warehouse} onChange={e=>setNewPO({...newPO, warehouse: e.target.value})} className="w-full p-5 bg-white border border-gray-100 rounded-2xl outline-none text-xs font-bold"><option>Bodega Central</option><option>Sucursal Norte</option></select></div>
+                                        <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Arribo Estimado</label><input type="date" value={newPO.expected_at} onChange={e=>setNewPO({...newPO, expected_at: e.target.value})} className="w-full p-5 bg-white border border-gray-100 rounded-2xl outline-none text-xs font-bold" /></div>
                                     </div>
-                                </div>
-                                <div className="pt-6 border-t border-gray-200 space-y-4">
-                                    <div className="flex justify-between items-center"><h4 className="text-[10px] font-black uppercase text-gray-400">Ítems</h4><button onClick={() => setNewPOItems([...newPOItems, { id: Date.now().toString(), name: '', sku: '', qty: 1, cost: 0, received: 0 }])} className="h-8 w-8 bg-gray-900 text-[#00f2ff] rounded-lg flex items-center justify-center"><Plus size={16}/></button></div>
-                                    {newPOItems.map(item => (<div key={item.id} className="p-4 bg-white border border-gray-100 rounded-2xl space-y-3 relative group"><button onClick={() => setNewPOItems(newPOItems.filter(i => i.id !== item.id))} className="absolute -top-2 -right-2 h-6 w-6 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><X size={12}/></button><input value={item.name} onChange={e => setNewPOItems(newPOItems.map(i => i.id === item.id ? {...i, name: e.target.value} : i))} placeholder="Producto" className="w-full text-[10px] font-bold outline-none" /><div className="grid grid-cols-2 gap-4"><input type="number" value={item.qty} onChange={e => setNewPOItems(newPOItems.map(i => i.id === item.id ? {...i, qty: parseInt(e.target.value)||0} : i))} className="p-2 bg-gray-50 rounded-lg text-[10px] font-black" /><input type="number" value={item.cost} onChange={e => setNewPOItems(newPOItems.map(i => i.id === item.id ? {...i, cost: parseInt(e.target.value)||0} : i))} className="p-2 bg-gray-50 rounded-lg text-[10px] font-black text-emerald-600" /></div></div>))}
-                                </div>
-                                <div className="mt-auto pt-8 border-t border-gray-200"><button onClick={() => { setOrders([{id:`PO-2026-${Math.floor(Math.random()*900)+100}`, provider:{name:newPOHeader.provider_name, email:'', phone:''}, warehouse:newPOHeader.warehouse, status:'sent', items:newPOItems, total:newPOTotal, created_at:new Date().toISOString(), expected_at:newPOHeader.expected_at, history:[]}, ...orders]); setIsCreateModalOpen(false); showToast("Orden Enviada 🚀", "success"); }} className="w-full py-5 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase shadow-2xl flex items-center justify-center gap-3"><Send size={18} className="text-[#00f2ff]"/> Confirmar y Procesar</button></div>
+                                </section>
+
+                                <section className="space-y-4">
+                                    <div className="flex justify-between items-center"><h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Detalle de Productos</h3><button onClick={() => setNewPO({...newPO, items: [...newPO.items, { id: Date.now().toString(), name: '', sku: '', qty: 1, cost: 0, received: 0 }]})} className="h-10 px-6 bg-gray-900 text-[#00f2ff] rounded-xl text-[10px] font-black uppercase shadow-lg">+ Añadir Ítem</button></div>
+                                    <div className="space-y-3">
+                                        {newPO.items.map((item, idx) => (
+                                            <div key={item.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm relative group animate-in slide-in-from-left-4 duration-300">
+                                                <button onClick={() => setNewPO({...newPO, items: newPO.items.filter(i => i.id !== item.id)})} className="absolute -top-2 -right-2 h-8 w-8 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md hover:bg-rose-500 hover:text-white"><X size={14}/></button>
+                                                <input value={item.name} onChange={e => { const items = [...newPO.items]; items[idx].name = e.target.value; setNewPO({...newPO, items}); }} placeholder="Nombre del producto..." className="w-full text-sm font-black outline-none mb-4" />
+                                                <div className="grid grid-cols-2 gap-6">
+                                                    <div className="space-y-1"><p className="text-[8px] font-black text-gray-400 uppercase ml-1">Cantidad</p><input type="number" value={item.qty} onChange={e => { const items = [...newPO.items]; items[idx].qty = parseInt(e.target.value)||0; setNewPO({...newPO, items}); }} className="w-full p-3 bg-gray-50 rounded-xl text-xs font-black outline-none border border-transparent focus:border-[#004d4d]" /></div>
+                                                    <div className="space-y-1"><p className="text-[8px] font-black text-gray-400 uppercase ml-1">Costo Unit.</p><input type="number" value={item.cost} onChange={e => { const items = [...newPO.items]; items[idx].cost = parseInt(e.target.value)||0; setNewPO({...newPO, items}); }} className="w-full p-3 bg-gray-50 rounded-xl text-xs font-black outline-none border border-transparent focus:border-emerald-500 text-emerald-600" /></div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
                             </div>
-                            <div className="flex-1 bg-[#FAFAFA] p-16 overflow-y-auto relative flex justify-center">
-                                <div className="w-[800px] bg-white shadow-2xl p-16 border border-gray-200 min-h-[1000px] relative text-slate-900 h-fit">
-                                    <div className="flex justify-between items-start mb-12">
+
+                            {/* DOCUMENTO PROFESIONAL (DERECHA) */}
+                            <div className="w-full md:w-[550px] bg-gray-900 p-12 flex flex-col justify-between relative">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]"></div>
+                                
+                                <div className="bg-white rounded-3xl p-10 shadow-2xl h-fit space-y-10 relative overflow-hidden min-h-[700px] flex flex-col">
+                                    <div className="absolute top-0 right-0 p-4 opacity-5 rotate-12"><ShoppingCart size={200}/></div>
+                                    
+                                    <div className="flex justify-between items-start relative z-10">
                                         <div className="space-y-4">
-                                            <div className="flex items-center gap-3">{companyInfo?.identity?.logo ? <img src={companyInfo.identity.logo} className="h-14 w-14 object-cover" /> : <div className="h-12 w-12 bg-gray-900 text-[#00f2ff] flex items-center justify-center rounded-xl font-black text-xl italic">B</div>}<h2 className="text-2xl font-black italic uppercase">{companyInfo?.identity?.name || 'Tienda Bayup'}</h2></div>
-                                            <div className="text-[9px] leading-relaxed text-gray-500 font-bold uppercase">NIT: {companyInfo?.contact?.nit || '900.xxx.xxx-x'}</div>
+                                            <div className="flex items-center gap-3">
+                                                {companyInfo?.identity?.logo ? <img src={companyInfo.identity.logo} className="h-12 w-12 object-cover rounded-xl" /> : <div className="h-12 w-12 bg-gray-900 text-[#00f2ff] flex items-center justify-center rounded-xl font-black text-xl italic shadow-xl">B</div>}
+                                                <h3 className="text-xl font-black italic uppercase tracking-tighter text-gray-900">{companyInfo?.identity?.name || 'Tienda Bayup'}</h3>
+                                            </div>
+                                            <p className="text-[8px] font-bold text-gray-400 uppercase leading-relaxed tracking-widest">NIT: {companyInfo?.contact?.nit || '900.XXX.XXX-X'}<br/>{companyInfo?.contact?.city || 'Colombia'}</p>
                                         </div>
-                                        <div className="w-64 border-2 border-gray-900 rounded-xl overflow-hidden"><div className="bg-gray-900 text-white text-[10px] font-black text-center py-2 uppercase tracking-widest">Orden de Compra</div><div className="p-4 text-[10px] font-bold"><div className="flex justify-between"><span>ID Orden:</span><span className="font-black">PO-2026-TEMP</span></div><div className="flex justify-between"><span>Fecha:</span><span>{new Date().toLocaleDateString()}</span></div></div></div>
+                                        <div className="text-right border-l-2 border-gray-900 pl-6">
+                                            <p className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em]">Orden de Compra</p>
+                                            <p className="text-xl font-black text-[#004d4d] mt-1 italic">#PO-TEMP</p>
+                                            <p className="text-[8px] font-bold text-gray-400 mt-2">{new Date().toLocaleDateString()}</p>
+                                        </div>
                                     </div>
-                                    <div className="p-8 border border-gray-100 rounded-3xl bg-gray-50/50 mb-12"><p className="text-[8px] font-black text-white bg-[#004d4d] px-2 py-0.5 inline-block rounded uppercase tracking-widest mb-3">Proveedor:</p><h4 className="text-lg font-black uppercase italic">{newPOHeader.provider_name || 'Nombre Entidad'}</h4></div>
-                                    <table className="w-full border-collapse mb-12"><thead><tr className="bg-gray-100 text-[9px] font-black uppercase text-gray-600 border-y border-gray-200"><th className="py-3 px-4 text-left">Producto</th><th className="py-3 px-4 text-center">Cant.</th><th className="py-3 px-4 text-right">Subtotal</th></tr></thead><tbody>{newPOItems.map((item, idx) => (<tr key={idx} className="border-b border-gray-50 text-[10px] font-bold text-gray-700"><td className="py-4 px-4 uppercase">{item.name || 'Nuevo ítem...'}</td><td className="py-4 px-4 text-center">{item.qty}</td><td className="py-4 px-4 text-right">{formatCurrency(item.qty * item.cost)}</td></tr>))}</tbody></table>
-                                    <div className="flex justify-end pt-6 border-t-4 border-gray-900 text-right"><p className="text-3xl font-black">{formatCurrency(newPOTotal)}</p></div>
-                                    <div className="absolute bottom-16 left-16 right-16 flex justify-between items-end opacity-30 pt-12 border-t border-gray-100"><p className="text-[8px] font-bold uppercase">Software Bayup Supply Core v2.0</p><QrCode size={60}/></div>
+
+                                    <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100 relative z-10">
+                                        <p className="text-[8px] font-black text-gray-400 uppercase mb-2">Entidad Proveedora</p>
+                                        <h4 className="text-lg font-black uppercase text-gray-900">{newPO.provider || 'NOMBRE DEL PROVEEDOR'}</h4>
+                                    </div>
+
+                                    <div className="flex-1 relative z-10 overflow-y-auto pr-2 custom-scrollbar">
+                                        <table className="w-full text-left">
+                                            <thead className="border-b-2 border-gray-900"><tr className="text-[9px] font-black text-gray-400 uppercase tracking-widest"><th className="pb-4">Descripción</th><th className="pb-4 text-center">Cant</th><th className="pb-4 text-right">Subtotal</th></tr></thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {newPO.items.map((i, idx) => (
+                                                    <tr key={idx} className="text-[10px] font-bold text-gray-700 animate-in fade-in duration-500"><td className="py-4 uppercase">{i.name || 'Nuevo ítem...'}</td><td className="py-4 text-center">{i.qty}</td><td className="py-4 text-right">{formatCurrency(i.qty * i.cost)}</td></tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div className="pt-8 border-t-4 border-gray-900 relative z-10">
+                                        <div className="flex justify-between items-end"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Autorizado</p><p className="text-4xl font-black text-gray-900 italic">{formatCurrency(newPO.items.reduce((acc, i) => acc + (i.qty * i.cost), 0))}</p></div>
+                                        <div className="flex justify-between items-center mt-10 opacity-30 pt-6 border-t border-gray-100"><p className="text-[7px] font-black uppercase tracking-[0.3em]">Bayup Supply Core v2.0</p><QrCode size={40}/></div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <button onClick={handleSavePO} disabled={!newPO.provider || newPO.items.some(i => !i.name)} className={`w-full py-6 rounded-[2.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-4 transition-all ${(!newPO.provider || newPO.items.some(i => !i.name)) ? 'bg-gray-800 text-gray-600' : 'bg-[#00f2ff] text-gray-900 hover:scale-[1.02] active:scale-95'}`}><Send size={24}/> Emitir Orden de Compra</button>
+                                    <button onClick={() => setIsCreateModalOpen(false)} className="w-full text-white/40 text-[10px] font-black uppercase tracking-[0.3em] hover:text-rose-500 transition-colors">Cancelar Operación</button>
                                 </div>
                             </div>
                         </motion.div>
@@ -269,48 +398,66 @@ export default function PurchaseOrdersPage() {
                 )}
             </AnimatePresence>
 
-            {/* MODAL DETALLE ORDEN */}
-            <AnimatePresence>
-                {selectedOrder && (
-                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedOrder(null)} className="absolute inset-0 bg-black/70 backdrop-blur-xl" />
-                        <motion.div initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 100, opacity: 0 }} className="bg-white w-full max-w-6xl h-[90vh] rounded-[4rem] shadow-3xl overflow-hidden flex flex-col md:flex-row relative z-10 border border-white/20">
-                            <button onClick={() => setSelectedOrder(null)} className="absolute top-8 right-8 h-12 w-12 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-rose-500 shadow-sm transition-all z-50 group"><X size={24} className="group-hover:rotate-90 transition-transform" /></button>
-                            <div className="w-full md:w-[400px] bg-gray-50 border-r border-gray-100 p-12 overflow-y-auto custom-scrollbar space-y-12">
-                                <div className="flex items-center gap-6 pt-10"><div className="h-20 w-20 rounded-[1.5rem] bg-gray-900 text-white flex items-center justify-center text-3xl font-black shadow-2xl">{selectedOrder.provider.name.charAt(0)}</div><div><h3 className="text-xl font-black text-gray-900 tracking-tight">{selectedOrder.provider.name}</h3><p className="text-sm font-bold text-[#004d4d] mt-1 italic">Aliado Maestro</p></div></div>
-                                <button onClick={() => handleDownloadPO(selectedOrder)} className="w-full py-5 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#004d4d] transition-all shadow-2xl flex items-center justify-center gap-3"><Download size={16} className="text-[#00f2ff]"/> Descargar PDF</button>
-                            </div>
-                            <div className="flex-1 flex flex-col bg-white overflow-hidden">
-                                <div className="p-12 border-b border-gray-50 flex justify-between items-center bg-white/50 backdrop-blur-md sticky top-0 z-10"><div><h2 className="text-3xl font-black text-gray-900 tracking-tight italic uppercase">{selectedOrder.id}</h2><p className="text-gray-400 text-xs font-black uppercase mt-2 flex items-center gap-2"><CheckCircle2 size={14} className="text-[#00f2ff]"/> Detalle de Mercancía</p></div></div>
-                                <div className="flex-1 overflow-y-auto p-12 custom-scrollbar bg-gray-50/20">
-                                    <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden mb-12"><table className="w-full text-left"><thead className="bg-gray-50/50"><tr><th className="px-8 py-5 text-[9px] font-black text-gray-400 uppercase">Item</th><th className="px-8 py-5 text-[9px] font-black text-gray-400 text-center">Cant.</th><th className="px-8 py-5 text-[9px] font-black text-gray-400 text-right">Costo</th></tr></thead><tbody className="divide-y divide-gray-50">{selectedOrder.items.map((i,idx)=>(<tr key={idx}><td className="px-8 py-6 font-black text-gray-900 text-sm">{i.name}<br/><span className="text-[10px] text-gray-400 uppercase">{i.sku}</span></td><td className="px-8 py-6 text-center font-black">{i.qty}</td><td className="px-8 py-6 text-right font-black text-[#004d4d]">{formatCurrency(i.cost)}</td></tr>))}</tbody></table></div>
-                                    <div className="space-y-8"><h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Trazabilidad</h4><div className="relative pl-12 space-y-10 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100">{selectedOrder.history.map((h,i)=>(<div key={i} className="relative"><div className="absolute left-[-52px] top-0 h-10 w-10 rounded-full border-4 border-white bg-[#004d4d] flex items-center justify-center text-white shadow-lg z-10"><Zap size={14}/></div><div className="bg-white p-6 rounded-[2.2rem] border border-gray-100 shadow-sm"><div className="flex justify-between items-center"><h5 className="text-xs font-black text-[#004d4d] uppercase">{h.status}</h5><span className="text-[10px] text-gray-300 font-bold">{h.date}</span></div><p className="text-sm font-medium text-gray-600 mt-2 italic">"{h.comment}"</p></div></div>))}</div></div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            {/* MODAL GUÍA ELITE PLATINUM */}
+            {/* MODAL GUÍA ESTRATÉGICA */}
             <AnimatePresence>
                 {isGuideOpen && (
                     <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsGuideOpen(false)} className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" />
-                        <motion.div initial={{ scale: 0.95, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-6xl h-[80vh] rounded-[4rem] shadow-3xl overflow-hidden relative z-10 border border-white flex flex-col md:flex-row">
-                            <div className="w-full md:w-[320px] bg-gray-50 border-r border-gray-100 p-10 flex flex-col gap-3"><div className="h-12 w-12 bg-gray-900 text-[#00f2ff] rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-cyan-500/20"><Bot size={24}/></div><h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#004d4d] mb-4">Guía Maestro Supply</h3>{[ { id: 0, label: 'Abastecimiento Pro', icon: <ShoppingCart size={16}/> }, { id: 1, label: 'Red de Aliados', icon: <Users size={16}/> }, { id: 2, label: 'Logística Arribo', icon: <Truck size={16}/> }, { id: 3, label: 'Inteligencia IA', icon: <Sparkles size={16}/> } ].map(step => (<button key={step.id} onClick={() => setActiveGuideStep(step.id)} className={`flex items-center gap-4 p-4 rounded-2xl transition-all text-left ${activeGuideStep === step.id ? 'bg-[#004d4d] text-white shadow-xl shadow-[#004d4d]/20' : 'text-gray-500 hover:bg-white'}`}><div className={activeGuideStep === step.id ? 'text-[#00f2ff]' : 'text-gray-300'}>{step.icon}</div><span className="text-[10px] font-black uppercase tracking-widest">{step.label}</span></button>))}<div className="mt-auto pt-8 border-t border-gray-100 px-2"><p className="text-[8px] font-black uppercase text-gray-300 tracking-[0.2em]">Bayup Sales Core v2.0</p></div></div>
-                            <div className="flex-1 p-16 flex flex-col justify-between relative bg-white overflow-y-auto custom-scrollbar">
-                                <button onClick={() => setIsGuideOpen(false)} className="absolute top-10 right-10 text-gray-300 hover:text-rose-500 transition-colors z-[100] transition-all group"><X size={24} className="group-hover:rotate-90"/></button>
-                                <div className="space-y-12">
-                                    {activeGuideStep === 0 && (<div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8"><h2 className="text-4xl font-black italic uppercase text-[#001A1A]">Ingeniería de <span className="text-[#004D4D]">Abastecimiento</span></h2><div className="grid grid-cols-2 gap-6"><div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100"><p className="text-[10px] font-black text-gray-400 uppercase">Stock Seguridad</p><p className="text-lg font-black mt-2 italic">Margen de 15 días sugerido por Bayt.</p></div><div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100"><p className="text-[10px] font-black text-gray-400 uppercase">Rotación</p><p className="text-lg font-black mt-2 italic">Giro de capital cada 4.2 semanas.</p></div></div></div>)}
-                                    {activeGuideStep === 1 && (<div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8"><h2 className="text-4xl font-black italic uppercase text-[#001A1A]">Red de <span className="text-[#004D4D]">Aliados</span></h2><div className="p-10 bg-gray-900 rounded-[3.5rem] text-white relative overflow-hidden shadow-2xl"><div className="absolute top-0 right-0 p-4 opacity-10"><ShieldCheck size={120}/></div><div className="space-y-6 relative z-10"><div className="flex items-center gap-6"><div className="h-14 w-14 rounded-2xl bg-[#004d4d] text-[#00f2ff] flex items-center justify-center shadow-lg"><Star size={28}/></div><p className="text-sm font-black text-[#00f2ff] uppercase tracking-widest">Score de Confianza</p></div><p className="text-xs text-gray-400 italic">"Bayt sugiere: No concentres más del 40% en un solo proveedor."</p></div></div></div>)}
-                                    {activeGuideStep === 2 && (<div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8"><h2 className="text-4xl font-black italic uppercase text-[#001A1A]">Logística de <span className="text-[#004D4D]">Arribo</span></h2><div className="p-10 bg-gray-50 rounded-[3rem] border border-gray-100 relative overflow-hidden"><div className="flex items-center gap-6 mb-8"><div className="h-14 w-14 bg-white rounded-2xl flex items-center justify-center text-[#004d4d] shadow-lg"><Truck size={28}/></div><div><p className="text-xl font-black text-gray-900">Protocolo de Carga</p><p className="text-[10px] font-black text-gray-400 uppercase">Validación de SKUs</p></div></div><div className="space-y-4"><div className="flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-2xl"><div className="h-2 w-2 rounded-full bg-[#00f2ff] shadow-[0_0_8px_#00f2ff]"></div><p className="text-[10px] font-bold text-gray-600 uppercase">Validación automática vs. Orden original.</p></div></div></div></div>)}
-                                    {activeGuideStep === 3 && (<div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8"><h2 className="text-4xl font-black italic uppercase text-[#001A1A]">Inteligencia <span className="text-[#004D4D]">Bayt AI</span></h2><div className="p-10 bg-[#001A1A] rounded-[3.5rem] relative overflow-hidden text-white shadow-2xl text-center"><div className="h-20 w-20 bg-[#00f2ff]/10 text-[#00f2ff] rounded-[2rem] border border-[#00f2ff]/30 flex items-center justify-center animate-pulse mx-auto mb-6"><Bot size={48}/></div><p className="text-lg font-medium leading-relaxed italic text-gray-300">"Bayt analiza tu velocidad de venta para sugerirte exactamente qué pedir y cuándo."</p></div></div>)}
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsGuideOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" />
+                        <motion.div initial={{ scale: 0.95, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, y: 30 }} className="relative bg-white w-full max-w-4xl h-[75vh] rounded-[3rem] shadow-2xl flex overflow-hidden border border-white">
+                            <div className="w-64 bg-slate-50 border-r p-6 flex flex-col gap-2">
+                                <div className="h-12 w-12 bg-gray-900 text-[#00f2ff] rounded-2xl flex items-center justify-center mb-6 shadow-lg"><Bot size={24}/></div>
+                                {Object.entries(guideContent).map(([k, v]) => (
+                                    <button key={k} onClick={() => setActiveGuideTab(k)} className={`flex items-center gap-3 p-4 rounded-2xl text-left transition-all ${activeGuideTab === k ? 'bg-[#004D4D] text-white shadow-xl' : 'text-slate-500 hover:bg-white'}`}>
+                                        <div className={activeGuideTab === k ? 'text-white' : v.color}>{v.icon}</div>
+                                        <span className="text-[10px] font-black uppercase tracking-widest">{v.title}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex-1 p-16 space-y-10 relative overflow-y-auto custom-scrollbar bg-white">
+                                <button onClick={() => setIsGuideOpen(false)} className="absolute top-10 right-10 text-gray-300 hover:text-rose-500 transition-all group"><X size={24} className="group-hover:rotate-90"/></button>
+                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-gray-900">{guideContent[activeGuideTab as keyof typeof guideContent]?.title}</h2>
+                                <div className="space-y-6">
+                                    <section><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Estrategia Supply</h4><p className="text-lg font-medium text-slate-600 italic leading-relaxed">"{guideContent[activeGuideTab as keyof typeof guideContent].how}"</p></section>
+                                    <div className="bg-amber-50 p-8 rounded-[2.5rem] border border-amber-100 flex gap-6 items-start">
+                                        <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-amber-500 shadow-sm shrink-0"><Zap size={24}/></div>
+                                        <div><p className="text-[10px] font-black text-amber-600 uppercase mb-1">Bayup Smart Tip</p><p className="text-sm font-bold text-amber-900 leading-relaxed">{guideContent[activeGuideTab as keyof typeof guideContent].tip}</p></div>
+                                    </div>
                                 </div>
-                                <button onClick={() => setIsGuideOpen(false)} className="px-12 py-5 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-2xl active:scale-95 mt-12">Entendido, Continuar Operación</button>
                             </div>
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+
+            {/* DETALLE DE ORDEN EXISTENTE */}
+            <AnimatePresence>
+                {selectedOrder && (
+                    <>
+                        <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[200]" onClick={() => setSelectedOrder(null)} />
+                        <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl z-[210] border-l flex flex-col">
+                            <div className="p-8 bg-[#004D4D] text-white flex justify-between items-start shrink-0">
+                                <div><h2 className="text-3xl font-black italic uppercase tracking-tighter">{selectedOrder.id}</h2><p className="text-[10px] text-white/60 font-medium uppercase mt-1">Status: {selectedOrder.status.toUpperCase()}</p></div>
+                                <button onClick={() => setSelectedOrder(null)} className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center"><X size={20}/></button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-10 space-y-10 bg-[#FAFAFA] custom-scrollbar text-left">
+                                <section className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm"><div className="flex items-center gap-4"><div className="h-14 w-14 rounded-2xl bg-gray-900 text-white flex items-center justify-center text-xl font-black">{selectedOrder.provider.name.charAt(0)}</div><div><h3 className="text-lg font-black text-slate-900">{selectedOrder.provider.name}</h3><p className="text-xs font-bold text-[#004D4D] uppercase italic">Aliado Estratégico</p></div></div></section>
+                                <section className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+                                    <table className="w-full text-left">
+                                        <thead><tr className="bg-slate-50 border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase"><th className="p-6">Ítem</th><th className="p-6 text-center">Cant</th><th className="p-6 text-right">Costo</th></tr></thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {selectedOrder.items.map((i, idx) => (
+                                                <tr key={idx}><td className="p-6"><p className="text-xs font-black">{i.name}</p><p className="text-[9px] text-slate-400 uppercase">{i.sku}</p></td><td className="p-6 text-center text-xs font-black">{i.qty}</td><td className="p-6 text-right text-xs font-black text-emerald-600">{formatCurrency(i.cost)}</td></tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </section>
+                            </div>
+                            <div className="p-8 border-t bg-white grid grid-cols-2 gap-4">
+                                <button onClick={() => handleDownloadPO(selectedOrder)} className="py-4 bg-slate-50 rounded-2xl font-black text-[10px] uppercase tracking-widest">Descargar PDF</button>
+                                <button onClick={() => {}} className="py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg tracking-widest">Confirmar Arribo</button>
+                            </div>
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
 

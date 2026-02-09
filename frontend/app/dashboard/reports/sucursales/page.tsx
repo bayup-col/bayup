@@ -157,6 +157,45 @@ const MOCK_BRANCHES: Branch[] = [
     }
 ];
 
+// --- MODAL DE DETALLE DE MÉTRICA ---
+const SucursalesMetricModal = ({ isOpen, onClose, metric }: { isOpen: boolean, onClose: () => void, metric: any }) => {
+    if (!metric) return null;
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
+                    <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-lg rounded-[4rem] shadow-3xl overflow-hidden relative border border-white/20 z-10">
+                        <div className={`p-10 text-white relative overflow-hidden ${metric.color.replace('text-', 'bg-')}`}>
+                            <div className="absolute top-0 right-0 p-6 opacity-10">{metric.icon}</div>
+                            <h2 className="text-3xl font-black uppercase tracking-tight relative z-10">{metric.label}</h2>
+                            <p className="text-[10px] font-black uppercase tracking-widest mt-2 relative z-10 opacity-80">{metric.trend}</p>
+                            <button onClick={onClose} className="absolute top-8 right-8 bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors"><X size={20}/></button>
+                        </div>
+                        <div className="p-10 space-y-8 bg-white">
+                            <div className="text-center py-6">
+                                <span className="text-5xl font-black text-gray-900 tracking-tighter italic">{metric.value}</span>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-4">Estado de la Red Física</p>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
+                                    <span className="text-[10px] font-black uppercase text-gray-500">Salud Operativa</span>
+                                    <span className="text-sm font-black text-emerald-600">Excelente</span>
+                                </div>
+                                <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
+                                    <span className="text-[10px] font-black uppercase text-gray-500">Capacidad Red</span>
+                                    <span className="text-sm font-black text-[#004d4d]">94%</span>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-black transition-all shadow-xl">Cerrar Análisis</button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+    );
+};
+
 export default function SucursalesPage() {
     const { token } = useAuth();
     const { showToast } = useToast();
@@ -171,6 +210,7 @@ export default function SucursalesPage() {
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [activeGuideStep, setActiveGuideStep] = useState(0);
     const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+    const [selectedKPI, setSelectedKPI] = useState<any | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -287,24 +327,26 @@ export default function SucursalesPage() {
     const renderKPIs = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 shrink-0">
             {[
-                { label: 'Sucursales Activas', value: '03', sub: 'Puntos de venta', icon: <Store size={20}/>, trend: 'OK', color: 'text-[#004d4d]' },
-                { label: 'Venta Total Red', value: '$ 25.1M', sub: 'Consolidado mensual', icon: <DollarSign size={20}/>, trend: '+12.5%', color: 'text-emerald-600' },
-                { label: 'Sucursal Estrella', value: 'Principal', sub: 'Mayor facturación', icon: <Zap size={20}/>, trend: 'Top 1', color: 'text-[#00f2ff]' },
-                { label: 'Eficiencia Operativa', value: '74.2%', sub: 'Margen promedio', icon: <Activity size={20}/>, trend: '+2.1%', color: 'text-amber-500' },
+                { id: 's_a', label: 'Sucursales Activas', value: '03', sub: 'Puntos de venta', icon: <Store size={20}/>, trend: 'OK', color: 'text-[#004d4d]' },
+                { id: 'v_t', label: 'Venta Total Red', value: '$ 25.1M', sub: 'Consolidado mensual', icon: <DollarSign size={20}/>, trend: '+12.5%', color: 'text-emerald-600' },
+                { id: 's_e', label: 'Sucursal Estrella', value: 'Principal', sub: 'Mayor facturación', icon: <Zap size={20}/>, trend: 'Top 1', color: 'text-[#00f2ff]' },
+                { id: 'e_o', label: 'Eficiencia Operativa', value: '74.2%', sub: 'Margen promedio', icon: <Activity size={20}/>, trend: '+2.1%', color: 'text-amber-500' },
             ].map((kpi, i) => (
-                <TiltCard key={i} className="p-8">
-                    <div className="flex justify-between items-start">
-                        <div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color} group-hover:scale-110 transition-transform`}>
-                            {kpi.icon}
+                <div key={i} onClick={() => setSelectedKPI(kpi)}>
+                    <TiltCard className="p-8 cursor-pointer">
+                        <div className="flex justify-between items-start">
+                            <div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color} group-hover:scale-110 transition-transform`}>
+                                {kpi.icon}
+                            </div>
+                            <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${kpi.trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-50 text-gray-400'}`}>{kpi.trend}</span>
                         </div>
-                        <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${kpi.trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-50 text-gray-400'}`}>{kpi.trend}</span>
-                    </div>
-                    <div className="mt-6">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p>
-                        <h3 className="text-3xl font-black text-gray-900 mt-1">{kpi.value}</h3>
-                        <p className="text-[9px] font-bold text-gray-400 mt-1 italic">{kpi.sub}</p>
-                    </div>
-                </TiltCard>
+                        <div className="mt-6">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p>
+                            <h3 className="text-3xl font-black text-gray-900 mt-1">{kpi.value}</h3>
+                            <p className="text-[9px] font-bold text-gray-400 mt-1 italic">{kpi.sub}</p>
+                        </div>
+                    </TiltCard>
+                </div>
             ))}
         </div>
     );
@@ -848,6 +890,8 @@ export default function SucursalesPage() {
                     </div>
                 )}
             </AnimatePresence>
+
+            <SucursalesMetricModal isOpen={!!selectedKPI} onClose={() => setSelectedKPI(null)} metric={selectedKPI} />
 
             <style jsx global>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
