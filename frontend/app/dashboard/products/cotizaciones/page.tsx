@@ -36,35 +36,17 @@ import {
   Clock3,
   Eye,
   Layout,
-  Palette
+  Palette,
+  RefreshCw,
+  Activity,
+  ArrowRight
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
-
-// --- COMPONENTE DE NÚMEROS ANIMADOS (Shared style) ---
-function AnimatedNumber({ value, className, type = 'currency' }: { value: number, className?: string, type?: 'currency' | 'percentage' | 'simple' }) {
-    const spring = useSpring(0, { mass: 0.8, stiffness: 75, damping: 15 });
-    const display = useTransform(spring, (current: number) => {
-        if (type === 'percentage') return `${Math.round(current)}%`;
-        if (type === 'simple') return Math.round(current).toLocaleString();
-        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(current);
-    });
-
-    useEffect(() => {
-        spring.set(value);
-    }, [value, spring]);
-
-    return <motion.span className={className}>{display}</motion.span>;
-}
+import TiltCard from '@/components/dashboard/TiltCard';
 
 // --- Types ---
 type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'expired' | 'declined';
-
-interface QuoteItem {
-  id: string;
-  name: string;
-  price: number;
-  qty: number;
-}
 
 interface Quotation {
   id: string;
@@ -80,28 +62,10 @@ interface Quotation {
   status: QuoteStatus;
   date: string;
   expiryDate: string;
-  items: QuoteItem[];
-  subtotal: number;
-  tax: number;
+  items: any[];
   total: number;
-  notes: string;
-  templateId: string;
 }
 
-interface MetricData {
-    id: string;
-    title: string;
-    value: React.ReactNode;
-    trend?: string;
-    trendUp?: boolean;
-    icon: any;
-    color: string;
-    bg: string;
-    description: string;
-    detailContent?: React.ReactNode;
-}
-
-// --- Mock Data ---
 const MOCK_QUOTATIONS: Quotation[] = [
   {
     id: "q1",
@@ -110,12 +74,8 @@ const MOCK_QUOTATIONS: Quotation[] = [
     status: "sent",
     date: "2026-01-28T10:00:00",
     expiryDate: "2026-02-15T23:59:59",
-    items: [{ id: "1", name: "Servicio de Consultoría Pro", price: 4500000, qty: 1 }],
-    subtotal: 4500000,
-    tax: 0,
-    total: 4500000,
-    notes: "Propuesta para el proyecto de infraestructura fase 1.",
-    templateId: "t1"
+    items: [{ name: "Consultoría IT", qty: 1, price: 4500000 }],
+    total: 4500000
   },
   {
     id: "q2",
@@ -124,158 +84,185 @@ const MOCK_QUOTATIONS: Quotation[] = [
     status: "accepted",
     date: "2026-01-25T14:30:00",
     expiryDate: "2026-02-10T23:59:59",
-    items: [{ id: "2", name: "Kit de Equipamiento Oficina", price: 1200000, qty: 1 }],
-    subtotal: 1200000,
-    tax: 0,
-    total: 1200000,
-    notes: "Descuento por volumen aplicado.",
-    templateId: "t2"
+    items: [{ name: "Equipos Oficina", qty: 1, price: 1200000 }],
+    total: 1200000
   }
 ];
 
-// --- Components (Redesigned matching Orders) ---
+const StatusBadge = ({ status }: { status: QuoteStatus }) => {
+  const styles = { draft: "bg-slate-100 text-slate-600 border-slate-200", sent: "bg-blue-50 text-blue-700 border-blue-200", accepted: "bg-emerald-50 text-emerald-700 border-emerald-200", expired: "bg-rose-50 text-rose-700 border-rose-200", declined: "bg-amber-50 text-amber-700 border-amber-200" };
+  const labels = { draft: "Borrador", sent: "Enviada", accepted: "Aceptada", expired: "Vencida", declined: "Rechazada" };
+  return <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide border ${styles[status]}`}>{labels[status]}</span>;
+};
 
-const TiltCard = ({ data, onClick }: { data: MetricData, onClick: () => void }) => {
-    const ref = useRef<HTMLDivElement>(null);
-    const x = useMotionValue(0);
-    const y = useMotionValue(0);
-    const mouseXSpring = useSpring(x);
-    const mouseYSpring = useSpring(y);
-    const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["15deg", "-15deg"]);
-    const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-15deg", "15deg"]);
+// --- MODAL DE GUÍA PREMIUM ---
+const COTIZACIONES_GUIDE_CONTENT = {
+    general: { title: 'Gestión Comercial', icon: <Layout size={20}/>, color: 'text-blue-500', howItWorks: 'Visualiza el ciclo completo de tus propuestas comerciales. Desde la captación del prospecto hasta el cierre de la venta.', example: 'Un cliente pregunta por WhatsApp; creas un borrador rápido y lo envías en menos de 2 minutos.', tip: 'El 70% de las ventas se cierran por la rapidez de respuesta.' },
+    borradores: { title: 'Borradores', icon: <Edit3 size={20}/>, color: 'text-slate-500', howItWorks: 'Propuestas en construcción. Aquí puedes guardar ideas complejas antes de formalizarlas.', example: 'Estás diseñando un paquete de servicios a medida; guárdalo como borrador.', tip: 'No dejes borradores por más de 24 horas.' },
+    enviadas: { title: 'Enviadas', icon: <Send size={20}/>, color: 'text-cyan-500', howItWorks: 'Cotizaciones que ya están en manos del cliente. El sistema rastrea aperturas.', example: 'El cliente recibe el link PDF. Si no responde en 48 horas, realiza seguimiento.', tip: 'Llama justo después de confirmar que el cliente abrió el PDF.' },
+    aceptadas: { title: 'Aceptadas', icon: <CheckCircle2 size={20}/>, color: 'text-emerald-500', howItWorks: 'Éxito comercial. El cliente aprobó el presupuesto y está lista para facturarse.', example: 'Haz clic en "Convertir a Venta" para generar el pedido automáticamente.', tip: 'Pide un adelanto del pago de inmediato.' }
+};
 
-    const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
-        if (!ref.current) return;
-        const rect = ref.current.getBoundingClientRect();
-        x.set(e.clientX - rect.left / rect.width - 0.5);
-        y.set(e.clientY - rect.top / rect.height - 0.5);
-    };
-
+const CotizacionesGuideModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+    const [activeTab, setActiveTab] = useState('general');
     return (
-        <motion.div
-            ref={ref}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={() => { x.set(0); y.set(0); }}
-            onClick={onClick}
-            style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-            className="relative h-full cursor-pointer group"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-        >
-            <div className={`relative h-full bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm transition-all duration-300 group-hover:shadow-xl group-hover:shadow-cyan-900/5 overflow-hidden`}>
-                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${data.bg} opacity-20 rounded-bl-[4rem] -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-700`}></div>
-                <div className="relative z-10 flex flex-col h-full justify-between" style={{ transform: "translateZ(20px)" }}>
-                    <div className="flex items-start justify-between">
-                        <div className={`p-3 rounded-2xl ${data.bg} ${data.color} shadow-sm`}>
-                            {data.icon}
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" />
+                    <motion.div initial={{ opacity: 0, scale: 0.95, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 30 }} className="relative bg-white w-full max-w-4xl h-[70vh] rounded-[3rem] shadow-2xl overflow-hidden border border-white flex flex-col md:flex-row">
+                        <div className="w-full md:w-64 bg-slate-50 border-r border-slate-100 p-6 flex flex-col gap-2 overflow-y-auto">
+                            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#004D4D] mb-6">Estrategia Comercial</h3>
+                            {Object.entries(COTIZACIONES_GUIDE_CONTENT).map(([key, item]) => (
+                                <button key={key} onClick={() => setActiveTab(key)} className={`flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${activeTab === key ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:bg-white'}`}>
+                                    <div className={`${activeTab === key ? 'text-white' : item.color}`}>{item.icon}</div>
+                                    <span className="text-[10px] font-black uppercase tracking-wide">{item.title}</span>
+                                </button>
+                            ))}
                         </div>
-                        {data.trend && (
-                             <div className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wide ${data.trendUp ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                                {data.trendUp ? <TrendingUp size={12}/> : <TrendingDown size={12}/>}
-                                {data.trend}
-                             </div>
-                        )}
-                    </div>
-                    <div className="mt-6">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{data.title}</p>
-                        <h3 className="text-3xl font-black text-slate-900 tracking-tight">{data.value}</h3>
-                    </div>
+                        <div className="flex-1 flex flex-col overflow-hidden bg-white">
+                            <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+                                <div className="flex items-center gap-4">
+                                    <div className={`h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center ${COTIZACIONES_GUIDE_CONTENT[activeTab as keyof typeof COTIZACIONES_GUIDE_CONTENT].color}`}>{COTIZACIONES_GUIDE_CONTENT[activeTab as keyof typeof COTIZACIONES_GUIDE_CONTENT].icon}</div>
+                                    <h2 className="text-2xl font-black text-slate-900 uppercase italic">{COTIZACIONES_GUIDE_CONTENT[activeTab as keyof typeof COTIZACIONES_GUIDE_CONTENT].title}</h2>
+                                </div>
+                                <button onClick={onClose} className="h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"><X size={20}/></button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar">
+                                <section><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><div className="h-1 w-4 bg-[#004D4D] rounded-full"></div> ¿Cómo funciona?</h4><p className="text-sm font-medium text-slate-600 bg-slate-50 p-6 rounded-[2rem]">{COTIZACIONES_GUIDE_CONTENT[activeTab as keyof typeof COTIZACIONES_GUIDE_CONTENT].howItWorks}</p></section>
+                                <div className="grid md:grid-cols-2 gap-8">
+                                    <section className="space-y-4"><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Smartphone size={14} className="text-cyan-500"/> Ejemplo</h4><div className="p-6 bg-cyan-50/30 border border-cyan-100 rounded-[2rem]"><p className="text-xs font-medium text-cyan-900 italic">"{COTIZACIONES_GUIDE_CONTENT[activeTab as keyof typeof COTIZACIONES_GUIDE_CONTENT].example}"</p></div></section>
+                                    <section className="space-y-4"><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Zap size={14} className="text-amber-500"/> Pro-Tip</h4><div className="p-6 bg-amber-50/30 border border-amber-100 rounded-[2rem]"><p className="text-xs font-bold text-amber-900">{COTIZACIONES_GUIDE_CONTENT[activeTab as keyof typeof COTIZACIONES_GUIDE_CONTENT].tip}</p></div></section>
+                                </div>
+                            </div>
+                            <div className="p-8 border-t border-slate-50 flex justify-end"><button onClick={onClose} className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl">Cerrar Guía</button></div>
+                        </div>
+                    </motion.div>
                 </div>
-            </div>
-        </motion.div>
+            )}
+        </AnimatePresence>
     );
 };
 
-const StatusBadge = ({ status }: { status: QuoteStatus }) => {
-  const styles = {
-    draft: "bg-slate-100 text-slate-600 border-slate-200",
-    sent: "bg-blue-50 text-blue-700 border-blue-200",
-    accepted: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    expired: "bg-rose-50 text-rose-700 border-rose-200",
-    declined: "bg-amber-50 text-amber-700 border-amber-200",
-  };
-  
-  const labels = {
-    draft: "Borrador",
-    sent: "Enviada",
-    accepted: "Aceptada",
-    expired: "Vencida",
-    declined: "Rechazada",
-  };
+// --- MODAL GENERADOR DE COTIZACIONES ---
+const QuoteGeneratorModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+    const { showToast } = useToast();
+    const [isLoading, setIsLoading] = useState(false);
+    const handleCreate = (e: React.FormEvent) => {
+        e.preventDefault(); setIsLoading(true);
+        setTimeout(() => { setIsLoading(false); onClose(); showToast("¡Cotización #COT-1025 generada con éxito! 📄", "success"); }, 2000);
+    };
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-xl" />
+                    <motion.div initial={{ scale: 0.9, opacity: 0, y: 100 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 100 }} className="bg-white w-full max-w-3xl rounded-[4rem] shadow-3xl overflow-hidden relative border border-white/20 z-10 flex flex-col max-h-[90vh]">
+                        <div className="bg-[#004d4d] p-10 text-white flex items-center justify-between shrink-0">
+                            <div className="flex items-center gap-6"><div className="h-16 w-16 bg-[#00f2ff] text-[#004d4d] rounded-2xl flex items-center justify-center shadow-lg"><FileText size={32} /></div><div><h2 className="text-2xl font-black uppercase tracking-tight">Nueva Cotización</h2><p className="text-[10px] font-black text-[#00f2ff] uppercase tracking-widest">Editor de Propuestas</p></div></div>
+                            <button onClick={onClose} className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all"><X size={20}/></button>
+                        </div>
+                        <form onSubmit={handleCreate} className="p-10 flex-1 overflow-y-auto bg-white space-y-8">
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Cliente</label><input type="text" required className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" placeholder="Ej: Juan Perez" /></div>
+                                <div className="space-y-2"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Empresa</label><input type="text" className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" placeholder="Opcional" /></div>
+                            </div>
+                            <div className="space-y-4"><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Items</label><div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 flex gap-4"><input type="text" placeholder="Producto o Servicio..." className="flex-1 p-4 bg-white rounded-xl text-sm font-bold outline-none border border-transparent focus:border-[#00f2ff]/50"/><button type="button" className="px-6 bg-[#004d4d] text-white rounded-xl font-black text-[10px] uppercase">Añadir</button></div></div>
+                            <button type="submit" disabled={isLoading} className="w-full py-5 bg-[#004d4d] text-white rounded-[1.5rem] font-black uppercase text-[10px] shadow-2xl flex items-center justify-center gap-3">{isLoading ? <RefreshCw size={18} className="animate-spin"/> : <CheckCircle2 size={18} className="text-[#00f2ff]"/>} {isLoading ? 'Generando...' : 'Crear Cotización'}</button>
+                        </form>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+    );
+};
 
-  return (
-    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide border ${styles[status]}`}>
-      {labels[status]}
-    </span>
-  );
+// --- MODAL ESCÁNER IA ---
+const IAScannerModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+    const { showToast } = useToast();
+    const [isScanning, setIsScanning] = useState(false);
+    const handleScan = () => {
+        setIsScanning(true);
+        setTimeout(() => { setIsScanning(false); onClose(); showToast("¡Formato analizado! Nuevo template 'Bayup Pro' creado. ✨", "success"); }, 3000);
+    };
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" />
+                    <motion.div initial={{ scale: 0.9, y: 20, opacity: 0 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, y: 20, opacity: 0 }} className="relative bg-white w-full max-w-xl rounded-[3rem] shadow-2xl overflow-hidden border border-white">
+                        <div className="p-10 bg-gradient-to-br from-[#004D4D] to-[#001A1A] text-white relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-6 opacity-10"><Zap size={120} /></div>
+                            <div className="relative z-10 flex justify-between items-start"><div className="h-16 w-16 bg-white/20 rounded-2xl flex items-center justify-center"><Zap size={32} className="text-[#00F2FF]" /></div><button onClick={onClose} className="text-white/60 hover:text-white"><X size={24} /></button></div>
+                            <div className="relative z-10 mt-8"><h2 className="text-3xl font-black uppercase italic">Escáner IA</h2><p className="text-white/60 text-sm font-bold uppercase mt-1">Ingeniería Documental Pro</p></div>
+                        </div>
+                        <div className="p-10 space-y-8 bg-white">
+                            <div className="border-2 border-dashed border-slate-100 rounded-[2.5rem] p-12 flex flex-col items-center justify-center relative overflow-hidden">
+                                {isScanning && <motion.div initial={{ top: '-10%' }} animate={{ top: '110%' }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute left-0 right-0 h-1 bg-[#00F2FF] shadow-[0_0_15px_#00F2FF] z-20"/>}
+                                <FileText size={48} className="text-slate-200" /><p className="text-xs font-black text-slate-400 mt-4 uppercase">Sube tu PDF antiguo</p>
+                            </div>
+                            <button onClick={handleScan} disabled={isScanning} className="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase text-[10px] shadow-xl flex items-center justify-center gap-3">{isScanning ? <RefreshCw size={18} className="animate-spin"/> : <Zap size={18} className="text-[#00F2FF]"/>} {isScanning ? 'Escaneando...' : 'Iniciar Escáner IA'}</button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+    );
+};
+
+// --- MODAL DE DETALLE DE MÉTRICA ---
+const CotizacionesMetricModal = ({ isOpen, onClose, metric }: { isOpen: boolean, onClose: () => void, metric: any }) => {
+    if (!metric) return null;
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
+                    <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-lg rounded-[4rem] shadow-3xl overflow-hidden relative border border-white/20 z-10">
+                        <div className={`p-10 text-white relative overflow-hidden ${metric.color.replace('text-', 'bg-')}`}>
+                            <div className="absolute top-0 right-0 p-6 opacity-10">{metric.icon}</div>
+                            <h2 className="text-3xl font-black uppercase tracking-tight relative z-10">{metric.title}</h2>
+                            <button onClick={onClose} className="absolute top-8 right-8 bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors"><X size={20}/></button>
+                        </div>
+                        <div className="p-10 space-y-8 bg-white">
+                            <div className="text-center py-6"><span className="text-5xl font-black text-gray-900 italic">{metric.value}</span><p className="text-[10px] font-black text-gray-400 uppercase mt-4">Rendimiento Comercial</p></div>
+                            <button onClick={onClose} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[10px] shadow-xl">Cerrar</button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+    );
 };
 
 export default function CotizacionesPage() {
   const { showToast } = useToast();
   const { token } = useAuth();
+  const router = useRouter();
   
-  // States
   const [quotations, setQuotations] = useState<Quotation[]>(MOCK_QUOTATIONS);
   const [selectedQuote, setSelectedQuote] = useState<Quotation | null>(null);
+  const [selectedKPI, setSelectedKPI] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
-  const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
-  const [advancedFilters, setAdvancedFilters] = useState({ clientType: 'all', status: 'all' });
   const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
   const [dateRangeState, setDateRangeState] = useState({ from: '', to: '' });
   const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [activeGuideTab, setActiveGuideTab] = useState('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
-  const [selectedTemplateForPreview, setSelectedTemplateForPreview] = useState<any | null>(null);
-  
-  // Hover states for UI buttons
-  const [isFilterHovered, setIsFilterHovered] = useState(false);
-  const [isDateHovered, setIsDateHovered] = useState(false);
-  const [isExportHovered, setIsExportHovered] = useState(false);
 
-  const guideContent = {
-    all: {
-        title: 'Gestión Total',
-        icon: <Layout size={20}/>,
-        color: 'text-blue-500',
-        howItWorks: 'Visualiza el ciclo completo de tus propuestas comerciales, desde borradores hasta aceptaciones.',
-        example: 'Ideal para tener un panorama de cuántas ventas potenciales tienes en el pipeline este mes.',
-        tip: 'Mantén los folios organizados para facilitar la búsqueda legal posterior.'
-    },
-    draft: {
-        title: 'Borradores',
-        icon: <Edit3 size={20}/>,
-        color: 'text-slate-500',
-        howItWorks: 'Propuestas en construcción que aún no han sido enviadas al cliente.',
-        example: 'Estás armando un presupuesto complejo; guárdalo aquí y termínalo mañana.',
-        tip: 'Usa el escáner IA para acelerar la creación de borradores basados en tus PDFs viejos.'
-    },
-    sent: {
-        title: 'Enviadas',
-        icon: <Send size={20}/>,
-        color: 'text-blue-500',
-        howItWorks: 'Cotizaciones que ya están en manos del cliente y esperan respuesta.',
-        example: 'El cliente recibió el link por WhatsApp y el sistema marca que ya fue "Enviada".',
-        tip: 'Si una cotización lleva 3 días en este estado, realiza un seguimiento manual.'
-    },
-    accepted: {
-        title: 'Aceptadas',
-        icon: <CheckCircle2 size={20}/>,
-        color: 'text-emerald-500',
-        howItWorks: 'El éxito comercial. El cliente aprobó el presupuesto y está lista para convertirse en venta.',
-        example: 'Haz clic en "Convertir a Venta" para que el stock se descuente automáticamente.',
-        tip: 'Felicita al cliente de inmediato para fortalecer la relación post-venta.'
-    }
-  };
-  
+  const kpiData = [
+    { id: 'q_t', title: 'Cotizaciones Hoy', value: '12', trend: '+5% vs ayer', icon: <FileText size={20}/>, color: 'text-cyan-600', bg: 'bg-cyan-50' },
+    { id: 'v_t', title: 'Volumen Total', value: '$ 5.7M', trend: '+12% mes', icon: <DollarSign size={20}/>, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { id: 'c_r', title: 'Tasa de Cierre', value: '68%', trend: '+2% mes', icon: <BarChart3 size={20}/>, color: 'text-[#004D4D]', bg: 'bg-[#004D4D]/5' },
+    { id: 'p_f', title: 'Por Vencer', value: '03', trend: 'Crítico', icon: <Clock3 size={20}/>, color: 'text-rose-600', bg: 'bg-rose-50' }
+  ];
+
   const handleDatePreset = (preset: 'today' | 'yesterday' | 'week' | 'month') => {
       const today = new Date();
       const formatDate = (d: Date) => d.toISOString().split('T')[0];
-      let start = new Date();
-      let end = new Date();
-
+      let start = new Date(); let end = new Date();
       switch (preset) {
           case 'today': break;
           case 'yesterday': start.setDate(today.getDate() - 1); end.setDate(today.getDate() - 1); break;
@@ -285,741 +272,182 @@ export default function CotizacionesPage() {
       setDateRangeState({ from: formatDate(start), to: formatDate(end) });
   };
 
-  const handleExport = async () => {
+  const handleExportPDF = async () => {
     try {
         const { default: jsPDF } = await import('jspdf');
         const doc = new jsPDF();
         const petrol = [0, 77, 77];
-        doc.setFillColor(petrol[0], petrol[1], petrol[2]);
-        doc.rect(0, 0, 210, 40, 'F');
-        doc.setFontSize(22); doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold");
-        doc.text("REPORTE DE COTIZACIONES", 14, 20);
-        doc.save(`Reporte_Cotizaciones_${new Date().toISOString().split('T')[0]}.pdf`);
-        showToast("Reporte generado con éxito", "success");
+        doc.setFillColor(petrol[0], petrol[1], petrol[2]); doc.rect(0, 0, 210, 40, 'F');
+        doc.setTextColor(255, 255, 255); doc.setFontSize(22); doc.setFont("helvetica", "bold"); doc.text("REPORTE DE COTIZACIONES", 15, 20);
+        doc.setFontSize(10); doc.text(`Generado: ${new Date().toLocaleString()} | Items: ${filteredQuotes.length}`, 15, 30);
+        let y = 55;
+        doc.setFillColor(245, 245, 245); doc.rect(14, y-6, 185, 8, 'F'); doc.setTextColor(0, 0, 0); doc.text("FOLIO", 16, y); doc.text("CLIENTE", 50, y); doc.text("TOTAL", 170, y);
+        y += 10;
+        filteredQuotes.forEach(q => { doc.text(`#${q.folio}`, 16, y); doc.text(q.customer.name, 50, y); doc.text(`$ ${q.total.toLocaleString()}`, 170, y); y += 8; });
+        doc.save(`Reporte_Cotizaciones.pdf`);
+        showToast("PDF Exportado ✨", "success");
     } catch (e) { console.error(e); }
   };
 
-  const formatCurrency = (val: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
+  const handleCopyLink = (q: Quotation) => {
+    navigator.clipboard.writeText(`https://bayup.col/view/quote/${q.id}`);
+    showToast("Link copiado 🔗", "success");
+  };
 
-  // KPIs matching the Orders module style
-  const kpiData = useMemo(() => [
-    {
-        id: 'quotes_today',
-        title: 'Cotizaciones Hoy',
-        value: <AnimatedNumber value={12} type="simple" />,
-        trend: '+5% vs ayer',
-        trendUp: true,
-        icon: <FileText size={20}/>,
-        color: 'text-cyan-600',
-        bg: 'from-cyan-50 to-emerald-50',
-        description: 'Total de propuestas comerciales generadas durante el día de hoy.'
-    },
-    {
-        id: 'volume_total',
-        title: 'Volumen Total',
-        value: <AnimatedNumber value={5700000} />,
-        trend: '+12% este mes',
-        trendUp: true,
-        icon: <DollarSign size={20}/>,
-        color: 'text-emerald-600',
-        bg: 'from-emerald-50 to-teal-50',
-        description: 'Valor monetario total de todas las cotizaciones activas en el sistema.'
-    },
-    {
-        id: 'conversion_rate',
-        title: 'Tasa de Cierre',
-        value: <AnimatedNumber value={68} type="percentage" />,
-        trend: '+2% vs mes anterior',
-        trendUp: true,
-        icon: <BarChart3 size={20}/>,
-        color: 'text-[#004D4D]',
-        bg: 'from-teal-50 to-cyan-50',
-        description: 'Porcentaje de cotizaciones que se convierten en ventas reales.'
-    },
-    {
-        id: 'pending_followup',
-        title: 'Por Vencer',
-        value: <div className="flex items-baseline gap-1"><AnimatedNumber value={3} type="simple"/> <span className="text-sm">Quotes</span></div>,
-        icon: <Clock3 size={20}/>,
-        color: 'text-rose-600',
-        bg: 'from-rose-50 to-orange-50',
-        description: 'Propuestas comerciales que expiran en las próximas 48 horas.'
+  const handleDownloadSinglePDF = async (q: Quotation) => {
+    try {
+        const { default: jsPDF } = await import('jspdf');
+        const doc = new jsPDF();
+        const petrol = [0, 77, 77];
+        doc.setFillColor(petrol[0], petrol[1], petrol[2]); doc.rect(0, 0, 210, 40, 'F');
+        doc.setTextColor(255, 255, 255); doc.setFontSize(24); doc.text("BAYUP", 15, 20);
+        doc.setFontSize(10); doc.text(`COTIZACIÓN: #${q.folio}`, 15, 30);
+        doc.setTextColor(0, 0, 0); doc.text(`Cliente: ${q.customer.name}`, 15, 50); doc.text(`Empresa: ${q.customer.company}`, 15, 56);
+        doc.setFont("helvetica", "bold"); doc.text("TOTAL PROPUESTA:", 110, 100); doc.text(`$ ${q.total.toLocaleString()}`, 160, 100);
+        doc.save(`Cotizacion_${q.folio}.pdf`);
+        
+        // Avanzar el proceso
+        if (q.status === 'draft') {
+            setQuotations(quotations.map(item => item.id === q.id ? { ...item, status: 'sent' } : item));
+            setSelectedQuote({ ...q, status: 'sent' });
+        }
+        showToast("PDF generado y estado actualizado 📄", "success");
+    } catch (e) { console.error(e); }
+  };
+
+  const handleWhatsAppQuote = (q: Quotation) => {
+    const msg = `¡Hola ${q.customer.name}! 👋 Te envío la cotización #${q.folio} por un valor de $ ${q.total.toLocaleString()}. Puedes ver el detalle aquí: https://bayup.col/q/${q.id}`;
+    window.open(`https://wa.me/${q.customer.phone.replace(/\+/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+    
+    // Avanzar el proceso
+    if (q.status === 'draft') {
+        setQuotations(quotations.map(item => item.id === q.id ? { ...item, status: 'sent' } : item));
+        setSelectedQuote({ ...q, status: 'sent' });
     }
-  ], []);
+    showToast("Cotización enviada por WhatsApp 📲", "success");
+  };
+
+  const handleDeleteQuote = (id: string) => {
+    if (confirm("¿Eliminar cotización?")) { setQuotations(quotations.filter(q => q.id !== id)); setSelectedQuote(null); showToast("Cotización eliminada 🗑️", "info"); }
+  };
+
+  const handleAcceptQuote = (q: Quotation) => {
+    setQuotations(quotations.map(item => item.id === q.id ? { ...item, status: 'accepted' } : item));
+    setSelectedQuote({ ...q, status: 'accepted' });
+    showToast("¡Cotización aprobada! 🚀", "success");
+  };
 
   const filteredQuotes = useMemo(() => {
     return quotations.filter(q => {
-      const matchesSearch = 
-        q.folio.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        q.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        q.customer.company.toLowerCase().includes(searchTerm.toLowerCase());
-      
+      const matchesSearch = q.folio.toLowerCase().includes(searchTerm.toLowerCase()) || q.customer.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || q.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [quotations, searchTerm, statusFilter]);
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-slate-900 font-sans selection:bg-cyan-100">
-      
-      {/* --- Main Header (Copy from Orders) --- */}
-      <div className="px-8 py-8 md:py-10 max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-end gap-6">
+    <div className="max-w-[1600px] mx-auto pb-20 space-y-12 animate-in fade-in duration-1000 relative">
+      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8 px-4 shrink-0">
           <div>
-              <div className="flex items-center gap-3 mb-2">
-                  <span className="h-2 w-2 rounded-full bg-[#00F2FF] animate-pulse shadow-[0_0_10px_#00F2FF]"></span>
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Gestión Comercial</span>
-              </div>
-              <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF] pr-2 py-1">Cotizaciones</span>
-              </h1>
-              <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed">
-                  Crea propuestas profesionales y convierte prospectos en clientes con inteligencia comercial.
-              </p>
+              <div className="flex items-center gap-3 mb-2"><span className="h-2 w-2 rounded-full bg-[#00F2FF] animate-pulse shadow-[0_0_10px_#00F2FF]"></span><span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Gestión Comercial</span></div>
+              <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">Cotiza <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF] px-2 py-1">Ciones</span></h1>
+              <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed italic">Crea propuestas profesionales y convierte prospectos en clientes.</p>
           </div>
           <div className="flex items-center gap-4">
-              <motion.button 
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsGeneratorOpen(true)}
-                className="bg-[#004D4D] text-white px-8 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl transition-all flex items-center gap-3"
-              >
-                <Plus size={18} /> Nueva Cotización
-              </motion.button>
-              <motion.button 
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsCreateModalOpen(true)}
-                className="bg-white border border-slate-200 text-[#004D4D] px-8 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-lg transition-all flex items-center gap-3"
-              >
-                <Zap size={18} /> Nuevo Formato (IA)
-              </motion.button>
+              <button onClick={() => setIsGeneratorOpen(true)} className="h-14 px-8 bg-[#004D4D] text-white rounded-[1.5rem] font-black text-[10px] uppercase shadow-xl flex items-center gap-3 hover:scale-105 transition-all"><Plus size={18}/> Nueva Cotización</button>
+              <button onClick={() => setIsCreateModalOpen(true)} className="h-14 px-8 bg-white border border-gray-100 text-[#004D4D] rounded-[1.5rem] font-black text-[10px] uppercase shadow-sm hover:shadow-lg flex items-center gap-3 transition-all"><Zap size={18} className="text-[#00F2FF]"/> Formato IA</button>
           </div>
       </div>
 
-      <main className="px-8 pb-8 max-w-[1600px] mx-auto space-y-8">
-        
-        {/* --- KPI Cards (Tilt Effect) --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-48">
-          {kpiData.map((data) => (
-            <TiltCard key={data.id} data={data} onClick={() => {}} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 shrink-0">
+          {kpiData.map((kpi, i) => (
+              <TiltCard key={i} className="h-full">
+                  <div onClick={() => setSelectedKPI(kpi)} className="bg-white/95 p-8 rounded-[2.5rem] border border-white shadow-xl flex flex-col justify-between h-full group transition-all cursor-pointer">
+                      <div className="flex justify-between items-start">
+                          <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${kpi.bg} ${kpi.color} shadow-inner group-hover:scale-110 transition-transform`}>{kpi.icon}</div>
+                          <span className="text-[10px] font-black px-3 py-1 bg-gray-50 text-gray-400 rounded-lg uppercase tracking-widest">{kpi.trend}</span>
+                      </div>
+                      <div className="mt-6"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.title}</p><h3 className="text-3xl font-black text-gray-900 mt-1">{kpi.value}</h3></div>
+                  </div>
+              </TiltCard>
           ))}
-        </div>
+      </div>
 
-        {/* --- WORKFLOW NAVIGATION (Centered & Connected) --- */}
-        <div className="flex flex-col items-center justify-center space-y-6 pt-4">
+      <div className="flex flex-col items-center justify-center space-y-6 pt-4">
             <div className="flex items-center gap-4">
-                <div className="p-1.5 bg-white border border-slate-200 rounded-full shadow-xl shadow-slate-200/50 flex items-center relative z-10">
-                    {[
-                        { id: 'all', label: 'Todas' },
-                        { id: 'draft', label: 'Borradores' },
-                        { id: 'sent', label: 'Enviadas' },
-                        { id: 'accepted', label: 'Aceptadas' },
-                        { id: 'expired', label: 'Vencidas' },
-                        { id: 'templates', label: 'Mis Formatos' }
-                    ].map((tab) => {
+                <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl flex items-center relative">
+                    {[ { id: 'all', label: 'Todas' }, { id: 'draft', label: 'Borradores' }, { id: 'sent', label: 'Enviadas' }, { id: 'accepted', label: 'Aceptadas' } ].map((tab) => {
                         const isActive = statusFilter === tab.id;
                         return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setStatusFilter(tab.id)}
-                                className={`relative px-6 py-3 rounded-full text-xs font-black uppercase tracking-wide transition-all duration-300 z-10 ${isActive ? 'text-white' : 'text-slate-500 hover:text-slate-900'}`}
-                            >
-                                {isActive && (
-                                    <motion.div
-                                        layoutId="activeTabQuote"
-                                        className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10"
-                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                    />
-                                )}
+                            <button key={tab.id} onClick={() => setStatusFilter(tab.id)} className={`relative px-8 py-3 rounded-full text-[9px] font-black uppercase tracking-widest transition-all duration-500 z-10 ${isActive ? 'text-white' : 'text-gray-400 hover:text-gray-900'}`}>
+                                {isActive && <motion.div layoutId="activeTabQuote" className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />}
                                 {tab.label}
                             </button>
                         );
                     })}
                 </div>
-                <motion.button 
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setIsGuideOpen(true)}
-                    className="h-12 w-12 rounded-full bg-white border border-slate-200 shadow-lg flex items-center justify-center text-slate-900 hover:bg-[#004D4D] hover:text-white transition-all group"
-                >
-                    <Info size={20} className="group-hover:animate-pulse"/>
-                </motion.button>
+                <button onClick={() => setIsGuideOpen(true)} className="h-12 w-12 rounded-full bg-white border border-gray-100 text-[#004d4d] flex items-center justify-center hover:scale-110 hover:bg-[#004d4d] hover:text-white transition-all shadow-xl"><Info size={20} /></button>
             </div>
-
-            {/* Action Row */}
-            <div className="w-full flex justify-between items-center bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
-                 <div className="relative w-full max-w-md">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input 
-                      type="text" 
-                      placeholder="Buscar cotización, cliente o folio..." 
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-transparent text-sm font-medium text-slate-700 outline-none"
-                    />
-                 </div>
-                 <div className="flex items-center gap-2 relative">
-                     {/* Overlay de Cierre */}
-                     {(isFilterMenuOpen || isDateMenuOpen) && <div className="fixed inset-0 z-40" onClick={() => { setIsFilterMenuOpen(false); setIsDateMenuOpen(false); }} />}
-
-                     <div className="relative z-50">
-                        <motion.button 
-                            onMouseEnter={() => setIsFilterHovered(true)}
-                            onMouseLeave={() => setIsFilterHovered(false)}
-                            onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setIsDateMenuOpen(false); }}
-                            className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isFilterMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
-                        >
-                            <Filter size={18}/>
-                            <AnimatePresence>
-                                {isFilterHovered && (
-                                    <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Filtro</motion.span>
-                                )}
-                            </AnimatePresence>
-                        </motion.button>
-                        
-                        <AnimatePresence>
-                            {isFilterMenuOpen && (
-                                <motion.div 
-                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    className="absolute top-full right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 w-[300px] z-50 origin-top-right overflow-hidden"
-                                >
-                                    <div className="flex flex-col">
-                                        {[
-                                            { id: 'status', label: 'Estado Propuesta', icon: <Clock size={16}/>, options: ['all', 'draft', 'sent', 'accepted', 'expired'], key: 'status' },
-                                            { id: 'client', label: 'Tipo de Cliente', icon: <User size={16}/>, options: ['all', 'empresa', 'persona'], key: 'clientType' }
-                                        ].map((section) => (
-                                            <div key={section.id} className="border-b border-slate-50 last:border-none">
-                                                <button 
-                                                    onClick={() => setActiveAccordion(activeAccordion === section.id ? null : section.id)}
-                                                    className={`w-full flex items-center justify-between p-4 transition-colors hover:bg-slate-50 ${activeAccordion === section.id ? 'bg-slate-50/50' : ''}`}
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`p-2 rounded-lg ${activeAccordion === section.id ? 'bg-[#004D4D] text-white' : 'bg-slate-100 text-slate-500'}`}>
-                                                            {section.icon}
-                                                        </div>
-                                                        <span className="text-xs font-black uppercase tracking-wide text-slate-700">{section.label}</span>
-                                                    </div>
-                                                    <ChevronRight size={16} className={`text-slate-300 transition-transform ${activeAccordion === section.id ? 'rotate-90' : ''}`}/>
-                                                </button>
-                                                
-                                                <AnimatePresence>
-                                                    {activeAccordion === section.id && (
-                                                        <motion.div 
-                                                            initial={{ height: 0, opacity: 0 }}
-                                                            animate={{ height: 'auto', opacity: 1 }}
-                                                            exit={{ height: 0, opacity: 0 }}
-                                                            className="overflow-hidden bg-slate-50/30 px-4 pb-4"
-                                                        >
-                                                            <div className="flex flex-wrap gap-2 pt-2">
-                                                                {section.options.map(opt => (
-                                                                    <button 
-                                                                        key={opt}
-                                                                        onClick={() => setAdvancedFilters({...advancedFilters, [section.key]: opt})}
-                                                                        className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase transition-all ${advancedFilters[section.key as keyof typeof advancedFilters] === opt ? 'bg-[#004D4D] text-white' : 'bg-white border border-slate-200 text-slate-500 hover:border-[#004D4D]'}`}
-                                                                    >
-                                                                        {opt === 'all' ? 'Todos' : opt}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                            </div>
-                                        ))}
-                                        <div className="p-4 bg-slate-50">
-                                            <button 
-                                                onClick={() => { setAdvancedFilters({clientType: 'all', status: 'all'}); setIsFilterMenuOpen(false); setActiveAccordion(null); }}
-                                                className="w-full py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase shadow-lg shadow-slate-900/10 hover:bg-black transition-all"
-                                            >
-                                                Limpiar Filtros
-                                            </button>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                     </div>
-
-                     <div className="relative z-50">
-                        <motion.button 
-                            onMouseEnter={() => setIsDateHovered(true)}
-                            onMouseLeave={() => setIsDateHovered(false)}
-                            onClick={() => { setIsDateMenuOpen(!isDateMenuOpen); setIsFilterMenuOpen(false); }}
-                            className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isDateMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5'}`}
-                        >
-                            <CalendarIcon size={18}/>
-                            <AnimatePresence mode="popLayout">
-                                {isDateHovered && (
-                                    <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Fecha</motion.span>
-                                )}
-                            </AnimatePresence>
-                        </motion.button>
-
-                        <AnimatePresence>
-                            {isDateMenuOpen && (
-                                <motion.div 
-                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 p-6 w-[320px] z-50 origin-top-right"
-                                >
-                                    <div className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desde</label>
-                                                <input type="date" value={dateRangeState.from} onChange={(e) => setDateRangeState({ ...dateRangeState, from: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-700 outline-none focus:border-[#004D4D]"/>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hasta</label>
-                                                <input type="date" value={dateRangeState.to} onChange={(e) => setDateRangeState({ ...dateRangeState, to: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-700 outline-none focus:border-[#004D4D]"/>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            <button onClick={() => handleDatePreset('today')} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 transition-colors">Hoy</button>
-                                            <button onClick={() => handleDatePreset('yesterday')} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 transition-colors">Ayer</button>
-                                            <button onClick={() => handleDatePreset('week')} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 transition-colors">Esta Semana</button>
-                                            <button onClick={() => handleDatePreset('month')} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 transition-colors">Este Mes</button>
-                                        </div>
-                                        <button onClick={() => setIsDateMenuOpen(false)} className="w-full py-2.5 bg-[#004D4D] text-white rounded-xl text-[10px] font-black uppercase shadow-lg shadow-[#004D4D]/20 flex items-center justify-center gap-2">
-                                            <Download size={14}/> Aplicar
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                     </div>
-
-                     <motion.button 
-                        onMouseEnter={() => setIsExportHovered(true)}
-                        onMouseLeave={() => setIsExportHovered(false)}
-                        onClick={handleExport}
-                        className="h-12 flex items-center gap-2 px-4 bg-white border border-slate-100 rounded-2xl text-slate-500 hover:text-[#004D4D] hover:bg-[#004D4D]/5 transition-all shadow-sm"
-                     >
-                        <Download size={18}/>
-                        <AnimatePresence>
-                            {isExportHovered && (
-                                <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Exportar</motion.span>
-                            )}
-                        </AnimatePresence>
-                     </motion.button>
+            <div className="w-full flex justify-between items-center bg-white p-2 rounded-2xl border border-gray-100 shadow-sm mx-4 relative">
+                 <div className="relative w-full max-w-md"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} /><input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-transparent text-sm font-bold outline-none"/></div>
+                 <div className="flex items-center gap-2 pr-2">
+                     <div className="relative"><button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className={`h-12 w-12 flex items-center justify-center rounded-xl transition-all ${isFilterMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white border border-gray-100 text-gray-400'}`}><Filter size={18}/></button>
+                        {isFilterMenuOpen && (<div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 w-48 z-50 animate-in fade-in zoom-in-95">{['Todas', 'Borradores', 'Enviadas', 'Aceptadas', 'Vencidas'].map((f) => (<button key={f} onClick={() => setIsFilterMenuOpen(false)} className="w-full text-left px-4 py-2 text-[9px] font-black uppercase text-gray-500 hover:bg-gray-50 rounded-lg">{f}</button>))}</div>)}</div>
+                     <div className="relative"><button onClick={() => setIsDateMenuOpen(!isDateMenuOpen)} className={`h-12 w-12 flex items-center justify-center rounded-xl transition-all ${isDateMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white border border-gray-100 text-gray-400'}`}><CalendarIcon size={18}/></button>
+                        {isDateMenuOpen && (<div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 w-64 z-50 animate-in fade-in zoom-in-95 space-y-4"><div className="grid grid-cols-2 gap-2"><div className="space-y-1"><label className="text-[8px] font-black text-gray-400 uppercase">Desde</label><input type="date" value={dateRangeState.from} onChange={e => setDateRangeState({...dateRangeState, from: e.target.value})} className="w-full p-2 bg-gray-50 rounded-lg text-[10px] font-bold outline-none"/></div><div className="space-y-1"><label className="text-[8px] font-black text-gray-400 uppercase">Hasta</label><input type="date" value={dateRangeState.to} onChange={e => setDateRangeState({...dateRangeState, to: e.target.value})} className="w-full p-2 bg-gray-50 rounded-lg text-[10px] font-bold outline-none"/></div></div><div className="flex flex-wrap gap-2 pt-2 border-t border-gray-50">{['today', 'yesterday', 'week', 'month'].map(p => <button key={p} onClick={() => handleDatePreset(p as any)} className="px-2 py-1 bg-gray-50 hover:bg-gray-100 rounded text-[8px] font-black uppercase text-gray-500">{p}</button>)}</div><button onClick={() => setIsDateMenuOpen(false)} className="w-full py-2 bg-[#004D4D] text-white rounded-lg text-[9px] font-black uppercase">Aplicar Rango</button></div>)}</div>
+                     <button onClick={handleExportPDF} className="h-12 w-12 flex items-center justify-center bg-white border border-gray-100 rounded-xl text-gray-400 hover:text-emerald-600 transition-all"><Download size={18}/></button>
                  </div>
             </div>
-        </div>
+      </div>
 
-        {/* --- Dynamic Content Area (Table or Templates) --- */}
-        <div className="relative min-h-[400px]">
-          <AnimatePresence mode="wait">
-            {statusFilter !== 'templates' ? (
-              <motion.div 
-                key="table-view"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 50 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                className="bg-white border border-slate-200 rounded-[2rem] shadow-sm overflow-hidden"
-              >
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50/50 border-b border-slate-200 text-xs font-black text-slate-400 uppercase tracking-wider">
-                        <th className="p-6">Folio</th>
-                        <th className="p-6">Cliente / Empresa</th>
-                        <th className="p-6">Fecha Emisión</th>
-                        <th className="p-6">Vencimiento</th>
-                        <th className="p-6">Estado</th>
-                        <th className="p-6 text-right">Total</th>
-                        <th className="p-6"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {filteredQuotes.map((q) => (
-                        <tr 
-                          key={q.id} 
-                          onClick={() => setSelectedQuote(q)}
-                          className="group hover:bg-slate-50/80 transition-colors cursor-pointer"
-                        >
-                          <td className="p-6">
-                            <span className="font-black text-slate-900 group-hover:text-[#004D4D] transition-colors text-sm">#{q.folio}</span>
-                          </td>
-                          <td className="p-6">
-                            <div className="flex flex-col">
-                              <span className="text-sm font-bold text-slate-900">{q.customer.name}</span>
-                              <span className="text-xs text-slate-400 font-medium">{q.customer.company}</span>
-                            </div>
-                          </td>
-                          <td className="p-6">
-                            <div className="text-xs font-medium text-slate-500">
-                              {new Date(q.date).toLocaleDateString()}
-                            </div>
-                          </td>
-                          <td className="p-6">
-                            <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-                              <Clock size={12}/>
-                              {new Date(q.expiryDate).toLocaleDateString()}
-                            </div>
-                          </td>
-                          <td className="p-6">
-                            <StatusBadge status={q.status} />
-                          </td>
-                          <td className="p-6 text-right">
-                            <span className="text-sm font-black text-slate-900">{formatCurrency(q.total)}</span>
-                          </td>
-                          <td className="p-6 text-right">
-                            <button className="p-2 text-slate-300 hover:text-cyan-600 hover:bg-cyan-50 rounded-full transition-all opacity-0 group-hover:opacity-100">
-                              <ChevronRight size={20} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div 
-                key="templates-view"
-                initial={{ opacity: 0, y: -50 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-              >
-                {[
-                  { id: 't1', name: 'Corporativo Bayup', desc: 'Diseño ultra-premium con tipografía técnica.', color: 'from-slate-900 to-slate-800' },
-                  { id: 't2', name: 'Retail Moderno', desc: 'Enfocado en visibilidad de productos y kits.', color: 'from-[#004D4D] to-[#001A1A]' },
-                  { id: 't3', name: 'Minimal Crystal', desc: 'Estilo glassmorphism para servicios digitales.', color: 'from-cyan-500 to-blue-600' }
-                ].map((template) => (
-                  <motion.div 
-                    key={template.id}
-                    whileHover={{ y: -10 }}
-                    className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm hover:shadow-2xl transition-all cursor-pointer group relative overflow-hidden flex flex-col justify-between h-[300px]"
-                    onClick={() => setSelectedTemplateForPreview(template)}
-                  >
-                    <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${template.color} opacity-10 rounded-bl-[4rem] -mr-8 -mt-8`}></div>
-                    
-                    <div>
-                      <div className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${template.color} flex items-center justify-center text-white mb-6 shadow-lg`}>
-                        <Layout size={24}/>
-                      </div>
-                      <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tighter">{template.name}</h3>
-                      <p className="text-sm text-slate-400 font-medium mt-2 leading-relaxed">{template.desc}</p>
-                    </div>
+      <div className="px-4"><div className="bg-white border border-gray-100 rounded-[2rem] shadow-sm overflow-hidden"><table className="w-full text-left"><thead className="bg-gray-50/50 border-b border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-widest"><tr><th className="p-6">Folio</th><th className="p-6">Cliente</th><th className="p-6">Estado</th><th className="p-6 text-right">Total</th><th className="p-6"></th></tr></thead><tbody className="divide-y divide-gray-50">{filteredQuotes.map((q) => (<tr key={q.id} onClick={() => setSelectedQuote(q)} className="group hover:bg-gray-50 transition-colors cursor-pointer"><td className="p-6 font-black text-sm text-[#004D4D]">#{q.folio}</td><td className="p-6"><p className="text-sm font-bold text-gray-900">{q.customer.name}</p><p className="text-[10px] text-gray-400 uppercase font-bold">{q.customer.company}</p></td><td className="p-6"><StatusBadge status={q.status} /></td><td className="p-6 text-right font-black text-sm text-gray-900">$ {q.total.toLocaleString()}</td><td className="p-6 text-right"><ChevronRight size={20} className="text-gray-300 ml-auto"/></td></tr>))}</tbody></table></div></div>
 
-                    <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-50">
-                      <button className="text-[10px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-700 transition-colors flex items-center gap-2">
-                        <Trash2 size={14}/> Eliminar
-                      </button>
-                      <span className="text-[#004D4D] text-[10px] font-black uppercase tracking-widest flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        Seleccionar <ChevronRight size={14}/>
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </main>
-
-      {/* --- Right Panel (Quotation Details) --- */}
       <AnimatePresence>
         {selectedQuote && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedQuote(null)} className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[200]" />
-            <motion.div 
-              initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl z-[210] flex flex-col border-l border-slate-200"
-            >
-              <div className="px-8 py-6 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-2xl font-black text-slate-900">#{selectedQuote.folio}</h2>
-                    <StatusBadge status={selectedQuote.status} />
-                  </div>
-                  <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
-                    <CalendarIcon size={14}/> Emitido el {new Date(selectedQuote.date).toLocaleDateString()}
-                  </p>
-                </div>
-                <button onClick={() => setSelectedQuote(null)} className="p-2 hover:bg-slate-200/50 rounded-full transition-colors text-slate-500">
-                  <X size={20} />
-                </button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedQuote(null)} className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[400]" />
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 30, stiffness: 300 }} className="fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl z-[410] flex flex-col border-l border-slate-200">
+              <div className="px-8 py-6 border-b border-slate-100 flex items-start justify-between bg-slate-50/50 shrink-0">
+                <div><div className="flex items-center gap-3 mb-2"><h2 className="text-2xl font-black text-slate-900">#{selectedQuote.folio}</h2><StatusBadge status={selectedQuote.status} /></div><p className="text-sm text-slate-500 font-medium flex items-center gap-2"><CalendarIcon size={14}/> Emitida el {new Date(selectedQuote.date).toLocaleDateString()}</p></div>
+                <button onClick={() => setSelectedQuote(null)} className="p-2 hover:bg-slate-200/50 rounded-full text-slate-500"><X size={20} /></button>
               </div>
-
-              <div className="flex-1 overflow-y-auto p-8 space-y-8">
-                {/* Actions Grid */}
-                <div className="grid grid-cols-4 gap-3">
-                  {[
-                    { icon: <Eye size={20}/>, label: 'Previsualizar', color: 'hover:border-cyan-400 hover:bg-cyan-50 hover:text-cyan-600' },
-                    { icon: <Download size={20}/>, label: 'PDF', color: 'hover:border-[#004D4D] hover:bg-[#004D4D]/5 hover:text-[#004D4D]' },
-                    { icon: <Smartphone size={20}/>, label: 'WhatsApp', color: 'hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-600' },
-                    { icon: <Trash2 size={20}/>, label: 'Eliminar', color: 'hover:border-rose-400 hover:bg-rose-50 hover:text-rose-600' },
-                  ].map((btn, i) => (
-                    <motion.button key={i} whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} className={`flex flex-col items-center justify-center p-4 rounded-2xl border border-slate-200 transition-all gap-2 group shadow-sm ${btn.color}`}>
-                      <div className="text-slate-400 group-hover:text-inherit transition-colors">{btn.icon}</div>
-                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 group-hover:text-inherit">{btn.label}</span>
-                    </motion.button>
-                  ))}
-                </div>
-
-                {/* Info Sections */}
-                <div className="grid grid-cols-2 gap-8">
-                  <section className="space-y-4">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><User size={14}/> Cliente</h3>
-                    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                      <p className="text-sm font-bold text-slate-900">{selectedQuote.customer.name}</p>
-                      <p className="text-xs text-[#004D4D] font-black mt-1 uppercase tracking-tighter">{selectedQuote.customer.company}</p>
-                    </div>
-                  </section>
-                  <section className="space-y-4">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock size={14}/> Validez</h3>
-                    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                      <p className="text-sm font-bold text-rose-600 italic">Vence: {new Date(selectedQuote.expiryDate).toLocaleDateString()}</p>
-                      <p className="text-[10px] text-slate-400 font-medium uppercase mt-1 tracking-widest">Quedan 12 días</p>
-                    </div>
-                  </section>
-                </div>
-
-                {/* Items Table */}
-                <section className="space-y-4">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Resumen de Servicios</h3>
-                  <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-                    <table className="w-full text-left text-sm">
-                      <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[10px] tracking-wider">
-                        <tr><th className="p-4">Descripción</th><th className="p-4 text-center">Cant</th><th className="p-4 text-right">Precio</th></tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 font-medium">
-                        {selectedQuote.items.map(item => (
-                          <tr key={item.id}><td className="p-4 text-slate-900 font-bold">{item.name}</td><td className="p-4 text-center text-slate-500">{item.qty}</td><td className="p-4 text-right text-slate-900">{formatCurrency(item.price)}</td></tr>
+              <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
+                <section className="bg-slate-50/50 p-8 rounded-[2.5rem] border border-slate-100 space-y-6">
+                    <div className="flex justify-between items-center"><h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Activity size={14}/> Proceso de Cierre</h3><span className="bg-[#00F2FF]/10 text-[#004D4D] text-[8px] font-black px-3 py-1 rounded-full uppercase">{selectedQuote.status === 'accepted' ? 'Exitoso' : 'Interacción: 2 aperturas'}</span></div>
+                    <div className="flex justify-between items-start relative px-2">
+                        <div className="absolute top-4 left-8 right-8 h-0.5 bg-slate-200 -z-0"></div>
+                        {[ { label: 'Emitida', s: 'done', icon: <FileText size={14}/> }, { label: 'Enviada', s: selectedQuote.status === 'draft' ? 'pending' : 'done', icon: <Send size={14}/> }, { label: 'Abierta', s: selectedQuote.status === 'sent' ? 'current' : 'done', icon: <Eye size={14}/> }, { label: 'Cierre', s: selectedQuote.status === 'accepted' ? 'done' : 'pending', icon: <CheckCircle2 size={14}/> } ].map((step, i) => (
+                            <div key={i} className="flex flex-col items-center gap-3 relative z-10">
+                                <div className={`h-9 w-9 rounded-2xl border-4 border-white shadow-md flex items-center justify-center transition-all ${step.s === 'done' ? 'bg-emerald-500 text-white' : step.s === 'current' ? 'bg-[#00F2FF] text-[#004D4D] animate-pulse scale-110' : 'bg-white text-slate-300'}`}>{step.icon}</div>
+                                <span className={`text-[9px] font-black uppercase tracking-tight ${step.s === 'pending' ? 'text-slate-300' : 'text-slate-900'}`}>{step.label}</span>
+                            </div>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
+                    </div>
                 </section>
-
-                {/* Total Box */}
-                <section className="bg-slate-900 rounded-[2.5rem] p-8 text-white flex items-center justify-between shadow-xl">
-                    <div><p className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-black">Monto Total Propuesta</p><p className="text-4xl font-black mt-1 italic">{formatCurrency(selectedQuote.total)}</p></div>
-                    <div className="h-16 w-16 rounded-3xl bg-white/10 flex items-center justify-center text-[#00F2FF] border border-white/10 shadow-inner"><DollarSign size={32}/></div>
-                </section>
+                <div className="grid grid-cols-4 gap-3">
+                    <button onClick={() => handleCopyLink(selectedQuote)} className="flex flex-col items-center justify-center p-4 rounded-2xl border border-slate-200 transition-all gap-2 group hover:bg-cyan-50 hover:border-cyan-400"><div className="text-slate-400 group-hover:text-cyan-600"><Eye size={20}/></div><span className="text-[9px] font-black uppercase tracking-wider text-slate-500 group-hover:text-cyan-700">Link</span></button>
+                    <button onClick={() => handleDownloadSinglePDF(selectedQuote)} className="flex flex-col items-center justify-center p-4 rounded-2xl border border-slate-200 transition-all gap-2 group hover:bg-[#004D4D]/5 hover:border-[#004D4D]"><div className="text-slate-400 group-hover:text-[#004D4D]"><Download size={20}/></div><span className="text-[9px] font-black uppercase tracking-wider text-slate-500 group-hover:text-[#004D4D]">PDF</span></button>
+                    <button onClick={() => handleWhatsAppQuote(selectedQuote)} className="flex flex-col items-center justify-center p-4 rounded-2xl border border-slate-200 transition-all gap-2 group hover:bg-emerald-50 hover:border-emerald-400"><div className="text-slate-400 group-hover:text-emerald-600"><Smartphone size={20}/></div><span className="text-[9px] font-black uppercase tracking-wider text-slate-500 group-hover:text-emerald-700">WhatsApp</span></button>
+                    <button onClick={() => handleDeleteQuote(selectedQuote.id)} className="flex flex-col items-center justify-center p-4 rounded-2xl border border-slate-200 transition-all gap-2 group hover:bg-rose-50 hover:border-rose-400"><div className="text-slate-400 group-hover:text-rose-600"><Trash2 size={20}/></div><span className="text-[9px] font-black uppercase tracking-wider text-slate-500 group-hover:text-rose-700">Eliminar</span></button>
+                </div>
+                <div className="grid grid-cols-2 gap-8"><section className="space-y-4"><h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><User size={14}/> Cliente</h3><div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm"><p className="text-sm font-bold text-slate-900">{selectedQuote.customer.name}</p><p className="text-[10px] text-[#004D4D] font-black mt-1 uppercase">{selectedQuote.customer.company}</p></div></section><section className="space-y-4"><h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock size={14}/> Validez</h3><div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm"><p className="text-sm font-bold text-rose-600 italic">Vence: {new Date(selectedQuote.expiryDate).toLocaleDateString()}</p></div></section></div>
+                <section className="bg-slate-900 rounded-[2.5rem] p-8 text-white flex items-center justify-between shadow-xl"><div><p className="text-[10px] text-slate-400 uppercase font-black">Monto Total</p><p className="text-4xl font-black mt-1 italic">$ {selectedQuote.total.toLocaleString()}</p></div><div className="h-16 w-16 rounded-3xl bg-white/10 flex items-center justify-center text-[#00F2FF] border border-white/10"><DollarSign size={32}/></div></section>
               </div>
-
-              <div className="p-6 border-t border-slate-200 bg-white flex gap-4">
-                <button className="flex-1 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-2 transition-all"><CheckCircle2 size={16}/> Aprobar y Convertir a Venta</button>
-              </div>
+              <div className="p-6 border-t border-slate-200 bg-white flex gap-4"><button disabled={selectedQuote.status === 'accepted'} onClick={() => handleAcceptQuote(selectedQuote)} className={`flex-1 py-4 rounded-xl font-black text-[10px] uppercase transition-all flex items-center justify-center gap-2 ${selectedQuote.status === 'accepted' ? 'bg-emerald-50 text-emerald-600' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-xl'}`}><CheckCircle2 size={16}/> {selectedQuote.status === 'accepted' ? 'Aceptada' : 'Aprobar y Convertir a Venta'}</button></div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* --- IA Scanner Modal (Redesigned) --- */}
-      <AnimatePresence>
-        {isCreateModalOpen && (
-            // ... (Creation modal code)
-            <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCreateModalOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" />
-                <motion.div initial={{ scale: 0.9, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.9, y: 20, opacity: 0 }} className="relative bg-white w-full max-w-xl rounded-[3rem] shadow-2xl overflow-hidden border border-white">
-                    <div className="p-10 bg-gradient-to-br from-[#004D4D] to-[#001A1A] text-white relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
-                        <div className="relative z-10 flex justify-between items-start">
-                            <div className="h-16 w-16 bg-white/20 rounded-2xl flex items-center justify-center shadow-lg"><Zap size={32} className="text-[#00F2FF]" /></div>
-                            <button onClick={() => setIsCreateModalOpen(false)} className="text-white/60 hover:text-white transition-colors"><X size={24} /></button>
-                        </div>
-                        <div className="relative z-10 mt-8">
-                            <h2 className="text-3xl font-black tracking-tighter uppercase italic">Escáner de Formatos IA</h2>
-                            <p className="text-white/60 text-sm font-bold uppercase tracking-widest mt-1 text-cyan-400">Ingeniería Documental Pro</p>
-                        </div>
-                    </div>
-                    <div className="p-10 space-y-8">
-                        <label className="border-2 border-dashed border-slate-100 rounded-[2.5rem] p-12 flex flex-col items-center justify-center cursor-pointer hover:bg-cyan-50/30 hover:border-cyan-200 transition-all group">
-                            <FileText size={48} className="text-slate-300 group-hover:text-[#004D4D] transition-colors" />
-                            <p className="text-sm font-black text-slate-900 mt-4 uppercase">Arrastra tu PDF actual</p>
-                            <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-widest">Nuestra IA imitará tu estilo visual</p>
-                        </label>
-                        <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100 flex items-start gap-4">
-                            <Info size={20} className="text-amber-600 mt-0.5" />
-                            <p className="text-xs text-amber-900 font-medium leading-relaxed italic">Sube tu formato actual. El sistema extraerá logos, tipografías y tablas para crear una versión digital ultra-potenciada.</p>
-                        </div>
-                        <button className="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all">Iniciar Procesamiento IA</button>
-                    </div>
-                </motion.div>
-            </div>
-        )}
-      </AnimatePresence>
+      <CotizacionesMetricModal isOpen={!!selectedKPI} onClose={() => setSelectedKPI(null)} metric={selectedKPI} />
+      <QuoteGeneratorModal isOpen={isGeneratorOpen} onClose={() => setIsGeneratorOpen(false)} />
+      <CotizacionesGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+      <IAScannerModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
 
-      {/* --- Template Preview & Edit Modal --- */}
-      <AnimatePresence>
-        {selectedTemplateForPreview && (
-          <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedTemplateForPreview(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }}
-              className="relative bg-[#FAFAFA] w-full max-w-5xl h-[85vh] rounded-[3.5rem] shadow-2xl overflow-hidden border border-white flex flex-col md:flex-row"
-            >
-              {/* Left Side: Mock Invoice Preview */}
-              <div className="flex-1 bg-white p-10 overflow-y-auto custom-scrollbar">
-                <div className="border-[12px] border-slate-50 rounded-[2rem] p-8 min-h-full shadow-inner flex flex-col space-y-8">
-                  {/* Mock Invoice Header */}
-                  <div className="flex justify-between items-start">
-                    <div className="text-2xl font-black italic text-[#004D4D]">BAYUP</div>
-                    <div className="text-right"><h4 className="text-xl font-black uppercase">COTIZACIÓN</h4><p className="text-xs text-slate-400 font-bold tracking-widest">FOLIO: #0001</p></div>
-                  </div>
-                  <div className="h-[1px] w-full bg-slate-100"></div>
-                  <div className="grid grid-cols-2 gap-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    <div><p>Emisor</p><p className="text-slate-900 font-black text-sm mt-1">Tu Empresa Bayup</p></div>
-                    <div className="text-right"><p>Cliente</p><p className="text-slate-900 font-black text-sm mt-1">Nombre del Cliente</p></div>
-                  </div>
-                  <div className="flex-1 bg-slate-50/50 rounded-2xl p-6 border border-dashed border-slate-200 flex flex-col items-center justify-center space-y-2">
-                    <Palette size={32} className="text-slate-300"/>
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Previsualización del Formato: {selectedTemplateForPreview.name}</p>
-                  </div>
-                  <div className="pt-6 border-t border-slate-100 flex justify-between items-end">
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Total a Pagar</p>
-                    <p className="text-4xl font-black text-[#004D4D] italic">$ 0.00</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Side: Settings & Actions */}
-              <div className="w-full md:w-[380px] bg-slate-50 border-l border-slate-100 p-10 flex flex-col justify-between">
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tighter italic uppercase leading-none">Editor de <br/> <span className="text-[#004D4D]">Formato</span></h3>
-                    <p className="text-xs text-slate-400 font-medium mt-2">Configura la estética de este template.</p>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Color de Acento</label>
-                      <div className="flex gap-2">
-                        {['bg-[#004D4D]', 'bg-cyan-500', 'bg-slate-900', 'bg-rose-500'].map(c => (
-                          <div key={c} className={`h-8 w-8 rounded-full ${c} cursor-pointer border-2 border-white shadow-sm hover:scale-110 transition-transform`}></div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipografía</label>
-                      <select className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-[#004D4D]">
-                        <option>Inter (Moderno)</option>
-                        <option>Playfair Display (Elegante)</option>
-                        <option>Space Mono (Técnico)</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <button className="w-full py-4 bg-[#004D4D] text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all">Guardar Cambios</button>
-                  <button onClick={() => setSelectedTemplateForPreview(null)} className="w-full py-2 text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-[#004D4D]">Cerrar Editor</button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* --- Workflow Guide Modal --- */}
-      <AnimatePresence>
-          {isGuideOpen && (
-              <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-                  <motion.div 
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      onClick={() => setIsGuideOpen(false)}
-                      className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
-                  />
-                  <motion.div 
-                      initial={{ opacity: 0, scale: 0.95, y: 30 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: 30 }}
-                      className="relative bg-white w-full max-w-4xl h-[70vh] rounded-[3rem] shadow-2xl overflow-hidden border border-white flex flex-col md:flex-row"
-                  >
-                      {/* Navigation Sidebar */}
-                      <div className="w-full md:w-64 bg-slate-50 border-r border-slate-100 p-6 flex flex-col gap-2 overflow-y-auto">
-                          <div className="mb-6">
-                              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#004D4D]">Flujo Bayup</h3>
-                              <p className="text-[10px] text-slate-400 font-bold mt-1">Guía de Cotizaciones</p>
-                          </div>
-                          {Object.entries(guideContent).map(([key, item]) => (
-                              <button
-                                  key={key}
-                                  onClick={() => setActiveGuideTab(key)}
-                                  className={`flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${activeGuideTab === key ? 'bg-[#004D4D] text-white shadow-lg' : 'text-slate-500 hover:bg-white hover:shadow-sm'}`}
-                              >
-                                  <div className={`${activeGuideTab === key ? 'text-white' : item.color}`}>
-                                      {item.icon}
-                                  </div>
-                                  <span className="text-[10px] font-black uppercase tracking-wide">{item.title}</span>
-                              </button>
-                          ))}
-                      </div>
-
-                      {/* Content Area */}
-                      <div className="flex-1 flex flex-col overflow-hidden bg-white">
-                          <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-white/50 backdrop-blur-sm sticky top-0">
-                              <div className="flex items-center gap-4">
-                                  <div className={`h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center ${guideContent[activeGuideTab as keyof typeof guideContent].color}`}>
-                                      {guideContent[activeGuideTab as keyof typeof guideContent].icon}
-                                  </div>
-                                  <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">
-                                      {guideContent[activeGuideTab as keyof typeof guideContent].title}
-                                  </h2>
-                              </div>
-                              <button onClick={() => setIsGuideOpen(false)} className="h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
-                                  <X size={20}/>
-                              </button>
-                          </div>
-
-                          <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar">
-                              <section>
-                                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                      <div className="h-1 w-4 bg-[#004D4D] rounded-full"></div> ¿Cómo funciona?
-                                  </h4>
-                                  <p className="text-sm font-medium text-slate-600 leading-relaxed bg-slate-50 p-6 rounded-[2rem] border border-slate-100 shadow-inner">
-                                      {guideContent[activeGuideTab as keyof typeof guideContent].howItWorks}
-                                  </p>
-                              </section>
-
-                              <div className="grid md:grid-cols-2 gap-8">
-                                  <section className="space-y-4">
-                                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                          <Smartphone size={14} className="text-cyan-500"/> Ejemplo Real
-                                      </h4>
-                                      <div className="p-6 bg-cyan-50/30 border border-cyan-100 rounded-[2rem]">
-                                          <p className="text-xs font-medium text-cyan-900 leading-relaxed italic">
-                                              "{guideContent[activeGuideTab as keyof typeof guideContent].example}"
-                                          </p>
-                                      </div>
-                                  </section>
-
-                                  <section className="space-y-4">
-                                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                          <Zap size={14} className="text-amber-500"/> Bayup Pro-Tip
-                                      </h4>
-                                      <div className="p-6 bg-amber-50/30 border border-amber-100 rounded-[2rem]">
-                                          <p className="text-xs font-bold text-amber-900 leading-relaxed">
-                                              {guideContent[activeGuideTab as keyof typeof guideContent].tip}
-                                          </p>
-                                      </div>
-                                  </section>
-                              </div>
-                          </div>
-
-                          <div className="p-8 border-t border-slate-50 flex justify-end bg-slate-50/30">
-                              <button 
-                                  onClick={() => setIsGuideOpen(false)}
-                                  className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-900/10 hover:bg-black transition-all"
-                              >
-                                  Cerrar Guía
-                              </button>
-                          </div>
-                      </div>
-                  </motion.div>
-              </div>
-          )}
-      </AnimatePresence>
-
+      <style jsx global>{`
+          .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 30px; }
+      `}</style>
     </div>
   );
 }
