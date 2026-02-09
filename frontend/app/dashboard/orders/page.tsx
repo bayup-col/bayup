@@ -109,64 +109,7 @@ interface MetricData {
 }
 
 // --- Mock Data ---
-const MOCK_ORDERS: Order[] = [
-  {
-    id: "ORD-7829",
-    customer: { name: "Esteban Quito", email: "esteban@example.com", phone: "+57 300 123 4567", address: "Calle 123 #45-67", city: "Bogotá" },
-    channel: "web",
-    status: "paid",
-    date: "2026-01-30T10:23:00",
-    total: 150000,
-    paymentMethod: "Credit Card",
-    paymentStatus: "paid",
-    invoiced: false,
-    hasTracking: false,
-    items: [{ id: "1", name: "Nike Air Max 90", sku: "NK-AM90-BLK", quantity: 1, price: 150000, image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100&q=80" }]
-  },
-  {
-    id: "ORD-7830",
-    customer: { name: "Maria Fernanda", email: "mafe@example.com", phone: "+57 310 987 6543", address: "Cra 80 #12-34", city: "Medellín" },
-    channel: "whatsapp",
-    status: "delayed",
-    date: "2026-01-30T09:15:00",
-    total: 85000,
-    paymentMethod: "Transferencia",
-    paymentStatus: "pending",
-    invoiced: true,
-    hasTracking: true,
-    carrier: "Servientrega",
-    trackingNumber: "987654321",
-    items: [{ id: "2", name: "Camiseta Básica Premium", sku: "TS-BAS-WHT", quantity: 2, price: 42500, image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=100&q=80" }]
-  },
-  {
-    id: "ORD-7828",
-    customer: { name: "Carlos Ruiz", email: "carlos@example.com", phone: "+57 315 555 1234", address: "Av. Siempre Viva 742", city: "Cali" },
-    channel: "mercadolibre",
-    status: "processing",
-    date: "2026-01-29T16:40:00",
-    total: 320000,
-    paymentMethod: "MercadoPago",
-    paymentStatus: "paid",
-    invoiced: true,
-    hasTracking: true,
-    carrier: "Coordinadora",
-    trackingNumber: "123456789",
-    items: [{ id: "3", name: "Smartwatch Series 5", sku: "SW-S5-BLK", quantity: 1, price: 320000, image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&q=80" }]
-  },
-  {
-    id: "ORD-7825",
-    customer: { name: "Luisa Lane", email: "luisa@daily.com", phone: "+57 300 555 9999", address: "Calle 100 #15-20", city: "Barranquilla" },
-    channel: "shopify",
-    status: "delivered",
-    date: "2026-01-28T14:20:00",
-    total: 450000,
-    paymentMethod: "PayPal",
-    paymentStatus: "paid",
-    invoiced: true,
-    hasTracking: true,
-    items: [{ id: "4", name: "Bolso de Cuero", sku: "BG-LTH-BRN", quantity: 1, price: 450000, image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=100&q=80" }]
-  }
-];
+const MOCK_ORDERS: Order[] = [];
 
 // --- Components ---
 
@@ -340,7 +283,7 @@ export default function OrdersPage() {
     const fetchOrders = async () => {
         if (!token) return;
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
             const res = await fetch(`${apiUrl}/orders`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });

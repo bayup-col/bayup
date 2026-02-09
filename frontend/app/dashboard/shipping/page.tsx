@@ -72,22 +72,7 @@ interface MetricData {
 }
 
 // --- MOCK DATA ---
-const MOCK_SHIPMENTS: Shipment[] = [
-  {
-    id: "SHP-1001",
-    order_id: "ORD-7828",
-    customer: { name: "Carlos Ruiz", email: "carlos@example.com", phone: "+57 315 555 1234", address: "Av. Siempre Viva 742", city: "Cali" },
-    carrier: "Coordinadora",
-    tracking_number: "123456789",
-    status: "in_transit",
-    last_update: "2026-01-30T14:20:00",
-    estimated_delivery: "2026-02-01",
-    history: [
-        { date: "2026-01-30T10:00:00", message: "Recibido en centro de distribución", location: "Medellín" },
-        { date: "2026-01-30T14:20:00", message: "En tránsito a ciudad destino", location: "Bogotá - Cali" }
-    ]
-  }
-];
+const MOCK_SHIPMENTS: Shipment[] = [];
 
 // --- COMPONENTES DE APOYO ---
 function AnimatedNumber({ value, className, type = 'simple' }: { value: number, className?: string, type?: 'currency' | 'percentage' | 'simple' }) {

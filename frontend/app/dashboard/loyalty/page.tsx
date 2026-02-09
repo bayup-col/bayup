@@ -54,11 +54,7 @@ interface Member {
     last_purchase: string;
 }
 
-const MOCK_MEMBERS: Member[] = [
-    { id: 'm1', name: 'Elena Rodriguez', points: 4250, level: 'Oro', progress: 85, last_purchase: 'Hace 2 días' },
-    { id: 'm2', name: 'Carlos Ruiz', points: 1200, level: 'Plata', progress: 40, last_purchase: 'Hace 1 semana' },
-    { id: 'm3', name: 'Roberto Gómez', points: 8500, level: 'Diamante', progress: 100, last_purchase: 'Ayer' },
-];
+const MOCK_MEMBERS: Member[] = [];
 
 export default function LoyaltyPage() {
     const { showToast } = useToast();
@@ -96,8 +92,7 @@ export default function LoyaltyPage() {
         if (savedRewards) {
             setRewards(JSON.parse(savedRewards));
         } else {
-            const initial = [
-                { id: 'r1', name: 'Gorra Oficial Bayup', points: 500, image: null, stock: 10 },
+            const initial: any[] = [];
                 { id: 'r2', name: 'Bono de Regalo $50.000', points: 1000, image: null, stock: null }
             ];
             setRewards(initial);

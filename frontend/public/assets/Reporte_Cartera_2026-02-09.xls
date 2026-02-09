@@ -1,0 +1,36 @@
+
+            <html><head><meta charset="utf-8"><style>
+                .header { background: #001a1a; color: #00f2ff; padding: 30px; text-align: center; font-family: sans-serif; font-weight: bold; }
+                table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
+                th { background: #f8fafc; color: #64748b; padding: 12px; font-size: 11px; text-transform: uppercase; border: 1px solid #e2e8f0; }
+                td { padding: 12px; font-size: 13px; border: 1px solid #e2e8f0; text-align: center; }
+                .receivable { color: #10b981; font-weight: bold; }
+                .payable { color: #ef4444; font-weight: bold; }
+            </style></head><body>
+                <div class="header">REPORTE MAESTRO DE CARTERA: 9/2/2026<br><small>Auditoría de Activos Bayup</small></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Entidad</th>
+                            <th>Nro Factura</th>
+                            <th>Tipo</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                            <th>Vencimiento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                            <tr>
+                                <td style="text-align: left;">Textiles del Norte</td>
+                                <td>INV-8820</td>
+                                <td class="payable">PAGAR</td>
+                                <td>4.500.000 $ </td>
+                                <td>PENDING</td>
+                                <td>2026-02-15</td>
+                            </tr>
+                        
+                    </tbody>
+                </table>
+            </body></html>
+        

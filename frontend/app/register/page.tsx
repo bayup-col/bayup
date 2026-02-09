@@ -89,7 +89,7 @@ function RegisterForm() {
       localStorage.clear(); 
       sessionStorage.clear();
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
       const response = await fetch(`${apiUrl}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -105,7 +105,7 @@ function RegisterForm() {
         throw new Error(errorData.detail || 'Error al registrarse');
       }
 
-      const loginResponse = await fetch(`http://localhost:8000/auth/login`, {
+      const loginResponse = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ username: formData.email, password: formData.password }),

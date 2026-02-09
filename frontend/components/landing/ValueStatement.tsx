@@ -16,7 +16,7 @@ export const ValueStatement = () => {
       desc: "", 
       details: "Diseña cada rincón de tu web con herramientas intuitivas.",
       highlight: "Tu marca, tu estilo, sin límites técnicos.",
-      asset: "/assets/pincel.png"
+      asset: "/assets/pincel.webp"
     },
     { 
       step: "02",
@@ -24,7 +24,7 @@ export const ValueStatement = () => {
       desc: "", 
       details: "Sube tus fotos, define tus precios y organiza tu catálogo en segundos.",
       highlight: "Publicar nunca fue tan fácil.",
-      asset: "/assets/pcfotos.png"
+      asset: "/assets/pcfotos.webp"
     },
     { 
       step: "03",
@@ -32,7 +32,7 @@ export const ValueStatement = () => {
       desc: "", 
       details: "Activa tu página web y empieza a recibir órdenes de inmediato.",
       highlight: "Tus clientes te esperan",
-      asset: "/assets/cohetedinero.png"
+      asset: "/assets/cohetedinero.webp"
     },
   ];
 

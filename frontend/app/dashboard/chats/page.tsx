@@ -52,10 +52,10 @@ import { generateChatsPDF } from '@/lib/chats-report';
 
 // --- CONFIGURACIÓN ---
 const CHANNEL_CONFIG = {
-    whatsapp: { name: 'WhatsApp', logo: '/assets/logowhatsapp.png', color: '#25D366', bg: 'bg-[#E5DDD5]', bubble_me: 'bg-[#dcf8c6] border-[#c7e5b4]', bubble_customer: 'bg-white border-gray-100' },
-    mercadolibre: { name: 'Mercado Libre', logo: '/assets/logomercadolibre.png', color: '#FFE600', bg: 'bg-white', bubble_me: 'bg-[#3483fa] text-white border-[#2a6fd1]', bubble_customer: 'bg-[#f5f5f5] border-gray-200' },
-    instagram: { name: 'Instagram', logo: '/assets/logoinstagram.png', color: '#E4405F', bg: 'bg-white', bubble_me: 'bg-gradient-to-tr from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white border-transparent', bubble_customer: 'bg-gray-100 border-gray-200' },
-    shopify: { name: 'Shopify', logo: '/assets/logoshopify.png', color: '#96bf48', bg: 'bg-gray-50', bubble_me: 'bg-[#008060] text-white border-[#006b4d]', bubble_customer: 'bg-white border-gray-200 shadow-sm' }
+    whatsapp: { name: 'WhatsApp', logo: '/assets/logowhatsapp.webp', color: '#25D366', bg: 'bg-[#E5DDD5]', bubble_me: 'bg-[#dcf8c6] border-[#c7e5b4]', bubble_customer: 'bg-white border-gray-100' },
+    mercadolibre: { name: 'Mercado Libre', logo: '/assets/logomercadolibre.webp', color: '#FFE600', bg: 'bg-white', bubble_me: 'bg-[#3483fa] text-white border-[#2a6fd1]', bubble_customer: 'bg-[#f5f5f5] border-gray-200' },
+    instagram: { name: 'Instagram', logo: '/assets/logoinstagram.webp', color: '#E4405F', bg: 'bg-white', bubble_me: 'bg-gradient-to-tr from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white border-transparent', bubble_customer: 'bg-gray-100 border-gray-200' },
+    shopify: { name: 'Shopify', logo: '/assets/logoshopify.webp', color: '#96bf48', bg: 'bg-gray-50', bubble_me: 'bg-[#008060] text-white border-[#006b4d]', bubble_customer: 'bg-white border-gray-200 shadow-sm' }
 };
 
 const INITIAL_STAGES = [
@@ -67,10 +67,7 @@ const INITIAL_STAGES = [
 
 const PRESET_COLORS = [ '#94a3b8', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#00f2ff', '#004d4d', '#1e293b' ];
 
-const MOCK_CHATS_INIT: any[] = [
-    { id: "c1", customer: { id: "u1", name: "Elena Rodriguez", email: "elena@email.com", phone: "+57 300 456 7890", city: "Medellín", type: 'Final', ltv: 4500000, history: [], tags: ['Prioridad'] }, source: 'whatsapp', last_message: "¿Podrías enviarme el catálogo?", time: "10:30 AM", status: 'negotiation', messages: [] },
-    { id: "c2", customer: { id: "u2", name: "Carlos Ruiz", email: "carlos@gmail.com", phone: "+57 311 222 3344", city: "Bogotá", type: 'Mayorista', ltv: 12800000, history: [], tags: ['Mayorista'] }, source: 'mercadolibre', last_message: "¿Tienen stock?", time: "09:15 AM", status: 'prospect', messages: [] }
-];
+const MOCK_CHATS_INIT: any[] = [];
 
 export default function MensajesPage() {
     const { showToast } = useToast();

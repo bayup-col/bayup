@@ -83,34 +83,13 @@ const COLORS = {
 };
 
 // --- MOCK DATA PARA INTELIGENCIA ---
-const REVENUE_BY_CHANNEL = [
-    { name: 'Web Store', value: 4500000, color: '#004d4d' },
-    { name: 'WhatsApp', value: 3200000, color: '#25D366' },
-    { name: 'Instagram', value: 1800000, color: '#E4405F' },
-    { name: 'POS Físico', value: 2500000, color: '#001a1a' },
-];
+const REVENUE_BY_CHANNEL: any[] = [];
 
-const SALES_TREND = [
-    { name: 'Lun', actual: 4000, anterior: 3200 },
-    { name: 'Mar', actual: 3000, anterior: 3800 },
-    { name: 'Mie', actual: 5000, anterior: 4100 },
-    { name: 'Jue', actual: 4500, anterior: 4200 },
-    { name: 'Vie', actual: 6500, anterior: 5800 },
-    { name: 'Sab', actual: 8000, anterior: 7200 },
-    { name: 'Dom', actual: 7200, anterior: 6500 },
-];
+const SALES_TREND: any[] = [];
 
-const BRANCH_COMPARISON = [
-    { name: 'Tienda Principal', ventas: 12500000, gastos: 4200000, profit: 8300000 },
-    { name: 'Sucursal Norte', ventas: 8400000, gastos: 3100000, profit: 5300000 },
-    { name: 'Showroom Sur', ventas: 4200000, gastos: 1800000, profit: 2400000 },
-];
+const BRANCH_COMPARISON: any[] = [];
 
-const ADVISOR_RANKING = [
-    { name: 'Elena Rodriguez', ventas: 4500000, conversion: '12.4%', growth: '+15%', status: 'high' },
-    { name: 'Carlos Ruiz', ventas: 3800000, conversion: '9.8%', growth: '+8%', status: 'normal' },
-    { name: 'Roberto Gómez', ventas: 2100000, conversion: '6.2%', growth: '-2%', status: 'low' },
-];
+const ADVISOR_RANKING: any[] = [];
 
 function ReportsContent() {
     const { token } = useAuth();
@@ -147,12 +126,7 @@ function ReportsContent() {
     const [editingMember, setEditingMember] = useState<any>(null);
     const [tempSalary, setTempSalary] = useState("");
 
-    const BASE_MOCK_STAFF = [
-        { id: 's1', name: 'Elena Rodriguez', role: 'Asesor Comercial', base_salary: 1200000, commissions: 450000, bonuses: 100000, deductions: 50000, status: 'pending', last_payment_date: '30 Ene 2026' },
-        { id: 's2', name: 'Carlos Ruiz', role: 'Líder de Sucursal', base_salary: 2500000, commissions: 850000, bonuses: 200000, deductions: 120000, status: 'paid', last_payment_date: '30 Ene 2026' },
-        { id: 's3', name: 'Roberto Gómez', role: 'Logística', base_salary: 1500000, commissions: 0, bonuses: 50000, deductions: 40000, status: 'pending', last_payment_date: '30 Ene 2026' },
-        { id: 's4', name: 'Lucía Fernández', role: 'Administrador', base_salary: 3500000, commissions: 0, bonuses: 0, deductions: 180000, status: 'processing', last_payment_date: '30 Ene 2026' },
-    ];
+    const BASE_MOCK_STAFF: any[] = [];
 
     useEffect(() => {
         const saved = localStorage.getItem('bayup_payroll_data');

@@ -58,35 +58,7 @@ interface WarrantyCase {
 }
 
 // --- MOCK DATA ---
-const MOCK_CASES: WarrantyCase[] = [
-    {
-        id: "GAR-1024",
-        customer: { name: "Elena Rodriguez", phone: "+57 300 456 7890", email: "elena@email.com", channel: "WhatsApp" },
-        product: { name: "Reloj Cronógrafo Gold", sku: "WA-GOLD-001", image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200" },
-        order: { id: "FAC-8240", date: "15 Ene 2026", warehouse: "Bodega Central" },
-        status: 'review',
-        entry_date: "2026-01-28T10:30:00",
-        days_open: 4,
-        priority: 'medium',
-        history: [
-            { date: "28 Ene, 10:30 AM", status: "Caso Recibido", user: "Sistema AI", comment: "Solicitud generada vía WhatsApp" },
-            { date: "29 Ene, 02:15 PM", status: "En Revisión", user: "Carlos (Soporte)", comment: "Se solicita video de evidencia al cliente" }
-        ]
-    },
-    {
-        id: "GAR-1015",
-        customer: { name: "Carlos Ruiz", phone: "+57 311 222 3344", email: "carlos@gmail.com", channel: "Web" },
-        product: { name: "Zapatos Oxford Cuero", sku: "SH-OX-BR", image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200" },
-        order: { id: "FAC-8100", date: "10 Ene 2026", warehouse: "Sede Norte" },
-        status: 'tech_support',
-        entry_date: "2026-01-25T09:00:00",
-        days_open: 7,
-        priority: 'critical',
-        history: [
-            { date: "25 Ene, 09:00 AM", status: "Caso Recibido", user: "Sistema AI", comment: "Reporte de defecto en suela" }
-        ]
-    }
-];
+const MOCK_CASES: WarrantyCase[] = [];
 
 const STATUS_MAP = {
     received: { label: 'Recibido', color: 'bg-blue-50 text-blue-600 border-blue-100' },
@@ -100,7 +72,7 @@ const STATUS_MAP = {
 
 export default function GarantiasPage() {
     const { showToast } = useToast();
-    const [cases, setCases] = useState<WarrantyCase[]>(MOCK_CASES);
+    const [cases, setCases] = useState<WarrantyCase[]>([]);
     const [selectedCase, setSelectedCase] = useState<WarrantyCase | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [activeTab, setActiveTab] = useState<'todos' | 'abiertos' | 'revision' | 'resueltos'>('todos');

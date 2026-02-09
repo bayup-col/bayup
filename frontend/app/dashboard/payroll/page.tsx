@@ -31,14 +31,9 @@ interface StaffPayroll {
     last_payment_date?: string;
 }
 
-const MOCK_PERIODS = ['Febrero 2026', 'Enero 2026', 'Diciembre 2025'];
+const MOCK_PERIODS: string[] = [];
 
-const BASE_MOCK_STAFF: StaffPayroll[] = [
-    { id: 's1', name: 'Elena Rodriguez', role: 'Asesor Comercial', base_salary: 1200000, commissions: 450000, bonuses: 100000, deductions: 50000, status: 'pending', is_configured: true, last_payment_date: '30 Ene 2026' },
-    { id: 's2', name: 'Carlos Ruiz', role: 'Líder de Sucursal', base_salary: 2500000, commissions: 850000, bonuses: 200000, deductions: 120000, status: 'paid', is_configured: true, last_payment_date: '30 Ene 2026' },
-    { id: 's3', name: 'Roberto Gómez', role: 'Logística', base_salary: 1500000, commissions: 0, bonuses: 50000, deductions: 40000, status: 'pending', is_configured: true, last_payment_date: '30 Ene 2026' },
-    { id: 's4', name: 'Lucía Fernández', role: 'Administrador', base_salary: 3500000, commissions: 0, bonuses: 0, deductions: 180000, status: 'processing', is_configured: true, last_payment_date: '30 Ene 2026' },
-];
+const BASE_MOCK_STAFF: StaffPayroll[] = [];
 
 export default function PayrollPage() {
     const { token } = useAuth();
@@ -48,7 +43,7 @@ export default function PayrollPage() {
     const [staff, setStaff] = useState<StaffPayroll[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterRole, setFilterRole] = useState("all");
-    const [selectedPeriod, setSelectedPeriod] = useState(MOCK_PERIODS[0]);
+    const [selectedPeriod, setSelectedPeriod] = useState(MOCK_PERIODS[0] || 'Sin periodos');
     const [loading, setLoading] = useState(true);
     
     // Estados para auditoría y UX

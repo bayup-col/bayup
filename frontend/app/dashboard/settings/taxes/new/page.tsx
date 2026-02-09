@@ -25,7 +25,7 @@ export default function NewTaxRatePage() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
       const response = await fetch(`${apiUrl}/taxes`, {
         method: 'POST',
         headers: {

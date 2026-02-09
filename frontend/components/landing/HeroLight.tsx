@@ -12,10 +12,10 @@ import { GlassButton } from "./GlassButton";
 
 const products = [
   { id: 1, name: "Diseños Diferentes", image: "/assets/gift.gif", detail: "Muestra tus productos \n de manera diferente a tu competencia." },
-  { id: 2, name: "Tu Tienda Tech", image: "/assets/gatgets.png", detail: "Digitaliza tu stock tecnológico y escala \n tus ventas a un nivel profesional." },
+  { id: 2, name: "Tu Tienda Tech", image: "/assets/gatgets.webp", detail: "Digitaliza tu stock tecnológico y escala \n tus ventas a un nivel profesional." },
   { id: 4, name: "Expertos en Hardware", image: "/assets/Neon Red Animated and Bright Twitch Logo (4).png", detail: "Vende laptops, PCs y componentes con \n una interfaz optimizada." },
   { id: 5, name: "Moda con Identidad", image: "/assets/Neon Red Animated and Bright Twitch Logo (5).png", detail: "Lanza tu línea de ropa con una tienda \n que resalta cada detalle de tu diseño." },
-  { id: 6, name: "Alcance Global", image: "/assets/maquillaje.png", detail: "Todos tus productos a un solo click \n de distancia de tus nuevos clientes." },
+  { id: 6, name: "Alcance Global", image: "/assets/maquillaje-_1_.webp", detail: "Todos tus productos a un solo click \n de distancia de tus nuevos clientes." },
 ];
 
 // --- COMPONENTE INTERNO: TARJETA 3D INTERACTIVA ---
@@ -161,7 +161,7 @@ export const HeroLight = () => {
           playsInline
           className="absolute inset-0 w-full h-full object-cover opacity-55 filter brightness-130 contrast-110 pointer-events-none"
         >
-          <source src="/assets/om.mp4" type="video/mp4" />
+          <source src="/assets/om.webm" type="video/webm" />
         </video>
         {/* Overlay Capa de Contraste Suavizada */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/60 via-transparent to-[#050505]/70 z-10" />

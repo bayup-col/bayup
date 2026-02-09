@@ -235,7 +235,7 @@ export default function InvoicingPage() {
     const [invoiceItems, setInvoiceItems] = useState<InvoicingItem[]>([]);
     const [productSearch, setProductSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('Todas');
-    const [categories, setCategories] = useState<string[]>(['Todas', 'Ropa', 'Calzado', 'Tecnología', 'Hogar', 'Deportes', 'Belleza']);
+    const [categories, setCategories] = useState<string[]>(['Todas']);
     const [isProcessing, setIsProcessing] = useState(false);
     const [posCustomerMode, setPosCustomerMode] = useState<'search' | 'create'>('create');
     const [customerType, setCustomerType] = useState<'final' | 'wholesale'>('final');
@@ -247,11 +247,7 @@ export default function InvoicingPage() {
     const [customerSearchQuery, setCustomerSearchQuery] = useState("");
     const [attributeError, setAttributeError] = useState<string | null>(null);
 
-    const recentCustomers = [
-        { name: 'Elena Rodriguez', phone: '573004567890', email: 'elena@email.com' },
-        { name: 'Santi Posada', phone: '573112223344', email: 'santi@email.com' },
-        { name: 'Laura Restrepo', phone: '573209998877', email: 'laura@email.com' }
-    ];
+    const recentCustomers: any[] = [];
 
     const [selectedProductForModal, setSelectedProductForModal] = useState<Product | null>(null);
     const [modalConfig, setModalConfig] = useState({ quantity: 1, manualPrice: 0, selectedAttributes: {} as any });
@@ -259,7 +255,7 @@ export default function InvoicingPage() {
     const loadEcosystem = useCallback(async () => {
         if (!token) return;
         try {
-            const apiBase = "http://localhost:8000";
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
             const [usersRes, productsRes, ordersRes, collectionsRes] = await Promise.all([
                 fetch(`${apiBase}/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } }),
                 fetch(`${apiBase}/products`, { headers: { 'Authorization': `Bearer ${token}` } }),
@@ -540,7 +536,7 @@ export default function InvoicingPage() {
         
         setIsProcessing(true);
         try {
-            const res = await fetch('http://localhost:8000/orders', {
+            const res = await fetch('https://gallant-education-production-8b4a.up.railway.app/orders', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({

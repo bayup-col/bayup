@@ -283,7 +283,7 @@ export default function NewProductPage() {
         const files = Array.from(e.target.files || []);
         if (media.length + files.length > 5) return showToast("Máximo 5 archivos", "info");
         
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
         
         for (const file of files) {
             // 1. Mostrar preview con marca unica

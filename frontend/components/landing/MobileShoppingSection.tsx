@@ -46,7 +46,7 @@ export const MobileShoppingSection = () => {
         className="absolute bottom-[-5%] right-[-10%] w-[1200px] h-auto pointer-events-none z-0"
       >
         <motion.img 
-          src="/assets/sorpresa.png" 
+          src="/assets/sorpresa.webp" 
           alt="Surprised Entrepreneur"
           animate={{ y: [0, -30, 0] }}
           transition={{ y: { duration: 10, repeat: Infinity, ease: "easeInOut" } }}

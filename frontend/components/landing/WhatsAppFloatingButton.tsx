@@ -43,7 +43,7 @@ export const WhatsAppFloatingButton = ({ hidden }: WhatsAppFloatingButtonProps) 
           className="relative h-16 w-16 md:h-20 md:w-20 rounded-full overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.2)] border border-white/10"
         >
           <img 
-            src="/assets/Neon Red Animated and Bright Twitch Logo (8).png" 
+            src="/assets/Neon-Red-Animated-and-Bright-Twitch-Logo-_8_.webp" 
             alt="WhatsApp Support" 
             className="h-full w-full object-cover"
           />

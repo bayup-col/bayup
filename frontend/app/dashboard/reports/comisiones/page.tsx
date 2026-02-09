@@ -112,14 +112,11 @@ export default function ComisionesPage() {
         const savedSettlements = localStorage.getItem('bayup_commissions_data');
         const savedConfig = localStorage.getItem('bayup_commissions_config');
         if (savedConfig) setConfig(JSON.parse(savedConfig));
-        if (savedSettlements) { setSettlements(JSON.parse(savedSettlements)); } 
-        else {
-            const initial = [
-                { id: 'c1', seller_id: 's1', seller_name: 'Elena Rodriguez', avatar: 'ER', total_sales: 12500000, total_profit: 4500000, status: 'pending', period: 'Febrero 2026' },
-                { id: 'c2', seller_id: 's2', seller_name: 'Carlos Ruiz', avatar: 'CR', total_sales: 8400000, total_profit: 2100000, status: 'pending', period: 'Febrero 2026' },
-                { id: 'c3', seller_id: 's3', seller_name: 'Ana Beltrán', avatar: 'AB', total_sales: 15800000, total_profit: 6200000, status: 'paid', period: 'Enero 2026', payment_date: '30 Ene 2026' }
-            ];
-            setSettlements(initial as any);
+        if (savedSettlements) { 
+            setSettlements(JSON.parse(savedSettlements)); 
+        } else {
+            const initial: any[] = [];
+            setSettlements(initial);
             localStorage.setItem('bayup_commissions_data', JSON.stringify(initial));
         }
         setLoading(false);

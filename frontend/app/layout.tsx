@@ -6,7 +6,12 @@ export const metadata: Metadata = {
   title: "Bayup",
   description: "A business operating system powered by Bayup",
   icons: {
-    icon: '/assets/favicon.png?v=1',
+    icon: [
+      { url: '/assets/favicon.ico', sizes: 'any' },
+    ],
+    apple: [
+      { url: '/assets/favicon.ico', sizes: '180x180', type: 'image/x-icon' },
+    ],
   },
 };
 

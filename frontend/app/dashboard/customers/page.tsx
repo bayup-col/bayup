@@ -67,36 +67,12 @@ interface Customer {
   history?: { id: string; date: string; status: string; amount: number; comment: string }[];
 }
 
-const MOCK_CUSTOMERS: Customer[] = [
-    {
-        id: "c1", full_name: "Ana García", email: "ana.garcia@gmail.com", phone: "+57 300 123 4567",
-        status: 'active', customer_type: 'normal', acquisition_channel: 'whatsapp', gender: 'female', city: 'Bogotá', total_orders: 15, total_spent: 1540000,
-        join_date: "2023-01-15T10:00:00Z", last_active: "2026-01-28T15:30:00Z",
-        history: [
-            { id: "ORD-8241", date: "28 Ene 2026", status: "Completado", amount: 120000, comment: "Compra Reloj Gold" },
-            { id: "ORD-7912", date: "15 Dic 2025", status: "Completado", amount: 450000, comment: "Regalo Navidad" }
-        ]
-    },
-    {
-        id: "c2", full_name: "Carlos López", email: "carlos.lopez@hotmail.com", phone: "+57 310 987 6543",
-        status: 'active', customer_type: 'tienda', acquisition_channel: 'tienda', gender: 'male', city: 'Cali', total_orders: 1, total_spent: 45000,
-        join_date: "2026-01-20T10:00:00Z", last_active: "2026-01-20T10:00:00Z",
-        history: [{ id: "REG-001", date: "Hoy", status: "Registro", amount: 0, comment: "Alta en tienda física" }]
-    },
-    {
-        id: "c5", full_name: "Roberto Velásquez", email: "robert@empresa.com", phone: "+57 320 777 9999",
-        status: 'active', customer_type: 'mayorista', acquisition_channel: 'web', gender: 'male', city: 'Medellín', total_orders: 42, total_spent: 18500000,
-        join_date: "2022-05-10T10:00:00Z", last_active: "2026-02-02T09:00:00Z",
-        history: [
-            { id: "ORD-9001", date: "02 Feb 2026", status: "Procesando", amount: 2500000, comment: "Lote Sneakers Pro x20" }
-        ]
-    }
-];
+const MOCK_CUSTOMERS: Customer[] = [];
 
 export default function CustomersPage() {
   const { token } = useAuth();
   const { showToast } = useToast();
-  const [customers, setCustomers] = useState<Customer[]>(MOCK_CUSTOMERS);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'todos' | 'nuevos' | 'vip' | 'tienda'>('todos');
   const [searchTerm, setSearchTerm] = useState('');

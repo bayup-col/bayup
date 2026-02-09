@@ -208,7 +208,9 @@ export default function ProductsPage() {
     };
 
     const fetchProducts = useCallback(async () => {
-        if (!token) { setLoading(false); return; }
+        // Esperar a que exista el token. Si no hay, no hacemos fetch (el usuario debería ser redirigido por layout protegido)
+        if (!token) return;
+        
         setLoading(true);
         try {
             const [productsData, categoriesData] = await Promise.all([
@@ -226,11 +228,17 @@ export default function ProductsPage() {
 
             if (categoriesData && Array.isArray(categoriesData)) { setCategories(categoriesData); }
         } catch (err) {
+            console.error("Error fetching products:", err);
             showToast("Error al sincronizar catálogo", "error");
         } finally { setLoading(false); }
     }, [token, showToast]);
 
-    useEffect(() => { fetchProducts(); }, [fetchProducts]);
+    // Efecto que reacciona a cambios en el token
+    useEffect(() => {
+        if (token) {
+            fetchProducts();
+        }
+    }, [token, fetchProducts]);
 
     const handleUpdateStatus = async (productId: string, currentStatus: string) => {
         const newStatus = currentStatus === 'active' ? 'draft' : 'active';

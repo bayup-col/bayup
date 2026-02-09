@@ -8,7 +8,6 @@ import { PiggyBank, Target, LineChart, Zap, TrendingUp, Activity } from 'lucide-
 import { motion, useMotionValue, useSpring, useTransform, useScroll, useMotionTemplate, AnimatePresence } from 'framer-motion';
 import { NumberTicker } from './NumberTicker';
 import { RollingText } from './RollingText';
-import { WorldMap } from './WorldMap';
 import { InteractiveDistortion } from './InteractiveDistortion';
 import { FloatingParticlesBackground } from './FloatingParticlesBackground';
 import { InteractiveAuraBackground } from './InteractiveAuraBackground';
@@ -84,7 +83,7 @@ const NarrativeFlipCard = () => {
             />
             <div className="absolute inset-[2px] rounded-[4.4rem] bg-white/95" />
           </div>
-          <div className="absolute -top-16 flex justify-center w-full"><img src="/assets/ahorro.png" className="w-40 h-40 object-contain drop-shadow-2xl" /></div>
+          <div className="absolute -top-16 flex justify-center w-full"><img src="/assets/ahorro.webp" className="w-40 h-40 object-contain drop-shadow-2xl" /></div>
           <h3 className="text-3xl md:text-5xl font-black italic uppercase text-black mt-12 flex flex-col items-center leading-none">
             <span>Sin</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum">mensualidades</span>
@@ -130,7 +129,7 @@ const MarketingFlipCard = () => {
             />
             <div className="absolute inset-[2px] rounded-[4.4rem] bg-white/95" />
           </div>
-          <div className="absolute -top-16 flex justify-center w-full"><img src="/assets/marketing.png" className="w-40 h-40 object-contain" /></div>
+          <div className="absolute -top-16 flex justify-center w-full"><img src="/assets/marketing.webp" className="w-40 h-40 object-contain" /></div>
           <h3 className="text-3xl md:text-5xl font-black italic uppercase text-black mt-12 text-center leading-none flex flex-col items-center">
             <span>Data</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum">Real</span>
@@ -176,7 +175,7 @@ const AnalyticsFlipCard = () => {
             />
             <div className="absolute inset-[2px] rounded-[4.4rem] bg-white/95" />
           </div>
-          <div className="absolute -top-16 flex justify-center w-full"><img src="/assets/grafica.png" className="w-40 h-40 object-contain" /></div>
+          <div className="absolute -top-16 flex justify-center w-full"><img src="/assets/grafica.webp" className="w-40 h-40 object-contain" /></div>
           <h3 className="text-3xl md:text-5xl font-black italic uppercase text-black mt-12 text-center leading-none flex flex-col items-center">
             <span>Todo en</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum">un lugar</span>
@@ -249,7 +248,7 @@ export const NarrativeScroll = () => {
             playsInline
             className="absolute inset-0 w-full h-full object-cover opacity-50 z-0"
           >
-            <source src="/assets/video.mp4" type="video/mp4" />
+            <source src="/assets/video.webm" type="video/webm" />
           </video>
 
           {/* Overlay para asegurar legibilidad del texto */}
@@ -279,7 +278,7 @@ export const NarrativeScroll = () => {
             
             {/* Imagen de fondo sutil: Responsiva */}
             <motion.img 
-              src="/assets/alcancia.png"
+              src="/assets/alcancia.webp"
               alt="Ahorro"
               initial={{ opacity: 0, x: -100, rotate: -15, scale: 1 }}
               whileInView={{ 
@@ -323,7 +322,7 @@ export const NarrativeScroll = () => {
               <div style={{ transformStyle: "preserve-3d" }} className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[120px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col gap-8 isolate text-center">
                 <AuroraBorder />
                 <div className="flex-1 bg-background rounded-[3.5rem] border border-white/40 shadow-2xl flex items-center justify-center overflow-hidden relative p-8">
-                  <InteractiveDistortion src="/assets/ahorro.png" alt="Ahorra con Bayup" className="w-full h-full relative z-10" strength={0.2} />
+                  <InteractiveDistortion src="/assets/ahorro.webp" alt="Ahorra con Bayup" className="w-full h-full relative z-10" strength={0.2} />
                 </div>
               </div>
             </NarrativeCard>
@@ -335,7 +334,7 @@ export const NarrativeScroll = () => {
                           <div className="absolute inset-0 z-0">
                             {/* Imagen de fondo sutil: Megáfono Centrado - Offset Izquierda ++ */}
                             <motion.img 
-                              src="/assets/marketing.png" 
+                              src="/assets/marketing.webp" 
                               alt="Marketing Outreach"
                               initial={{ opacity: 0, x: 0, rotate: 15, scale: 1 }}
                               whileInView={{ 
@@ -364,7 +363,7 @@ export const NarrativeScroll = () => {
                             <NarrativeCard className="order-2 md:order-1 relative group z-20 perspective-[1000px]">       
                               <div style={{ transformStyle: "preserve-3d" }} className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[120px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col items-center justify-center isolate">
                                 <AuroraBorder />
-                                <motion.img src="/assets/marketing.png" className="w-full h-full object-contain rounded-[2rem] relative z-10" />
+                                <motion.img src="/assets/marketing.webp" className="w-full h-full object-contain rounded-[2rem] relative z-10" />
                               </div>
                             </NarrativeCard>
                             <NarrativeCard className="order-1 md:order-2 relative group z-20 perspective-[1000px]">
@@ -385,7 +384,7 @@ export const NarrativeScroll = () => {
           <div className="absolute inset-0 z-0">
             {/* Imagen de fondo sutil: Responsiva */}
             <motion.img 
-              src="/assets/grafica.png" 
+              src="/assets/grafica.webp" 
               alt="Analytics Data"
               initial={{ opacity: 0, x: 100, rotate: 10, scale: 1 }}
               whileInView={{ 
@@ -490,7 +489,7 @@ const AnalyticsCard = ({ stat }: { stat: any }) => {
     if (stat.label === 'Precisión') {
       return (
         <img 
-          src="/assets/grafica.png" 
+          src="/assets/grafica.webp" 
           alt="Precisión" 
           className="w-20 h-20 object-contain relative z-10"
           style={{ filter: "drop-shadow(0 15px 20px rgba(0,242,255,0.4))" }}
@@ -500,7 +499,7 @@ const AnalyticsCard = ({ stat }: { stat: any }) => {
     if (stat.label === 'Más Ventas') {
       return (
         <img 
-          src="/assets/dinero.png" 
+          src="/assets/cohetedinero.webp" 
           alt="Ventas" 
           className="w-20 h-20 object-contain relative z-10"
           style={{ filter: "drop-shadow(0 15px 20px rgba(0,242,255,0.4))" }}

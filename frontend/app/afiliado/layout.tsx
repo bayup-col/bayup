@@ -82,7 +82,7 @@ export default function AffiliateLayout({ children }: { children: React.ReactNod
                 <div className="h-24 flex items-center px-6 mb-4">
                     <div className="flex items-center gap-3">
                         <div className="h-10 w-10 bg-gray-900 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-gray-200">
-                            <img src="/assets/Logo Bayup sin fondo blanca.png" className="h-6 w-6 brightness-0 invert" alt="B" />
+                            <Globe className="h-6 w-6 text-purple-400" />
                         </div>
                         {isSidebarOpen && (
                             <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xl font-black tracking-tighter italic uppercase">
