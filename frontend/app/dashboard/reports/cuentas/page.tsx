@@ -158,9 +158,7 @@ export default function CuentasCarteraPage() {
         const savedSettings = localStorage.getItem('bayup_general_settings');
         if (saved) { setRecords(JSON.parse(saved)); } 
         else {
-            const initial: DebtRecord[] = [
-                { id: '1', entity_name: 'Textiles del Norte', amount: 4500000, due_date: '2026-02-15', status: 'pending', type: 'payable', invoice_num: 'INV-8820', category: 'Insumos', description: 'Compra de materia prima', created_at: '2026-01-20' },
-            ];
+            const initial: DebtRecord[] = [];
             setRecords(initial);
             localStorage.setItem('bayup_debt_records_v2', JSON.stringify(initial));
         }
@@ -463,19 +461,7 @@ export default function CuentasCarteraPage() {
                                 <div className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-sm space-y-6">
                                     <div className="flex items-center gap-3"><TrendingUp className="text-emerald-500" size={20}/><h4 className="text-sm font-black uppercase">Próximos Cobros</h4></div>
                                     <div className="space-y-4">
-                                        {[
-                                            { t: 'Elena Rodriguez', d: 'Vence en 2 días', m: '$ 450.000', i: <Clock/> },
-                                            { t: 'Textiles SAS', d: 'Proyectado para mañana', m: '$ 1.200.000', i: <Activity/> }
-                                        ].map((rec, i) => (
-                                            <div key={i} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-emerald-100 transition-all cursor-pointer group">
-                                                <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-gray-400 shadow-sm group-hover:text-emerald-500 transition-colors">{rec.i}</div>
-                                                <div className="flex-1">
-                                                    <p className="text-xs font-black text-gray-900">{rec.t}</p>
-                                                    <p className="text-[10px] font-medium text-gray-500">{rec.d}</p>
-                                                </div>
-                                                <p className="text-sm font-black text-emerald-600">{rec.m}</p>
-                                            </div>
-                                        ))}
+                                        <p className="text-[10px] text-gray-400 italic text-center py-4">No hay cobros próximos registrados</p>
                                     </div>
                                 </div>
                                 <button onClick={handleExport} className="w-full py-6 bg-[#004D4D] text-white rounded-[2.5rem] font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-center gap-4 hover:bg-black transition-all group">

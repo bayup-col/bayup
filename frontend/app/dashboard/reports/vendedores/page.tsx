@@ -114,10 +114,7 @@ export default function VendedoresPage() {
         const saved = localStorage.getItem('bayup_sellers_data');
         if (saved) { setSellers(JSON.parse(saved)); } 
         else {
-            const initial: Seller[] = [
-                { id: '1', name: 'Elena Rodriguez', role: 'Líder de Ventas', branch: 'Tienda Principal', total_sales: 45800000, sales_month: 8500000, target: 10000000, conversion_rate: 12.4, growth: 15, status: 'online', avatar: 'ER', created_at: '2026-01-01' },
-                { id: '2', name: 'Carlos Ruiz', role: 'Asesor Senior', branch: 'Sucursal Norte', total_sales: 28400000, sales_month: 5200000, target: 10000000, conversion_rate: 9.8, growth: 8, status: 'online', avatar: 'CR', created_at: '2026-01-15' }
-            ];
+            const initial: Seller[] = [];
             setSellers(initial); localStorage.setItem('bayup_sellers_data', JSON.stringify(initial));
         }
         setLoading(false);

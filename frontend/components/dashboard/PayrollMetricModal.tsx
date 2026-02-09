@@ -58,8 +58,8 @@ const PAYROLL_DETAILS: Record<string, any> = {
       { label: "Bonos Extra", value: "5 Unid.", trend: "OK", icon: Zap },
     ],
     deepDive: [
-      { label: "Elena Rodriguez", value: "$ 450k", sub: "Líder en comisiones" },
-      { label: "Carlos Ruiz", value: "$ 320k", sub: "Bono por puntualidad" },
+      { label: "Rendimiento Equipo", value: "85%", sub: "Promedio global" },
+      { label: "Cumplimiento Metas", value: "92%", sub: "Asesores destacados" },
     ],
     advice: "El 80% de los bonos se concentran en el área comercial. Considera un esquema de incentivos para el área de Logística por eficiencia de despacho."
   },

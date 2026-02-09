@@ -103,59 +103,7 @@ interface Branch {
 }
 
 // --- MOCK DATA ---
-const MOCK_BRANCHES: Branch[] = [
-    {
-        id: 'b1',
-        name: 'Tienda Principal',
-        responsible: 'Sebastian Gomez',
-        location: 'Bogotá, Chicó',
-        status: 'open',
-        revenue: 12500000,
-        expenses: 4200000,
-        growth: 12.5,
-        stock_status: 'optimal',
-        staff_count: 8,
-        created_at: '2026-01-01',
-        trend_data: [
-            { day: 'L', value: 400 }, { day: 'M', value: 300 }, { day: 'M', value: 500 },
-            { day: 'J', value: 450 }, { day: 'V', value: 650 }, { day: 'S', value: 800 }, { day: 'D', value: 720 }
-        ]
-    },
-    {
-        id: 'b2',
-        name: 'Sucursal Norte',
-        responsible: 'Elena Rodriguez',
-        location: 'Medellín, Poblado',
-        status: 'open',
-        revenue: 8400000,
-        expenses: 3100000,
-        growth: 8.2,
-        stock_status: 'normal',
-        staff_count: 5,
-        created_at: '2026-01-15',
-        trend_data: [
-            { day: 'L', value: 200 }, { day: 'M', value: 250 }, { day: 'M', value: 300 },
-            { day: 'J', value: 280 }, { day: 'V', value: 400 }, { day: 'S', value: 550 }, { day: 'D', value: 480 }
-        ]
-    },
-    {
-        id: 'b3',
-        name: 'Showroom Sur',
-        responsible: 'Carlos Ruiz',
-        location: 'Cali, Unicentro',
-        status: 'maintenance',
-        revenue: 4200000,
-        expenses: 1800000,
-        growth: -2.4,
-        stock_status: 'critical',
-        staff_count: 3,
-        created_at: '2026-02-01',
-        trend_data: [
-            { day: 'L', value: 150 }, { day: 'M', value: 120 }, { day: 'M', value: 180 },
-            { day: 'J', value: 160 }, { day: 'V', value: 220 }, { day: 'S', value: 300 }, { day: 'D', value: 250 }
-        ]
-    }
-];
+const MOCK_BRANCHES: Branch[] = [];
 
 // --- MODAL DE DETALLE DE MÉTRICA ---
 const SucursalesMetricModal = ({ isOpen, onClose, metric }: { isOpen: boolean, onClose: () => void, metric: any }) => {

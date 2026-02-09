@@ -145,13 +145,9 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 p-10 bg-white rounded-[3rem] border border-gray-100 shadow-xl">
               <h3 className="text-xl font-black italic uppercase mb-8">Oportunidades IA</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {[1,2].map(i => (
-                      <div key={i} className="p-6 rounded-[2rem] bg-gray-50 border border-gray-100 space-y-4">
-                          <div className="h-2 w-24 bg-gray-200 rounded-full animate-pulse" />
-                          <div className="h-4 w-full bg-gray-100 rounded-full animate-pulse" />
-                      </div>
-                  ))}
+              <div className="flex flex-col items-center justify-center py-12 text-center text-gray-300">
+                  <Bot size={48} className="mb-4 opacity-20" />
+                  <p className="text-xs font-bold uppercase tracking-widest">Bayt está analizando tu nicho... <br/><span className="text-[10px] font-medium opacity-60 italic">Vuelve pronto para ver sugerencias estratégicas.</span></p>
               </div>
           </div>
           
@@ -164,7 +160,7 @@ export default function DashboardPage() {
                           <div className="flex flex-col"><span className="text-xs font-black">{act.user}</span><span className="text-[10px] text-gray-400">{act.detail}</span></div>
                       </div>
                   )) : (
-                      <div className="py-10 text-center text-gray-300 text-xs font-bold uppercase">Cargando actividad...</div>
+                      <div className="py-10 text-center text-gray-300 text-xs font-bold uppercase italic">Sin actividad reciente registrada</div>
                   )}
               </div>
           </div>

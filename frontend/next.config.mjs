@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: {
+    APP_VERSION: '2.0.1-clean-db', // Incremento de versión para forzar rebuild limpio
+  },
   compress: true, // Activa la compresión Gzip/Brotli
   images: {
     remotePatterns: [
