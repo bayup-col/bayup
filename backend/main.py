@@ -118,10 +118,26 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "Internal Server Error", "message": str(exc)},
     )
 
-# --- Health Check (Sin DB) ---
+# --- Health Check (Diagnóstico de Conexión) ---
 @app.get("/health")
-def health_check():
-    return {"status": "ok", "message": "Backend is running and CORS is working"}
+def health_check(db: Session = Depends(get_db)):
+    try:
+        # Intentar una consulta simple para verificar la DB
+        db.execute(text("SELECT 1"))
+        db_engine = engine.name # 'postgresql' o 'sqlite'
+        return {
+            "status": "ok",
+            "message": "Backend is running",
+            "database": "Connected",
+            "engine": db_engine,
+            "environment": os.getenv("RAILWAY_ENVIRONMENT", "production")
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "database": "Disconnected"
+        }
 
 # --- Auth ---
 
