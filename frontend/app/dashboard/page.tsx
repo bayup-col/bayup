@@ -8,7 +8,7 @@ import { motion, AnimatePresence, Variants, useSpring, useTransform } from 'fram
 import { 
   Activity, Search, Sparkles, Users, LayoutDashboard, CheckCircle2, 
   ArrowRight, TrendingUp, AlertCircle, Package, CreditCard, 
-  MessageCircle, Lightbulb, Zap, Globe, ShieldCheck, RefreshCw, Clock
+  MessageCircle, Lightbulb, Zap, Globe, ShieldCheck, RefreshCw, Clock, Bot
 } from 'lucide-react';
 import { ActionButton } from "@/components/landing/ActionButton";
 import OnboardingModal from '@/components/dashboard/OnboardingModal';
