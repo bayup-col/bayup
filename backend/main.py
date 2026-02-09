@@ -100,23 +100,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
 # --- CONFIGURACIÓN DE CONEXIÓN GLOBAL (CORS) ---
-# Usamos un asterisco para máxima compatibilidad en producción si los dominios específicos fallan
+# Usamos la configuración más abierta y compatible posible para evitar bloqueos en preflight (OPTIONS)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False, # Con "*" debe ser False
+    allow_credentials=False, # Debe ser False si se usa "*"
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Middleware manual para asegurar encabezados en CUALQUIER respuesta (incluso errores)
-@app.middleware("http")
-async def add_cors_header(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
 
 # Manejador de Errores Global
 @app.exception_handler(Exception)
