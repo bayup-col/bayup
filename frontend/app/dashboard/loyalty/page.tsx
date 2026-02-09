@@ -93,8 +93,6 @@ export default function LoyaltyPage() {
             setRewards(JSON.parse(savedRewards));
         } else {
             const initial: any[] = [];
-                { id: 'r2', name: 'Bono de Regalo $50.000', points: 1000, image: null, stock: null }
-            ];
             setRewards(initial);
             localStorage.setItem('loyalty_rewards', JSON.stringify(initial));
         }
