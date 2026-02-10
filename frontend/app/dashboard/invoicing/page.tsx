@@ -333,10 +333,10 @@ export default function InvoicingPage() {
                                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Terminal de Ventas Platinum</span>
                                 </div>
                                 <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
-                                    FACTURA <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">CIÓNN</span>
+                                    FACTURA<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">CIÓN</span>
                                 </h1>
                                 <p className="text-gray-400 font-medium text-lg italic max-w-2xl">
-                                    Registra y audita el <span className="text-[#004d4d] font-bold">flujo de caja</span> de tu empresa en tiempo real.
+                                    Hola <span className="text-[#004d4d] font-bold">{authEmail?.split('@')[0]}</span>, registra y audita el flujo de caja de tu empresa. 👋
                                 </p>
                             </div>
                             <button onClick={() => setIsPOSActive(true)} className="h-16 px-10 bg-gray-900 text-white rounded-full font-black text-[11px] uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Nueva Venta POS</button>

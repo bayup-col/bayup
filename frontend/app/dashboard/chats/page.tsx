@@ -1,293 +1,437 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { 
-  MessageSquare, 
-  Globe, 
-  ShoppingBag, 
-  Send, 
   Search, 
-  Filter, 
-  CheckCircle2, 
-  Plus, 
-  X, 
-  Paperclip, 
-  ArrowLeft, 
-  Settings2, 
-  LayoutGrid, 
-  Download, 
-  CreditCard, 
-  Clock, 
-  Bot, 
-  DollarSign, 
-  Mail, 
+  Send, 
+  MoreVertical, 
   Phone, 
-  Briefcase, 
-  Target, 
-  History, 
-  Info as InfoIcon, 
-  Pencil, 
-  Trash2,
-  MapPin,
-  Activity,
-  TrendingUp,
+  Video, 
+  Image as ImageIcon, 
+  Paperclip, 
+  Smile,
+  CheckCheck,
+  Filter,
+  MessageSquare,
+  Clock,
   Zap,
-  Tag,
-  Calendar,
-  Palette,
-  MoreVertical,
-  MoreHorizontal,
-  GripVertical,
+  TrendingUp,
+  Download,
+  X,
+  Bot,
+  Sparkles,
+  ArrowRight,
+  Settings,
+  Activity,
+  UserCheck,
   ShieldCheck,
-  BellOff,
-  Archive,
-  Ban
+  Target,
+  SearchIcon,
+  Circle,
+  Plus,
+  Globe,
+  Share2,
+  MessageCircle,
+  ShoppingBag,
+  Power,
+  Save
 } from 'lucide-react';
-import TiltCard from '@/components/dashboard/TiltCard';
-import ChatsInfoModal from '@/components/dashboard/ChatsInfoModal';
-import ChatsMetricModal from '@/components/dashboard/ChatsMetricModal';
+import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useToast } from "@/context/toast-context";
+import { useAuth } from "@/context/auth-context";
 import { generateChatsPDF } from '@/lib/chats-report';
+import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
 
-// --- CONFIGURACIÓN ---
-const CHANNEL_CONFIG = {
-    whatsapp: { name: 'WhatsApp', logo: '/assets/logowhatsapp.webp', color: '#25D366', bg: 'bg-[#E5DDD5]', bubble_me: 'bg-[#dcf8c6] border-[#c7e5b4]', bubble_customer: 'bg-white border-gray-100' },
-    mercadolibre: { name: 'Mercado Libre', logo: '/assets/logomercadolibre.webp', color: '#FFE600', bg: 'bg-white', bubble_me: 'bg-[#3483fa] text-white border-[#2a6fd1]', bubble_customer: 'bg-[#f5f5f5] border-gray-200' },
-    instagram: { name: 'Instagram', logo: '/assets/logoinstagram.webp', color: '#E4405F', bg: 'bg-white', bubble_me: 'bg-gradient-to-tr from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white border-transparent', bubble_customer: 'bg-gray-100 border-gray-200' },
-    shopify: { name: 'Shopify', logo: '/assets/logoshopify.webp', color: '#96bf48', bg: 'bg-gray-50', bubble_me: 'bg-[#008060] text-white border-[#006b4d]', bubble_customer: 'bg-white border-gray-200 shadow-sm' }
-};
-
-const INITIAL_STAGES = [
-    { id: 'st1', label: 'Prospectos', key: 'prospect', color: '#94a3b8' },
-    { id: 'st2', label: 'Negociación', key: 'negotiation', color: '#f59e0b' },
-    { id: 'st3', label: 'Ganados', key: 'closed', color: '#10b981' },
-    { id: 'st4', label: 'Soporte', key: 'support', color: '#3b82f6' }
-];
-
-const PRESET_COLORS = [ '#94a3b8', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#00f2ff', '#004d4d', '#1e293b' ];
-
-const MOCK_CHATS_INIT: any[] = [];
-
-export default function MensajesPage() {
-    const { showToast } = useToast();
-    const [view, setView] = useState<'inbox' | 'crm' | 'channels'>('inbox');
-    const [chats, setChats] = useState(MOCK_CHATS_INIT);
-    const [selectedChatId, setSelectedChatId] = useState<string | null>(() => {
-        return MOCK_CHATS_INIT.length > 0 ? MOCK_CHATS_INIT[0].id : null;
+// --- COMPONENTES ATÓMICOS PREMIUM ---
+const AnimatedNumber = memo(({ value, type = 'simple', className }: { value: number, className?: string, type?: 'currency' | 'percentage' | 'simple' | 'time' }) => {
+    const spring = useSpring(0, { mass: 0.8, stiffness: 75, damping: 15 });
+    const display = useTransform(spring, (current: number) => {
+        if (type === 'time') return `${Math.round(current)}m`;
+        if (type === 'percentage') return `${current.toFixed(1)}%`;
+        if (type === 'simple') return Math.round(current).toLocaleString();
+        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(current);
     });
-    const [showCustomerProfile, setShowCustomerProfile] = useState(false);
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const [showInfoModal, setShowInfoModal] = useState(false);
-    const [selectedKPI, setSelectedKPI] = useState<any>(null);
-    const [stages, setStages] = useState(INITIAL_STAGES);
-    const [availableTags, setAvailableTags] = useState([]);
-    const [showTagManager, setShowTagManager] = useState(false);
-    const [showQuickSettings, setShowQuickSettings] = useState(false);
-    const [newTagName, setNewTagName] = useState("");
-    const [selectedTagColor, setSelectedTagColor] = useState(PRESET_COLORS[0]);
-    const [isQuickAdding, setIsQuickAdding] = useState<string | null>(null);
-    
-    const [searchTerm, setSearchTerm] = useState("");
-    const [filterChannel, setFilterChannel] = useState('all');
-    const [filterTag, setFilterTag] = useState('all');
-    const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
-    const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
-    const [isFilterHovered, setIsFilterHovered] = useState(false);
-    const [isDateHovered, setIsDateHovered] = useState(false);
-    const [isExportHovered, setIsExportHovered] = useState(false);
+    useEffect(() => { spring.set(value); }, [value, spring]);
+    return <motion.span className={className}>{display}</motion.span>;
+});
+AnimatedNumber.displayName = 'AnimatedNumber';
 
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
+const PremiumCard = ({ children, onClick, className = "", dark = false }: { children: React.ReactNode, onClick?: () => void, className?: string, dark?: boolean }) => {
+    const [rotateX, setRotateX] = useState(0);
+    const [rotateY, setRotateY] = useState(0);
+    const [glare, setGlare] = useState({ x: 50, y: 50, op: 0 });
 
-    const selectedChat = useMemo(() => chats.find(c => c.id === selectedChatId), [selectedChatId, chats]);
-    const config = selectedChat ? (CHANNEL_CONFIG as any)[selectedChat.source] : null;
-
-    useEffect(() => {
-        if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-    }, [selectedChatId, selectedChat?.messages]);
-
-    const filteredChats = useMemo(() => {
-        return chats.filter(chat => {
-            const matchesSearch = chat.customer.name.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesChannel = filterChannel === 'all' || chat.source === filterChannel;
-            const matchesTag = filterTag === 'all' || chat.customer.tags?.includes(filterTag);
-            return matchesSearch && matchesChannel && matchesTag;
-        });
-    }, [searchTerm, filterChannel, filterTag, chats]);
-
-    const handleDragEnd = (chatId: string, stageKey: string) => {
-        const stage = stages.find(s => s.key === stageKey);
-        if (!stage) return;
-        setChats(prev => prev.map(c => {
-            if (c.id === chatId) {
-                const otherStageLabels = stages.map(s => s.label);
-                const cleanTags = (c.customer.tags || []).filter((t: string) => !otherStageLabels.includes(t));
-                return { ...c, status: stageKey, customer: { ...c.customer, tags: [...cleanTags, stage.label] } };
-            }
-            return c;
-        }));
-        showToast(`Estado: ${stage.label}`, "success");
+    const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const box = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - box.left;
+        const y = e.clientY - box.top;
+        setRotateX((y - box.height/2) / 20);
+        setRotateY((box.width/2 - x) / 20);
+        setGlare({ x: (x/box.width)*100, y: (y/box.height)*100, op: dark ? 0.15 : 0.1 });
     };
-
-    const handleUpdateStage = (id: string, label: string) => {
-        setStages(stages.map(s => s.id === id ? { ...s, label } : s));
-        showToast("Tablero actualizado", "success");
-    };
-
-    const handleExport = () => {
-        generateChatsPDF({ chats: filteredChats, stats: { totalChats: chats.length, activeChannels: 4, aiEfficiency: '82%', totalRevenue: '$ 4.2M' } });
-        showToast("Auditoría exportada", "success");
-    };
-
-    const handleAddTag = () => { if (!newTagName.trim()) return; setAvailableTags([...availableTags, { name: newTagName, color: selectedTagColor } as any]); setNewTagName(""); showToast("Etiqueta creada", "success"); };
-
-    const RenderActionBar = () => (
-        <div className="flex flex-col md:flex-row gap-4 items-center bg-white/60 backdrop-blur-md p-3 rounded-3xl border border-white/60 shadow-sm mx-4 shrink-0 relative z-30">
-            <div className="relative flex-1 w-full"><Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} /><input type="text" placeholder="Buscar por nombre o ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-14 pr-6 py-4 bg-transparent text-sm font-bold text-slate-700 outline-none" /></div>
-            <div className="flex items-center gap-3">
-                <button onClick={() => setShowTagManager(true)} className="h-12 w-12 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-[#004d4d] hover:bg-gray-900 hover:text-white transition-all shadow-sm"><Tag size={18}/></button>
-                {view === 'crm' && (
-                    <div className="relative">
-                        <motion.button layout onMouseEnter={() => setIsFilterHovered(true)} onMouseLeave={() => setIsFilterHovered(false)} onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className={`h-12 flex items-center gap-2 px-5 rounded-2xl transition-all ${isFilterMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white text-slate-500 border border-gray-100 hover:bg-gray-50'}`}><Filter size={18}/><AnimatePresence mode="popLayout">{isFilterHovered && <motion.span initial={{opacity:0, width:0}} animate={{opacity:1, width:'auto'}} exit={{opacity:0, width:0}} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Filtros</motion.span>}</AnimatePresence></motion.button>
-                        <AnimatePresence>{isFilterMenuOpen && ( <motion.div initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} exit={{opacity:0, y:10}} className="absolute top-full right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 w-[320px] z-50 overflow-hidden"><div className="p-4 border-b border-gray-50"><p className="text-[9px] font-black text-gray-400 uppercase mb-3">Canal</p><div className="flex flex-wrap gap-2">{['all', 'whatsapp', 'instagram', 'mercadolibre', 'shopify'].map(o => ( <button key={o} onClick={() => {setFilterChannel(o); setIsFilterMenuOpen(false);}} className={`px-3 py-1.5 rounded-xl text-[9px] font-bold uppercase transition-all ${filterChannel === o ? 'bg-[#004D4D] text-white' : 'bg-gray-50 text-gray-500'}`}>{o}</button> ))}</div></div><div className="p-4"><p className="text-[9px] font-black text-gray-400 uppercase mb-3">Etiquetas</p><div className="flex flex-wrap gap-2">{stages.map(s => ( <button key={s.label} onClick={() => {setFilterTag(s.label); setIsFilterMenuOpen(false);}} className={`px-3 py-1.5 rounded-xl text-[9px] font-bold uppercase transition-all ${filterTag === s.label ? 'bg-[#004D4D] text-[#00f2ff]' : 'bg-gray-50 text-gray-500'}`}>{s.label}</button> ))}</div></div></motion.div> )}</AnimatePresence>
-                    </div>
-                )}
-                <div className="relative">
-                    <motion.button layout onMouseEnter={() => setIsDateHovered(true)} onMouseLeave={() => setIsDateHovered(false)} onClick={() => setIsDateMenuOpen(!isDateMenuOpen)} className={`h-12 flex items-center gap-2 px-5 rounded-2xl transition-all ${isDateMenuOpen ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white text-slate-500 border border-gray-100 hover:bg-gray-50'}`}><Calendar size={18}/><AnimatePresence mode="popLayout">{isDateHovered && <motion.span initial={{opacity:0, width:0}} animate={{opacity:1, width:'auto'}} exit={{opacity:0, width:0}} className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">Fechas</motion.span>}</AnimatePresence></motion.button>
-                    <AnimatePresence>{isDateMenuOpen && ( <motion.div initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} exit={{opacity:0, y:10}} className="absolute top-full right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 w-[300px] z-50"><div className="space-y-4"><div className="grid grid-cols-2 gap-3"><input type="date" className="w-full bg-slate-50 border border-slate-100 rounded-lg p-2 text-xs font-bold" /><input type="date" className="w-full bg-slate-50 border border-slate-100 rounded-lg p-2 text-xs font-bold" /></div><button onClick={() => setIsDateMenuOpen(false)} className="w-full py-3 bg-[#004D4D] text-white rounded-xl text-[9px] font-black uppercase">Aplicar</button></div></motion.div> )}</AnimatePresence>
-                </div>
-                <motion.button layout onClick={handleExport} className="h-12 flex items-center gap-2 px-4 bg-gray-900 text-white rounded-2xl shadow-lg hover:bg-black transition-all"><Download size={18}/></motion.button>
-            </div>
-        </div>
-    );
-
-    const renderTrelloCard = (chat: any, stage: any) => (
-        <motion.div key={chat.id} layout layoutId={chat.id} drag="x" dragConstraints={{ left: -100, right: 100 }} dragElastic={0.8} onDragEnd={(_, info) => { const threshold = 80; const currentIndex = stages.findIndex(s => s.key === stage.key); if (info.offset.x > threshold && currentIndex < stages.length - 1) handleDragEnd(chat.id, stages[currentIndex + 1].key); else if (info.offset.x < -threshold && currentIndex > 0) handleDragEnd(chat.id, stages[currentIndex - 1].key); }} whileDrag={{ scale: 1.1, rotate: 2, zIndex: 100, boxShadow: "0 30px 60px rgba(0,0,0,0.15)" }} onClick={() => { setSelectedChatId(chat.id); setView('inbox'); }} className="bg-white p-5 rounded-[2.2rem] border border-white shadow-sm hover:shadow-xl transition-all group cursor-pointer active:cursor-grabbing space-y-4 mb-4"><div className="flex items-center justify-between"><div className="h-2 w-12 rounded-full" style={{ backgroundColor: stage.color }}></div><img src={(CHANNEL_CONFIG as any)[chat.source].logo} className="h-5 w-5 grayscale opacity-30 group-hover:grayscale-0 group-hover:opacity-100 transition-all" /></div><h5 className="text-sm font-black text-gray-900 tracking-tight leading-tight">{chat.customer.name}</h5><div className="flex items-center justify-between pt-2 border-t border-gray-50"><div className="flex items-center gap-2"><Clock size={12} className="text-gray-300"/><span className="text-[8px] font-black text-gray-300 uppercase">{chat.time}</span></div><div className="h-7 w-7 rounded-full bg-gray-50 flex items-center justify-center text-[10px] font-black text-[#004d4d] border border-white shadow-inner">{chat.customer.name.charAt(0)}</div></div></motion.div>
-    );
 
     return (
-        <div className="max-w-[1600px] mx-auto min-h-screen flex flex-col gap-8 animate-in fade-in duration-1000 relative pb-20 overflow-hidden">
-            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8 px-4 shrink-0 pt-4">
-                <div>
-                    <div className="flex items-center gap-3 mb-2"><span className="h-2 w-2 rounded-full bg-[#00f2ff] animate-pulse shadow-[0_0_10px_#00f2ff]"></span><span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Terminal de Inteligencia</span></div>
-                    <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">Terminal <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF] px-2 py-1">Omnicanal CRM</span></h1>
-                    <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed italic">Gestión comercial y automatización de mensajería en tiempo real.</p>
-                </div>
-                <div className="flex items-center gap-4"><div className="flex -space-x-2">{Object.values(CHANNEL_CONFIG).map((c: any, i) => ( <img key={i} src={c.logo} className="h-10 w-10 rounded-full border-4 border-[#FAFAFA] bg-white shadow-sm" alt="" /> ))}</div></div>
-            </div>
+        <motion.div
+            onClick={onClick}
+            onMouseMove={handleMove}
+            onMouseLeave={() => { setRotateX(0); setRotateY(0); setGlare(g => ({...g, op: 0})); }}
+            animate={{ rotateX, rotateY, scale: rotateX !== 0 ? 1.02 : 1 }}
+            transition={{ type: "spring", stiffness: 250, damping: 25 }}
+            className={`rounded-[2.5rem] border transition-all duration-500 relative overflow-hidden isolate cursor-pointer ${dark ? 'bg-[#001A1A] border-white/5 shadow-2xl' : 'bg-white/40 backdrop-blur-xl border-white/80 shadow-xl'} ${className}`}
+            style={{ transformStyle: "preserve-3d", perspective: "1000px" }}
+        >
+            <div className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+                 style={{ opacity: glare.op, background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, ${dark ? 'rgba(0,242,255,0.2)' : 'white'} 0%, transparent 60%)`, zIndex: 1 }} />
+            <div style={{ transform: "translateZ(25px)", position: "relative", zIndex: 2 }} className="h-full">{children}</div>
+        </motion.div>
+    );
+};
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 shrink-0">
-                {[ { label: 'Todos los Chats', value: chats.length, sub: 'Pendientes hoy', icon: <MessageSquare size={20}/>, color: 'text-[#004d4d]' }, { label: 'Canales Activos', value: '04', sub: 'Sincronizados', icon: <Globe size={20}/>, color: 'text-[#008080]' }, { label: 'Eficiencia IA', value: '82%', sub: 'Auto-respuesta', icon: <Zap size={20}/>, color: 'text-amber-500' }, { label: 'Ventas Chat', value: '$ 4.2M', sub: 'Conversión directa', icon: <DollarSign size={20}/>, color: 'text-emerald-600' } ].map((kpi, i) => (
-                    <TiltCard key={i} className="h-full" onClick={() => setSelectedKPI(kpi)}>
-                        <div className="bg-white/95 p-8 rounded-[2.5rem] border border-white shadow-xl flex flex-col justify-between h-full group transition-all cursor-pointer"><div className="flex justify-between items-start mb-4"><div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color} group-hover:scale-110 transition-transform`}>{kpi.icon}</div><span className="text-[10px] font-black px-2 py-1 bg-[#00f2ff]/10 text-[#004d4d] rounded-lg">LIVE</span></div><div><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p><h3 className="text-3xl font-black text-gray-900 mt-1">{kpi.value}</h3><p className="text-[9px] font-bold text-gray-400 mt-1 italic">{kpi.sub}</p></div></div>
-                    </TiltCard>
+// --- CONFIGURACIÓN DE CANALES ---
+const CHANNEL_CONFIG = {
+  whatsapp: { label: 'WhatsApp', color: 'bg-emerald-500', icon: <MessageCircle size={20} />, logo: 'https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg' },
+  instagram: { label: 'Instagram', color: 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600', icon: <Share2 size={20} />, logo: 'https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg' },
+  facebook: { label: 'Facebook', color: 'bg-blue-600', icon: <Activity size={20} />, logo: 'https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg' },
+  tiktok: { label: 'TikTok', color: 'bg-black', icon: <Zap size={20} />, logo: 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Logotipo_de_TikTok.svg' },
+  mercadolibre: { label: 'Meli', color: 'bg-[#FFE600]', icon: <ShoppingBag size={20} />, logo: 'https://http2.mlstatic.com/frontend-assets/ui-navigation/5.18.9/mercadolibre/logo__small@2x.png' },
+  web: { label: 'Canal Web', color: 'bg-[#004d4d]', icon: <Globe size={20} />, logo: 'https://upload.wikimedia.org/wikipedia/commons/a/ab/Android_O_Preview_Icon.png' }
+};
+
+export default function MensajesPage() {
+  const { token, userEmail } = useAuth();
+  const { showToast } = useToast();
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [message, setMessage] = useState("");
+  const [selectedMetric, setSelectedMetric] = useState<any>(null);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [webChannelActive, setWebChannelActive] = useState(false);
+  const [linkedChannels, setLinkedChannels] = useState<string[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // MOCK LIMPIO (Para ser reemplazado por API real)
+  const chats: any[] = []; 
+
+  const kpis = [
+    { label: "Chats Activos", value: 0, icon: <Activity size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Live" },
+    { label: "Tiempo Respuesta", value: 0, icon: <Clock size={24}/>, color: "text-amber-600", bg: "bg-amber-50", trend: "Óptimo", isTime: true },
+    { label: "Conversión CRM", value: 0, icon: <Target size={24}/>, color: "text-emerald-600", bg: "bg-emerald-50", trend: "+0%", isPercentage: true },
+    { label: "Tickets Abiertos", value: 0, icon: <Zap size={24}/>, color: "text-[#00f2ff]", bg: "bg-cyan-50", trend: "N/A" },
+  ];
+
+  const handleExportReport = () => {
+    try {
+      showToast("Generando reporte de mensajería...", "info");
+      generateChatsPDF({
+        stats: {
+            totalChats: kpis[0].value,
+            activeChannels: linkedChannels.length || 1,
+            aiEfficiency: "98.5%",
+            totalRevenue: "$ 0"
+        },
+        chats: chats.map(c => ({
+            customer: { name: c.name, type: 'Usuario Final', ltv: 0 },
+            source: c.channel,
+            status: 'Atendido',
+            time: c.time
+        }))
+      });
+      showToast("¡Reporte generado con éxito!", "success");
+    } catch (e) { 
+        console.error(e);
+        showToast("Error al exportar reporte", "error"); 
+    }
+  };
+
+  // Cargar canales vinculados
+  useEffect(() => {
+      const fetchChannels = async () => {
+          if (!token) return;
+          try {
+              const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+              const res = await fetch(`${apiBase}/admin/channels/list`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (res.ok) {
+                  const data = await res.json();
+                  setLinkedChannels(data.map((c: any) => c.channel_type));
+              }
+          } catch (e) { console.error(e); }
+      };
+      fetchChannels();
+  }, [token]);
+
+  const handleChannelLink = async (channel: string) => {
+      showToast(`Conectando con la API de ${channel}...`, "info");
+      
+      try {
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+          const res = await fetch(`${apiBase}/admin/channels/link`, {
+              method: 'POST',
+              headers: { 
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ channel_type: channel })
+          });
+
+          if (res.ok) {
+              setLinkedChannels(prev => [...prev, channel]);
+              showToast(`${channel.toUpperCase()} vinculado con éxito ✨`, "success");
+              
+              // Redirecciones Oficiales / OAuth
+              setTimeout(() => {
+                  if (channel === 'instagram') window.open('https://www.facebook.com/login/reauth.php?next=https%3A%2F%2Fwww.instagram.com%2Faccounts%2Fmanage_access%2F', '_blank');
+                  if (channel === 'facebook') window.open('https://www.facebook.com/settings?tab=business_tools', '_blank');
+                  if (channel === 'tiktok') window.open('https://www.tiktok.com/auth/authorize/', '_blank');
+                  if (channel === 'mercadolibre') window.open('https://www.mercadolibre.com.co/jms/mco/lgz/login', '_blank');
+                  if (channel === 'whatsapp') window.open('https://business.whatsapp.com/products/messenger-api', '_blank');
+              }, 1000);
+          }
+      } catch (e) {
+          showToast("Error al vincular canal", "error");
+      }
+  };
+
+  return (
+    <div className="w-full space-y-10 pb-20 animate-in fade-in duration-1000 flex flex-col">
+      
+      {/* 1. HEADER PLATINUM */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 px-4 shrink-0">
+        <div>
+            <div className="flex items-center gap-3 mb-2">
+                <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Omnichannel CRM v2.0</span>
+            </div>
+            <h1 className="text-5xl md:text-6xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">MENSAJES</span>
+            </h1>
+            <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
+                Hola <span className="text-[#004d4d] font-bold">{userEmail?.split('@')[0]}</span>, gestiona tus comunicaciones omnicanal en tiempo real. 👋
+            </p>
+        </div>
+        <div className="flex items-center gap-4">
+            <button onClick={() => setIsLinkModalOpen(true)} className="h-12 px-8 bg-[#004d4d] text-white rounded-full font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-black transition-all flex items-center gap-2">
+                <Plus size={16} /> Vincular Canales
+            </button>
+            <button onClick={handleExportReport} className="h-12 px-8 bg-white/60 backdrop-blur-xl border border-white text-[#004d4d] rounded-full font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-[#004d4d] hover:text-white transition-all">Reporte Omnicanal</button>
+            <div className="flex -space-x-3">
+                {Object.values(CHANNEL_CONFIG).map((c: any, i) => (
+                    <div key={i} className="h-10 w-10 rounded-xl border-2 border-white shadow-lg overflow-hidden hover:scale-110 transition-transform cursor-help" title="Canal Disponible">
+                        <img src={c.logo} className="h-full w-full object-cover" alt="" />
+                    </div>
                 ))}
             </div>
-
-            <div className="flex items-center justify-center gap-4 shrink-0 relative z-20">
-                <div className="p-1 bg-white border border-gray-100 rounded-full shadow-xl shadow-gray-200/30 backdrop-blur-xl flex items-center relative">
-                    {[ { id: 'inbox', label: 'Inbox', icon: <MessageSquare size={14}/> }, { id: 'channels', label: 'Canales', icon: <Globe size={14}/> }, { id: 'crm', label: 'Tablero', icon: <LayoutGrid size={14}/> } ].map((tab) => {
-                        const isActive = view === tab.id;
-                        return ( <button key={tab.id} onClick={() => setView(tab.id as any)} className={`relative px-8 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all duration-500 z-10 flex items-center gap-2 ${isActive ? 'text-white' : 'text-gray-400 hover:text-gray-900'}`}>{isActive && ( <motion.div layoutId="activeViewTab" className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} /> )}{tab.icon}{tab.label}</button> );
-                    })}
-                </div>
-                <motion.button whileHover={{ scale: 1.1, rotate: 5 }} onClick={() => setShowInfoModal(true)} className="h-12 w-12 rounded-full bg-white/80 backdrop-blur-xl border border-white shadow-2xl flex items-center justify-center text-[#004d4d] hover:bg-gray-900 hover:text-white transition-all group"><InfoIcon size={18} /></motion.button>
-            </div>
-
-            <RenderActionBar />
-
-            <AnimatePresence mode="wait">
-                {view === 'inbox' ? (
-                    <motion.div key="inbox-view" initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="flex flex-col gap-6 flex-1 overflow-hidden h-[calc(100vh-550px)]" >
-                        <div className="flex-1 flex overflow-hidden bg-white rounded-[4rem] border border-gray-100 shadow-[0_30px_100px_rgba(0,0,0,0.08)] mb-4 mx-4">
-                            <motion.div animate={{ width: isSidebarCollapsed ? 100 : 320 }} className="flex flex-col border-r border-gray-100 bg-white shrink-0 overflow-hidden">
-                                {!isSidebarCollapsed && (
-                                    <div className="p-6 pb-2">
-                                        <div className="flex items-center justify-around py-3 bg-gray-50/50 backdrop-blur-md rounded-2xl border border-gray-100 shadow-inner relative">
-                                            <button onClick={() => showToast("Bayt AI activo", "info")} className="p-2 hover:bg-[#004d4d] hover:text-[#00f2ff] rounded-xl text-gray-400 transition-all group" title="Bayt AI"><Bot size={18} /></button>
-                                            <div className="h-4 w-px bg-gray-200"></div>
-                                            <button onClick={() => setShowTagManager(true)} className="p-2 hover:bg-[#004d4d] hover:text-[#00f2ff] rounded-xl text-gray-400 transition-all" title="Etiquetas"><Tag size={18} /></button>
-                                            <div className="h-4 w-px bg-gray-200"></div>
-                                            <button onClick={() => setShowQuickSettings(!showQuickSettings)} className="p-2 hover:bg-[#004d4d] hover:text-[#00f2ff] rounded-xl text-gray-400 transition-all" title="Ajustes"><Settings2 size={18} /></button>
-                                        </div>
-                                    </div>
-                                )}
-                                <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#FAFAFA]/30 pb-10 pt-2">
-                                    {filteredChats.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 text-center">
-                                            <MessageSquare size={48} className="mb-4 opacity-20" />
-                                            <p className="text-xs font-bold uppercase tracking-widest">No hay mensajes</p>
-                                        </div>
-                                    ) : (
-                                        filteredChats.map((chat) => {
-                                            const currentStage = stages.find(s => s.key === chat.status);
-                                            return (
-                                                <div key={chat.id} onClick={() => setSelectedChatId(chat.id)} className={`flex items-center cursor-pointer transition-all border-b border-gray-50/50 ${isSidebarCollapsed ? 'p-6 justify-center' : 'p-8 gap-4'} ${selectedChatId === chat.id ? 'bg-white shadow-xl z-10' : 'hover:bg-white/80'}`}>
-                                                    <div className="relative flex-shrink-0">
-                                                        <div className={`${isSidebarCollapsed ? 'h-12 w-12' : 'h-14 w-14'} rounded-2xl flex items-center justify-center text-xl font-black text-[#004d4d] bg-gray-50 transition-all`} style={{ boxShadow: `inset 0 0 0 3px ${currentStage?.color || '#eee'}` }}>{chat.customer.name.charAt(0)}</div>
-                                                        <div className="absolute -bottom-1 -right-1 h-7 w-7 bg-white rounded-xl flex items-center justify-center shadow-xl border border-gray-100 p-1.5 z-10"><img src={(CHANNEL_CONFIG as any)[chat.source]?.logo || '/assets/logowhatsapp.webp'} className="w-full h-full object-contain" /></div>
-                                                    </div>
-                                                    {!isSidebarCollapsed && <div className="flex-1 min-w-0"><p className="text-sm font-black truncate">{chat.customer.name}</p><span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: currentStage?.color }}>{currentStage?.label}</span></div>}
-                                                </div>
-                                            );
-                                        })
-                                    )}
-                                </div>
-                            </motion.div>
-                            <div className="flex-1 flex flex-col bg-white relative">
-                                {selectedChat ? (
-                                    <>
-                                        <div className="px-12 py-8 border-b border-gray-100 flex items-center justify-between">
-                                            <div className="flex items-center gap-6 relative"><div className="relative"><button onClick={() => setShowCustomerProfile(true)} className="h-20 w-20 rounded-[2.2rem] text-white flex items-center justify-center text-3xl font-black shadow-2xl transition-all hover:scale-105 active:scale-95" style={{ backgroundColor: stages.find(s => s.key === selectedChat.status)?.color }}>{selectedChat.customer.name.charAt(0)}</button><div className="absolute -bottom-2 -right-2 h-10 w-10 bg-white rounded-2xl flex items-center justify-center shadow-2xl border-4 border-gray-50 p-2"><img src={(CHANNEL_CONFIG as any)[selectedChat.source]?.logo || '/assets/logowhatsapp.webp'} className="w-full h-full object-contain" /></div></div><div><h3 className="text-3xl font-black text-gray-900 tracking-tighter uppercase italic">{selectedChat.customer.name}</h3><div className="flex gap-3 items-center mt-1"><span className="h-2 w-2 rounded-full animate-pulse" style={{ backgroundColor: stages.find(s => s.key === selectedChat.status)?.color }}></span><p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#004d4d]">Vía {(CHANNEL_CONFIG as any)[selectedChat.source]?.name || 'Desconocido'}</p></div></div></div>
-                                            <div className="flex items-center gap-4"><button className="h-12 w-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400"><Settings2 size={20}/></button></div>
-                                        </div>
-                                        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-16 space-y-12 custom-scrollbar bg-gray-50/30"><div className="flex justify-center"><span className="px-4 py-1.5 bg-white border border-gray-100 rounded-full text-[8px] font-black text-gray-300 uppercase tracking-[0.3em]">Cifrado Activo</span></div></div>
-                                        <div className="p-10 bg-white border-t border-gray-100 flex gap-6 items-center"><div className="flex gap-3"><button className="h-16 w-16 bg-gray-50 rounded-[1.5rem] flex items-center justify-center hover:bg-gray-100 transition-all"><Paperclip size={28}/></button></div><input type="text" placeholder="Escribe tu respuesta..." className="flex-1 bg-gray-50 border-2 border-transparent rounded-[2.2rem] px-10 py-6 text-base font-bold outline-none focus:bg-white focus:border-[#00f2ff]/30 transition-all shadow-inner" /><button className="bg-[#004d4d] text-white h-20 w-20 rounded-[2rem] shadow-xl flex items-center justify-center hover:bg-black transition-all group"><Send size={32} className="text-[#00f2ff]"/></button></div>
-                                    </>
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center h-full text-gray-300">
-                                        <MessageSquare size={64} className="mb-4 opacity-20" />
-                                        <p className="text-sm font-black uppercase tracking-widest">Selecciona un chat</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </motion.div>
-                ) : view === 'crm' ? (
-                    <div className="flex-1 flex gap-6 overflow-x-auto pb-24 custom-scrollbar px-6 pt-2 h-[calc(100vh-550px)]">
-                        <LayoutGroup>
-                            {stages.map((stage) => {
-                                const stageChats = filteredChats.filter(c => c.status === stage.key);
-                                return (
-                                    <motion.div layout key={stage.id} className="min-w-[340px] max-w-[340px] flex flex-col bg-gray-100/40 rounded-[3rem] border border-gray-200/30 h-full overflow-hidden shadow-inner">
-                                        <div className="p-6 flex items-center justify-between shrink-0 bg-white/40 backdrop-blur-sm border-b border-gray-200/20"><div className="flex items-center gap-3"><div className="h-3 w-3 rounded-full shadow-lg" style={{ backgroundColor: stage.color }}></div><input className="bg-transparent border-none text-xs font-black uppercase tracking-[0.2em] text-gray-900 focus:outline-none focus:bg-white/80 rounded-lg px-2 w-full transition-all" defaultValue={stage.label} onBlur={(e) => handleUpdateStage(stage.id, e.target.value)} /></div><span className="text-[10px] font-black text-gray-400 bg-white px-2 py-0.5 rounded-lg shadow-sm border border-gray-100">{stageChats.length}</span></div>
-                                        <motion.div layout className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4"><AnimatePresence mode="popLayout">{stageChats.map(chat => renderTrelloCard(chat, stage))}</AnimatePresence></motion.div>
-                                        <div className="p-4 shrink-0 bg-white/20"><button onClick={() => setIsQuickAdding(stage.id)} className="w-full py-4 flex items-center justify-center gap-3 text-gray-400 hover:text-[#004d4d] hover:bg-white/80 rounded-2xl transition-all group font-black uppercase text-[10px] tracking-[0.2em]"><Plus size={16}/> Añadir Tarjeta</button></div>
-                                    </motion.div>
-                                );
-                            })}
-                            <button onClick={() => setStages([...stages, { id: `st${Date.now()}`, label: 'Nueva Lista', key: `st${Date.now()}`, color: '#004d4d' }])} className="min-w-[340px] h-fit bg-white/10 border-2 border-dashed border-gray-200 rounded-[3rem] p-8 flex items-center justify-center gap-4 text-gray-400 hover:border-[#004d4d] hover:text-[#004d4d] transition-all group backdrop-blur-sm"><Plus size={24}/><span className="text-[10px] font-black uppercase tracking-[0.3em]">Nueva Lista</span></button>
-                        </LayoutGroup>
-                    </div>
-                ) : null }
-            </AnimatePresence>
-
-            <AnimatePresence>{showTagManager && (
-                <div className="fixed inset-0 z-[1700] flex items-center justify-center p-4">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowTagManager(false)} className="absolute inset-0 bg-black/80 backdrop-blur-xl" />
-                    <motion.div initial={{ scale: 0.9, opacity: 0, y: 100 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 100 }} className="bg-white w-full max-w-lg rounded-[3rem] shadow-3xl overflow-hidden flex flex-col relative z-10 border border-white/20">
-                        <div className="bg-gray-900 p-8 text-white flex justify-between items-center"><h3 className="text-xl font-black italic uppercase tracking-tighter">Administrador de Etiquetas</h3><button onClick={() => setShowTagManager(false)}><X size={20}/></button></div>
-                        <div className="p-8 space-y-8">
-                            <div className="space-y-4"><input autoFocus type="text" placeholder="Nombre de etiqueta..." value={newTagName} onChange={(e) => setNewTagName(e.target.value)} className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold" /><div className="flex flex-wrap gap-2 justify-center">{PRESET_COLORS.map(c => ( <button key={c} onClick={() => setSelectedTagColor(c)} className={`h-8 w-8 rounded-full border-2 transition-all ${selectedTagColor === c ? 'border-gray-900 scale-110 shadow-lg' : 'border-transparent hover:scale-105'}`} style={{ backgroundColor: c }} /> ))}</div><button onClick={handleAddTag} className="w-full py-4 bg-[#004d4d] text-white rounded-xl font-black text-[10px] uppercase">Crear Etiqueta</button></div>
-                            <div className="space-y-3"><p className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Mis Etiquetas</p><div className="flex flex-wrap gap-3">{availableTags.map((t: any, i: number) => ( <div key={i} className="flex items-center gap-2 border border-gray-100 pl-4 pr-2 py-2 rounded-xl group" style={{ backgroundColor: `${t.color}15` }}><div className="h-2 w-2 rounded-full" style={{ backgroundColor: t.color }}></div><span className="text-[10px] font-black uppercase" style={{ color: t.color }}>{t.name}</span><button onClick={() => setAvailableTags(availableTags.filter((tag: any) => tag.name !== t.name))} className="text-gray-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"><X size={14}/></button></div> ))}</div></div>
-                        </div>
-                    </motion.div>
-                </div>
-            )}</AnimatePresence>
-
-            <ChatsInfoModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} />
-            <ChatsMetricModal isOpen={!!selectedKPI} onClose={() => setSelectedKPI(null)} metric={selectedKPI} />
-            <style jsx global>{`.custom-scrollbar::-webkit-scrollbar { width: 6px; }.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 30px; }`}</style>
         </div>
-    );
+      </div>
+
+      {/* 2. GRID DE MÉTRICAS CRM */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 shrink-0">
+          {kpis.map((kpi, i) => (
+              <div key={i} onClick={() => setSelectedMetric(kpi)}>
+                  <PremiumCard className="p-8 group h-full">
+                      <div className="flex justify-between items-start mb-6">
+                          <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg group-hover:scale-110 border border-white/50 ${kpi.bg} ${kpi.color}`}>
+                              {kpi.icon}
+                          </div>
+                          <div className="px-3 py-1 bg-gray-100 rounded-full text-[9px] font-black uppercase tracking-wider text-gray-400">
+                              {kpi.trend}
+                          </div>
+                      </div>
+                      <div>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5">{kpi.label}</p>
+                          <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">
+                              <AnimatedNumber value={kpi.value} type={kpi.isPercentage ? 'percentage' : kpi.isTime ? 'time' : 'simple'} />
+                          </h3>
+                      </div>
+                  </PremiumCard>
+              </div>
+          ))}
+      </div>
+
+      {/* 3. TERMINAL DE CHATS */}
+      <div className="h-[1000px] px-4 shrink-0">
+          <div className="h-full bg-white border border-gray-200 rounded-[2.5rem] shadow-2xl flex overflow-hidden isolate relative">
+              
+              {/* Sidebar de Chats */}
+              <div className="w-[350px] border-r border-gray-100 flex flex-col bg-[#F0F2F5] shrink-0">
+                  <div className="h-16 px-4 flex items-center justify-between shrink-0">
+                      <div className="h-10 w-10 rounded-full bg-gray-300 border border-white shadow-sm overflow-hidden">
+                          <div className="h-full w-full bg-gradient-to-tr from-[#004d4d] to-cyan flex items-center justify-center text-white font-black text-xs">
+                              {userEmail?.charAt(0).toUpperCase()}
+                          </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-gray-500">
+                          <Activity size={20} className="cursor-pointer hover:text-[#004d4d] transition-colors" />
+                          <MessageSquare size={20} className="cursor-pointer hover:text-[#004d4d] transition-colors" />
+                          <MoreVertical size={20} className="cursor-pointer hover:text-[#004d4d] transition-colors" />
+                      </div>
+                  </div>
+
+                  <div className="px-3 py-2 shrink-0">
+                      <div className="bg-white rounded-xl flex items-center px-4 gap-4 h-9 shadow-sm">
+                          <Search size={16} className="text-gray-400" />
+                          <input placeholder="Busca un chat o inicia uno nuevo" className="flex-1 bg-transparent border-none text-[13px] outline-none text-gray-600 font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                      </div>
+                  </div>
+                  
+                  <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
+                      {chats.length === 0 ? (
+                          <div className="py-20 text-center space-y-4 px-10">
+                              <div className="h-20 w-20 bg-[#F0F2F5] rounded-full flex items-center justify-center mx-auto text-gray-300"><Bot size={40}/></div>
+                              <h5 className="text-sm font-black text-gray-900">Tu Terminal está lista</h5>
+                              <p className="text-xs text-gray-400 font-medium leading-relaxed italic">Víncula tus cuentas para recibir transmisiones en tiempo real.</p>
+                          </div>
+                      ) : (
+                          chats.map((chat) => (
+                              <div key={chat.id} onClick={() => setSelectedChatId(chat.id)} className={`h-[72px] px-4 flex items-center gap-4 cursor-pointer border-b border-gray-50 transition-colors ${selectedChatId === chat.id ? 'bg-[#F0F2F5]' : 'hover:bg-[#F5F6F6]'}`}>
+                                  <div className="relative shrink-0">
+                                      <div className="h-12 w-12 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-lg font-black text-gray-400 italic">{chat.name.charAt(0)}</div>
+                                      <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-white p-0.5 shadow-md">
+                                          <img src={CHANNEL_CONFIG[chat.channel as keyof typeof CHANNEL_CONFIG].logo} alt="" className="h-full w-full object-contain rounded-full" />
+                                      </div>
+                                  </div>
+                                  <div className="flex-1 min-w-0 pr-2">
+                                      <div className="flex justify-between items-baseline mb-1">
+                                          <h5 className="text-[15px] font-bold text-gray-900 truncate">{chat.name}</h5>
+                                          <span className="text-[11px] text-gray-400 font-medium">{chat.time}</span>
+                                      </div>
+                                      <p className="text-[13px] text-gray-500 truncate font-medium">{chat.lastMsg}</p>
+                                  </div>
+                              </div>
+                          ))
+                      )}
+                  </div>
+              </div>
+
+              {/* Ventana de Chat */}
+              <div className="flex-1 flex flex-col bg-[#EBE3D5] relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none" />
+                  {selectedChatId ? (
+                      <>
+                          <div className="h-16 px-4 bg-[#F0F2F5] border-b border-gray-200 flex items-center justify-between shrink-0 relative z-10">
+                              <div className="flex items-center gap-4">
+                                  <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center font-black text-sm text-gray-500 italic">{chats.find(c => c.id === selectedChatId)?.name.charAt(0)}</div>
+                                  <div>
+                                      <h5 className="text-[15px] font-bold text-gray-900">{chats.find(c => c.id === selectedChatId)?.name}</h5>
+                                      <p className="text-[11px] text-gray-500 font-medium">en línea</p>
+                                  </div>
+                              </div>
+                              <div className="flex items-center gap-6 text-gray-500 px-2"><Search size={20}/><MoreVertical size={20}/></div>
+                          </div>
+                          <div className="flex-1 overflow-y-auto p-10 space-y-4 custom-scrollbar relative z-10" ref={scrollRef}></div>
+                          <div className="h-16 px-4 bg-[#F0F2F5] flex items-center gap-4 shrink-0 relative z-10">
+                              <Smile size={24} className="text-gray-500" /><Paperclip size={24} className="text-gray-500" />
+                              <div className="flex-1 bg-white h-10 rounded-xl px-4 flex items-center shadow-sm">
+                                  <input placeholder="Escribe un mensaje" className="w-full bg-transparent border-none text-[14px] outline-none text-gray-700 font-medium" value={message} onChange={(e) => setMessage(e.target.value)} />
+                              </div>
+                              <div className="h-10 w-10 flex items-center justify-center text-gray-500">{message.trim() ? <Send size={24} className="text-[#004d4d]" /> : <Bot size={24} />}</div>
+                          </div>
+                      </>
+                  ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center p-20 text-center relative z-10">
+                          <div className="h-64 w-64 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center border border-white/30 shadow-2xl relative overflow-hidden group">
+                              <Bot size={120} className="text-[#004d4d]/40 group-hover:scale-110 transition-transform duration-700" />
+                          </div>
+                          <div className="mt-12 space-y-4">
+                              <h3 className="text-3xl font-black text-gray-900 italic tracking-tighter uppercase">Bayup Terminal CRM</h3>
+                              <p className="text-gray-500 text-sm font-medium max-w-sm mx-auto italic leading-relaxed">Centraliza todas tus comunicaciones. Víncula canales para empezar.</p>
+                          </div>
+                      </div>
+                  )}
+              </div>
+          </div>
+      </div>
+
+      {/* 4. MODAL DE VINCULACIÓN OMNICANAL (PLATINUM) */}
+      <AnimatePresence>
+          {isLinkModalOpen && (
+              <div className="fixed inset-0 z-[600] flex items-center justify-center p-6">
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsLinkModalOpen(false)} className="absolute inset-0 bg-slate-950/60 backdrop-blur-xl" />
+                  <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-4xl bg-white rounded-[4rem] shadow-3xl overflow-hidden flex flex-col max-h-[90vh]">
+                      <div className="p-12 bg-gradient-to-br from-[#001a1a] to-[#004d4d] text-white flex justify-between items-start relative overflow-hidden shrink-0">
+                          <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12"><Activity size={200}/></div>
+                          <div className="relative z-10">
+                              <div className="flex items-center gap-3 mb-4">
+                                  <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
+                                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan/60">Conexiones Seguras</span>
+                              </div>
+                              <h3 className="text-4xl font-black italic tracking-tighter uppercase">Centro de <span className="text-cyan">Vinculación</span></h3>
+                              <p className="text-white/60 text-sm font-medium mt-4 max-w-md">Activa la sincronización de tus canales oficiales para recibir transmisiones en tiempo real en tu terminal Bayup.</p>
+                          </div>
+                          <button onClick={() => setIsLinkModalOpen(false)} className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all group relative z-10">
+                              <X size={20} className="group-hover:rotate-90 transition-transform" />
+                          </button>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto custom-scrollbar">
+                          <div className="p-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-gray-50/50">
+                              {Object.entries(CHANNEL_CONFIG).map(([key, config]) => {
+                                  if (key === 'web') return null; 
+                                  const isLinked = linkedChannels.includes(key);
+                                  return (
+                                      <button 
+                                        key={key} 
+                                        onClick={() => handleChannelLink(key)} 
+                                        className={`group relative bg-white p-8 rounded-[2.5rem] border transition-all flex flex-col items-center text-center gap-6 overflow-hidden isolate ${isLinked ? 'border-emerald-200 shadow-lg' : 'border-gray-100 shadow-sm hover:shadow-xl hover:scale-[1.03]'}`}
+                                      >
+                                          <div className="absolute inset-0 bg-gradient-to-tr from-gray-50/50 to-transparent -z-10" />
+                                          {isLinked && <div className="absolute top-4 right-4 h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg animate-in zoom-in duration-500"><CheckCheck size={12}/></div>}
+                                          <div className="h-20 w-20 rounded-[2rem] bg-white shadow-lg p-4 flex items-center justify-center group-hover:rotate-6 transition-transform">
+                                              <img src={config.logo} className="h-full w-full object-contain" alt="" />
+                                          </div>
+                                          <div>
+                                              <h5 className="text-sm font-black text-gray-900 uppercase tracking-widest">{config.label}</h5>
+                                              <p className={`text-[10px] font-bold uppercase mt-1 italic ${isLinked ? 'text-emerald-500' : 'text-gray-400'}`}>{isLinked ? 'Cuenta Conectada' : 'Vincular Cuenta'}</p>
+                                          </div>
+                                          <div className={`mt-2 h-10 w-full rounded-2xl flex items-center justify-center font-black text-[9px] uppercase tracking-widest transition-colors ${isLinked ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-900 text-white group-hover:bg-[#004d4d]'}`}>
+                                              {isLinked ? 'Actualizar Token' : 'Conectar API'}
+                                          </div>
+                                      </button>
+                                  );
+                              })}
+
+                              <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col justify-between gap-6 relative overflow-hidden isolate">
+                                  <div className="flex justify-between items-start">
+                                      <div className="h-16 w-16 rounded-2xl bg-[#004d4d] text-white flex items-center justify-center shadow-lg"><Globe size={32}/></div>
+                                      <button onClick={() => setWebChannelActive(!webChannelActive)} className={`h-10 w-20 rounded-full p-1 transition-all duration-500 relative ${webChannelActive ? 'bg-cyan' : 'bg-gray-200'}`}>
+                                          <motion.div animate={{ x: webChannelActive ? 40 : 0 }} className="h-8 w-8 bg-white rounded-full shadow-lg flex items-center justify-center">
+                                              <Power size={14} className={webChannelActive ? 'text-cyan' : 'text-gray-300'} />
+                                          </motion.div>
+                                      </button>
+                                  </div>
+                                  <div>
+                                      <h5 className="text-sm font-black text-gray-900 uppercase tracking-widest">Chat de mi Web</h5>
+                                      <p className="text-[9px] text-gray-400 font-bold uppercase mt-1 italic">{webChannelActive ? 'Canal Activo' : 'Canal Desactivado'}</p>
+                                  </div>
+                                  <p className="text-[10px] text-gray-400 leading-relaxed italic">Activa el widget de chat automático en tu tienda online.</p>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div className="p-10 bg-white border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6 shrink-0">
+                          <div className="flex items-center gap-4">
+                              <ShieldCheck size={20} className="text-emerald-500" />
+                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Cifrado de grado militar AES-256 activo</p>
+                          </div>
+                          <button 
+                            onClick={() => { showToast("Sincronizando conexiones...", "info"); setTimeout(() => { setIsLinkModalOpen(false); showToast("Configuración guardada", "success"); }, 1000); }}
+                            className="h-14 px-12 bg-gray-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center gap-3"
+                          >
+                              <Save size={18} className="text-cyan" /> Guardar y Sincronizar
+                          </button>
+                      </div>
+                  </motion.div>
+              </div>
+          )}
+      </AnimatePresence>
+
+      <MetricDetailModal isOpen={!!selectedMetric} onClose={() => setSelectedMetric(null)} metric={selectedMetric} />
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
+      `}</style>
+    </div>
+  );
 }

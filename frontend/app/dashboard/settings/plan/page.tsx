@@ -126,6 +126,7 @@ const PLANS: Plan[] = [
 ];
 
 export default function PlanSettings() {
+    const { token } = useAuth();
     const { showToast } = useToast();
     const [currentPlanId, setCurrentPlanId] = useState('basico');
     const [isProcessing, setIsSaving] = useState(false);
@@ -321,11 +322,15 @@ export default function PlanSettings() {
             <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8 px-4">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
-                        <span className="h-2 w-2 rounded-full bg-[#00f2ff] animate-pulse shadow-[0_0_10px_#00f2ff]"></span>
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Suscripción & Escalabilidad</span>
+                        <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Motor de Negocio v2.0</span>
                     </div>
-                    <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">Mi <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF] px-2 py-1">Plan de Negocio</span></h1>
-                    <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed italic">Controla tu nivel de <span className="font-bold text-[#001A1A]">potencia operativa</span> y activa los módulos de inteligencia Bayt.</p>
+                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
+                        MI <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">PLAN</span>
+                    </h1>
+                    <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
+                        Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, potencia tu crecimiento escalando tu nivel de servicio. 👋
+                    </p>
                 </div>
                 <div className="flex items-center gap-4 bg-white/60 backdrop-blur-xl p-4 rounded-3xl border border-white shadow-xl shadow-gray-100/50">
                     <div className="h-12 w-12 bg-gray-900 rounded-2xl flex items-center justify-center text-[#00f2ff]"><Calendar size={22} /></div>

@@ -279,13 +279,22 @@ export default function ProductsPage() {
         try {
             await apiRequest('/collections', { 
                 method: 'POST', token, 
-                body: JSON.stringify({ title: newCategoryData.name, description: newCategoryData.description, status: 'active' }) 
+                body: JSON.stringify({ 
+                    title: newCategoryData.name, 
+                    description: newCategoryData.description, 
+                    status: 'active' 
+                }) 
             });
-            showToast("Categoría creada", "success");
+            showToast("Categoría creada con éxito ✨", "success");
             setIsNewCategoryModalOpen(false);
             setNewCategoryData({ name: '', description: '' });
-            await fetchProducts(); 
-        } catch (err) { showToast("Error al crear", "error"); } finally { setIsCreatingCategory(false); }
+            fetchProducts(); 
+        } catch (err) { 
+            console.error(err);
+            showToast("Error al crear la categoría", "error"); 
+        } finally { 
+            setIsCreatingCategory(false); 
+        }
     };
 
     const filteredProducts = useMemo(() => {
@@ -306,12 +315,15 @@ export default function ProductsPage() {
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-8 mt-4">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
-                            <span className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse"></span>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Gestión de Activos</span>
+                            <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Activos Maestros v2.0</span>
                         </div>
-                        <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF] pr-2 py-1">Catálogo Maestro</span>
+                        <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">PRODUCTOS</span>
                         </h1>
+                        <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
+                            Hola <span className="text-[#004d4d] font-bold">{userEmail?.split('@')[0]}</span>, administra tu catálogo de activos y niveles de stock. 👋
+                        </p>
                     </div>
                     <PremiumButton onClick={() => router.push('/dashboard/products/new')}><Plus size={18} /> Nuevo Producto</PremiumButton>
                 </header>

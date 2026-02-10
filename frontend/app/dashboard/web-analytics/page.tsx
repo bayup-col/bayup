@@ -51,6 +51,7 @@ const TiltCard = ({ children, className = "", onClick }: { children: React.React
 };
 
 export default function WebAnalyticsPage() {
+    const { token } = useAuth();
     const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState<'overview' | 'traffic' | 'conversion' | 'audience' | 'inventory' | 'marketing'>('overview');
     
@@ -171,9 +172,19 @@ export default function WebAnalyticsPage() {
                 <div className="flex items-center gap-8">
                     <div className="h-20 w-20 bg-gray-900 rounded-[2.5rem] flex items-center justify-center shadow-2xl relative border-2 border-white/10 shrink-0"><BarChart3 className="text-white" size={36} /></div>
                     <div>
-                        <div className="flex items-center gap-3 mb-2"><span className="h-2 w-2 rounded-full bg-[#00f2ff] animate-pulse shadow-[0_0_10px_#00f2ff]"></span><span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60">Intelligence & Analytics</span></div>
-                        <div className="flex items-center gap-6"><h1 className="text-5xl font-black text-gray-900 tracking-tighter italic uppercase leading-none">Estadísticas <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00f2ff]">PRO</span></h1><button onClick={() => setIsGuideOpen(true)} className="h-12 w-12 rounded-full bg-white border border-gray-100 shadow-xl flex items-center justify-center text-[#004D4D] hover:bg-black hover:text-white transition-all group shrink-0"><Info size={20} className="group-hover:scale-110 transition-transform" /></button></div>
-                    </div>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Intelligence & Analytics v2.0</span>
+                        </div>
+                        <div className="flex items-center gap-6">
+                            <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
+                                ESTADÍSTICAS <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">MAESTRAS</span>
+                            </h1>
+                            <button onClick={() => setIsGuideOpen(true)} className="h-12 w-12 rounded-full bg-white border border-gray-100 shadow-xl flex items-center justify-center text-[#004D4D] hover:bg-black hover:text-white transition-all group shrink-0"><Info size={20} className="group-hover:scale-110 transition-transform" /></button>
+                        </div>
+                                            <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
+                                                Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, ¡este es el resumen del día para ti! 👋
+                                            </p>                    </div>
                 </div>
                 <div className="flex items-center gap-4 relative">
                     <button onClick={() => setIsRadarModalOpen(true)} className="h-20 bg-white/60 backdrop-blur-xl px-10 rounded-[2rem] font-black text-[10px] uppercase tracking-widest border border-white/80 shadow-sm flex items-center gap-4 hover:border-[#00f2ff]/30 transition-all group">

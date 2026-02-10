@@ -1,31 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  env: {
-    APP_VERSION: '2.0.1-clean-db', // Incremento de versión para forzar rebuild limpio
-  },
-  compress: true, // Activa la compresión Gzip/Brotli
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'jtctgahddafohgskgxha.supabase.co',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-        port: '',
-        pathname: '/**',
-      },
-    ],
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+    env: {
+        APP_VERSION: '1.0.2', // Incrementado para forzar limpieza de cache
+    },
+    images: {
+        unoptimized: true, // Recomendado para Railway/Vercel con assets dinámicos
+    },
+    // Desactivamos temporalmente el chequeo de lint en build para asegurar despliegue rápido de fix
+    eslint: {
+        ignoreDuringBuilds: true,
+    }
 };
 
 export default nextConfig;

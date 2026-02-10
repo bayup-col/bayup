@@ -188,7 +188,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     
     access_token = security.create_access_token(data={"sub": user.email})
     
-    # Devolvemos todo el perfil para que el frontend no tenga que hacer otra llamada
+    # Devolvemos todo el perfil con proteccion contra nulos
+    user_plan = user.plan
     return {
         "access_token": access_token, 
         "token_type": "bearer",
@@ -197,10 +198,10 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             "full_name": user.full_name,
             "role": user.role,
             "is_global_staff": user.is_global_staff,
-            "permissions": user.permissions,
+            "permissions": user.permissions or {},
             "plan": {
-                "name": user.plan.name if user.plan else "Básico",
-                "modules": user.plan.modules if user.plan and user.plan.modules else ['inicio', 'productos', 'pedidos', 'settings']
+                "name": user_plan.name if user_plan else "Free",
+                "modules": user_plan.modules if user_plan and user_plan.modules else ['inicio', 'productos', 'pedidos', 'settings']
             }
         }
     }
@@ -274,11 +275,52 @@ def update_user_profile(data: dict, db: Session = Depends(get_db), current_user:
             raise HTTPException(status_code=400, detail="Este nombre de tienda ya está en uso")
         current_user.shop_slug = new_slug
 
-    # 2. Actualizar otros datos
+    # 2. Actualizar datos básicos
     current_user.full_name = data.get("full_name", current_user.full_name)
+    current_user.phone = data.get("phone", current_user.phone)
+    
+    # 3. Actualizar estructuras JSON (Configuración avanzada)
+    if "bank_accounts" in data:
+        current_user.bank_accounts = data.get("bank_accounts")
+    if "social_links" in data:
+        current_user.social_links = data.get("social_links")
+    if "whatsapp_lines" in data:
+        current_user.whatsapp_lines = data.get("whatsapp_lines")
     
     db.commit()
     return {"status": "success", "shop_slug": current_user.shop_slug}
+
+# --- CRM / Omnichannel Connections ---
+
+@app.post("/admin/channels/link")
+def link_channel(data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    channel_type = data.get("channel_type")
+    
+    # 1. Verificar si ya existe la conexión
+    existing = db.query(models.ChannelConnection).filter(
+        models.ChannelConnection.user_id == current_user.id,
+        models.ChannelConnection.channel_type == channel_type
+    ).first()
+    
+    if existing:
+        existing.status = "linked"
+        existing.created_at = datetime.datetime.utcnow()
+    else:
+        new_conn = models.ChannelConnection(
+            id=uuid.uuid4(),
+            user_id=current_user.id,
+            channel_type=channel_type,
+            status="linked"
+        )
+        db.add(new_conn)
+    
+    db.commit()
+    return {"status": "success", "channel": channel_type}
+
+@app.get("/admin/channels/list")
+def get_linked_channels(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    conns = db.query(models.ChannelConnection).filter(models.ChannelConnection.user_id == current_user.id).all()
+    return conns
 
 # --- Image Management (Supabase Storage) ---
 

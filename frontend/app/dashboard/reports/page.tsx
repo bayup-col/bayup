@@ -184,26 +184,18 @@ function ReportsContent() {
     };
 
     const KPIS = [
-        { label: 'Ventas Brutas', value: '$ 25.1M', sub: 'Total ingresos', icon: <DollarSign size={18}/>, color: 'text-[#004d4d]', trend: '+12.5%' },
-        { label: 'Utilidad Neta', value: '$ 16.2M', sub: 'Margen real', icon: <TrendingUp size={18}/>, color: 'text-emerald-600', trend: '+8.2%' },
-        { label: 'Gastos Operativos', value: '$ 8.9M', sub: 'Fijos y variables', icon: <CreditCard size={18}/>, color: 'text-rose-600', trend: '+2.1%' },
-        { label: 'Ticket Promedio', value: '$ 145k', sub: 'Valor por venta', icon: <ShoppingBag size={18}/>, color: 'text-amber-600', trend: '+5.4%' },
-        { label: 'Conversion', value: '8.4%', sub: 'Efectividad web', icon: <Activity size={18}/>, color: 'text-[#00f2ff]', trend: '+1.2%' },
-        { label: 'Staff ROI', value: '4.2x', sub: 'Retorno personal', icon: <Briefcase size={18}/>, color: 'text-blue-600', trend: 'OK' },
+        { label: 'Ventas Brutas', value: '$ 0', sub: 'Total ingresos', icon: <DollarSign size={18}/>, color: 'text-[#004d4d]', trend: 'Live' },
+        { label: 'Utilidad Neta', value: '$ 0', sub: 'Margen real', icon: <TrendingUp size={18}/>, color: 'text-emerald-600', trend: 'Live' },
+        { label: 'Gastos Operativos', value: '$ 0', sub: 'Fijos y variables', icon: <CreditCard size={18}/>, color: 'text-rose-600', trend: 'Live' },
+        { label: 'Ticket Promedio', value: '$ 0', sub: 'Valor por venta', icon: <ShoppingBag size={18}/>, color: 'text-amber-600', trend: 'OK' },
+        { label: 'Conversion', value: '0%', sub: 'Efectividad web', icon: <Activity size={18}/>, color: 'text-[#00f2ff]', trend: 'N/A' },
+        { label: 'Staff ROI', value: '0x', sub: 'Retorno personal', icon: <Briefcase size={18}/>, color: 'text-blue-600', trend: 'OK' },
     ];
 
     const [activeHistoryTab, setActiveHistoryTab] = useState<'maestro' | 'riesgos' | 'hitos'>('maestro');
 
     const historyData = useMemo(() => {
-        const all = [
-            { time: '10:45 AM', event: 'Venta POS - Tienda Principal', amount: 145000, type: 'in', category: 'Ingreso', icon: <ShoppingBag size={16}/>, tab: 'maestro' },
-            { time: '09:12 AM', event: 'Gasto: Insumos de Cafetería', amount: 45000, type: 'out', category: 'Operativo', icon: <CreditCard size={16}/>, tab: 'maestro' },
-            { time: '08:30 AM', event: 'Venta Web: Orden #FAC-8245', amount: 850000, type: 'in', category: 'Ingreso', icon: <Monitor size={16}/>, tab: 'maestro' },
-            { time: '07:45 AM', event: 'Alerta: Margen de Utilidad Bajo en SKU-04', amount: 12000, type: 'out', category: 'Margen', icon: <ShieldAlert size={16}/>, tab: 'riesgos' },
-            { time: 'Ayer', event: 'Devolución: Orden #FAC-8120', amount: 320000, type: 'out', category: 'Retorno', icon: <RefreshCcw size={16}/>, tab: 'riesgos' },
-            { time: 'Hoy 08:00 AM', event: 'Hito: Récord de Ventas en 1 Hora', amount: 0, type: 'hms', category: 'Crecimiento', icon: <Zap size={16}/>, tab: 'hitos' },
-            { time: 'Ayer', event: 'Hito: Meta de Ventas Semanal Superada', amount: 0, type: 'hms', category: 'Crecimiento', icon: <Trophy size={16}/>, tab: 'hitos' },
-        ];
+        const all: any[] = [];
 
         if (activeHistoryTab === 'maestro') return all.filter(i => i.tab === 'maestro');
         return all.filter(i => i.tab === activeHistoryTab);
@@ -579,11 +571,11 @@ function ReportsContent() {
                         <span className="h-2 w-2 rounded-full bg-[#00f2ff] animate-pulse shadow-[0_0_10px_#00f2ff]"></span>
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Inteligencia de Negocio</span>
                     </div>
-                    <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">
-                        Análisis <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF] px-2 py-1">General</span>
+                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
+                        ANÁLISIS <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">GENERAL</span>
                     </h1>
-                    <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed italic">
-                        Visión 360° de la rentabilidad y rendimiento de <span className="font-bold text-[#001A1A]">tu empresa</span>.
+                    <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
+                        Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, visualiza la inteligencia y rentabilidad de tu negocio. 👋
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
