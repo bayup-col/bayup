@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from "@/context/auth-context";
 import { InteractiveUP } from "@/components/landing/InteractiveUP";
 import { GlassyButton } from "@/components/landing/GlassyButton";
-import { Lock, Mail, Loader2, Ghost, Home, ArrowLeft, Send } from "lucide-react";
+import { Lock, Mail, Loader2, Ghost, Home, ArrowLeft, Send, Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -21,6 +21,7 @@ const FloatingParticlesBackground = dynamic(
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -197,14 +198,21 @@ export default function LoginPage() {
                 <div className="relative group">
                   <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 transition-colors group-focus-within:text-[#004d4d]" />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className="w-full pl-14 pr-6 py-5 bg-gray-50 border border-transparent focus:border-[#004d4d]/20 rounded-[2rem] outline-none text-sm text-black font-bold transition-all focus:bg-white shadow-inner"
+                    className="w-full pl-14 pr-12 py-5 bg-gray-50 border border-transparent focus:border-[#004d4d]/20 rounded-[2rem] outline-none text-sm text-black font-bold transition-all focus:bg-white shadow-inner"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     disabled={isSuccess}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-[#004d4d] transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
                 <div className="flex justify-end pr-4 mt-1">
                   <button 

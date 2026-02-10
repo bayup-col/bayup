@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from "@/context/auth-context";
 import { InteractiveUP } from "@/components/landing/InteractiveUP";
 import { GlassyButton } from "@/components/landing/GlassyButton";
-import { Lock, Mail, Loader2, Ghost, User, Phone, ShieldCheck, LayoutGrid, ChevronDown, Check, Home } from "lucide-react";
+import { Lock, Mail, Loader2, Ghost, User, Phone, ShieldCheck, LayoutGrid, ChevronDown, Check, Home, Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -34,6 +34,8 @@ function RegisterForm() {
     confirmPassword: ''
   });
   
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [plans] = useState<any[]>([
     { id: '1', name: 'Básico', slug: 'básico' },
@@ -235,14 +237,28 @@ function RegisterForm() {
                 <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4 transition-colors group-focus-within:text-[#004d4d]">Contraseña *</label>
                 <div className="relative group">
                   <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-[#004d4d]" />
-                  <input type="password" name="password" placeholder="••••••••" className="w-full pl-14 pr-6 py-3 bg-gray-50 border border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none text-xs text-black font-bold transition-all focus:bg-white shadow-inner" value={formData.password} onChange={handleChange} required disabled={isSuccess || isLoading} />
+                  <input type={showPassword ? "text" : "password"} name="password" placeholder="••••••••" className="w-full pl-14 pr-12 py-3 bg-gray-50 border border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none text-xs text-black font-bold transition-all focus:bg-white shadow-inner" value={formData.password} onChange={handleChange} required disabled={isSuccess || isLoading} />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-[#004d4d] transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4 transition-colors group-focus-within:text-[#004d4d]">Confirmar *</label>
                 <div className="relative group">
                   <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-[#004d4d]" />
-                  <input type="password" name="confirmPassword" placeholder="••••••••" className="w-full pl-14 pr-6 py-3 bg-gray-50 border border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none text-xs text-black font-bold transition-all focus:bg-white shadow-inner" value={formData.confirmPassword} onChange={handleChange} required disabled={isSuccess || isLoading} />
+                  <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" placeholder="••••••••" className="w-full pl-14 pr-12 py-3 bg-gray-50 border border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none text-xs text-black font-bold transition-all focus:bg-white shadow-inner" value={formData.confirmPassword} onChange={handleChange} required disabled={isSuccess || isLoading} />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-[#004d4d] transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
               </div>
             </div>
