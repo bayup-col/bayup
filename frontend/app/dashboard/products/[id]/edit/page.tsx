@@ -413,7 +413,7 @@ export default function EditProductPage() {
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar bg-white p-10 space-y-10 text-slate-900">
                         <div className="aspect-square w-full rounded-[2.5rem] bg-gray-50 border border-gray-100 overflow-hidden shadow-inner flex items-center justify-center relative group/img text-slate-900">
-                            <AnimatePresence mode="popLayout text-slate-900">
+                            <AnimatePresence mode="popLayout">
                                 {media.length > 0 ? (media[selectedPreviewIndex]?.type === 'video' ? (<motion.video key={media[selectedPreviewIndex]?.preview} src={media[selectedPreviewIndex]?.preview} className="w-full h-full object-cover" autoPlay muted loop playsInline initial={{ scale: 0.8 }} animate={{ scale: 1 }} exit={{ scale: 0.8 }} />) : (<motion.img key={media[selectedPreviewIndex]?.preview} src={media[selectedPreviewIndex]?.preview} className="w-full h-full object-cover" alt="Preview" initial={{ scale: 0.8 }} animate={{ scale: 1 }} exit={{ scale: 0.8 }} />)) : (<ImageIcon size={40} className="text-gray-200" />)}
                             </AnimatePresence>
                         </div>
