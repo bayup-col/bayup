@@ -231,25 +231,145 @@ export const generateInvoicesAuditPDF = async (data: { userName: string, invoice
         columnStyles: { 5: { halign: 'right', fontStyle: 'bold' } }
     });
 
-    // --- RESUMEN FINAL ---
+    // --- RESUMEN DE LIQUIDACIÓN DETALLADO ---
     const totalAmount = invoices.reduce((acc, inv) => acc + (inv.total || 0), 0);
-    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    const webTotal = invoices.filter(i => i.source?.toLowerCase().includes('web')).reduce((acc, inv) => acc + (inv.total || 0), 0);
+    const cashTotal = invoices.filter(i => i.payment_method?.toLowerCase() === 'cash').reduce((acc, inv) => acc + (inv.total || 0), 0);
+    const transferTotal = invoices.filter(i => i.payment_method?.toLowerCase() === 'transfer').reduce((acc, inv) => acc + (inv.total || 0), 0);
 
-    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.setLineWidth(0.5);
-    doc.line(120, finalY, 190, finalY);
+    const finalY = (doc as any).lastAutoTable.finalY + 20;
 
-    doc.setFontSize(10);
+    // Caja de Resumen
+    doc.setFillColor(245, 245, 245);
+    doc.roundedRect(110, finalY, 85, 45, 5, 5, 'F');
+
+    doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text("TOTAL LIQUIDADO EN PERIODO:", 120, finalY + 10);
-    
-    doc.setFontSize(16);
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text(`$ ${totalAmount.toLocaleString()}`, 190, finalY + 10, { align: 'right' });
+    doc.setFont("helvetica", "bold");
+    doc.text("DESGLOSE POR CANAL Y PAGO:", 115, finalY + 10);
 
     doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont("helvetica", "normal");
+    doc.text("Total Página Web:", 115, finalY + 18);
+    doc.text(`$ ${webTotal.toLocaleString()}`, 190, finalY + 18, { align: 'right' });
+
+    doc.text("Total Efectivo:", 115, finalY + 25);
+    doc.text(`$ ${cashTotal.toLocaleString()}`, 190, finalY + 25, { align: 'right' });
+
+    doc.text("Total Transferencia:", 115, finalY + 32);
+    doc.text(`$ ${transferTotal.toLocaleString()}`, 190, finalY + 32, { align: 'right' });
+
+    // Línea y Total Final
+    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.line(115, finalY + 36, 190, finalY + 36);
+
+    doc.setFontSize(11);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFont("helvetica", "bold");
+    doc.text("TOTAL NETO:", 115, finalY + 42);
+    doc.text(`$ ${totalAmount.toLocaleString()}`, 190, finalY + 42, { align: 'right' });
+
+    // Pie de página
+    doc.setFontSize(8);
     doc.setTextColor(180, 180, 180);
+    doc.setFont("helvetica", "italic");
     doc.text("Este documento es un extracto fidedigno de las operaciones registradas en el Terminal POS de Bayup.", 20, 285);
 
     doc.save(`Auditoria_Ventas_${userName}_${new Date().getTime()}.pdf`);
+};
+
+export const generateInvoicePDF = async (data: { company: any, order: any, customer: any }) => {
+    const { company, order, customer } = data;
+    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    
+    const primaryColor: [number, number, number] = [0, 77, 77];
+    const secondaryColor: [number, number, number] = [0, 242, 255];
+
+    // --- CABECERA ---
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(0, 0, 210, 45, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(24);
+    doc.text(company?.full_name?.toUpperCase() || "MI NEGOCIO", 20, 25);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.text("COMPROBANTE OFICIAL DE VENTA", 20, 33);
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.text(`FACTURA #${String(order.id).slice(-4).toUpperCase()}`, 190, 25, { align: 'right' });
+    doc.setFontSize(9);
+    doc.text(`Fecha: ${new Date(order.created_at).toLocaleDateString()}`, 190, 32, { align: 'right' });
+
+    // --- INFORMACIÓN DE ACTORES ---
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("DATOS DEL VENDEDOR", 20, 60);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${company?.full_name || 'Empresa Registrada'}`, 20, 66);
+    doc.text(`Email: ${company?.email || 'N/A'}`, 20, 71);
+    doc.text(`WhatsApp: ${company?.phone || company?.company_phone || 'N/A'}`, 20, 76);
+    doc.text(`Ciudad: ${company?.city || 'Sede Principal'}`, 20, 81);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("DATOS DEL CLIENTE", 120, 60);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${customer.name || 'Cliente Particular'}`, 120, 66);
+    doc.text(`Email: ${customer.email || 'N/A'}`, 120, 71);
+    doc.text(`WhatsApp: ${customer.phone || 'N/A'}`, 120, 76);
+    doc.text(`Ciudad: ${customer.city || 'N/A'}`, 120, 81);
+
+    // --- TABLA DE PRODUCTOS ---
+    const tableItems = order.items.map((item: any) => [
+        item.product_variant?.product?.name || item.product_name || "Producto",
+        item.product_variant?.sku || "N/A",
+        item.quantity,
+        `$ ${item.price_at_purchase.toLocaleString()}`,
+        `$ ${(item.price_at_purchase * item.quantity).toLocaleString()}`
+    ]);
+
+    autoTable(doc, {
+        startY: 95,
+        head: [['Producto', 'Referencia', 'Cant', 'V. Unitario', 'Subtotal']],
+        body: tableItems,
+        theme: 'striped',
+        headStyles: { fillColor: primaryColor },
+        styles: { fontSize: 9, cellPadding: 5 }
+    });
+
+    // --- RESUMEN FINAL ---
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    
+    doc.setFillColor(245, 245, 245);
+    doc.rect(120, finalY, 70, 35, 'F');
+
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(9);
+    doc.text("SUBTOTAL BRUTO:", 125, finalY + 10);
+    doc.text(`$ ${order.total_price.toLocaleString()}`, 185, finalY + 10, { align: 'right' });
+    
+    doc.text("IMPUESTOS (0%):", 125, finalY + 18);
+    doc.text("$ 0", 185, finalY + 18, { align: 'right' });
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(125, finalY + 22, 185, finalY + 22);
+
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("TOTAL NETO:", 125, finalY + 30);
+    doc.text(`$ ${order.total_price.toLocaleString()}`, 185, finalY + 30, { align: 'right' });
+
+    // Pie de página
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text("Gracias por su compra. Este documento es un soporte válido de la operación comercial.", 20, 285);
+    doc.text("Generado por Bayup Interactive UP", 190, 285, { align: 'right' });
+
+    doc.save(`Factura_${String(order.id).slice(-4).toUpperCase()}_${customer.name.replace(/\s+/g, '_')}.pdf`);
 };
