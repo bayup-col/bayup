@@ -48,6 +48,12 @@ import {
   Home,
   Activity,
   ArrowLeft,
+  Loader2,
+  Briefcase,
+  Send,
+  ShieldCheck,
+  Navigation
+} from 'lucide-react';
   Briefcase,
   Send,
   ShieldCheck,
