@@ -98,7 +98,7 @@ interface Order {
 interface MetricData {
     id: string;
     title: string;
-    value: string;
+    value: React.ReactNode;
     trend?: string;
     trendUp?: boolean;
     icon: any;
