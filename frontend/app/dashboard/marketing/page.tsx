@@ -249,7 +249,7 @@ export default function MarketingPage() {
                 showToast("Reporte exportado con éxito 📄", "success");
             } catch (error) {
                 console.error("Error generating PDF:", error);
-                showToast("Error al generar el reporte", "danger");
+                showToast("Error al generar el reporte", "error");
             }
         }, 1500);
     };

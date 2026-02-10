@@ -76,7 +76,7 @@ const COLORS = {
     primary: "#004d4d",
     accent: "#00f2ff",
     success: "#10b981",
-    danger: "#f43f5e",
+    error: "#f43f5e",
     warning: "#f59e0b",
     white: "#ffffff",
     gray: "#f3f4f6"
