@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from "@/context/auth-context";
 import { InteractiveUP } from "@/components/landing/InteractiveUP";
 import { GlassyButton } from "@/components/landing/GlassyButton";
-import { Lock, Mail, Loader2, Ghost, Home, ArrowLeft, Send, Eye, EyeOff } from "lucide-react";
+import { Lock, Mail, Loader2, Ghost, Home, ArrowLeft, Send, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
