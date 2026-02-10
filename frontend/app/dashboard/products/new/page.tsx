@@ -142,6 +142,45 @@ export default function NewProductPage() {
     const [avgTicket, setAvgTicket] = useState(125000);
     const [platformCommission, setPlatformCommission] = useState(2.5);
 
+    // Contenido Guía Operativa (Tutorial)
+    const editorGuideContent = {
+        basics: {
+            title: 'Info Básica',
+            icon: <FileText size={16}/>,
+            color: 'text-blue-500',
+            howItWorks: 'Define el ADN de tu producto. El nombre y la categoría son los pilares para que tus clientes encuentren lo que buscan.',
+            example: 'Nombre: "Camiseta Aero-Tech", Categoría: "Deportes".',
+            tip: 'Usa nombres cortos y descriptivos. Evita códigos internos que el cliente no entienda.'
+        },
+        pricing: {
+            title: 'Estrategia Precios',
+            icon: <DollarSign size={16}/>,
+            color: 'text-emerald-500',
+            howItWorks: 'Establece el valor de tu activo. Recuerda que Bayup te permite manejar precios Retail y Mayoristas.',
+            example: 'Precio Retail: $120.000, Precio Mayorista: $85.000.',
+            tip: 'Usa el Asistente de Rentabilidad de Bayt AI para calcular tu margen neto real después de gastos.'
+        },
+        media: {
+            title: 'Contenido Visual',
+            icon: <ImageIcon size={16}/>,
+            color: 'text-purple-500',
+            howItWorks: 'Sube fotos y videos de alta calidad. Es la única forma en que tu cliente puede "tocar" el producto.',
+            example: 'Sube al menos 3 fotos: Frontal, Lateral y Detalle de textura.',
+            tip: 'Los productos con video tienen una tasa de conversión un 30% mayor en WhatsApp.'
+        },
+        inventory: {
+            title: 'Variantes & Stock',
+            icon: <Layers size={16}/>,
+            color: 'text-orange-500',
+            howItWorks: 'Gestiona tallas, colores y existencias. Cada variante puede tener su propio SKU y ajuste de precio.',
+            example: 'Talla M / Color Azul: 15 unidades.',
+            tip: 'Mantén el stock actualizado para evitar cancelaciones. Bayup te avisará cuando queden pocas unidades.'
+        }
+    };
+
+    const [activeEditorGuideTab, setActiveEditorGuideTab] = useState('basics');
+    const [isEditorGuideOpen, setIsEditorGuideOpen] = useState(false);
+
     // Helpers de Formateo de Moneda
     const formatValue = (val: number | string) => {
         if (val === undefined || val === null || val === "") return "";
