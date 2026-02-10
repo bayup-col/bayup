@@ -69,6 +69,9 @@ class User(Base):
     total_spent = Column(Float, default=0.0)
     last_purchase_date = Column(DateTime, nullable=True)
     last_purchase_summary = Column(String, nullable=True)
+    customer_type = Column(String, default="final") # final, mayorista
+    acquisition_channel = Column(String, nullable=True) # web, redes, tienda, whatsapp
+    city = Column(String, nullable=True) # Nueva columna para ubicación
     
     plan_id = Column(GUID(), ForeignKey("plans.id"))
     plan = relationship("Plan", back_populates="users")
@@ -324,4 +327,14 @@ class Notification(Base):
     message = Column(String)
     type = Column(String, default="info") # info, success, warning, error
     is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class ChannelConnection(Base):
+    __tablename__ = "channel_connections"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID(), ForeignKey("users.id"))
+    channel_type = Column(String) # whatsapp, instagram, facebook, tiktok, meli
+    status = Column(String, default="linked") # linked, disconnected
+    account_id = Column(String, nullable=True) 
+    access_token = Column(String, nullable=True) 
     created_at = Column(DateTime, default=datetime.datetime.utcnow)

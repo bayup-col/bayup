@@ -114,36 +114,27 @@ export default function GeneralSettings() {
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    setIdentity(prev => ({ ...prev, name: data.full_name || prev.name }));
+                    setIdentity(prev => ({ 
+                        ...prev, 
+                        name: data.full_name || prev.name 
+                    }));
                     setContact(prev => ({ 
                         ...prev, 
                         email: data.email, 
+                        phone: data.phone || prev.phone,
                         shop_slug: data.shop_slug || "" 
                     }));
+                    if (data.bank_accounts) setAccounts(data.bank_accounts);
+                    if (data.whatsapp_lines) setWhatsappLines(data.whatsapp_lines);
+                    if (data.social_links) setSocialLinks(prev => ({ ...prev, ...data.social_links }));
                 }
             } catch (err) { console.error("Error al cargar perfil", err); }
         };
         fetchStoreData();
 
-        const savedData = localStorage.getItem('bayup_general_settings');
         const savedPlan = localStorage.getItem('bayup_user_plan');
-        
         if (savedPlan) {
             setCurrentPlan(savedPlan as any);
-        }
-
-        if (savedData) {
-            try {
-                const parsed = JSON.parse(savedData);
-                setIdentity(prev => ({ ...prev, ...parsed.identity }));
-                setContact(prev => ({ ...prev, ...parsed.contact }));
-                setAccounts(parsed.accounts || []);
-                setWhatsappLines(parsed.whatsappLines || []);
-                setSocialLinks(parsed.socialLinks || socialLinks);
-            } catch (e) { console.error(e); }
-        } else {
-            setAccounts([{ id: '1', bank_name: 'Bancolombia', account_type: 'Ahorros', number: '1234567890', billing_limit: 10000000, current_billed: 2500000, is_primary: true, status: 'active' }]);
-            setWhatsappLines([{ id: 'w1', name: 'Ventas Directas', number: '3001112233' }]);
         }
         setLoading(false);
     }, [token]);
@@ -177,7 +168,11 @@ export default function GeneralSettings() {
                 },
                 body: JSON.stringify({
                     full_name: identity.name,
-                    shop_slug: contact.shop_slug
+                    phone: contact.phone,
+                    shop_slug: contact.shop_slug,
+                    bank_accounts: accounts,
+                    social_links: socialLinks,
+                    whatsapp_lines: whatsappLines
                 }),
             });
 
@@ -186,7 +181,6 @@ export default function GeneralSettings() {
                 throw new Error(errData.detail || "Error al actualizar en el servidor");
             }
 
-            localStorage.setItem('bayup_general_settings', JSON.stringify({ identity, contact, accounts, whatsappLines, socialLinks }));
             window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: identity.name }));
             showToast("Configuración sincronizada con éxito 🚀", "success");
         } catch (e: any) { 
@@ -245,11 +239,15 @@ export default function GeneralSettings() {
             <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8 px-4">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
-                        <span className="h-2 w-2 rounded-full bg-[#00f2ff] animate-pulse"></span>
-                        <span className="text-[10px] font-black uppercase text-[#004d4d]/60 tracking-[0.2em]">Configuración Maestra</span>
+                        <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Identidad Corporativa v2.0</span>
                     </div>
-                    <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">Info <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF]">General</span></h1>
-                    <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed italic">&quot;Control maestro de la identidad, finanzas y canales de tu marca comercial.&quot;</p>
+                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
+                        INFO <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">GENERAL</span>
+                    </h1>
+                    <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
+                        Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, ¡este es el resumen del día para ti! 👋
+                    </p>
                 </div>
                 <button onClick={handleSaveMain} disabled={isSaving} className="h-14 px-10 bg-gray-900 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4">
                     {isSaving ? <Loader2 className="animate-spin" size={18}/> : <ShieldCheck size={18} className="text-[#00f2ff]" />}

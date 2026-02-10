@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
 import { 
   Search, 
@@ -162,6 +163,7 @@ const MetricModal = ({ metric, onClose }: { metric: MetricData | null, onClose: 
 
 // --- COMPONENTE PRINCIPAL ---
 export default function ShippingPage() {
+  const { token } = useAuth();
   const { showToast } = useToast();
   const [shipments, setShipments] = useState<Shipment[]>(MOCK_SHIPMENTS);
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
@@ -234,8 +236,16 @@ export default function ShippingPage() {
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-slate-900 font-sans pb-20">
       <div className="px-8 py-10 max-w-[1600px] mx-auto">
-          <h1 className="text-5xl font-black italic uppercase tracking-tighter text-[#001A1A]">Envíos</h1>
-          <p className="text-[#004d4d]/60 mt-2 font-medium">Centro logístico en tiempo real.</p>
+          <div className="flex items-center gap-3 mb-2">
+              <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Logística Global v2.0</span>
+          </div>
+          <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
+              MONITOR <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">ENVÍOS</span>
+          </h1>
+          <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
+              Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, ¡este es el resumen del día para ti! 👋
+          </p>
       </div>
 
       <main className="px-8 max-w-[1600px] mx-auto space-y-10">

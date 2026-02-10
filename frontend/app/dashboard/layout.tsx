@@ -280,20 +280,26 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             {/* BLINDAJE PRODUCTOS */}
                             {allowedModules.includes('productos') && (
                                 <div className={hiddenModules.includes('m_productos') ? 'opacity-30' : ''}>
-                                    <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
-                                        <span className="flex items-center gap-2 text-sm font-medium"><Store size={16} /> Productos</span>
-                                        <ChevronDown size={14} className={`transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                        <div className="space-y-1">
-                                            <MenuItem href="/dashboard/products" label="Todos los productos" id="s_products_all" isSub />
-                                            <MenuItem href="/dashboard/inventory" label="Inventario" id="s_inventory" isSub />
-                                            <MenuItem href="/dashboard/catalogs" label="Catálogos WhatsApp" id="s_catalogs" isSub />
-                                            <MenuItem href="/dashboard/products/separados" label="Separados (IA)" id="s_separados" isSub />
-                                            <MenuItem href="/dashboard/products/cotizaciones" label="Cotizaciones" id="s_cotizaciones" isSub />
-                                            <MenuItem href="/dashboard/products/bodegas" label="Bodegas & Stock" id="s_bodegas" isSub />
-                                        </div>
-                                    </div>
+                                    { (planName === 'Básico' || planName === 'Free') ? (
+                                        <MenuItem href="/dashboard/products" label={<><Store size={16} className="mr-2" /> Productos</>} id="m_productos" />
+                                    ) : (
+                                        <>
+                                            <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
+                                                <span className="flex items-center gap-2 text-sm font-medium"><Store size={16} /> Productos</span>
+                                                <ChevronDown size={14} className={`transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} />
+                                            </button>
+                                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                                <div className="space-y-1">
+                                                    <MenuItem href="/dashboard/products" label="Todos los productos" id="s_products_all" isSub />
+                                                    <MenuItem href="/dashboard/inventory" label="Inventario" id="s_inventory" isSub />
+                                                    <MenuItem href="/dashboard/catalogs" label="Catálogos WhatsApp" id="s_catalogs" isSub />
+                                                    <MenuItem href="/dashboard/products/separados" label="Separados (IA)" id="s_separados" isSub />
+                                                    <MenuItem href="/dashboard/products/cotizaciones" label="Cotizaciones" id="s_cotizaciones" isSub />
+                                                    <MenuItem href="/dashboard/products/bodegas" label="Bodegas & Stock" id="s_bodegas" isSub />
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             )}
 
@@ -301,6 +307,34 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <MenuItem href="/dashboard/chats" label={<><MessageSquare size={16} className="mr-2" /> Mensajes</>} id="m_mensajes" />
                             <MenuItem href="/dashboard/customers" label={<><Users size={16} className="mr-2" /> Clientes</>} id="m_clientes" />
                             <MenuItem href="/dashboard/returns" label={<><ShieldCheck size={16} className="mr-2" /> Garantías</>} id="m_garantias" />
+
+                            {/* BLINDAJE INFORMES - POSICIÓN CORREGIDA BAJO CLIENTES */}
+                            {allowedModules.includes('reports') && (
+                                <div className={hiddenModules.includes('m_reports') ? 'opacity-30' : ''}>
+                                    { (planName === 'Básico' || planName === 'Free') ? (
+                                        <MenuItem href="/dashboard/reports" label={<><BarChart3 size={16} className="mr-2" /> Informes</>} id="m_reports" />
+                                    ) : (
+                                        <>
+                                            <button onClick={() => setReportsOpen(!reportsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/reports')}`}>
+                                                <span className="flex items-center gap-2 text-sm font-medium"><BarChart3 size={16} /> Informes</span>
+                                                <ChevronDown size={14} className={`transition-transform duration-200 ${reportsOpen ? 'rotate-180' : ''}`} />
+                                            </button>
+                                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${reportsOpen ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                                <div className="space-y-1">
+                                                    <MenuItem href="/dashboard/reports" label="Análisis General" id="s_reports_gen" isSub />
+                                                    <MenuItem href="/dashboard/reports?tab=nomina" label="Gestión de Nómina" id="s_reports_payroll" isSub />
+                                                    <MenuItem href="/dashboard/reports/purchase-orders" label="Órdenes de Compra" id="s_purchase_orders" isSub />
+                                                    <MenuItem href="/dashboard/reports/sucursales" label="Sucursales" id="s_sucursales" isSub />
+                                                    <MenuItem href="/dashboard/reports/vendedores" label="Vendedores" id="s_vendedores" isSub />
+                                                    <MenuItem href="/dashboard/reports/cuentas" label="Cuentas y Cartera" id="s_cuentas" isSub />
+                                                    <MenuItem href="/dashboard/reports/gastos" label="Control de Gastos" id="s_gastos" isSub />
+                                                    <MenuItem href="/dashboard/reports/comisiones" label="Liquidación de Comisiones" id="s_comisiones" isSub />
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -323,28 +357,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Gestión</p>
                     <div className="space-y-1">
                         
-                        {/* BLINDAJE INFORMES */}
-                        {allowedModules.includes('reports') && (
-                            <div>
-                                <button onClick={() => setReportsOpen(!reportsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/reports')}`}>
-                                    <span className="flex items-center gap-2 text-sm font-medium"><BarChart3 size={16} /> Informes</span>
-                                    <ChevronDown size={14} className={`transition-transform duration-200 ${reportsOpen ? 'rotate-180' : ''}`} />
-                                </button>
-                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${reportsOpen ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                    <div className="space-y-1">
-                                        <MenuItem href="/dashboard/reports" label="Análisis General" id="s_reports_gen" isSub />
-                                        <MenuItem href="/dashboard/reports?tab=nomina" label="Gestión de Nómina" id="s_reports_payroll" isSub />
-                                        <MenuItem href="/dashboard/reports/purchase-orders" label="Órdenes de Compra" id="s_purchase_orders" isSub />
-                                        <MenuItem href="/dashboard/reports/sucursales" label="Sucursales" id="s_sucursales" isSub />
-                                        <MenuItem href="/dashboard/reports/vendedores" label="Vendedores" id="s_vendedores" isSub />
-                                        <MenuItem href="/dashboard/reports/cuentas" label="Cuentas y Cartera" id="s_cuentas" isSub />
-                                        <MenuItem href="/dashboard/reports/gastos" label="Control de Gastos" id="s_gastos" isSub />
-                                        <MenuItem href="/dashboard/reports/comisiones" label="Liquidación de Comisiones" id="s_comisiones" isSub />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         {/* BLINDAJE CONFIGURACIÓN */}
                         <div>
                             <button onClick={() => setSettingsOpen(!settingsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/settings')}`}>
