@@ -571,11 +571,11 @@ function ReportsContent() {
                         <span className="h-2 w-2 rounded-full bg-[#00f2ff] animate-pulse shadow-[0_0_10px_#00f2ff]"></span>
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Inteligencia de Negocio</span>
                     </div>
-                    <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">
-                        Análisis <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF] px-2 py-1">General</span>
+                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
+                        ANÁLISIS <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">GENERAL</span>
                     </h1>
-                    <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed italic">
-                        Visión 360° de la rentabilidad y rendimiento de <span className="font-bold text-[#001A1A]">tu empresa</span>.
+                    <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
+                        Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, visualiza la inteligencia y rentabilidad de tu negocio. 👋
                     </p>
                 </div>
                 <div className="flex items-center gap-4">

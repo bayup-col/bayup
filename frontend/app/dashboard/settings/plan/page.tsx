@@ -329,7 +329,7 @@ export default function PlanSettings() {
                         MI <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">PLAN</span>
                     </h1>
                     <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
-                        Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, ¡este es el resumen del día para ti! 👋
+                        Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, potencia tu crecimiento escalando tu nivel de servicio. 👋
                     </p>
                 </div>
                 <div className="flex items-center gap-4 bg-white/60 backdrop-blur-xl p-4 rounded-3xl border border-white shadow-xl shadow-gray-100/50">

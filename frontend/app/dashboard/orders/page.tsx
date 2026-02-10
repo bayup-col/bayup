@@ -864,10 +864,9 @@ Gracias por tu paciencia.`;
           <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
               GESTIÓN <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">PEDIDOS</span>
           </h1>
-          <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
-              Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, ¡este es el resumen del día para ti! 👋
-          </p>
-      </div>
+                    <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
+                      Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, monitorea el estado de tus ventas y despachos. 👋
+                    </p>      </div>
 
       <main className="px-8 pb-8 max-w-[1600px] mx-auto space-y-8">
         

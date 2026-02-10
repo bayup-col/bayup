@@ -188,7 +188,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     
     access_token = security.create_access_token(data={"sub": user.email})
     
-    # Devolvemos todo el perfil para que el frontend no tenga que hacer otra llamada
+    # Devolvemos todo el perfil con proteccion contra nulos
+    user_plan = user.plan
     return {
         "access_token": access_token, 
         "token_type": "bearer",
@@ -197,10 +198,10 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             "full_name": user.full_name,
             "role": user.role,
             "is_global_staff": user.is_global_staff,
-            "permissions": user.permissions,
+            "permissions": user.permissions or {},
             "plan": {
-                "name": user.plan.name if user.plan else "Básico",
-                "modules": user.plan.modules if user.plan and user.plan.modules else ['inicio', 'productos', 'pedidos', 'settings']
+                "name": user_plan.name if user_plan else "Free",
+                "modules": user_plan.modules if user_plan and user_plan.modules else ['inicio', 'productos', 'pedidos', 'settings']
             }
         }
     }

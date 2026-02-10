@@ -279,13 +279,22 @@ export default function ProductsPage() {
         try {
             await apiRequest('/collections', { 
                 method: 'POST', token, 
-                body: JSON.stringify({ title: newCategoryData.name, description: newCategoryData.description, status: 'active' }) 
+                body: JSON.stringify({ 
+                    title: newCategoryData.name, 
+                    description: newCategoryData.description, 
+                    status: 'active' 
+                }) 
             });
-            showToast("Categoría creada", "success");
+            showToast("Categoría creada con éxito ✨", "success");
             setIsNewCategoryModalOpen(false);
             setNewCategoryData({ name: '', description: '' });
-            await fetchProducts(); 
-        } catch (err) { showToast("Error al crear", "error"); } finally { setIsCreatingCategory(false); }
+            fetchProducts(); 
+        } catch (err) { 
+            console.error(err);
+            showToast("Error al crear la categoría", "error"); 
+        } finally { 
+            setIsCreatingCategory(false); 
+        }
     };
 
     const filteredProducts = useMemo(() => {
@@ -313,7 +322,7 @@ export default function ProductsPage() {
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">PRODUCTOS</span>
                         </h1>
                         <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
-                            Hola <span className="text-[#004d4d] font-bold">{userEmail?.split('@')[0]}</span>, ¡este es el resumen del día para ti! 👋
+                            Hola <span className="text-[#004d4d] font-bold">{userEmail?.split('@')[0]}</span>, administra tu catálogo de activos y niveles de stock. 👋
                         </p>
                     </div>
                     <PremiumButton onClick={() => router.push('/dashboard/products/new')}><Plus size={18} /> Nuevo Producto</PremiumButton>

@@ -336,7 +336,7 @@ export default function InvoicingPage() {
                                     FACTURA<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">CIÓN</span>
                                 </h1>
                                 <p className="text-gray-400 font-medium text-lg italic max-w-2xl">
-                                    Hola <span className="text-[#004d4d] font-bold">{authEmail?.split('@')[0]}</span>, ¡este es el resumen del día para ti! 👋
+                                    Hola <span className="text-[#004d4d] font-bold">{authEmail?.split('@')[0]}</span>, registra y audita el flujo de caja de tu empresa. 👋
                                 </p>
                             </div>
                             <button onClick={() => setIsPOSActive(true)} className="h-16 px-10 bg-gray-900 text-white rounded-full font-black text-[11px] uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Nueva Venta POS</button>

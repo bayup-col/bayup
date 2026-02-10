@@ -244,7 +244,7 @@ export default function ShippingPage() {
               MONITOR <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">ENVÍOS</span>
           </h1>
           <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
-              Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, ¡este es el resumen del día para ti! 👋
+              Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, rastrea tus paquetes y optimiza tu logística global. 👋
           </p>
       </div>
 
