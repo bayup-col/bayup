@@ -96,7 +96,7 @@ interface Customer {
   email: string;
   phone: string | null;
   city: string | null;
-  status: 'active' | 'blocked';
+  status: 'active' | 'blocked' | 'Activo' | 'Bloqueado';
   customer_type: 'final' | 'mayorista';
   acquisition_channel: 'web' | 'redes' | 'tienda' | 'whatsapp';
   total_spent: number;
