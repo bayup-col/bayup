@@ -36,7 +36,8 @@ import {
   Volume2,
   VolumeX,
   Play,
-  Bot
+  Bot,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
