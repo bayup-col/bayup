@@ -185,9 +185,22 @@ export default function NewProductPage() {
             }
 
             const payload = {
-                ...formData,
+                name: formData.name,
+                description: formData.description,
+                price: formData.price,
+                wholesale_price: formData.wholesale_price,
+                cost: formData.cost,
+                collection_id: formData.collection_id,
+                sku: formData.sku,
+                status: formData.status,
+                add_gateway_fee: formData.add_gateway_fee,
                 image_url: finalImageUrls,
-                variants: variants.map(v => ({ name: v.name || 'Estándar', sku: v.sku, stock: v.stock, price_adjustment: v.price_adjustment }))
+                variants: variants.map(v => ({ 
+                    name: v.name || 'Estándar', 
+                    sku: v.sku, 
+                    stock: Number(v.stock) || 0, 
+                    price_adjustment: Number(v.price_adjustment) || 0 
+                }))
             };
 
             await apiRequest('/products', { method: 'POST', token, body: JSON.stringify(payload) });

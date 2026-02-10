@@ -41,9 +41,11 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
 
 # --- Product CRUD ---
 def get_product(db: Session, product_id: uuid.UUID, tenant_id: Optional[uuid.UUID] = None) -> models.Product | None:
-    query = db.query(models.Product).filter(models.Product.id == product_id).options(joinedload(models.Product.variants))
+    query = db.query(models.Product).filter(models.Product.id == product_id).options(
+        joinedload(models.Product.variants),
+        joinedload(models.Product.collection)
+    )
     if tenant_id:
-        # Compatibility check for UUID vs string in SQLite
         query = query.filter(models.Product.owner_id == tenant_id)
     return query.first()
 
@@ -51,13 +53,19 @@ def get_product_variant(db: Session, variant_id: uuid.UUID) -> models.ProductVar
     return db.query(models.ProductVariant).filter(models.ProductVariant.id == variant_id).first()
 
 def get_all_products(db: Session, tenant_id: Optional[uuid.UUID] = None, skip: int = 0, limit: int = 100) -> list[models.Product]:
-    query = db.query(models.Product).options(joinedload(models.Product.variants))
+    query = db.query(models.Product).options(
+        joinedload(models.Product.variants),
+        joinedload(models.Product.collection)
+    )
     if tenant_id:
         query = query.filter(models.Product.owner_id == tenant_id)
     return query.offset(skip).limit(limit).all()
 
 def get_products_by_owner(db: Session, owner_id: uuid.UUID, skip: int = 0, limit: int = 100) -> list[models.Product]:
-    return db.query(models.Product).filter(models.Product.owner_id == owner_id).options(joinedload(models.Product.variants)).order_by(models.Product.id.desc()).offset(skip).limit(limit).all()
+    return db.query(models.Product).filter(models.Product.owner_id == owner_id).options(
+        joinedload(models.Product.variants),
+        joinedload(models.Product.collection)
+    ).order_by(models.Product.id.desc()).offset(skip).limit(limit).all()
 
 def create_product(db: Session, product: schemas.ProductCreate, owner_id: uuid.UUID) -> models.Product:
     db_product = models.Product(**product.dict(exclude={"variants"}), owner_id=owner_id)
