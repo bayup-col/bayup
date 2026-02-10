@@ -190,7 +190,7 @@ export default function PayrollPage() {
                         layout
                         onMouseEnter={() => setIsFilterHovered(true)}
                         onMouseLeave={() => setIsFilterHovered(false)}
-                        onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setIsPeriodOpen(false); }}
+                        onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setIsActionPeriodOpen(false); }}
                         className={`h-12 flex items-center gap-2 px-4 rounded-2xl transition-all ${isFilterMenuOpen ? 'bg-[#004d4d] text-white shadow-lg' : 'bg-white text-slate-500 border border-gray-100 hover:text-[#004d4d] shadow-sm'} group`}
                     >
                         <motion.div layout><Filter size={18}/></motion.div>
