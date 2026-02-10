@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from "@/context/auth-context";
 import { 
     TrendingUp, 
@@ -16,6 +17,7 @@ import {
 
 export default function SuperAdminDashboard() {
     const { token } = useAuth();
+    const router = useRouter();
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
