@@ -10,7 +10,8 @@ import {
   Warehouse,
   Activity,
   BarChart3,
-  Target
+  Target,
+  ShieldCheck
 } from 'lucide-react';
 
 interface InventoryMetricModalProps {
