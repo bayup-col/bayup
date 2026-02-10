@@ -67,6 +67,12 @@ export default function EditShippingOptionPage() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+      const payload = {
+        name,
+        cost,
+        min_order_total: minOrderTotal
+      };
+      
       const response = await fetch(`${apiUrl}/shipping/${shippingOptionId}`, {
         method: 'PUT',
         headers: {
