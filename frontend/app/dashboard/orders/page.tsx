@@ -40,7 +40,8 @@ import {
   DollarSign,
   Clock,
   ShieldCheck,
-  FileText
+  FileText,
+  Printer
 } from 'lucide-react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -117,6 +118,8 @@ export default function OrdersPage() {
     const [isExportHovered, setIsExportHovered] = useState(false);
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [activeGuideTab, setActiveGuideTab] = useState('overview');
+
+    const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
     const fetchOrders = useCallback(async () => {
         if (!token) return;
@@ -325,7 +328,7 @@ export default function OrdersPage() {
                                         </td>
                                         <td className="px-10 py-8">
                                             <div className="flex justify-center gap-2">
-                                                <button className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-[#004D4D] hover:bg-white transition-all shadow-sm flex items-center justify-center"><Eye size={16}/></button>
+                                                <button onClick={() => setSelectedOrder(o)} className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-[#004D4D] hover:bg-white transition-all shadow-sm flex items-center justify-center"><Eye size={16}/></button>
                                                 <button className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all shadow-sm flex items-center justify-center"><Trash2 size={16}/></button>
                                             </div>
                                         </td>
@@ -336,6 +339,98 @@ export default function OrdersPage() {
                     </motion.div>
                 </AnimatePresence>
             </div>
+
+            {/* MODAL DETALLE DE PEDIDO (PLATINUM) */}
+            <AnimatePresence>
+                {selectedOrder && (
+                    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 md:p-8">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedOrder(null)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-2xl" />
+                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 40 }} className="relative bg-white w-full max-w-4xl rounded-[4rem] shadow-3xl overflow-hidden border border-white/20 flex flex-col md:flex-row text-slate-900">
+                            
+                            {/* LATERAL: RESUMEN RÁPIDO */}
+                            <div className="w-full md:w-80 bg-[#004D4D] p-12 text-white flex flex-col justify-between shrink-0 relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none"><div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-cyan rounded-full blur-[80px]" /></div>
+                                <div className="relative z-10 space-y-10">
+                                    <div className="space-y-4">
+                                        <div className="h-16 w-16 rounded-3xl bg-white/10 flex items-center justify-center border border-white/10 text-cyan"><Package size={32} /></div>
+                                        <div>
+                                            <h3 className="text-2xl font-black italic uppercase tracking-tighter leading-none">PEDIDO</h3>
+                                            <p className="text-cyan text-[10px] font-black uppercase tracking-[0.2em] mt-2">#{selectedOrder.id.slice(0, 8).toUpperCase()}</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-6">
+                                        <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10">
+                                            <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Total Liquidado</p>
+                                            <span className="text-3xl font-black italic text-white">${selectedOrder.total_price.toLocaleString()}</span>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-3"><div className="h-2 w-2 rounded-full bg-cyan animate-pulse" /><span className="text-[10px] font-black uppercase tracking-widest text-white/60">Estado: {selectedOrder.status}</span></div>
+                                            <div className="flex items-center gap-3"><div className="h-2 w-2 rounded-full bg-white/20" /><span className="text-[10px] font-black uppercase tracking-widest text-white/60">Canal: {selectedOrder.source || 'Tienda'}</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onClick={() => setSelectedOrder(null)} className="relative z-10 w-full py-5 bg-white text-[#004D4D] rounded-[2rem] font-black text-[10px] uppercase tracking-widest shadow-2xl hover:bg-cyan transition-all">Cerrar Detalle</button>
+                            </div>
+
+                            {/* CONTENIDO: DETALLE TÉCNICO */}
+                            <div className="flex-1 overflow-y-auto p-12 bg-[#FAFAFA] custom-scrollbar space-y-10">
+                                <section className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm space-y-6">
+                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><User size={14} className="text-[#004D4D]"/> Datos del Cliente</h4>
+                                    <div className="grid grid-cols-2 gap-8">
+                                        <div><p className="text-[9px] font-bold text-gray-400 uppercase">Nombre Completo</p><p className="text-sm font-black text-gray-900">{selectedOrder.customer_name}</p></div>
+                                        <div><p className="text-[9px] font-bold text-gray-400 uppercase">Email / Contacto</p><p className="text-sm font-black text-gray-900">{selectedOrder.customer_email || 'No registrado'}</p></div>
+                                    </div>
+                                </section>
+
+                                <section className="space-y-6">
+                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><ShoppingBag size={14} className="text-[#004D4D]"/> Artículos Adquiridos</h4>
+                                    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+                                        <div className="divide-y divide-gray-50">
+                                            {selectedOrder.items?.map((item: any, i: number) => (
+                                                <div key={i} className="p-6 flex items-center justify-between group hover:bg-gray-50 transition-all">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="h-12 w-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 overflow-hidden">
+                                                            {item.product_variant?.product?.image_url ? (
+                                                                <img src={item.product_variant.product.image_url} className="h-full w-full object-cover" />
+                                                            ) : (
+                                                                <Package size={20}/>
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-black text-gray-900">{item.product_variant?.product?.name || 'Producto'}</p>
+                                                            <p className="text-[9px] font-bold text-[#004D4D] uppercase">
+                                                                {item.product_variant?.name !== 'Estándar' ? item.product_variant?.name : 'Genérico'} | Cant: {item.quantity}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-sm font-black text-gray-900">${(item.price_at_purchase * item.quantity).toLocaleString()}</p>
+                                                        <p className="text-[9px] font-bold text-gray-400 uppercase">Unit: ${item.price_at_purchase.toLocaleString()}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {(!selectedOrder.items || selectedOrder.items.length === 0) && (
+                                                <div className="p-10 text-center text-gray-300 italic text-xs">Información de ítems no disponible en esta versión</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <div className="pt-6 flex justify-between items-center">
+                                    <div className="flex items-center gap-4 text-gray-400">
+                                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                        <p className="text-[9px] font-black uppercase tracking-widest">Operación Registrada: {new Date(selectedOrder.created_at).toLocaleString()}</p>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <button className="h-12 w-12 rounded-2xl bg-white border border-gray-100 text-gray-400 hover:text-[#004D4D] shadow-sm flex items-center justify-center transition-all"><Printer size={18}/></button>
+                                        <button className="h-12 px-8 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-black transition-all">Generar Guía</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             <MetricDetailModal isOpen={!!selectedMetric} onClose={() => setSelectedMetric(null)} metric={selectedMetric} />
             

@@ -9,11 +9,14 @@ import {
   Activity, Search, Sparkles, Users, LayoutDashboard, CheckCircle2, 
   ArrowRight, TrendingUp, AlertCircle, Package, CreditCard, 
   MessageCircle, Lightbulb, Zap, Globe, ShieldCheck, RefreshCw, Clock, Bot, 
-  ArrowUpRight, ArrowDownRight, ShoppingBag, DollarSign, Wallet
+  ArrowUpRight, ArrowDownRight, ShoppingBag, DollarSign, Wallet, Plus, FileText, Target
 } from 'lucide-react';
 import { ActionButton } from "@/components/landing/ActionButton";
 import OnboardingModal from '@/components/dashboard/OnboardingModal';
 import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
+import { useToast } from "@/context/toast-context";
+import { apiRequest } from '@/lib/api';
+import { generateDailyReport } from '@/lib/report-generator';
 
 // --- COMPONENTE DE NÚMEROS ANIMADOS ---
 const AnimatedNumber = memo(({ value, type = 'currency', className }: { value: number, className?: string, type?: 'currency' | 'percentage' | 'simple' }) => {
@@ -70,57 +73,168 @@ const PremiumCard = ({ children, className = "", dark = false }: PremiumCardProp
 // --- DASHBOARD PRINCIPAL ---
 export default function DashboardPage() {
   const { userEmail, token } = useAuth();
+  const { showToast } = useToast();
   
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
   const [activities, setActivities] = useState<any[]>([]);
-  const [stats] = useState({ revenue: 0, conversion: 0, active_orders: 0, low_stock: 0 });
+  const [realStats, setRealStats] = useState({ 
+    revenue: 0, 
+    orders_count: 0, 
+    conversion: 0, 
+    low_stock: 0,
+    avg_ticket: 0,
+    out_of_stock: 0
+  });
 
-  const loadActivities = useCallback(async () => {
+  const loadDashboardData = useCallback(async () => {
     if (!token) return;
     try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
-        const res = await fetch(`${apiBase}/admin/logs`, { headers: { 'Authorization': `Bearer ${token}` } });
-        if (res.ok) {
-            const logs = await res.json();
-            setActivities(logs.slice(0, 6));
-        }
-    } catch (e) { console.error("Sync Error"); }
+        const [products, orders, logs] = await Promise.all([
+            apiRequest<any[]>('/products', { token }),
+            apiRequest<any[]>('/orders', { token }),
+            apiRequest<any[]>('/admin/logs', { token })
+        ]);
+
+        if (logs) setActivities(logs.slice(0, 6));
+
+        // Calcular Estadísticas Reales
+        const today = new Date().toISOString().split('T')[0];
+        const ordersToday = orders?.filter(o => o.created_at.startsWith(today)) || [];
+        const revenue = ordersToday.reduce((acc, o) => acc + (o.total_price || 0), 0);
+        const lowStock = products?.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0) <= 5).length || 0;
+        const outOfStock = products?.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0) === 0).length || 0;
+        
+        const avgTicket = ordersToday.length > 0 ? revenue / ordersToday.length : 0;
+        
+        setRealStats({
+            revenue,
+            orders_count: ordersToday.length,
+            low_stock: lowStock,
+            avg_ticket: avgTicket,
+            out_of_stock: outOfStock,
+            conversion: 0
+        });
+
+    } catch (e) { console.error("Sync Error", e); }
   }, [token]);
 
-  useEffect(() => { loadActivities(); }, [loadActivities]);
+  useEffect(() => { loadDashboardData(); }, [loadDashboardData]);
 
   const kpis = [
-    { label: "Ventas de Hoy", value: stats.revenue, icon: <DollarSign size={24}/>, color: "text-emerald-600", bg: "bg-emerald-50", trend: "+0%", isCurrency: true },
-    { label: "Órdenes Activas", value: stats.active_orders, icon: <ShoppingBag size={24}/>, color: "text-cyan-500", bg: "bg-cyan-50", trend: "Estable" },
-    { label: "Tasa de Conversión", value: stats.conversion, icon: <TrendingUp size={24}/>, color: "text-purple-600", bg: "bg-purple-50", trend: "0%", isPercentage: true },
-    { label: "Stock Crítico", value: stats.low_stock, icon: <Package size={24}/>, color: "text-rose-600", bg: "bg-rose-50", trend: "OK" },
+    { 
+        label: "Ventas de Hoy", 
+        value: realStats.revenue, 
+        icon: <DollarSign size={24}/>, 
+        color: "text-emerald-600", 
+        bg: "bg-emerald-50", 
+        trend: "Live", 
+        isCurrency: true,
+        details: [
+            { l: "Ticket Prom.", v: `$ ${realStats.avg_ticket.toLocaleString()}`, icon: <DollarSign size={14}/> },
+            { l: "Margen Bruto", v: `${realStats.revenue > 0 ? '---' : '0%'}`, icon: <Zap size={14}/> },
+            { l: "Ventas/Hora", v: `${(realStats.orders_count / 24).toFixed(1)}`, icon: <Activity size={14}/> }
+        ],
+        advice: realStats.revenue > 0 ? "Ventas activas detectadas. El flujo es positivo." : "Aún no hay ventas registradas hoy. ¡Es hora de lanzar una campaña!"
+    },
+    { 
+        label: "Órdenes Activas", 
+        value: realStats.orders_count, 
+        icon: <ShoppingBag size={24}/>, 
+        color: "text-cyan-500", 
+        bg: "bg-cyan-50", 
+        trend: "Estable",
+        details: [
+            { l: "Por Despachar", v: `${realStats.orders_count}`, icon: <Package size={14}/> },
+            { l: "En Tránsito", v: "0", icon: <TrendingUp size={14}/> },
+            { l: "Demora Prom.", v: "---", icon: <Activity size={14}/> }
+        ],
+        advice: realStats.orders_count > 0 ? "Tienes pedidos pendientes. Prioriza el despacho." : "No hay órdenes pendientes. Excelente eficiencia operativa."
+    },
+    { 
+        label: "Tasa de Conversión", 
+        value: realStats.conversion, 
+        icon: <TrendingUp size={24}/>, 
+        color: "text-purple-600", 
+        bg: "bg-purple-50", 
+        trend: "0%", 
+        isPercentage: true,
+        details: [
+            { l: "Visitas", v: "0", icon: <Target size={14}/> },
+            { l: "Carritos", v: "0", icon: <ShoppingBag size={14}/> },
+            { l: "ROI Proy.", v: "0x", icon: <Sparkles size={14}/> }
+        ],
+        advice: "Conecta tu tienda para empezar a rastrear el comportamiento de tus visitantes."
+    },
+    { 
+        label: "Stock Crítico", 
+        value: realStats.low_stock, 
+        icon: <Package size={24}/>, 
+        color: "text-rose-600", 
+        bg: "bg-rose-50", 
+        trend: realStats.low_stock > 0 ? "Atención" : "OK",
+        details: [
+            { l: "Items Agotados", v: `${realStats.out_of_stock}`, icon: <Package size={14}/> },
+            { l: "Reposición", v: "No iniciada", icon: <Activity size={14}/> },
+            { l: "Valor Inmov.", v: "$ 0", icon: <DollarSign size={14}/> }
+        ],
+        advice: realStats.low_stock > 0 ? `Tienes ${realStats.low_stock} productos por agotarse. Reabastece pronto.` : "Tus niveles de inventario están saludables."
+    },
   ];
 
-  return (
-    <div className="max-w-[1600px] mx-auto space-y-10 pb-20 animate-in fade-in duration-1000">
-      
-      {/* 1. SECCIÓN DE BIENVENIDA (HERO) */}
-      <div className="flex flex-col xl:flex-row items-center gap-8">
-        <div className="flex-1 space-y-4 text-center xl:text-left">
-            <div className="flex items-center justify-center xl:justify-start gap-3">
-                <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Terminal de Comando v2.0</span>
+      const handleDownloadReport = async () => {
+          if (!token) return;
+          try {
+              showToast("Generando Reporte Elite de 5 Páginas...", "info");
+              // Obtener datos reales para el reporte
+              const [products, orders, expenses] = await Promise.all([
+                  apiRequest<any[]>('/products', { token }),
+                  apiRequest<any[]>('/orders', { token }),
+                  apiRequest<any[]>('/expenses', { token })
+              ]);
+              
+              await generateDailyReport({
+                  userName: userEmail?.split('@')[0] || 'Empresario',
+                  products: products || [],
+                  orders: orders || [],
+                  expenses: expenses || []
+              });
+              showToast("¡Reporte del día descargado! 📊", "success");
+          } catch (e) {
+              console.error(e);
+              showToast("Error al generar el reporte", "error");
+          }
+      };
+  
+      return (
+          <div className="max-w-[1600px] mx-auto space-y-10 pb-20 animate-in fade-in duration-1000">
+            
+            {/* 1. SECCIÓN DE BIENVENIDA (HERO) */}
+            <div className="flex flex-col xl:flex-row items-center gap-8">
+              <div className="flex-1 space-y-4 text-center xl:text-left">
+                  <div className="flex items-center justify-center xl:justify-start gap-3">
+                      <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Terminal de Comando v2.0</span>
+                  </div>
+                  <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
+                      VISTAZO <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">RÁPIDO</span>
+                  </h1>
+                  <p className="text-gray-400 font-medium text-lg italic max-w-2xl">
+                      Hola <span className="text-[#004d4d] font-bold">{userEmail?.split('@')[0]}</span>, ¡este es el resumen del día para ti! 👋
+                  </p>
+              </div>
+              <div className="flex gap-4 shrink-0 relative z-20">
+                  <Link href="/dashboard/products/new" className="h-16 px-10 bg-white border-2 border-gray-100 rounded-full flex items-center justify-center gap-3 hover:bg-[#004d4d] hover:text-white hover:border-[#004d4d] transition-all shadow-xl group">
+                      <Plus size={20} className="group-hover:rotate-90 transition-transform" /> 
+                      <span className="font-black uppercase tracking-widest text-[10px]">Nuevo Producto</span>
+                  </Link>
+                  <button onClick={handleDownloadReport} className="h-16 px-10 bg-[#004d4d] text-white rounded-full flex items-center justify-center gap-3 shadow-2xl hover:bg-black transition-all group">
+                      <FileText size={20} className="text-cyan transition-transform group-hover:scale-110"/> 
+                      <span className="font-black uppercase tracking-widest text-[10px]">Descargar Día</span>
+                  </button>
+              </div>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
-                VISTAZO <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">RÁPIDO</span>
-            </h1>
-            <p className="text-gray-400 font-medium text-lg italic max-w-2xl">
-                Hola <span className="text-[#004d4d] font-bold">{userEmail?.split('@')[0]}</span>, ¡este es el resumen del día para ti! 👋
-            </p>
-        </div>
-        <div className="flex gap-4 shrink-0">
-            <ActionButton href="/dashboard/products/new" variant="outline" className="h-16 px-8 rounded-full border-2"><Package size={20} /> <span className="font-black uppercase tracking-widest text-[10px]">Nuevo Item</span></ActionButton>
-            <ActionButton href="/dashboard/discounts" className="h-16 px-8 rounded-full bg-[#004d4d] text-white shadow-2xl hover:bg-black"><Zap size={20} className="text-cyan fill-cyan"/> <span className="font-black uppercase tracking-widest text-[10px]">Lanzar Oferta</span></ActionButton>
-        </div>
-      </div>
-
-      {/* 2. GRID DE MÉTRICAS MAESTRAS */}
+        {/* 2. GRID DE MÉTRICAS MAESTRAS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {kpis.map((kpi, i) => (
               <div key={i} onClick={() => setSelectedMetric(kpi)} className="cursor-pointer">
@@ -182,7 +296,7 @@ export default function DashboardPage() {
                       )}
                   </div>
               </div>
-              <button onClick={loadActivities} className="w-full py-4 mt-8 bg-gray-50 rounded-2xl text-[9px] font-black uppercase text-gray-400 hover:bg-[#004d4d] hover:text-white transition-all">Refrescar Terminal</button>
+              <button onClick={loadDashboardData} className="w-full py-4 mt-8 bg-gray-50 rounded-2xl text-[9px] font-black uppercase text-gray-400 hover:bg-[#004d4d] hover:text-white transition-all">Refrescar Terminal</button>
           </PremiumCard>
       </div>
 

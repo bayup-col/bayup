@@ -32,47 +32,23 @@ interface MetricDetailModalProps {
     trend: string;
     isCurrency?: boolean;
     isPercentage?: boolean;
+    details?: { l: string, v: string, icon: any }[];
+    advice?: string;
   } | null;
 }
 
 const MOCK_CHART_DATA = [
-    { name: '1', val: 400 },
-    { name: '2', val: 700 },
-    { name: '3', val: 1200 },
-    { name: '4', val: 900 },
-    { name: '5', val: 1500 },
-    { name: '6', val: 1800 },
-    { name: '7', val: 1400 },
+    { name: '1', val: 0 },
+    { name: '2', val: 0 },
+    { name: '3', val: 0 },
+    { name: '4', val: 0 },
+    { name: '5', val: 0 },
+    { name: '6', val: 0 },
+    { name: '7', val: 0 },
 ];
 
 export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDetailModalProps) {
   if (!isOpen || !metric) return null;
-
-  const getSubMetrics = () => {
-    switch (metric.label) {
-        case "Ventas de Hoy": return [
-            { l: "Ticket Prom.", v: "$ 85k", icon: <DollarSign size={14}/> },
-            { l: "Margen Bruto", v: "24%", icon: <Zap size={14}/> },
-            { l: "Ventas/Hora", v: "4.2", icon: <Activity size={14}/> }
-        ];
-        case "Órdenes Activas": return [
-            { l: "Por Despachar", v: "12", icon: <Package size={14}/> },
-            { l: "En Tránsito", v: "45", icon: <TrendingUp size={14}/> },
-            { l: "Demora Prom.", v: "2h", icon: <Activity size={14}/> }
-        ];
-        case "Tasa de Conversión": return [
-            { l: "Visitas", v: "1.2k", icon: <Target size={14}/> },
-            { l: "Carritos", v: "85", icon: <ShoppingBag size={14}/> },
-            { l: "ROI Proy.", v: "4.5x", icon: <Sparkles size={14}/> }
-        ];
-        case "Stock Crítico": return [
-            { l: "Items Agotados", v: "3", icon: <Package size={14}/> },
-            { l: "Reposición", v: "En camino", icon: <Activity size={14}/> },
-            { l: "Valor Inmov.", v: "$ 4.2M", icon: <DollarSign size={14}/> }
-        ];
-        default: return [];
-    }
-  };
 
   return (
     <AnimatePresence>
@@ -122,7 +98,7 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
                             {metric.isPercentage && "%"}
                         </span>
                         <div className="flex items-center gap-2 text-emerald-600 text-[10px] font-black uppercase tracking-tighter">
-                            <ArrowUpRight size={14} /> {metric.trend} <span className="text-gray-300 ml-1">vs ayer</span>
+                            <ArrowUpRight size={14} /> {metric.trend} <span className="text-gray-300 ml-1">v2.0</span>
                         </div>
                     </div>
                     {/* Sparkline minimalista */}
@@ -137,7 +113,7 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
 
                 {/* Sub-Metrics Grid (Minimalista) */}
                 <div className="grid grid-cols-3 gap-4 border-y border-gray-100 py-8">
-                    {getSubMetrics().map((sm, i) => (
+                    {metric.details?.map((sm, i) => (
                         <div key={i} className="space-y-1 text-center border-r last:border-r-0 border-gray-100">
                             <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-center gap-1">
                                 {sm.icon} {sm.l}
@@ -159,7 +135,7 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
                         <div className="space-y-3">
                             <p className="text-[10px] font-black text-cyan uppercase tracking-[0.2em]">Bayt Insight</p>
                             <p className="text-sm font-medium leading-relaxed italic text-gray-300">
-                                &quot;{getAdvice(metric.label)}&quot;
+                                &quot;{metric.advice || "Analizando comportamiento de mercado..."}&quot;
                             </p>
                         </div>
                     </div>
@@ -177,15 +153,4 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
       )}
     </AnimatePresence>
   );
-}
-
-// Función auxiliar para el consejo
-function getAdvice(label: string) {
-    switch (label) {
-        case "Ventas de Hoy": return "Pico de ventas detectado. El ticket promedio ha subido un 12%.";
-        case "Órdenes Activas": return "Flujo logístico saludable. Prioriza las entregas locales.";
-        case "Tasa de Conversión": return "Conversión optimizada. Tu campaña actual está performando.";
-        case "Stock Crítico": return "3 SKUs requieren reposición inmediata para evitar quiebre.";
-        default: return "Datos actualizados en tiempo real.";
-    }
 }

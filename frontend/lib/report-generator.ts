@@ -1,302 +1,255 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
-// Definición de tipos para los datos
 interface ReportData {
-  kpis: any[];
-  salesTrend: any[];
-  revenueByChannel: any[];
-  branchComparison: any[];
-  advisorRanking: any[];
-  historyData: any[];
-  period: string;
+    userName: string;
+    products: any[];
+    orders: any[];
+    expenses: any[];
 }
 
-export const generateDetailedReport = (data: ReportData) => {
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.width;
-  const pageHeight = doc.internal.pageSize.height;
-  const margin = 15;
-  
-  // Colores corporativos
-  const COLOR_PRIMARY = [0, 77, 77] as [number, number, number]; // #004d4d
-  const COLOR_ACCENT = [0, 242, 255] as [number, number, number]; // #00f2ff
-  const COLOR_GRAY = [243, 244, 246] as [number, number, number]; // #f3f4f6
-  const COLOR_TEXT = [30, 41, 59] as [number, number, number]; // Slate-800
+export const generateDailyReport = async (data: ReportData) => {
+    const doc = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4'
+    });
 
-  let currentPage = 1;
+    const { userName, products, orders, expenses } = data;
+    const date = new Date().toLocaleDateString('es-CO', { 
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+    });
 
-  // --- HELPER: HEADER & FOOTER ---
-  const addHeader = (title: string, subtitle: string) => {
-    // Fondo Header
-    doc.setFillColor(...COLOR_PRIMARY);
-    doc.rect(0, 0, pageWidth, 40, 'F');
-    
-    // Logo / Nombre Empresa
-    doc.setFontSize(22);
+    // Colores Corporativos Bayup
+    const primaryColor: [number, number, number] = [0, 77, 77]; // #004D4D
+    const secondaryColor: [number, number, number] = [0, 242, 255]; // #00F2FF
+    const accentColor: [number, number, number] = [0, 26, 26]; // #001A1A
+
+    // --- PÁGINA 1: PORTADA Y RESUMEN EJECUTIVO ---
+    doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+    doc.rect(0, 0, 210, 297, 'F');
+
+    // Logo / Texto
     doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bolditalic');
-    doc.text('BAYUP', margin, 20);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('ECOMMERCE INTELLIGENCE', margin, 26);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(40);
+    doc.text("BAYUP", 20, 40);
+    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.setFontSize(12);
+    doc.text("INTERACTIVE UP", 75, 40);
 
-    // Título de Página
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...COLOR_ACCENT);
-    doc.text(title.toUpperCase(), pageWidth - margin, 20, { align: 'right' });
-    doc.setFontSize(10);
-    doc.setTextColor(200, 200, 200);
-    doc.text(subtitle, pageWidth - margin, 26, { align: 'right' });
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.text("REPORTE MAESTRO DE OPERACIONES", 20, 80);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Empresa: ${userName.toUpperCase()}`, 20, 95);
+    doc.text(`Fecha de Emisión: ${date}`, 20, 105);
 
-    // Línea de acento
-    doc.setDrawColor(...COLOR_ACCENT);
+    // KPIs en Portada
+    const totalSales = orders.reduce((acc, o) => acc + (o.total_price || 0), 0);
+    const totalOrders = orders.length;
+    const avgTicket = totalOrders > 0 ? totalSales / totalOrders : 0;
+    const stockCritical = products.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0) <= 5).length;
+
+    doc.setDrawColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
     doc.setLineWidth(0.5);
-    doc.line(margin, 35, pageWidth - margin, 35);
-  };
+    doc.line(20, 120, 190, 120);
 
-  const addFooter = () => {
-    const totalPages = (doc as any).internal.getNumberOfPages();
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text(`Generado por Bayt AI System el ${format(new Date(), "d 'de' MMMM, yyyy - HH:mm", { locale: es })}`, margin, pageHeight - 10);
-    doc.text(`Página ${currentPage}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
-    doc.text('CONFIDENCIAL - USO INTERNO EXCLUSIVO', pageWidth / 2, pageHeight - 10, { align: 'center' });
-  };
+    const kpis = [
+        { label: "VENTAS TOTALES", val: `$ ${totalSales.toLocaleString()}` },
+        { label: "ÓRDENES PROCESADAS", val: totalOrders.toString() },
+        { label: "TICKET PROMEDIO", val: `$ ${avgTicket.toLocaleString()}` },
+        { label: "ALERTAS DE STOCK", val: stockCritical.toString() }
+    ];
 
-  // --- PÁGINA 1: RESUMEN EJECUTIVO ---
-  addHeader('Resumen Ejecutivo', `Período: ${data.period}`);
-  
-  doc.setFontSize(14);
-  doc.setTextColor(...COLOR_PRIMARY);
-  doc.text('1. Indicadores Clave de Rendimiento (KPIs)', margin, 55);
+    kpis.forEach((kpi, i) => {
+        doc.setFontSize(10);
+        doc.setTextColor(150, 150, 150);
+        doc.text(kpi.label, 20, 140 + (i * 25));
+        doc.setFontSize(18);
+        doc.setTextColor(255, 255, 255);
+        doc.text(kpi.val, 20, 150 + (i * 25));
+    });
 
-  // Grid de KPIs
-  let kpiY = 65;
-  const kpiWidth = (pageWidth - (margin * 2) - 10) / 3;
-  const kpiHeight = 35;
-  
-  data.kpis.forEach((kpi, i) => {
-    const col = i % 3;
-    const row = Math.floor(i / 3);
-    const x = margin + (col * (kpiWidth + 5));
-    const y = kpiY + (row * (kpiHeight + 5));
-
-    // Card background
+    // --- PÁGINA 2: RADAR DE INVENTARIO ---
+    doc.addPage();
     doc.setFillColor(250, 250, 250);
-    doc.setDrawColor(220, 220, 220);
-    doc.roundedRect(x, y, kpiWidth, kpiHeight, 3, 3, 'FD');
-
-    // KPI Label
-    doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.setFont('helvetica', 'bold');
-    doc.text(kpi.label.toUpperCase(), x + 5, y + 10);
-
-    // KPI Value
-    doc.setFontSize(16);
-    doc.setTextColor(...COLOR_TEXT);
-    doc.text(kpi.value, x + 5, y + 20);
-
-    // KPI Trend
-    doc.setFontSize(9);
-    const isPositive = kpi.trend.includes('+') || kpi.trend === 'OK' || kpi.trend === 'High';
-    doc.setTextColor(isPositive ? 16 : 220, isPositive ? 185 : 38, isPositive ? 129 : 38); // Green or Red
-    doc.text(kpi.trend, x + kpiWidth - 5, y + 10, { align: 'right' });
+    doc.rect(0, 0, 210, 297, 'F');
     
-    // Subtitle
-    doc.setFontSize(8);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("RADAR DE INVENTARIO", 20, 30);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Estado actual de los activos y niveles de existencias críticas.", 20, 40);
+
+    const inventoryData = products.map(p => [
+        p.name,
+        p.sku || 'N/A',
+        p.variants?.reduce((a:any, v:any) => a + (v.stock || 0), 0) || 0,
+        `$ ${p.price.toLocaleString()}`
+    ]).slice(0, 25);
+
+    autoTable(doc, {
+        startY: 50,
+        head: [['Producto', 'SKU', 'Stock', 'Precio']],
+        body: inventoryData,
+        theme: 'striped',
+        headStyles: { fillColor: primaryColor },
+        styles: { fontSize: 9 }
+    });
+
+    // --- PÁGINA 3: DINÁMICA DE VENTAS ---
+    doc.addPage();
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("DINÁMICA DE VENTAS Y CANALES", 20, 30);
+    
+    const salesBySource = orders.reduce((acc: any, o) => {
+        const src = o.source || 'Tienda';
+        acc[src] = (acc[src] || 0) + (o.total_price || 0);
+        return acc;
+    }, {});
+
+    const salesTable = Object.entries(salesBySource).map(([src, val]: [string, any]) => [
+        src.toUpperCase(),
+        `$ ${val.toLocaleString()}`,
+        `${((val / (totalSales || 1)) * 100).toFixed(1)}%`
+    ]);
+
+    autoTable(doc, {
+        startY: 50,
+        head: [['Canal de Venta', 'Ingresos Brutos', 'Participación']],
+        body: salesTable,
+        theme: 'grid',
+        headStyles: { fillColor: [0, 120, 120] }
+    });
+
+    // --- PÁGINA 4: SALUD FINANCIERA ---
+    doc.addPage();
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("AUDITORÍA FINANCIERA", 20, 30);
+    
+    const totalExpenses = expenses.reduce((acc, e) => acc + (e.amount || 0), 0);
+    const netProfit = totalSales - totalExpenses;
+
+    const financeData = [
+        ['Total Ingresos (Ventas)', `$ ${totalSales.toLocaleString()}`],
+        ['Total Egresos (Gastos)', `$ ${totalExpenses.toLocaleString()}`],
+        ['Margen de Operación', `$ ${netProfit.toLocaleString()}`],
+        ['Rentabilidad Proyectada', `${totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : 0}%`]
+    ];
+
+    autoTable(doc, {
+        startY: 50,
+        body: financeData,
+        theme: 'plain',
+        styles: { fontSize: 12, cellPadding: 5 },
+        columnStyles: { 1: { fontStyle: 'bold', halign: 'right' } }
+    });
+
+    // --- PÁGINA 5: HOJA DE RUTA BAYT AI ---
+    doc.addPage();
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(0, 0, 210, 297, 'F');
+
+    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.setFontSize(22);
+    doc.text("VERDICTO BAYT AI", 20, 40);
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "italic");
+    const advice = [
+        `1. ALERTA DE STOCK: Tienes ${stockCritical} productos en niveles críticos. Sugiero reabastecer inmediatamente para no perder ventas.`,
+        `2. OPTIMIZACIÓN DE PRECIOS: Tu ticket promedio es de $ ${avgTicket.toLocaleString()}. Considera crear "Bundles" para subirlo a $ ${(avgTicket * 1.2).toLocaleString()}.`,
+        `3. FOCO DE CANAL: El canal "${Object.keys(salesBySource)[0] || 'Web'}" lidera tus ventas. Refuerza la publicidad allí durante las próximas 48 horas.`,
+        `4. CONTROL DE GASTOS: Tus gastos representan el ${totalSales > 0 ? ((totalExpenses / totalSales) * 100).toFixed(1) : 0}% de tus ingresos. Mantén el ratio debajo del 30% para escalar.`
+    ];
+
+    advice.forEach((line, i) => {
+        const splitText = doc.splitTextToSize(line, 170);
+        doc.text(splitText, 20, 70 + (i * 40));
+    });
+
+    doc.setFontSize(10);
+    doc.text("Reporte generado por el cerebro estratégico de Bayup v2.0", 20, 280);
+
+    doc.save(`Reporte_Elite_Bayup_${userName}_${new Date().getTime()}.pdf`);
+};
+
+export const generateInvoicesAuditPDF = async (data: { userName: string, invoices: any[], range: { start: string, end: string } }) => {
+    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    const { userName, invoices, range } = data;
+
+    const primaryColor: [number, number, number] = [0, 77, 77];
+    const secondaryColor: [number, number, number] = [0, 242, 255];
+
+    // --- ENCABEZADO DE AUDITORÍA ---
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(0, 0, 210, 40, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text("AUDITORÍA DE VENTAS", 20, 20);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.text(`BAYUP INTERACTIVE UP - REPORTE OFICIAL`, 20, 28);
+
+    // Info Empresa y Rango
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(11);
+    doc.text(`Empresa: ${userName.toUpperCase()}`, 20, 50);
+    doc.text(`Periodo: ${range.start || 'Inicio'} hasta ${range.end || 'Hoy'}`, 20, 57);
+    doc.text(`Fecha de Reporte: ${new Date().toLocaleString()}`, 20, 64);
+
+    // --- TABLA DE OPERACIONES ---
+    const tableData = invoices.map(inv => [
+        inv.invoice_num,
+        new Date(inv.date).toLocaleDateString(),
+        inv.customer,
+        inv.source.toUpperCase(),
+        inv.payment_method.toUpperCase(),
+        `$ ${inv.total.toLocaleString()}`
+    ]);
+
+    autoTable(doc, {
+        startY: 75,
+        head: [['Factura', 'Fecha', 'Cliente', 'Canal', 'Método', 'Monto']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: primaryColor, fontSize: 9 },
+        styles: { fontSize: 8, cellPadding: 4 },
+        columnStyles: { 5: { halign: 'right', fontStyle: 'bold' } }
+    });
+
+    // --- RESUMEN FINAL ---
+    const totalAmount = invoices.reduce((acc, inv) => acc + (inv.total || 0), 0);
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+
+    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setLineWidth(0.5);
+    doc.line(120, finalY, 190, finalY);
+
+    doc.setFontSize(10);
     doc.setTextColor(150, 150, 150);
-    doc.text(kpi.sub, x + 5, y + 28);
-  });
+    doc.text("TOTAL LIQUIDADO EN PERIODO:", 120, finalY + 10);
+    
+    doc.setFontSize(16);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(`$ ${totalAmount.toLocaleString()}`, 190, finalY + 10, { align: 'right' });
 
-  // Texto de análisis automático
-  doc.setFontSize(14);
-  doc.setTextColor(...COLOR_PRIMARY);
-  doc.text('2. Diagnóstico de IA (Bayt Insight)', margin, 155);
-  
-  doc.setFillColor(245, 255, 255);
-  doc.setDrawColor(...COLOR_PRIMARY);
-  doc.roundedRect(margin, 165, pageWidth - (margin * 2), 40, 3, 3, 'FD');
-  
-  doc.setFontSize(10);
-  doc.setTextColor(...COLOR_PRIMARY);
-  doc.setFont('helvetica', 'bolditalic');
-  doc.text('Estado General del Negocio:', margin + 5, 175);
-  
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(60, 60, 60);
-  const splitText = doc.splitTextToSize("El análisis del período actual muestra una tendencia positiva en la utilidad neta (+8.2%) impulsada por una optimización en los gastos operativos. Sin embargo, se detecta una alerta en el margen de retención de clientes nuevos provenientes de Instagram. Se recomienda redistribuir el presupuesto de marketing hacia canales de mayor fidelización como WhatsApp.", pageWidth - (margin * 2) - 10);
-  doc.text(splitText, margin + 5, 185);
-
-  addFooter();
-  
-  // --- PÁGINA 2: ANÁLISIS FINANCIERO DETALLADO ---
-  doc.addPage();
-  currentPage++;
-  addHeader('Análisis Financiero', 'Desglose de Ventas y Canales');
-
-  doc.setFontSize(12);
-  doc.setTextColor(...COLOR_PRIMARY);
-  doc.text('Tendencia Semanal de Ventas (Comparativa)', margin, 50);
-
-  // Tabla de Ventas
-  autoTable(doc, {
-    startY: 55,
-    head: [['Día', 'Ventas Actuales ($)', 'Ventas Anteriores ($)', 'Variación', 'Estado']],
-    body: data.salesTrend.map(d => {
-        const diff = d.actual - d.anterior;
-        const percent = ((diff / d.anterior) * 100).toFixed(1);
-        return [
-            d.name,
-            `$ ${d.actual.toLocaleString()}`,
-            `$ ${d.anterior.toLocaleString()}`,
-            `${diff > 0 ? '+' : ''}${percent}%`,
-            diff > 0 ? 'CRECIMIENTO' : 'DESCENSO'
-        ];
-    }),
-    theme: 'grid',
-    headStyles: { fillColor: COLOR_PRIMARY, textColor: 255 },
-    styles: { fontSize: 9, cellPadding: 3 },
-    columnStyles: {
-        3: { fontStyle: 'bold', textColor: [0, 0, 0] },
-        4: { fontStyle: 'bold' } // Colorear condicionalmente es complejo en simple config, lo dejamos bold
-    }
-  });
-
-  let currentY = (doc as any).lastAutoTable.finalY + 20;
-
-  doc.setFontSize(12);
-  doc.setTextColor(...COLOR_PRIMARY);
-  doc.text('Rendimiento por Canal (Omnicanalidad)', margin, currentY);
-
-  // Gráfico de Barras "Manual" para Canales
-  currentY += 10;
-  const maxChannelValue = Math.max(...data.revenueByChannel.map(c => c.value));
-  
-  data.revenueByChannel.forEach((channel) => {
     doc.setFontSize(9);
-    doc.setTextColor(50, 50, 50);
-    doc.text(channel.name, margin, currentY + 5);
-    doc.text(`$ ${channel.value.toLocaleString()}`, margin + 40, currentY + 5);
-    
-    // Bar
-    const barWidth = (channel.value / maxChannelValue) * 100; // max 100mm width
-    doc.setFillColor(...COLOR_PRIMARY);
-    doc.rect(margin + 70, currentY, barWidth, 6, 'F');
-    
-    // Percent label
-    doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    const percentTotal = ((channel.value / data.revenueByChannel.reduce((a, b) => a + b.value, 0)) * 100).toFixed(1);
-    doc.text(`${percentTotal}%`, margin + 70 + barWidth + 5, currentY + 4);
+    doc.setTextColor(180, 180, 180);
+    doc.text("Este documento es un extracto fidedigno de las operaciones registradas en el Terminal POS de Bayup.", 20, 285);
 
-    currentY += 12;
-  });
-
-  addFooter();
-
-  // --- PÁGINA 3: SUCURSALES Y OPERACIONES ---
-  doc.addPage();
-  currentPage++;
-  addHeader('Operaciones & Sucursales', 'Eficiencia por Ubicación');
-
-  doc.setFontSize(12);
-  doc.setTextColor(...COLOR_PRIMARY);
-  doc.text('Reporte de Rentabilidad por Sucursal', margin, 50);
-
-  autoTable(doc, {
-    startY: 55,
-    head: [['Sucursal', 'Ventas Totales', 'Gastos Operativos', 'Utilidad (Profit)', 'Margen (%)']],
-    body: data.branchComparison.map(b => [
-        b.name,
-        `$ ${b.ventas.toLocaleString()}`,
-        `$ ${b.gastos.toLocaleString()}`,
-        `$ ${b.profit.toLocaleString()}`,
-        `${((b.profit / b.ventas) * 100).toFixed(1)}%`
-    ]),
-    theme: 'striped',
-    headStyles: { fillColor: COLOR_PRIMARY },
-    styles: { valign: 'middle', halign: 'center' },
-    columnStyles: { 0: { halign: 'left', fontStyle: 'bold' } }
-  });
-
-  currentY = (doc as any).lastAutoTable.finalY + 20;
-
-  doc.setFontSize(12);
-  doc.setTextColor(...COLOR_PRIMARY);
-  doc.text('Ranking de Asesores (Top Performers)', margin, currentY);
-
-  autoTable(doc, {
-    startY: currentY + 5,
-    head: [['Asesor', 'Facturación', 'Tasa de Cierre', 'Crecimiento MoM', 'Status']],
-    body: data.advisorRanking.map(a => [
-        a.name,
-        `$ ${a.ventas.toLocaleString()}`,
-        a.conversion,
-        a.growth,
-        a.status.toUpperCase()
-    ]),
-    theme: 'grid',
-    headStyles: { fillColor: [50, 50, 50] },
-  });
-
-  addFooter();
-
-  // --- PÁGINA 4 & 5: AUDITORÍA DETALLADA (LOGS) ---
-  doc.addPage();
-  currentPage++;
-  addHeader('Auditoría Transaccional', 'Logs Completos del Sistema');
-  
-  doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
-  doc.text('El siguiente reporte detalla cada movimiento registrado en el período seleccionado para efectos de control y auditoría fiscal.', margin, 50);
-
-  // Generamos datos "Fake" adicionales para llenar las hojas si el array es corto
-  let fullHistory = [...data.historyData];
-  if (fullHistory.length < 50) {
-      for(let i = 0; i < 40; i++) {
-          fullHistory.push({
-              time: `${Math.floor(Math.random()*12) + 1}:${Math.floor(Math.random()*59)} PM`,
-              event: `Transacción Automática #${2000 + i}`,
-              amount: Math.floor(Math.random() * 500000),
-              type: Math.random() > 0.3 ? 'in' : 'out',
-              category: Math.random() > 0.5 ? 'Venta Web' : 'Gasto Menor'
-          });
-      }
-  }
-
-  autoTable(doc, {
-    startY: 60,
-    head: [['Hora', 'Evento / Descripción', 'Categoría', 'Tipo', 'Monto']],
-    body: fullHistory.map(h => [
-        h.time,
-        h.event,
-        h.category,
-        h.type === 'in' ? 'INGRESO' : h.type === 'out' ? 'EGRESO' : 'INFO',
-        `$ ${h.amount.toLocaleString()}`
-    ]),
-    theme: 'plain',
-    styles: { fontSize: 8, cellPadding: 2 },
-    columnStyles: {
-        0: { cellWidth: 25 },
-        1: { cellWidth: 'auto' },
-        3: { fontStyle: 'bold', textColor: [100, 100, 100] },
-        4: { halign: 'right' }
-    },
-    didParseCell: (data) => {
-        if (data.section === 'body' && data.column.index === 3) {
-            if (data.cell.raw === 'INGRESO') data.cell.styles.textColor = [16, 185, 129];
-            if (data.cell.raw === 'EGRESO') data.cell.styles.textColor = [244, 63, 94];
-        }
-    }
-  });
-
-  addFooter();
-
-  // Guardar PDF
-  doc.save(`Bayup_Informe_Auditoria_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    doc.save(`Auditoria_Ventas_${userName}_${new Date().getTime()}.pdf`);
 };

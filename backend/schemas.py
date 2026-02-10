@@ -98,7 +98,7 @@ class ProductBase(BaseModel):
     sku: str | None = None
     status: str | None = "active"
     add_gateway_fee: bool | None = False
-    image_url: str | None = None
+    image_url: List[str] | None = [] # Cambiado a lista
     product_type_id: uuid.UUID | None = None
     collection_id: uuid.UUID | None = None
 
@@ -123,6 +123,7 @@ class OrderItemCreate(OrderItemBase):
 class OrderItem(OrderItemBase):
     id: uuid.UUID
     price_at_purchase: float
+    product_variant: Optional[ProductVariant] = None
     class Config:
         orm_mode = True
 
