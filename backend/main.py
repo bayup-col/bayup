@@ -106,11 +106,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
 # --- CONFIGURACIÓN DE CONEXIÓN GLOBAL (CORS) ---
-# Usamos la configuración más abierta y compatible posible para evitar bloqueos en preflight (OPTIONS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False, # Debe ser False si se usa "*"
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -406,7 +405,12 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
 @app.get("/orders", response_model=List[schemas.Order])
 def get_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = get_tenant_id(current_user)
-    return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).order_by(models.Order.created_at.desc()).all()
+    try:
+        orders = db.query(models.Order).filter(models.Order.tenant_id == tenant_id).order_by(models.Order.created_at.desc()).all()
+        return orders
+    except Exception as e:
+        print(f"DATABASE ERROR IN GET_ORDERS: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/notifications")
 def get_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
@@ -417,11 +421,6 @@ def get_notifications(db: Session = Depends(get_db), current_user: models.User =
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = get_tenant_id(current_user)
     return crud.create_order(db=db, order=order, customer_id=current_user.id, tenant_id=tenant_id)
-
-@app.get("/orders", response_model=List[schemas.Order])
-def read_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    tenant_id = get_tenant_id(current_user)
-    return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).all()
 
 # --- Admin / Staff ---
 

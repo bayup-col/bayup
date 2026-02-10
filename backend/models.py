@@ -89,7 +89,7 @@ class Product(Base):
     sku = Column(String, index=True)
     status = Column(String, default="active")
     add_gateway_fee = Column(Boolean, default=False)
-    image_url = Column(String)
+    image_url = Column(JSON, default=[]) # Cambiado a JSON para soportar galería de imágenes
     owner_id = Column(GUID(), ForeignKey("users.id"))
     product_type_id = Column(GUID(), ForeignKey("product_types.id"), nullable=True)
     collection_id = Column(GUID(), ForeignKey("collections.id"), nullable=True)

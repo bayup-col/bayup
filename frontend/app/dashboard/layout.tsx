@@ -46,6 +46,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { userEmail: authEmail, userRole: authRole, token, logout, userPlan, isGlobalStaff, userPermissions } = useAuth();
   const { theme } = useTheme();
   
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  
   // 1. Aislamiento Total: Cada plan tiene su propia lista independiente en lib/plan-configs.ts
   const planName = userPlan?.name || 'Básico';
   const allowedModules = getModulesByPlan(planName);
@@ -138,18 +140,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       // 1. SI ES STAFF GLOBAL (Dani o equipo), ve todo lo del Super Admin
       if (isGlobalStaff === true) return (
         <div className="relative group">
-          <Link href={href} className={getLinkStyles(href, 'admin', isSub)}>{label}</Link>
+          <Link href={href} className={getLinkStyles(href, 'admin', isSub)}>
+            <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
+                {label}
+            </div>
+          </Link>
         </div>
       );
 
-      // 2. SI ES CLIENTE: Bloqueo por Plan
-      // Limpiamos el ID (quitamos m_ o s_) para comparar con la DB
       const moduleKey = id.replace('m_', '').replace('s_', '');
       const isAllowedByPlan = (allowedModules as any[]).includes(moduleKey);
 
-      // Bloqueo estricto: Si el módulo no está en el plan, no se muestra nada
       if (!isAllowedByPlan && !pathname?.includes('/super-admin')) return null;
-      
       if (hiddenModules.includes(id) && !isEditingMenu) return null;
       
       return (
@@ -158,9 +160,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             href={href} 
             className={`${getLinkStyles(href, 'admin', isSub)} ${hiddenModules.includes(id) ? 'opacity-40' : ''}`}
           >
-            {label}
+            <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
+                {label}
+            </div>
           </Link>
-          {isEditingMenu && (
+          {isEditingMenu && !isSidebarCollapsed && (
             <button 
               onClick={(e) => { e.preventDefault(); toggleModule(id); }}
               className={`absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${hiddenModules.includes(id) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-200 text-transparent'}`}
@@ -388,7 +392,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       `}</style>
       
       {/* Sidebar con efecto Aurora */}
-      <div className={`relative group m-4 p-[2px] rounded-[2.5rem] overflow-hidden isolate flex-shrink-0 w-64 shadow-2xl transition-all duration-500 ${theme === 'dark' ? 'shadow-black/40 border border-white/5' : 'shadow-[0_20px_50px_rgba(0,77,77,0.05)]'}`}>
+      <motion.div 
+        animate={{ width: isSidebarCollapsed ? 80 : 256 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className={`relative group m-4 p-[2px] rounded-[2.5rem] overflow-hidden isolate flex-shrink-0 shadow-2xl transition-all duration-500 ${theme === 'dark' ? 'shadow-black/40 border border-white/5' : 'shadow-[0_20px_50px_rgba(0,77,77,0.05)]'}`}
+      >
         <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden -z-10">
           <motion.div 
             animate={{ rotate: 360 }}
@@ -407,48 +415,66 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
         
         <aside className={`w-full h-full flex flex-col overflow-y-auto custom-scrollbar z-0 transition-all duration-500 ${theme === 'dark' ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-white/30 text-gray-600'}`}>
-          {renderSidebar()}
-          <div className="p-6 mt-auto flex items-center justify-between border-t border-white/10 bg-transparent relative">
+          
+          <div className={`${isSidebarCollapsed ? 'hidden' : 'block'}`}>
+            <div className="relative">
+                {/* Botón Colapsar Barra (Icono minimalista flotante) */}
+                <button 
+                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    className="absolute top-8 right-3 z-50 flex items-center justify-center text-gray-300 hover:text-[#004d4d] transition-all active:scale-90 group/btn"
+                >
+                    <ChevronDown className="rotate-90 transition-transform group-hover/btn:scale-110" size={20}/>
+                </button>
+                {renderSidebar()}
+            </div>
+          </div>
+
+          {/* Versión Colapsada del Sidebar (Solo Iconos) */}
+          {isSidebarCollapsed && (
+            <div className="flex-1 flex flex-col items-center py-6 space-y-8 overflow-y-auto no-scrollbar relative">
+                {/* Botón Expandir (Icono minimalista flotante) */}
+                <button 
+                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    className="flex items-center justify-center text-gray-300 hover:text-[#004d4d] transition-all active:scale-90 mb-4 group/btn"
+                >
+                    <ChevronDown className="-rotate-90 transition-transform group-hover/btn:scale-110" size={24}/>
+                </button>
+                
+                <div className="space-y-4 w-full px-2">
+                    <MenuItem href="/dashboard" label={<LayoutDashboard size={20} />} id="m_inicio" />
+                    <MenuItem href="/dashboard/invoicing" label={<FileText size={20} />} id="m_facturacion" />
+                    <MenuItem href="/dashboard/orders" label={<Package size={20} />} id="m_pedidos" />
+                    <MenuItem href="/dashboard/products" label={<Store size={20} />} id="m_productos" />
+                    <MenuItem href="/dashboard/customers" label={<Users size={20} />} id="m_clientes" />
+                    <MenuItem href="/dashboard/reports" label={<BarChart3 size={20} />} id="m_reports" />
+                </div>
+                <div className="my-4 w-10 h-px bg-gray-100/10" />
+                <div className="space-y-4 w-full px-2">
+                    <MenuItem href="/dashboard/settings/general" label={<Settings size={20} />} id="s_settings_general" />
+                </div>
+            </div>
+          )}
+
+          <div className={`p-6 mt-auto flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} border-t border-white/10 bg-transparent relative`}>
             <div 
               onClick={handleLogoClick}
-              className={`text-2xl font-black italic tracking-tighter cursor-pointer w-fit relative group/logo transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-black'}`}
+              className={`${isSidebarCollapsed ? 'hidden' : 'block'} text-2xl font-black italic tracking-tighter cursor-pointer w-fit relative group/logo transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-black'}`}
             >
               <span>BAY</span><InteractiveUP />
-              
-              <AnimatePresence>
-                {showGhost && (
-                  <motion.div
-                    key="ghost-jump"
-                    initial={{ y: 0, opacity: 0, scale: 0.5 }}
-                    animate={{ 
-                      y: [0, -80, 0], 
-                      opacity: [0, 1, 1, 0],
-                      scale: [0.5, 1.5, 1.5, 1],
-                      rotate: [0, 15, -15, 0]
-                    }}
-                    exit={{ opacity: 0 }}
-                    transition={{ 
-                      duration: 1.2,
-                      times: [0, 0.4, 0.8, 1],
-                      ease: "easeInOut"
-                    }}
-                    className="absolute left-1/2 -translate-x-1/2 bottom-full mb-4 pointer-events-none text-[#004d4d] drop-shadow-[0_0_15px_rgba(0,77,77,0.3)]"
-                  >
-                    <Ghost size={32} strokeWidth={2.5} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
-            <button 
-              onClick={() => setIsEditingMenu(!isEditingMenu)} 
-              className={`h-8 w-8 flex items-center justify-center rounded-xl transition-all ${isEditingMenu ? 'bg-[#004d4d] text-white shadow-lg shadow-[#004d4d]/20' : 'text-gray-300 hover:text-[#004d4d] opacity-50 hover:opacity-100 hover:bg-white/50'}`}
-              title="Personalizar Menú"
-            >
-              <Pencil size={14} />
-            </button>
+            
+            {!isSidebarCollapsed && (
+                <button 
+                onClick={() => setIsEditingMenu(!isEditingMenu)} 
+                className={`h-8 w-8 flex items-center justify-center rounded-xl transition-all ${isEditingMenu ? 'bg-[#004d4d] text-white shadow-lg shadow-[#004d4d]/20' : 'text-gray-300 hover:text-[#004d4d] opacity-50 hover:opacity-100 hover:bg-white/50'}`}
+                title="Personalizar Menú"
+                >
+                <Pencil size={14} />
+                </button>
+            )}
           </div>
         </aside>
-      </div>
+      </motion.div>
 
       <div className="flex-1 flex flex-col min-w-0 relative">
         <DashboardHeader 

@@ -52,7 +52,10 @@ import {
   Briefcase,
   Send,
   ShieldCheck,
-  Navigation
+  Navigation,
+  Wallet,
+  Target,
+  Layers
 } from 'lucide-react';
 import { exportInvoicesToExcel } from '@/lib/invoices-export';
 import { apiRequest } from '@/lib/api';
@@ -98,7 +101,7 @@ const PremiumCard = ({ children, onClick, className = "", dark = false }: { chil
 };
 
 // --- INTERFACES ---
-interface Product { id: string; name: string; category: string; price: number; sku: string; image_url?: string; variants?: any[]; }
+interface Product { id: string; name: string; category: string; description?: string; price: number; wholesale_price?: number; sku: string; image_url?: string; variants?: any[]; }
 interface InvoicingItem { id: string; name: string; variant_id?: string; price: number; quantity: number; sku: string; image?: string; }
 interface PastInvoice { id: string; invoice_num: string; date: string; customer: string; customer_email?: string; customer_phone?: string; source: string; payment_method: string; total: number; }
 
@@ -113,7 +116,47 @@ export default function InvoicingPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [history, setHistory] = useState<PastInvoice[]>([]);
     const [historySearch, setHistorySearch] = useState('');
-    const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', phone: '', city: '' });
+    const [dateRange, setDateRange] = useState({ start: '', end: '' });
+    const [isHistoryFilterOpen, setIsHistoryFilterOpen] = useState(false);
+    const [isFilterHovered, setIsFilterHovered] = useState(false);
+    const [isDateHovered, setIsDateHovered] = useState(false);
+    const [isExportHovered, setIsExportHovered] = useState(false);
+
+    const filteredHistory = useMemo(() => {
+        return history.filter(inv => {
+            const matchesSearch = (inv.customer?.toLowerCase() || '').includes(historySearch.toLowerCase()) || 
+                                 (inv.invoice_num?.toLowerCase() || '').includes(historySearch.toLowerCase());
+            
+            const invDate = new Date(inv.date);
+            const matchesStart = !dateRange.start || invDate >= new Date(dateRange.start);
+            const matchesEnd = !dateRange.end || invDate <= new Date(dateRange.end);
+            
+            return matchesSearch && matchesStart && matchesEnd;
+        });
+    }, [history, historySearch, dateRange]);
+
+    const handleExportInvoicesPDF = async () => {
+        if (filteredHistory.length === 0) {
+            showToast("No hay facturas para exportar", "info");
+            return;
+        }
+        try {
+            showToast("Generando Reporte de Auditoría...", "info");
+            const { generateInvoicesAuditPDF } = await import('@/lib/report-generator');
+            await generateInvoicesAuditPDF({
+                userName: authEmail?.split('@')[0] || 'Empresario',
+                invoices: filteredHistory,
+                range: dateRange
+            });
+            showToast("¡Reporte de ventas listo! 📄", "success");
+        } catch (e) {
+            console.error(e);
+            showToast("Error al exportar", "error");
+        }
+    };
+
+    const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', phone: '', city: '', source: 'Tienda Física', type: 'final' });
+    const [isSourceDropdownOpen, setIsSourceDropdownOpen] = useState(false);
     const [invoiceItems, setInvoiceItems] = useState<InvoicingItem[]>([]);
     const [productSearch, setProductSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('Todas'); 
@@ -122,10 +165,14 @@ export default function InvoicingPage() {
     const [posCustomerMode, setPosCustomerMode] = useState<'search' | 'create'>('create');
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('cash');
 
+    const [selectedProductForVariant, setSelectedProductForVariant] = useState<Product | null>(null);
+    const [selectedVariant, setSelectedVariant] = useState<any>(null);
+    const [tempPrice, setTempPrice] = useState<number>(0);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
     const loadData = useCallback(async () => {
         if (!token) return;
         try {
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
             const [pRes, oRes, cRes] = await Promise.all([
                 apiRequest<any[]>('/products', { token }),
                 apiRequest<any[]>('/orders', { token }),
@@ -137,12 +184,140 @@ export default function InvoicingPage() {
                 id: o.id, invoice_num: `FAC-${o.id.slice(0, 4).toUpperCase()}`, date: o.created_at,
                 customer: o.customer_name || 'Final', source: o.source || 'pos', payment_method: o.payment_method || 'cash', total: o.total_price || 0
             })));
-        } catch (e) {}
+        } catch (e) {
+            console.error("Error loading data:", e);
+        }
     }, [token]);
 
     useEffect(() => { loadData(); }, [loadData]);
 
+    const addToCart = (product: Product, variant?: any, customPrice?: number) => {
+        const targetVariant = variant || product.variants?.[0];
+        if (!targetVariant) {
+            showToast("Este producto no tiene variantes configuradas", "error");
+            return;
+        }
+
+        // Determinar precio base (Usar customPrice si viene del modal, sino calcular)
+        let finalPrice = customPrice;
+        
+        if (finalPrice === undefined) {
+            const basePrice = customerInfo.type === 'mayorista' && (product.wholesale_price || 0) > 0 
+                ? (product.wholesale_price || 0) 
+                : product.price;
+            finalPrice = basePrice + (targetVariant.price_adjustment || 0);
+        }
+
+        const newItem: InvoicingItem = {
+            id: product.id,
+            variant_id: targetVariant.id,
+            name: `${product.name} ${targetVariant.name !== 'Estándar' ? `(${targetVariant.name}: ${targetVariant.sku})` : ''}`,
+            price: finalPrice,
+            quantity: 1,
+            sku: targetVariant.sku || product.sku,
+            image: targetVariant.image_url || product.image_url
+        };
+
+        setInvoiceItems([...invoiceItems, newItem]);
+        setSelectedProductForVariant(null);
+        setSelectedVariant(null);
+        showToast("Producto añadido", "success");
+    };
+
+    const handleProductClick = (product: Product) => {
+        if (product.variants && product.variants.length > 1) {
+            setSelectedProductForVariant(product);
+            setSelectedVariant(product.variants[0]);
+            setCurrentImageIndex(0);
+            
+            // Inicializar precio temporal según tipo de cliente
+            const base = customerInfo.type === 'mayorista' && (product.wholesale_price || 0) > 0 
+                ? (product.wholesale_price || 0) 
+                : product.price;
+            setTempPrice(base + (product.variants[0].price_adjustment || 0));
+        } else {
+            addToCart(product);
+        }
+    };
+
     const calculateSubtotal = () => invoiceItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+    const invoicingKpis = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        const ordersToday = history.filter(inv => inv.date?.startsWith(today));
+        
+        const salesToday = ordersToday.reduce((acc, inv) => acc + (Number(inv.total) || 0), 0);
+        const operationsCount = history.length || 0;
+        const totalRevenue = history.reduce((acc, inv) => acc + (Number(inv.total) || 0), 0);
+        const avgTicket = operationsCount > 0 ? (totalRevenue / operationsCount) : 0;
+
+        const totalsArray = history.map(o => Number(o.total) || 0);
+        const maxInvoice = totalsArray.length > 0 ? Math.max(...totalsArray) : 0;
+        const minInvoice = totalsArray.length > 0 ? Math.min(...totalsArray) : 0;
+
+        return [
+            { 
+                label: 'Ventas de Hoy', 
+                value: Number(salesToday) || 0, 
+                icon: <Activity size={24}/>, 
+                isCurrency: true,
+                color: "text-emerald-600",
+                bg: "bg-emerald-50",
+                trend: "Live",
+                details: [
+                    { l: "Efectivo", v: `$ ${(ordersToday.filter(o => o.payment_method === 'cash').reduce((a, b) => a + (Number(b.total) || 0), 0)).toLocaleString()}`, icon: <DollarSign size={14}/> },
+                    { l: "Transferencia", v: `$ ${(ordersToday.filter(o => o.payment_method === 'transfer').reduce((a, b) => a + (Number(b.total) || 0), 0)).toLocaleString()}`, icon: <CreditCard size={14}/> },
+                    { l: "Promedio", v: `$ ${(ordersToday.length > 0 ? (salesToday / ordersToday.length) : 0).toLocaleString()}`, icon: <Target size={14}/> }
+                ],
+                advice: salesToday > 0 ? "Flujo de caja positivo para hoy. Sigue así." : "Aún no hay ventas registradas hoy. ¡Lanza una oferta relámpago!"
+            },
+            { 
+                label: 'Operaciones', 
+                value: operationsCount, 
+                icon: <ShoppingBag size={24}/>, 
+                isSimple: true,
+                color: "text-cyan-500",
+                bg: "bg-cyan-50",
+                trend: "Total",
+                details: [
+                    { l: "POS Físico", v: `${history.filter(o => o.source === 'pos').length}`, icon: <Store size={14}/> },
+                    { l: "Ventas Web", v: `${history.filter(o => o.source === 'web').length}`, icon: <Globe size={14}/> },
+                    { l: "WhatsApp", v: `${history.filter(o => o.source === 'whatsapp').length}`, icon: <MessageSquare size={14}/> }
+                ],
+                advice: "Diversifica tus canales de venta para aumentar el volumen de operaciones."
+            },
+            { 
+                label: 'Ticket Promedio', 
+                value: Number(avgTicket) || 0, 
+                icon: <Target size={24}/>, 
+                isCurrency: true,
+                color: "text-purple-600",
+                bg: "bg-purple-50",
+                trend: "Market",
+                details: [
+                    { l: "Mayor Valor", v: `$ ${(Number(maxInvoice) || 0).toLocaleString()}`, icon: <TrendingUp size={14}/> },
+                    { l: "Menor Valor", v: `$ ${(Number(minInvoice) || 0).toLocaleString()}`, icon: <ArrowDownRight size={14}/> },
+                    { l: "Meta Sugerida", v: `$ ${((Number(avgTicket) || 0) * 1.2).toLocaleString()}`, icon: <Zap size={14}/> }
+                ],
+                advice: avgTicket > 0 ? "Para subir tu ticket, ofrece productos complementarios en el momento de pago." : "Define tus precios estratégicamente para atraer más clientes."
+            },
+            { 
+                label: 'Flujo Caja', 
+                value: Number(totalRevenue) || 0, 
+                icon: <Wallet size={24}/>, 
+                isCurrency: true,
+                color: "text-[#004D4D]",
+                bg: "bg-[#004D4D]/5",
+                trend: "Acumulado",
+                details: [
+                    { l: "Ingresos", v: `$ ${(Number(totalRevenue) || 0).toLocaleString()}`, icon: <Plus size={14}/> },
+                    { l: "Egresos", v: "$ 0", icon: <Minus size={14}/> },
+                    { l: "Balance", v: `$ ${(Number(totalRevenue) || 0).toLocaleString()}`, icon: <ShieldCheck size={14}/> }
+                ],
+                advice: "Mantén tus gastos registrados para tener un balance de rentabilidad real."
+            }
+        ];
+    }, [history]);
 
     const filteredProducts = useMemo(() => {
         return products.filter(p => (p.name.toLowerCase().includes(productSearch.toLowerCase())) && (selectedCategory === 'Todas' || p.category === selectedCategory)).slice(0, 12);
@@ -173,20 +348,141 @@ export default function InvoicingPage() {
                         </header>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
-                            {[ { l: 'Ventas Hoy', v: 4250000 }, { l: 'Operaciones', v: 124 }, { l: 'Ticket Promedio', v: 325000 }, { l: 'Flujo Caja', v: 124000000 } ].map((k, i) => (
-                                <PremiumCard key={i} className="p-8"><div className="flex justify-between items-start mb-6"><div className="h-14 w-14 rounded-2xl flex items-center justify-center bg-[#004D4D]/5 text-[#004D4D]"><Activity size={24}/></div></div><div><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{k.l}</p><h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">{i !== 1 && "$ "}<AnimatedNumber value={k.v} type={i === 1 ? 'simple' : 'currency'} /></h3></div></PremiumCard>
+                            {invoicingKpis.map((k, i) => (
+                                <div key={i} onClick={() => setSelectedMetric(k)}>
+                                    <PremiumCard className="p-8"><div className="flex justify-between items-start mb-6"><div className={`h-14 w-14 rounded-2xl flex items-center justify-center border border-white/50 ${k.bg} ${k.color}`}>{k.icon}</div></div><div><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{k.l}</p><h3 className="text-3xl font-black text-gray-900 tracking-tighter italic"><AnimatedNumber value={k.v} type={k.isSimple ? 'simple' : 'currency'} /></h3></div></PremiumCard>
+                                </div>
                             ))}
                         </div>
 
-                        <div className="px-4 space-y-6">
-                            <div className="flex items-center justify-between border-b border-gray-100 pb-6">
-                                <h4 className="text-xs font-black uppercase tracking-widest text-gray-900">Historial de Operaciones</h4>
-                                <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm w-full max-w-md"><Search size={18} className="text-gray-300 ml-2"/><input placeholder="Buscar..." value={historySearch} onChange={e => setHistorySearch(e.target.value)} className="flex-1 bg-transparent outline-none text-sm font-bold" /></div>
+                        <div className="px-4 space-y-8">
+                            <div className="flex flex-col md:flex-row items-center gap-4 w-full max-w-6xl mx-auto">
+                                <div className="flex-1 flex items-center gap-4 bg-white/60 backdrop-blur-md p-2 rounded-3xl border border-white/80 shadow-sm transition-all focus-within:shadow-xl focus-within:border-[#004D4D]/20 w-full">
+                                    <Search size={22} className="text-gray-300 ml-4" />
+                                    <input 
+                                        placeholder="Buscar por ID de factura o nombre de cliente..." 
+                                        value={historySearch} 
+                                        onChange={e => setHistorySearch(e.target.value)} 
+                                        className="flex-1 bg-transparent outline-none text-sm font-bold text-gray-900 py-4" 
+                                    />
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <motion.button 
+                                        layout
+                                        onMouseEnter={() => setIsFilterHovered(true)}
+                                        onMouseLeave={() => setIsFilterHovered(false)}
+                                        onClick={() => setIsHistoryFilterOpen(!isHistoryFilterOpen)}
+                                        className={`h-16 flex items-center gap-2 px-6 rounded-3xl transition-all border ${isHistoryFilterOpen ? 'bg-[#004D4D] text-white border-[#004D4D]' : 'bg-white border-white/80 text-gray-500 hover:text-[#004D4D] shadow-sm'}`}
+                                    >
+                                        <Filter size={20}/>
+                                        <AnimatePresence>
+                                            {isFilterHovered && (
+                                                <motion.span 
+                                                    initial={{ opacity: 0, width: 0, marginLeft: 0 }} 
+                                                    animate={{ opacity: 1, width: 'auto', marginLeft: 8 }} 
+                                                    exit={{ opacity: 0, width: 0, marginLeft: 0 }}
+                                                    className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden"
+                                                >
+                                                    Filtros
+                                                </motion.span>
+                                            )}
+                                        </AnimatePresence>
+                                    </motion.button>
+                                    
+                                    <motion.button 
+                                        layout
+                                        onMouseEnter={() => setIsDateHovered(true)}
+                                        onMouseLeave={() => setIsDateHovered(false)}
+                                        className="h-16 flex items-center gap-2 px-6 rounded-3xl bg-white border border-white/80 text-gray-500 hover:text-[#004D4D] shadow-sm"
+                                    >
+                                        <Calendar size={20}/>
+                                        <AnimatePresence>
+                                            {isDateHovered && (
+                                                <motion.span 
+                                                    initial={{ opacity: 0, width: 0, marginLeft: 0 }} 
+                                                    animate={{ opacity: 1, width: 'auto', marginLeft: 8 }} 
+                                                    exit={{ opacity: 0, width: 0, marginLeft: 0 }}
+                                                    className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden"
+                                                >
+                                                    Fecha
+                                                </motion.span>
+                                            )}
+                                        </AnimatePresence>
+                                    </motion.button>
+
+                                    <motion.button 
+                                        layout
+                                        onMouseEnter={() => setIsExportHovered(true)}
+                                        onMouseLeave={() => setIsExportHovered(false)}
+                                        onClick={handleExportInvoicesPDF}
+                                        className="h-16 flex items-center gap-2 px-6 rounded-3xl bg-[#004D4D] text-white shadow-2xl hover:bg-black transition-all group"
+                                    >
+                                        <Download size={20} className="group-hover:translate-y-0.5 transition-transform"/>
+                                        <AnimatePresence>
+                                            {isExportHovered && (
+                                                <motion.span 
+                                                    initial={{ opacity: 0, width: 0, marginLeft: 0 }} 
+                                                    animate={{ opacity: 1, width: 'auto', marginLeft: 8 }} 
+                                                    exit={{ opacity: 0, width: 0, marginLeft: 0 }}
+                                                    className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden"
+                                                >
+                                                    Exportar PDF
+                                                </motion.span>
+                                            )}
+                                        </AnimatePresence>
+                                    </motion.button>
+                                </div>
                             </div>
-                            <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] border border-white/80 shadow-xl overflow-hidden"><table className="w-full text-center">
-                                <thead><tr className="bg-gray-50/50">{['Factura', 'Cliente', 'Monto'].map((h, i) => (<th key={i} className="px-8 py-6 text-[10px] font-black text-[#004D4D] uppercase">{h}</th>))}</tr></thead>
-                                <tbody className="divide-y divide-gray-100/50">{history.map((inv) => (<tr key={inv.id} className="hover:bg-white/60 transition-all cursor-pointer"><td className="px-8 py-8 font-black text-gray-900 text-sm">{inv.invoice_num}</td><td className="px-8 py-8 font-bold text-gray-600">{inv.customer}</td><td className="px-8 py-8 font-black text-[#004D4D]">$ {inv.total.toLocaleString()}</td></tr>))}</tbody>
-                            </table></div>
+
+                            <AnimatePresence>
+                                {isHistoryFilterOpen && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: -10 }} 
+                                        animate={{ opacity: 1, y: 0 }} 
+                                        exit={{ opacity: 0, y: -10 }}
+                                        className="max-w-6xl mx-auto p-8 bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-xl grid grid-cols-1 md:grid-cols-2 gap-8"
+                                    >
+                                        <div className="space-y-3">
+                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Desde Fecha</label>
+                                            <input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} className="w-full p-4 bg-white/50 border border-gray-100 rounded-2xl outline-none font-bold text-sm" />
+                                        </div>
+                                        <div className="space-y-3">
+                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Hasta Fecha</label>
+                                            <input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} className="w-full p-4 bg-white/50 border border-gray-100 rounded-2xl outline-none font-bold text-sm" />
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] border border-white/80 shadow-xl overflow-hidden">
+                                <table className="w-full text-center">
+                                    <thead>
+                                        <tr className="bg-gray-50/50">
+                                            {['Factura', 'Fecha', 'Cliente', 'Canal', 'Total Liquidado'].map((h, i) => (
+                                                <th key={i} className="px-8 py-6 text-[10px] font-black text-[#004D4D] uppercase tracking-[0.2em]">{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100/50">
+                                        {filteredHistory.length === 0 ? (
+                                            <tr><td colSpan={5} className="py-20 text-center text-gray-300 font-black uppercase text-[10px]">Sin movimientos registrados</td></tr>
+                                        ) : filteredHistory.map((inv) => (
+                                            <tr key={inv.id} className="hover:bg-white/60 transition-all cursor-pointer group">
+                                                <td className="px-8 py-8 font-black text-gray-900 text-sm">{inv.invoice_num}</td>
+                                                <td className="px-8 py-8 font-bold text-gray-400 text-xs">{new Date(inv.date).toLocaleDateString()}</td>
+                                                <td className="px-8 py-8">
+                                                    <p className="font-bold text-gray-700">{inv.customer}</p>
+                                                    <p className="text-[9px] font-black text-[#004D4D] uppercase italic">{inv.payment_method}</p>
+                                                </td>
+                                                <td className="px-8 py-8">
+                                                    <span className="px-4 py-1.5 bg-gray-100 rounded-full text-[9px] font-black uppercase tracking-widest text-gray-400">{inv.source}</span>
+                                                </td>
+                                                <td className="px-8 py-8 font-black text-[#004D4D] text-base">$ {inv.total.toLocaleString()}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 ) : (
@@ -195,20 +491,83 @@ export default function InvoicingPage() {
                         <motion.div initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex-1 flex flex-col bg-[#FAFAFA] border-r border-gray-100 overflow-hidden relative">
                             <header className="p-8 border-b bg-white flex justify-between items-center shrink-0">
                                 <button onClick={() => setIsPOSActive(false)} className="flex items-center gap-2 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 transition-all"><ArrowLeft size={16}/> Cancelar Venta</button>
-                                <div className="p-1 bg-gray-100 rounded-2xl flex gap-1">
-                                    <button onClick={() => setPosCustomerMode('create')} className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${posCustomerMode === 'create' ? 'bg-white text-[#004D4D] shadow-md' : 'text-gray-400'}`}>Registrar</button>
-                                    <button onClick={() => setPosCustomerMode('search')} className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${posCustomerMode === 'search' ? 'bg-white text-[#004D4D] shadow-md' : 'text-gray-400'}`}>Buscar</button>
-                                </div>
                             </header>
                             
                             <div className="flex-1 overflow-y-auto p-12 space-y-12 custom-scrollbar">
                                 <div className="space-y-8 animate-in fade-in duration-500">
-                                    <h3 className="text-2xl font-black italic uppercase tracking-tighter text-[#001A1A]">Información del <span className="text-[#004D4D]">Adquiriente</span></h3>
+                                    <div className="flex flex-col gap-6">
+                                        <div className="flex p-1 bg-gray-100 rounded-2xl w-fit">
+                                            <button onClick={() => setPosCustomerMode('create')} className={`px-8 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${posCustomerMode === 'create' ? 'bg-white text-[#004D4D] shadow-md' : 'text-gray-400'}`}>Registrar Nuevo</button>
+                                            <button onClick={() => setPosCustomerMode('search')} className={`px-8 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${posCustomerMode === 'search' ? 'bg-white text-[#004D4D] shadow-md' : 'text-gray-400'}`}>Buscar Existente</button>
+                                        </div>
+                                        <h3 className="text-2xl font-black italic uppercase tracking-tighter text-[#001A1A]">Información del <span className="text-[#004D4D]">Cliente</span></h3>
+                                    </div>
                                     {posCustomerMode === 'create' ? (
                                         <div className="grid grid-cols-2 gap-6 bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm">
-                                            <div className="space-y-2 col-span-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label><input value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold text-sm focus:bg-white" placeholder="Ej: Juan Pérez" /></div>
+                                            <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label><input value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold text-sm focus:bg-white" placeholder="Ej: Juan Pérez" /></div>
+                                            <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Correo Electrónico</label><input value={customerInfo.email} onChange={e => setCustomerInfo({...customerInfo, email: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold text-sm focus:bg-white" placeholder="juan@ejemplo.com" /></div>
                                             <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">WhatsApp</label><input value={customerInfo.phone} onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold text-sm focus:bg-white" placeholder="300 000 0000" /></div>
                                             <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Ciudad</label><input value={customerInfo.city} onChange={e => setCustomerInfo({...customerInfo, city: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold text-sm focus:bg-white" placeholder="Ej: Medellín" /></div>
+                                            <div className="space-y-2 col-span-1 relative">
+                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">¿Dónde nos compras?</label>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setIsSourceDropdownOpen(!isSourceDropdownOpen)}
+                                                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl flex items-center justify-between font-bold text-sm hover:bg-white transition-all"
+                                                >
+                                                    <span className="flex items-center gap-3 text-[#004D4D]">
+                                                        {customerInfo.source === 'Tienda Física' ? <Store size={16}/> : customerInfo.source === 'WhatsApp' ? <MessageSquare size={16}/> : <Globe size={16}/>}
+                                                        <span className="truncate">{customerInfo.source}</span>
+                                                    </span>
+                                                    <ChevronDown size={16} className={`transition-transform ${isSourceDropdownOpen ? 'rotate-180' : ''}`}/>
+                                                </button>
+                                                <AnimatePresence>
+                                                    {isSourceDropdownOpen && (
+                                                        <motion.div 
+                                                            initial={{ opacity: 0, y: 5 }} 
+                                                            animate={{ opacity: 1, y: 0 }} 
+                                                            exit={{ opacity: 0, y: 5 }}
+                                                            className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 p-2"
+                                                        >
+                                                            {[
+                                                                { label: 'Tienda Física', icon: <Store size={14}/> },
+                                                                { label: 'WhatsApp', icon: <MessageSquare size={14}/> },
+                                                                { label: 'Página Web', icon: <Globe size={14}/> }
+                                                            ].map((opt) => (
+                                                                <button 
+                                                                    key={opt.label}
+                                                                    onClick={() => { setCustomerInfo({...customerInfo, source: opt.label}); setIsSourceDropdownOpen(false); }}
+                                                                    className="w-full flex items-center gap-3 p-3 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-[#004D4D] transition-all"
+                                                                >
+                                                                    {opt.icon} {opt.label}
+                                                                </button>
+                                                            ))}
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
+                                            <div className="space-y-2 col-span-1">
+                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Cliente:</label>
+                                                <div className="flex bg-gray-50 p-1 rounded-2xl border border-gray-100 h-[54px] relative isolate">
+                                                    <button 
+                                                        onClick={() => setCustomerInfo({...customerInfo, type: 'final'})}
+                                                        className={`flex-1 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-500 z-10 ${customerInfo.type === 'final' ? 'text-white' : 'text-gray-400'}`}
+                                                    >
+                                                        Final
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setCustomerInfo({...customerInfo, type: 'mayorista'})}
+                                                        className={`flex-1 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-500 z-10 ${customerInfo.type === 'mayorista' ? 'text-white' : 'text-gray-400'}`}
+                                                    >
+                                                        Mayorista
+                                                    </button>
+                                                    <motion.div 
+                                                        animate={{ x: customerInfo.type === 'final' ? 0 : '100%' }}
+                                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                                        className="absolute inset-y-1 left-1 w-[calc(50%-4px)] bg-[#004D4D] rounded-xl shadow-lg -z-0"
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
                                     ) : (
                                         <div className="bg-white p-8 rounded-[3rem] border border-gray-100 flex items-center gap-4 shadow-sm animate-in slide-in-from-right-4"><Search className="text-gray-300"/><input className="bg-transparent outline-none font-bold text-sm flex-1" placeholder="Nombre, ID o Email..." /></div>
@@ -216,14 +575,185 @@ export default function InvoicingPage() {
                                 </div>
 
                                 <div className="space-y-8">
-                                    <div className="flex items-center justify-between"><h3 className="text-2xl font-black italic uppercase tracking-tighter text-[#001A1A]">Catálogo <span className="text-[#004D4D]">Estratégico</span></h3><div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-gray-100 shadow-sm"><Search size={14} className="text-gray-300"/><input value={productSearch} onChange={e => setProductSearch(e.target.value)} placeholder="Filtrar..." className="bg-transparent outline-none text-[10px] font-bold w-32" /></div></div>
-                                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">{categories.map(cat => (<button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${selectedCategory === cat ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white border border-gray-100 text-gray-400'}`}>{cat === 'Todas' ? 'Ver Todo' : cat}</button>))}</div>
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-2xl font-black italic uppercase tracking-tighter text-[#001A1A]">PRODUC<span className="text-[#004D4D]">TOS</span></h3>
+                                    </div>
+                                    <div className="flex items-center gap-4 bg-white p-2 rounded-3xl border border-gray-100 shadow-sm focus-within:shadow-xl focus-within:border-[#004D4D]/20 transition-all w-full">
+                                        <Search size={20} className="text-gray-300 ml-4"/>
+                                        <input 
+                                            value={productSearch} 
+                                            onChange={e => setProductSearch(e.target.value)} 
+                                            placeholder="Buscar por nombre o SKU de producto..." 
+                                            className="flex-1 bg-transparent outline-none text-sm font-bold py-3" 
+                                        />
+                                    </div>
+                                    <div className="flex gap-3 overflow-x-auto no-scrollbar pb-4 -mx-2 px-2 scroll-smooth">
+                                        {categories.map(cat => (
+                                            <button 
+                                                key={cat} 
+                                                onClick={() => setSelectedCategory(cat)} 
+                                                className={`flex-shrink-0 px-8 py-3 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-500 ${selectedCategory === cat ? 'bg-[#004D4D] text-white shadow-xl scale-105' : 'bg-white border border-gray-100 text-gray-400 hover:text-[#004D4D] hover:border-[#004D4D]/20'}`}
+                                            >
+                                                {cat === 'Todas' ? 'Ver Todo' : cat}
+                                            </button>
+                                        ))}
+                                    </div>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-6 pb-20">
-                                        {filteredProducts.map(p => (<button key={p.id} onClick={() => setInvoiceItems([...invoiceItems, { id: p.id, variant_id: p.variants?.[0]?.id || p.id, name: p.name, price: p.price, quantity: 1, sku: p.sku || 'N/A', image: p.image_url }])} className="bg-white p-4 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:scale-105 transition-all text-left group"><div className="aspect-square bg-gray-50 rounded-2xl mb-4 overflow-hidden border border-gray-50">{p.image_url ? <img src={p.image_url} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"/> : <div className="h-full w-full flex items-center justify-center text-gray-200"><Package size={24}/></div>}</div><p className="text-[10px] font-black text-gray-900 truncate leading-tight">{p.name}</p><p className="text-[11px] font-black text-[#004D4D] mt-1">${p.price.toLocaleString()}</p></button>))}
+                                        {filteredProducts.map(p => {
+                                            const isWholesale = customerInfo.type === 'mayorista' && (p.wholesale_price || 0) > 0;
+                                            const displayPrice = isWholesale ? p.wholesale_price : p.price;
+                                            
+                                            return (
+                                                <button 
+                                                    key={p.id} 
+                                                    onClick={() => handleProductClick(p)} 
+                                                    className="bg-white p-4 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:scale-105 transition-all text-left group relative isolate"
+                                                >
+                                                    {isWholesale && (
+                                                        <div className="absolute top-3 right-3 z-10 px-2 py-0.5 bg-[#4fffcb] text-[#004D4D] text-[7px] font-black uppercase rounded-md shadow-sm">Mayorista</div>
+                                                    )}
+                                                    <div className="aspect-square bg-gray-50 rounded-2xl mb-4 overflow-hidden border border-gray-50">
+                                                        {p.image_url ? <img src={p.image_url} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"/> : <div className="h-full w-full flex items-center justify-center text-gray-200"><Package size={24}/></div>}
+                                                    </div>
+                                                    <p className="text-[10px] font-black text-gray-900 truncate leading-tight">{p.name}</p>
+                                                    <p className={`text-[11px] font-black mt-1 ${isWholesale ? 'text-emerald-500' : 'text-[#004D4D]'}`}>
+                                                        ${(displayPrice || 0).toLocaleString()}
+                                                    </p>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
                         </motion.div>
+
+                        {/* MODAL SELECCIÓN DE VARIANTE (PRO DUAL-COLUMN) */}
+                        <AnimatePresence>
+                            {selectedProductForVariant && (
+                                <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4 md:p-8">
+                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedProductForVariant(null)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-2xl" />
+                                    <motion.div 
+                                        initial={{ opacity: 0, scale: 0.95, y: 40 }} 
+                                        animate={{ opacity: 1, scale: 1, y: 0 }} 
+                                        exit={{ opacity: 0, scale: 0.95, y: 40 }} 
+                                        className="relative bg-white w-full max-w-5xl h-[80vh] rounded-[4rem] shadow-3xl overflow-hidden border border-white/20 flex flex-col md:flex-row"
+                                    >
+                                        {/* COLUMNA IZQUIERDA: GALERÍA */}
+                                        <div className="w-full md:w-1/2 bg-gray-50 flex flex-col p-10 space-y-6 shrink-0 border-r border-gray-100">
+                                            <div className="flex-1 rounded-[3rem] overflow-hidden bg-white shadow-inner flex items-center justify-center relative group">
+                                                {selectedProductForVariant.image_url ? (
+                                                    <img 
+                                                        src={selectedVariant?.image_url || selectedProductForVariant.image_url} 
+                                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                                                        alt="Main"
+                                                    />
+                                                ) : (
+                                                    <Package size={80} className="text-gray-200" />
+                                                )}
+                                                <div className="absolute top-6 left-6 px-4 py-1.5 bg-white/80 backdrop-blur-md rounded-full text-[9px] font-black uppercase tracking-widest text-[#004D4D]">Vista Previa</div>
+                                            </div>
+                                            
+                                            {/* Miniaturas (Usando variantes como galería) */}
+                                            <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                                                <button 
+                                                    onClick={() => setSelectedVariant(null)}
+                                                    className={`h-20 w-20 rounded-2xl overflow-hidden flex-shrink-0 border-2 transition-all ${!selectedVariant ? 'border-[#004D4D] scale-95' : 'border-white opacity-60'}`}
+                                                >
+                                                    <img src={selectedProductForVariant.image_url} className="w-full h-full object-cover" alt="Thumb" />
+                                                </button>
+                                                {selectedProductForVariant.variants?.filter(v => v.image_url).map((v, i) => (
+                                                    <button 
+                                                        key={i}
+                                                        onClick={() => setSelectedVariant(v)}
+                                                        className={`h-20 w-20 rounded-2xl overflow-hidden flex-shrink-0 border-2 transition-all ${selectedVariant?.id === v.id ? 'border-[#004D4D] scale-95' : 'border-white opacity-60'}`}
+                                                    >
+                                                        <img src={v.image_url} className="w-full h-full object-cover" alt="Thumb" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* COLUMNA DERECHA: SELECCIÓN Y PRECIO */}
+                                        <div className="flex-1 p-12 overflow-y-auto custom-scrollbar flex flex-col justify-between space-y-10">
+                                            <div className="space-y-8">
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[8px] font-black uppercase tracking-widest">{selectedProductForVariant.category}</span>
+                                                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest italic">REF: {selectedVariant?.sku || selectedProductForVariant.sku}</span>
+                                                    </div>
+                                                    <h3 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A] leading-none">{selectedProductForVariant.name}</h3>
+                                                </div>
+
+                                                <div className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 italic">
+                                                    <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                                                        {selectedProductForVariant.description || 'Sin descripción detallada disponible para este artículo.'}
+                                                    </p>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <label className="text-[10px] font-black text-[#004D4D] uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
+                                                        <Layers size={14}/> Seleccionar Variante Disponible
+                                                    </label>
+                                                    <div className="flex flex-wrap gap-3">
+                                                        {selectedProductForVariant.variants?.map((v: any) => (
+                                                            <button 
+                                                                key={v.id}
+                                                                onClick={() => {
+                                                                    setSelectedVariant(v);
+                                                                    const base = customerInfo.type === 'mayorista' && (selectedProductForVariant.wholesale_price || 0) > 0 
+                                                                        ? (selectedProductForVariant.wholesale_price || 0) 
+                                                                        : selectedProductForVariant.price;
+                                                                    setTempPrice(base + (v.price_adjustment || 0));
+                                                                }}
+                                                                disabled={v.stock <= 0}
+                                                                className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${
+                                                                    selectedVariant?.id === v.id 
+                                                                        ? 'bg-[#004D4D] border-[#004D4D] text-white shadow-xl scale-105' 
+                                                                        : v.stock > 0 
+                                                                            ? 'bg-white border-gray-100 text-gray-400 hover:border-[#004D4D]/20 hover:text-[#004D4D]'
+                                                                            : 'bg-gray-100 border-transparent text-gray-200 cursor-not-allowed opacity-50'
+                                                                }`}
+                                                            >
+                                                                {v.name} ({v.sku})
+                                                                {v.stock > 0 && v.stock <= 5 && <span className="ml-2 text-[8px] text-rose-400 animate-pulse">¡Últimas!</span>}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-6 pt-10 border-t border-gray-100">
+                                                <div className="grid grid-cols-2 gap-6 items-end">
+                                                    <div className="space-y-3">
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio Unitario Sugerido</label>
+                                                        <div className="relative">
+                                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 font-black text-xl">$</span>
+                                                            <input 
+                                                                type="text" 
+                                                                value={tempPrice.toLocaleString('de-DE')}
+                                                                onChange={(e) => {
+                                                                    const val = Number(e.target.value.replace(/\D/g, ''));
+                                                                    setTempPrice(val);
+                                                                }}
+                                                                className="w-full pl-12 pr-6 py-5 bg-emerald-50 border-2 border-transparent focus:border-emerald-200 rounded-3xl outline-none text-2xl font-black text-emerald-700 shadow-inner"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => addToCart(selectedProductForVariant, selectedVariant, tempPrice)}
+                                                        disabled={!selectedVariant || selectedVariant.stock <= 0}
+                                                        className="h-[68px] bg-[#004D4D] text-white rounded-3xl font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30 disabled:scale-100"
+                                                    >
+                                                        <ShoppingCart size={20}/> Sumar a Factura
+                                                    </button>
+                                                </div>
+                                                <button onClick={() => setSelectedProductForVariant(null)} className="w-full text-[10px] font-black uppercase text-gray-300 hover:text-rose-500 transition-colors tracking-widest text-center">Descartar y Volver</button>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            )}
+                        </AnimatePresence>
 
                         {/* DERECHA: PREVISUALIZACIÓN FACTURA REAL (DISEÑO MAESTRO) */}
                         <motion.div initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex-1 bg-[#001A1A] p-16 flex items-center justify-center relative overflow-hidden text-slate-900">
