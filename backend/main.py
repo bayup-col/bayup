@@ -400,6 +400,22 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
     tenant_id = get_tenant_id(current_user)
     return crud.create_product(db=db, product=product, owner_id=tenant_id)
 
+@app.delete("/products/{product_id}")
+def delete_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = get_tenant_id(current_user)
+    success = crud.delete_product(db=db, product_id=product_id, owner_id=tenant_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Product not found or access denied")
+    return {"status": "success", "message": "Product deleted successfully"}
+
+@app.put("/products/{product_id}", response_model=schemas.Product)
+def update_product(product_id: uuid.UUID, product: schemas.ProductCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = get_tenant_id(current_user)
+    db_product = crud.get_product(db, product_id=product_id, tenant_id=tenant_id)
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return crud.update_product(db=db, db_product=db_product, product=product)
+
 # --- Orders ---
 
 @app.get("/orders", response_model=List[schemas.Order])

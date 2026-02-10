@@ -86,6 +86,14 @@ def update_product(db: Session, db_product: models.Product, product: schemas.Pro
     db.refresh(db_product)
     return db_product
 
+def delete_product(db: Session, product_id: uuid.UUID, owner_id: uuid.UUID) -> bool:
+    db_product = db.query(models.Product).filter(models.Product.id == product_id, models.Product.owner_id == owner_id).first()
+    if db_product:
+        db.delete(db_product)
+        db.commit()
+        return True
+    return False
+
 # --- Order CRUD ---
 def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID, tenant_id: Optional[uuid.UUID] = None) -> models.Order:
     subtotal = 0

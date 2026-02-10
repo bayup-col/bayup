@@ -103,6 +103,8 @@ export default function ProductsPage() {
     const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
     const [isDeletingCategory, setIsDeletingCategory] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<any>(null);
+    const [productToDelete, setProductToDelete] = useState<any>(null);
+    const [isDeletingProduct, setIsDeletingProduct] = useState(false);
     const [isFilterHovered, setIsFilterHovered] = useState(false);
     const [isExportHovered, setIsExportHovered] = useState(false);
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
@@ -129,6 +131,21 @@ export default function ProductsPage() {
     }, [token, showToast]);
 
     useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+    const handleDeleteProduct = async () => {
+        if (!token || !productToDelete) return;
+        setIsDeletingProduct(true);
+        try {
+            await apiRequest(`/products/${productToDelete.id}`, { method: 'DELETE', token });
+            showToast("Producto eliminado con éxito", "success");
+            setProductToDelete(null);
+            fetchProducts();
+        } catch (err) {
+            showToast("Error al eliminar el producto", "error");
+        } finally {
+            setIsDeletingProduct(false);
+        }
+    };
 
     const stats = useMemo(() => {
         const activeCount = products.filter(p => p.status === 'active').length;
@@ -264,15 +281,21 @@ export default function ProductsPage() {
                                 <thead><tr className="bg-gray-50/50">{['Producto', 'Estado', 'Stock Total', 'Precio Unitario', 'Acciones'].map((h, i) => (<th key={i} className="px-10 py-6 text-center text-[10px] font-black text-[#004D4D] uppercase tracking-[0.2em]">{h}</th>))}</tr></thead>
                                 <tbody className="divide-y divide-gray-100/50">
                                     {loading ? (<tr><td colSpan={5} className="py-20 text-center"><div className="h-12 w-12 border-4 border-[#004d4d] border-t-cyan rounded-full animate-spin mx-auto" /></td></tr>) : filteredProducts.length === 0 ? (<tr><td colSpan={5} className="py-20 text-center text-gray-300 font-black uppercase text-[10px]">Sin artículos</td></tr>) : (
-                                        filteredProducts.map((p) => (
-                                            <tr key={p.id} className="hover:bg-white/60 transition-all cursor-pointer group">
-                                                <td className="px-10 py-8"><div className="flex items-center justify-center gap-4"><div className="h-14 w-14 rounded-2xl bg-gray-900 overflow-hidden shadow-lg group-hover:scale-110 transition-transform">{p.image_url ? <img src={p.image_url} className="h-full w-full object-cover" /> : <div className="h-full w-full flex items-center justify-center text-white/20"><ImageIcon size={20}/></div>}</div><div className="text-left"><p className="text-sm font-black text-gray-900">{p.name}</p><p className="text-[9px] font-bold text-[#004D4D] uppercase italic">{p.category || 'General'}</p></div></div></td>
-                                                <td className="px-10 py-8"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${p.status === 'active' ? 'bg-[#004D4D] text-white' : 'bg-gray-100 text-gray-400'}`}>{p.status === 'active' ? 'Activo' : 'Borrador'}</span></td>
-                                                <td className="px-10 py-8 font-black text-slate-900"><div className="flex flex-col items-center"><span className={p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) <= 5 ? 'text-rose-500' : ''}>{p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0}</span><span className="text-[8px] text-gray-400 uppercase">unidades</span></div></td>
-                                                <td className="px-10 py-8 font-black text-[#004D4D] text-base"><AnimatedNumber value={p.price} /></td>
-                                                <td className="px-10 py-8"><div className="flex justify-center gap-2"><button onClick={() => router.push(`/dashboard/products/${p.id}/edit`)} className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-[#004D4D] hover:bg-white transition-all flex items-center justify-center"><Edit3 size={16}/></button><button className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all flex items-center justify-center"><Trash2 size={16}/></button></div></td>
-                                            </tr>
-                                        ))
+                                        filteredProducts.map((p) => {
+                                            const displayImage = Array.isArray(p.image_url) && p.image_url.length > 0 
+                                                ? p.image_url[0] 
+                                                : (typeof p.image_url === 'string' ? p.image_url : null);
+
+                                            return (
+                                                <tr key={p.id} className="hover:bg-white/60 transition-all cursor-pointer group">
+                                                    <td className="px-10 py-8"><div className="flex items-center justify-center gap-4"><div className="h-14 w-14 rounded-2xl bg-gray-900 overflow-hidden shadow-lg group-hover:scale-110 transition-transform">{displayImage ? <img src={displayImage} className="h-full w-full object-cover" /> : <div className="h-full w-full flex items-center justify-center text-white/20"><ImageIcon size={20}/></div>}</div><div className="text-left"><p className="text-sm font-black text-gray-900">{p.name}</p><p className="text-[9px] font-bold text-[#004D4D] uppercase italic">{p.category || 'General'}</p></div></div></td>
+                                                    <td className="px-10 py-8"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${p.status === 'active' ? 'bg-[#004D4D] text-white' : 'bg-gray-100 text-gray-400'}`}>{p.status === 'active' ? 'Activo' : 'Borrador'}</span></td>
+                                                    <td className="px-10 py-8 font-black text-slate-900"><div className="flex flex-col items-center"><span className={p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) <= 5 ? 'text-rose-500' : ''}>{p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0}</span><span className="text-[8px] text-gray-400 uppercase">unidades</span></div></td>
+                                                    <td className="px-10 py-8 font-black text-[#004D4D] text-base"><AnimatedNumber value={p.price} /></td>
+                                                    <td className="px-10 py-8"><div className="flex justify-center gap-2"><button onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/products/${p.id}/edit`); }} className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-[#004D4D] hover:bg-white transition-all flex items-center justify-center"><Edit3 size={16}/></button><button onClick={(e) => { e.stopPropagation(); setProductToDelete(p); }} className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all flex items-center justify-center"><Trash2 size={16}/></button></div></td>
+                                                </tr>
+                                            );
+                                        })
                                     )}
                                 </tbody>
                             </table>
@@ -435,6 +458,32 @@ export default function ProductsPage() {
 
             {/* Modal Nueva Categoría */}
             <AnimatePresence>{isNewCategoryModalOpen && (<div className="fixed inset-0 z-[1000] flex items-center justify-center p-4"><motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNewCategoryModalOpen(false)} className="absolute inset-0 bg-[#001A1A]/80 backdrop-blur-xl" /><motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative bg-white w-full max-w-md rounded-[3.5rem] shadow-2xl p-10 text-slate-900 border border-white"><h3 className="text-2xl font-black italic uppercase text-[#001A1A] tracking-tighter">Nueva <span className="text-[#004D4D]">Categoría</span></h3><div className="space-y-6 mt-8"><div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre</label><input value={newCategoryData.name} onChange={e => setNewCategoryData({...newCategoryData, name: e.target.value})} placeholder="Ej: Accesorios Premium" className="w-full px-6 py-4 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold text-slate-900 shadow-inner" /></div><button onClick={handleCreateCategory} disabled={isCreatingCategory} className="w-full py-5 bg-[#004D4D] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl">{isCreatingCategory ? 'Creando...' : 'Guardar Categoría'}</button></div></motion.div></div>)}</AnimatePresence>
+
+            {/* Modal Confirmar Eliminación de Producto */}
+            <AnimatePresence>
+                {productToDelete && (
+                    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setProductToDelete(null)} className="absolute inset-0 bg-[#001A1A]/80 backdrop-blur-xl" />
+                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative bg-white w-full max-w-md rounded-[3.5rem] shadow-2xl p-12 text-center border border-white">
+                            <div className="flex justify-center mb-8">
+                                <div className="h-24 w-24 rounded-[2.5rem] bg-rose-50 flex items-center justify-center text-rose-500 animate-bounce">
+                                    <AlertCircle size={48} />
+                                </div>
+                            </div>
+                            <h3 className="text-3xl font-black italic uppercase tracking-tighter text-[#001A1A]">¿Eliminar <span className="text-rose-600">Activo?</span></h3>
+                            <p className="text-gray-400 font-medium text-sm mt-4 leading-relaxed italic">
+                                Esta acción eliminará permanentemente a <span className="text-gray-900 font-bold">&quot;{productToDelete.name}&quot;</span> de tu catálogo. ¿Deseas continuar?
+                            </p>
+                            <div className="grid grid-cols-2 gap-4 mt-10">
+                                <button onClick={() => setProductToDelete(null)} className="py-5 bg-gray-100 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-all">Cancelar</button>
+                                <button onClick={handleDeleteProduct} disabled={isDeletingProduct} className="py-5 bg-rose-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-100 hover:bg-rose-700 transition-all">
+                                    {isDeletingProduct ? 'Eliminando...' : 'Sí, Eliminar'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             <style jsx global>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }

@@ -145,8 +145,20 @@ export default function NewProductPage() {
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-        if (media.length + files.length > 5) return showToast("Máximo 5 archivos", "info");
-        for (const file of files) {
+        const totalAfterAdding = media.length + files.length;
+
+        if (media.length >= 5) {
+            showToast("Límite de 5 imágenes alcanzado (Plan Básico)", "info");
+            return;
+        }
+
+        if (totalAfterAdding > 5) {
+            showToast("Solo se añadirán las primeras 5 imágenes permitidas", "info");
+        }
+
+        const allowedFiles = files.slice(0, 5 - media.length);
+
+        for (const file of allowedFiles) {
             setMedia(prev => [...prev, { 
                 file, preview: URL.createObjectURL(file),
                 type: file.type.startsWith('video') ? 'video' : 'image', isMuted: true
@@ -311,10 +323,39 @@ export default function NewProductPage() {
                                     <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">TÍTULO DEL PRODUCTO</label><input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Ej: Camiseta Urban" className="w-full px-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner" /></div>
                                     <div className="grid grid-cols-2 gap-8">
                                         <div className="space-y-2 relative"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Categoría</label><button type="button" onClick={() => setIsCategoryOpen(!isCategoryOpen)} className="w-full px-6 py-5 bg-gray-50 rounded-2xl text-left text-sm font-bold shadow-inner flex items-center justify-between"><span className={formData.category ? "text-[#004D4D]" : "text-gray-300"}>{formData.category || "Seleccionar..."}</span><ChevronDown size={16} /></button>
-                                            <AnimatePresence>{isCategoryOpen && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border z-[110] p-2 text-slate-900">
-                                                <div className="max-h-[200px] overflow-y-auto no-scrollbar">{categoriesList.map(cat => (<button key={cat.id} onClick={() => { setFormData({...formData, category: cat.title, collection_id: cat.id}); setIsCategoryOpen(false); }} className="w-full text-left px-5 py-3 rounded-xl text-xs font-black uppercase text-slate-500 hover:bg-slate-50">{cat.title}</button>))}</div>
-                                                <button type="button" onClick={() => setIsNewCategoryModalOpen(true)} className="w-full mt-2 py-3 bg-[#004D4D]/5 text-[#004D4D] rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#004D4D] hover:text-white transition-all">+ Nueva Categoría</button>
-                                            </motion.div>)}</AnimatePresence>
+                                            <AnimatePresence>
+                                                {isCategoryOpen && (
+                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border z-[110] p-2 text-slate-900">
+                                                        <div className="max-h-[200px] overflow-y-auto no-scrollbar">
+                                                            {categoriesList.map(cat => (
+                                                                <button 
+                                                                    key={cat.id} 
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setFormData({...formData, category: cat.title, collection_id: cat.id}); 
+                                                                        setIsCategoryOpen(false); 
+                                                                    }} 
+                                                                    className="w-full text-left px-5 py-3 rounded-xl text-xs font-black uppercase text-slate-500 hover:bg-slate-50 transition-all"
+                                                                >
+                                                                    {cat.title}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setIsNewCategoryModalOpen(true);
+                                                                setIsCategoryOpen(false);
+                                                            }} 
+                                                            className="w-full mt-2 py-3 bg-[#004D4D]/5 text-[#004D4D] rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#004D4D] hover:text-white transition-all shadow-sm"
+                                                        >
+                                                            + Nueva Categoría
+                                                        </button>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
                                         </div>
                                         <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Estado</label><div className="flex bg-gray-50 p-1 rounded-2xl shadow-inner h-[60px]"><button onClick={() => setFormData({...formData, status: 'active'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase transition-all ${formData.status === 'active' ? 'bg-[#004D4D] text-white shadow-md' : 'text-gray-400'}`}>Activo</button><button onClick={() => setFormData({...formData, status: 'draft'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase transition-all ${formData.status === 'draft' ? 'bg-[#004D4D] text-white shadow-md' : 'text-gray-400'}`}>Borrador</button></div></div>
                                     </div>
@@ -655,8 +696,43 @@ export default function NewProductPage() {
                             </div>
                         </div>
                     </motion.div>
-                </div>
-            )}</AnimatePresence>
-        </div>
-    );
-}
+                                </div>
+                            )}</AnimatePresence>
+                
+                            {/* MODAL NUEVA CATEGORÍA (RESTAURADO) */}
+                            <AnimatePresence>
+                                {isNewCategoryModalOpen && (
+                                    <div className="fixed inset-0 z-[7000] flex items-center justify-center p-4">
+                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNewCategoryModalOpen(false)} className="absolute inset-0 bg-[#001A1A]/80 backdrop-blur-xl" />
+                                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative bg-white w-full max-w-md rounded-[3rem] shadow-2xl p-10 border border-white text-slate-900">
+                                            <div className="flex items-center gap-4 mb-8 text-slate-900">
+                                                <div className="h-12 w-12 rounded-2xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D]"><Layers size={24}/></div>
+                                                <div>
+                                                    <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tighter">Nueva Categoría</h3>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Creación Rápida</p>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-6 text-slate-900">
+                                                <div className="space-y-2 text-slate-900">
+                                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre de la Familia</label>
+                                                    <input 
+                                                        autoFocus 
+                                                        value={newCategoryName} 
+                                                        onChange={(e) => setNewCategoryName(e.target.value)} 
+                                                        placeholder="Ej: Nueva Colección" 
+                                                        className="w-full px-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner transition-all text-slate-900" 
+                                                    />
+                                                </div>
+                                                <div className="flex gap-3 pt-4 text-slate-900">
+                                                    <button type="button" onClick={() => setIsNewCategoryModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors text-slate-900">Cancelar</button>
+                                                    <button type="button" disabled={!newCategoryName.trim()} onClick={handleCreateCategory} className="flex-[2] py-4 bg-[#004D4D] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[#004D4D]/20 disabled:opacity-50">Crear Categoría</button>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    </div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    );
+                }
+                
