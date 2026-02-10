@@ -57,6 +57,7 @@ export default function WebAnalyticsPage() {
     
     // UI States
     const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
+    const [selectedInventoryCategory, setSelectedInventoryCategory] = useState<string | null>(null);
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [activeGuideStep, setActiveGuideStep] = useState(0);
     const [isRadarModalOpen, setIsRadarModalOpen] = useState(false);
