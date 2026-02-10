@@ -54,11 +54,6 @@ import {
   ShieldCheck,
   Navigation
 } from 'lucide-react';
-  Briefcase,
-  Send,
-  ShieldCheck,
-  Navigation
-} from 'lucide-react';
 import { exportInvoicesToExcel } from '@/lib/invoices-export';
 import { apiRequest } from '@/lib/api';
 
