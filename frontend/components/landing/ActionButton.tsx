@@ -2,18 +2,25 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { twMerge } from "tailwind-merge";
+import { clsx, type ClassValue } from "clsx";
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 interface ActionButtonProps {
   href: string;
   children: React.ReactNode;
   variant?: "primary" | "outline";
+  className?: string;
 }
 
-export const ActionButton = ({ href, children, variant = "primary" }: ActionButtonProps) => {
+export const ActionButton = ({ href, children, variant = "primary", className }: ActionButtonProps) => {
   const isPrimary = variant === "primary";
 
   return (
-    <Link href={href} className="relative group inline-block">
+    <Link href={href} className={cn("relative group inline-block", className)}>
       <motion.div
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}

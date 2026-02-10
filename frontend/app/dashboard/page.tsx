@@ -30,7 +30,13 @@ const AnimatedNumber = memo(({ value, type = 'currency', className }: { value: n
 AnimatedNumber.displayName = 'AnimatedNumber';
 
 // --- TILT CARD PREMIUM ---
-const PremiumCard = ({ children, className = "", dark = false }: { children: React.ReactNode, className?: string, dark?: boolean }) => {
+interface PremiumCardProps {
+    children: React.ReactNode;
+    className?: string;
+    dark?: boolean;
+}
+
+const PremiumCard = ({ children, className = "", dark = false }: PremiumCardProps) => {
     const [rotateX, setRotateX] = useState(0);
     const [rotateY, setRotateY] = useState(0);
     const [glare, setGlare] = useState({ x: 50, y: 50, op: 0 });
@@ -199,7 +205,18 @@ export default function DashboardPage() {
 
 // --- SUB-COMPONENTES AUXILIARES ---
 
-function MetricKPI({ label, value, icon, color, bg, trend, isCurrency = false, isPercentage = false }: any) {
+interface MetricKPIProps {
+    label: string;
+    value: number;
+    icon: React.ReactNode;
+    color: string;
+    bg: string;
+    trend: string;
+    isCurrency?: boolean;
+    isPercentage?: boolean;
+}
+
+function MetricKPI({ label, value, icon, color, bg, trend, isCurrency = false, isPercentage = false }: MetricKPIProps) {
     return (
         <PremiumCard className="p-8 group h-full">
             <div className="flex justify-between items-start mb-6">
@@ -220,13 +237,20 @@ function MetricKPI({ label, value, icon, color, bg, trend, isCurrency = false, i
     );
 }
 
-function AccessCard({ label, sub, href, icon }: any) {
+interface AccessCardProps {
+    label: string;
+    sub: string;
+    href: string;
+    icon: React.ReactElement;
+}
+
+function AccessCard({ label, sub, href, icon }: AccessCardProps) {
     return (
         <Link href={href}>
             <PremiumCard className="p-10 group cursor-pointer hover:border-cyan/30 transition-all overflow-hidden h-full">
                 <div className="flex items-center gap-8 relative z-10">
                     <div className="h-20 w-20 rounded-[2rem] bg-gray-900 text-white flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(0,242,255,0.3)] border-2 border-white/5 group-hover:border-cyan/50">
-                        {React.cloneElement(icon, { className: "text-white group-hover:text-cyan transition-colors" })}
+                        {React.cloneElement(icon, { className: "text-white group-hover:text-cyan transition-colors" } as any)}
                     </div>
                     <div>
                         <h4 className="text-xl font-black text-gray-900 uppercase italic tracking-tighter">{label}</h4>
