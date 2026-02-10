@@ -145,7 +145,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       // 2. SI ES CLIENTE: Bloqueo por Plan
       // Limpiamos el ID (quitamos m_ o s_) para comparar con la DB
       const moduleKey = id.replace('m_', '').replace('s_', '');
-      const isAllowedByPlan = allowedModules.includes(moduleKey);
+      const isAllowedByPlan = (allowedModules as any[]).includes(moduleKey);
 
       // Bloqueo estricto: Si el módulo no está en el plan, no se muestra nada
       if (!isAllowedByPlan && !pathname?.includes('/super-admin')) return null;
