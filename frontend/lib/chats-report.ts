@@ -108,7 +108,7 @@ export const generateChatsPDF = (data: ChatsReportData) => {
   doc.text(splitText, 20, finalY + 20);
 
   // Footer
-  const pageCount = doc.internal.getNumberOfPages();
+  const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);
