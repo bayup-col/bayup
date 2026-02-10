@@ -70,21 +70,27 @@ async def lifespan(app: FastAPI):
         if 'users' in tables:
             columns = [c['name'] for c in inspector.get_columns('users')]
             with engine.begin() as conn:
-                if 'owner_id' not in columns:
-                    try: 
-                        print("Migrating: Adding owner_id to users table...")
-                        # Usamos un tipo genérico que funcione en SQLite y Postgres
-                        conn.execute(text("ALTER TABLE users ADD COLUMN owner_id VARCHAR(36)"))
-                        print("owner_id added successfully.")
-                    except Exception as e: 
-                        print(f"Migration Error (owner_id): {e}")
-                
-                if 'loyalty_points' not in columns:
-                    try: conn.execute(text("ALTER TABLE users ADD COLUMN loyalty_points INTEGER DEFAULT 0"))
-                    except: pass
-                if 'total_spent' not in columns:
-                    try: conn.execute(text("ALTER TABLE users ADD COLUMN total_spent FLOAT DEFAULT 0.0"))
-                    except: pass
+                # Mapeo de columnas necesarias
+                required_columns = [
+                    ('owner_id', "VARCHAR(36)"),
+                    ('loyalty_points', "INTEGER DEFAULT 0"),
+                    ('total_spent', "FLOAT DEFAULT 0.0"),
+                    ('city', "VARCHAR"),
+                    ('customer_type', "VARCHAR DEFAULT 'final'"),
+                    ('acquisition_channel', "VARCHAR"),
+                    ('is_global_staff', "BOOLEAN DEFAULT FALSE"),
+                    ('shop_slug', "VARCHAR")
+                ]
+
+                for col_name, col_type in required_columns:
+                    if col_name not in columns:
+                        try:
+                            print(f"Migrating: Adding {col_name} to users table...")
+                            conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
+                            print(f"[OK] {col_name} added.")
+                        except Exception as e:
+                            print(f"Migration Error ({col_name}): {e}")
+            
             print("User table migration check completed.")
 
         if not crud.get_default_plan(db):
