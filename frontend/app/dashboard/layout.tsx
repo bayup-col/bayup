@@ -175,7 +175,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     // Helper para saber si una sección entera debe mostrarse
     const hasVisibleModules = (moduleIds: string[]) => {
         if (isGlobalStaff) return true;
-        return moduleIds.some(id => allowedModules.includes(id.replace('m_', '').replace('s_', '')));
+        return moduleIds.some(id => (allowedModules as any[]).includes(id.replace('m_', '').replace('s_', '')));
     };
   
   const [isRedirectingStore, setIsRedirectingStore] = useState(false);
