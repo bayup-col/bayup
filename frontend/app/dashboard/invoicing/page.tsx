@@ -602,6 +602,9 @@ export default function InvoicingPage() {
                                         {filteredProducts.map(p => {
                                             const isWholesale = customerInfo.type === 'mayorista' && (p.wholesale_price || 0) > 0;
                                             const displayPrice = isWholesale ? p.wholesale_price : p.price;
+                                            const displayImage = Array.isArray(p.image_url) && p.image_url.length > 0 
+                                                ? p.image_url[0] 
+                                                : (typeof p.image_url === 'string' ? p.image_url : null);
                                             
                                             return (
                                                 <button 
@@ -613,7 +616,11 @@ export default function InvoicingPage() {
                                                         <div className="absolute top-3 right-3 z-10 px-2 py-0.5 bg-[#4fffcb] text-[#004D4D] text-[7px] font-black uppercase rounded-md shadow-sm">Mayorista</div>
                                                     )}
                                                     <div className="aspect-square bg-gray-50 rounded-2xl mb-4 overflow-hidden border border-gray-50">
-                                                        {p.image_url ? <img src={p.image_url} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"/> : <div className="h-full w-full flex items-center justify-center text-gray-200"><Package size={24}/></div>}
+                                                        {displayImage ? (
+                                                            <img src={displayImage} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"/>
+                                                        ) : (
+                                                            <div className="h-full w-full flex items-center justify-center text-gray-200"><Package size={24}/></div>
+                                                        )}
                                                     </div>
                                                     <p className="text-[10px] font-black text-gray-900 truncate leading-tight">{p.name}</p>
                                                     <p className={`text-[11px] font-black mt-1 ${isWholesale ? 'text-emerald-500' : 'text-[#004D4D]'}`}>
@@ -641,35 +648,44 @@ export default function InvoicingPage() {
                                         {/* COLUMNA IZQUIERDA: GALERÍA */}
                                         <div className="w-full md:w-1/2 bg-gray-50 flex flex-col p-10 space-y-6 shrink-0 border-r border-gray-100">
                                             <div className="flex-1 rounded-[3rem] overflow-hidden bg-white shadow-inner flex items-center justify-center relative group">
-                                                {selectedProductForVariant.image_url ? (
-                                                    <img 
-                                                        src={selectedVariant?.image_url || selectedProductForVariant.image_url} 
-                                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                                                        alt="Main"
-                                                    />
-                                                ) : (
-                                                    <Package size={80} className="text-gray-200" />
-                                                )}
+                                                {(() => {
+                                                    const mainImg = Array.isArray(selectedProductForVariant.image_url) && selectedProductForVariant.image_url.length > 0 
+                                                        ? selectedProductForVariant.image_url[0] 
+                                                        : (typeof selectedProductForVariant.image_url === 'string' ? selectedProductForVariant.image_url : null);
+                                                    
+                                                    const variantImg = selectedVariant?.image_url;
+                                                    const displayImg = variantImg || mainImg;
+
+                                                    return displayImg ? (
+                                                        <img 
+                                                            src={displayImg} 
+                                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                                                            alt="Main"
+                                                        />
+                                                    ) : (
+                                                        <Package size={80} className="text-gray-200" />
+                                                    );
+                                                })()}
                                                 <div className="absolute top-6 left-6 px-4 py-1.5 bg-white/80 backdrop-blur-md rounded-full text-[9px] font-black uppercase tracking-widest text-[#004D4D]">Vista Previa</div>
                                             </div>
                                             
-                                            {/* Miniaturas (Usando variantes como galería) */}
+                                            {/* Miniaturas (Usando galería real si existe) */}
                                             <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-                                                <button 
-                                                    onClick={() => setSelectedVariant(null)}
-                                                    className={`h-20 w-20 rounded-2xl overflow-hidden flex-shrink-0 border-2 transition-all ${!selectedVariant ? 'border-[#004D4D] scale-95' : 'border-white opacity-60'}`}
-                                                >
-                                                    <img src={selectedProductForVariant.image_url} className="w-full h-full object-cover" alt="Thumb" />
-                                                </button>
-                                                {selectedProductForVariant.variants?.filter(v => v.image_url).map((v, i) => (
-                                                    <button 
-                                                        key={i}
-                                                        onClick={() => setSelectedVariant(v)}
-                                                        className={`h-20 w-20 rounded-2xl overflow-hidden flex-shrink-0 border-2 transition-all ${selectedVariant?.id === v.id ? 'border-[#004D4D] scale-95' : 'border-white opacity-60'}`}
-                                                    >
-                                                        <img src={v.image_url} className="w-full h-full object-cover" alt="Thumb" />
+                                                {Array.isArray(selectedProductForVariant.image_url) ? (
+                                                    selectedProductForVariant.image_url.map((url: string, i: number) => (
+                                                        <button 
+                                                            key={i}
+                                                            onClick={() => setCurrentImageIndex(i)}
+                                                            className={`h-20 w-20 rounded-2xl overflow-hidden flex-shrink-0 border-2 transition-all ${currentImageIndex === i ? 'border-[#004D4D] scale-95' : 'border-white opacity-60'}`}
+                                                        >
+                                                            <img src={url} className="w-full h-full object-cover" alt="Thumb" />
+                                                        </button>
+                                                    ))
+                                                ) : selectedProductForVariant.image_url && (
+                                                    <button className="h-20 w-20 rounded-2xl overflow-hidden flex-shrink-0 border-2 border-[#004D4D] scale-95">
+                                                        <img src={selectedProductForVariant.image_url} className="w-full h-full object-cover" alt="Thumb" />
                                                     </button>
-                                                ))}
+                                                )}
                                             </div>
                                         </div>
 
