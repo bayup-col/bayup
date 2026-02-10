@@ -9,7 +9,8 @@ import {
   Activity, Search, Sparkles, Users, LayoutDashboard, CheckCircle2, 
   ArrowRight, TrendingUp, AlertCircle, Package, CreditCard, 
   MessageCircle, Lightbulb, Zap, Globe, ShieldCheck, RefreshCw, Clock, Bot, 
-  ArrowUpRight, ArrowDownRight, ShoppingBag, DollarSign, Wallet, Plus, FileText, Target
+  ArrowUpRight, ArrowDownRight, ShoppingBag, DollarSign, Wallet, Plus, FileText, Target,
+  MessageSquare
 } from 'lucide-react';
 import { ActionButton } from "@/components/landing/ActionButton";
 import OnboardingModal from '@/components/dashboard/OnboardingModal';
@@ -119,6 +120,53 @@ export default function DashboardPage() {
     } catch (e) { console.error("Sync Error", e); }
   }, [token]);
 
+  const advisorInsight = useMemo(() => {
+    const { revenue, low_stock, orders_count, avg_ticket } = realStats;
+    
+    if (low_stock > 0) {
+        return {
+            title: "Inventario en Riesgo",
+            message: `He detectado que tienes ${low_stock} productos con stock crítico. Reabastece estas unidades pronto para evitar perder ventas esta semana.`,
+            viability: "98%",
+            impact: "Crítico"
+        };
+    }
+    
+    if (revenue === 0) {
+        return {
+            title: "Impulso de Ventas",
+            message: "Hoy el flujo está tranquilo. Sugiero enviar un mensaje masivo por WhatsApp a tus clientes habituales con una oferta relámpago de 24 horas.",
+            viability: "85%",
+            impact: "Alto"
+        };
+    }
+
+    if (orders_count > 5) {
+        return {
+            title: "Optimización de Logística",
+            message: `Tienes ${orders_count} pedidos pendientes por procesar. Sugiero agrupar los despachos por zona para reducir costos de envío hoy.`,
+            viability: "92%",
+            impact: "Medio"
+        };
+    }
+
+    if (avg_ticket < 50000 && revenue > 0) {
+        return {
+            title: "Estrategia de Ticket",
+            message: "Tu ticket promedio está por debajo de la meta. Intenta crear 'Kits' o combos de productos para incentivar compras de mayor valor.",
+            viability: "90%",
+            impact: "Alto"
+        };
+    }
+
+    return {
+        title: "Oportunidad de crecimiento 🚀",
+        message: "Tu rendimiento es estable. He detectado que el 85% de tus visitas son móviles; optimizar tus imágenes actuales podría subir la conversión un 12%.",
+        viability: "94%",
+        impact: "Alto"
+    };
+  }, [realStats]);
+
   useEffect(() => { loadDashboardData(); }, [loadDashboardData]);
 
   const kpis = [
@@ -138,7 +186,7 @@ export default function DashboardPage() {
         advice: realStats.revenue > 0 ? "Ventas activas detectadas. El flujo es positivo." : "Aún no hay ventas registradas hoy. ¡Es hora de lanzar una campaña!"
     },
     { 
-        label: "Órdenes Activas", 
+        label: "Pedidos Pendientes", 
         value: realStats.orders_count, 
         icon: <ShoppingBag size={24}/>, 
         color: "text-cyan-500", 
@@ -167,7 +215,7 @@ export default function DashboardPage() {
         advice: "Conecta tu tienda para empezar a rastrear el comportamiento de tus visitantes."
     },
     { 
-        label: "Stock Crítico", 
+        label: "Inventario Bajo", 
         value: realStats.low_stock, 
         icon: <Package size={24}/>, 
         color: "text-rose-600", 
@@ -214,13 +262,13 @@ export default function DashboardPage() {
               <div className="flex-1 space-y-4 text-center xl:text-left">
                   <div className="flex items-center justify-center xl:justify-start gap-3">
                       <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Terminal de Comando v2.0</span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">tu panel de control</span>
                   </div>
-                  <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
-                      VISTAZO <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">RÁPIDO</span>
+                  <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
+                      HOLA, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">{userEmail?.split('@')[0]}</span>
                   </h1>
                   <p className="text-gray-400 font-medium text-lg italic max-w-2xl">
-                      Hola <span className="text-[#004d4d] font-bold">{userEmail?.split('@')[0]}</span>, ¡este es el resumen del día para ti! 👋
+                      ¡Aquí tienes el resumen de tu negocio hoy! 🚀
                   </p>
               </div>
               <div className="flex gap-4 shrink-0 relative z-20">
@@ -245,25 +293,32 @@ export default function DashboardPage() {
 
       {/* 3. CORE ANALYTICS & BAYT INTELLIGENCE */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <PremiumCard dark className="lg:col-span-8 p-12 flex flex-col md:flex-row items-center gap-12 group">
-              <div className="relative shrink-0">
-                  <div className="h-32 w-32 bg-gray-900 rounded-[3rem] border-2 border-[#00f2ff]/50 flex items-center justify-center shadow-[0_0_40px_rgba(0,242,255,0.3)] group-hover:scale-110 transition-transform duration-700">
-                      <Bot size={64} className="text-cyan animate-pulse" />
+          <PremiumCard dark className="lg:col-span-8 p-12 flex flex-col items-center justify-center group min-h-[380px]">
+              {/* CABECERA CENTRADA */}
+              <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="relative shrink-0">
+                      <div className="h-20 w-20 bg-gray-900 rounded-[2.5rem] border-2 border-[#00f2ff]/50 flex items-center justify-center shadow-[0_0_40px_rgba(0,242,255,0.3)] group-hover:scale-110 transition-transform duration-700">
+                          <Bot size={40} className="text-cyan animate-pulse" />
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 h-7 w-7 bg-emerald-500 rounded-full border-4 border-[#001A1A] flex items-center justify-center text-white shadow-xl animate-bounce">
+                          <Sparkles size={12} fill="currentColor" />
+                      </div>
                   </div>
-                  <div className="absolute -bottom-2 -right-2 h-10 w-10 bg-emerald-500 rounded-full border-4 border-[#001A1A] flex items-center justify-center text-white shadow-xl animate-bounce">
-                      <Sparkles size={18} fill="currentColor" />
-                  </div>
+                  <span className="px-4 py-1 bg-cyan/10 text-cyan rounded-full text-[8px] font-black uppercase tracking-[0.3em] border border-cyan/20">Tu asesor inteligente</span>
               </div>
-              <div className="flex-1 space-y-6 text-center md:text-left">
-                  <span className="px-4 py-1.5 bg-cyan/10 text-cyan rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-cyan/20">Bayt Strategic Mind</span>
-                  <h3 className="text-4xl font-black text-white italic uppercase tracking-tighter">Tu marca está escalando</h3>
-                  <p className="text-gray-400 text-lg leading-relaxed italic">
-                      &quot;He detectado que el <span className="text-white font-bold">85% de tus visitas</span> llegan vía dispositivos móviles. Sugiero optimizar las imágenes de tu catálogo para reducir el tiempo de carga en un 12%.&quot;
+
+              {/* CONTENIDO DE VALOR EN EL CENTRO */}
+              <div className="mt-10 mb-10 space-y-6 flex flex-col items-center text-center w-full max-w-2xl">
+                  <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-tight">{advisorInsight.title}</h3>
+                  <p className="text-gray-400 text-base leading-relaxed italic px-4">
+                      &quot;{advisorInsight.message}&quot;
                   </p>
-                  <div className="pt-4 flex flex-wrap justify-center md:justify-start gap-4">
-                      <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black uppercase text-cyan tracking-widest">Viabilidad: 94%</div>
-                      <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black uppercase text-emerald-400 tracking-widest">Impacto: Alto</div>
-                  </div>
+              </div>
+
+              {/* ETIQUETAS DE IMPACTO AL FINAL */}
+              <div className="flex flex-wrap justify-center gap-4">
+                  <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black uppercase text-cyan tracking-widest">Viabilidad: {advisorInsight.viability}</div>
+                  <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black uppercase text-emerald-400 tracking-widest">Impacto: {advisorInsight.impact}</div>
               </div>
           </PremiumCard>
 
@@ -303,8 +358,8 @@ export default function DashboardPage() {
       {/* 4. SECCIÓN DE ACCESOS DIRECTOS PREMIUM */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <AccessCard label="Inventario Maestro" sub="Control de 360° de tus productos" href="/dashboard/products" icon={<Package size={32}/>} />
-          <AccessCard label="Cartera & Finanzas" sub="Gestión de flujo de caja real" href="/dashboard/reports/cuentas" icon={<Wallet size={32}/>} />
-          <AccessCard label="Venta Omnicanal" sub="WhatsApp, Web y POS Físico" href="/dashboard/invoicing" icon={<Globe size={32}/>} />
+          <AccessCard label="Reportes Completos" sub="Gestión de flujo de caja real" href="/dashboard/reports" icon={<FileText size={32}/>} />
+          <AccessCard label="Chats Importantes" sub="WhatsApp, Web y POS Físico" href="/dashboard/chats" icon={<MessageSquare size={32}/>} />
       </div>
 
       <OnboardingModal isOpen={isOnboardingOpen} onClose={() => setIsOnboardingOpen(false)} onComplete={() => {}} />
