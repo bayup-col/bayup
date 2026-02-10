@@ -4,242 +4,188 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, 
   TrendingUp, 
-  TrendingDown, 
+  DollarSign, 
+  ShoppingBag, 
   Target, 
+  Package, 
   Zap, 
-  Users, 
-  ShoppingCart, 
-  Globe, 
-  Smartphone, 
-  CreditCard,
-  PieChart,
-  BarChart2,
-  AlertCircle
+  Bot,
+  ArrowUpRight,
+  Activity,
+  Sparkles
 } from "lucide-react";
+import { 
+    AreaChart, 
+    Area, 
+    ResponsiveContainer
+} from 'recharts';
 
 interface MetricDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   metric: {
     label: string;
-    value: string;
-    sub: string;
-    trend: string;
+    value: number;
+    icon: any;
     color: string;
+    bg: string;
+    trend: string;
+    isCurrency?: boolean;
+    isPercentage?: boolean;
   } | null;
 }
 
-// --- DATOS ESPECÍFICOS PARA CADA MÉTRICA (SIMULADOS) ---
-const METRIC_DETAILS: Record<string, any> = {
-  "Ventas Brutas": {
-    description: "Desglose total de ingresos facturados antes de deducciones.",
-    insights: [
-      { label: "Canal Online", value: "65%", trend: "+12%", icon: Globe },
-      { label: "Punto de Venta", value: "35%", trend: "-2%", icon: ShoppingCart },
-    ],
-    deepDive: [
-      { label: "Hora Pico", value: "18:00 - 20:00", sub: "Mayor volumen transaccional" },
-      { label: "Producto Top", value: "Sneakers Urban", sub: "15% del total de ventas" },
-    ],
-    advice: "El canal online está superando las proyecciones. Considera aumentar el stock del almacén central para evitar quiebres de stock web."
-  },
-  "Utilidad Neta": {
-    description: "Ganancia real después de restar todos los costos, impuestos y gastos.",
-    insights: [
-      { label: "Margen Bruto", value: "42%", trend: "Stable", icon: PieChart },
-      { label: "Impuestos Est.", value: "19%", trend: "Fixed", icon: CreditCard },
-    ],
-    deepDive: [
-      { label: "EBITDA", value: "$ 18.5M", sub: "Earnings Before Interest, Taxes..." },
-      { label: "Neto Accionistas", value: "$ 12.1M", sub: "Disponible para retiro/inversión" },
-    ],
-    advice: "Tu margen neto es saludable (22%). Es un buen momento para reinvertir un 5% en I+D o expansión de marketing sin afectar la liquidez."
-  },
-  "Gastos Operativos": {
-    description: "Costos recurrentes necesarios para mantener el negocio funcionando.",
-    insights: [
-      { label: "Nómina", value: "45%", trend: "+2%", icon: Users },
-      { label: "Marketing", value: "30%", trend: "+5%", icon: Zap },
-    ],
-    deepDive: [
-      { label: "Logística", value: "$ 1.2M", sub: "Envíos y almacenamiento" },
-      { label: "Alquiler/Servicios", value: "$ 0.8M", sub: "Costos fijos de instalaciones" },
-    ],
-    advice: "El gasto en Marketing ha subido, pero el ROAS se mantiene positivo. Vigila los costos de nómina, están acercándose al límite del 50%."
-  },
-  "Ticket Promedio": {
-    description: "Valor medio de cada transacción realizada por los clientes.",
-    insights: [
-      { label: "Items/Cesta", value: "2.4", trend: "+0.1", icon: ShoppingCart },
-      { label: "Upsell Rate", value: "18%", trend: "+3%", icon: TrendingUp },
-    ],
-    deepDive: [
-      { label: "Clientes Recurrentes", value: "$ 180k", sub: "Gastan 25% más que nuevos" },
-      { label: "Clientes Nuevos", value: "$ 110k", sub: "Costo de adquisición: $15" },
-    ],
-    advice: "Implementar 'Bundles' (paquetes de productos) en el checkout podría elevar el ticket promedio a $160k el próximo mes."
-  },
-  "Conversion": {
-    description: "Porcentaje de visitantes que finalizan una compra.",
-    insights: [
-      { label: "Desktop", value: "10.2%", trend: "+1%", icon: Globe },
-      { label: "Mobile", value: "6.1%", trend: "+0.5%", icon: Smartphone },
-    ],
-    deepDive: [
-      { label: "Abandono Carrito", value: "68%", sub: "Principal fuga de ventas" },
-      { label: "Bounce Rate", value: "35%", sub: "Páginas de producto" },
-    ],
-    advice: "La conversión móvil es baja comparada con desktop. Revisa la experiencia de usuario en el checkout desde celulares."
-  },
-  "Staff ROI": {
-    description: "Retorno de inversión por cada peso gastado en capital humano.",
-    insights: [
-      { label: "Ventas/Hora", value: "$ 450k", trend: "+8%", icon: Zap },
-      { label: "Eficiencia", value: "92%", trend: "High", icon: Target },
-    ],
-    deepDive: [
-      { label: "Top Performer", value: "Elena R.", sub: "6.5x su salario en ventas" },
-      { label: "Avg Performer", value: "3.2x", sub: "Promedio del equipo" },
-    ],
-    advice: "Elena R. está cargando con gran parte de la cuota. Considera un bono de retención o asignarle un trainee para escalar sus métodos."
-  }
-};
+const MOCK_CHART_DATA = [
+    { name: '1', val: 400 },
+    { name: '2', val: 700 },
+    { name: '3', val: 1200 },
+    { name: '4', val: 900 },
+    { name: '5', val: 1500 },
+    { name: '6', val: 1800 },
+    { name: '7', val: 1400 },
+];
 
 export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDetailModalProps) {
   if (!isOpen || !metric) return null;
 
-  const details = METRIC_DETAILS[metric.label] || {
-    description: "Información detallada de la métrica seleccionada.",
-    insights: [],
-    deepDive: [],
-    advice: "Analiza esta métrica periódicamente para mejorar el rendimiento."
+  const getSubMetrics = () => {
+    switch (metric.label) {
+        case "Ventas de Hoy": return [
+            { l: "Ticket Prom.", v: "$ 85k", icon: <DollarSign size={14}/> },
+            { l: "Margen Bruto", v: "24%", icon: <Zap size={14}/> },
+            { l: "Ventas/Hora", v: "4.2", icon: <Activity size={14}/> }
+        ];
+        case "Órdenes Activas": return [
+            { l: "Por Despachar", v: "12", icon: <Package size={14}/> },
+            { l: "En Tránsito", v: "45", icon: <TrendingUp size={14}/> },
+            { l: "Demora Prom.", v: "2h", icon: <Activity size={14}/> }
+        ];
+        case "Tasa de Conversión": return [
+            { l: "Visitas", v: "1.2k", icon: <Target size={14}/> },
+            { l: "Carritos", v: "85", icon: <ShoppingBag size={14}/> },
+            { l: "ROI Proy.", v: "4.5x", icon: <Sparkles size={14}/> }
+        ];
+        case "Stock Crítico": return [
+            { l: "Items Agotados", v: "3", icon: <Package size={14}/> },
+            { l: "Reposición", v: "En camino", icon: <Activity size={14}/> },
+            { l: "Valor Inmov.", v: "$ 4.2M", icon: <DollarSign size={14}/> }
+        ];
+        default: return [];
+    }
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
-          {/* Backdrop con blur */}
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
+            className="absolute inset-0 bg-[#001A1A]/60 backdrop-blur-md"
           />
 
-          {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed inset-0 m-auto w-full max-w-2xl h-fit max-h-[90vh] z-[101] p-4 pointer-events-none flex items-center justify-center"
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="relative bg-white/90 backdrop-blur-2xl w-full max-w-[600px] rounded-[3.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.3)] overflow-hidden border border-white/40 flex flex-col"
           >
-            <div className="bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xl rounded-[2.5rem] w-full pointer-events-auto overflow-hidden flex flex-col">
-              
-              {/* Header con gradiente sutil */}
-              <div className="relative p-8 pb-6 border-b border-gray-100">
-                <div className="absolute top-0 right-0 p-6">
-                  <button 
-                    onClick={onClose}
-                    className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors text-gray-500"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-                
-                <div className="flex items-center gap-4 mb-2">
-                   <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${metric.trend.startsWith('+') || metric.trend === 'High' || metric.trend === 'OK' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                      {metric.trend} Tendencia
-                   </span>
-                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Análisis en Profundidad
-                   </span>
-                </div>
-                
-                <h2 className={`text-4xl font-black italic tracking-tighter ${metric.color.replace('text-', 'text-')}`}>
-                  {metric.label}
-                </h2>
-                <p className="text-gray-500 font-medium mt-2 max-w-md">
-                  {details.description}
-                </p>
-              </div>
-
-              {/* Body Content */}
-              <div className="p-8 space-y-8 overflow-y-auto custom-scrollbar max-h-[60vh]">
-                
-                {/* Main Value & Graph Placeholder */}
-                <div className="flex items-end justify-between bg-white/50 p-6 rounded-3xl border border-white">
+            {/* Minimal Header */}
+            <div className="p-8 pb-4 flex justify-between items-center relative z-10">
+                <div className="flex items-center gap-4">
+                    <div className={`h-10 w-10 rounded-2xl flex items-center justify-center shadow-lg border border-white/20 ${metric.color} ${metric.bg}`}>
+                        {metric.icon}
+                    </div>
                     <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Valor Actual</p>
-                        <p className="text-5xl font-black text-gray-900 mt-1">{metric.value}</p>
+                        <h2 className="text-xl font-black italic uppercase tracking-tighter text-[#004d4d]">{metric.label}</h2>
+                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Análisis Táctico Live</p>
                     </div>
-                    <div className="h-12 flex items-end gap-1">
-                        {[40, 60, 45, 70, 50, 80, 65].map((h, i) => (
-                            <div key={i} style={{ height: `${h}%` }} className={`w-2 rounded-t-sm ${i === 6 ? 'bg-gray-900' : 'bg-gray-200'}`}></div>
-                        ))}
+                </div>
+                <button 
+                    onClick={onClose}
+                    className="h-10 w-10 rounded-full bg-gray-100 hover:bg-rose-50 hover:text-rose-500 transition-all flex items-center justify-center text-gray-400"
+                >
+                    <X size={20} />
+                </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="p-8 pt-4 space-y-8">
+                
+                {/* Main Metric Section */}
+                <div className="flex items-end justify-between gap-10">
+                    <div className="space-y-1">
+                        <span className="text-5xl font-black text-gray-900 tracking-tighter italic">
+                            {metric.isCurrency && "$ "}{metric.value.toLocaleString()}
+                            {metric.isPercentage && "%"}
+                        </span>
+                        <div className="flex items-center gap-2 text-emerald-600 text-[10px] font-black uppercase tracking-tighter">
+                            <ArrowUpRight size={14} /> {metric.trend} <span className="text-gray-300 ml-1">vs ayer</span>
+                        </div>
+                    </div>
+                    {/* Sparkline minimalista */}
+                    <div className="flex-1 h-20 max-w-[200px] opacity-60">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={MOCK_CHART_DATA}>
+                                <Area type="monotone" dataKey="val" stroke={metric.color.includes('emerald') ? '#10b981' : '#00f2ff'} strokeWidth={3} fillOpacity={0} />
+                            </AreaChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* Insights Grid */}
-                {details.insights.length > 0 && (
-                  <div className="grid grid-cols-2 gap-4">
-                    {details.insights.map((insight: any, i: number) => (
-                      <div key={i} className="bg-white p-5 rounded-[1.5rem] border border-gray-100 shadow-sm">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="p-2 bg-gray-50 rounded-xl text-gray-600">
-                             <insight.icon size={18} />
-                          </div>
-                          <span className={`text-[10px] font-bold ${insight.trend.startsWith('+') ? 'text-emerald-500' : 'text-rose-500'}`}>{insight.trend}</span>
+                {/* Sub-Metrics Grid (Minimalista) */}
+                <div className="grid grid-cols-3 gap-4 border-y border-gray-100 py-8">
+                    {getSubMetrics().map((sm, i) => (
+                        <div key={i} className="space-y-1 text-center border-r last:border-r-0 border-gray-100">
+                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-center gap-1">
+                                {sm.icon} {sm.l}
+                            </p>
+                            <p className="text-lg font-black text-[#004d4d] italic uppercase">{sm.v}</p>
                         </div>
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{insight.label}</p>
-                        <p className="text-xl font-black text-gray-900">{insight.value}</p>
-                      </div>
                     ))}
-                  </div>
-                )}
+                </div>
 
-                {/* Deep Dive List */}
-                {details.deepDive.length > 0 && (
-                    <div className="space-y-3">
-                        <h4 className="text-[10px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
-                            <BarChart2 size={12}/> Detalles Operativos
-                        </h4>
-                        <div className="bg-gray-50 rounded-[1.5rem] p-1">
-                            {details.deepDive.map((item: any, i: number) => (
-                                <div key={i} className="flex items-center justify-between p-4 border-b border-gray-100 last:border-0">
-                                    <span className="text-sm font-bold text-gray-700">{item.label}</span>
-                                    <div className="text-right">
-                                        <p className="text-sm font-black text-gray-900">{item.value}</p>
-                                        <p className="text-[9px] font-bold text-gray-400">{item.sub}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                {/* Bayt Advice (Condensado y Elegante) */}
+                <div className="bg-[#001A1A] p-8 rounded-[2.5rem] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                        <Bot size={80} />
                     </div>
-                )}
-
-                {/* AI Advice */}
-                <div className="bg-[#004d4d] p-6 rounded-[2rem] text-white relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10">
-                        <Zap size={80} />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-2 mb-3">
-                            <span className="bg-[#00f2ff] text-[#004d4d] text-[9px] font-black uppercase px-2 py-0.5 rounded">Bayt AI Tip</span>
+                    <div className="relative z-10 flex gap-6 items-start">
+                        <div className="h-10 w-10 rounded-xl bg-cyan/10 border border-cyan/20 flex items-center justify-center shrink-0">
+                            <Bot size={20} className="text-cyan animate-pulse" />
                         </div>
-                        <p className="text-sm font-medium italic leading-relaxed text-white/90">
-                            &quot;{details.advice}&quot;
-                        </p>
+                        <div className="space-y-3">
+                            <p className="text-[10px] font-black text-cyan uppercase tracking-[0.2em]">Bayt Insight</p>
+                            <p className="text-sm font-medium leading-relaxed italic text-gray-300">
+                                &quot;{getAdvice(metric.label)}&quot;
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-              </div>
-
+                <button 
+                    onClick={onClose}
+                    className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl shadow-gray-200"
+                >
+                    Continuar Operación
+                </button>
             </div>
           </motion.div>
-        </>
+        </div>
       )}
     </AnimatePresence>
   );
+}
+
+// Función auxiliar para el consejo
+function getAdvice(label: string) {
+    switch (label) {
+        case "Ventas de Hoy": return "Pico de ventas detectado. El ticket promedio ha subido un 12%.";
+        case "Órdenes Activas": return "Flujo logístico saludable. Prioriza las entregas locales.";
+        case "Tasa de Conversión": return "Conversión optimizada. Tu campaña actual está performando.";
+        case "Stock Crítico": return "3 SKUs requieren reposición inmediata para evitar quiebre.";
+        default: return "Datos actualizados en tiempo real.";
+    }
 }
