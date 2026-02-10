@@ -252,6 +252,7 @@ const StatusBadge = ({ status }: { status: OrderStatus }) => {
     delivered: "bg-emerald-50 text-emerald-700 border-emerald-200",
     cancelled: "bg-slate-100 text-slate-600 border-slate-200",
     returned: "bg-rose-50 text-rose-700 border-rose-200",
+    delayed: "bg-yellow-50 text-yellow-700 border-yellow-200",
   };
   
   const labels = {
@@ -262,6 +263,7 @@ const StatusBadge = ({ status }: { status: OrderStatus }) => {
     delivered: "Entregado",
     cancelled: "Cancelado",
     returned: "Devuelto",
+    delayed: "Retrasado",
   };
 
   return (
