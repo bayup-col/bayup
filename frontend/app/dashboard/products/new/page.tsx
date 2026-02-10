@@ -57,9 +57,6 @@ export default function NewProductPage() {
     const [newCategoryName, setNewCategoryName] = useState("");
     const [categoriesList, setCategoriesList] = useState<any[]>([]);
     
-    const [isEditorGuideOpen, setIsEditorGuideOpen] = useState(false);
-    const [activeEditorGuideTab, setActiveEditorGuideTab] = useState('info');
-
     // Mapeo de colores para reconocimiento automático
     const colorMap: { [key: string]: string } = {
         'rojo': '#FF0000', 'red': '#FF0000',
