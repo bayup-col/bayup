@@ -176,32 +176,7 @@ export default function InvoicingPage() {
     const [selectedInvoice, setSelectedInvoice] = useState<PastInvoice | null>(null);
     
     const [products, setProducts] = useState<Product[]>([]);
-    const [history, setHistory] = useState<PastInvoice[]>([
-        {
-            id: "ORD-7828",
-            invoice_num: "FAC-7828",
-            date: "2026-01-29T16:40:00",
-            customer: "Carlos Ruiz",
-            customer_email: "carlos@example.com",
-            customer_type: "final",
-            source: "mercadolibre",
-            payment_method: "transfer",
-            total: 320000,
-            items: [{ product_name: "Smartwatch Series 5", quantity: 1, price_at_purchase: 320000 }]
-        },
-        {
-            id: "ORD-7825",
-            invoice_num: "FAC-7825",
-            date: "2026-01-28T14:20:00",
-            customer: "Luisa Lane",
-            customer_email: "luisa@daily.com",
-            customer_type: "final",
-            source: "shopify",
-            payment_method: "transfer",
-            total: 450000,
-            items: [{ product_name: "Bolso de Cuero", quantity: 1, price_at_purchase: 450000 }]
-        }
-    ]);
+    const [history, setHistory] = useState<PastInvoice[]>([]);
     const [sellers, setSellers] = useState<{name: string, role: string}[]>([]);
     const [historySearch, setHistorySearch] = useState('');
     const [historyFilter, setHistoryFilter] = useState('all');

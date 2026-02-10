@@ -89,10 +89,10 @@ export default function WebAnalyticsPage() {
             startY: 60,
             head: [['Métrica Principal', 'Valor Real', 'Eficiencia']],
             body: [
-                ['Ventas Totales Brutas', formatCurrency(3450000), '+18.5%'],
-                ['Ticket Promedio de Venta', formatCurrency(124000), 'Óptimo'],
-                ['Tasa de Conversión General', '4.8%', 'Superior'],
-                ['Pedidos Procesados Hoy', '42 pedidos', 'Estable']
+                ['Ventas Totales Brutas', formatCurrency(0), '0%'],
+                ['Ticket Promedio de Venta', formatCurrency(0), 'N/A'],
+                ['Tasa de Conversión General', '0%', 'N/A'],
+                ['Pedidos Procesados Hoy', '0 pedidos', 'Iniciando']
             ],
             headStyles: { fillColor: [0, 77, 77] },
             theme: 'striped'
@@ -111,17 +111,17 @@ export default function WebAnalyticsPage() {
                 <div className="flex-1 space-y-4 relative z-10">
                     <span className="px-4 py-1.5 bg-[#00f2ff]/10 text-[#00f2ff] rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-[#00f2ff]/20">Bayt Strategic Intelligence</span>
                     <h3 className="text-3xl font-black uppercase italic tracking-tighter">Análisis de Operación Global</h3>
-                    <p className="text-gray-300 text-lg font-medium leading-relaxed italic">"Tu conversión es del <span className="text-[#00f2ff] font-bold">4.8%</span>, pero detecto una fuga del 61% en el inicio del checkout. Sugiero implementar 'Envío Gratis' automático para recuperar <span className="text-white font-black">$24.5M</span>."</p>
+                    <p className="text-gray-300 text-lg font-medium leading-relaxed italic">"Bayt está recopilando datos de tu tienda. Muy pronto recibirás sugerencias estratégicas para maximizar tu rentabilidad."</p>
                 </div>
-                <button onClick={() => setActiveTab('marketing')} className="relative z-10 px-10 py-5 bg-[#00f2ff] text-[#001a1a] rounded-full font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-3xl flex items-center gap-3"><Rocket size={18}/> Activar Rescate</button>
+                <button onClick={() => setActiveTab('marketing')} className="relative z-10 px-10 py-5 bg-[#00f2ff] text-[#001a1a] rounded-full font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-3xl flex items-center gap-3"><Rocket size={18}/> Activar Monitor</button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[ 
-                    { id: 'ventas', label: 'Ventas Hoy', val: 3450000, trend: '+18.5%', up: true, icon: <DollarSign/>, color: 'text-[#004d4d]' }, 
-                    { id: 'ticket', label: 'Ticket Promedio', val: 124000, trend: '+5.2%', up: true, icon: <ShoppingCart/>, color: 'text-purple-500' }, 
-                    { id: 'pedidos', label: 'Pedidos Hoy', val: 42, trend: '-2.1%', up: false, icon: <Package/>, color: 'text-blue-500' }, 
-                    { id: 'conversion', label: 'Tasa Conversión', val: '4.8%', trend: '+0.4%', up: true, icon: <Target/>, color: 'text-emerald-500' }, 
+                    { id: 'ventas', label: 'Ventas Hoy', val: 0, trend: 'Live', up: true, icon: <DollarSign/>, color: 'text-[#004d4d]' }, 
+                    { id: 'ticket', label: 'Ticket Promedio', val: 0, trend: 'N/A', up: true, icon: <ShoppingCart/>, color: 'text-purple-500' }, 
+                    { id: 'pedidos', label: 'Pedidos Hoy', val: 0, trend: 'Live', up: true, icon: <Package/>, color: 'text-blue-500' }, 
+                    { id: 'conversion', label: 'Tasa Conversión', val: '0%', trend: 'N/A', up: true, icon: <Target/>, color: 'text-emerald-500' }, 
                 ].map((kpi, i) => (
                     <TiltCard key={i} onClick={() => setSelectedKPI(kpi.id)}>
                         <div className="p-8">
@@ -134,16 +134,16 @@ export default function WebAnalyticsPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-white/60 backdrop-blur-md p-12 rounded-[4rem] border border-white/80 shadow-sm space-y-8">
-                    <div className="flex justify-between items-center border-b border-gray-100 pb-6"><div className="flex items-center gap-4"><div className="h-12 w-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center"><AlertCircle size={24}/></div><h4 className="text-xl font-black text-gray-900 italic uppercase">Fuga de Capital</h4></div><span className="px-3 py-1 bg-rose-50 text-rose-600 text-[8px] font-black uppercase rounded-lg border border-rose-100">Alerta Crítica</span></div>
-                    <p className="text-gray-500 font-medium italic leading-relaxed">El <span className="font-black text-gray-900 underline decoration-rose-500 underline-offset-4 decoration-2">61% de tus clientes</span> abandonan al calcular el envío. El impacto proyectado es de $24.5M perdidos mensualmente.</p>
-                    <div className="grid grid-cols-2 gap-8"><div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 shadow-inner text-center"><p className="text-2xl font-black text-gray-900">{formatCurrency(24500000)}</p><p className="text-[9px] font-black text-gray-400 uppercase mt-2 tracking-widest">Valor Perdido</p></div><div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 shadow-inner text-center"><p className="text-2xl font-black text-rose-600">128</p><p className="text-[9px] font-black text-gray-400 uppercase mt-2 tracking-widest">Abandonos</p></div></div>
+                    <div className="flex justify-between items-center border-b border-gray-100 pb-6"><div className="flex items-center gap-4"><div className="h-12 w-12 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center"><CheckCircle2 size={24}/></div><h4 className="text-xl font-black text-gray-900 italic uppercase">Estado de Salida</h4></div><span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase rounded-lg border border-emerald-100">Optimizado</span></div>
+                    <p className="text-gray-500 font-medium italic leading-relaxed">No se detectan fugas de capital críticas. El flujo de tu checkout se mantiene saludable.</p>
+                    <div className="grid grid-cols-2 gap-8"><div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 shadow-inner text-center"><p className="text-2xl font-black text-gray-900">$ 0</p><p className="text-[9px] font-black text-gray-400 uppercase mt-2 tracking-widest">Valor Perdido</p></div><div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 shadow-inner text-center"><p className="text-2xl font-black text-emerald-600">0</p><p className="text-[9px] font-black text-gray-400 uppercase mt-2 tracking-widest">Abandonos</p></div></div>
                 </div>
                 <div className="bg-[#004d4d] p-12 rounded-[4rem] text-white shadow-2xl relative overflow-hidden border border-white/5 flex flex-col justify-between">
                     <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12"><CheckCircle2 size={200} fill="white"/></div>
                     <div className="space-y-8 relative z-10">
-                        <div className="flex justify-between items-center border-b border-white/10 pb-6"><div className="flex items-center gap-4"><div className="h-12 w-12 bg-white/10 text-[#00f2ff] rounded-2xl flex items-center justify-center"><ShieldCheck size={24}/></div><h4 className="text-xl font-black uppercase italic tracking-tight">Éxito de Recuperación</h4></div><span className="px-3 py-1 bg-[#00f2ff]/10 text-[#00f2ff] text-[8px] font-black uppercase rounded-lg">Optimizado</span></div>
-                        <p className="text-gray-200 text-lg font-medium italic">"Gracias a WhatsApp AI, hemos rescatado <span className="font-black text-[#00f2ff] underline underline-offset-4">$8.9M</span> este mes."</p>
-                        <div className="grid grid-cols-2 gap-8 mt-6"><div className="text-left"><p className="text-4xl font-black text-[#00f2ff]">{formatCurrency(8900000)}</p><p className="text-[9px] font-black text-white/40 uppercase mt-2">Rescatado Hoy</p></div><div className="text-right"><p className="text-4xl font-black text-white">32%</p><p className="text-[9px] font-black text-white/40 uppercase mt-2">ROI: +420%</p></div></div>
+                        <div className="flex justify-between items-center border-b border-white/10 pb-6"><div className="flex items-center gap-4"><div className="h-12 w-12 bg-white/10 text-[#00f2ff] rounded-2xl flex items-center justify-center"><ShieldCheck size={24}/></div><h4 className="text-xl font-black uppercase italic tracking-tight">Éxito de Recuperación</h4></div><span className="px-3 py-1 bg-[#00f2ff]/10 text-[#00f2ff] text-[8px] font-black uppercase rounded-lg">Stand-by</span></div>
+                        <p className="text-gray-200 text-lg font-medium italic">"Bayup AI está monitoreando tus carritos. Activaremos el protocolo de rescate automáticamente."</p>
+                        <div className="grid grid-cols-2 gap-8 mt-6"><div className="text-left"><p className="text-4xl font-black text-[#00f2ff]">$ 0</p><p className="text-[9px] font-black text-white/40 uppercase mt-2">Rescatado Hoy</p></div><div className="text-right"><p className="text-4xl font-black text-white">0%</p><p className="text-[9px] font-black text-white/40 uppercase mt-2">ROI Proyectado</p></div></div>
                     </div>
                 </div>
             </div>

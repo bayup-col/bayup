@@ -52,19 +52,7 @@ interface ReservedOrder {
     history: { date: string; action: string; amount?: number; }[];
 }
 
-const MOCK_RESERVATIONS: ReservedOrder[] = [
-    {
-        id: "SEP-1001",
-        customer: { name: "Mariana López", phone: "+57 300 123 4567", email: "mariana@gmail.com" },
-        products: [{ name: "Vestido Floral", variant: "Talla S / Azul", image: "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=400", price: 180000, original_price: 180000, qty: 1 }],
-        total_value: 180000,
-        paid_amount: 50000,
-        requested_at: new Date(Date.now() - 86400000).toISOString(),
-        expires_at: new Date(Date.now() + 345600000).toISOString(),
-        status: 'partial',
-        history: [{ date: '2026-02-07', action: 'Separado con abono inicial', amount: 50000 }]
-    }
-];
+const MOCK_RESERVATIONS: ReservedOrder[] = [];
 
 // --- MODAL DE NUEVO SEPARADO (POS MULTI-PRODUCTO + ABONO) ---
 const NewSeparadoModal = ({ isOpen, onClose, onSave }: { isOpen: boolean, onClose: () => void, onSave: (data: any) => void }) => {
@@ -75,19 +63,9 @@ const NewSeparadoModal = ({ isOpen, onClose, onSave }: { isOpen: boolean, onClos
     const [expiryDate, setExpiryDate] = useState("");
     const [initialAbono, setInitialAbono] = useState<string>("0");
 
-    const mockCustomers = [
-        { id: 'c1', name: 'Andrés Felipe', phone: '3001234567', email: 'andres@gmail.com' },
-        { id: 'c2', name: 'Laura Restrepo', phone: '3119876543', email: 'laura@gmail.com' },
-        { id: 'c3', name: 'Carlos Mario', phone: '3205554433', email: 'carlos@gmail.com' },
-        { id: 'c4', name: 'Diana Rojas', phone: '3104442211', email: 'diana@gmail.com' },
-        { id: 'c5', name: 'Roberto Gómez', phone: '3012223344', email: 'roberto@gmail.com' }
-    ];
+    const mockCustomers: any[] = [];
 
-    const mockProducts = [
-        { id: 'p1', name: 'Reloj Gold Pro', price: 450000, img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200' },
-        { id: 'p2', name: 'Gafas Aviador', price: 120000, img: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=200' },
-        { id: 'p3', name: 'Bolso Cuero', price: 280000, img: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=200' }
-    ];
+    const mockProducts: any[] = [];
 
     const filteredCustomers = useMemo(() => {
         if (!searchTermCust) return mockCustomers.slice(0, 5);

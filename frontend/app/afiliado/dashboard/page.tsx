@@ -22,27 +22,15 @@ export default function AffiliateDashboard() {
     const [activityReportRange, setActivityReportRange] = useState({ start: '', end: '' });
 
     const kpis = [
-        { label: 'Facturación Hoy', val: '$ 4.250.000', trend: '+12.5%', up: true, icon: <Building2 size={24}/>, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { label: 'Comisión Hoy (0.5%)', val: '$ 21.250', trend: '+12.5%', up: true, icon: <Zap size={24}/>, color: 'text-purple-600', bg: 'bg-purple-50' },
-        { label: 'Comisión del Mes', val: '$ 584.000', trend: '+8.2%', up: true, icon: <DollarSign size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-        { label: 'Total Ganado', val: '$ 12.450.000', trend: 'Histórico', up: true, icon: <Sparkles size={24}/>, color: 'text-amber-600', bg: 'bg-amber-50' },
+        { label: 'Facturación Hoy', val: '$ 0', trend: 'Live', up: true, icon: <Building2 size={24}/>, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { label: 'Comisión Hoy (0.5%)', val: '$ 0', trend: 'Live', up: true, icon: <Zap size={24}/>, color: 'text-purple-600', bg: 'bg-purple-50' },
+        { label: 'Comisión del Mes', val: '$ 0', trend: 'Iniciando', up: true, icon: <DollarSign size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+        { label: 'Total Ganado', val: '$ 0', trend: 'Histórico', up: true, icon: <Sparkles size={24}/>, color: 'text-amber-600', bg: 'bg-amber-50' },
     ];
 
-    const recentActivity = [
-        { id: 'TRX-1001', company: 'Moda Urbana Store', amount: '$ 450.000', commission: '$ 2.250', date: '28 Ene, 14:45', status: 'Confirmado', type: 'Venta Online', client: 'Juan Perez', location: 'Bogotá, COL' },
-        { id: 'TRX-1002', company: 'Tech Gadgets S.A.', amount: '$ 1.200.000', commission: '$ 6.000', date: '28 Ene, 14:28', status: 'Confirmado', type: 'Venta Online', client: 'Maria Gomez', location: 'Medellín, COL' },
-        { id: 'TRX-1003', company: 'Café Aroma Premium', amount: '$ 85.000', commission: '$ 425', date: '28 Ene, 13:50', status: 'Confirmado', type: 'Manual POS', client: 'Carlos Ruiz', location: 'Cali, COL' },
-        { id: 'TRX-1004', company: 'Deportes Extremos', amount: '$ 320.000', commission: '$ 1.600', date: '28 Ene, 11:10', status: 'Pendiente', type: 'Venta Online', client: 'Lucia Fernandez', location: 'Cartagena, COL' },
-    ];
+    const recentActivity: any[] = [];
 
-    const extendedHistory = [
-        ...recentActivity,
-        { id: 'TRX-1005', company: 'Boutique Elegance', amount: '$ 980.000', commission: '$ 4.900', date: '28 Ene, 09:15', status: 'Confirmado', type: 'Venta Online', client: 'Ana Martinez', location: 'Barranquilla, COL' },
-        { id: 'TRX-1006', company: 'Gamer Zone', amount: '$ 2.150.000', commission: '$ 10.750', date: '27 Ene, 18:30', status: 'Confirmado', type: 'Venta Online', client: 'Roberto Gomez', location: 'Pereira, COL' },
-        { id: 'TRX-1007', company: 'Fit Life Gym', amount: '$ 120.000', commission: '$ 600', date: '27 Ene, 14:20', status: 'Auditado', type: 'Manual POS', client: 'Elena Prado', location: 'Bucaramanga, COL' },
-        { id: 'TRX-1008', company: 'Pet Shop Lovery', amount: '$ 75.000', commission: '$ 375', date: '27 Ene, 11:10', status: 'Confirmado', type: 'Venta Online', client: 'David Prada', location: 'Manizales, COL' },
-        { id: 'TRX-1009', company: 'Pet Shop Lovery', amount: '$ 125.000', commission: '$ 625', date: '26 Ene, 16:45', status: 'Confirmado', type: 'Venta Online', client: 'David Prada', location: 'Manizales, COL' },
-    ];
+    const extendedHistory: any[] = [];
 
     const handleExportActivityReport = async () => {
         setIsGeneratingPDF(true);
