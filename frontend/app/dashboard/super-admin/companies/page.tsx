@@ -56,7 +56,7 @@ export default function CompaniesDirectory() {
         if (!token) return;
         setIsImpersonating(userId);
         try {
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://gallant-education-production-8b4a.up.railway.app";
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
             const res = await fetch(`${apiBase}/super-admin/impersonate/${userId}`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }

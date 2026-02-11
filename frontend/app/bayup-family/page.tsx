@@ -21,7 +21,7 @@ export default function BayupFamilyLogin() {
         setIsLoading(true);
 
         try {
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://gallant-education-production-8b4a.up.railway.app";
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
             const formData = new FormData();
             formData.append('username', email);
             formData.append('password', password);

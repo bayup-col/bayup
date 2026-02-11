@@ -148,7 +148,7 @@ export default function MensajesPage() {
       const fetchChannels = async () => {
           if (!token) return;
           try {
-              const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+              const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
               const res = await fetch(`${apiBase}/admin/channels/list`, {
                   headers: { 'Authorization': `Bearer ${token}` }
               });
@@ -165,7 +165,7 @@ export default function MensajesPage() {
       showToast(`Conectando con la API de ${channel}...`, "info");
       
       try {
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
           const res = await fetch(`${apiBase}/admin/channels/link`, {
               method: 'POST',
               headers: { 

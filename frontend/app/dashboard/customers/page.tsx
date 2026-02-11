@@ -126,7 +126,7 @@ export default function CustomersPage() {
   const fetchCustomers = useCallback(async () => {
     if (!token) return;
     try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         const res = await fetch(`${apiBase}/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) {
             const data = await res.json();
@@ -159,7 +159,7 @@ export default function CustomersPage() {
       }
       setIsSaving(true);
       try {
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
           const res = await fetch(`${apiBase}/admin/users`, {
               method: 'POST',
               headers: { 

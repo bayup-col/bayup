@@ -108,7 +108,7 @@ export default function GeneralSettings() {
         const fetchStoreData = async () => {
             if (!token) return;
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
                 const res = await fetch(`${apiUrl}/auth/me`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -159,7 +159,7 @@ export default function GeneralSettings() {
         if (!validatePhone(contact.phone)) { showToast("Teléfono de 10 dígitos requerido", "error"); return; }
         setIsSaving(true);
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
             const response = await fetch(`${apiUrl}/admin/update-profile`, {
                 method: 'PUT',
                 headers: { 

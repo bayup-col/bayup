@@ -26,7 +26,7 @@ export default function TaxesPage() {
     setLoading(true);
     setError(null);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const response = await fetch(`${apiUrl}/taxes`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -56,7 +56,7 @@ export default function TaxesPage() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const response = await fetch(`${apiUrl}/taxes/${taxRateId}`, {
         method: 'DELETE',
         headers: {

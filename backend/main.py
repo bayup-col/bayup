@@ -422,11 +422,12 @@ def update_product(product_id: uuid.UUID, product: schemas.ProductCreate, db: Se
 def get_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = get_tenant_id(current_user)
     try:
+        # Consulta simplificada para evitar errores de relación profunda (joinedload)
         orders = db.query(models.Order).filter(models.Order.tenant_id == tenant_id).order_by(models.Order.created_at.desc()).all()
         return orders
     except Exception as e:
-        print(f"DATABASE ERROR IN GET_ORDERS: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"CRITICAL DATABASE ERROR IN GET_ORDERS: {e}")
+        raise HTTPException(status_code=500, detail="Error de base de datos al recuperar historial")
 
 @app.get("/notifications")
 def get_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
@@ -435,7 +436,9 @@ def get_notifications(db: Session = Depends(get_db), current_user: models.User =
 
 @app.post("/orders", response_model=schemas.Order)
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    # Crucial: Identificar al Dueño de la tienda (Tenant) real
     tenant_id = get_tenant_id(current_user)
+    print(f"DEBUG: Creando orden para tenant_id: {tenant_id}")
     return crud.create_order(db=db, order=order, customer_id=current_user.id, tenant_id=tenant_id)
 
 # --- Admin / Staff ---

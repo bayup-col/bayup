@@ -107,20 +107,19 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
     subtotal = 0
     items_to_create = []
     
-    # Si no nos pasan el tenant_id, lo buscamos del primer producto
-    actual_tenant_id = tenant_id
+    # IMPORTANTE: El tenant_id DEBE ser el del dueño de la tienda (el usuario autenticado que emite la factura)
+    actual_tenant_id = tenant_id if tenant_id else customer_id
 
     for item in order.items:
         v = get_product_variant(db, item.product_variant_id)
         if not v:
-            raise HTTPException(status_code=404, detail=f"Product variant with id {item.product_variant_id} not found")
-        if v.stock < item.quantity:
-            raise HTTPException(status_code=400, detail=f"Not enough stock for variant {v.name}")
+            raise HTTPException(status_code=404, detail=f"Product variant not found")
         
-        if actual_tenant_id is None:
-            actual_tenant_id = v.product.owner_id
-        
+        # Lógica de Precios Pro
         price = v.product.price + v.price_adjustment
+        if order.customer_type == 'mayorista' and v.product.wholesale_price > 0:
+            price = v.product.wholesale_price + v.price_adjustment
+            
         subtotal += price * item.quantity
         items_to_create.append({"variant": v, "qty": item.quantity, "price": price})
     
@@ -134,21 +133,17 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
         customer_type=order.customer_type,
         source=order.source,
         payment_method=order.payment_method,
-        seller_name=order.seller_name
+        seller_name=order.seller_name,
+        status="completed"
     )
     db.add(db_order)
     db.flush()
-    for it in items_to_create:
-        db_item = models.OrderItem(
-            order_id=db_order.id,
-            product_variant_id=it["variant"].id,
-            quantity=it["qty"],
-            price_at_purchase=it["price"]
-        )
-        db.add(db_item)
-        it["variant"].stock -= it["qty"]
+    
+    db_order.total_price = subtotal
+    db.add_all(items_to_create)
     db.commit()
     db.refresh(db_order)
+    
     return db_order
 
 def get_orders_by_customer(db: Session, customer_id: uuid.UUID) -> list[models.Order]:
