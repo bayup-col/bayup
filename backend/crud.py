@@ -121,7 +121,11 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
         subtotal += price * item.quantity
         items_to_create.append({"variant": v, "qty": item.quantity, "price": price})
     
-    # 2. Crear la Orden Maestra
+    # 2. Definir Estado Inicial según el Canal
+    # Las ventas POS nacen completadas. Las ventas Web nacen pendientes para el flujo de despacho.
+    initial_status = "completed" if order.source.lower() == "pos" else "pending"
+
+    # 3. Crear la Orden Maestra
     db_order = models.Order(
         id=uuid.uuid4(),
         total_price=subtotal,
@@ -134,12 +138,12 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
         source=order.source,
         payment_method=order.payment_method,
         seller_name=order.seller_name,
-        status="completed"
+        status=initial_status
     )
     db.add(db_order)
     db.flush()
     
-    # 3. Registrar Items y Descontar Stock
+    # 4. Registrar Items y Descontar Stock
     for it in items_to_create:
         db_item = models.OrderItem(
             id=uuid.uuid4(),
@@ -151,64 +155,66 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
         db.add(db_item)
         it["variant"].stock -= it["qty"]
 
-    # 4. INTEGRACIÓN CRM: Sincronizar Cliente
+    # 5. INTEGRACIÓN CRM: Sincronizar Cliente en la base de datos global
     if order.customer_email:
-        # Buscar si el cliente ya existe bajo este dueño de tienda
+        email_clean = order.customer_email.lower().strip()
+        # Buscamos si ya es un cliente de esta tienda
         client_record = db.query(models.User).filter(
-            models.User.email == order.customer_email.lower().strip(),
+            models.User.email == email_clean,
             models.User.owner_id == actual_tenant_id
         ).first()
 
         if client_record:
-            # Actualizar cliente existente
             client_record.total_spent += subtotal
-            client_record.loyalty_points += int(subtotal / 1000) # 1 punto por cada 1000 pesos
+            client_record.loyalty_points += int(subtotal / 1000)
             client_record.last_purchase_date = db_order.created_at
-            client_record.last_purchase_summary = f"Compra #{str(db_order.id)[:4].upper()} - {len(items_to_create)} items"
+            client_record.last_purchase_summary = f"Venta {order.source} #{str(db_order.id)[:4].upper()}"
         else:
-            # Crear nuevo cliente automático en la base de datos
+            # Crear nuevo cliente automático para el módulo de Clientes
             new_client = models.User(
                 id=uuid.uuid4(),
-                email=order.customer_email.lower().strip(),
-                full_name=order.customer_name,
+                email=email_clean,
+                full_name=order.customer_name or "Cliente Nuevo",
                 phone=order.customer_phone,
-                owner_id=actual_tenant_id,
+                owner_id=actual_tenant_id, # Vinculado a la tienda
                 total_spent=subtotal,
                 loyalty_points=int(subtotal / 1000),
                 last_purchase_date=db_order.created_at,
-                last_purchase_summary=f"Primer pedido registrado",
-                role="cliente"
+                last_purchase_summary=f"Primer registro vía {order.source}",
+                role="cliente",
+                status="Activo"
             )
             db.add(new_client)
 
-    # 5. INTEGRACIÓN LOGÍSTICA: Crear Envío Automático
-    db_shipment = models.Shipment(
-        id=uuid.uuid4(),
-        order_id=db_order.id,
-        tenant_id=actual_tenant_id,
-        recipient_name=order.customer_name or "Cliente",
-        destination_address="Pendiente por confirmar",
-        status="pending_packing"
-    )
-    db.add(db_shipment)
+    # 6. INTEGRACIÓN LOGÍSTICA: Solo para pedidos Web o si requiere envío
+    if order.source.lower() != "pos":
+        db_shipment = models.Shipment(
+            id=uuid.uuid4(),
+            order_id=db_order.id,
+            tenant_id=actual_tenant_id,
+            recipient_name=order.customer_name or "Cliente",
+            destination_address="Por coordinar (Venta Web)",
+            status="pending_packing"
+        )
+        db.add(db_shipment)
 
-    # 6. INTEGRACIÓN DASHBOARD: Log de Actividad
+    # 7. INTEGRACIÓN DASHBOARD & INFORMES: Registro de Actividad e Ingresos
+    # Esto alimenta el Libro Maestro y las gráficas del Inicio e Informes
     db_log = models.ActivityLog(
         id=uuid.uuid4(),
         user_id=customer_id,
         tenant_id=actual_tenant_id,
-        action="Venta Realizada",
-        detail=f"Factura #{str(db_order.id)[:4].upper()} por ${subtotal:,.0f} ({order.source})",
+        action="Nueva Operación",
+        detail=f"Ingreso por {order.source}: ${subtotal:,.0f}",
         target_id=str(db_order.id)
     )
     db.add(db_log)
 
-    # 7. INTEGRACIÓN FINANCIERA: Registrar Ingreso
     db_income = models.Income(
         id=uuid.uuid4(),
         tenant_id=actual_tenant_id,
         amount=subtotal,
-        description=f"Venta {order.source} - Factura {str(db_order.id)[:4].upper()}",
+        description=f"Venta {order.source} - REF {str(db_order.id)[:4].upper()}",
         category="Ventas"
     )
     db.add(db_income)
