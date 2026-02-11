@@ -100,6 +100,7 @@ interface Order {
     status: OrderStatus;
     source: string;
     created_at: string;
+    items?: any[];
 }
 
 export default function OrdersPage() {
