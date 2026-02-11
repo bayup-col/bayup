@@ -490,7 +490,7 @@ export default function InvoicingPage() {
                                                                     const newSelections = { ...selectedVariants, [attrName]: v }; 
                                                                     setSelectedVariants(newSelections); 
                                                                     const base = customerInfo.type === 'mayorista' && (selectedProductForVariant.wholesale_price || 0) > 0 ? selectedProductForVariant.wholesale_price : selectedProductForVariant.price; 
-                                                                    const adjustments = Object.values(newSelections).reduce((acc, sel: any) => acc + (sel.price_adjustment || 0), 0); 
+                                                                    const adjustments = Object.values(newSelections).reduce((acc: number, sel: any) => acc + (sel.price_adjustment || 0), 0); 
                                                                     setTempPrice((base || 0) + adjustments); 
                                                                 }} 
                                                                 disabled={v.stock <= 0} 
