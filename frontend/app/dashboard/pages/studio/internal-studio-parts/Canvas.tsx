@@ -145,19 +145,21 @@ const DraggableCanvasElement = ({
     opacity: (el.props.opacity !== undefined ? el.props.opacity : 100) / 100
   };
 
+  const userOpacity = (el.props.opacity !== undefined ? el.props.opacity : 100) / 100;
+
   const variants = {
-    none: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
-    fade: { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.8 } },
-    slide: { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5 } },
-    zoom: { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: 1, scale: 1 }, transition: { duration: 0.4 } },
-    blur: { initial: { opacity: 0, filter: "blur(10px)" }, animate: { opacity: 1, filter: "blur(0px)" }, transition: { duration: 1 } }
+    none: { opacity: userOpacity, y: 0, scale: 1, filter: "blur(0px)" },
+    fade: { initial: { opacity: 0 }, animate: { opacity: userOpacity }, transition: { duration: 0.8 } },
+    slide: { initial: { opacity: 0, y: 20 }, animate: { opacity: userOpacity, y: 0 }, transition: { duration: 0.5 } },
+    zoom: { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: userOpacity, scale: 1 }, transition: { duration: 0.4 } },
+    blur: { initial: { opacity: 0, filter: "blur(10px)" }, animate: { opacity: userOpacity, filter: "blur(0px)" }, transition: { duration: 1 } }
   };
 
   const anim = (variants as any)[el.props.animation] || variants.none;
 
   return (
     <motion.div
-      key={`${el.id}-${el.props.animation}-${el.props.behavior}-${el.props.speed}`}
+      key={`${el.id}-${el.props.animation}-${el.props.behavior}-${el.props.speed}-${el.props.opacity}`}
       ref={setNodeRef}
       {...listeners}
       {...attributes}
@@ -190,12 +192,15 @@ const DraggableCanvasElement = ({
       <div className={cn("p-2 pointer-events-none", el.type === "announcement-bar" && "p-0")}>
         {el.type === "announcement-bar" && (
           <div 
-            className="w-full py-2 px-4 relative overflow-hidden flex items-center"
+            className="w-full relative overflow-hidden flex items-center transition-all"
             style={{ 
               backgroundColor: el.props.bgColor || "#004d4d", 
               color: el.props.textColor || "#ffffff",
-              height: "auto",
-              minHeight: "36px",
+              backgroundImage: el.props.bgPatternUrl ? `url(${el.props.bgPatternUrl})` : undefined,
+              backgroundRepeat: "repeat",
+              backgroundSize: "auto 100%", // Ajuste perfecto a la altura de la barra
+              height: `${el.props.navHeight || 36}px`,
+              minHeight: "20px",
               justifyContent: el.props.align === "left" ? "flex-start" : el.props.align === "right" ? "flex-end" : "center"
             }}
           >

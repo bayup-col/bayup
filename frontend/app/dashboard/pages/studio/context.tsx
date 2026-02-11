@@ -119,6 +119,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                messages: ["¡NUEVA PROMOCIÓN DISPONIBLE! 🎊", "ENVÍOS GRATIS POR COMPRAS MAYORES A $100 🚀"],
                bgColor: "#004d4d", 
                textColor: "#ffffff",
+               bgPatternUrl: null,
                fontSize: 11,
                align: "center",
                fontFamily: "font-black",

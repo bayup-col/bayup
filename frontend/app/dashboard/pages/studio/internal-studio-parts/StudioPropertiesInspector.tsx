@@ -85,7 +85,9 @@ export const DesignerInspector = () => {
     const file = e.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
-      const propName = (element.type === "navbar" && activeTab === "style") ? "bgPatternUrl" : 
+      // Inteligencia de subida avanzada
+      const isPattern = (element.type === "navbar" || element.type === "announcement-bar") && activeTab === "style";
+      const propName = isPattern ? "bgPatternUrl" : 
                        (element.type === "navbar" && activeTab === "content") ? "logoUrl" : "imageUrl";
       handleChange(propName, url);
     }
@@ -267,7 +269,13 @@ export const DesignerInspector = () => {
                     </button>
                   ))}
                 </div>
-                <FluidSlider label="Grosor Barra" value={element.props.navHeight || 80} min={40} max={200} onChange={(val: number) => handleChange("navHeight", val)} />
+                <FluidSlider 
+                  label={element.type === "announcement-bar" ? "Grosor de Barra" : "Grosor Barra"} 
+                  value={element.props.navHeight || (element.type === "announcement-bar" ? 36 : 80)} 
+                  min={element.type === "announcement-bar" ? 20 : 40} 
+                  max={element.type === "announcement-bar" ? 100 : 200} 
+                  onChange={(val: number) => handleChange("navHeight", val)} 
+                />
               </div>
             </ControlGroup>
             <ControlGroup title="Paleta de Colores" icon={Palette}>
@@ -287,12 +295,30 @@ export const DesignerInspector = () => {
               </div>
               <FluidSlider label="Opacidad" value={element.props.opacity !== undefined ? element.props.opacity : 100} min={0} max={100} suffix="%" onChange={(val: number) => handleChange("opacity", val)} />
             </ControlGroup>
-            <ControlGroup title={element.type === "navbar" ? "Textura de Fondo" : "Multimedia"} icon={ImageIcon}>
-               <div onClick={() => fileInputRef.current?.click()} className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all">
+            <ControlGroup title={(element.type === "navbar" || element.type === "announcement-bar") ? "Textura de Fondo" : "Multimedia"} icon={ImageIcon}>
+               <div onClick={() => fileInputRef.current?.click()} className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all relative">
                   {(element.props.imageUrl || element.props.bgPatternUrl) ? (
-                    <div className="relative aspect-video rounded-lg overflow-hidden border border-gray-100"><div className="absolute inset-0" style={{ backgroundImage: `url(${element.props.bgPatternUrl || element.props.imageUrl})`, backgroundRepeat: element.type === "navbar" ? 'repeat' : 'no-repeat', backgroundSize: element.type === "navbar" ? '100px auto' : 'cover' }} /></div>
+                    <div className="relative aspect-video rounded-lg overflow-hidden border border-gray-100">
+                      <div 
+                        className="absolute inset-0" 
+                        style={{ 
+                          backgroundImage: `url(${element.props.bgPatternUrl || element.props.imageUrl})`, 
+                          backgroundRepeat: (element.type === "navbar" || element.type === "announcement-bar") ? 'repeat' : 'no-repeat', 
+                          backgroundSize: (element.type === "navbar" || element.type === "announcement-bar") ? '100px auto' : 'cover' 
+                        }} 
+                      />
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          handleChange(element.props.bgPatternUrl ? "bgPatternUrl" : "imageUrl", null); 
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600 transition-colors z-10"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
                   ) : (<div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3"><ImageIcon size={24} className="text-gray-300" /></div>)}
-                  <p className="text-xs font-bold text-gray-700">{element.type === "navbar" ? "Subir Patrón" : "Cambiar Imagen"}</p>
+                  <p className="text-xs font-bold text-gray-700">{(element.type === "navbar" || element.type === "announcement-bar") ? "Subir Patrón" : "Cambiar Imagen"}</p>
                </div>
                {element.props.bgPatternUrl && <button onClick={() => handleChange("bgPatternUrl", null)} className="w-full mt-2 py-2 text-[9px] font-black uppercase text-red-400 hover:text-red-600">Eliminar Textura</button>}
             </ControlGroup>
