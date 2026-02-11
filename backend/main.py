@@ -183,7 +183,7 @@ def register_user(user: schemas.UserCreate, background_tasks: BackgroundTasks, d
     # Enviar correo de bienvenida en segundo plano
     background_tasks.add_task(email_service.send_welcome_email, new_user.email, new_user.full_name)
         
-    return schemas.User.model_validate(new_user)
+    return new_user
 
 @app.post("/auth/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
