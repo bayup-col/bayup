@@ -127,7 +127,9 @@ export default function OrdersPage() {
         setLoading(true);
         try {
             const data = await apiRequest<Order[]>('/orders', { token });
-            setOrders(data || []);
+            // FILTRO MAESTRO: Solo pedidos web en este módulo
+            const webOrders = (data || []).filter(o => o.source?.toLowerCase() !== 'pos');
+            setOrders(webOrders);
         } catch (err) {
             console.error(err);
             showToast("Error al sincronizar pedidos", "error");
@@ -135,6 +137,23 @@ export default function OrdersPage() {
             setLoading(false);
         }
     }, [token, showToast]);
+
+    const handleUpdateStatus = async (orderId: string, newStatus: OrderStatus) => {
+        try {
+            await apiRequest(`/orders/${orderId}/status`, {
+                method: 'PATCH',
+                token,
+                body: JSON.stringify({ status: newStatus })
+            });
+            showToast(`Pedido actualizado a ${newStatus} ✨`, "success");
+            fetchOrders();
+            if (newStatus === 'processing') {
+                // Lógica de envío de factura automática por WhatsApp aquí si es necesario
+            }
+        } catch (e) {
+            showToast("Error al actualizar estado", "error");
+        }
+    };
 
     useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -329,8 +348,25 @@ export default function OrdersPage() {
                                         </td>
                                         <td className="px-10 py-8">
                                             <div className="flex justify-center gap-2">
-                                                <button onClick={() => setSelectedOrder(o)} className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-[#004D4D] hover:bg-white transition-all shadow-sm flex items-center justify-center"><Eye size={16}/></button>
-                                                <button className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all shadow-sm flex items-center justify-center"><Trash2 size={16}/></button>
+                                                <button onClick={() => setSelectedOrder(o)} className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-[#004D4D] hover:bg-white transition-all shadow-sm flex items-center justify-center" title="Ver Detalle"><Eye size={16}/></button>
+                                                
+                                                {o.status === 'pending' && (
+                                                    <button onClick={() => handleUpdateStatus(o.id, 'processing')} className="px-4 h-10 rounded-xl bg-emerald-500 text-white font-black text-[9px] uppercase tracking-widest hover:bg-black transition-all shadow-lg flex items-center gap-2">
+                                                        Confirmar
+                                                    </button>
+                                                )}
+
+                                                {o.status === 'processing' && (
+                                                    <button onClick={() => handleUpdateStatus(o.id, 'shipped')} className="px-4 h-10 rounded-xl bg-[#004D4D] text-white font-black text-[9px] uppercase tracking-widest hover:bg-black transition-all shadow-lg flex items-center gap-2">
+                                                        Despachar
+                                                    </button>
+                                                )}
+
+                                                {o.status === 'shipped' && (
+                                                    <button onClick={() => handleUpdateStatus(o.id, 'completed')} className="px-4 h-10 rounded-xl bg-cyan text-gray-900 font-black text-[9px] uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-lg flex items-center gap-2">
+                                                        Entregado
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
