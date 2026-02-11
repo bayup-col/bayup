@@ -506,5 +506,3 @@ export default function OrdersPage() {
         </div>
     );
 }
-/ /   B u i l d   F o r c e  
- 
