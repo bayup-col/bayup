@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { useStudio, SectionType } from "../context";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Trash2, Plus as PlusIcon, GripVertical, ShoppingBag, User, Image as ImageIcon } from "lucide-react";
+import { Trash2, Plus as PlusIcon, GripVertical, ShoppingBag, ShoppingCart, User, UserCircle, LogIn, Image as ImageIcon, Heart, Search, HelpCircle, Phone } from "lucide-react";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
 
 const DroppableSection = ({ 
@@ -164,18 +164,80 @@ const DraggableCanvasElement = ({
         )}
 
         {(el.type === "navbar" || el.props.isNav) && (
-          <div className="flex items-center justify-between px-6 py-4 bg-white shadow-sm rounded-xl border border-gray-100">
-            <div className="text-xl font-black italic tracking-tighter text-blue-600 flex items-center gap-2">
-              {el.props.logoUrl ? <img src={el.props.logoUrl} className="h-8 w-auto" /> : <span>{el.props.logoText || "LOGO"}</span>}
+          <div className={cn(
+            "flex items-center justify-between px-6 py-4 bg-white shadow-sm rounded-xl border border-gray-100",
+            el.props.logoAlign === "center" && "flex-col gap-4",
+            el.props.logoAlign === "right" && "flex-row-reverse"
+          )}>
+            <div 
+              className={cn("flex items-center gap-2 transition-transform duration-75", el.props.logoFont || "font-black italic")}
+              style={{ 
+                fontSize: `${el.props.logoSize || 20}px`,
+                transform: `translateX(${el.props.logoAlign === "right" ? -(el.props.logoOffset || 0) : (el.props.logoOffset || 0)}px)`
+              }}
+            >
+              {el.props.logoUrl ? (
+                <img 
+                  src={el.props.logoUrl} 
+                  className="object-contain" 
+                  style={{ height: `${el.props.logoSize || 24}px` }}
+                />
+              ) : (
+                <span className="text-blue-600 tracking-tighter uppercase whitespace-nowrap">
+                  {el.props.logoText || "LOGO"}
+                </span>
+              )}
             </div>
+            
             <nav className="hidden md:flex items-center gap-8">
                 {(el.props.menuItems || ["Inicio", "Productos"]).map((item: string) => (
                   <span key={item} className="text-[10px] font-black text-gray-600 uppercase tracking-widest">{item}</span>
                 ))}
             </nav>
-            <div className="flex items-center gap-4 text-gray-400">
-                <ShoppingBag size={18} />
-                <User size={18} />
+
+            <div className={cn("flex items-center gap-4", el.props.logoAlign === "right" && "flex-row-reverse")}>
+                <div className="hidden md:flex items-center gap-4 mr-2">
+                  {el.props.utilityItems?.map((item: any, idx: number) => {
+                    const icons: any = { ShoppingBag, ShoppingCart, User, UserCircle, LogIn, Heart, Search, HelpCircle, Phone };
+                    const IconComp = icons[item.icon] || HelpCircle;
+                    return (
+                      <div key={idx} className="flex items-center gap-1.5 cursor-pointer group/util">
+                        <IconComp size={14} className="text-gray-400 group-hover/util:text-blue-500 transition-colors" />
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter group-hover/util:text-blue-600 transition-colors">
+                          {item.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center gap-3 text-gray-500">
+                  {el.props.showUser && (
+                    <div className="flex items-center gap-1 cursor-pointer">
+                      {(el.props.utilityType === "icon" || el.props.utilityType === "both") && (
+                        el.props.userIcon === "UserCircle" ? <UserCircle size={18} /> : 
+                        el.props.userIcon === "LogIn" ? <LogIn size={18} /> : <User size={18} />
+                      )}
+                      {(el.props.utilityType === "text" || el.props.utilityType === "both") && (
+                        <span className="text-[10px] font-black uppercase tracking-tighter">Cuenta</span>
+                      )}
+                    </div>
+                  )}
+
+                  {el.props.showCart && (
+                    <div className="flex items-center gap-1 cursor-pointer relative">
+                      {(el.props.utilityType === "icon" || el.props.utilityType === "both") && (
+                        <>
+                          {el.props.cartIcon === "ShoppingCart" ? <ShoppingCart size={18} /> : <ShoppingBag size={18} />}
+                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white" />
+                        </>
+                      )}
+                      {(el.props.utilityType === "text" || el.props.utilityType === "both") && (
+                        <span className="text-[10px] font-black uppercase tracking-tighter">Carrito</span>
+                      )}
+                    </div>
+                  )}
+                </div>
             </div>
           </div>
         )}

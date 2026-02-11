@@ -109,7 +109,21 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
       type,
       props: type === "hero-banner" ? { title: "Nuevo Banner", subtitle: "Subtítulo" } : 
              type === "announcement-bar" ? { content: "¡NUEVA PROMOCIÓN DISPONIBLE! 🎊", bgColor: "#004d4d", textColor: "#ffffff" } :
-             type === "navbar" ? { logoText: "MI MARCA", menuItems: ["Inicio", "Tienda"] } :
+             type === "navbar" ? { 
+               logoText: "MI MARCA", 
+               logoUrl: null,
+               logoSize: 24,
+               logoAlign: "left",
+               logoOffset: 0,
+               logoFont: "font-sans",
+               menuItems: ["Inicio", "Tienda"],
+               utilityType: "icon", // 'icon' | 'text' | 'both'
+               showCart: true,
+               showUser: true,
+               cartIcon: "ShoppingBag",
+               userIcon: "User",
+               utilityItems: [] as { label: string, icon: string, url: string }[] // Enlaces extra para la derecha
+             } :
              { content: "Nuevo Elemento" },
     };
 
