@@ -127,17 +127,32 @@ export default function InvoicingPage() {
 
     const loadData = useCallback(async () => {
         if (!token) return;
+        console.log("DEBUG: Iniciando sincronización de datos...");
+        
+        // 1. Cargar Perfil y Productos (Vitales)
         try {
-            const [pRes, oRes, cRes, userData] = await Promise.all([
+            const [pRes, userData] = await Promise.all([
                 apiRequest<any[]>('/products', { token }),
-                apiRequest<any[]>('/orders', { token }),
-                apiRequest<any[]>('/collections', { token }),
                 apiRequest<any>('/auth/me', { token })
             ]);
             if (userData) setCompanyData(userData);
-            if (pRes) setProducts(pRes);
+            if (pRes) {
+                console.log(`DEBUG: ${pRes.length} productos cargados.`);
+                setProducts(pRes);
+            }
+        } catch (e) { console.error("Error en carga vital:", e); }
+
+        // 2. Cargar Categorías (Opcional)
+        try {
+            const cRes = await apiRequest<any[]>('/collections', { token });
             if (cRes) setCategories(['Todas', ...cRes.map((c: any) => c.title)]);
+        } catch (e) { console.error("Error en colecciones:", e); }
+
+        // 3. Cargar Historial (Operativo)
+        try {
+            const oRes = await apiRequest<any[]>('/orders', { token });
             if (oRes) {
+                console.log(`DEBUG: ${oRes.length} órdenes recibidas.`);
                 const sorted = [...oRes].sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
                 const mapped = sorted.map((o, i) => ({
                     id: o.id, 
@@ -153,7 +168,7 @@ export default function InvoicingPage() {
                 })).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                 setHistory(mapped);
             }
-        } catch (e) {}
+        } catch (e) { console.error("Error en historial:", e); }
     }, [token]);
 
     useEffect(() => { loadData(); }, [loadData]);
