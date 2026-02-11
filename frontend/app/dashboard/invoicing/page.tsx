@@ -242,9 +242,18 @@ export default function InvoicingPage() {
 
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
-            const matchesSearch = p.name.toLowerCase().includes(productSearch.toLowerCase()) || (p.sku?.toLowerCase() || '').includes(productSearch.toLowerCase());
+            // 1. Verificar si el producto tiene stock (suma de todas sus variantes)
+            const totalStock = p.variants?.reduce((acc, v) => acc + (v.stock || 0), 0) || 0;
+            if (totalStock <= 0) return false;
+
+            // 2. Filtros de búsqueda y categoría
+            const matchesSearch = p.name.toLowerCase().includes(productSearch.toLowerCase()) || 
+                                 (p.sku?.toLowerCase() || '').includes(productSearch.toLowerCase());
+            
             const productCategory = p.category || (p as any).collection?.title || 'General';
-            return matchesSearch && (selectedCategory === 'Todas' || productCategory === selectedCategory);
+            const matchesCategory = selectedCategory === 'Todas' || productCategory === selectedCategory;
+            
+            return matchesSearch && matchesCategory;
         }).slice(0, 12);
     }, [productSearch, products, selectedCategory]);
 
