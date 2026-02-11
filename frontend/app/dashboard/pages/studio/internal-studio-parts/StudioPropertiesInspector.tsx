@@ -96,8 +96,8 @@ export const DesignerInspector = () => {
   const [activeTab, setActiveTab] = useState<TabType>("content");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Buscar el elemento seleccionado de forma estable
   const elementData = React.useMemo(() => {
+    if (!selectedElementId) return null;
     const sections: SectionType[] = ["header", "body", "footer"];
     for (const section of sections) {
       const found = pageData[section].elements.find(el => el.id === selectedElementId);
@@ -118,14 +118,14 @@ export const DesignerInspector = () => {
     const file = e.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
-      const propName = element.type === "navbar" ? "logoUrl" : "imageUrl";
+      const propName = (element.type === "navbar" && activeTab === "style") ? "bgPatternUrl" : 
+                       (element.type === "navbar" && activeTab === "content") ? "logoUrl" : "imageUrl";
       handleChange(propName, url);
     }
   };
 
   return (
     <div className="w-full h-full bg-white flex flex-col font-sans border-l border-gray-100">
-      {/* CABECERA FIJA DEL INSPECTOR */}
       <div className="p-4 border-b border-gray-100 bg-gray-50/50 shrink-0">
         <div className="flex justify-between items-start mb-4">
           <div>
@@ -135,15 +135,11 @@ export const DesignerInspector = () => {
             </h2>
             <p className="text-[9px] text-gray-400 font-mono mt-0.5">Estado Persistente</p>
           </div>
-          <button
-            onClick={() => selectElement(null)}
-            className="p-1.5 hover:bg-gray-200 rounded-full transition-colors text-gray-400"
-          >
+          <button onClick={() => selectElement(null)} className="p-1.5 hover:bg-gray-200 rounded-full transition-colors text-gray-400">
             <X size={18} />
           </button>
         </div>
 
-        {/* TABS DE EDICIÓN */}
         <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
            {[
              { id: "content", label: "Texto", icon: Type },
@@ -165,15 +161,8 @@ export const DesignerInspector = () => {
         </div>
       </div>
 
-      {/* CUERPO DEL EDITOR CON SCROLL PERSISTENTE */}
       <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-white">
-        <input 
-          type="file" 
-          className="hidden" 
-          ref={fileInputRef} 
-          accept="image/*" 
-          onChange={handleImageUpload} 
-        />
+        <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handleImageUpload} />
         
         {activeTab === "content" && (
           <>
@@ -192,20 +181,13 @@ export const DesignerInspector = () => {
               <>
                 <ControlGroup title="Identidad Visual" icon={ImageIcon} defaultOpen={true}>
                   <div className="space-y-6">
-                    {/* SUBIDA DE LOGO */}
                     <div>
                       <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Logo de Marca</span>
-                      <div 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all"
-                      >
+                      <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all">
                         {element.props.logoUrl ? (
                           <div className="relative h-12 w-full flex items-center justify-center">
                             <img src={element.props.logoUrl} className="h-full object-contain" />
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleChange("logoUrl", null); }}
-                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg"
-                            >
+                            <button onClick={(e) => { e.stopPropagation(); handleChange("logoUrl", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg">
                               <X size={10} />
                             </button>
                           </div>
@@ -218,48 +200,21 @@ export const DesignerInspector = () => {
                       </div>
                     </div>
 
-                    {/* TEXTO ALTERNATIVO / MARCA */}
                     <div>
                       <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Nombre de Tienda (Texto)</span>
-                      <input
-                        type="text"
-                        value={element.props.logoText || ""}
-                        onChange={(e) => handleChange("logoText", e.target.value)}
-                        className="w-full p-3 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50/30 font-bold"
-                        placeholder="Nombre si no hay logo..."
-                      />
+                      <input type="text" value={element.props.logoText || ""} onChange={(e) => handleChange("logoText", e.target.value)} className="w-full p-3 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50/30 font-bold" placeholder="Nombre si no hay logo..." />
                     </div>
 
-                    {/* TAMAÑO Y POSICIÓN FLUIDA */}
                     <div className="pt-2 border-t border-gray-50 space-y-4">
-                      <FluidSlider 
-                        label="Escala del Logo"
-                        value={element.props.logoSize || 24}
-                        min={12} max={120}
-                        onChange={(val: number) => handleChange("logoSize", val)}
-                      />
-                      <FluidSlider 
-                        label={element.props.logoAlign === "right" ? "Distancia desde la Derecha" : "Posición Horizontal"}
-                        value={element.props.logoOffset || 0}
-                        min={0} max={300}
-                        suffix="px"
-                        onChange={(val: number) => handleChange("logoOffset", val)}
-                      />
+                      <FluidSlider label="Escala del Logo" value={element.props.logoSize || 24} min={12} max={120} onChange={(val: number) => handleChange("logoSize", val)} />
+                      <FluidSlider label={element.props.logoAlign === "right" ? "Distancia desde la Derecha" : "Posición Horizontal"} value={element.props.logoOffset || 0} min={0} max={300} suffix="px" onChange={(val: number) => handleChange("logoOffset", val)} />
                     </div>
 
-                    {/* POSICIÓN */}
                     <div>
                       <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Alineación</span>
                       <div className="flex bg-gray-100 p-1 rounded-lg border">
                         {["left", "center", "right"].map((pos) => (
-                          <button 
-                            key={pos}
-                            onClick={() => handleChange("logoAlign", pos)}
-                            className={cn(
-                              "flex-1 p-2 flex justify-center rounded-md transition-all", 
-                              (element.props.logoAlign === pos || (!element.props.logoAlign && pos === "left")) ? "bg-white shadow-sm text-blue-600" : "text-gray-400"
-                            )}
-                          >
+                          <button key={pos} onClick={() => handleChange("logoAlign", pos)} className={cn("flex-1 p-2 flex justify-center rounded-md transition-all", (element.props.logoAlign === pos || (!element.props.logoAlign && pos === "left")) ? "bg-white shadow-sm text-blue-600" : "text-gray-400")}>
                             {pos === "left" && <AlignLeft size={14} />}
                             {pos === "center" && <AlignCenter size={14} />}
                             {pos === "right" && <AlignRight size={14} />}
@@ -268,20 +223,24 @@ export const DesignerInspector = () => {
                       </div>
                     </div>
 
-                    {/* TIPOGRAFÍA (Solo si no hay logoUrl) */}
                     {!element.props.logoUrl && (
-                      <div>
-                        <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Estilo de Texto</span>
-                        <select 
-                          value={element.props.logoFont || "font-sans"}
-                          onChange={(e) => handleChange("logoFont", e.target.value)}
-                          className="w-full p-2 border border-gray-200 rounded-xl text-[10px] font-bold bg-white focus:ring-2 focus:ring-blue-500 outline-none uppercase"
-                        >
-                          <option value="font-sans">Moderna (Sans)</option>
-                          <option value="font-serif">Elegante (Serif)</option>
-                          <option value="font-mono">Técnica (Mono)</option>
-                          <option value="font-black italic">Itálica Black</option>
-                        </select>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Estilo</span>
+                          <select value={element.props.logoFont || "font-sans"} onChange={(e) => handleChange("logoFont", e.target.value)} className="w-full p-2 border border-gray-200 rounded-xl text-[10px] font-bold bg-white focus:ring-2 focus:ring-blue-500 outline-none uppercase">
+                            <option value="font-sans">Sans</option>
+                            <option value="font-serif">Serif</option>
+                            <option value="font-mono">Mono</option>
+                            <option value="font-black italic">Itálica</option>
+                          </select>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Color Texto</span>
+                          <div className="flex items-center gap-2 p-1.5 border border-gray-200 rounded-xl bg-white">
+                            <input type="color" value={element.props.logoColor || "#2563eb"} onChange={(e) => handleChange("logoColor", e.target.value)} className="w-6 h-6 rounded-lg overflow-hidden border-0 p-0 cursor-pointer bg-transparent" />
+                            <span className="text-[9px] font-mono text-gray-400 uppercase">{element.props.logoColor || "#2563eb"}</span>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -289,49 +248,36 @@ export const DesignerInspector = () => {
 
                 <ControlGroup title="Acciones y Carrito" icon={ShoppingBag}>
                   <div className="space-y-4">
-                    {/* TIPO DE VISUALIZACIÓN */}
+                    <div>
+                      <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Color de Iconos/Texto</span>
+                      <div className="flex items-center gap-2 p-1.5 border border-gray-200 rounded-xl bg-white">
+                        <input type="color" value={element.props.utilityColor || "#6b7280"} onChange={(e) => handleChange("utilityColor", e.target.value)} className="w-6 h-6 rounded-lg overflow-hidden border-0 p-0 cursor-pointer bg-transparent" />
+                        <span className="text-[9px] font-mono text-gray-400 uppercase">{element.props.utilityColor || "#6b7280"}</span>
+                      </div>
+                    </div>
+
                     <div>
                       <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Mostrar como</span>
                       <div className="flex bg-gray-100 p-1 rounded-lg border">
-                        {[
-                          { id: "icon", label: "Icono" },
-                          { id: "text", label: "Texto" },
-                          { id: "both", label: "Ambos" }
-                        ].map((type) => (
-                          <button 
-                            key={type.id}
-                            onClick={() => handleChange("utilityType", type.id)}
-                            className={cn(
-                              "flex-1 py-1 px-2 text-[9px] font-black uppercase rounded-md transition-all", 
-                              (element.props.utilityType === type.id) ? "bg-white shadow-sm text-blue-600" : "text-gray-400"
-                            )}
-                          >
+                        {[{ id: "icon", label: "Icono" }, { id: "text", label: "Texto" }, { id: "both", label: "Ambos" }].map((type) => (
+                          <button key={type.id} onClick={() => handleChange("utilityType", type.id)} className={cn("flex-1 py-1 px-2 text-[9px] font-black uppercase rounded-md transition-all", (element.props.utilityType === type.id) ? "bg-white shadow-sm text-blue-600" : "text-gray-400")}>
                             {type.label}
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    {/* SELECTOR DE ICONOS */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Icono Carrito</span>
-                        <select 
-                          value={element.props.cartIcon || "ShoppingBag"}
-                          onChange={(e) => handleChange("cartIcon", e.target.value)}
-                          className="w-full p-2 border border-gray-200 rounded-xl text-[10px] font-bold bg-white outline-none"
-                        >
+                        <select value={element.props.cartIcon || "ShoppingBag"} onChange={(e) => handleChange("cartIcon", e.target.value)} className="w-full p-2 border border-gray-200 rounded-xl text-[10px] font-bold bg-white outline-none">
                           <option value="ShoppingBag">Bolsa</option>
                           <option value="ShoppingCart">Carrito</option>
                         </select>
                       </div>
                       <div>
                         <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Icono Usuario</span>
-                        <select 
-                          value={element.props.userIcon || "User"}
-                          onChange={(e) => handleChange("userIcon", e.target.value)}
-                          className="w-full p-2 border border-gray-200 rounded-xl text-[10px] font-bold bg-white outline-none"
-                        >
+                        <select value={element.props.userIcon || "User"} onChange={(e) => handleChange("userIcon", e.target.value)} className="w-full p-2 border border-gray-200 rounded-xl text-[10px] font-bold bg-white outline-none">
                           <option value="User">Usuario 1</option>
                           <option value="UserCircle">Usuario 2</option>
                           <option value="LogIn">Log In</option>
@@ -339,262 +285,133 @@ export const DesignerInspector = () => {
                       </div>
                     </div>
 
-                    {/* ENLACES EXTRA (DERECHA) */}
                     <div className="pt-2 border-t border-gray-50">
                       <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Enlaces Extra</span>
                       <div className="space-y-3">
                         {(element.props.utilityItems || []).map((item: any, idx: number) => (
                           <div key={idx} className="p-3 bg-gray-50 rounded-2xl border border-gray-100 space-y-2 relative group/item">
-                            <button 
-                              onClick={() => handleChange("utilityItems", element.props.utilityItems.filter((_:any, i:number) => i !== idx))} 
-                              className="absolute top-2 right-2 text-gray-300 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition-opacity"
-                            >
-                              <X size={12}/>
-                            </button>
-                            
+                            <button onClick={() => handleChange("utilityItems", element.props.utilityItems.filter((_:any, i:number) => i !== idx))} className="absolute top-2 right-2 text-gray-300 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition-opacity"><X size={12}/></button>
                             <div className="grid grid-cols-2 gap-2">
-                              <input
-                                type="text"
-                                value={item.label}
-                                onChange={(e) => {
-                                  const newItems = [...element.props.utilityItems];
-                                  newItems[idx].label = e.target.value;
-                                  handleChange("utilityItems", newItems);
-                                }}
-                                className="p-2 border border-gray-200 rounded-lg text-[9px] font-bold uppercase outline-none bg-white"
-                                placeholder="Nombre"
-                              />
-                              <select 
-                                value={item.icon}
-                                onChange={(e) => {
-                                  const newItems = [...element.props.utilityItems];
-                                  newItems[idx].icon = e.target.value;
-                                  handleChange("utilityItems", newItems);
-                                }}
-                                className="p-2 border border-gray-200 rounded-lg text-[9px] font-bold bg-white outline-none"
-                              >
+                              <input type="text" value={item.label} onChange={(e) => { const newItems = [...element.props.utilityItems]; newItems[idx].label = e.target.value; handleChange("utilityItems", newItems); }} className="p-2 border border-gray-200 rounded-lg text-[9px] font-bold uppercase outline-none bg-white" placeholder="Nombre" />
+                              <select value={item.icon} onChange={(e) => { const newItems = [...element.props.utilityItems]; newItems[idx].icon = e.target.value; handleChange("utilityItems", newItems); }} className="p-2 border border-gray-200 rounded-lg text-[9px] font-bold bg-white outline-none">
                                 <option value="HelpCircle">Ayuda</option>
                                 <option value="Heart">Deseos</option>
                                 <option value="Search">Buscar</option>
                                 <option value="Phone">Llamar</option>
                               </select>
                             </div>
-                            <input
-                              type="text"
-                              value={item.url}
-                              onChange={(e) => {
-                                const newItems = [...element.props.utilityItems];
-                                newItems[idx].url = e.target.value;
-                                handleChange("utilityItems", newItems);
-                              }}
-                              className="w-full p-2 border border-gray-200 rounded-lg text-[8px] font-mono outline-none bg-white text-blue-500"
-                              placeholder="URL o /modulo"
-                            />
+                            <input type="text" value={item.url} onChange={(e) => { const newItems = [...element.props.utilityItems]; newItems[idx].url = e.target.value; handleChange("utilityItems", newItems); }} className="w-full p-2 border border-gray-200 rounded-lg text-[8px] font-mono outline-none bg-white text-blue-500" placeholder="URL o /modulo" />
                           </div>
                         ))}
-                        <button 
-                          onClick={() => handleChange("utilityItems", [...(element.props.utilityItems || []), { label: "Ayuda", icon: "HelpCircle", url: "/soporte" }])}
-                          className="w-full py-2 border border-dashed border-gray-200 rounded-xl text-[8px] font-black uppercase text-gray-400 hover:text-blue-500 hover:border-blue-200 transition-all"
-                        >
-                          + Añadir Enlace Estratégico
-                        </button>
+                        <button onClick={() => handleChange("utilityItems", [...(element.props.utilityItems || []), { label: "Ayuda", icon: "HelpCircle", url: "/soporte" }])} className="w-full py-2 border border-dashed border-gray-200 rounded-xl text-[8px] font-black uppercase text-gray-400 hover:text-blue-500 hover:border-blue-200 transition-all">+ Añadir Enlace Estratégico</button>
                       </div>
                     </div>
                   </div>
                 </ControlGroup>
 
                 <ControlGroup title="Menú de Navegación" icon={Layout}>
-                  <div className="space-y-2">
-                    {(element.props.menuItems || ["Inicio", "Productos", "Contacto"]).map((item: string, idx: number) => (
-                      <div key={idx} className="flex gap-2">
-                        <input
-                          type="text"
-                          value={item}
-                          onChange={(e) => {
-                            const newItems = [...(element.props.menuItems || ["Inicio", "Productos", "Contacto"])];
-                            newItems[idx] = e.target.value;
-                            handleChange("menuItems", newItems);
-                          }}
-                          className="flex-1 p-2 border border-gray-200 rounded-lg text-[10px] font-black uppercase tracking-widest outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                        <button 
-                          onClick={() => {
-                            const newItems = (element.props.menuItems || ["Inicio", "Productos", "Contacto"]).filter((_: any, i: number) => i !== idx);
-                            handleChange("menuItems", newItems);
-                          }}
-                          className="p-2 text-red-400 hover:text-red-600"
-                        >
-                          <X size={14} />
-                        </button>
+                  <div className="space-y-4">
+                    <div>
+                      <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Color de Enlaces</span>
+                      <div className="flex items-center gap-2 p-1.5 border border-gray-200 rounded-xl bg-white">
+                        <input type="color" value={element.props.menuColor || "#4b5563"} onChange={(e) => handleChange("menuColor", e.target.value)} className="w-6 h-6 rounded-lg overflow-hidden border-0 p-0 cursor-pointer bg-transparent" />
+                        <span className="text-[9px] font-mono text-gray-400 uppercase">{element.props.menuColor || "#4b5563"}</span>
                       </div>
-                    ))}
-                    <button 
-                      onClick={() => handleChange("menuItems", [...(element.props.menuItems || ["Inicio", "Productos", "Contacto"]), "Nuevo Link"])}
-                      className="w-full py-2 border-2 border-dashed border-gray-100 rounded-xl text-[9px] font-black uppercase text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-all"
-                    >
-                      + Añadir Enlace
-                    </button>
+                    </div>
+
+                    <div className="space-y-3 pt-2 border-t border-gray-50">
+                      {(element.props.menuItems || []).map((item: any, idx: number) => (
+                        <div key={idx} className="p-3 bg-gray-50 rounded-2xl border border-gray-100 space-y-2 relative group/item">
+                          <button onClick={() => { const newItems = element.props.menuItems.filter((_: any, i: number) => i !== idx); handleChange("menuItems", newItems); }} className="absolute top-2 right-2 text-gray-300 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition-opacity"><X size={12} /></button>
+                          <div>
+                            <span className="text-[8px] font-black text-gray-400 uppercase block mb-1">Nombre del Enlace</span>
+                            <input type="text" value={typeof item === 'string' ? item : item.label} onChange={(e) => { const newItems = [...element.props.menuItems]; const current = typeof item === 'string' ? { label: item, url: "/" } : item; newItems[idx] = { ...current, label: e.target.value }; handleChange("menuItems", newItems); }} className="w-full p-2 border border-gray-200 rounded-lg text-[10px] font-black uppercase tracking-widest outline-none focus:ring-1 focus:ring-blue-500 bg-white" placeholder="Ej: Ofertas" />
+                          </div>
+                          <div>
+                            <span className="text-[8px] font-black text-gray-400 uppercase block mb-1">Vincular a</span>
+                            <input type="text" value={typeof item === 'string' ? "/" : item.url} onChange={(e) => { const newItems = [...element.props.menuItems]; const current = typeof item === 'string' ? { label: item, url: "/" } : item; newItems[idx] = { ...current, url: e.target.value }; handleChange("menuItems", newItems); }} className="w-full p-2 border border-gray-200 rounded-lg text-[9px] font-mono outline-none bg-white text-blue-500" placeholder="/productos o https://..." />
+                          </div>
+                        </div>
+                      ))}
+                      <button onClick={() => handleChange("menuItems", [...(element.props.menuItems || []), { label: "Nuevo Link", url: "/" }])} className="w-full py-2 border-2 border-dashed border-gray-100 rounded-xl text-[9px] font-black uppercase text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-all">+ Añadir Enlace</button>
+                    </div>
                   </div>
                 </ControlGroup>
               </>
-            )}
-
-            {element.type !== "announcement-bar" && element.type !== "navbar" && (
-              <ControlGroup title="Contenido Principal" icon={Type}>
-                <textarea
-                  value={element.props.content !== undefined ? element.props.content : (element.props.title || "")}
-                  onChange={(e) => handleChange(element.props.content !== undefined ? "content" : "title", e.target.value)}
-                  className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px] resize-none bg-gray-50/30 transition-all"
-                  placeholder="Escribe aquí tu mensaje..."
-                />
-              </ControlGroup>
-            )}
-
-            {(element.type === "hero-banner" || element.props.subtitle !== undefined) && (
-              <ControlGroup title="Subtítulo / Descripción" icon={Type}>
-                <input
-                  type="text"
-                  value={element.props.subtitle || ""}
-                  onChange={(e) => handleChange("subtitle", e.target.value)}
-                  className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50/30 transition-all"
-                  placeholder="Añade un subtítulo..."
-                />
-              </ControlGroup>
-            )}
-
-            {(element.type === "button" || element.type === "hero-banner") && (
-              <ControlGroup title="Acción (Botón)" icon={Settings2}>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    value={element.props.buttonText || ""}
-                    onChange={(e) => handleChange("buttonText", e.target.value)}
-                    className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50/30"
-                    placeholder="Texto del botón..."
-                  />
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className="w-full p-3 pl-9 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50/30 text-blue-600"
-                      placeholder="https://tutienda.com/producto"
-                    />
-                    <Layout className="absolute left-3 top-3.5 text-gray-400" size={14} />
-                  </div>
-                </div>
-              </ControlGroup>
             )}
           </>
         )}
 
         {activeTab === "style" && (
           <>
-            <ControlGroup title="Alineación" icon={Move}>
-              <div className="flex bg-gray-100 p-1 rounded-lg border">
-                {["left", "center", "right"].map((pos) => (
-                  <button 
-                    key={pos}
-                    onClick={() => handleChange("align", pos)}
-                    className={cn(
-                      "flex-1 p-2 flex justify-center rounded-md transition-all", 
-                      (element.props.align === pos || (!element.props.align && pos === "center")) ? "bg-white shadow-sm text-blue-600" : "text-gray-400 hover:text-gray-600"
-                    )}
-                  >
-                    {pos === "left" && <AlignLeft size={16} />}
-                    {pos === "center" && <AlignCenter size={16} />}
-                    {pos === "right" && <AlignRight size={16} />}
-                  </button>
-                ))}
+            <ControlGroup title="Estructura y Tamaño" icon={Move} defaultOpen={true}>
+              <div className="space-y-6">
+                <div>
+                  <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Distribución</span>
+                  <div className="flex bg-gray-100 p-1 rounded-lg border">
+                    {["left", "center", "right"].map((pos) => (
+                      <button key={pos} onClick={() => handleChange("align", pos)} className={cn("flex-1 p-2 flex justify-center rounded-md transition-all", (element.props.align === pos || (!element.props.align && pos === "center")) ? "bg-white shadow-sm text-blue-600" : "text-gray-400 hover:text-gray-600")}>
+                        {pos === "left" && <AlignLeft size={16} />}
+                        {pos === "center" && <AlignCenter size={16} />}
+                        {pos === "right" && <AlignRight size={16} />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-gray-50">
+                  <FluidSlider label="Grosor de la Barra (Alto)" value={element.props.navHeight || 80} min={40} max={200} suffix="px" onChange={(val: number) => handleChange("navHeight", val)} />
+                </div>
               </div>
             </ControlGroup>
 
             <ControlGroup title="Paleta de Colores" icon={Palette}>
-              <div className="grid grid-cols-6 gap-2">
-                {["#ffffff", "#3b82f6", "#1e293b", "#ef4444", "#10b981", "#f59e0b"].map(color => (
-                  <button 
-                    key={color}
-                    onClick={() => handleChange("bgColor", color)}
-                    className={cn(
-                      "w-8 h-8 rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center relative",
-                      element.props.bgColor === color ? "border-blue-500 ring-2 ring-blue-100" : "border-gray-100 shadow-sm"
-                    )}
-                    style={{ backgroundColor: color }}
-                  >
+              <div className="flex flex-wrap gap-3">
+                <button onClick={() => handleChange("bgColor", "transparent")} className={cn("w-8 h-8 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center relative", element.props.bgColor === "transparent" ? "border-blue-500" : "")}>
+                  <div className="w-full h-full rounded-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20" />
+                  {element.props.bgColor === "transparent" && <Check size={12} className="absolute text-blue-600" />}
+                </button>
+                {["#ffffff", "#000000", "#3b82f6", "#1e293b", "#ef4444", "#10b981", "#f59e0b"].map(color => (
+                  <button key={color} onClick={() => handleChange("bgColor", color)} className={cn("w-8 h-8 rounded-full border-2 transition-all relative", element.props.bgColor === color ? "border-blue-500" : "border-gray-100")} style={{ backgroundColor: color }}>
                     {element.props.bgColor === color && <Check size={12} className={color === "#ffffff" ? "text-blue-500" : "text-white"} />}
                   </button>
                 ))}
+                <div className="relative w-8 h-8 rounded-full border-2 border-gray-100 overflow-hidden shadow-sm" style={{ background: "conic-gradient(red, yellow, green, cyan, blue, magenta, red)" }}>
+                    <input type="color" value={element.props.bgColor && element.props.bgColor !== 'transparent' ? element.props.bgColor : "#ffffff"} onChange={(e) => handleChange("bgColor", e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full scale-150" />
+                </div>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                 <div>
-                    <span className="text-[10px] text-gray-400 block mb-1 font-bold uppercase tracking-tighter">Tamaño</span>
-                    <select 
-                      value={element.props.fontSize || "md"} 
-                      onChange={(e) => handleChange("fontSize", e.target.value)}
-                      className="w-full p-2 border border-gray-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                    >
-                      <option value="xs">XS</option>
-                      <option value="md">Medio</option>
-                      <option value="2xl">Grande</option>
-                      <option value="5xl">Hero</option>
-                    </select>
-                 </div>
-                 <div>
-                    <FluidSlider 
-                      label="Opacidad"
-                      value={element.props.opacity !== undefined ? element.props.opacity : 100}
-                      min={0} max={100}
-                      suffix="%"
-                      onChange={(val: number) => handleChange("opacity", val)}
-                    />
-                 </div>
-              </div>
+              <div className="mt-4"><FluidSlider label="Opacidad" value={element.props.opacity !== undefined ? element.props.opacity : 100} min={0} max={100} suffix="%" onChange={(val: number) => handleChange("opacity", val)} /></div>
             </ControlGroup>
 
-            <ControlGroup title="Multimedia Principal" icon={ImageIcon}>
-               <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all active:scale-95"
-               >
-                  {element.props.imageUrl ? (
-                    <div className="relative aspect-video rounded-lg overflow-hidden shadow-md mb-3">
-                      <img src={element.props.imageUrl} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Upload size={20} className="text-white" />
-                      </div>
+            <ControlGroup title={element.type === "navbar" ? "Textura de Fondo (Mosaico)" : "Multimedia Principal"} icon={ImageIcon}>
+               <div onClick={() => fileInputRef.current?.click()} className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all">
+                  {(element.props.imageUrl || element.props.bgPatternUrl) ? (
+                    <div className="relative aspect-video rounded-lg overflow-hidden shadow-md mb-3 border border-gray-100">
+                      <div className="absolute inset-0" style={{ backgroundImage: `url(${element.props.bgPatternUrl || element.props.imageUrl})`, backgroundRepeat: element.type === "navbar" ? 'repeat' : 'no-repeat', backgroundSize: element.type === "navbar" ? '100px auto' : 'cover' }} />
                     </div>
                   ) : (
-                    <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-100 transition-colors">
-                      <ImageIcon size={24} className="text-gray-300 group-hover:text-blue-500" />
-                    </div>
+                    <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3"><ImageIcon size={24} className="text-gray-300" /></div>
                   )}
-                  <p className="text-xs font-bold text-gray-700">Cambiar Imagen</p>
-                  <p className="text-[10px] text-gray-400 mt-1 uppercase font-black tracking-tighter">Formatos: JPG, PNG, WebP</p>
+                  <p className="text-xs font-bold text-gray-700">{element.type === "navbar" ? "Subir Patrón" : "Cambiar Imagen"}</p>
                </div>
+               {element.props.bgPatternUrl && <button onClick={() => handleChange("bgPatternUrl", null)} className="w-full mt-2 py-2 text-[9px] font-black uppercase text-red-400 hover:text-red-600">Eliminar Textura</button>}
             </ControlGroup>
           </>
         )}
 
         {activeTab === "animation" && (
+          <>
            <ControlGroup title="Efectos de Revelado" icon={Sparkles}>
               <div className="space-y-2">
                  {[
                    { id: "none", label: "Ninguna", desc: "Aparición inmediata" },
-                   { id: "fade", label: "Fade In", desc: "Suave y progresivo" },
+                   { id: "fade", label: "Desvanecer", desc: "Aparición suave" },
                    { id: "slide", label: "Deslizar", desc: "Entrada desde abajo" },
                    { id: "zoom", label: "Zoom", desc: "Efecto de expansión" },
+                   { id: "blur", label: "Desenfoque", desc: "Estilo premium" },
                  ].map(anim => (
-                   <button 
-                    key={anim.id}
-                    onClick={() => handleChange("animation", anim.id)}
-                    className={cn(
-                      "w-full p-3 border rounded-xl text-left transition-all flex items-center justify-between group",
-                      (element.props.animation === anim.id || (!element.props.animation && anim.id === "none")) 
-                        ? "border-blue-500 bg-blue-50/50 shadow-sm ring-1 ring-blue-500/20" 
-                        : "border-gray-100 hover:border-blue-200 hover:bg-gray-50"
-                    )}
-                   >
+                   <button key={anim.id} onClick={() => handleChange("animation", anim.id)} className={cn("w-full p-3 border rounded-xl text-left transition-all flex items-center justify-between group", (element.props.animation === anim.id || (!element.props.animation && anim.id === "none")) ? "border-blue-500 bg-blue-50/50 shadow-sm" : "border-gray-100 hover:bg-gray-50")}>
                       <div>
-                        <p className={cn("text-xs font-black uppercase tracking-tight", element.props.animation === anim.id ? "text-blue-700" : "text-gray-700 group-hover:text-blue-600")}>{anim.label}</p>
+                        <p className={cn("text-xs font-black uppercase tracking-tight", element.props.animation === anim.id ? "text-blue-700" : "text-gray-700")}>{anim.label}</p>
                         <p className="text-[9px] text-gray-400 font-medium">{anim.desc}</p>
                       </div>
                       {(element.props.animation === anim.id || (!element.props.animation && anim.id === "none")) && <Check size={14} className="text-blue-600" />}
@@ -602,18 +419,23 @@ export const DesignerInspector = () => {
                  ))}
               </div>
            </ControlGroup>
+
+           <ControlGroup title="Marketplace de Efectos" icon={ShoppingBag}>
+              <div className="py-10 text-center space-y-3">
+                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-2 rotate-3 border border-blue-100 shadow-sm">
+                  <Sparkles size={24} className="text-blue-500 animate-pulse" />
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">Próximamente</p>
+                <p className="text-[9px] text-gray-400 max-w-[180px] mx-auto leading-relaxed font-medium">Librería ultra-premium de diseñadores elite.</p>
+              </div>
+           </ControlGroup>
+          </>
         )}
 
       </div>
 
-      {/* FOOTER DE ACCIONES */}
-      <div className="p-4 border-t border-gray-100 bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.02)] shrink-0">
-         <button 
-          onClick={() => selectElement(null)}
-          className="w-full py-3 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-blue-600 transition-all active:scale-95"
-         >
-           Confirmar Cambios
-         </button>
+      <div className="p-4 border-t border-gray-100 bg-white shrink-0">
+         <button onClick={() => selectElement(null)} className="w-full py-3 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-blue-600 transition-all active:scale-95">Confirmar Cambios</button>
       </div>
     </div>
   );

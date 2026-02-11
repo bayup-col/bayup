@@ -34,7 +34,7 @@ const DroppableSection = ({
     <section
       ref={(node) => {
         setNodeRef(node);
-        (headerRef as any).current = node;
+        if (headerRef) (headerRef as any).current = node;
       }}
       onClick={() => setActiveSection(section)}
       className={cn(
@@ -93,7 +93,6 @@ const InsertionPoint = ({ section, index }: { section: SectionType, index: numbe
 const DraggableCanvasElement = ({ 
   el, 
   section, 
-  idx, 
   selectedElementId, 
   selectElement, 
   setActiveSection, 
@@ -109,25 +108,35 @@ const DraggableCanvasElement = ({
 }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: el.id,
-    data: {
-      type: el.type,
-      id: el.id,
-      section: section,
-      isNew: false
-    }
+    data: { type: el.type, id: el.id, section: section, isNew: false }
   });
 
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-    zIndex: 100,
-  } : undefined;
+  const style = {
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    zIndex: transform ? 100 : undefined,
+    opacity: (el.props.opacity !== undefined ? el.props.opacity : 100) / 100
+  };
+
+  const variants = {
+    none: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
+    fade: { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.8 } },
+    slide: { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5 } },
+    zoom: { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: 1, scale: 1 }, transition: { duration: 0.4 } },
+    blur: { initial: { opacity: 0, filter: "blur(10px)" }, animate: { opacity: 1, filter: "blur(0px)" }, transition: { duration: 1 } }
+  };
+
+  const anim = (variants as any)[el.props.animation] || variants.none;
 
   return (
-    <div
+    <motion.div
+      key={`${el.id}-${el.props.animation}`}
       ref={setNodeRef}
       {...listeners}
       {...attributes}
       style={style}
+      initial={anim.initial}
+      animate={anim.animate}
+      transition={anim.transition}
       onClick={(e) => {
         e.stopPropagation();
         selectElement(el.id);
@@ -144,10 +153,7 @@ const DraggableCanvasElement = ({
           <GripVertical size={12} className="text-blue-200" />
           <span className="text-[10px] font-bold uppercase tracking-wider">{el.type}</span>
           <div className="w-[1px] h-3 bg-blue-400 mx-1" />
-          <button 
-            onMouseDown={(e) => { e.stopPropagation(); removeElement(section, el.id); }} 
-            className="hover:text-red-200"
-          >
+          <button onMouseDown={(e) => { e.stopPropagation(); removeElement(section, el.id); }} className="hover:text-red-200">
             <Trash2 size={12} />
           </button>
         </div>
@@ -163,35 +169,43 @@ const DraggableCanvasElement = ({
           </div>
         )}
 
-        {(el.type === "navbar" || el.props.isNav) && (
-          <div className={cn(
-            "flex items-center justify-between px-6 py-4 bg-white shadow-sm rounded-xl border border-gray-100",
-            el.props.logoAlign === "center" && "flex-col gap-4",
-            el.props.logoAlign === "right" && "flex-row-reverse"
-          )}>
+        {el.type === "navbar" && (
+          <div 
+            className={cn(
+              "flex items-center px-6 shadow-sm rounded-xl border border-gray-100 transition-all overflow-hidden",
+              el.props.align === "left" && "justify-start gap-12",
+              (el.props.align === "center" || !el.props.align) && "justify-between",
+              el.props.align === "right" && "justify-end gap-12 flex-row-reverse"
+            )}
+            style={{ 
+              height: `${el.props.navHeight || 80}px`,
+              backgroundColor: el.props.bgColor || "#ffffff",
+              backgroundImage: el.props.bgPatternUrl ? `url(${el.props.bgPatternUrl})` : undefined,
+              backgroundRepeat: "repeat",
+              backgroundSize: "100px auto"
+            }}
+          >
             <div 
-              className={cn("flex items-center gap-2 transition-transform duration-75", el.props.logoFont || "font-black italic")}
+              className={cn("flex items-center gap-2 transition-transform duration-75 shrink-0", el.props.logoFont || "font-black italic")}
               style={{ 
                 fontSize: `${el.props.logoSize || 20}px`,
                 transform: `translateX(${el.props.logoAlign === "right" ? -(el.props.logoOffset || 0) : (el.props.logoOffset || 0)}px)`
               }}
             >
               {el.props.logoUrl ? (
-                <img 
-                  src={el.props.logoUrl} 
-                  className="object-contain" 
-                  style={{ height: `${el.props.logoSize || 24}px` }}
-                />
+                <img src={el.props.logoUrl} className="object-contain" style={{ height: `${el.props.logoSize || 24}px` }} />
               ) : (
-                <span className="text-blue-600 tracking-tighter uppercase whitespace-nowrap">
+                <span className="tracking-tighter uppercase whitespace-nowrap" style={{ color: el.props.logoColor || "#2563eb" }}>
                   {el.props.logoText || "LOGO"}
                 </span>
               )}
             </div>
             
             <nav className="hidden md:flex items-center gap-8">
-                {(el.props.menuItems || ["Inicio", "Productos"]).map((item: string) => (
-                  <span key={item} className="text-[10px] font-black text-gray-600 uppercase tracking-widest">{item}</span>
+                {(el.props.menuItems || []).map((item: any, idx: number) => (
+                  <span key={idx} className="text-[10px] font-black uppercase tracking-widest cursor-pointer hover:opacity-70 transition-opacity" style={{ color: el.props.menuColor || "#4b5563" }}>
+                    {typeof item === 'string' ? item : item.label}
+                  </span>
                 ))}
             </nav>
 
@@ -202,8 +216,8 @@ const DraggableCanvasElement = ({
                     const IconComp = icons[item.icon] || HelpCircle;
                     return (
                       <div key={idx} className="flex items-center gap-1.5 cursor-pointer group/util">
-                        <IconComp size={14} className="text-gray-400 group-hover/util:text-blue-500 transition-colors" />
-                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter group-hover/util:text-blue-600 transition-colors">
+                        <IconComp size={14} style={{ color: el.props.utilityColor || "#6b7280" }} className="transition-colors group-hover/util:opacity-70" />
+                        <span className="text-[9px] font-black uppercase tracking-tighter transition-colors group-hover/util:opacity-70" style={{ color: el.props.utilityColor || "#6b7280" }}>
                           {item.label}
                         </span>
                       </div>
@@ -211,9 +225,9 @@ const DraggableCanvasElement = ({
                   })}
                 </div>
 
-                <div className="flex items-center gap-3 text-gray-500">
+                <div className="flex items-center gap-3" style={{ color: el.props.utilityColor || "#6b7280" }}>
                   {el.props.showUser && (
-                    <div className="flex items-center gap-1 cursor-pointer">
+                    <div className="flex items-center gap-1 cursor-pointer hover:opacity-70 transition-opacity">
                       {(el.props.utilityType === "icon" || el.props.utilityType === "both") && (
                         el.props.userIcon === "UserCircle" ? <UserCircle size={18} /> : 
                         el.props.userIcon === "LogIn" ? <LogIn size={18} /> : <User size={18} />
@@ -225,7 +239,7 @@ const DraggableCanvasElement = ({
                   )}
 
                   {el.props.showCart && (
-                    <div className="flex items-center gap-1 cursor-pointer relative">
+                    <div className="flex items-center gap-1 cursor-pointer relative hover:opacity-70 transition-opacity">
                       {(el.props.utilityType === "icon" || el.props.utilityType === "both") && (
                         <>
                           {el.props.cartIcon === "ShoppingCart" ? <ShoppingCart size={18} /> : <ShoppingBag size={18} />}
@@ -257,7 +271,7 @@ const DraggableCanvasElement = ({
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -268,19 +282,10 @@ export const Canvas = () => {
   const bodyRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
 
-  const viewportWidths = {
-    desktop: "max-w-5xl",
-    tablet: "max-w-2xl",
-    mobile: "max-w-sm"
-  };
+  const viewportWidths = { desktop: "max-w-5xl", tablet: "max-w-2xl", mobile: "max-w-sm" };
 
   useEffect(() => {
-    const refs: Record<SectionType, React.RefObject<HTMLDivElement>> = {
-      header: headerRef,
-      body: bodyRef,
-      footer: footerRef
-    };
-
+    const refs: Record<SectionType, React.RefObject<HTMLDivElement>> = { header: headerRef, body: bodyRef, footer: footerRef };
     const targetRef = refs[activeSection];
     if (targetRef?.current) {
       targetRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -289,7 +294,6 @@ export const Canvas = () => {
 
   const renderElements = (section: SectionType) => {
     const data = pageData[section];
-    
     if (data.elements.length === 0) {
       return (
         <div className="py-12 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400">
@@ -304,15 +308,7 @@ export const Canvas = () => {
         {data.elements.map((el, idx) => (
           <React.Fragment key={el.id}>
             <InsertionPoint section={section} index={idx} />
-            <DraggableCanvasElement 
-              el={el} 
-              section={section} 
-              idx={idx}
-              selectedElementId={selectedElementId}
-              selectElement={selectElement}
-              setActiveSection={setActiveSection}
-              removeElement={removeElement}
-            />
+            <DraggableCanvasElement el={el} section={section} idx={idx} selectedElementId={selectedElementId} selectElement={selectElement} setActiveSection={setActiveSection} removeElement={removeElement} />
           </React.Fragment>
         ))}
         <InsertionPoint section={section} index={data.elements.length} />
@@ -323,34 +319,9 @@ export const Canvas = () => {
   return (
     <div className="flex-1 bg-gray-100 overflow-y-auto overflow-x-hidden p-8 scroll-smooth custom-scrollbar flex flex-col items-center">
       <div className={cn("w-full transition-all duration-500 space-y-6 pb-40 mx-auto", viewportWidths[viewport])}>
-        
-        <DroppableSection 
-            section="header" 
-            headerRef={headerRef} 
-            activeSection={activeSection} 
-            setActiveSection={setActiveSection}
-        >
-          {renderElements("header")}
-        </DroppableSection>
-
-        <DroppableSection 
-            section="body" 
-            headerRef={bodyRef} 
-            activeSection={activeSection} 
-            setActiveSection={setActiveSection}
-        >
-          {renderElements("body")}
-        </DroppableSection>
-
-        <DroppableSection 
-            section="footer" 
-            headerRef={footerRef} 
-            activeSection={activeSection} 
-            setActiveSection={setActiveSection}
-        >
-          {renderElements("footer")}
-        </DroppableSection>
-
+        <DroppableSection section="header" headerRef={headerRef} activeSection={activeSection} setActiveSection={setActiveSection}>{renderElements("header")}</DroppableSection>
+        <DroppableSection section="body" headerRef={bodyRef} activeSection={activeSection} setActiveSection={setActiveSection}>{renderElements("body")}</DroppableSection>
+        <DroppableSection section="footer" headerRef={footerRef} activeSection={activeSection} setActiveSection={setActiveSection}>{renderElements("footer")}</DroppableSection>
       </div>
     </div>
   );

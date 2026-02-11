@@ -37,13 +37,20 @@ const DEFAULT_SCHEMA: PageSchema = {
     elements: [
       { 
         id: "nav-1", 
-        type: "text", // Usaremos tipos base pero con props extendidas para la nav
+        type: "navbar", 
         props: { 
-          isNav: true,
           logoText: "BAYUP SHOP",
-          menuItems: ["Inicio", "Productos", "Nosotros"],
+          menuItems: [
+            { label: "Inicio", url: "/" }, 
+            { label: "Tienda", url: "/tienda" },
+            { label: "Sobre Nosotros", url: "/nosotros" }
+          ],
           showCart: true,
-          showLogin: true
+          showUser: true,
+          logoColor: "#2563eb",
+          navHeight: 80,
+          align: "center",
+          bgColor: "#ffffff"
         } 
       },
     ],
@@ -116,7 +123,14 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                logoAlign: "left",
                logoOffset: 0,
                logoFont: "font-sans",
-               menuItems: ["Inicio", "Tienda"],
+               logoColor: "#2563eb",
+               navHeight: 80,
+               align: "center",
+               menuColor: "#4b5563",
+               utilityColor: "#6b7280",
+               bgColor: "#ffffff",
+               bgPatternUrl: null,
+               menuItems: [{ label: "Inicio", url: "/" }, { label: "Tienda", url: "/tienda" }],
                utilityType: "icon", // 'icon' | 'text' | 'both'
                showCart: true,
                showUser: true,
