@@ -54,7 +54,7 @@ import PayrollInfoModal from '@/components/dashboard/PayrollInfoModal';
 import PayrollMetricModal from '@/components/dashboard/PayrollMetricModal';
 import StaffDetailModal from '@/components/dashboard/StaffDetailModal';
 import LiquidationConfirmModal from '@/components/dashboard/LiquidationConfirmModal';
-import { generateDetailedReport } from '@/lib/report-generator';
+import { generateDailyReport } from '@/lib/report-generator';
 import { 
     AreaChart, 
     Area, 
@@ -204,7 +204,7 @@ function ReportsContent() {
     const handleExport = () => {
         try {
             showToast("Generando reporte PDF...", "info");
-            generateDetailedReport({
+            generateDailyReport({
                 kpis: KPIS,
                 salesTrend: SALES_TREND,
                 revenueByChannel: REVENUE_BY_CHANNEL,

@@ -359,7 +359,7 @@ export default function InvoicingPage() {
                                             <button key={p.id} onClick={() => handleProductClick(p)} className="bg-white p-4 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:scale-105 transition-all text-left relative group">
                                                 <div onClick={(e) => { e.stopPropagation(); addToCart(p); }} className="absolute top-3 right-3 z-20 h-8 w-8 bg-emerald-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:scale-110 cursor-pointer"><Plus size={18} strokeWidth={3} /></div>
                                                 <div className="aspect-square bg-gray-50 rounded-2xl mb-4 overflow-hidden">{displayImage ? <img src={displayImage} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"/> : <div className="h-full w-full flex items-center justify-center text-gray-200"><Package size={24}/></div>}</div>
-                                                <p className="text-[10px] font-black text-gray-900 truncate">{p.name}</p><p className={`text-[11px] font-black mt-1 ${isWholesale ? 'text-emerald-500' : 'text-[#004D4D]'}`}>${displayPrice.toLocaleString()}</p>
+                                                <p className="text-[10px] font-black text-gray-900 truncate">{p.name}</p><p className={`text-[11px] font-black mt-1 ${isWholesale ? 'text-emerald-500' : 'text-[#004D4D]'}`}>${(displayPrice || 0).toLocaleString()}</p>
                                             </button>
                                         );
                                     })}</div>
