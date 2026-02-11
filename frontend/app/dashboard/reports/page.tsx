@@ -43,6 +43,7 @@ import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
+import { apiRequest } from '@/lib/api';
 import { useSearchParams } from 'next/navigation';
 import TiltCard from '@/components/dashboard/TiltCard';
 import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
