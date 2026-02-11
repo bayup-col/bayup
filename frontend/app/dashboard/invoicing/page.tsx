@@ -484,7 +484,20 @@ export default function InvoicingPage() {
                                                     <label className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest ml-1">{attrName}</label>
                                                     <div className="flex flex-col gap-2">
                                                         {selectedProductForVariant.variants?.filter(v => v.name === attrName).map(v => (
-                                                            <button key={v.id} onClick={() => { const newSelections = { ...selectedVariants, [attrName]: v }; setSelectedVariants(newSelections); const base = customerInfo.type === 'mayorista' && (selectedProductForVariant.wholesale_price || 0) > 0 ? selectedProductForVariant.wholesale_price : selectedProductForVariant.price; const adjustments = Object.values(newSelections).reduce((acc, sel) => acc + (sel.price_adjustment || 0), 0); setTempPrice(base + adjustments); }} disabled={v.stock <= 0} className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase border-2 transition-all ${selectedVariants[attrName]?.id === v.id ? 'bg-[#004D4D] border-[#004D4D] text-white shadow-xl scale-105' : 'bg-white border-gray-100 text-gray-400 hover:border-[#004D4D]/20'}`}>{v.sku}</button>
+                                                            <button 
+                                                                key={v.id} 
+                                                                onClick={() => { 
+                                                                    const newSelections = { ...selectedVariants, [attrName]: v }; 
+                                                                    setSelectedVariants(newSelections); 
+                                                                    const base = customerInfo.type === 'mayorista' && (selectedProductForVariant.wholesale_price || 0) > 0 ? selectedProductForVariant.wholesale_price : selectedProductForVariant.price; 
+                                                                    const adjustments = Object.values(newSelections).reduce((acc, sel: any) => acc + (sel.price_adjustment || 0), 0); 
+                                                                    setTempPrice((base || 0) + adjustments); 
+                                                                }} 
+                                                                disabled={v.stock <= 0} 
+                                                                className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase border-2 transition-all ${selectedVariants[attrName]?.id === v.id ? 'bg-[#004D4D] border-[#004D4D] text-white shadow-xl scale-105' : 'bg-white border-gray-100 text-gray-400 hover:border-[#004D4D]/20'}`}
+                                                            >
+                                                                {v.sku}
+                                                            </button>
                                                         ))}
                                                     </div>
                                                 </div>
