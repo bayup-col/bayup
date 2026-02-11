@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { 
@@ -52,7 +52,7 @@ import { apiRequest } from '@/lib/api';
 import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
 import { exportOrdersToExcel } from '@/lib/orders-export';
 
-// --- COMPONENTES ATÃ“MICOS ---
+// --- COMPONENTES ATÓMICOS ---
 const AnimatedNumber = memo(({ value, type = 'currency' }: { value: number, type?: 'currency' | 'simple' }) => {
     const spring = useSpring(0, { mass: 0.8, stiffness: 75, damping: 15 });
     const display = useTransform(spring, (current: number) => {
@@ -150,7 +150,7 @@ export default function OrdersPage() {
         { id: 'revenue', label: 'Ventas Totales', value: stats.totalRevenue, icon: <DollarSign size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: 'Live' },
         { id: 'pending', label: 'Por Procesar', value: stats.pendingCount, icon: <Clock size={24}/>, color: 'text-amber-600', bg: 'bg-amber-50', trend: 'Pendientes', isSimple: true },
         { id: 'average', label: 'Ticket Promedio', value: stats.avgOrder, icon: <Target size={24}/>, color: 'text-[#004d4d]', bg: 'bg-[#004d4d]/5', trend: 'Market OK' },
-        { id: 'alerts', label: 'Alertas CrÃ­ticas', value: stats.delayedCount, icon: <AlertCircle size={24}/>, color: 'text-rose-600', bg: 'bg-rose-50', trend: 'AtenciÃ³n', isSimple: true },
+        { id: 'alerts', label: 'Alertas Críticas', value: stats.delayedCount, icon: <AlertCircle size={24}/>, color: 'text-rose-600', bg: 'bg-rose-50', trend: 'Atención', isSimple: true },
     ];
 
     const handleExport = async () => {
@@ -159,9 +159,9 @@ export default function OrdersPage() {
             return;
         }
         try {
-            showToast("Generando AuditorÃ­a de Ventas...", "info");
+            showToast("Generando Auditoría de Ventas...", "info");
             await exportOrdersToExcel(orders, "Bayup_Tienda");
-            showToast("Â¡Historial exportado! ðŸ“Š", "success");
+            showToast("¡Historial exportado! 📊", "success");
         } catch (e) {
             showToast("Error al generar el archivo", "error");
         }
@@ -176,10 +176,10 @@ export default function OrdersPage() {
     }, [orders, searchTerm, activeTab]);
 
     const guideContent = {
-        overview: { title: 'Flujo de Ventas', icon: <LayoutGrid size={20}/>, color: 'text-slate-600', description: 'Central de monitoreo transaccional. AquÃ­ ves el ciclo completo de tus ventas.', whyImportant: 'Controlar cada etapa evita pedidos olvidados y mejora el flujo de caja.', kpi: { label: 'Eficiencia Cierre', val: '94%' }, baytTip: 'Prioriza siempre los pedidos "Por Facturar" para agilizar el despacho.' },
-        pending: { title: 'Nuevos Pedidos', icon: <Clock size={20}/>, color: 'text-amber-500', description: 'Ventas reciÃ©n ingresadas que esperan validaciÃ³n.', whyImportant: 'Un tiempo de respuesta menor a 30 min aumenta la recompra en un 25%.', kpi: { label: 'Lead Time', val: '15m' }, baytTip: 'Si el pedido es de un cliente "Mayorista", validad el stock antes de confirmar.' },
-        processing: { title: 'En Alistamiento', icon: <Zap size={20}/>, color: 'text-blue-500', description: 'Pedidos en etapa de empaque y generaciÃ³n de guÃ­a.', whyImportant: 'Es la fase donde mÃ¡s errores humanos pueden ocurrir. Verifica el SKU.', kpi: { label: 'PrecisiÃ³n Packing', val: '99.8%' }, baytTip: 'Usa el escÃ¡ner de cÃ³digos de barras para evitar enviar tallas incorrectas.' },
-        delayed: { title: 'GestiÃ³n Alertas', icon: <AlertCircle size={20}/>, color: 'text-rose-500', description: 'Pedidos con novedades o retrasos crÃ­ticos.', whyImportant: 'Resolver un retraso proactivamente salva la relaciÃ³n con el cliente.', kpi: { label: 'RecuperaciÃ³n', val: '88%' }, baytTip: 'Llama al cliente de inmediato si detectas una novedad en la transportadora.' }
+        overview: { title: 'Flujo de Ventas', icon: <LayoutGrid size={20}/>, color: 'text-slate-600', description: 'Central de monitoreo transaccional. Aquí ves el ciclo completo de tus ventas.', whyImportant: 'Controlar cada etapa evita pedidos olvidados y mejora el flujo de caja.', kpi: { label: 'Eficiencia Cierre', val: '94%' }, baytTip: 'Prioriza siempre los pedidos "Por Facturar" para agilizar el despacho.' },
+        pending: { title: 'Nuevos Pedidos', icon: <Clock size={20}/>, color: 'text-amber-500', description: 'Ventas recién ingresadas que esperan validación.', whyImportant: 'Un tiempo de respuesta menor a 30 min aumenta la recompra en un 25%.', kpi: { label: 'Lead Time', val: '15m' }, baytTip: 'Si el pedido es de un cliente "Mayorista", validad el stock antes de confirmar.' },
+        processing: { title: 'En Alistamiento', icon: <Zap size={20}/>, color: 'text-blue-500', description: 'Pedidos en etapa de empaque y generación de guía.', whyImportant: 'Es la fase donde más errores humanos pueden ocurrir. Verifica el SKU.', kpi: { label: 'Precisión Packing', val: '99.8%' }, baytTip: 'Usa el escáner de códigos de barras para evitar enviar tallas incorrectas.' },
+        delayed: { title: 'Gestión Alertas', icon: <AlertCircle size={20}/>, color: 'text-rose-500', description: 'Pedidos con novedades o retrasos críticos.', whyImportant: 'Resolver un retraso proactivamente salva la relación con el cliente.', kpi: { label: 'Recuperación', val: '88%' }, baytTip: 'Llama al cliente de inmediato si detectas una novedad en la transportadora.' }
     };
 
     return (
@@ -190,18 +190,15 @@ export default function OrdersPage() {
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Monitor de Ã“rdenes v2.0</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Monitor de Órdenes v2.0</span>
                     </div>
                     <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
-                        GESTIÃ“N <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">PEDIDOS</span>
+                        PEDIDOS
                     </h1>
-                    <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
-                        Hola <span className="text-[#004d4d] font-bold">{userEmail?.split('@')[0]}</span>, monitorea el estado de tus ventas y despachos. ðŸ‘‹
-                    </p>
                 </div>
             </header>
 
-            {/* 2. GRID DE MÃ‰TRICAS PEDIDOS */}
+            {/* 2. GRID DE MÉTRICAS PEDIDOS */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
                 {kpis.map((kpi, i) => (
                     <div key={i} onClick={() => setSelectedMetric(kpi)}>
@@ -225,7 +222,7 @@ export default function OrdersPage() {
                 ))}
             </div>
 
-            {/* 3. NAVEGACIÃ“N CENTRAL Y BÃšSQUEDA TÃCTICA */}
+            {/* 3. NAVEGACIÓN CENTRAL Y BÚSQUEDA TÁCTICA */}
             <div className="px-4 space-y-10">
                 <div className="flex justify-center items-center gap-4 relative z-20">
                     <div className="p-1.5 bg-white/60 backdrop-blur-xl border border-white/80 rounded-full shadow-2xl flex items-center overflow-x-auto no-scrollbar relative">
@@ -234,7 +231,7 @@ export default function OrdersPage() {
                             { id: 'pending', label: 'Pendientes' },
                             { id: 'processing', label: 'Proceso' },
                             { id: 'shipped', label: 'Enviados' },
-                            { id: 'completed', label: 'Ã‰xito' },
+                            { id: 'completed', label: 'Éxito' },
                             { id: 'delayed', label: 'Alertas' }
                         ] as const).map((tab) => (
                             <button 
@@ -348,7 +345,7 @@ export default function OrdersPage() {
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedOrder(null)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-2xl" />
                         <motion.div initial={{ opacity: 0, scale: 0.95, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 40 }} className="relative bg-white w-full max-w-4xl rounded-[4rem] shadow-3xl overflow-hidden border border-white/20 flex flex-col md:flex-row text-slate-900">
                             
-                            {/* LATERAL: RESUMEN RÃPIDO */}
+                            {/* LATERAL: RESUMEN RÁPIDO */}
                             <div className="w-full md:w-80 bg-[#004D4D] p-12 text-white flex flex-col justify-between shrink-0 relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none"><div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-cyan rounded-full blur-[80px]" /></div>
                                 <div className="relative z-10 space-y-10">
@@ -373,7 +370,7 @@ export default function OrdersPage() {
                                 <button onClick={() => setSelectedOrder(null)} className="relative z-10 w-full py-5 bg-white text-[#004D4D] rounded-[2rem] font-black text-[10px] uppercase tracking-widest shadow-2xl hover:bg-cyan transition-all">Cerrar Detalle</button>
                             </div>
 
-                            {/* CONTENIDO: DETALLE TÃ‰CNICO */}
+                            {/* CONTENIDO: DETALLE TÉCNICO */}
                             <div className="flex-1 overflow-y-auto p-12 bg-[#FAFAFA] custom-scrollbar space-y-10">
                                 <section className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm space-y-6">
                                     <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><User size={14} className="text-[#004D4D]"/> Datos del Cliente</h4>
@@ -384,7 +381,7 @@ export default function OrdersPage() {
                                 </section>
 
                                 <section className="space-y-6">
-                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><ShoppingBag size={14} className="text-[#004D4D]"/> ArtÃ­culos Adquiridos</h4>
+                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><ShoppingBag size={14} className="text-[#004D4D]"/> Artículos Adquiridos</h4>
                                     <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
                                         <div className="divide-y divide-gray-50">
                                             {selectedOrder.items?.map((item: any, i: number) => (
@@ -400,7 +397,7 @@ export default function OrdersPage() {
                                                         <div>
                                                             <p className="text-sm font-black text-gray-900">{item.product_variant?.product?.name || 'Producto'}</p>
                                                             <p className="text-[9px] font-bold text-[#004D4D] uppercase">
-                                                                {item.product_variant?.name !== 'EstÃ¡ndar' ? item.product_variant?.name : 'GenÃ©rico'} | Cant: {item.quantity}
+                                                                {item.product_variant?.name !== 'Estándar' ? item.product_variant?.name : 'Genérico'} | Cant: {item.quantity}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -411,7 +408,7 @@ export default function OrdersPage() {
                                                 </div>
                                             ))}
                                             {(!selectedOrder.items || selectedOrder.items.length === 0) && (
-                                                <div className="p-10 text-center text-gray-300 italic text-xs">InformaciÃ³n de Ã­tems no disponible en esta versiÃ³n</div>
+                                                <div className="p-10 text-center text-gray-300 italic text-xs">Información de ítems no disponible en esta versión</div>
                                             )}
                                         </div>
                                     </div>
@@ -420,11 +417,11 @@ export default function OrdersPage() {
                                 <div className="pt-6 flex justify-between items-center">
                                     <div className="flex items-center gap-4 text-gray-400">
                                         <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                                        <p className="text-[9px] font-black uppercase tracking-widest">OperaciÃ³n Registrada: {new Date(selectedOrder.created_at).toLocaleString()}</p>
+                                        <p className="text-[9px] font-black uppercase tracking-widest">Operación Registrada: {new Date(selectedOrder.created_at).toLocaleString()}</p>
                                     </div>
                                     <div className="flex gap-4">
                                         <button className="h-12 w-12 rounded-2xl bg-white border border-gray-100 text-gray-400 hover:text-[#004D4D] shadow-sm flex items-center justify-center transition-all"><Printer size={18}/></button>
-                                        <button className="h-12 px-8 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-black transition-all">Generar GuÃ­a</button>
+                                        <button className="h-12 px-8 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-black transition-all">Generar Guía</button>
                                     </div>
                                 </div>
                             </div>
@@ -449,7 +446,7 @@ export default function OrdersPage() {
                             <div className="w-full md:w-80 bg-gray-50 border-r border-gray-100 p-10 flex flex-col shrink-0">
                                 <div className="mb-10">
                                     <div className="flex items-center gap-3 mb-2"><div className="h-2 w-2 rounded-full bg-[#004D4D] animate-pulse" /><span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004D4D]/60">Tutorial Maestro</span></div>
-                                    <h3 className="text-2xl font-black italic uppercase text-[#001A1A] tracking-tighter leading-none">GestiÃ³n de <span className="text-[#004D4D]">Ventas</span></h3>
+                                    <h3 className="text-2xl font-black italic uppercase text-[#001A1A] tracking-tighter leading-none">Gestión de <span className="text-[#004D4D]">Ventas</span></h3>
                                 </div>
                                 <div className="space-y-2 flex-1">
                                     {(Object.entries(guideContent) as any).map(([key, item]: any) => (
@@ -467,7 +464,7 @@ export default function OrdersPage() {
                                     <motion.div key={activeGuideTab} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-12">
                                         <div className="space-y-6">
                                             <div className="flex items-center gap-4">
-                                                <div className={`h-16 w-16 rounded-[1.8rem] flex items-center justify-center ${guideContent[activeGuideTab as keyof typeof guideContent].color} bg-white shadow-xl border border-gray-50`}>{guideContent[activeGuideTab as keyof typeof guideContent].icon}</div>
+                                                <div className={`h-16 w-16 rounded-[1.8rem] flex items-center justify-center ${guideContent[activeTab as keyof typeof guideContent]?.color || 'text-slate-600'} bg-white shadow-xl border border-gray-50`}>{guideContent[activeGuideTab as keyof typeof guideContent].icon}</div>
                                                 <div><h2 className="text-4xl font-black text-gray-900 tracking-tighter uppercase italic">{guideContent[activeGuideTab as keyof typeof guideContent].title}</h2><p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Excelencia Operativa</p></div>
                                             </div>
                                             <p className="text-lg font-medium text-gray-600 leading-relaxed max-w-3xl italic">&quot;{guideContent[activeGuideTab as keyof typeof guideContent].description}&quot;</p>
@@ -475,13 +472,13 @@ export default function OrdersPage() {
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                             <div className="bg-gray-50 p-8 rounded-[2.5rem] border border-gray-100 flex flex-col justify-between group">
                                                 <div>
-                                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2"><Activity size={12} className="text-[#004D4D]" /> MÃ©trica Clave</h4>
+                                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2"><Activity size={12} className="text-[#004D4D]" /> Métrica Clave</h4>
                                                     <div className="flex items-end gap-4"><span className="text-6xl font-black italic text-gray-900 tracking-tighter">{guideContent[activeGuideTab as keyof typeof guideContent].kpi.val}</span><div className="mb-2 h-10 w-px bg-gray-200" /><p className="text-[10px] font-bold text-[#004D4D] uppercase leading-tight mb-2">{guideContent[activeGuideTab as keyof typeof guideContent].kpi.label}</p></div>
                                                 </div>
                                                 <div className="mt-8 h-2 w-full bg-white rounded-full overflow-hidden border border-gray-100 shadow-inner"><motion.div initial={{ width: 0 }} animate={{ width: '92%' }} className="h-full bg-gradient-to-r from-[#004D4D] to-cyan rounded-full" /></div>
                                             </div>
                                             <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
-                                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><Target size={14} className="text-rose-500" /> Valor EstratÃ©gico</h4>
+                                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><Target size={14} className="text-rose-500" /> Valor Estratégico</h4>
                                                 <p className="text-sm font-medium text-gray-600 leading-relaxed">{guideContent[activeGuideTab as keyof typeof guideContent].whyImportant}</p>
                                             </div>
                                         </div>
@@ -489,7 +486,7 @@ export default function OrdersPage() {
                                             <div className="absolute top-0 right-0 p-8 opacity-5 -z-10 rotate-12"><Bot size={150}/></div>
                                             <div className="flex items-center gap-4 mb-6"><div className="h-10 w-10 rounded-xl bg-cyan flex items-center justify-center text-[#001A1A] shadow-[0_0_15px_rgba(0,242,255,0.3)]"><Bot size={20} /></div><h4 className="text-xs font-black uppercase tracking-[0.2em] text-cyan">Estrategia Bayt AI</h4></div>
                                             <p className="text-lg font-bold italic leading-tight text-white/90">&quot;{guideContent[activeGuideTab as keyof typeof guideContent].baytTip}&quot;</p>
-                                            <div className="mt-8 flex items-center gap-3"><div className="h-1.5 w-1.5 rounded-full bg-cyan animate-pulse" /><span className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan/60">AnÃ¡lisis Predictivo de Ventas v2.0</span></div>
+                                            <div className="mt-8 flex items-center gap-3"><div className="h-1.5 w-1.5 rounded-full bg-cyan animate-pulse" /><span className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan/60">Análisis Predictivo de Ventas v2.0</span></div>
                                         </div>
                                     </motion.div>
                                 </AnimatePresence>
@@ -506,4 +503,3 @@ export default function OrdersPage() {
         </div>
     );
 }
-
