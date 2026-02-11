@@ -12,7 +12,7 @@ const AVAILABLE_COMPONENTS = {
     { type: "announcement-bar" as ComponentType, label: "Barra Anuncios", icon: LayoutTemplate },
     { type: "navbar" as ComponentType, label: "Navegación", icon: Monitor },
     { type: "text" as ComponentType, label: "Texto Simple", icon: Type },
-    { type: "image" as ComponentType, label: "Logo / Imagen", icon: ImageIcon },
+    { type: "button" as ComponentType, label: "Botón", icon: MousePointerClick },
   ],
   body: [
     { type: "hero-banner" as ComponentType, label: "Hero Banner", icon: Monitor },

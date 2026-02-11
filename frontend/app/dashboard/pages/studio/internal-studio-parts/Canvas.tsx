@@ -198,55 +198,27 @@ const DraggableCanvasElement = ({
               color: el.props.textColor || "#ffffff",
               backgroundImage: el.props.bgPatternUrl ? `url(${el.props.bgPatternUrl})` : undefined,
               backgroundRepeat: "repeat",
-              backgroundSize: "auto 100%", // Ajuste perfecto a la altura de la barra
+              backgroundSize: "auto 100%",
               height: `${el.props.navHeight || 36}px`,
               minHeight: "20px",
               justifyContent: el.props.align === "left" ? "flex-start" : el.props.align === "right" ? "flex-end" : "center"
             }}
           >
-            {/* COMPORTAMIENTO: ESTÁTICO */}
             {(!el.props.behavior || el.props.behavior === "static") && (
-              <div 
-                className={cn("w-full transition-all uppercase tracking-[0.2em]", el.props.fontFamily || "font-black")}
-                style={{ 
-                  fontSize: `${el.props.fontSize || 11}px`,
-                  textAlign: el.props.align as any || "center"
-                }}
-              >
+              <div className={cn("w-full uppercase tracking-[0.2em]", el.props.fontFamily || "font-black")} style={{ fontSize: `${el.props.fontSize || 11}px`, textAlign: el.props.align as any || "center" }}>
                 {el.props.messages?.[0] || el.props.content || "¡NUEVA PROMOCIÓN!"}
               </div>
             )}
-
-            {/* COMPORTAMIENTO: TELEPROMPTER / MARQUEE */}
             {el.props.behavior === "marquee" && (
               <div className="flex whitespace-nowrap overflow-hidden">
-                <motion.div 
-                  initial={{ x: "0%" }}
-                  animate={{ x: "-50%" }}
-                  transition={{ 
-                    duration: 20 / (el.props.speed || 10) * 10, 
-                    repeat: Infinity, 
-                    ease: "linear" 
-                  }}
-                  className={cn("flex gap-20 uppercase tracking-[0.2em]", el.props.fontFamily || "font-black")}
-                  style={{ fontSize: `${el.props.fontSize || 11}px` }}
-                >
-                  <span className="flex gap-20">
-                    {(el.props.messages || ["PROMO"]).map((msg: string, i: number) => <span key={i}>{msg}</span>)}
-                  </span>
-                  <span className="flex gap-20">
-                    {(el.props.messages || ["PROMO"]).map((msg: string, i: number) => <span key={`dup-${i}`}>{msg}</span>)}
-                  </span>
+                <motion.div initial={{ x: "0%" }} animate={{ x: "-50%" }} transition={{ duration: 20 / (el.props.speed || 10) * 10, repeat: Infinity, ease: "linear" }} className={cn("flex gap-20 uppercase tracking-[0.2em]", el.props.fontFamily || "font-black")} style={{ fontSize: `${el.props.fontSize || 11}px` }}>
+                  <span className="flex gap-20">{(el.props.messages || ["PROMO"]).map((msg: string, i: number) => <span key={i}>{msg}</span>)}</span>
+                  <span className="flex gap-20">{(el.props.messages || ["PROMO"]).map((msg: string, i: number) => <span key={`dup-${i}`}>{msg}</span>)}</span>
                 </motion.div>
               </div>
             )}
-
-            {/* COMPORTAMIENTO: SLIDE (ROTACIÓN) */}
             {el.props.behavior === "slide" && (
-              <div 
-                className={cn("w-full transition-all uppercase tracking-[0.2em] relative h-5 flex items-center justify-center", el.props.fontFamily || "font-black")}
-                style={{ fontSize: `${el.props.fontSize || 11}px` }}
-              >
+              <div className={cn("w-full uppercase tracking-[0.2em] relative h-5 flex items-center justify-center", el.props.fontFamily || "font-black")} style={{ fontSize: `${el.props.fontSize || 11}px` }}>
                 <AnnouncementSlides messages={el.props.messages || ["PROMO"]} />
               </div>
             )}
@@ -255,88 +227,70 @@ const DraggableCanvasElement = ({
 
         {el.type === "navbar" && (
           <div 
-            className={cn(
-              "flex items-center px-6 shadow-sm rounded-xl border border-gray-100 transition-all overflow-hidden",
-              el.props.align === "left" && "justify-start gap-12",
-              (el.props.align === "center" || !el.props.align) && "justify-between",
-              el.props.align === "right" && "justify-end gap-12 flex-row-reverse"
-            )}
-            style={{ 
-              height: `${el.props.navHeight || 80}px`,
-              backgroundColor: el.props.bgColor || "#ffffff",
-              backgroundImage: el.props.bgPatternUrl ? `url(${el.props.bgPatternUrl})` : undefined,
-              backgroundRepeat: "repeat",
-              backgroundSize: "100px auto"
-            }}
+            className={cn("flex items-center px-6 shadow-sm rounded-xl border border-gray-100 transition-all overflow-hidden", el.props.align === "left" && "justify-start gap-12", (el.props.align === "center" || !el.props.align) && "justify-between", el.props.align === "right" && "justify-end gap-12 flex-row-reverse")}
+            style={{ height: `${el.props.navHeight || 80}px`, backgroundColor: el.props.bgColor || "#ffffff", backgroundImage: el.props.bgPatternUrl ? `url(${el.props.bgPatternUrl})` : undefined, backgroundRepeat: "repeat", backgroundSize: "100px auto" }}
           >
-            <div 
-              className={cn("flex items-center gap-2 transition-transform duration-75 shrink-0", el.props.logoFont || "font-black italic")}
-              style={{ 
-                fontSize: `${el.props.logoSize || 20}px`,
-                transform: `translateX(${el.props.logoAlign === "right" ? -(el.props.logoOffset || 0) : (el.props.logoOffset || 0)}px)`
-              }}
-            >
-              {el.props.logoUrl ? (
-                <img src={el.props.logoUrl} className="object-contain" style={{ height: `${el.props.logoSize || 24}px` }} />
-              ) : (
-                <span className="tracking-tighter uppercase whitespace-nowrap" style={{ color: el.props.logoColor || "#2563eb" }}>
-                  {el.props.logoText || "LOGO"}
-                </span>
-              )}
+            <div className={cn("flex items-center gap-2 transition-transform shrink-0", el.props.logoFont || "font-black italic")} style={{ fontSize: `${el.props.logoSize || 20}px`, transform: `translateX(${el.props.logoAlign === "right" ? -(el.props.logoOffset || 0) : (el.props.logoOffset || 0)}px)` }}>
+              {el.props.logoUrl ? <img src={el.props.logoUrl} className="object-contain" style={{ height: `${el.props.logoSize || 24}px` }} /> : <span className="tracking-tighter uppercase whitespace-nowrap" style={{ color: el.props.logoColor || "#2563eb" }}>{el.props.logoText || "LOGO"}</span>}
             </div>
-            
-            <nav className="hidden md:flex items-center gap-8">
-                {(el.props.menuItems || []).map((item: any, idx: number) => (
-                  <span key={idx} className="text-[10px] font-black uppercase tracking-widest cursor-pointer hover:opacity-70 transition-opacity" style={{ color: el.props.menuColor || "#4b5563" }}>
-                    {typeof item === 'string' ? item : item.label}
-                  </span>
-                ))}
-            </nav>
-
+            <nav className="hidden md:flex items-center gap-8">{(el.props.menuItems || []).map((item: any, idx: number) => <span key={idx} className="text-[10px] font-black uppercase tracking-widest cursor-pointer hover:opacity-70 transition-opacity" style={{ color: el.props.menuColor || "#4b5563" }}>{typeof item === 'string' ? item : item.label}</span>)}</nav>
             <div className={cn("flex items-center gap-4", el.props.logoAlign === "right" && "flex-row-reverse")}>
                 <div className="hidden md:flex items-center gap-4 mr-2">
                   {el.props.utilityItems?.map((item: any, idx: number) => {
                     const icons: any = { ShoppingBag, ShoppingCart, User, UserCircle, LogIn, Heart, Search, HelpCircle, Phone };
                     const IconComp = icons[item.icon] || HelpCircle;
-                    return (
-                      <div key={idx} className="flex items-center gap-1.5 cursor-pointer group/util">
-                        <IconComp size={14} style={{ color: el.props.utilityColor || "#6b7280" }} className="transition-colors group-hover/util:opacity-70" />
-                        <span className="text-[9px] font-black uppercase tracking-tighter transition-colors group-hover/util:opacity-70" style={{ color: el.props.utilityColor || "#6b7280" }}>
-                          {item.label}
-                        </span>
-                      </div>
-                    );
+                    return <div key={idx} className="flex items-center gap-1.5 cursor-pointer group/util"><IconComp size={14} style={{ color: el.props.utilityColor || "#6b7280" }} /><span className="text-[9px] font-black uppercase tracking-tighter" style={{ color: el.props.utilityColor || "#6b7280" }}>{item.label}</span></div>;
                   })}
                 </div>
-
                 <div className="flex items-center gap-3" style={{ color: el.props.utilityColor || "#6b7280" }}>
-                  {el.props.showUser && (
-                    <div className="flex items-center gap-1 cursor-pointer hover:opacity-70 transition-opacity">
-                      {(el.props.utilityType === "icon" || el.props.utilityType === "both") && (
-                        el.props.userIcon === "UserCircle" ? <UserCircle size={18} /> : 
-                        el.props.userIcon === "LogIn" ? <LogIn size={18} /> : <User size={18} />
-                      )}
-                      {(el.props.utilityType === "text" || el.props.utilityType === "both") && (
-                        <span className="text-[10px] font-black uppercase tracking-tighter">Cuenta</span>
-                      )}
-                    </div>
-                  )}
-
-                  {el.props.showCart && (
-                    <div className="flex items-center gap-1 cursor-pointer relative hover:opacity-70 transition-opacity">
-                      {(el.props.utilityType === "icon" || el.props.utilityType === "both") && (
-                        <>
-                          {el.props.cartIcon === "ShoppingCart" ? <ShoppingCart size={18} /> : <ShoppingBag size={18} />}
-                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white" />
-                        </>
-                      )}
-                      {(el.props.utilityType === "text" || el.props.utilityType === "both") && (
-                        <span className="text-[10px] font-black uppercase tracking-tighter">Carrito</span>
-                      )}
-                    </div>
-                  )}
+                  {el.props.showUser && <div className="flex items-center gap-1 cursor-pointer hover:opacity-70">{(el.props.utilityType === "icon" || el.props.utilityType === "both") && (el.props.userIcon === "UserCircle" ? <UserCircle size={18} /> : el.props.userIcon === "LogIn" ? <LogIn size={18} /> : <User size={18} />)}<span className="text-[10px] font-black uppercase tracking-tighter">{el.props.utilityType !== "icon" && "Cuenta"}</span></div>}
+                  {el.props.showCart && <div className="flex items-center gap-1 cursor-pointer relative hover:opacity-70">{(el.props.utilityType === "icon" || el.props.utilityType === "both") && <><ShoppingCart size={18} /><span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white" /></>}<span className="text-[10px] font-black uppercase tracking-tighter">{el.props.utilityType !== "icon" && "Carrito"}</span></div>}
                 </div>
             </div>
+          </div>
+        )}
+
+        {el.type === "text" && !el.props.isNav && (
+          <div className={cn("w-full transition-all flex items-center px-4 rounded-xl", el.props.fontFamily || "font-sans", el.props.fontWeight || "font-medium")} style={{ textAlign: el.props.align as any || "left", fontSize: `${el.props.fontSize || 16}px`, color: el.props.color || "#1f2937", backgroundColor: el.props.bgColor || "transparent", backgroundImage: el.props.bgPatternUrl ? `url(${el.props.bgPatternUrl})` : undefined, backgroundRepeat: "repeat", backgroundSize: "auto 100%", minHeight: `${el.props.navHeight || 60}px`, lineHeight: 1.5, justifyContent: el.props.align === "left" ? "flex-start" : el.props.align === "right" ? "flex-end" : "center" }}>
+            <div className="w-full">{el.props.content}</div>
+          </div>
+        )}
+
+        {el.type === "button" && (
+          <div 
+            className="w-full transition-all flex items-center px-4 rounded-xl"
+            style={{ 
+              backgroundColor: el.props.bgColor || "transparent",
+              backgroundImage: el.props.bgPatternUrl ? `url(${el.props.bgPatternUrl})` : undefined,
+              backgroundRepeat: "repeat",
+              backgroundSize: "auto 100%",
+              minHeight: `${el.props.navHeight || 80}px`,
+              justifyContent: el.props.align === "left" ? "flex-start" : el.props.align === "right" ? "flex-end" : "center" 
+            }}
+          >
+            <button 
+              className={cn(
+                "transition-all font-bold px-6 py-2.5 relative overflow-hidden",
+                el.props.variant === "outline" ? "border-2" : el.props.variant === "ghost" ? "bg-transparent" : "shadow-md"
+              )}
+              style={{
+                backgroundColor: el.props.variant === "outline" || el.props.variant === "ghost" ? "transparent" : (el.props.color || "#2563eb"),
+                color: el.props.variant === "outline" || el.props.variant === "ghost" ? (el.props.color || "#2563eb") : (el.props.textColor || "#ffffff"),
+                borderColor: el.props.variant === "outline" ? (el.props.color || "#2563eb") : "transparent",
+                borderRadius: `${el.props.borderRadius || 12}px`,
+                fontSize: `${el.props.size === "lg" ? 18 : el.props.size === "sm" ? 12 : 14}px`,
+                backgroundImage: el.props.btnBgImage ? `url(${el.props.btnBgImage})` : undefined,
+                backgroundSize: el.props.btnBgMode === "repeat" ? "20px auto" : el.props.btnBgMode || "cover",
+                backgroundRepeat: el.props.btnBgMode === "repeat" ? "repeat" : "no-repeat",
+                backgroundPosition: "center"
+              }}
+            >
+              <span className="relative z-10">{el.props.buttonText || "Botón"}</span>
+              {/* Overlay suave si hay imagen para asegurar legibilidad */}
+              {el.props.btnBgImage && el.props.variant === "solid" && (
+                <div className="absolute inset-0 bg-black/10 z-0" />
+              )}
+            </button>
           </div>
         )}
 
@@ -348,26 +302,6 @@ const DraggableCanvasElement = ({
               <button className="px-8 py-3 bg-blue-600 text-white rounded-full font-bold shadow-xl relative z-10 uppercase tracking-widest text-[10px]">Comprar</button>
           </div>
         )}
-
-        {el.type === "text" && !el.props.isNav && (
-          <div 
-            className={cn("w-full transition-all flex items-center px-4 rounded-xl", el.props.fontFamily || "font-sans", el.props.fontWeight || "font-medium")}
-            style={{ 
-              textAlign: el.props.align as any || "left", 
-              fontSize: `${el.props.fontSize || 16}px`,
-              color: el.props.color || "#1f2937",
-              backgroundColor: el.props.bgColor || "transparent",
-              backgroundImage: el.props.bgPatternUrl ? `url(${el.props.bgPatternUrl})` : undefined,
-              backgroundRepeat: "repeat",
-              backgroundSize: "auto 100%",
-              minHeight: `${el.props.navHeight || 60}px`,
-              lineHeight: 1.5,
-              justifyContent: el.props.align === "left" ? "flex-start" : el.props.align === "right" ? "flex-end" : "center"
-            }}
-          >
-            <div className="w-full">{el.props.content}</div>
-          </div>
-        )}
       </div>
     </motion.div>
   );
@@ -375,11 +309,9 @@ const DraggableCanvasElement = ({
 
 export const Canvas = () => {
   const { pageData, activeSection, setActiveSection, selectElement, selectedElementId, removeElement, viewport } = useStudio();
-  
   const headerRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
-
   const viewportWidths = { desktop: "max-w-5xl", tablet: "max-w-2xl", mobile: "max-w-sm" };
 
   useEffect(() => {
@@ -400,7 +332,6 @@ export const Canvas = () => {
         </div>
       );
     }
-
     return (
       <>
         {data.elements.map((el, idx) => (

@@ -161,6 +161,20 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                opacity: 100,
                animation: "none"
              } :
+             type === "button" ? {
+               buttonText: "Haz clic aquí",
+               url: "/",
+               variant: "solid", 
+               size: "md",
+               color: "#2563eb",
+               textColor: "#ffffff",
+               btnBgImage: null,
+               btnBgMode: "cover", // 'cover' | 'repeat' | 'contain'
+               borderRadius: 12,
+               align: "center",
+               opacity: 100,
+               animation: "none"
+             } :
              { content: "Nuevo Elemento" },
     };
 
