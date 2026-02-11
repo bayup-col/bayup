@@ -8,7 +8,7 @@ import { DragEndEvent } from "@dnd-kit/core";
 
 export type SectionType = "header" | "body" | "footer";
 
-export type ComponentType = "text" | "button" | "image" | "product-grid" | "hero-banner" | "video";
+export type ComponentType = "text" | "button" | "image" | "product-grid" | "hero-banner" | "video" | "announcement-bar" | "navbar";
 
 export interface StudioElement {
   id: string;
@@ -103,34 +103,95 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addElement = (section: SectionType, type: ComponentType) => {
+  const addElement = (section: SectionType, type: ComponentType, index?: number) => {
     const newElement: StudioElement = {
       id: uuidv4(),
       type,
-      props: type === "hero-banner" ? { title: "Nuevo Banner", subtitle: "Subtítulo" } : { content: "Nuevo Elemento" },
+      props: type === "hero-banner" ? { title: "Nuevo Banner", subtitle: "Subtítulo" } : 
+             type === "announcement-bar" ? { content: "¡NUEVA PROMOCIÓN DISPONIBLE! 🎊", bgColor: "#004d4d", textColor: "#ffffff" } :
+             type === "navbar" ? { logoText: "MI MARCA", menuItems: ["Inicio", "Tienda"] } :
+             { content: "Nuevo Elemento" },
     };
 
-    setPageData((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        elements: [...prev[section].elements, newElement],
-      },
-    }));
+    setPageData((prev) => {
+      const newElements = [...prev[section].elements];
+      if (typeof index === 'number') {
+        newElements.splice(index, 0, newElement);
+      } else {
+        newElements.push(newElement);
+      }
+      
+      return {
+        ...prev,
+        [section]: {
+          ...prev[section],
+          elements: newElements,
+        },
+      };
+    });
+  };
+
+  const moveElement = (fromSection: SectionType, toSection: SectionType, elementId: string, toIndex: number) => {
+    setPageData((prev) => {
+      const sourceElements = [...prev[fromSection].elements];
+      const elementIdx = sourceElements.findIndex(el => el.id === elementId);
+      if (elementIdx === -1) return prev;
+
+      const [elementToMove] = sourceElements.splice(elementIdx, 1);
+      
+      const targetSectionElements = fromSection === toSection ? sourceElements : [...prev[toSection].elements];
+      
+      // Si movemos en la misma sección y hacia abajo, el índice de destino se desplaza
+      // Pero si usamos el array ya 'spliced', el toIndex que viene del Canvas ya es correcto
+      // para inserciones precisas.
+      
+      const finalElements = [...targetSectionElements];
+      finalElements.splice(toIndex, 0, elementToMove);
+
+      if (fromSection === toSection) {
+        return {
+          ...prev,
+          [fromSection]: { ...prev[fromSection], elements: finalElements }
+        };
+      }
+
+      return {
+        ...prev,
+        [fromSection]: { ...prev[fromSection], elements: sourceElements },
+        [toSection]: { ...prev[toSection], elements: finalElements }
+      };
+    });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { over, active } = event;
 
     if (over && active.data.current) {
+      const isNew = active.data.current.isNew;
       const componentType = active.data.current.type as ComponentType;
-      const targetSection = over.id as SectionType;
-
-      // REGLA DE ORO: Solo añadir si la zona donde se suelta es la sección activa
-      if (targetSection === activeSection) {
-        addElement(targetSection, componentType);
-      } else {
-        console.log("No tienes permiso para soltar aquí");
+      
+      // Caso A: Soltado sobre un Punto de Inserción
+      if (over.id.toString().startsWith("insert-")) {
+        const { section, index } = over.data.current as any;
+        
+        if (isNew) {
+          addElement(section, componentType, index);
+        } else {
+          const { id: elementId, section: fromSection } = active.data.current as any;
+          moveElement(fromSection, section, elementId, index);
+        }
+      } 
+      // Caso B: Soltado sobre la sección completa (al final)
+      else {
+        const targetSection = over.id as SectionType;
+        if (targetSection === activeSection) {
+          if (isNew) {
+            addElement(targetSection, componentType);
+          } else {
+            const { id: elementId, section: fromSection } = active.data.current as any;
+            moveElement(fromSection, targetSection, elementId, pageData[targetSection].elements.length);
+          }
+        }
       }
     }
   };

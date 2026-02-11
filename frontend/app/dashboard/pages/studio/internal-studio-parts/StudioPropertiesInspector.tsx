@@ -105,14 +105,74 @@ export const DesignerInspector = () => {
         
         {activeTab === "content" && (
           <>
-            <ControlGroup title="Contenido Principal" icon={Type}>
-              <textarea
-                value={element.props.content !== undefined ? element.props.content : (element.props.title || "")}
-                onChange={(e) => handleChange(element.props.content !== undefined ? "content" : "title", e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px] resize-none bg-gray-50/30 transition-all"
-                placeholder="Escribe aquí tu mensaje..."
-              />
-            </ControlGroup>
+            {element.type === "announcement-bar" && (
+              <ControlGroup title="Mensaje Informativo" icon={Type}>
+                <textarea
+                  value={element.props.content || ""}
+                  onChange={(e) => handleChange("content", e.target.value)}
+                  className="w-full p-3 border border-gray-200 rounded-xl text-xs font-bold uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none min-h-[80px] resize-none bg-gray-50/30 transition-all"
+                  placeholder="Ej: ¡ENVÍO GRATIS HOY!..."
+                />
+              </ControlGroup>
+            )}
+
+            {element.type === "navbar" && (
+              <>
+                <ControlGroup title="Identidad (Logo)" icon={ImageIcon}>
+                  <input
+                    type="text"
+                    value={element.props.logoText || ""}
+                    onChange={(e) => handleChange("logoText", e.target.value)}
+                    className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50/30"
+                    placeholder="Nombre de la marca..."
+                  />
+                </ControlGroup>
+                <ControlGroup title="Menú de Navegación" icon={Layout}>
+                  <div className="space-y-2">
+                    {(element.props.menuItems || ["Inicio", "Productos", "Contacto"]).map((item: string, idx: number) => (
+                      <div key={idx} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={item}
+                          onChange={(e) => {
+                            const newItems = [...(element.props.menuItems || ["Inicio", "Productos", "Contacto"])];
+                            newItems[idx] = e.target.value;
+                            handleChange("menuItems", newItems);
+                          }}
+                          className="flex-1 p-2 border border-gray-200 rounded-lg text-[10px] font-black uppercase tracking-widest outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        <button 
+                          onClick={() => {
+                            const newItems = (element.props.menuItems || ["Inicio", "Productos", "Contacto"]).filter((_: any, i: number) => i !== idx);
+                            handleChange("menuItems", newItems);
+                          }}
+                          className="p-2 text-red-400 hover:text-red-600"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <button 
+                      onClick={() => handleChange("menuItems", [...(element.props.menuItems || ["Inicio", "Productos", "Contacto"]), "Nuevo Link"])}
+                      className="w-full py-2 border-2 border-dashed border-gray-100 rounded-xl text-[9px] font-black uppercase text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-all"
+                    >
+                      + Añadir Enlace
+                    </button>
+                  </div>
+                </ControlGroup>
+              </>
+            )}
+
+            {element.type !== "announcement-bar" && element.type !== "navbar" && (
+              <ControlGroup title="Contenido Principal" icon={Type}>
+                <textarea
+                  value={element.props.content !== undefined ? element.props.content : (element.props.title || "")}
+                  onChange={(e) => handleChange(element.props.content !== undefined ? "content" : "title", e.target.value)}
+                  className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px] resize-none bg-gray-50/30 transition-all"
+                  placeholder="Escribe aquí tu mensaje..."
+                />
+              </ControlGroup>
+            )}
 
             {(element.type === "hero-banner" || element.props.subtitle !== undefined) && (
               <ControlGroup title="Subtítulo / Descripción" icon={Type}>
