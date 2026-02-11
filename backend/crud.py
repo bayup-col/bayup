@@ -106,16 +106,13 @@ def delete_product(db: Session, product_id: uuid.UUID, owner_id: uuid.UUID) -> b
 def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID, tenant_id: Optional[uuid.UUID] = None) -> models.Order:
     subtotal = 0
     items_to_create = []
-    
-    # IMPORTANTE: El tenant_id DEBE ser el del dueño de la tienda (el usuario autenticado que emite la factura)
     actual_tenant_id = tenant_id if tenant_id else customer_id
 
     for item in order.items:
         v = get_product_variant(db, item.product_variant_id)
         if not v:
-            raise HTTPException(status_code=404, detail=f"Product variant not found")
+            raise HTTPException(status_code=404, detail="Variante no encontrada")
         
-        # Lógica de Precios Pro
         price = v.product.price + v.price_adjustment
         if order.customer_type == 'mayorista' and v.product.wholesale_price > 0:
             price = v.product.wholesale_price + v.price_adjustment
@@ -124,6 +121,7 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
         items_to_create.append({"variant": v, "qty": item.quantity, "price": price})
     
     db_order = models.Order(
+        id=uuid.uuid4(),
         total_price=subtotal,
         customer_id=customer_id,
         tenant_id=actual_tenant_id,
@@ -139,11 +137,20 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
     db.add(db_order)
     db.flush()
     
-    db_order.total_price = subtotal
-    db.add_all(items_to_create)
+    for it in items_to_create:
+        db_item = models.OrderItem(
+            id=uuid.uuid4(),
+            order_id=db_order.id,
+            product_variant_id=it["variant"].id,
+            quantity=it["qty"],
+            price_at_purchase=it["price"]
+        )
+        db.add(db_item)
+        # Descontar Stock
+        it["variant"].stock -= it["qty"]
+    
     db.commit()
     db.refresh(db_order)
-    
     return db_order
 
 def get_orders_by_customer(db: Session, customer_id: uuid.UUID) -> list[models.Order]:
