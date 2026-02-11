@@ -7,6 +7,34 @@ import { cn } from "@/lib/utils";
 import { Trash2, Plus as PlusIcon, GripVertical, ShoppingBag, ShoppingCart, User, UserCircle, LogIn, Image as ImageIcon, Heart, Search, HelpCircle, Phone } from "lucide-react";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
 
+// --- HELPERS PARA ANUNCIOS ---
+
+const AnnouncementSlides = ({ messages }: { messages: string[] }) => {
+  const [index, setIndex] = React.useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((prev) => (prev + 1) % messages.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [messages.length]);
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.span
+        key={index}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.5 }}
+        className="absolute inset-0 flex items-center justify-center text-center whitespace-nowrap"
+      >
+        {messages[index]}
+      </motion.span>
+    </AnimatePresence>
+  );
+};
+
 const DroppableSection = ({ 
   section, 
   headerRef, 
@@ -129,7 +157,7 @@ const DraggableCanvasElement = ({
 
   return (
     <motion.div
-      key={`${el.id}-${el.props.animation}`}
+      key={`${el.id}-${el.props.animation}-${el.props.behavior}-${el.props.speed}`}
       ref={setNodeRef}
       {...listeners}
       {...attributes}
@@ -162,10 +190,61 @@ const DraggableCanvasElement = ({
       <div className={cn("p-2 pointer-events-none", el.type === "announcement-bar" && "p-0")}>
         {el.type === "announcement-bar" && (
           <div 
-            className="w-full py-2 px-4 flex items-center justify-center text-center text-[11px] font-black uppercase tracking-[0.2em]"
-            style={{ backgroundColor: el.props.bgColor || "#004d4d", color: el.props.textColor || "#ffffff" }}
+            className="w-full py-2 px-4 relative overflow-hidden flex items-center"
+            style={{ 
+              backgroundColor: el.props.bgColor || "#004d4d", 
+              color: el.props.textColor || "#ffffff",
+              height: "auto",
+              minHeight: "36px",
+              justifyContent: el.props.align === "left" ? "flex-start" : el.props.align === "right" ? "flex-end" : "center"
+            }}
           >
-            {el.props.content || "¡NUEVA PROMOCIÓN DISPONIBLE! 🎊"}
+            {/* COMPORTAMIENTO: ESTÁTICO */}
+            {(!el.props.behavior || el.props.behavior === "static") && (
+              <div 
+                className={cn("w-full transition-all uppercase tracking-[0.2em]", el.props.fontFamily || "font-black")}
+                style={{ 
+                  fontSize: `${el.props.fontSize || 11}px`,
+                  textAlign: el.props.align as any || "center"
+                }}
+              >
+                {el.props.messages?.[0] || el.props.content || "¡NUEVA PROMOCIÓN!"}
+              </div>
+            )}
+
+            {/* COMPORTAMIENTO: TELEPROMPTER / MARQUEE */}
+            {el.props.behavior === "marquee" && (
+              <div className="flex whitespace-nowrap overflow-hidden">
+                <motion.div 
+                  initial={{ x: "0%" }}
+                  animate={{ x: "-50%" }}
+                  transition={{ 
+                    duration: 20 / (el.props.speed || 10) * 10, 
+                    repeat: Infinity, 
+                    ease: "linear" 
+                  }}
+                  className={cn("flex gap-20 uppercase tracking-[0.2em]", el.props.fontFamily || "font-black")}
+                  style={{ fontSize: `${el.props.fontSize || 11}px` }}
+                >
+                  <span className="flex gap-20">
+                    {(el.props.messages || ["PROMO"]).map((msg: string, i: number) => <span key={i}>{msg}</span>)}
+                  </span>
+                  <span className="flex gap-20">
+                    {(el.props.messages || ["PROMO"]).map((msg: string, i: number) => <span key={`dup-${i}`}>{msg}</span>)}
+                  </span>
+                </motion.div>
+              </div>
+            )}
+
+            {/* COMPORTAMIENTO: SLIDE (ROTACIÓN) */}
+            {el.props.behavior === "slide" && (
+              <div 
+                className={cn("w-full transition-all uppercase tracking-[0.2em] relative h-5 flex items-center justify-center", el.props.fontFamily || "font-black")}
+                style={{ fontSize: `${el.props.fontSize || 11}px` }}
+              >
+                <AnnouncementSlides messages={el.props.messages || ["PROMO"]} />
+              </div>
+            )}
           </div>
         )}
 

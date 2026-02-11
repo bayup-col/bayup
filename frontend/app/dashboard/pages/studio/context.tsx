@@ -115,7 +115,16 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
       id: uuidv4(),
       type,
       props: type === "hero-banner" ? { title: "Nuevo Banner", subtitle: "Subtítulo" } : 
-             type === "announcement-bar" ? { content: "¡NUEVA PROMOCIÓN DISPONIBLE! 🎊", bgColor: "#004d4d", textColor: "#ffffff" } :
+             type === "announcement-bar" ? { 
+               messages: ["¡NUEVA PROMOCIÓN DISPONIBLE! 🎊", "ENVÍOS GRATIS POR COMPRAS MAYORES A $100 🚀"],
+               bgColor: "#004d4d", 
+               textColor: "#ffffff",
+               fontSize: 11,
+               align: "center",
+               fontFamily: "font-black",
+               behavior: "static", // 'static' | 'marquee' | 'slide'
+               speed: 10
+             } :
              type === "navbar" ? { 
                logoText: "MI MARCA", 
                logoUrl: null,
