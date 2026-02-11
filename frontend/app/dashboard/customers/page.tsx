@@ -229,9 +229,7 @@ export default function CustomersPage() {
             <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">CLIENTES</span>
             </h1>
-            <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
-                Hola <span className="text-[#004d4d] font-bold">{userEmail?.split('@')[0]}</span>, analiza el comportamiento y lealtad de tu comunidad. 👋
-            </p>
+            <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">¡Toda tu base de datos en un solo lugar! 👥</p>
         </div>
         <div className="flex items-center gap-4">
             <button onClick={() => setIsModalOpen(true)} className="h-12 px-8 bg-[#004d4d] text-white rounded-full font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center gap-3 group">

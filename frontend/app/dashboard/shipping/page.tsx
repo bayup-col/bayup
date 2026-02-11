@@ -206,9 +206,7 @@ export default function ShippingPage() {
           <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">ENVÍOS</span>
           </h1>
-          <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
-              Hola <span className="text-[#004d4d] font-bold">{userEmail?.split('@')[0]}</span>, rastrea tus paquetes y optimiza tu logística global. 👋
-          </p>
+          <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">¡Rastrea y encuentra tus pedidos en tiempo real! 🚚</p>
       </div>
 
       {/* 2. GRID DE MÉTRICAS MAESTRAS */}

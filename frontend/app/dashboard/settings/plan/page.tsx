@@ -328,9 +328,7 @@ export default function PlanSettings() {
                     <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
                         MI <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">PLAN</span>
                     </h1>
-                    <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
-                        Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, potencia tu crecimiento escalando tu nivel de servicio. 👋
-                    </p>
+                    <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">¡Llegó el momento de crecer, mejoremos tu plan! 🚀</p>
                 </div>
                 <div className="flex items-center gap-4 bg-white/60 backdrop-blur-xl p-4 rounded-3xl border border-white shadow-xl shadow-gray-100/50">
                     <div className="h-12 w-12 bg-gray-900 rounded-2xl flex items-center justify-center text-[#00f2ff]"><Calendar size={22} /></div>

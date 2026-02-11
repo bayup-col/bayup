@@ -242,9 +242,18 @@ export default function InvoicingPage() {
 
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
-            const matchesSearch = p.name.toLowerCase().includes(productSearch.toLowerCase()) || (p.sku?.toLowerCase() || '').includes(productSearch.toLowerCase());
+            // 1. Verificar si el producto tiene stock (suma de todas sus variantes)
+            const totalStock = p.variants?.reduce((acc, v) => acc + (v.stock || 0), 0) || 0;
+            if (totalStock <= 0) return false;
+
+            // 2. Filtros de búsqueda y categoría
+            const matchesSearch = p.name.toLowerCase().includes(productSearch.toLowerCase()) || 
+                                 (p.sku?.toLowerCase() || '').includes(productSearch.toLowerCase());
+            
             const productCategory = p.category || (p as any).collection?.title || 'General';
-            return matchesSearch && (selectedCategory === 'Todas' || productCategory === selectedCategory);
+            const matchesCategory = selectedCategory === 'Todas' || productCategory === selectedCategory;
+            
+            return matchesSearch && matchesCategory;
         }).slice(0, 12);
     }, [productSearch, products, selectedCategory]);
 
@@ -271,7 +280,7 @@ export default function InvoicingPage() {
                 {!isPOSActive ? (
                     <div className="space-y-10 p-4">
                         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 px-4">
-                            <div><div className="flex items-center gap-3 mb-2"><div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" /><span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Terminal de Facturación v2.0</span></div><h1 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter leading-none text-[#001A1A]">FACTURA<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">CIÓN</span></h1><p className="text-gray-400 font-medium text-lg italic mt-4">Hola <span className="text-[#004d4d] font-bold">{authEmail?.split('@')[0]}</span>, audita tu flujo real. 👋</p></div>
+                            <div><div className="flex items-center gap-3 mb-2"><div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" /><span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Terminal de Facturación v2.0</span></div><h1 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter leading-none text-[#001A1A]">FACTURA<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">CIÓN</span></h1><p className="text-gray-400 font-medium text-lg italic mt-4">¡Lleva el control de todas tus ventas aquí! 💰</p></div>
                             <button onClick={() => setIsPOSActive(true)} className="h-16 px-10 bg-gray-900 text-white rounded-full font-black text-[11px] uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Nueva Venta POS</button>
                         </header>
 
