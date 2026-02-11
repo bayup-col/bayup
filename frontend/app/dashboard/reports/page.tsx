@@ -93,7 +93,7 @@ const BRANCH_COMPARISON: any[] = [];
 const ADVISOR_RANKING: any[] = [];
 
 function ReportsContent() {
-    const { token } = useAuth();
+    const { token, userEmail } = useAuth();
     const { showToast } = useToast();
     const searchParams = useSearchParams();
     const initialTab = searchParams.get('tab') as any || 'general';
