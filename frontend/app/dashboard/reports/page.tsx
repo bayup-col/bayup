@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { 
   TrendingUp, 
@@ -72,7 +72,7 @@ import {
     Legend
 } from 'recharts';
 
-// --- CONFIGURACIÓN DE COLORES ---
+// --- CONFIGURACIÃ“N DE COLORES ---
 const COLORS = {
     primary: "#004d4d",
     accent: "#00f2ff",
@@ -115,7 +115,7 @@ function ReportsContent() {
     const [selectedAdvisor, setSelectedAdvisor] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
-    // --- ESTADOS NÓMINA ---
+    // --- ESTADOS NÃ“MINA ---
     const [payrollStaff, setPayrollStaff] = useState<any[]>([]);
     const [filterRole, setFilterRole] = useState("all");
     const [isSyncing, setIsSyncing] = useState(false);
@@ -144,14 +144,14 @@ function ReportsContent() {
         if (!memberToLiquidate) return;
         const newData = payrollStaff.map(s => s.id === memberToLiquidate.id ? { ...s, status: 'paid', last_payment_date: 'Hoy' } : s);
         savePayroll(newData);
-        showToast("Liquidación procesada con éxito 💸", "success");
+        showToast("LiquidaciÃ³n procesada con Ã©xito ðŸ’¸", "success");
         setMemberToLiquidate(null);
     };
 
     const handleSincronizarStaff = () => {
         setIsSyncing(true);
         showToast("Sincronizando staff...", "info");
-        setTimeout(() => { showToast("Sincronización completa", "success"); setIsSyncing(false); }, 2000);
+        setTimeout(() => { showToast("SincronizaciÃ³n completa", "success"); setIsSyncing(false); }, 2000);
     };
 
     const filteredPayrollStaff = useMemo(() => {
@@ -176,8 +176,8 @@ function ReportsContent() {
         "Esta Semana",
         "Este Mes",
         "Mes Pasado",
-        "Últimos 3 Meses",
-        "Este Año"
+        "Ãšltimos 3 Meses",
+        "Este AÃ±o"
     ];
 
     const formatCurrency = (amount: number) => {
@@ -220,7 +220,7 @@ function ReportsContent() {
                 expenses: expenses || []
             });
             
-            showToast("¡Reporte generado con éxito! 📊", "success");
+            showToast("Â¡Reporte generado con Ã©xito! ðŸ“Š", "success");
         } catch (error) {
             console.error("Error generating PDF:", error);
             showToast("Error al generar el reporte detallado", "error");
@@ -256,7 +256,7 @@ function ReportsContent() {
                     <div className="flex justify-between items-center">
                         <div>
                             <h4 className="text-xl font-black uppercase italic tracking-widest text-[#004d4d]">Tendencia Semanal</h4>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Comparativa vs Período Anterior</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Comparativa vs PerÃ­odo Anterior</p>
                         </div>
                         <BarChart3 className="text-gray-200" size={24} />
                     </div>
@@ -310,12 +310,12 @@ function ReportsContent() {
                 </div>
             </div>
 
-            {/* --- SECCIÓN HISTÓRICO DE FLUJO --- */}
+            {/* --- SECCIÃ“N HISTÃ“RICO DE FLUJO --- */}
             <div className="px-4 space-y-8">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white/40 p-6 rounded-[3rem] border border-white/60">
                     <div>
                         <h4 className="text-xl font-black text-[#004d4d] uppercase italic">Monitor de Flujo Live</h4>
-                        <p className="text-gray-400 text-[9px] font-black uppercase tracking-[0.3em] mt-1 italic">Registro cronológico de movimientos financieros</p>
+                        <p className="text-gray-400 text-[9px] font-black uppercase tracking-[0.3em] mt-1 italic">Registro cronolÃ³gico de movimientos financieros</p>
                     </div>
                     <div className="p-1 bg-white border border-gray-100 rounded-2xl flex items-center shadow-sm">
                         {[
@@ -374,14 +374,14 @@ function ReportsContent() {
                                                     {item.type === 'in' ? '+' : '-'}{formatCurrency(item.amount)}
                                                 </p>
                                             )}
-                                            <button className="text-[9px] font-black uppercase text-[#004d4d] tracking-widest opacity-0 group-hover:opacity-100 transition-all mt-1">Ver Auditoría <ArrowRight size={10} className="inline ml-1"/></button>
+                                            <button className="text-[9px] font-black uppercase text-[#004d4d] tracking-widest opacity-0 group-hover:opacity-100 transition-all mt-1">Ver AuditorÃ­a <ArrowRight size={10} className="inline ml-1"/></button>
                                         </div>
                                     </div>
                                 ))}
                                 {historyData.length === 0 && (
                                     <div className="py-20 text-center space-y-4">
                                         <div className="h-16 w-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-gray-300"><Layers size={32}/></div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No hay registros para este filtro aún</p>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No hay registros para este filtro aÃºn</p>
                                     </div>
                                 )}
                             </motion.div>
@@ -447,7 +447,7 @@ function ReportsContent() {
             <div className="bg-white/40 p-8 rounded-[3rem] border border-white/60 flex justify-between items-center">
                 <div>
                     <h3 className="text-2xl font-black text-[#004d4d] uppercase italic">Productividad de Asesores</h3>
-                    <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mt-1">Ranking de facturación y crecimiento mensual</p>
+                    <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mt-1">Ranking de facturaciÃ³n y crecimiento mensual</p>
                 </div>
                 <div className="flex gap-4">
                     <button onClick={() => setIsGoalsModalOpen(true)} className="h-12 px-6 rounded-2xl bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-transform">Configurar Metas</button>
@@ -475,7 +475,7 @@ function ReportsContent() {
 
                         <div className="flex-[2] grid grid-cols-3 gap-10 px-10 border-x border-gray-50">
                             <div>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Facturación</p>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">FacturaciÃ³n</p>
                                 <p className="text-xl font-black text-gray-900 mt-1">{formatCurrency(advisor.ventas)}</p>
                             </div>
                             <div>
@@ -513,11 +513,11 @@ function ReportsContent() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10 space-y-4">
                                 <div className="flex items-center gap-3"><Sparkles className="text-[#00f2ff]" size={20}/><p className="text-[10px] font-black uppercase tracking-widest text-[#00f2ff]">Oportunidad Detectada</p></div>
-                                <p className="text-sm font-medium italic leading-relaxed">&quot;Tu rentabilidad ha subido un 4.2% gracias a la reducción del costo logístico en la Sucursal Norte. Recomiendo replicar su modelo de empaque en la Principal.&quot;</p>
+                                <p className="text-sm font-medium italic leading-relaxed">&quot;Tu rentabilidad ha subido un 4.2% gracias a la reducciÃ³n del costo logÃ­stico en la Sucursal Norte. Recomiendo replicar su modelo de empaque en la Principal.&quot;</p>
                             </div>
                             <div className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10 space-y-4">
                                 <div className="flex items-center gap-3"><TrendingDown className="text-rose-400" size={20}/><p className="text-[10px] font-black uppercase tracking-widest text-rose-400">Alerta de Rendimiento</p></div>
-                                <p className="text-sm font-medium italic leading-relaxed">&quot;El canal de Instagram tiene el CAC más alto ($22.500). Sugiero pausar pauta en este canal y mover el 20% del presupuesto a WhatsApp, que es un 3x más eficiente.&quot;</p>
+                                <p className="text-sm font-medium italic leading-relaxed">&quot;El canal de Instagram tiene el CAC mÃ¡s alto ($22.500). Sugiero pausar pauta en este canal y mover el 20% del presupuesto a WhatsApp, que es un 3x mÃ¡s eficiente.&quot;</p>
                             </div>
                         </div>
                     </div>
@@ -529,7 +529,7 @@ function ReportsContent() {
     const renderPayrollKPIs = () => (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-4">
             <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Nómina</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total NÃ³mina</p>
                 <h4 className="text-3xl font-black text-slate-900 mt-2">{formatCurrency(totalPayroll)}</h4>
             </div>
             <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
@@ -538,7 +538,7 @@ function ReportsContent() {
             </div>
             <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Estado de Pago</p>
-                <h4 className="text-xl font-black text-emerald-600 mt-2 uppercase italic">Al día</h4>
+                <h4 className="text-xl font-black text-emerald-600 mt-2 uppercase italic">Al dÃ­a</h4>
             </div>
         </div>
     );
@@ -579,10 +579,10 @@ function ReportsContent() {
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#004d4d]/60">Inteligencia de Negocio</span>
                     </div>
                     <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
-                        ANÁLISIS <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">GENERAL</span>
+                        ANÃLISIS <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">GENERAL</span>
                     </h1>
                     <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">
-                        Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, visualiza la inteligencia y rentabilidad de tu negocio. 👋
+                        Hola <span className="text-[#004d4d] font-bold">{(token ? 'Socio' : 'Usuario')}</span>, visualiza la inteligencia y rentabilidad de tu negocio. ðŸ‘‹
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
@@ -592,7 +592,7 @@ function ReportsContent() {
                             className="bg-white p-2 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all active:scale-95"
                         >
                             <div className="px-6 py-2 text-left">
-                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Período de Análisis</p>
+                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">PerÃ­odo de AnÃ¡lisis</p>
                                 <p className="text-sm font-black text-gray-900 w-32 truncate">{selectedPeriod}</p>
                             </div>
                             <div className={`h-12 w-12 bg-gray-900 text-white rounded-2xl flex items-center justify-center transition-all shadow-lg ${isPeriodOpen ? 'bg-[#004d4d] rotate-180' : ''}`}>
@@ -625,14 +625,14 @@ function ReportsContent() {
                             )}
                         </AnimatePresence>
                     </div>
-                    <button onClick={handleExport} className="h-14 px-8 bg-[#004d4d] text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-3 hover:scale-105 transition-all"><Download size={18} className="text-[#00f2ff]"/> Exportar Auditoría</button>
+                    <button onClick={handleExport} className="h-14 px-8 bg-[#004d4d] text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-3 hover:scale-105 transition-all"><Download size={18} className="text-[#00f2ff]"/> Exportar AuditorÃ­a</button>
                 </div>
             </div>
 
-            {/* --- KPIs ESTRATÉGICOS --- */}
+            {/* --- KPIs ESTRATÃ‰GICOS --- */}
             {renderKPIs()}
 
-            {/* --- MENÚ FLOTANTE CENTRAL --- */}
+            {/* --- MENÃš FLOTANTE CENTRAL --- */}
             <div className="flex items-center justify-center gap-6 shrink-0 relative z-20">
                 <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl shadow-gray-200/50 backdrop-blur-xl flex items-center relative">
                     {[
@@ -658,7 +658,7 @@ function ReportsContent() {
                     })}
                 </div>
                 
-                {/* Botón de Información (Separado / Satélite) */}
+                {/* BotÃ³n de InformaciÃ³n (Separado / SatÃ©lite) */}
                 <button
                     onClick={() => setShowInfoModal(true)}
                     className="h-12 w-12 rounded-full bg-white border border-gray-100 text-[#004d4d] flex items-center justify-center hover:scale-110 hover:bg-[#004d4d] hover:text-white transition-all shadow-xl active:scale-95 group"
@@ -667,7 +667,7 @@ function ReportsContent() {
                 </button>
             </div>
 
-            {/* --- CONTENIDO DINÁMICO --- */}
+            {/* --- CONTENIDO DINÃMICO --- */}
             <AnimatePresence mode="wait">
                 <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }} className="space-y-12">
                     {activeTab === 'general' && renderGeneralCharts()}
@@ -744,3 +744,4 @@ export default function AnalysisGeneralPage() {
         </Suspense>
     );
 }
+
