@@ -91,12 +91,33 @@ def update_product(db: Session, db_product: models.Product, product: schemas.Pro
     return db_product
 
 def delete_product(db: Session, product_id: uuid.UUID, owner_id: uuid.UUID) -> bool:
-    db_product = db.query(models.Product).filter(models.Product.id == product_id, models.Product.owner_id == owner_id).first()
-    if db_product:
+    try:
+        # 1. Buscar el producto asegurando pertenencia
+        db_product = db.query(models.Product).filter(
+            models.Product.id == product_id, 
+            models.Product.owner_id == owner_id
+        ).first()
+        
+        if not db_product:
+            return False
+
+        # 2. Borrar variantes primero (Limpieza manual preventiva)
+        db.query(models.ProductVariant).filter(models.ProductVariant.product_id == product_id).delete()
+        
+        # 3. Borrar el producto
         db.delete(db_product)
         db.commit()
         return True
-    return False
+    except Exception as e:
+        print(f"ERROR AL BORRAR PRODUCTO: {e}")
+        db.rollback()
+        # Si tiene órdenes vinculadas, preferimos desactivarlo en lugar de borrarlo
+        try:
+            db_product.status = "archived"
+            db.commit()
+            return True
+        except:
+            return False
 
 # --- Order CRUD ---
 def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID, tenant_id: Optional[uuid.UUID] = None) -> models.Order:
