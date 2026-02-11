@@ -744,5 +744,3 @@ export default function AnalysisGeneralPage() {
         </Suspense>
     );
 }
-/ /   F r e s h   B u i l d   F o r c e  
- 
