@@ -201,22 +201,28 @@ function ReportsContent() {
         return all.filter(i => i.tab === activeHistoryTab);
     }, [activeHistoryTab]);
 
-    const handleExport = () => {
+    const handleExport = async () => {
         try {
-            showToast("Generando reporte PDF...", "info");
-            generateDailyReport({
-                kpis: KPIS,
-                salesTrend: SALES_TREND,
-                revenueByChannel: REVENUE_BY_CHANNEL,
-                branchComparison: BRANCH_COMPARISON,
-                advisorRanking: ADVISOR_RANKING,
-                historyData: historyData, // Uses the currently filtered or memoized data, but function will augment it
-                period: selectedPeriod
+            showToast("Generando reporte maestro...", "info");
+            
+            // Traer datos reales para el reporte
+            const [products, orders, expenses] = await Promise.all([
+                apiRequest<any[]>('/products', { token }),
+                apiRequest<any[]>('/orders', { token }),
+                apiRequest<any[]>('/finances/expenses', { token }).catch(() => [])
+            ]);
+
+            await generateDailyReport({
+                userName: userEmail?.split('@')[0] || 'Empresario',
+                products: products || [],
+                orders: orders || [],
+                expenses: expenses || []
             });
-            showToast("¡Reporte generado con éxito!", "success");
+            
+            showToast("¡Reporte generado con éxito! 📊", "success");
         } catch (error) {
             console.error("Error generating PDF:", error);
-            showToast("Error al generar el reporte", "error");
+            showToast("Error al generar el reporte detallado", "error");
         }
     };
 
