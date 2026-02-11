@@ -193,7 +193,7 @@ export default function OrdersPage() {
                         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Monitor de Órdenes v2.0</span>
                     </div>
                     <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
-                        PEDIDOS
+                        PEDI<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">DOS</span>
                     </h1>
                 </div>
             </header>
