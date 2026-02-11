@@ -136,9 +136,13 @@ export default function CustomersPage() {
     finally { setLoading(false); }
   }, [token]);
 
-  useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
-
-  const stats = useMemo(() => ({
+      useEffect(() => { 
+          fetchCustomers(); 
+          const handleFocus = () => fetchCustomers();
+          window.addEventListener('focus', handleFocus);
+          return () => window.removeEventListener('focus', handleFocus);
+      }, [fetchCustomers]);
+    const stats = useMemo(() => ({
     total: customers.length,
     ltv: customers.reduce((acc, c) => acc + (c.total_spent || 0), 0),
     activeRate: customers.length > 0 ? 92.4 : 0,

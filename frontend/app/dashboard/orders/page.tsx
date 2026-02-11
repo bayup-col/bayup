@@ -108,6 +108,8 @@ export default function OrdersPage() {
     const router = useRouter();
     
     const [orders, setOrders] = useState<Order[]>([]);
+    const [allRawOrders, setAllRawOrders] = useState<any[]>([]); 
+    const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [activeTab, setActiveTab] = useState<'all' | OrderStatus>('all');
@@ -126,13 +128,20 @@ export default function OrdersPage() {
         if (!token) return;
         setLoading(true);
         try {
-            const data = await apiRequest<Order[]>('/orders', { token });
-            // FILTRO MAESTRO: Solo pedidos web en este módulo
-            const webOrders = (data || []).filter(o => o.source?.toLowerCase() !== 'pos');
-            setOrders(webOrders);
+            const [ordersData, productsData] = await Promise.all([
+                apiRequest<any[]>('/orders', { token }),
+                apiRequest<any[]>('/products', { token })
+            ]);
+            
+            if (ordersData) {
+                setAllRawOrders(ordersData);
+                const webOrders = ordersData.filter(o => o.source?.toLowerCase() !== 'pos');
+                setOrders(webOrders);
+            }
+            if (productsData) setProducts(productsData);
         } catch (err) {
             console.error(err);
-            showToast("Error al sincronizar pedidos", "error");
+            showToast("Error al sincronizar datos", "error");
         } finally {
             setLoading(false);
         }
@@ -155,22 +164,110 @@ export default function OrdersPage() {
         }
     };
 
-    useEffect(() => { fetchOrders(); }, [fetchOrders]);
+    useEffect(() => { 
+        fetchOrders(); 
+        const handleFocus = () => fetchOrders();
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [fetchOrders]);
 
-    const stats = useMemo(() => {
-        const pendingCount = orders.filter(o => o.status === 'pending').length;
-        const totalRevenue = orders.reduce((acc, o) => acc + o.total_price, 0);
-        const avgOrder = orders.length > 0 ? totalRevenue / orders.length : 0;
-        const delayedCount = orders.filter(o => o.status === 'delayed').length;
-        return { pendingCount, totalRevenue, avgOrder, delayedCount };
-    }, [orders]);
+    const kpis = useMemo(() => {
+        // 1. Total Pedidos Web
+        const totalOrdersCount = orders.length;
+        
+        // 2. Items Activos (Total de productos en catálogo)
+        const activeItemsCount = products.length;
 
-    const kpis = [
-        { id: 'revenue', label: 'Ventas Totales', value: stats.totalRevenue, icon: <DollarSign size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: 'Live' },
-        { id: 'pending', label: 'Por Procesar', value: stats.pendingCount, icon: <Clock size={24}/>, color: 'text-amber-600', bg: 'bg-amber-50', trend: 'Pendientes', isSimple: true },
-        { id: 'average', label: 'Ticket Promedio', value: stats.avgOrder, icon: <Target size={24}/>, color: 'text-[#004d4d]', bg: 'bg-[#004d4d]/5', trend: 'Market OK' },
-        { id: 'alerts', label: 'Alertas Críticas', value: stats.delayedCount, icon: <AlertCircle size={24}/>, color: 'text-rose-600', bg: 'bg-rose-50', trend: 'Atención', isSimple: true },
-    ];
+        // 3. Stock Crítico
+        const lowStockProducts = products.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0) <= 5);
+        const criticalCount = lowStockProducts.length;
+
+        // 4. Ticket Promedio
+        const totalRevenue = orders.reduce((acc, o) => acc + (o.total_price || 0), 0);
+        const avgTicket = totalOrdersCount > 0 ? (totalRevenue / totalOrdersCount) : 0;
+
+        // --- Lógica de Modales ---
+        
+        // Top 3 Productos (Web)
+        const productSales: Record<string, number> = {};
+        orders.forEach(o => o.items?.forEach((i: any) => {
+            const name = i.product_variant?.product?.name || "Producto";
+            productSales[name] = (productSales[name] || 0) + i.quantity;
+        }));
+        const top3Products = Object.entries(productSales)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([name, qty]) => ({ l: name, v: `${qty} uds`, icon: <Package size={14}/> }));
+
+        // Categorías más compradas
+        const categorySales: Record<string, number> = {};
+        orders.forEach(o => o.items?.forEach((i: any) => {
+            const cat = i.product_variant?.product?.category || "General";
+            categorySales[cat] = (categorySales[cat] || 0) + i.quantity;
+        }));
+        const topCategories = Object.entries(categorySales)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([name, qty]) => ({ l: name, v: `${qty} uds`, icon: <Layers size={14}/> }));
+
+        // Últimas Ventas POS vs Web
+        const lastWeb = allRawOrders.filter(o => o.source?.toLowerCase() !== 'pos')[0];
+        const lastPOS = allRawOrders.filter(o => o.source?.toLowerCase() === 'pos')[0];
+
+        return [
+            { 
+                id: 'total', 
+                label: 'Total Pedidos', 
+                value: totalOrdersCount, 
+                icon: <ShoppingBag size={24}/>, 
+                color: 'text-cyan-600', 
+                bg: 'bg-cyan-50', 
+                trend: 'Digital', 
+                isSimple: true,
+                details: top3Products,
+                advice: "Estos son tus productos estrella en la web. Considera destacarlos en el banner principal."
+            },
+            { 
+                id: 'active', 
+                label: 'Ítems Activos', 
+                value: activeItemsCount, 
+                icon: <Layers size={24}/>, 
+                color: 'text-purple-600', 
+                bg: 'bg-purple-50', 
+                trend: 'Catálogo', 
+                isSimple: true,
+                details: topCategories,
+                advice: "Tus categorías más dinámicas. Asegúrate de tener siempre stock de seguridad para estos grupos."
+            },
+            { 
+                id: 'stock', 
+                label: 'Stock Crítico', 
+                value: criticalCount, 
+                icon: <AlertCircle size={24}/>, 
+                color: 'text-rose-600', 
+                bg: 'bg-rose-50', 
+                trend: 'Atención', 
+                isSimple: true,
+                details: lowStockProducts.slice(0, 3).map(p => ({ l: p.name, v: "Agotándose", icon: <Zap size={14}/> })),
+                advice: `¡Alerta! ${criticalCount} productos están en stock crítico pero los clientes siguen buscándolos en tu web.`
+            },
+            { 
+                id: 'average', 
+                label: 'Ticket Promedio', 
+                value: avgTicket, 
+                icon: <Target size={24}/>, 
+                color: 'text-[#004d4d]', 
+                bg: 'bg-[#004d4d]/5', 
+                trend: 'Market OK',
+                isCurrency: true,
+                details: [
+                    { l: "Última Web", v: `$ ${(lastWeb?.total_price || 0).toLocaleString()}`, icon: <Globe size={14}/> },
+                    { l: "Última POS", v: `$ ${(lastPOS?.total_price || 0).toLocaleString()}`, icon: <Store size={14}/> }
+                ],
+                advice: "Compara tu rendimiento físico vs digital para ajustar tus estrategias de envío gratuito."
+            }
+        ];
+    }, [orders, products, allRawOrders]);
 
     const handleExport = async () => {
         if (orders.length === 0) {

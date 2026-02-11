@@ -167,9 +167,15 @@ export default function DashboardPage() {
     };
   }, [realStats]);
 
-  useEffect(() => { loadDashboardData(); }, [loadDashboardData]);
-
-  const kpis = [
+      useEffect(() => { 
+          loadDashboardData(); 
+          
+          // Refresco automático al volver a la pestaña (Integración Live)
+          const handleFocus = () => loadDashboardData();
+          window.addEventListener('focus', handleFocus);
+          return () => window.removeEventListener('focus', handleFocus);
+      }, [loadDashboardData]);
+    const kpis = [
     { 
         label: "Ventas de Hoy", 
         value: realStats.revenue, 
