@@ -86,7 +86,7 @@ export const DesignerInspector = () => {
     if (file) {
       const url = URL.createObjectURL(file);
       // Inteligencia de subida avanzada
-      const isPattern = (element.type === "navbar" || element.type === "announcement-bar") && activeTab === "style";
+      const isPattern = (element.type === "navbar" || element.type === "announcement-bar" || element.type === "text") && activeTab === "style";
       const propName = isPattern ? "bgPatternUrl" : 
                        (element.type === "navbar" && activeTab === "content") ? "logoUrl" : "imageUrl";
       handleChange(propName, url);
@@ -251,9 +251,73 @@ export const DesignerInspector = () => {
 
             {/* DEFAULT CONTENT */}
             {element.type !== "announcement-bar" && element.type !== "navbar" && (
-              <ControlGroup title="Contenido Principal" icon={Type}>
-                <textarea value={element.props.content !== undefined ? element.props.content : (element.props.title || "")} onChange={(e) => handleChange(element.props.content !== undefined ? "content" : "title", e.target.value)} className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px] resize-none bg-gray-50/30 transition-all" />
-              </ControlGroup>
+              <>
+                <ControlGroup title="Contenido de Texto" icon={Type} defaultOpen={true}>
+                  <textarea 
+                    value={element.props.content !== undefined ? element.props.content : (element.props.title || "")} 
+                    onChange={(e) => handleChange(element.props.content !== undefined ? "content" : "title", e.target.value)} 
+                    className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px] resize-none bg-gray-50/30 transition-all" 
+                    placeholder="Escribe aquí..."
+                  />
+                </ControlGroup>
+
+                {element.type === "text" && (
+                  <ControlGroup title="Tipografía y Estilo" icon={Palette}>
+                    <div className="space-y-6">
+                      {/* ALINEACIÓN */}
+                      <div className="flex bg-gray-100 p-1 rounded-lg">
+                        {["left", "center", "right", "justify"].map((pos) => (
+                          <button 
+                            key={pos} 
+                            onClick={() => handleChange("align", pos)} 
+                            className={cn("flex-1 p-2 flex justify-center rounded-md transition-all", (element.props.align === pos || (!element.props.align && pos === "left")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}
+                          >
+                            {pos === "left" && <AlignLeft size={14} />}
+                            {pos === "center" && <AlignCenter size={14} />}
+                            {pos === "right" && <AlignRight size={14} />}
+                            {pos === "justify" && <Bold size={14} />} {/* Icono temporal para justify */}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Fuente</span>
+                          <select value={element.props.fontFamily || "font-sans"} onChange={(e) => handleChange("fontFamily", e.target.value)} className="w-full p-2 border border-gray-200 rounded-xl text-[10px] font-bold bg-white outline-none">
+                            <option value="font-sans">Modern</option>
+                            <option value="font-serif">Classic</option>
+                            <option value="font-mono">Tech</option>
+                            <option value="font-black italic">Display</option>
+                          </select>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Color</span>
+                          <div className="flex items-center gap-2 p-1.5 border border-gray-200 rounded-xl bg-white">
+                            <input type="color" value={element.props.color || "#1f2937"} onChange={(e) => handleChange("color", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer bg-transparent" />
+                            <span className="text-[9px] font-mono text-gray-400 uppercase">{element.props.color || "#1f2937"}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <FluidSlider label="Tamaño" value={element.props.fontSize || 16} min={10} max={80} onChange={(val: number) => handleChange("fontSize", val)} />
+                      
+                      <div className="pt-2 border-t border-gray-50">
+                        <span className="text-[10px] font-black text-gray-400 uppercase block mb-2">Grosor</span>
+                        <div className="flex bg-gray-100 p-1 rounded-lg">
+                          {[
+                            { id: "font-light", label: "Ligera" },
+                            { id: "font-medium", label: "Media" },
+                            { id: "font-bold", label: "Negrita" },
+                            { id: "font-black", label: "Extra" }
+                          ].map((w) => (
+                            <button key={w.id} onClick={() => handleChange("fontWeight", w.id)} className={cn("flex-1 py-1 px-1 text-[8px] font-black uppercase rounded-md transition-all", (element.props.fontWeight === w.id) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{w.label}</button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </ControlGroup>
+                )}
+              </>
             )}
           </>
         )}
@@ -270,10 +334,10 @@ export const DesignerInspector = () => {
                   ))}
                 </div>
                 <FluidSlider 
-                  label={element.type === "announcement-bar" ? "Grosor de Barra" : "Grosor Barra"} 
-                  value={element.props.navHeight || (element.type === "announcement-bar" ? 36 : 80)} 
+                  label={element.type === "announcement-bar" ? "Grosor de Barra" : element.type === "text" ? "Altura del Bloque" : "Grosor Barra"} 
+                  value={element.props.navHeight || (element.type === "announcement-bar" ? 36 : element.type === "text" ? 60 : 80)} 
                   min={element.type === "announcement-bar" ? 20 : 40} 
-                  max={element.type === "announcement-bar" ? 100 : 200} 
+                  max={element.type === "announcement-bar" ? 100 : 400} 
                   onChange={(val: number) => handleChange("navHeight", val)} 
                 />
               </div>

@@ -148,6 +148,19 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                userIcon: "User",
                utilityItems: [] as { label: string, icon: string, url: string }[] // Enlaces extra para la derecha
              } :
+             type === "text" ? { 
+               content: "Escribe tu mensaje aquí...", 
+               fontSize: 16,
+               color: "#1f2937",
+               bgColor: "transparent",
+               bgPatternUrl: null,
+               navHeight: 60,
+               align: "left",
+               fontFamily: "font-sans",
+               fontWeight: "font-medium",
+               opacity: 100,
+               animation: "none"
+             } :
              { content: "Nuevo Elemento" },
     };
 

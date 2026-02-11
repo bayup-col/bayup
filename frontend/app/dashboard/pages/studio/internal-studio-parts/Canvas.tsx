@@ -350,8 +350,22 @@ const DraggableCanvasElement = ({
         )}
 
         {el.type === "text" && !el.props.isNav && (
-          <div className="py-4 font-bold" style={{ textAlign: el.props.align as any, fontSize: el.props.fontSize === "2xl" ? "24px" : "14px" }}>
-            {el.props.content}
+          <div 
+            className={cn("w-full transition-all flex items-center px-4 rounded-xl", el.props.fontFamily || "font-sans", el.props.fontWeight || "font-medium")}
+            style={{ 
+              textAlign: el.props.align as any || "left", 
+              fontSize: `${el.props.fontSize || 16}px`,
+              color: el.props.color || "#1f2937",
+              backgroundColor: el.props.bgColor || "transparent",
+              backgroundImage: el.props.bgPatternUrl ? `url(${el.props.bgPatternUrl})` : undefined,
+              backgroundRepeat: "repeat",
+              backgroundSize: "auto 100%",
+              minHeight: `${el.props.navHeight || 60}px`,
+              lineHeight: 1.5,
+              justifyContent: el.props.align === "left" ? "flex-start" : el.props.align === "right" ? "flex-end" : "center"
+            }}
+          >
+            <div className="w-full">{el.props.content}</div>
           </div>
         )}
       </div>
