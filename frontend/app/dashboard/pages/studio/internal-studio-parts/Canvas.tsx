@@ -121,13 +121,32 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
 
     const Tag = prefix === "title" ? motion.h1 : prefix === "subtitle" ? motion.p : motion.div;
 
+    const fontMap: any = {
+      "font-sans": "font-sans",
+      "font-serif": "font-serif",
+      "font-mono": "font-mono",
+      "font-black": "font-black",
+      "font-cursive": "font-serif italic" 
+    };
+
+    let variantStyles: any = { color: variant === "aurora" ? undefined : color };
+    
+    if (variant === "outline") {
+      variantStyles.WebkitTextStroke = `1px ${color}`;
+      variantStyles.color = "transparent";
+    } else if (variant === "3d") {
+      variantStyles.textShadow = `0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 5px 0 #aaa, 0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 5px rgba(0,0,0,.2), 0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15)`;
+    } else if (variant === "brutalist") {
+      variantStyles.textShadow = `3px 3px 0px #000`;
+    }
+
     return (
       <Tag 
         key={`text-${prefix}-${extraId}-${variant}-${intensity}`}
         animate={{ x: posX, y: effect === "float" ? undefined : posY, ...getIntensityStyle(intensity), ...(effect !== "none" ? (effectVariants as any)[effect] : {}) }}
         transition={{ x: { type: "spring", stiffness: 450, damping: 30 }, y: effect === "float" ? { duration: 4, repeat: Infinity, ease: "easeInOut" } : { type: "spring", stiffness: 450, damping: 30 }, filter: { duration: 2, repeat: effect !== "none" ? Infinity : 0 }, textShadow: { duration: 1.5, repeat: effect !== "none" ? Infinity : 0 }, color: { duration: 1, repeat: effect === "fire" ? Infinity : 0 } }}
-        className={cn("uppercase italic leading-tight font-black", get("font", "font-sans"), variant === "aurora" && "bg-clip-text text-transparent animate-aurora-text bg-[length:200%_auto]")}
-        style={{ color: variant === "aurora" ? undefined : color, fontSize: `${get("size", 24)}px`, backgroundImage: variant === "aurora" ? `linear-gradient(135deg, ${get("aurora1", "#00f2ff")}, ${get("aurora2", "#7000ff")}, ${get("aurora1", "#00f2ff")})` : undefined }}
+        className={cn("uppercase leading-tight font-black", fontMap[get("font", "font-sans")], variant === "aurora" && "bg-clip-text text-transparent animate-aurora-text bg-[length:200%_auto]")}
+        style={{ ...variantStyles, fontSize: `${get("size", 24)}px`, backgroundImage: variant === "aurora" ? `linear-gradient(135deg, ${get("aurora1", "#00f2ff")}, ${get("aurora2", "#7000ff")}, ${get("aurora1", "#00f2ff")})` : undefined }}
       >
         {text}
       </Tag>
@@ -168,18 +187,60 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
         {el.type === "navbar" && <div className={cn("flex items-center px-6 shadow-sm rounded-xl border border-gray-100 overflow-hidden")} style={{ height: `${el.props.navHeight || 80}px`, backgroundColor: el.props.bgColor || "#ffffff" }}><div className={cn("flex items-center gap-2 shrink-0", el.props.logoFont || "font-black italic")} style={{ fontSize: `${el.props.logoSize || 20}px` }}>{el.props.logoUrl ? <img src={el.props.logoUrl} className="object-contain" style={{ height: `${el.props.logoSize || 24}px` }} /> : <span style={{ color: el.props.logoColor || "#2563eb" }}>{el.props.logoText || "LOGO"}</span>}</div><nav className="hidden md:flex items-center gap-8 ml-auto">{(el.props.menuItems || []).map((item: any, idx: number) => <span key={idx} className="text-[10px] font-black uppercase tracking-widest cursor-pointer hover:opacity-70 transition-opacity" style={{ color: el.props.menuColor || "#4b5563" }}>{item.label || item}</span>)}</nav></div>}
         
         {isBody && (
-          <div className="w-full relative flex flex-col items-center justify-center min-h-[100px]" style={{ backgroundColor: el.props.bgColor || "transparent", minHeight: `${el.props.navHeight || 100}px` }}>
-            {el.type === "text" && renderTextWithTheme(el.props.content, el.props)}
-            {el.type === "button" && renderButton(el.props)}
-            {el.type === "image" && renderFloatingElement(el.props)}
-            
-            {el.type === "hero-banner" && (
-              <div className={cn("w-full rounded-2xl flex flex-col p-12 overflow-hidden relative shadow-lg transition-all items-center text-center")} style={{ backgroundColor: el.props.bgColor || "#111827", minHeight: `${el.props.height || 400}px`, justifyContent: "center" }}>
-                <motion.div key={`${el.props.bgEffect}-${el.props.bgType}`} animate={el.props.bgEffect === "ken-burns" ? { scale: [1, 1.15] } : el.props.bgEffect === "zoom-out" ? { scale: [1.2, 1] } : { scale: 1 }} transition={{ duration: 8, repeat: Infinity, repeatType: "mirror" }} className="absolute inset-0 w-full h-full">{el.props.bgType === "video" && el.props.videoUrl ? <video autoPlay muted loop playsInline className="w-full h-full object-cover" src={el.props.videoUrl} /> : el.props.imageUrl ? <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${el.props.imageUrl})` }} /> : null}<div className="absolute inset-0 transition-opacity duration-300" style={{ backgroundColor: el.props.overlayColor || "#000000", opacity: (el.props.overlayOpacity || 0) / 100 }}/></motion.div>
-                <div className="relative z-10 w-full flex flex-col items-center">{renderTextWithTheme(el.props.title, el.props, "title")}{renderTextWithTheme(el.props.subtitle, el.props, "subtitle")}{(el.props.extraElements || []).filter((it:any) => it.type === 'text').map((it:any) => renderTextWithTheme(it.content, it, "", it.id))}<div className="flex gap-4 flex-wrap justify-center mt-6">{el.props.primaryBtnText && renderButton(el.props, "primaryBtn")}{el.props.secondaryBtnText && renderButton(el.props, "secondaryBtn")}{(el.props.extraElements || []).filter((it:any) => it.type === 'button').map((it:any) => renderButton(it, "", it.id))}</div></div>
-                {(el.props.floatUrl || el.props.floatType === "video") && renderFloatingElement({ id: 'base-float', ...el.props })}
+          <div className={cn("w-full rounded-2xl flex flex-col p-12 overflow-hidden relative shadow-lg transition-all items-center text-center")} style={{ backgroundColor: el.props.bgColor || "#111827", minHeight: `${el.props.height || 400}px`, justifyContent: "center" }}>
+            {/* Fondo Multimedia Universal */}
+            <motion.div key={`${el.props.bgEffect}-${el.props.bgType}`} animate={el.props.bgEffect === "ken-burns" ? { scale: [1, 1.15] } : el.props.bgEffect === "zoom-out" ? { scale: [1.2, 1] } : { scale: 1 }} transition={{ duration: 8, repeat: Infinity, repeatType: "mirror" }} className="absolute inset-0 w-full h-full">
+              {el.props.bgType === "video" && el.props.videoUrl ? <video autoPlay muted loop playsInline className="w-full h-full object-cover" src={el.props.videoUrl} /> : el.props.imageUrl ? <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${el.props.imageUrl})` }} /> : null}
+              <div className="absolute inset-0 transition-opacity duration-300" style={{ backgroundColor: el.props.overlayColor || "#000000", opacity: (el.props.overlayOpacity || 0) / 100 }}/>
+            </motion.div>
+
+            {/* Contenido Principal */}
+            <div className="relative z-10 w-full flex flex-col items-center">
+              {renderTextWithTheme(el.props.title, el.props, "title")}
+              {renderTextWithTheme(el.props.subtitle, el.props, "subtitle")}
+              
+              {/* Renderizado Específico según Tipo */}
+              <div className="w-full my-8">
+                {el.type === "product-grid" && (
+                  <div className={cn("grid gap-6 w-full", el.props.layout === "carousel" ? "flex overflow-x-auto pb-4 no-scrollbar" : "")} style={{ gridTemplateColumns: el.props.layout === "grid" ? `repeat(${el.props.columns || 4}, minmax(0, 1fr))` : undefined }}>
+                    {Array.from({ length: el.props.itemsCount || 4 }).map((_, i) => (
+                      <div key={i} className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 flex flex-col items-center gap-3 min-w-[200px]">
+                        <div className="w-full aspect-square bg-gray-700/50 rounded-xl flex items-center justify-center"><ShoppingBag size={40} className="text-white/20" /></div>
+                        <div className="h-4 w-3/4 bg-white/20 rounded-full" />
+                        <div className="h-3 w-1/2 bg-white/10 rounded-full" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {el.type === "video" && (
+                   <div className="w-full max-w-4xl aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl mx-auto border-4 border-white/10">
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
+                         <Monitor size={64} className="text-white/20 animate-pulse" />
+                      </div>
+                   </div>
+                )}
+
+                {el.type === "custom-block" && (
+                   <div className="w-full p-12 border-4 border-dashed border-white/10 rounded-[3rem] flex items-center justify-center">
+                      <PlusIcon size={48} className="text-white/10" />
+                   </div>
+                )}
               </div>
-            )}
+
+              {/* Elementos Extra */}
+              {(el.props.extraElements || []).filter((it:any) => it.type === 'text').map((it:any) => renderTextWithTheme(it.content, it, "", it.id))}
+              
+              {/* Botones */}
+              <div className="flex gap-4 flex-wrap justify-center mt-6">
+                {el.props.primaryBtnText && renderButton(el.props, "primaryBtn")}
+                {el.props.secondaryBtnText && renderButton(el.props, "secondaryBtn")}
+                {(el.props.extraElements || []).filter((it:any) => it.type === 'button').map((it:any) => renderButton(it, "", it.id))}
+              </div>
+            </div>
+
+            {/* Elementos Flotantes */}
+            {(el.props.floatUrl || el.props.floatType === "video") && renderFloatingElement({ id: 'base-float', ...el.props })}
           </div>
         )}
       </div>

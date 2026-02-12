@@ -8,7 +8,7 @@ import { DragEndEvent } from "@dnd-kit/core";
 
 export type SectionType = "header" | "body" | "footer";
 
-export type ComponentType = "text" | "button" | "image" | "product-grid" | "hero-banner" | "video" | "announcement-bar" | "navbar";
+export type ComponentType = "text" | "button" | "image" | "product-grid" | "hero-banner" | "video" | "announcement-bar" | "navbar" | "custom-block";
 
 export interface StudioElement {
   id: string;
@@ -119,15 +119,52 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addElement = (section: SectionType, type: ComponentType, index?: number) => {
+    // Definimos las props base para cualquier elemento del CUERPO para mantener consistencia
+    const standardBodyProps = {
+      title: "Nuevo Bloque",
+      subtitle: "Añade una descripción impactante aquí.",
+      titleColor: "#ffffff",
+      titleSize: 48,
+      titleIntensity: 100,
+      titleVariant: "solid",
+      titleFont: "font-black",
+      subtitleColor: "#ffffff",
+      subtitleSize: 18,
+      subtitleIntensity: 100,
+      subtitleVariant: "solid",
+      primaryBtnText: "Acción Principal",
+      primaryBtnVariant: "solid",
+      primaryBtnBgColor: "#2563eb",
+      primaryBtnBorderRadius: 12,
+      secondaryBtnText: "Saber más",
+      secondaryBtnVariant: "glass",
+      align: "center",
+      height: 400,
+      bgColor: "#111827",
+      overlayOpacity: 40,
+      overlayColor: "#000000",
+    };
+
     const newElement: StudioElement = {
       id: uuidv4(),
       type,
       props: type === "hero-banner" ? { 
-               title: "Nuevo Banner", subtitle: "Subtítulo", bgType: "image", overlayOpacity: 40, overlayColor: "#000000", align: "center", textPosX: 0, textPosY: 0, height: 400, bgEffect: "none", bgColor: "#ffffff",
-               titleColor: "#ffffff", titleSize: 48, titleIntensity: 100, titleVariant: "solid", titleAurora1: "#00f2ff", titleAurora2: "#7000ff",
-               subtitleColor: "#ffffff", subtitleSize: 18, subtitleIntensity: 100, subtitleVariant: "solid", subtitleAurora1: "#ff0080", subtitleAurora2: "#7000ff",
-               primaryBtnText: "Comprar", primaryBtnVariant: "solid", primaryBtnBgColor: "#2563eb", primaryBtnColor: "#ffffff", primaryBtnIntensity: 100
+               ...standardBodyProps, 
+               title: "Nuevo Banner", 
+               bgType: "image", 
+               imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop"
              } : 
+             type === "product-grid" ? {
+               ...standardBodyProps,
+               title: "Nuestros Productos",
+               columns: 4,
+               itemsCount: 4,
+               layout: "grid"
+             } :
+             type === "custom-block" ? {
+               ...standardBodyProps,
+               title: "Bloque Personalizado"
+             } :
              type === "announcement-bar" ? { 
                messages: ["¡PROMO DISPONIBLE!"], bgColor: "#004d4d", textColor: "#ffffff", fontSize: 11, align: "center", fontFamily: "font-black", behavior: "static"
              } :
