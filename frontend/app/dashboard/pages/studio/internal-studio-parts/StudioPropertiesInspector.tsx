@@ -444,6 +444,65 @@ export const DesignerInspector = () => {
                         Desc. {element.props.showDescription ? "ON" : "OFF"}
                      </button>
                    </div>
+
+                   {/* Estilos dinámicos para Precio */}
+                   {element.props.showPrice && (
+                     <div className="p-3 bg-gray-50 rounded-xl space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                        <span className="text-[8px] font-black text-gray-400 uppercase">Estilo de Precio</span>
+                        <div className="grid grid-cols-2 gap-2">
+                          <select value={element.props.priceFont || "font-black"} onChange={(e) => handleChange("priceFont", e.target.value)} className="w-full p-1.5 border rounded-lg text-[9px] font-bold bg-white">
+                            <option value="font-sans">Sans</option>
+                            <option value="font-serif">Serif</option>
+                            <option value="font-mono">Mono</option>
+                            <option value="font-black">Heavy</option>
+                          </select>
+                          <div className="flex items-center gap-2 p-1 border rounded-lg bg-white"><input type="color" value={element.props.priceColor || "#2563eb"} onChange={(e) => handleChange("priceColor", e.target.value)} className="w-5 h-5 rounded-md p-0 cursor-pointer" /><span className="text-[8px] text-gray-400 font-bold uppercase">Color</span></div>
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[7px] font-black text-gray-400 uppercase">Temas de Precio</span>
+                          <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                            {["solid", "outline", "3d", "brutalist", "aurora"].map(v => (<button key={v} onClick={() => handleChange("priceVariant", v)} className={cn("py-1 text-[7px] font-black uppercase rounded-md transition-all", (element.props.priceVariant === v || (!element.props.priceVariant && v === "solid")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v}</button>))}
+                          </div>
+                        </div>
+                        {element.props.priceVariant === "aurora" && (
+                          <div className="grid grid-cols-2 gap-2 p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                            <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-blue-100"><input type="color" value={element.props.priceAurora1 || "#00f2ff"} onChange={(e) => handleChange("priceAurora1", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[6px] font-black text-gray-400">C1</span></div>
+                            <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-blue-100"><input type="color" value={element.props.priceAurora2 || "#7000ff"} onChange={(e) => handleChange("priceAurora2", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[6px] font-black text-gray-400">C2</span></div>
+                          </div>
+                        )}
+                        <FluidSlider label="Tamaño Precio" value={element.props.priceSize || 14} min={8} max={32} onChange={(v:number) => handleChange("priceSize", v)} />
+                     </div>
+                   )}
+
+                   {/* Estilos dinámicos para Descripción */}
+                   {element.props.showDescription && (
+                     <div className="p-3 bg-gray-50 rounded-xl space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                        <span className="text-[8px] font-black text-gray-400 uppercase">Estilo de Descripción</span>
+                        <div className="grid grid-cols-2 gap-2">
+                          <select value={element.props.descriptionFont || "font-sans"} onChange={(e) => handleChange("descriptionFont", e.target.value)} className="w-full p-1.5 border rounded-lg text-[9px] font-bold bg-white">
+                            <option value="font-sans">Sans</option>
+                            <option value="font-serif">Serif</option>
+                            <option value="font-mono">Mono</option>
+                            <option value="font-black">Heavy</option>
+                          </select>
+                          <div className="flex items-center gap-2 p-1 border rounded-lg bg-white"><input type="color" value={element.props.descriptionColor || "#9ca3af"} onChange={(e) => handleChange("descriptionColor", e.target.value)} className="w-5 h-5 rounded-md p-0 cursor-pointer" /><span className="text-[8px] text-gray-400 font-bold uppercase">Color</span></div>
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[7px] font-black text-gray-400 uppercase">Temas de Descripción</span>
+                          <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                            {["solid", "outline", "3d", "brutalist", "aurora"].map(v => (<button key={v} onClick={() => handleChange("descriptionVariant", v)} className={cn("py-1 text-[7px] font-black uppercase rounded-md transition-all", (element.props.descriptionVariant === v || (!element.props.descriptionVariant && v === "solid")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v}</button>))}
+                          </div>
+                        </div>
+                        {element.props.descriptionVariant === "aurora" && (
+                          <div className="grid grid-cols-2 gap-2 p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                            <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-blue-100"><input type="color" value={element.props.descriptionAurora1 || "#00f2ff"} onChange={(e) => handleChange("descriptionAurora1", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[6px] font-black text-gray-400">C1</span></div>
+                            <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-blue-100"><input type="color" value={element.props.descriptionAurora2 || "#7000ff"} onChange={(e) => handleChange("descriptionAurora2", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[6px] font-black text-gray-400">C2</span></div>
+                          </div>
+                        )}
+                        <FluidSlider label="Tamaño Desc." value={element.props.descriptionSize || 9} min={7} max={20} onChange={(v:number) => handleChange("descriptionSize", v)} />
+                     </div>
+                   )}
+
                    <FluidSlider label="Bordes de Tarjeta" value={element.props.cardBorderRadius || 20} min={0} max={60} onChange={(v:number) => handleChange("cardBorderRadius", v)} />
                    <FluidSlider label="Altura de Tarjeta" value={element.props.cardHeight || 450} min={300} max={800} onChange={(v:number) => handleChange("cardHeight", v)} />
                    
