@@ -204,11 +204,13 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                ...standardBodyProps,
                title: "Bloque Personalizado"
              } :
-             type === "announcement-bar" ? { 
-               messages: ["¡PROMO DISPONIBLE!"], bgColor: "#004d4d", textColor: "#ffffff", fontSize: 11, align: "center", fontFamily: "font-black", behavior: "static"
-             } :
-                          type === "navbar" ? { 
-                            logoText: "BAYUP SHOP", logoUrl: null, logoSize: 24, logoAlign: "left", logoOffset: 0, 
+                                       type === "announcement-bar" ? { 
+                                         messages: ["¡PROMO DISPONIBLE!"], bgColor: "#004d4d", textColor: "#ffffff", fontSize: 11, align: "center", fontFamily: "font-black", behavior: "static",
+                                         messageAnimation: "slide",
+                                         messageSpeed: 20
+                                       } : 
+                                                    type === "navbar" ? { 
+                                                      logoText: "BAYUP SHOP", logoUrl: null, logoSize: 24, logoAlign: "left", logoOffset: 0, 
                             logoFont: "font-black", logoColor: "#2563eb", logoVariant: "solid", logoEffect: "none",
                             logoAurora1: "#00f2ff", logoAurora2: "#7000ff", logoPosX: 0,
                             navHeight: 80, align: "center", menuColor: "#4b5563", 

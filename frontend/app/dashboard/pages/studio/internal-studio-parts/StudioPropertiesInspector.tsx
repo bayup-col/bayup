@@ -333,6 +333,48 @@ export const DesignerInspector = () => {
                   </ControlGroup>
                 )}
 
+                {element.type === "announcement-bar" && (
+                  <ControlGroup title="Animación" icon={Zap} defaultOpen={false}>
+                    <div className="space-y-2">
+                      <span className="text-[9px] font-black text-gray-400 uppercase">Tipo de Transición</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          {id: "slide", l: "Deslizar"},
+                          {id: "fade", l: "Desvanecer"},
+                          {id: "zoom", l: "Zoom"},
+                          {id: "bounce", l: "Rebote"},
+                          {id: "marquee", l: "Marquesina"},
+                          {id: "rotate", l: "Rotar"}
+                        ].map(anim => (
+                          <button 
+                            key={anim.id} 
+                            onClick={() => handleChange("messageAnimation", anim.id)}
+                            className={cn(
+                              "py-2 px-3 rounded-xl border text-[9px] font-black uppercase transition-all",
+                              element.props.messageAnimation === anim.id ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-100" : "bg-white text-gray-400 border-gray-100 hover:bg-gray-50"
+                            )}
+                          >
+                            {anim.l}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {(element.props.messageAnimation === "marquee" || element.props.messageAnimation === "rotate") && (
+                      <div className="pt-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                        <FluidSlider 
+                          label="Duración de Vuelta (Seg)" 
+                          value={element.props.messageSpeed || 20} 
+                          min={5} 
+                          max={60} 
+                          onChange={(v:number) => handleChange("messageSpeed", v)} 
+                          suffix="s"
+                        />
+                        <p className="text-[7px] text-gray-400 italic mt-1">Menos segundos = más rápido.</p>
+                      </div>
+                    )}
+                  </ControlGroup>
+                )}
+
                 {/* NAVEGACIÓN (NAVBAR) */}
                 {element.type === "navbar" && (
                   <>

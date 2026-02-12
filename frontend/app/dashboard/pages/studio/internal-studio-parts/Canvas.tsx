@@ -9,30 +9,91 @@ import { useDroppable, useDraggable } from "@dnd-kit/core";
 
 // --- HELPERS ESTABLES ---
 
-const AnnouncementSlides = ({ messages }: { messages: string[] }) => {
+const AnnouncementSlides = ({ messages, animationType = "slide", speed = 20 }: { messages: string[], animationType?: string, speed?: number }) => {
   const [index, setIndex] = React.useState(0);
+  
   useEffect(() => {
-    if (!messages || messages.length <= 1) return;
+    if (!messages || messages.length <= 1 || animationType === "marquee" || animationType === "rotate") return;
     const timer = setInterval(() => { setIndex((prev) => (prev + 1) % messages.length); }, 3000);
     return () => clearInterval(timer);
-  }, [messages?.length]);
+  }, [messages?.length, animationType]);
+
+  const variants = {
+    slide: { initial: { opacity: 0, x: 50 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -50 } },
+    fade: { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } },
+    zoom: { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.2 } },
+    bounce: { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -20 } },
+    rotate: { initial: { opacity: 0, x: 100, rotateY: 45 }, animate: { opacity: 1, x: 0, rotateY: 0 }, exit: { opacity: 0, x: -100, rotateY: -45 } }
+  };
+
+  // Lógica de Flujo Continuo (Marquesina y Rotar)
+  if (animationType === "marquee" || animationType === "rotate") {
+    const isRotate = animationType === "rotate";
+    // Repetimos los mensajes varias veces para asegurar que llenen cualquier ancho de pantalla
+    const repeatedMessages = [...messages, ...messages, ...messages, ...messages];
+    
+    return (
+      <div className="flex whitespace-nowrap overflow-hidden w-full relative h-full items-center">
+        <div 
+          className="animate-marquee-loop flex items-center"
+          style={{ 
+            animationDuration: `${speed || 20}s`,
+            width: "max-content" 
+          }}
+        >
+          {/* Renderizamos el tren de mensajes */}
+          <div className="flex items-center gap-24 pr-24">
+            {repeatedMessages.map((m, i) => (
+              <span key={`msg-${i}`} className="flex items-center gap-8">
+                {m} {isRotate && <span className="text-white/20 text-xs">•</span>}
+              </span>
+            ))}
+          </div>
+          {/* Duplicamos el tren completo para el loop infinito perfecto */}
+          <div className="flex items-center gap-24 pr-24" aria-hidden="true">
+            {repeatedMessages.map((m, i) => (
+              <span key={`dup-${i}`} className="flex items-center gap-8">
+                {m} {isRotate && <span className="text-white/20 text-xs">•</span>}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const activeVariant = (variants as any)[animationType] || variants.slide;
+
   return (
-    <AnimatePresence mode="wait">
-      <motion.span key={index} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.5 }} className="absolute inset-0 flex items-center justify-center text-center whitespace-nowrap">{messages[index]}</motion.span>
-    </AnimatePresence>
+    <div style={{ perspective: "1000px", width: "100%", height: "100%", position: "relative" }}>
+      <AnimatePresence>
+        <motion.span 
+          key={`${index}-${animationType}`} 
+          initial={activeVariant.initial}
+          animate={activeVariant.animate}
+          exit={activeVariant.exit}
+          transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }} 
+          className="absolute inset-0 flex items-center justify-center text-center whitespace-nowrap"
+        >
+          {messages[index]}
+        </motion.span>
+      </AnimatePresence>
+    </div>
   );
 };
 
 const DroppableSection = ({ section, headerRef, children, activeSection, setActiveSection }: any) => {
   const { setNodeRef, isOver } = useDroppable({ id: section });
   const sectionLabels = { header: "Inicio / Header", body: "Centro / Cuerpo", footer: "Final / Footer" };
+  const isHeader = section === "header";
+
   return (
     <section ref={(node) => { setNodeRef(node); if (headerRef) (headerRef as any).current = node; }} onClick={() => setActiveSection(section)} className={cn("bg-white rounded-2xl shadow-sm transition-all duration-500 overflow-hidden relative", activeSection === section ? "ring-4 ring-blue-500/20 scale-[1.02]" : "opacity-80 scale-100", isOver && "ring-4 ring-green-500/30 bg-green-50/10")}>
       <div className="bg-gray-50/50 px-4 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 flex justify-between items-center">
         <span>{sectionLabels[section as SectionType]}</span>
         {activeSection === section && <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />}
       </div>
-      <div className="min-h-[150px] p-4">{children}</div>
+      <div className={cn("min-h-[150px]", isHeader ? "p-0" : "p-4")}>{children}</div>
     </section>
   );
 };
@@ -221,6 +282,30 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
       {selectedElementId === el.id && <div className="absolute -top-10 left-0 bg-blue-500 text-white flex items-center gap-2 px-2 py-1 rounded-t-lg shadow-md z-30"><GripVertical size={12} className="text-blue-200" /><span className="text-[10px] font-bold uppercase tracking-wider">{el.type}</span><button onMouseDown={(e) => { e.stopPropagation(); removeElement(section, el.id); }} className="ml-2 hover:text-red-200"><Trash2 size={12} /></button></div>}
       
       <div className={cn("p-2 pointer-events-none", el.type === "announcement-bar" && "p-0")}>
+        {el.type === "announcement-bar" && (
+          <div 
+            className="w-full relative overflow-hidden flex items-center transition-all duration-500"
+            style={{ 
+              height: `${el.props.height || 40}px`, 
+              backgroundColor: el.props.bgColor || "#004d4d" 
+            }}
+          >
+            <div 
+              className={cn("w-full h-full flex items-center font-black uppercase tracking-[0.2em]", el.props.font || "font-sans")}
+              style={{ 
+                color: el.props.textColor || "#ffffff",
+                fontSize: `${el.props.fontSize || 11}px`
+              }}
+            >
+              <AnnouncementSlides 
+                messages={el.props.messages || ["¡PROMOCIÓN DISPONIBLE!"]} 
+                animationType={el.props.messageAnimation}
+                speed={el.props.messageSpeed}
+              />
+            </div>
+          </div>
+        )}
+
         {el.type === "navbar" && (
           <div className={cn("flex items-center px-6 shadow-sm rounded-xl border border-gray-100 overflow-hidden")} style={{ height: `${el.props.navHeight || 80}px`, backgroundColor: el.props.bgColor || "#ffffff" }}>
             <div 
@@ -329,13 +414,21 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
                                 {el.type === "product-grid" && (
                                   <>
                                     <style>{`
-                                      @keyframes aurora-text {
-                                        0% { background-position: 0% 50%; }
-                                        50% { background-position: 100% 50%; }
-                                        100% { background-position: 0% 50%; }
-                                      }
-                                      .animate-aurora-text {
-                                        animation: aurora-text 5s linear infinite;
+                                                            @keyframes aurora-text {
+                                                              0% { background-position: 0% 50%; }
+                                                              50% { background-position: 100% 50%; }
+                                                              100% { background-position: 0% 50%; }
+                                                            }
+                                                                                  @keyframes marquee {
+                                                                                    0% { transform: translateX(0); }
+                                                                                    100% { transform: translateX(-50%); }
+                                                                                  }
+                                                                                  .animate-marquee-loop {
+                                                                                    display: flex;
+                                                                                    width: fit-content;
+                                                                                    animation: marquee 20s linear infinite;
+                                                                                  }
+                                                                                  .animate-aurora-text {                                        animation: aurora-text 5s linear infinite;
                                       }
                                       .scrollbar-glass::-webkit-scrollbar { height: 8px; }
                                       .scrollbar-glass::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
@@ -557,21 +650,15 @@ export const Canvas = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
-        
-        console.log("Studio: Intentando cargar inventario real...");
         const { categoryService, productService } = await import('@/lib/api');
-        
         const [categories, products] = await Promise.all([
           categoryService.getAll(token),
           productService.getAll(token)
         ]);
-        
         setRealCategories(Array.isArray(categories) ? categories : []);
         setRealProducts(Array.isArray(products) ? products : []);
-        console.log("Studio: Inventario real cargado con éxito.");
       } catch (err: any) {
-        console.error("Studio: Error crítico al conectar con el inventario real:", err.message);
-        // NO cargamos datos inventados aquí para no confundir al usuario
+        console.error("Error cargando datos en Canvas:", err);
       }
     };
     fetchData();
@@ -590,6 +677,36 @@ export const Canvas = () => {
 
   return (
     <div className="flex-1 bg-gray-100 overflow-y-auto overflow-x-hidden p-8 scroll-smooth flex flex-col items-center">
+      {/* ESTILOS GLOBALES DEL MOTOR VISUAL */}
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee-loop {
+          display: flex;
+          width: fit-content;
+          animation: marquee 20s linear infinite;
+        }
+        @keyframes aurora-text {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .animate-aurora-text {
+          animation: aurora-text 5s linear infinite;
+        }
+        .scrollbar-glass::-webkit-scrollbar { height: 8px; }
+        .scrollbar-glass::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
+        .scrollbar-glass::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); border-radius: 10px; border: 2px solid rgba(255,255,255,0.1); }
+        .scrollbar-neon::-webkit-scrollbar { height: 8px; }
+        .scrollbar-neon::-webkit-scrollbar-track { background: #000; }
+        .scrollbar-neon::-webkit-scrollbar-thumb { background: #00f2ff; border-radius: 0px; box-shadow: 0 0 10px #00f2ff; }
+        .scrollbar-minimal::-webkit-scrollbar { height: 4px; }
+        .scrollbar-minimal::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-minimal::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 20px; }
+      `}</style>
+
       <div className={cn("w-full transition-all duration-500 space-y-6 pb-40 mx-auto", viewportWidths[viewport])}>
         <DroppableSection section="header" headerRef={headerRef} activeSection={activeSection} setActiveSection={setActiveSection}>{renderElements("header")}</DroppableSection>
         <DroppableSection section="body" headerRef={bodyRef} activeSection={activeSection} setActiveSection={setActiveSection}>{renderElements("body")}</DroppableSection>
