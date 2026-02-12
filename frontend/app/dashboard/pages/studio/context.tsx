@@ -195,6 +195,11 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                imageAspectRatio: "square",
                gridGap: 24
              } : 
+             type === "video" ? {
+               ...standardBodyProps,
+               title: "Video Promocional",
+               videoExternalUrl: ""
+             } :
              type === "custom-block" ? {
                ...standardBodyProps,
                title: "Bloque Personalizado"

@@ -371,14 +371,28 @@ export const DesignerInspector = () => {
               <ControlGroup title="Multimedia de Fondo" icon={ImageIcon} defaultOpen={true}>
                 <div className="space-y-4">
                   <div className="flex bg-gray-100 p-1 rounded-lg">{[{id:"image", l:"Imagen"}, {id:"video", l:"Video"}].map(t => (<button key={t.id} onClick={() => handleChange("bgType", t.id)} className={cn("flex-1 py-1.5 text-[9px] font-black uppercase rounded-md transition-all", (element.props.bgType === t.id || (!element.props.bgType && t.id === "image")) ? "bg-white shadow-sm text-blue-600" : "text-gray-400")}>{t.l}</button>))}</div>
-                  <div onClick={() => triggerUpload("bgBackground")} className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 cursor-pointer relative transition-all">
+                  <div onClick={() => triggerUpload(element.props.bgType === "video" ? "bgBackground" : "bgBackground")} className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 cursor-pointer relative transition-all">
                     {element.props.imageUrl || element.props.videoUrl ? (
                       <div className="relative">
                         {element.props.bgType === "video" ? <div className="h-20 w-20 mx-auto bg-black rounded-lg flex items-center justify-center"><Play size={20} className="text-white opacity-50"/></div> : <img src={element.props.imageUrl} className="h-20 mx-auto rounded-lg shadow-sm" />}
                         <button onClick={(e) => { e.stopPropagation(); handleChange(element.props.bgType === "video" ? "videoUrl" : "imageUrl", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-xl border-2 border-white hover:scale-110 transition-all z-50"><X size={12}/></button>
                       </div>
-                    ) : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR FONDO</p>}
+                    ) : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR {element.props.bgType === "video" ? "VIDEO" : "FONDO"}</p>}
                   </div>
+
+                  {element.type === "video" && element.props.bgType === "video" && (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                      <span className="text-[9px] font-black text-gray-400 uppercase">O pega URL (YouTube/Vimeo)</span>
+                      <input 
+                        type="text" 
+                        value={element.props.videoExternalUrl || ""} 
+                        onChange={(e) => handleChange("videoExternalUrl", e.target.value)}
+                        className="w-full p-2 border rounded-lg text-[9px] font-mono text-blue-600 bg-gray-50"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                      />
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-2">{[{id:"none", l:"Normal"}, {id:"ken-burns", l:"Ken Burns"}, {id:"zoom-out", l:"Zoom Out"}, {id:"float", l:"Flotación"}].map(e => (<button key={e.id} onClick={() => handleChange("bgEffect", e.id)} className={cn("py-2 text-[8px] font-black uppercase rounded-lg border", element.props.bgEffect === e.id ? "bg-blue-600 text-white" : "bg-white")}>{e.l}</button>))}</div>
                   <div className="flex items-center gap-3 pt-2 border-t border-gray-50"><input type="color" value={element.props.overlayColor || "#000000"} onChange={(e) => handleChange("overlayColor", e.target.value)} className="w-10 h-10 rounded-xl p-0 border cursor-pointer" /><div className="flex-1"><FluidSlider label="Difuminado" value={element.props.overlayOpacity || 40} min={0} max={95} suffix="%" onChange={(v:number) => handleChange("overlayOpacity", v)} /></div></div>
                 </div>
@@ -611,7 +625,7 @@ export const DesignerInspector = () => {
             <ControlGroup title="Estructura y Tamaño" icon={Move}>
               <div className="space-y-6">
                 <div className="flex bg-gray-100 p-1 rounded-lg border">{["left", "center", "right"].map((pos) => (<button key={pos} onClick={() => handleChange("align", pos)} className={cn("flex-1 p-2 flex justify-center rounded-md transition-all", (element.props.align === pos || (!element.props.align && pos === "center")) ? "bg-white shadow-sm text-blue-600" : "text-gray-400 hover:text-gray-600")}>{pos === "left" && <AlignLeft size={16} />}{pos === "center" && <AlignCenter size={16} />}{pos === "right" && <AlignRight size={16} />}</button>))}</div>
-                <FluidSlider label="Altura" value={element.props.height || (element.type === 'navbar' ? element.props.navHeight : 400)} min={50} max={800} onChange={(v:number) => handleChange(element.type === 'navbar' ? 'navHeight' : 'height', v)} />
+                <FluidSlider label="Altura" value={element.props.height || (element.type === 'navbar' ? element.props.navHeight : 400)} min={100} max={1000} onChange={(v:number) => handleChange(element.type === 'navbar' ? 'navHeight' : 'height', v)} />
               </div>
             </ControlGroup>
           </div>

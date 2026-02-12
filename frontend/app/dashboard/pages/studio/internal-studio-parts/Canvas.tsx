@@ -344,10 +344,37 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
                 )}
 
                 {el.type === "video" && (
-                   <div className="w-full max-w-4xl aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl mx-auto border-4 border-white/10">
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
-                         <Monitor size={64} className="text-white/20 animate-pulse" />
-                      </div>
+                   <div 
+                     className={cn(
+                       "w-full max-w-4xl rounded-3xl overflow-hidden mx-auto relative transition-all",
+                       !(el.props.imageUrl || (el.props.bgType === "video" && el.props.videoUrl) || el.props.videoExternalUrl) ? "bg-black border-4 border-white/10 shadow-2xl" : "bg-transparent border-0 shadow-none"
+                     )}
+                     style={{ 
+                       height: `${el.props.height || 400}px`,
+                       aspectRatio: el.props.height ? 'auto' : '16/9'
+                     }}
+                   >
+                      {/* Placeholder: Solo si no hay ABSOLUTAMENTE NADA */}
+                      {!(el.props.imageUrl || (el.props.bgType === "video" && el.props.videoUrl) || el.props.videoExternalUrl) && (
+                        <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-black z-0">
+                           <Monitor size={64} className="text-white/20 animate-pulse" />
+                        </div>
+                      )}
+
+                      {/* Video Externo (YouTube/Vimeo) */}
+                      {el.props.videoExternalUrl && (
+                        <div className="absolute inset-0 w-full h-full z-10 bg-black">
+                           <iframe 
+                             className="w-full h-full border-0"
+                             src={el.props.videoExternalUrl.includes('youtube.com') || el.props.videoExternalUrl.includes('youtu.be') 
+                               ? `https://www.youtube.com/embed/${el.props.videoExternalUrl.split('v=')[1]?.split('&')[0] || el.props.videoExternalUrl.split('/').pop()}?autoplay=0`
+                               : el.props.videoExternalUrl
+                             }
+                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                             allowFullScreen
+                           />
+                        </div>
+                      )}
                    </div>
                 )}
 
