@@ -69,15 +69,15 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
       return btnProps[fullKey] !== undefined ? btnProps[fullKey] : fallback;
     };
 
-    const text = prefix === "primaryBtn" ? get("text", "Comprar") : prefix === "secondaryBtn" ? get("text", "Ver más") : btnProps.buttonText || "Botón";
+    const text = prefix === "primaryBtn" ? get("text", "Comprar") : prefix === "secondaryBtn" ? get("text", "Ver más") : btnProps.text || btnProps.buttonText || "Botón";
     const variant = get("variant", prefix === "secondaryBtn" ? "glass" : "solid");
-    const bgColor = prefix === "primaryBtn" ? get("bgColor", "#2563eb") : prefix === "secondaryBtn" ? get("bgColor", "rgba(255,255,255,0.1)") : btnProps.color || "#2563eb";
+    const bgColor = prefix === "primaryBtn" ? get("bgColor", "#2563eb") : prefix === "secondaryBtn" ? get("bgColor", "rgba(255,255,255,0.1)") : btnProps.bgColor || btnProps.color || "#2563eb";
     const textColor = get("textColor", "#ffffff");
     const fontFamily = get("font", btnProps.fontFamily || "font-black");
     const fontSize = get("size", btnProps.fontSize || 14);
     const intensity = get("intensity", 100);
-    const posX = get("posX", btnProps.textPosX || 0);
-    const posY = get("posY", btnProps.textPosY || 0);
+    const posX = get("posX", 0);
+    const posY = get("posY", 0);
     const borderRadius = btnProps.borderRadius !== undefined ? btnProps.borderRadius : 12;
     
     const a1 = get("aurora1", "#00f2ff");
@@ -92,31 +92,12 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
 
     let themeClasses = "";
     switch(variant) {
-      case "glass":
-        themeClasses = "backdrop-blur-md border border-white/20 shadow-xl";
-        baseStyles.backgroundColor = "rgba(255,255,255,0.1)";
-        break;
-      case "outline":
-        themeClasses = "border-2 bg-transparent";
-        baseStyles.borderColor = bgColor;
-        baseStyles.color = bgColor;
-        break;
-      case "3d":
-        themeClasses = "shadow-[0_4px_0_0_rgba(0,0,0,0.2)] active:translate-y-1 transition-all";
-        baseStyles.backgroundColor = bgColor;
-        baseStyles.borderBottom = "4px solid rgba(0,0,0,0.3)";
-        break;
-      case "brutalist":
-        themeClasses = "border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]";
-        baseStyles.backgroundColor = bgColor;
-        break;
-      case "aurora":
-        themeClasses = "border-none shadow-lg overflow-hidden";
-        baseStyles.background = "transparent";
-        break;
-      default: // solid
-        themeClasses = "shadow-md";
-        baseStyles.backgroundColor = bgColor;
+      case "glass": themeClasses = "backdrop-blur-md border border-white/20 shadow-xl"; baseStyles.backgroundColor = "rgba(255,255,255,0.1)"; break;
+      case "outline": themeClasses = "border-2 bg-transparent"; baseStyles.borderColor = bgColor; baseStyles.color = bgColor; break;
+      case "3d": themeClasses = "shadow-[0_4px_0_0_rgba(0,0,0,0.2)] active:translate-y-1 transition-all"; baseStyles.backgroundColor = bgColor; baseStyles.borderBottom = "4px solid rgba(0,0,0,0.3)"; break;
+      case "brutalist": themeClasses = "border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"; baseStyles.backgroundColor = bgColor; break;
+      case "aurora": themeClasses = "border-none shadow-lg overflow-hidden"; baseStyles.background = "transparent"; break;
+      default: themeClasses = "shadow-md"; baseStyles.backgroundColor = bgColor;
     }
 
     return (
@@ -131,10 +112,7 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
             animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
             transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
             className="absolute inset-0 z-0"
-            style={{
-              background: `linear-gradient(135deg, ${a1}, ${a2}, ${a1}, ${a2})`,
-              backgroundSize: "400% 400%",
-            }}
+            style={{ background: `linear-gradient(135deg, ${a1}, ${a2}, ${a1}, ${a2})`, backgroundSize: "400% 400%" }}
           />
         )}
         <span className="relative z-10">{text}</span>
@@ -142,6 +120,58 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
           <div className="absolute inset-0 z-0" style={{ backgroundImage: `url(${btnProps.btnBgImage})`, backgroundSize: btnProps.btnBgMode === "repeat" ? "20px auto" : "cover", backgroundRepeat: btnProps.btnBgMode === "repeat" ? "repeat" : "no-repeat", backgroundPosition: "center" }} />
         )}
       </motion.button>
+    );
+  };
+
+  const renderTextWithTheme = (text: string, props: any, prefix: string = "") => {
+    const get = (key: string, fallback: any) => {
+      const fullKey = prefix ? `${prefix}${key.charAt(0).toUpperCase() + key.slice(1)}` : key;
+      return props[fullKey] !== undefined ? props[fullKey] : fallback;
+    };
+
+    const variant = get("variant", "solid");
+    const color = get("color", "#1f2937");
+    const size = get("size", 24);
+    const font = get("font", "font-sans");
+    const intensity = get("intensity", 100);
+    const a1 = get("aurora1", "#00f2ff");
+    const a2 = get("aurora2", "#7000ff");
+    const posX = get("posX", 0);
+    const posY = get("posY", 0);
+
+    const baseStyles: any = {
+      color: color,
+      fontSize: `${size}px`,
+      transform: `translate(${posX}px, ${posY}px)`,
+      ...getIntensityStyle(intensity)
+    };
+
+    let themeClasses = "";
+    if (variant === "aurora") {
+      themeClasses = "bg-clip-text text-transparent animate-aurora-text bg-[length:200%_auto]";
+      baseStyles.backgroundImage = `linear-gradient(135deg, ${a1}, ${a2}, ${a1})`;
+      baseStyles.color = "transparent";
+    } else if (variant === "outline") {
+      baseStyles.WebkitTextStroke = `1px ${color}`;
+      baseStyles.color = "transparent";
+    } else if (variant === "3d") {
+      baseStyles.textShadow = `0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 5px 0 #aaa, 0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 5px rgba(0,0,0,.2), 0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15)`;
+    } else if (variant === "brutalist") {
+      baseStyles.textShadow = `3px 3px 0px rgba(0,0,0,1)`;
+      baseStyles.WebkitTextStroke = `1px black`;
+    }
+
+    const Tag = prefix === "title" ? motion.h1 : prefix === "subtitle" ? motion.p : motion.div;
+
+    return (
+      <Tag 
+        key={`${variant}-${intensity}-${a1}-${a2}-${posX}-${posY}`}
+        animate={getIntensityStyle(intensity)}
+        className={cn("uppercase italic leading-tight transition-all", font, themeClasses)}
+        style={baseStyles}
+      >
+        {text}
+      </Tag>
     );
   };
 
@@ -186,8 +216,8 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
         )}
 
         {el.type === "text" && !el.props.isNav && (
-          <div className={cn("w-full transition-all flex items-center px-4 rounded-xl", el.props.fontFamily || "font-sans", el.props.fontWeight || "font-medium")} style={{ textAlign: el.props.align as any || "left", fontSize: `${el.props.fontSize || 16}px`, color: el.props.color || "#1f2937", backgroundColor: el.props.bgColor || "transparent", backgroundImage: el.props.bgPatternUrl ? `url(${el.props.bgPatternUrl})` : undefined, backgroundRepeat: "repeat", backgroundSize: "auto 100%", minHeight: `${el.props.navHeight || 60}px`, lineHeight: 1.5, justifyContent: el.props.align === "left" ? "flex-start" : el.props.align === "right" ? "flex-end" : "center" }}>
-            <div className="w-full">{el.props.content}</div>
+          <div className={cn("w-full transition-all flex items-center px-4 rounded-xl", el.props.fontFamily || "font-sans")} style={{ textAlign: el.props.align as any || "center", backgroundColor: el.props.bgColor || "transparent", backgroundImage: el.props.bgPatternUrl ? `url(${el.props.bgPatternUrl})` : undefined, backgroundRepeat: "repeat", backgroundSize: "auto 100%", minHeight: `${el.props.navHeight || 60}px`, justifyContent: el.props.align === "left" ? "flex-start" : el.props.align === "right" ? "flex-end" : "center" }}>
+            {renderTextWithTheme(el.props.content, el.props)}
           </div>
         )}
 
@@ -202,8 +232,8 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
               {el.props.bgType === "video" && el.props.videoUrl ? <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" src={el.props.videoUrl} /> : <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105" style={{ backgroundImage: `url(${el.props.imageUrl || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop'})` }} />}
               <div className="absolute inset-0 bg-black transition-opacity duration-300" style={{ opacity: (el.props.overlayOpacity || 0) / 100 }}/>
               <div className={cn("relative z-10 w-full" )} style={{ transform: `translate(${el.props.textPosX || 0}px, ${el.props.textPosY || 0}px)`, display: "flex", flexDirection: "column", alignItems: el.props.align === "left" ? "flex-start" : el.props.align === "right" ? "flex-end" : "center" }}>
-                <motion.h1 animate={getIntensityStyle(el.props.titleIntensity)} className={cn("mb-4 uppercase italic leading-tight transition-all", el.props.titleFont || "font-black")} style={{ color: el.props.titleColor || "#ffffff", fontSize: `${el.props.titleSize || 48}px` }}>{el.props.title}</motion.h1>
-                <motion.p animate={getIntensityStyle(el.props.subtitleIntensity)} className={cn("max-w-2xl font-medium mb-8 transition-all", el.props.subtitleFont || "font-sans")} style={{ color: el.props.subtitleColor || "#ffffff", fontSize: `${el.props.subtitleSize || 18}px` }}>{el.props.subtitle}</motion.p>
+                {renderTextWithTheme(el.props.title, el.props, "title")}
+                {renderTextWithTheme(el.props.subtitle, el.props, "subtitle")}
                 <div className="flex gap-4 flex-wrap justify-inherit">
                   {el.props.primaryBtnText && renderButton(el.props, "primaryBtn")}
                   {el.props.secondaryBtnText && renderButton(el.props, "secondaryBtn")}
@@ -212,6 +242,10 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
           </div>
         )}
       </div>
+      <style jsx global>{`
+        @keyframes auroraText { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .animate-aurora-text { animation: auroraText 5s ease infinite; }
+      `}</style>
     </motion.div>
   );
 };

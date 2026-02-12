@@ -102,7 +102,7 @@ export const DesignerInspector = () => {
     const isAurora = element.props[p("variant")] === "aurora";
 
     return (
-      <ControlGroup title={title} icon={MousePointer2}>
+      <ControlGroup title={title} icon={MousePointer2} defaultOpen={!prefix}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2">
             <div><span className="text-[9px] font-black text-gray-400 uppercase block mb-1">Etiqueta</span><input type="text" value={element.props[p("text")] || ""} onChange={(e) => handleChange(p("text"), e.target.value)} className="w-full p-2 border rounded-lg text-xs font-bold" placeholder="Texto..." /></div>
@@ -123,7 +123,6 @@ export const DesignerInspector = () => {
 
           {isAurora && (
             <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-3">
-              <span className="text-[9px] font-black text-blue-600 uppercase">Colores Aurora (Mezcla)</span>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-blue-100">
                   <input type="color" value={element.props[p("aurora1")] || "#00f2ff"} onChange={(e) => handleChange(p("aurora1"), e.target.value)} className="w-6 h-6 rounded-md p-0 cursor-pointer bg-transparent" />
@@ -155,7 +154,7 @@ export const DesignerInspector = () => {
               <input type="color" value={element.props[p("bgColor")] || "#2563eb"} onChange={(e) => handleChange(p("bgColor"), e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer bg-transparent" />
               <span className="text-[9px] text-gray-400 uppercase">Fondo</span>
             </div>
-            <div className="flex flex-col justify-end"><FluidSlider label="Tamaño" value={element.props[p("size")] || 14} min={10} max={24} onChange={(val:number) => handleChange(p("size"), val)} /></div>
+            <div className="flex flex-col justify-end"><FluidSlider label="Tamaño" value={element.props[p("size")] || 14} min={10} max={40} onChange={(val:number) => handleChange(p("size"), val)} /></div>
           </div>
 
           <div className="py-2 bg-blue-50/30 rounded-xl px-2 border border-blue-100/50">
@@ -165,6 +164,67 @@ export const DesignerInspector = () => {
           <div className="grid grid-cols-2 gap-3">
             <FluidSlider label="Posición X" value={element.props[p("posX")] || 0} min={-300} max={300} onChange={(val:number) => handleChange(p("posX"), val)} />
             <FluidSlider label="Posición Y" value={element.props[p("posY")] || 0} min={-100} max={100} onChange={(val:number) => handleChange(p("posY"), val)} />
+          </div>
+        </div>
+      </ControlGroup>
+    );
+  };
+
+  const renderTextThemeDesigner = (prefix: string, title: string) => {
+    const v = (key: string) => prefix ? `${prefix}${key.charAt(0).toUpperCase() + key.slice(1)}` : key;
+    const isAurora = element.props[v("variant")] === "aurora";
+
+    return (
+      <ControlGroup title={title} icon={Type} defaultOpen={!prefix}>
+        <div className="space-y-4">
+          <textarea value={element.props[prefix || "content"] || ""} onChange={(e) => handleChange(prefix || "content", e.target.value)} className="w-full p-3 border rounded-xl text-sm font-black bg-gray-50/30 uppercase italic" />
+          
+          <div className="space-y-2">
+            <span className="text-[9px] font-black text-gray-400 uppercase">Tema de Texto</span>
+            <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+              {[
+                { id: "solid", l: "Sólido" }, { id: "outline", l: "Borde" }, { id: "3d", l: "3D Pro" },
+                { id: "brutalist", l: "Brutal" }, { id: "aurora", l: "Aurora" }
+              ].map(t => (
+                <button key={t.id} onClick={() => handleChange(v("variant"), t.id)} className={cn("py-1.5 text-[8px] font-black uppercase rounded-md transition-all", (element.props[v("variant")] === t.id || (!element.props[v("variant")] && t.id === "solid")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{t.l}</button>
+              ))}
+            </div>
+          </div>
+
+          {isAurora && (
+            <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-blue-100">
+                  <input type="color" value={element.props[v("aurora1")] || "#00f2ff"} onChange={(e) => handleChange(v("aurora1"), e.target.value)} className="w-6 h-6 rounded-md p-0 cursor-pointer bg-transparent" />
+                  <span className="text-[8px] text-gray-400">Color 1</span>
+                </div>
+                <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-blue-100">
+                  <input type="color" value={element.props[v("aurora2")] || "#7000ff"} onChange={(e) => handleChange(v("aurora2"), e.target.value)} className="w-6 h-6 rounded-md p-0 cursor-pointer bg-transparent" />
+                  <span className="text-[8px] text-gray-400">Color 2</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <select value={element.props[v("font")] || 'font-sans'} onChange={(e) => handleChange(v("font"), e.target.value)} className="w-full p-2 border rounded-xl text-[10px] font-bold bg-white outline-none">
+              <option value="font-black">Black</option><option value="font-sans">Modern</option><option value="font-serif">Classic</option>
+            </select>
+            <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white h-[38px]">
+              <input type="color" value={element.props[v("color")] || "#1f2937"} onChange={(e) => handleChange(v("color"), e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer bg-transparent" />
+              <span className="text-[9px] text-gray-400 uppercase">Color</span>
+            </div>
+          </div>
+
+          <FluidSlider label="Tamaño" value={element.props[v("size")] || 24} min={12} max={120} onChange={(val:number) => handleChange(v("size"), val)} />
+          
+          <div className="py-2 bg-blue-50/30 rounded-xl px-2 border border-blue-100/50">
+            <FluidSlider label="Intensidad Visual" value={element.props[v("intensity")] || 100} min={0} max={200} onChange={(val:number) => handleChange(v("intensity"), val)} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <FluidSlider label="Posición X" value={element.props[v("posX")] || 0} min={-500} max={500} onChange={(val:number) => handleChange(v("posX"), val)} />
+            <FluidSlider label="Posición Y" value={element.props[v("posY")] || 0} min={-200} max={200} onChange={(val:number) => handleChange(v("posY"), val)} />
           </div>
         </div>
       </ControlGroup>
@@ -216,41 +276,14 @@ export const DesignerInspector = () => {
               </ControlGroup>
             )}
 
-            {element.type === "text" && (
-              <ControlGroup title="Contenido de Texto" icon={Type} defaultOpen={true}>
-                <textarea value={element.props.content || ""} onChange={(e) => handleChange("content", e.target.value)} className="w-full p-3 border rounded-xl text-sm min-h-[120px] bg-gray-50/30" placeholder="Escribe aquí..." />
-              </ControlGroup>
-            )}
+            {element.type === "text" && renderTextThemeDesigner("", "Personalizar Texto")}
 
             {element.type === "button" && renderButtonDesigner("", "Personalizar Botón")}
 
             {element.type === "hero-banner" && (
               <>
-                <ControlGroup title="Título de Impacto" icon={Type} defaultOpen={true}>
-                  <div className="space-y-4">
-                    <textarea value={element.props.title || ""} onChange={(e) => handleChange("title", e.target.value)} className="w-full p-3 border rounded-xl text-sm font-black bg-gray-50/30 uppercase italic" />
-                    <div className="grid grid-cols-2 gap-3">
-                      <select value={element.props.titleFont || "font-black"} onChange={(e) => handleChange("titleFont", e.target.value)} className="w-full p-2 border rounded-xl text-[10px] font-bold bg-white outline-none">
-                        <option value="font-black">Black</option><option value="font-sans">Modern</option><option value="font-serif">Classic</option>
-                      </select>
-                      <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={element.props.titleColor || "#ffffff"} onChange={(e) => handleChange("titleColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer bg-transparent" /><span className="text-[9px] font-mono text-gray-400 uppercase">{element.props.titleColor || "#ffffff"}</span></div>
-                    </div>
-                    <FluidSlider label="Tamaño" value={element.props.titleSize || 48} min={24} max={120} onChange={(val:number) => handleChange("titleSize", val)} />
-                    <div className="grid grid-cols-2 gap-3"><FluidSlider label="Posición X" value={element.props.textPosX || 0} min={-500} max={500} onChange={(val:number) => handleChange("textPosX", val)} /><FluidSlider label="Posición Y" value={element.props.textPosY || 0} min={-200} max={200} onChange={(val:number) => handleChange("textPosY", val)} /></div>
-                    <div className="py-2 bg-blue-50/30 rounded-xl px-2 border border-blue-100/50"><FluidSlider label="Intensidad Visual" value={element.props.titleIntensity || 100} min={0} max={200} onChange={(val:number) => handleChange("titleIntensity", val)} /></div>
-                  </div>
-                </ControlGroup>
-                <ControlGroup title="Descripción" icon={Type}>
-                  <div className="space-y-4">
-                    <textarea value={element.props.subtitle || ""} onChange={(e) => handleChange("subtitle", e.target.value)} className="w-full p-3 border rounded-xl text-xs bg-gray-50/30 min-h-[80px]" />
-                    <div className="grid grid-cols-2 gap-3">
-                      <select value={element.props.subtitleFont || "font-sans"} onChange={(e) => handleChange("subtitleFont", e.target.value)} className="w-full p-2 border rounded-xl text-[10px] font-bold bg-white outline-none"><option value="font-sans">Modern</option><option value="font-serif">Classic</option><option value="font-mono">Tech</option></select>
-                      <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={element.props.subtitleColor || "#ffffff"} onChange={(e) => handleChange("subtitleColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer bg-transparent" /><span className="text-[9px] font-mono text-gray-400 uppercase">{element.props.subtitleColor || "#ffffff"}</span></div>
-                    </div>
-                    <FluidSlider label="Tamaño" value={element.props.subtitleSize || 18} min={12} max={40} onChange={(val:number) => handleChange("subtitleSize", val)} />
-                    <div className="py-2 bg-blue-50/30 rounded-xl px-2 border border-blue-100/50"><FluidSlider label="Intensidad Visual" value={element.props.subtitleIntensity || 100} min={0} max={200} onChange={(val:number) => handleChange("subtitleIntensity", val)} /></div>
-                  </div>
-                </ControlGroup>
+                {renderTextThemeDesigner("title", "Título de Impacto")}
+                {renderTextThemeDesigner("subtitle", "Descripción")}
                 {renderButtonDesigner("primaryBtn", "Botón Primario")}
                 {renderButtonDesigner("secondaryBtn", "Botón Secundario")}
               </>
@@ -267,7 +300,6 @@ export const DesignerInspector = () => {
               </div>
             </ControlGroup>
             
-            {/* OPCIONES DE IMAGEN INTERNA (SOLO PARA BOTÓN COMPONENTE) */}
             {element.type === "button" && (
               <ControlGroup title="Imagen Interna del Botón" icon={ImageIcon}>
                 <div className="space-y-3">
@@ -276,9 +308,6 @@ export const DesignerInspector = () => {
                       <div className="relative aspect-video rounded-md overflow-hidden"><img src={element.props.btnBgImage} className="w-full h-full object-cover" /><button onClick={(e) => { e.stopPropagation(); handleChange("btnBgImage", null); }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"><X size={10} /></button></div>
                     ) : (<div className="py-2"><ImageIcon size={16} className="mx-auto text-gray-300" /><p className="text-[9px] font-bold text-gray-400 uppercase">Subir Imagen</p></div>)}
                   </div>
-                  {element.props.btnBgImage && (
-                    <div className="flex bg-gray-100 p-1 rounded-lg">{[{ id: "cover", l: "Llena" }, { id: "repeat", l: "Mosaico" }, { id: "contain", l: "Ajustar" }].map((m) => (<button key={m.id} onClick={() => handleChange("btnBgMode", m.id)} className={cn("flex-1 py-1 text-[8px] font-black uppercase rounded-md transition-all", (element.props.btnBgMode === m.id || (!element.props.btnBgMode && m.id === "cover")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{m.l}</button>))}</div>
-                  )}
                   <FluidSlider label="Redondeo" value={element.props.borderRadius || 12} min={0} max={40} onChange={(val:number) => handleChange("borderRadius", val)} />
                 </div>
               </ControlGroup>

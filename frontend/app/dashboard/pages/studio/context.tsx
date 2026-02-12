@@ -53,7 +53,20 @@ const DEFAULT_SCHEMA: PageSchema = {
             textPosX: 0,
             textPosY: 0,
             height: 500,
-            // Botón Primario
+            titleColor: "#ffffff",
+            titleSize: 48,
+            titleIntensity: 100,
+            titleFont: "font-black",
+            titleVariant: "solid",
+            titleAurora1: "#00f2ff",
+            titleAurora2: "#7000ff",
+            subtitleColor: "#ffffff",
+            subtitleSize: 18,
+            subtitleIntensity: 100,
+            subtitleFont: "font-sans",
+            subtitleVariant: "solid",
+            subtitleAurora1: "#ff0080",
+            subtitleAurora2: "#7000ff",
             primaryBtnText: "Explorar Ahora",
             primaryBtnUrl: "/tienda",
             primaryBtnFont: "font-black",
@@ -61,39 +74,17 @@ const DEFAULT_SCHEMA: PageSchema = {
             primaryBtnBgColor: "#2563eb",
             primaryBtnSize: 14,
             primaryBtnIntensity: 100,
-            primaryBtnPosX: 0,
-            primaryBtnPosY: 0,
             primaryBtnVariant: "solid",
-            primaryBtnAurora1: "#00f2ff",
-            primaryBtnAurora2: "#7000ff",
-            // Botón Secundario
-            secondaryBtnText: "",
-            secondaryBtnUrl: "",
-            secondaryBtnFont: "font-black",
-            secondaryBtnColor: "#ffffff",
-            secondaryBtnBgColor: "rgba(255,255,255,0.1)",
-            secondaryBtnSize: 14,
-            secondaryBtnIntensity: 100,
-            secondaryBtnPosX: 0,
-            secondaryBtnPosY: 0,
-            secondaryBtnVariant: "glass",
-            secondaryBtnAurora1: "#ff0080",
-            secondaryBtnAurora2: "#7000ff",
-            titleColor: "#ffffff",
-            titleSize: 48,
-            titleIntensity: 100,
-            subtitleColor: "#ffffff",
-            subtitleSize: 18,
-            subtitleIntensity: 100
+            secondaryBtnText: "Ver más",
+            secondaryBtnUrl: "/nosotros",
+            secondaryBtnVariant: "glass"
           } 
         },
-        { id: "cat-1", type: "text", props: { content: "Nuestras Categorías", fontSize: 24, align: "center", color: "#1f2937" } },
-        { id: "grid-1", type: "product-grid", props: { title: "Categorías Destacadas", items: ["Moda", "Electrónica", "Hogar"] } },
     ],
     styles: { backgroundColor: "#ffffff" },
   },
   footer: {
-    elements: [{ id: "f1", type: "text", props: { content: "© 2026 Bayup Interactive. Todos los derechos reservados.", fontSize: 12, align: "center", color: "#ffffff" } }],
+    elements: [{ id: "f1", type: "text", props: { content: "© 2026 Bayup Interactive. Todos los derechos reservados.", fontSize: 12, align: "center", color: "#ffffff", variant: "solid", intensity: 100 } }],
     styles: { backgroundColor: "#111827", color: "white" },
   },
 };
@@ -136,8 +127,9 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
       type,
       props: type === "hero-banner" ? { 
                title: "Nuevo Banner", subtitle: "Subtítulo", bgType: "image", overlayOpacity: 40, align: "center", textPosX: 0, textPosY: 0, height: 400, 
-               primaryBtnText: "Comprar", primaryBtnFont: "font-black", primaryBtnColor: "#ffffff", primaryBtnBgColor: "#2563eb", primaryBtnSize: 14, primaryBtnIntensity: 100, primaryBtnPosX: 0, primaryBtnPosY: 0, primaryBtnVariant: "solid", primaryBtnAurora1: "#00f2ff", primaryBtnAurora2: "#7000ff",
-               titleColor: "#ffffff", titleSize: 48, titleIntensity: 100, subtitleColor: "#ffffff", subtitleSize: 18, subtitleIntensity: 100 
+               titleColor: "#ffffff", titleSize: 48, titleIntensity: 100, titleVariant: "solid", titleAurora1: "#00f2ff", titleAurora2: "#7000ff",
+               subtitleColor: "#ffffff", subtitleSize: 18, subtitleIntensity: 100, subtitleVariant: "solid", subtitleAurora1: "#ff0080", subtitleAurora2: "#7000ff",
+               primaryBtnText: "Comprar", primaryBtnVariant: "solid", primaryBtnBgColor: "#2563eb", primaryBtnColor: "#ffffff", primaryBtnIntensity: 100
              } : 
              type === "announcement-bar" ? { 
                messages: ["¡PROMO DISPONIBLE!"], bgColor: "#004d4d", textColor: "#ffffff", fontSize: 11, align: "center", fontFamily: "font-black", behavior: "static"
@@ -146,11 +138,10 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                logoText: "MI MARCA", logoUrl: null, logoSize: 24, logoAlign: "left", logoOffset: 0, logoFont: "font-sans", logoColor: "#2563eb", navHeight: 80, align: "center", menuColor: "#4b5563", utilityColor: "#6b7280", bgColor: "#ffffff", menuItems: [{ label: "Inicio", url: "/" }], utilityType: "icon", showCart: true, showUser: true 
              } :
              type === "text" ? { 
-               content: "Escribe aquí...", fontSize: 16, color: "#1f2937", bgColor: "transparent", navHeight: 60, align: "left", fontFamily: "font-sans", fontWeight: "font-medium", opacity: 100 
+               content: "Escribe aquí tu mensaje...", fontSize: 24, color: "#1f2937", variant: "solid", intensity: 100, align: "center", fontFamily: "font-sans", textPosX: 0, textPosY: 0, aurora1: "#00f2ff", aurora2: "#7000ff"
              } :
              type === "button" ? {
-               buttonText: "Haz clic", url: "/", variant: "solid", color: "#2563eb", textColor: "#ffffff", borderRadius: 12, align: "center", 
-               fontFamily: "font-black", fontSize: 14, intensity: 100, textPosX: 0, textPosY: 0, aurora1: "#00f2ff", aurora2: "#7000ff"
+               text: "Haz clic", url: "/", variant: "solid", bgColor: "#2563eb", textColor: "#ffffff", borderRadius: 12, align: "center", font: "font-black", size: 14, intensity: 100, posX: 0, posY: 0, aurora1: "#00f2ff", aurora2: "#7000ff"
              } : { content: "Nuevo Elemento" },
     };
 
