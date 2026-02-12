@@ -149,8 +149,9 @@ const renderTextWithTheme = (text: string, props: any, prefix: string = "", extr
 };
 
 const renderFloatingElement = (item: any) => {
-  if (!item.url && !item.floatUrl) return null;
-  const url = item.url || item.floatUrl;
+  const url = item.url || item.floatUrl || item.imageUrl || item.videoUrl;
+  if (!url && item.type !== 'video') return null;
+  
   const type = item.type || item.floatType || "image";
   const anim = item.anim || item.floatAnim || "none";
   const size = item.size || item.floatSize || 150;
@@ -169,7 +170,13 @@ const renderFloatingElement = (item: any) => {
 
   return (
     <motion.div key={item.id || 'float'} animate={anim === "none" ? animVariants.none : { x: posX, y: anim === "float" ? undefined : posY, ...(animVariants as any)[anim] }} transition={{ x: { type: "spring", stiffness: 450, damping: 30 }, y: anim === "float" ? { duration: 4, repeat: Infinity, ease: "easeInOut" } : { type: "spring", stiffness: 450, damping: 30 }, scale: { duration: 3, repeat: anim === "zoom" || anim === "pulse" ? Infinity : 0 }, opacity: { duration: 1.5, repeat: anim === "blink" ? Infinity : 0 }, rotate: { duration: 10, repeat: anim === "rotate" ? Infinity : 0, ease: "linear" } }} className="absolute z-20 overflow-hidden shadow-2xl" style={{ width: `${size}px`, height: `${size}px`, borderRadius: `${radius}px` }}>
-      <a href={item.linkUrl || item.floatLinkUrl || "#"} className="w-full h-full block">{type === "video" ? <video autoPlay muted loop playsInline className="w-full h-full object-cover" src={url} /> : <img src={url} className="w-full h-full object-cover" />}</a>
+      <div className="w-full h-full relative">
+        {type === "video" ? (
+          <video autoPlay muted loop playsInline className="w-full h-full object-cover" src={url} />
+        ) : (
+          <img src={url} className="w-full h-full object-cover" alt="" />
+        )}
+      </div>
     </motion.div>
   );
 };
@@ -393,6 +400,7 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
 
               {/* Elementos Extra */}
               {(el.props.extraElements || []).filter((it:any) => it.type === 'text').map((it:any) => renderTextWithTheme(it.content, it, "", it.id, true))}
+              {(el.props.extraElements || []).filter((it:any) => it.type === 'image' || it.type === 'video').map((it:any) => renderFloatingElement(it))}
               
               {/* Botones */}
               <div className="flex gap-4 flex-wrap justify-center mt-6">
