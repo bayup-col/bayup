@@ -305,20 +305,17 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
                                {product.name || "Producto sin nombre"}
                             </h4>
                             
-                            {el.props.showDescription && (
-                              <p className="text-[9px] text-gray-400 font-medium px-6 line-clamp-2 mt-1 italic">
-                                 {product.description || "Sin descripción disponible."}
-                              </p>
-                            )}
-                            
-                            {el.props.showPrice && (
-                              <div className="flex flex-col gap-1 pt-1">
-                                 <span className={cn("text-sm font-black", el.props.cardStyle === "glass" ? "text-[#00f2ff]" : "text-blue-600")}>
-                                    ${product.price ? product.price.toLocaleString() : "0"}
-                                 </span>
-                              </div>
-                            )}
-
+                                                      {el.props.showDescription && (
+                                                        <div className="mt-1">
+                                                          {renderTextWithTheme(product.description || "Sin descripción disponible.", el.props, "description", product.id, el.props.cardStyle === "glass")}
+                                                        </div>
+                                                      )}
+                                                      
+                                                      {el.props.showPrice && (
+                                                        <div className="flex flex-col gap-1 pt-1">
+                                                           {renderTextWithTheme(`$${product.price ? product.price.toLocaleString() : "0"}`, el.props, "price", product.id, el.props.cardStyle === "glass")}
+                                                        </div>
+                                                      )}
                             {el.props.showAddToCart && (
                               <div className="mt-4 w-full px-4 relative">
                                 {renderButton(el.props, "addToCart", product.id)}
