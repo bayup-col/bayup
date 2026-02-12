@@ -75,13 +75,15 @@ export const DesignerInspector = () => {
     const fetchCategories = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (token) {
-          const { categoryService } = await import('@/lib/api');
-          const categories = await categoryService.getAll(token);
-          setRealCategories(categories);
+        if (!token) {
+          console.warn("Studio: No se encontró token de autenticación. Redirigiendo o esperando login...");
+          return;
         }
+        const { categoryService } = await import('@/lib/api');
+        const categories = await categoryService.getAll(token);
+        setRealCategories(categories);
       } catch (err) {
-        console.error("Error cargando categorías:", err);
+        console.error("Error cargando categorías reales:", err);
       }
     };
     fetchCategories();
@@ -206,14 +208,14 @@ export const DesignerInspector = () => {
     );
   };
 
-  const renderModularButtonDesigner = (props: any, onUpdate: (p: any) => void, title: string, canRemove = false, onRemove?: () => void) => {
+  const renderModularButtonDesigner = (props: any, onUpdate: (p: any) => void, title: string, canRemove = false, onRemove?: () => void, showLink = true) => {
     const variant = props.variant || "solid";
     return (
       <ControlGroup title={title} icon={MousePointer2} onRemove={canRemove ? onRemove : null} defaultOpen={true}>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
+          <div className={cn("grid gap-2", showLink ? "grid-cols-2" : "grid-cols-1")}>
             <div><span className="text-[9px] font-black text-gray-400 uppercase block mb-1">Etiqueta</span><input type="text" value={props.text || ""} onChange={(e) => onUpdate({ text: e.target.value })} className="w-full p-2 border rounded-lg text-xs font-bold" /></div>
-            <div><span className="text-[9px] font-black text-gray-400 uppercase block mb-1">Vínculo</span><input type="text" value={props.url || ""} onChange={(e) => onUpdate({ url: e.target.value })} className="w-full p-2 border rounded-lg text-[10px] font-mono text-blue-600 placeholder:text-gray-300" placeholder="URL" /></div>
+            {showLink && <div><span className="text-[9px] font-black text-gray-400 uppercase block mb-1">Vínculo</span><input type="text" value={props.url || ""} onChange={(e) => onUpdate({ url: e.target.value })} className="w-full p-2 border rounded-lg text-[10px] font-mono text-blue-600 placeholder:text-gray-300" placeholder="URL" /></div>}
           </div>
           <div className="space-y-2">
             <span className="text-[9px] font-black text-gray-400 uppercase">Temas de Botón</span>
@@ -443,6 +445,7 @@ export const DesignerInspector = () => {
                      </button>
                    </div>
                    <FluidSlider label="Bordes de Tarjeta" value={element.props.cardBorderRadius || 20} min={0} max={60} onChange={(v:number) => handleChange("cardBorderRadius", v)} />
+                   <FluidSlider label="Altura de Tarjeta" value={element.props.cardHeight || 450} min={300} max={800} onChange={(v:number) => handleChange("cardHeight", v)} />
                    
                    <div className="space-y-2">
                      <span className="text-[9px] font-black text-gray-400 uppercase">Proporción de Imagen</span>
@@ -453,6 +456,49 @@ export const DesignerInspector = () => {
                      </div>
                    </div>
                    <FluidSlider label="Separación (Gap)" value={element.props.gridGap || 24} min={0} max={60} onChange={(v:number) => handleChange("gridGap", v)} />
+                </div>
+              </ControlGroup>
+            )}
+
+            {element.type === "product-grid" && (
+              <ControlGroup title="Botón de Acción" icon={MousePointer2} defaultOpen={false}>
+                <div className="space-y-4">
+                  <button 
+                    onClick={() => handleChange("showAddToCart", !element.props.showAddToCart)}
+                    className={cn("w-full flex items-center justify-center gap-2 py-3 border rounded-xl text-[10px] font-black uppercase transition-all", element.props.showAddToCart ? "bg-green-600 text-white border-green-600 shadow-lg shadow-green-100" : "bg-white text-gray-400 border-gray-100")}
+                  >
+                    Botón de Compra: {element.props.showAddToCart ? "ON" : "OFF"}
+                  </button>
+
+                  {element.props.showAddToCart && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                      {renderModularButtonDesigner({ 
+                        text: element.props.addToCartText, 
+                        variant: element.props.addToCartVariant, 
+                        bgColor: element.props.addToCartBgColor, 
+                        textColor: element.props.addToCartTextColor,
+                        borderRadius: element.props.addToCartBorderRadius,
+                        size: element.props.addToCartSize,
+                        posX: element.props.addToCartPosX,
+                        posY: element.props.addToCartPosY,
+                        intensity: element.props.addToCartIntensity
+                      }, (p) => {
+                        const key = Object.keys(p)[0];
+                        const mapping: any = { 
+                          text: 'addToCartText', 
+                          variant: 'addToCartVariant', 
+                          bgColor: 'addToCartBgColor', 
+                          textColor: 'addToCartTextColor',
+                          borderRadius: 'addToCartBorderRadius',
+                          size: 'addToCartSize',
+                          posX: 'addToCartPosX',
+                          posY: 'addToCartPosY',
+                          intensity: 'addToCartIntensity'
+                        };
+                        handleChange(mapping[key], p[key]);
+                      }, "Estilo del Botón", false, undefined, false)}
+                    </div>
+                  )}
                 </div>
               </ControlGroup>
             )}
