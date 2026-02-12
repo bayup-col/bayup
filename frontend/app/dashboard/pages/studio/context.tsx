@@ -159,8 +159,19 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                title: "Nuestros Productos",
                columns: 4,
                itemsCount: 4,
-               layout: "grid"
-             } :
+               layout: "grid",
+               cardStyle: "premium", 
+               cardBorderRadius: 20,
+               showDescription: false,
+               showPrice: true,
+               showOfferBadge: true,
+               offerBadgeText: "-30% OFF",
+               selectedCategory: "all",
+               showScrollbar: true,
+               scrollbarStyle: "default",
+               imageAspectRatio: "square",
+               gridGap: 24
+             } : 
              type === "custom-block" ? {
                ...standardBodyProps,
                title: "Bloque Personalizado"

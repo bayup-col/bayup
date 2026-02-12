@@ -202,15 +202,102 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
               {/* Renderizado Específico según Tipo */}
               <div className="w-full my-8">
                 {el.type === "product-grid" && (
-                  <div className={cn("grid gap-6 w-full", el.props.layout === "carousel" ? "flex overflow-x-auto pb-4 no-scrollbar" : "")} style={{ gridTemplateColumns: el.props.layout === "grid" ? `repeat(${el.props.columns || 4}, minmax(0, 1fr))` : undefined }}>
+                  <>
+                    <style>{`
+                      .scrollbar-glass::-webkit-scrollbar { height: 8px; }
+                      .scrollbar-glass::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
+                      .scrollbar-glass::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); border-radius: 10px; border: 2px solid rgba(255,255,255,0.1); }
+                      
+                      .scrollbar-neon::-webkit-scrollbar { height: 8px; }
+                      .scrollbar-neon::-webkit-scrollbar-track { background: #000; }
+                      .scrollbar-neon::-webkit-scrollbar-thumb { background: #00f2ff; border-radius: 0px; box-shadow: 0 0 10px #00f2ff; }
+                      
+                      .scrollbar-minimal::-webkit-scrollbar { height: 4px; }
+                      .scrollbar-minimal::-webkit-scrollbar-track { background: transparent; }
+                      .scrollbar-minimal::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 20px; }
+                    `}</style>
+                    <div 
+                      className={cn(
+                        "w-full transition-all duration-500", 
+                        el.props.layout === "carousel" ? "flex overflow-x-auto pb-8 gap-x-6" : "grid",
+                        el.props.layout === "carousel" && !el.props.showScrollbar && "no-scrollbar",
+                        el.props.layout === "carousel" && el.props.showScrollbar && el.props.scrollbarStyle === "glass" && "scrollbar-glass",
+                        el.props.layout === "carousel" && el.props.showScrollbar && el.props.scrollbarStyle === "neon" && "scrollbar-neon",
+                        el.props.layout === "carousel" && el.props.showScrollbar && el.props.scrollbarStyle === "minimal" && "scrollbar-minimal"
+                      )} 
+                      style={{ 
+                        gridTemplateColumns: el.props.layout === "grid" ? `repeat(${el.props.columns || 4}, minmax(0, 1fr))` : undefined,
+                        gap: `${el.props.gridGap || 24}px`,
+                        height: el.props.height ? `${el.props.height}px` : "auto",
+                        minHeight: "200px"
+                      }}
+                    >
                     {Array.from({ length: el.props.itemsCount || 4 }).map((_, i) => (
-                      <div key={i} className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 flex flex-col items-center gap-3 min-w-[200px]">
-                        <div className="w-full aspect-square bg-gray-700/50 rounded-xl flex items-center justify-center"><ShoppingBag size={40} className="text-white/20" /></div>
-                        <div className="h-4 w-3/4 bg-white/20 rounded-full" />
-                        <div className="h-3 w-1/2 bg-white/10 rounded-full" />
+                      <div 
+                        key={i} 
+                        className={cn(
+                          "group/card relative transition-all duration-300 flex flex-col items-center text-center",
+                          el.props.cardStyle === "premium" && "bg-white p-4 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] hover:shadow-2xl hover:-translate-y-2",
+                          el.props.cardStyle === "minimal" && "p-2 hover:bg-gray-50/50",
+                          el.props.cardStyle === "glass" && "bg-white/10 backdrop-blur-xl border border-white/20 p-4 shadow-2xl hover:bg-white/20",
+                          el.props.layout === "carousel" && "min-w-[280px]"
+                        )}
+                        style={{ borderRadius: `${el.props.cardBorderRadius || 20}px` }}
+                      >
+                        {/* Etiqueta de Oferta */}
+                        {el.props.showOfferBadge && (
+                          <div className="absolute top-6 right-6 z-20 bg-rose-500 text-white text-[8px] font-black uppercase tracking-tighter px-3 py-1.5 rounded-full shadow-lg rotate-12">
+                            {el.props.offerBadgeText || "-30% OFF"}
+                          </div>
+                        )}
+
+                        {/* Imagen del Producto */}
+                        <div 
+                          className={cn(
+                            "w-full bg-gray-100/50 overflow-hidden flex items-center justify-center relative transition-transform duration-500 group-hover/card:scale-[1.02]",
+                            el.props.imageAspectRatio === "portrait" ? "aspect-[4/5]" : "aspect-square"
+                          )}
+                          style={{ borderRadius: `${(el.props.cardBorderRadius || 20) * 0.75}px` }}
+                        >
+                           <ShoppingBag size={48} className="text-gray-300 opacity-20" />
+                           <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent" />
+                        </div>
+
+                        {/* Info del Producto */}
+                        <div className="mt-5 space-y-1">
+                          <div className="h-3 w-20 bg-gray-200/50 rounded-full mx-auto" />
+                          <h4 className={cn("text-xs font-black uppercase tracking-tight px-4", el.props.cardStyle === "glass" ? "text-white" : "text-gray-900")}>
+                             {el.props.selectedCategory === "all" ? "Producto Elite" : (realCategories.find(c => c.id === el.props.selectedCategory)?.title || "Producto")} #{i + 1}
+                          </h4>
+                          
+                          {el.props.showDescription && (
+                            <p className="text-[9px] text-gray-400 font-medium px-6 line-clamp-2 mt-1 italic">
+                               Descripción real importada desde tu inventario de {el.props.selectedCategory || "productos"}.
+                            </p>
+                          )}
+                          
+                          {el.props.showPrice && (
+                            <div className="flex flex-col gap-1 pt-1">
+                               <span className={cn("text-sm font-black", el.props.cardStyle === "glass" ? "text-[#00f2ff]" : "text-blue-600")}>
+                                  $129.000
+                               </span>
+                               <span className="text-[9px] text-gray-400 line-through opacity-50">
+                                  $180.000
+                               </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Botón Rápido */}
+                        <div className="mt-4 w-full opacity-0 group-hover/card:opacity-100 transition-opacity translate-y-2 group-hover/card:translate-y-0 duration-300 px-4 pb-2">
+                           <div className="w-full py-2 bg-gray-900 text-white rounded-xl text-[8px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                              <PlusIcon size={12} /> Añadir
+                           </div>
+                        </div>
                       </div>
                     ))}
                   </div>
+                </>
                 )}
 
                 {el.type === "video" && (
@@ -250,7 +337,25 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
 
 export const Canvas = () => {
   const { pageData, activeSection, setActiveSection, selectElement, selectedElementId, removeElement, viewport } = useStudio();
+  const [realCategories, setRealCategories] = React.useState<{id: string, title: string}[]>([]);
   const headerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          const { categoryService } = await import('@/lib/api');
+          const categories = await categoryService.getAll(token);
+          setRealCategories(categories);
+        }
+      } catch (err) {
+        console.error("Error cargando categorías:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
   const bodyRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
   const viewportWidths = { desktop: "max-w-5xl", tablet: "max-w-2xl", mobile: "max-w-sm" };

@@ -68,7 +68,24 @@ export const DesignerInspector = () => {
   const [activeTab, setActiveTab] = useState<TabType>("content");
   const [uploadTarget, setUploadTarget] = useState<{ id: string | null, key: string } | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [realCategories, setRealCategories] = useState<{id: string, title: string}[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          const { categoryService } = await import('@/lib/api');
+          const categories = await categoryService.getAll(token);
+          setRealCategories(categories);
+        }
+      } catch (err) {
+        console.error("Error cargando categorías:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const elementData = React.useMemo(() => {
     if (!selectedElementId) return null;
@@ -367,20 +384,121 @@ export const DesignerInspector = () => {
             )}
 
             {element.type === "product-grid" && (
+              <ControlGroup title="Configuración de Inventario" icon={ShoppingBag} defaultOpen={true}>
+                <div className="space-y-4">
+                   <div className="space-y-2">
+                     <span className="text-[9px] font-black text-gray-400 uppercase">Filtrar por Categoría</span>
+                     <select 
+                       value={element.props.selectedCategory || "all"} 
+                       onChange={(e) => handleChange("selectedCategory", e.target.value)}
+                       className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white outline-none"
+                     >
+                        <option value="all">Todas las Categorías</option>
+                        {realCategories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.title}</option>
+                        ))}
+                     </select>
+                   </div>
+                   <div className="space-y-2 pt-2 border-t border-gray-50">
+                     <div className="flex justify-between items-center mb-2">
+                        <span className="text-[9px] font-black text-gray-400 uppercase">Etiqueta de Oferta</span>
+                        <button 
+                          onClick={() => handleChange("showOfferBadge", !element.props.showOfferBadge)}
+                          className={cn("px-2 py-1 rounded-md text-[8px] font-black transition-all", element.props.showOfferBadge ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400")}
+                        >
+                           {element.props.showOfferBadge ? "ACTIVA" : "INACTIVA"}
+                        </button>
+                     </div>
+                     {element.props.showOfferBadge && (
+                       <input 
+                         type="text" 
+                         value={element.props.offerBadgeText || ""} 
+                         onChange={(e) => handleChange("offerBadgeText", e.target.value)} 
+                         className="w-full p-2 border rounded-lg text-[10px] font-bold bg-gray-50 uppercase italic" 
+                         placeholder="Ej: -50% OFF" 
+                       />
+                     )}
+                   </div>
+                </div>
+              </ControlGroup>
+            )}
+
+            {element.type === "product-grid" && (
+              <ControlGroup title="Personalización de Tarjetas" icon={Layout} defaultOpen={true}>
+                <div className="space-y-4">
+                   <div className="space-y-2">
+                     <span className="text-[9px] font-black text-gray-400 uppercase">Estilo Visual</span>
+                     <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                       {[{id:"premium", l:"Premium"}, {id:"minimal", l:"Minimal"}, {id:"glass", l:"Glass"}].map(s => (
+                         <button key={s.id} onClick={() => handleChange("cardStyle", s.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", element.props.cardStyle === s.id ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{s.l}</button>
+                       ))}
+                     </div>
+                   </div>
+                   <div className="grid grid-cols-2 gap-2">
+                     <button onClick={() => handleChange("showPrice", !element.props.showPrice)} className={cn("flex items-center justify-center gap-2 py-2 border rounded-xl text-[9px] font-black uppercase transition-all", element.props.showPrice ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-400 border-gray-100")}>
+                        Precio {element.props.showPrice ? "ON" : "OFF"}
+                     </button>
+                     <button onClick={() => handleChange("showDescription", !element.props.showDescription)} className={cn("flex items-center justify-center gap-2 py-2 border rounded-xl text-[9px] font-black uppercase transition-all", element.props.showDescription ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-400 border-gray-100")}>
+                        Desc. {element.props.showDescription ? "ON" : "OFF"}
+                     </button>
+                   </div>
+                   <FluidSlider label="Bordes de Tarjeta" value={element.props.cardBorderRadius || 20} min={0} max={60} onChange={(v:number) => handleChange("cardBorderRadius", v)} />
+                   
+                   <div className="space-y-2">
+                     <span className="text-[9px] font-black text-gray-400 uppercase">Proporción de Imagen</span>
+                     <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-lg">
+                       {[{id:"square", l:"1:1 Cuadrado"}, {id:"portrait", l:"4:5 Vertical"}].map(a => (
+                         <button key={a.id} onClick={() => handleChange("imageAspectRatio", a.id)} className={cn("py-1.5 text-[8px] font-black uppercase rounded-md transition-all", element.props.imageAspectRatio === a.id ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{a.l}</button>
+                       ))}
+                     </div>
+                   </div>
+                   <FluidSlider label="Separación (Gap)" value={element.props.gridGap || 24} min={0} max={60} onChange={(v:number) => handleChange("gridGap", v)} />
+                </div>
+              </ControlGroup>
+            )}
+
+            {element.type === "product-grid" && (
               <ControlGroup title="Configuración de Grilla" icon={Layout} defaultOpen={true}>
                 <div className="space-y-4">
+                   <div className="space-y-2">
+                     <span className="text-[9px] font-black text-gray-400 uppercase">Distribución de Elementos</span>
+                     <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-lg">
+                       {[{id:"grid", l:"Cuadrícula"}, {id:"carousel", l:"Carrusel"}].map(l => (
+                         <button key={l.id} onClick={() => handleChange("layout", l.id)} className={cn("py-2 text-[8px] font-black uppercase rounded-lg transition-all", element.props.layout === l.id ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{l.l}</button>
+                       ))}
+                     </div>
+                   </div>
                    <div className="grid grid-cols-2 gap-3">
                       <FluidSlider label="Columnas (PC)" value={element.props.columns || 4} min={1} max={6} onChange={(v:number) => handleChange("columns", v)} />
                       <FluidSlider label="Productos" value={element.props.itemsCount || 4} min={1} max={20} onChange={(v:number) => handleChange("itemsCount", v)} />
                    </div>
-                   <div className="space-y-2">
-                     <span className="text-[9px] font-black text-gray-400 uppercase">Estilo de Grilla</span>
-                     <div className="grid grid-cols-2 gap-2">
-                       {[{id:"grid", l:"Cuadrícula"}, {id:"carousel", l:"Carrusel"}].map(l => (
-                         <button key={l.id} onClick={() => handleChange("layout", l.id)} className={cn("py-2 text-[8px] font-black uppercase rounded-lg border", element.props.layout === l.id ? "bg-blue-600 text-white" : "bg-white")}>{l.l}</button>
-                       ))}
-                     </div>
-                   </div>
+                </div>
+              </ControlGroup>
+            )}
+
+            {element.type === "product-grid" && element.props.layout === "carousel" && (
+              <ControlGroup title="Navegación / Scroll" icon={Move} defaultOpen={true}>
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[9px] font-black text-gray-400 uppercase">Estado de la Barra</span>
+                    <button 
+                      onClick={() => handleChange("showScrollbar", !element.props.showScrollbar)} 
+                      className={cn("w-full flex items-center justify-center gap-2 py-3 border rounded-xl text-[10px] font-black uppercase transition-all", element.props.showScrollbar ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-100" : "bg-white text-gray-400 border-gray-100")}
+                    >
+                       {element.props.showScrollbar ? "Barra Visible" : "Barra Oculta"}
+                    </button>
+                  </div>
+                  
+                  {element.props.showScrollbar && (
+                    <div className="space-y-2">
+                      <span className="text-[9px] font-black text-gray-400 uppercase">Diseño de Barra</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[{id:"default", l:"Estándar"}, {id:"glass", l:"Glass"}, {id:"neon", l:"Neón"}, {id:"minimal", l:"Minimal"}].map(style => (
+                          <button key={style.id} onClick={() => handleChange("scrollbarStyle", style.id)} className={cn("py-2 text-[8px] font-black uppercase rounded-lg border transition-all", element.props.scrollbarStyle === style.id ? "border-blue-500 bg-blue-50 text-blue-600 shadow-sm" : "bg-white text-gray-400 border-gray-100 hover:bg-gray-50")}>{style.l}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </ControlGroup>
             )}
