@@ -123,10 +123,10 @@ export const DesignerInspector = () => {
 
   // --- RENDERERS UNIVERSALES PLATINUM ---
 
-  const renderTextDesigner = (props: any, onUpdate: (p: any) => void, title: string, canRemove = false, onRemove?: () => void) => {
+  const renderModularTextDesigner = (props: any, onUpdate: (p: any) => void, title: string, canRemove = false, onRemove?: () => void) => {
     const variant = props.variant || "solid";
     return (
-      <ControlGroup title={title} icon={Type} onRemove={canRemove ? onRemove : null}>
+      <ControlGroup title={title} icon={Type} onRemove={canRemove ? onRemove : null} defaultOpen={true}>
         <div className="space-y-4">
           <textarea value={props.content || props.title || ""} onChange={(e) => onUpdate({ content: e.target.value, title: e.target.value })} className="w-full p-3 border rounded-xl text-sm font-black bg-gray-50/30 uppercase italic" />
           <div className="space-y-2">
@@ -144,7 +144,7 @@ export const DesignerInspector = () => {
             </div>
           )}
           <div className="grid grid-cols-2 gap-3">
-            <select value={props.font || "font-sans"} onChange={(e) => onUpdate({ font: e.target.value })} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white outline-none"><option value="font-black">Impact Black</option><option value="font-sans">Modern Sans</option></select>
+            <select value={props.font || "font-sans"} onChange={(e) => onUpdate({ font: e.target.value })} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white outline-none"><option value="font-black">Black</option><option value="font-sans">Modern</option></select>
             <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={props.color || "#ffffff"} onChange={(e) => onUpdate({ color: e.target.value })} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase">Color</span></div>
           </div>
           <FluidSlider label="Tamaño" value={props.size || 24} min={10} max={120} onChange={(val:number) => onUpdate({ size: val })} />
@@ -163,10 +163,10 @@ export const DesignerInspector = () => {
     );
   };
 
-  const renderButtonDesigner = (props: any, onUpdate: (p: any) => void, title: string, canRemove = false, onRemove?: () => void) => {
+  const renderModularButtonDesigner = (props: any, onUpdate: (p: any) => void, title: string, canRemove = false, onRemove?: () => void) => {
     const variant = props.variant || "solid";
     return (
-      <ControlGroup title={title} icon={MousePointer2} onRemove={canRemove ? onRemove : null}>
+      <ControlGroup title={title} icon={MousePointer2} onRemove={canRemove ? onRemove : null} defaultOpen={true}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2">
             <div><span className="text-[9px] font-black text-gray-400 uppercase block mb-1">Etiqueta</span><input type="text" value={props.text || ""} onChange={(e) => onUpdate({ text: e.target.value })} className="w-full p-2 border rounded-lg text-xs font-bold" /></div>
@@ -192,32 +192,35 @@ export const DesignerInspector = () => {
             <div className="flex items-center gap-2 p-1.5 border rounded-lg bg-white h-[38px]"><input type="color" value={props.bgColor || "#2563eb"} onChange={(e) => onUpdate({ bgColor: e.target.value })} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase">Fondo</span></div>
             <div className="flex flex-col justify-end"><FluidSlider label="Tamaño" value={props.size || 14} min={10} max={40} onChange={(val:number) => onUpdate({ size: val })} /></div>
           </div>
-          <FluidSlider label="Redondeo de Bordes" value={props.borderRadius || 12} min={0} max={40} onChange={(val:number) => onUpdate({ borderRadius: val })} />
+          <FluidSlider label="Redondeo" value={props.borderRadius || 12} min={0} max={40} onChange={(val:number) => onUpdate({ borderRadius: val })} />
           <div className="grid grid-cols-2 gap-3"><FluidSlider label="Posición X" value={props.posX || 0} min={-500} max={500} onChange={(val:number) => onUpdate({ posX: val })} /><FluidSlider label="Posición Y" value={props.posY || 0} min={-200} max={200} onChange={(val:number) => onUpdate({ posY: val })} /></div>
         </div>
       </ControlGroup>
     );
   };
 
-  const renderMultimediaDesigner = (props: any, onUpdate: (p: any) => void, title: string, canRemove = false, onRemove?: () => void) => {
-    const floatType = props.floatType || "image";
+  const renderModularMultimediaDesigner = (props: any, onUpdate: (p: any) => void, title: string, canRemove = false, onRemove?: () => void) => {
+    const floatType = props.floatType || props.type || "image";
+    const url = props.url || props.floatUrl || props.videoUrl || props.imageUrl;
+    
     return (
-      <ControlGroup title={title} icon={ImageIcon} onRemove={canRemove ? onRemove : null}>
+      <ControlGroup title={title} icon={ImageIcon} onRemove={canRemove ? onRemove : null} defaultOpen={true}>
         <div className="space-y-4">
           <div className="flex bg-gray-100 p-1 rounded-lg">
             {[{id:"image", l:"Imagen"}, {id:"video", l:"Video"}].map(t => (
-              <button key={t.id} onClick={() => onUpdate({ floatType: t.id })} className={cn("flex-1 py-1.5 text-[9px] font-black uppercase rounded-md transition-all", (floatType === t.id) ? "bg-white shadow-sm text-blue-600" : "text-gray-400")}>{t.l}</button>
+              <button key={t.id} onClick={() => onUpdate({ floatType: t.id, bgType: t.id, type: t.id })} className={cn("flex-1 py-1.5 text-[9px] font-black uppercase rounded-md transition-all", (floatType === t.id) ? "bg-white shadow-sm text-blue-600" : "text-gray-400")}>{t.l}</button>
             ))}
           </div>
-          <div onClick={() => triggerUpload("url", props.id)} className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 cursor-pointer relative">
-            {props.url || props.floatUrl ? (
+          <div onClick={() => triggerUpload(floatType === "video" ? "videoUrl" : "imageUrl", props.id)} className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 cursor-pointer relative">
+            {url ? (
               <div className="relative aspect-square w-20 mx-auto rounded-lg overflow-hidden border">
-                <img src={props.url || props.floatUrl} className="w-full h-full object-cover" />
-                <button onClick={(e) => { e.stopPropagation(); onUpdate({ url: null, floatUrl: null }); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-xl border-2 border-white hover:scale-110 transition-all"><X size={12}/></button>
+                {floatType === "video" ? <div className="w-full h-full bg-black flex items-center justify-center"><Play size={24} className="text-white opacity-50"/></div> : <img src={url} className="w-full h-full object-cover" />}
+                <button onClick={(e) => { e.stopPropagation(); onUpdate({ url: null, floatUrl: null, videoUrl: null, imageUrl: null }); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-xl border-2 border-white hover:scale-110 transition-all z-50"><X size={14} strokeWidth={3}/></button>
               </div>
-            ) : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR MULTIMEDIA</p>}
+            ) : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR {floatType === "video" ? "VIDEO" : "IMAGEN"}</p>}
           </div>
-          <input type="text" value={props.url || props.floatUrl || ""} onChange={(e) => onUpdate({ url: e.target.value, floatUrl: e.target.value })} className="w-full p-2 border rounded-lg text-[10px] font-mono text-blue-600 bg-gray-50/30" placeholder="O pega URL..." />
+          <input type="text" value={url || ""} onChange={(e) => onUpdate({ url: e.target.value, floatUrl: e.target.value, videoUrl: e.target.value, imageUrl: e.target.value })} className="w-full p-2 border rounded-lg text-[10px] font-mono text-blue-600 bg-gray-50/30" placeholder="O pega URL..." />
+          
           <div className="space-y-2">
             <span className="text-[9px] font-black text-gray-400 uppercase">Efectos Dinámicos</span>
             <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
@@ -252,87 +255,88 @@ export const DesignerInspector = () => {
         
         {activeTab === "content" && (
           <div className="space-y-4">
-            {element.type === "navbar" && (
-              <ControlGroup title="Identidad Visual" icon={ImageIcon} defaultOpen={true}>
-                <div className="space-y-4">
-                  <div onClick={() => triggerUpload("logoUrl")} className="group border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center cursor-pointer hover:border-blue-400 relative">
-                    {element.props.logoUrl ? <div className="relative h-12 mx-auto"><img src={element.props.logoUrl} className="h-full object-contain" /><button onClick={(e) => { e.stopPropagation(); handleChange("logoUrl", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md border-2 border-white"><X size={10}/></button></div> : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR LOGO</p>}
+            {sectionKey === "header" && element.type === "navbar" && (
+              <>
+                <ControlGroup title="Identidad Visual" icon={ImageIcon} defaultOpen={true}>
+                  <div className="space-y-4">
+                    <div onClick={() => triggerUpload("logoUrl")} className="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center cursor-pointer hover:border-blue-400 relative">
+                      {element.props.logoUrl ? <div className="relative h-12 mx-auto"><img src={element.props.logoUrl} className="h-full object-contain" /><button onClick={(e) => { e.stopPropagation(); handleChange("logoUrl", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md border-2 border-white"><X size={10}/></button></div> : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR LOGO</p>}
+                    </div>
+                    <input type="text" value={element.props.logoText || ""} onChange={(e) => handleChange("logoText", e.target.value)} className="w-full p-3 border rounded-xl text-xs font-bold bg-gray-50/30" placeholder="Nombre de Tienda..." />
+                    <FluidSlider label="Escala Logo" value={element.props.logoSize || 24} min={12} max={120} onChange={(val:number) => handleChange("logoSize", val)} />
                   </div>
-                  <input type="text" value={element.props.logoText || ""} onChange={(e) => handleChange("logoText", e.target.value)} className="w-full p-3 border rounded-xl text-xs font-bold bg-gray-50/30" placeholder="Nombre de Tienda..." />
-                  <FluidSlider label="Escala Logo" value={element.props.logoSize || 24} min={12} max={120} onChange={(val:number) => handleChange("logoSize", val)} />
-                </div>
-              </ControlGroup>
+                </ControlGroup>
+                <ControlGroup title="Menú de Navegación" icon={Layout}><div className="space-y-3">{(element.props.menuItems || []).map((item: any, idx: number) => (<div key={idx} className="flex gap-2"><input type="text" value={item.label} onChange={(e) => { const newItems = [...element.props.menuItems]; newItems[idx].label = e.target.value; handleChange("menuItems", newItems); }} className="flex-1 p-2 border rounded-lg text-[10px] font-bold" /><button onClick={() => handleChange("menuItems", element.props.menuItems.filter((_:any, i:number) => i !== idx))} className="text-red-400"><Trash2 size={14}/></button></div>))}<button onClick={() => handleChange("menuItems", [...(element.props.menuItems || []), { label: "NUEVO", url: "/" }])} className="w-full py-2 border-2 border-dashed rounded-lg text-[9px] font-black text-gray-400">+ AÑADIR LINK</button></div></ControlGroup>
+              </>
             )}
 
-            {element.type === "hero-banner" && (
+            {sectionKey === "body" && (
               <>
-                {/* ELEMENTOS BASE */}
-                {renderTextDesigner({ ...element.props, content: element.props.title, variant: element.props.titleVariant, color: element.props.titleColor, size: element.props.titleSize, posX: element.props.textPosX, posY: element.props.textPosY, font: element.props.titleFont, aurora1: element.props.titleAurora1, aurora2: element.props.titleAurora2, effect: element.props.titleEffect, intensity: element.props.titleIntensity }, (p) => {
-                  const key = Object.keys(p)[0];
-                  const mapping: any = { content: 'title', variant: 'titleVariant', color: 'titleColor', size: 'titleSize', posX: 'textPosX', posY: 'textPosY', font: 'titleFont', aurora1: 'titleAurora1', aurora2: 'titleAurora2', effect: 'titleEffect', intensity: 'titleIntensity' };
-                  handleChange(mapping[key], p[key]);
-                }, "Título de Impacto")}
+                {element.type === "text" && renderModularTextDesigner(element.props, (p) => updateElement(sectionKey, selectedElementId, p), "Texto Premium")}
+                {element.type === "button" && renderModularButtonDesigner(element.props, (p) => updateElement(sectionKey, selectedElementId, p), "Botón Premium")}
+                {(element.type === "image" || element.type === "video") && renderModularMultimediaDesigner(element.props, (p) => updateElement(sectionKey, selectedElementId, p), "Multimedia Premium")}
 
-                {renderTextDesigner({ ...element.props, content: element.props.subtitle, variant: element.props.subtitleVariant, color: element.props.subtitleColor, size: element.props.subtitleSize, posX: element.props.subtitlePosX, posY: element.props.subtitlePosY, font: element.props.subtitleFont, intensity: element.props.subtitleIntensity }, (p) => {
-                  const key = Object.keys(p)[0];
-                  const mapping: any = { content: 'subtitle', variant: 'subtitleVariant', color: 'subtitleColor', size: 'subtitleSize', posX: 'subtitlePosX', posY: 'subtitlePosY', font: 'subtitleFont', intensity: 'subtitleIntensity' };
-                  handleChange(mapping[key], p[key]);
-                }, "Descripción")}
+                {element.type === "hero-banner" && (
+                  <>
+                    {renderModularTextDesigner({ ...element.props, content: element.props.title, variant: element.props.titleVariant, color: element.props.titleColor, size: element.props.titleSize, posX: element.props.titlePosX, posY: element.props.titlePosY, font: element.props.titleFont, aurora1: element.props.titleAurora1, aurora2: element.props.titleAurora2, effect: element.props.titleEffect, intensity: element.props.titleIntensity }, (p) => {
+                      const key = Object.keys(p)[0];
+                      const mapping: any = { content: 'title', variant: 'titleVariant', color: 'titleColor', size: 'titleSize', posX: 'titlePosX', posY: 'titlePosY', font: 'titleFont', aurora1: 'titleAurora1', aurora2: 'titleAurora2', effect: 'titleEffect', intensity: 'titleIntensity' };
+                      handleChange(mapping[key], p[key]);
+                    }, "Título de Impacto")}
 
-                {renderButtonDesigner({ ...element.props, text: element.props.primaryBtnText, variant: element.props.primaryBtnVariant, bgColor: element.props.primaryBtnBgColor, posX: element.props.primaryBtnPosX, posY: element.props.primaryBtnPosY, size: element.props.primaryBtnSize, borderRadius: element.props.primaryBtnRadius, aurora1: element.props.primaryBtnAurora1, aurora2: element.props.primaryBtnAurora2, intensity: element.props.primaryBtnIntensity }, (p) => {
-                  const key = Object.keys(p)[0];
-                  const mapping: any = { text: 'primaryBtnText', variant: 'primaryBtnVariant', bgColor: 'primaryBtnBgColor', posX: 'primaryBtnPosX', posY: 'primaryBtnPosY', size: 'primaryBtnSize', borderRadius: 'primaryBtnRadius', aurora1: 'primaryBtnAurora1', aurora2: 'primaryBtnAurora2', intensity: 'primaryBtnIntensity' };
-                  handleChange(mapping[key], p[key]);
-                }, "Botón Primario")}
+                    {renderModularTextDesigner({ ...element.props, content: element.props.subtitle, variant: element.props.subtitleVariant, color: element.props.subtitleColor, size: element.props.subtitleSize, posX: element.props.subtitlePosX, posY: element.props.subtitlePosY, font: element.props.subtitleFont, intensity: element.props.subtitleIntensity }, (p) => {
+                      const key = Object.keys(p)[0];
+                      const mapping: any = { content: 'subtitle', variant: 'subtitleVariant', color: 'subtitleColor', size: 'subtitleSize', posX: 'subtitlePosX', posY: 'subtitlePosY', font: 'subtitleFont', intensity: 'subtitleIntensity' };
+                      handleChange(mapping[key], p[key]);
+                    }, "Descripción")}
 
-                {renderButtonDesigner({ ...element.props, text: element.props.secondaryBtnText, variant: element.props.secondaryBtnVariant, posX: element.props.secondaryBtnPosX, posY: element.props.secondaryBtnPosY }, (p) => {
-                  const key = Object.keys(p)[0];
-                  const mapping: any = { text: 'secondaryBtnText', variant: 'secondaryBtnVariant', posX: 'secondaryBtnPosX', posY: 'secondaryBtnPosY' };
-                  handleChange(mapping[key], p[key]);
-                }, "Botón Secundario")}
+                    {renderModularButtonDesigner({ ...element.props, text: element.props.primaryBtnText, variant: element.props.primaryBtnVariant, bgColor: element.props.primaryBtnBgColor, posX: element.props.primaryBtnPosX, posY: element.props.primaryBtnPosY, size: element.props.primaryBtnSize, borderRadius: element.props.primaryBtnRadius, aurora1: element.props.primaryBtnAurora1, aurora2: element.props.primaryBtnAurora2, intensity: element.props.primaryBtnIntensity }, (p) => {
+                      const key = Object.keys(p)[0];
+                      const mapping: any = { text: 'primaryBtnText', variant: 'primaryBtnVariant', bgColor: 'primaryBtnBgColor', posX: 'primaryBtnPosX', posY: 'primaryBtnPosY', size: 'primaryBtnSize', borderRadius: 'primaryBtnRadius', aurora1: 'primaryBtnAurora1', aurora2: 'primaryBtnAurora2', intensity: 'primaryBtnIntensity' };
+                      handleChange(mapping[key], p[key]);
+                    }, "Botón Primario")}
 
-                {renderMultimediaDesigner(element.props, (p) => {
-                  const key = Object.keys(p)[0];
-                  const mapping: any = { floatType: 'floatType', url: 'floatUrl', floatUrl: 'floatUrl', floatAnim: 'floatAnim', size: 'floatSize', floatSize: 'floatSize', radius: 'floatRadius', floatRadius: 'floatRadius', posX: 'floatPosX', floatPosX: 'floatPosX', posY: 'floatPosY', floatPosY: 'floatPosY', floatLinkUrl: 'floatLinkUrl' };
-                  handleChange(mapping[key], p[key]);
-                }, "Imagen de Complemento")}
+                    {renderModularButtonDesigner({ ...element.props, text: element.props.secondaryBtnText, variant: element.props.secondaryBtnVariant, posX: element.props.secondaryBtnPosX, posY: element.props.secondaryBtnPosY }, (p) => {
+                      const key = Object.keys(p)[0];
+                      const mapping: any = { text: 'secondaryBtnText', variant: 'secondaryBtnVariant', posX: 'secondaryBtnPosX', posY: 'secondaryBtnPosY' };
+                      handleChange(mapping[key], p[key]);
+                    }, "Botón Secundario")}
 
-                {/* ELEMENTOS EXTRA CON MENÚS PLATINUM */}
-                {(element.props.extraElements || []).map((extra: any) => (
-                  <React.Fragment key={extra.id}>
-                    {extra.type === 'text' && renderTextDesigner(extra, (p) => handleExtraChange(extra.id, p), "Texto Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
-                    {extra.type === 'button' && renderButtonDesigner(extra, (p) => handleExtraChange(extra.id, p), "Botón Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
-                    {extra.type === 'image' && renderMultimediaDesigner(extra, (p) => handleExtraChange(extra.id, p), "Imagen/Video Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
-                  </React.Fragment>
-                ))}
+                    {renderModularMultimediaDesigner({ ...element.props, floatUrl: element.props.floatUrl }, (p) => {
+                      const key = Object.keys(p)[0];
+                      const mapping: any = { floatType: 'floatType', url: 'floatUrl', floatUrl: 'floatUrl', floatAnim: 'floatAnim', size: 'floatSize', floatSize: 'floatSize', radius: 'floatRadius', floatRadius: 'floatRadius', posX: 'floatPosX', floatPosX: 'floatPosX', posY: 'floatPosY', floatPosY: 'floatPosY', floatLinkUrl: 'floatLinkUrl' };
+                      handleChange(mapping[key], p[key]);
+                    }, "Imagen de Complemento")}
 
-                <div className="relative mt-8">
-                  <button onClick={() => setShowAddMenu(!showAddMenu)} className="w-full py-4 bg-blue-50 border-2 border-dashed border-blue-200 rounded-2xl text-blue-600 font-black text-[10px] uppercase flex items-center justify-center gap-2 hover:bg-blue-100 transition-all shadow-sm"><PlusIcon size={14} /> Agregar Otro Elemento</button>
-                  <AnimatePresence>{showAddMenu && ( <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 w-full bg-white border border-gray-100 shadow-2xl rounded-2xl p-2 z-50 mb-2 grid grid-cols-3 gap-2"> {[{id:'text', l:'Texto', i:Type}, {id:'button', l:'Botón', i:MousePointer2}, {id:'image', l:'Imagen', i:ImageIcon}].map(opt => ( <button key={opt.id} onClick={() => addExtraElement(opt.id as any)} className="flex flex-col items-center gap-2 p-3 hover:bg-blue-50 rounded-xl transition-all"><div className="p-2 bg-blue-500 text-white rounded-lg shadow-sm"><opt.i size={16}/></div><span className="text-[9px] font-black uppercase text-gray-600">{opt.l}</span></button> ))} </motion.div> )}</AnimatePresence>
-                </div>
+                    {(element.props.extraElements || []).map((extra: any) => (
+                      <React.Fragment key={extra.id}>
+                        {extra.type === 'text' && renderModularTextDesigner(extra, (p) => handleExtraChange(extra.id, p), "Texto Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
+                        {extra.type === 'button' && renderModularButtonDesigner(extra, (p) => handleExtraChange(extra.id, p), "Botón Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
+                        {extra.type === 'image' && renderModularMultimediaDesigner(extra, (p) => handleExtraChange(extra.id, p), "Imagen/Video Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
+                      </React.Fragment>
+                    ))}
+
+                    <div className="relative mt-8">
+                      <button onClick={() => setShowAddMenu(!showAddMenu)} className="w-full py-4 bg-blue-50 border-2 border-dashed border-blue-200 rounded-2xl text-blue-600 font-black text-[10px] uppercase flex items-center justify-center gap-2 hover:bg-blue-100 transition-all shadow-sm"><PlusIcon size={14} /> Agregar Otro Elemento</button>
+                      <AnimatePresence>{showAddMenu && ( <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 w-full bg-white border border-gray-100 shadow-2xl rounded-2xl p-2 z-50 mb-2 grid grid-cols-3 gap-2"> {[{id:'text', l:'Texto', i:Type}, {id:'button', l:'Botón', i:MousePointer2}, {id:'image', l:'Imagen', i:ImageIcon}].map(opt => ( <button key={opt.id} onClick={() => addExtraElement(opt.id as any)} className="flex flex-col items-center gap-2 p-3 hover:bg-blue-50 rounded-xl transition-all"><div className="p-2 bg-blue-500 text-white rounded-lg shadow-sm"><opt.i size={16}/></div><span className="text-[9px] font-black uppercase text-gray-600">{opt.l}</span></button> ))} </motion.div> )}</AnimatePresence>
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>
         )}
 
+        {/* --- PESTAÑAS DISEÑO Y EFECTOS --- */}
         {activeTab === "style" && (
           <div className="space-y-4">
             {element.type === "hero-banner" && (
               <ControlGroup title="Multimedia de Fondo" icon={ImageIcon} defaultOpen={true}>
                 <div className="space-y-4">
                   <div className="flex bg-gray-100 p-1 rounded-lg">{[{id:"image", l:"Imagen"}, {id:"video", l:"Video"}].map(t => (<button key={t.id} onClick={() => handleChange("bgType", t.id)} className={cn("flex-1 py-1.5 text-[9px] font-black uppercase rounded-md transition-all", (element.props.bgType === t.id || (!element.props.bgType && t.id === "image")) ? "bg-white shadow-sm text-blue-600" : "text-gray-400")}>{t.l}</button>))}</div>
-                  {element.props.bgType === "video" ? (
-                    <div className="space-y-4">
-                      <div onClick={() => triggerUpload("videoUrl")} className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 cursor-pointer relative transition-all">
-                        {element.props.videoUrl ? <div className="relative aspect-video rounded-lg overflow-hidden border border-gray-100 bg-black flex items-center justify-center"><Play size={24} className="text-white opacity-50" /><button onClick={(e) => { e.stopPropagation(); handleChange("videoUrl", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md border-2 border-white"><X size={12} /></button></div> : <div className="py-2"><Play size={24} className="mx-auto text-gray-300 mb-1" /><p className="text-[9px] font-bold text-gray-400 uppercase">SUBIR VIDEO (MP4, WEBM)</p></div>}
-                      </div>
-                      <div className="relative"><span className="text-[9px] font-black text-gray-400 uppercase block mb-1">O pega un enlace de video</span><div className="relative"><input type="text" value={element.props.videoUrl || ""} onChange={(e) => handleChange("videoUrl", e.target.value)} className="w-full p-3 pl-9 border rounded-xl text-[10px] font-mono text-blue-600 bg-gray-50/30" placeholder="https://..." /><LinkIcon size={12} className="absolute left-3 top-3.5 text-gray-400" /></div></div>
-                    </div>
-                  ) : (
-                    <div onClick={() => triggerUpload("imageUrl")} className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 cursor-pointer transition-all relative">
-                      {element.props.imageUrl ? <div className="relative"><img src={element.props.imageUrl} className="h-20 mx-auto rounded-lg shadow-sm" /><button onClick={(e) => { e.stopPropagation(); handleChange("imageUrl", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md border-2 border-white"><X size={12}/></button></div> : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR FONDO</p>}
-                    </div>
-                  )}
+                  <div onClick={() => triggerUpload("imageUrl")} className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 cursor-pointer relative transition-all">
+                    {element.props.imageUrl ? <div className="relative"><img src={element.props.imageUrl} className="h-20 mx-auto rounded-lg shadow-sm" /><button onClick={(e) => { e.stopPropagation(); handleChange("imageUrl", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-xl border-2 border-white hover:scale-110 transition-all z-50"><X size={12}/></button></div> : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR FONDO</p>}
+                  </div>
                   <div className="grid grid-cols-2 gap-2">{[{id:"none", l:"Normal"}, {id:"ken-burns", l:"Ken Burns"}, {id:"zoom-out", l:"Zoom Out"}, {id:"float", l:"Flotación"}].map(e => (<button key={e.id} onClick={() => handleChange("bgEffect", e.id)} className={cn("py-2 text-[8px] font-black uppercase rounded-lg border", element.props.bgEffect === e.id ? "bg-blue-600 text-white" : "bg-white")}>{e.l}</button>))}</div>
                   <div className="flex items-center gap-3 pt-2 border-t border-gray-50"><input type="color" value={element.props.overlayColor || "#000000"} onChange={(e) => handleChange("overlayColor", e.target.value)} className="w-10 h-10 rounded-xl p-0 border cursor-pointer" /><div className="flex-1"><FluidSlider label="Difuminado" value={element.props.overlayOpacity || 40} min={0} max={95} suffix="%" onChange={(v:number) => handleChange("overlayOpacity", v)} /></div></div>
                 </div>
