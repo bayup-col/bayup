@@ -68,7 +68,6 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
       const fullKey = prefix ? `${prefix}${key.charAt(0).toUpperCase() + key.slice(1)}` : key;
       return btnProps[fullKey] !== undefined ? btnProps[fullKey] : fallback;
     };
-
     const text = prefix === "primaryBtn" ? get("text", "Comprar") : prefix === "secondaryBtn" ? get("text", "Ver más") : btnProps.text || btnProps.buttonText || "Botón";
     const variant = get("variant", prefix === "secondaryBtn" ? "glass" : "solid");
     const bgColor = prefix === "primaryBtn" ? get("bgColor", "#2563eb") : prefix === "secondaryBtn" ? get("bgColor", "rgba(255,255,255,0.1)") : btnProps.bgColor || btnProps.color || "#2563eb";
@@ -79,17 +78,9 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
     const posX = get("posX", 0);
     const posY = get("posY", 0);
     const borderRadius = btnProps.borderRadius !== undefined ? btnProps.borderRadius : 12;
-    
     const a1 = get("aurora1", "#00f2ff");
     const a2 = get("aurora2", "#7000ff");
-
-    const baseStyles: any = {
-      transform: `translate(${posX}px, ${posY}px)`,
-      fontSize: `${fontSize}px`,
-      borderRadius: `${borderRadius}px`,
-      color: textColor
-    };
-
+    const baseStyles: any = { transform: `translate(${posX}px, ${posY}px)`, fontSize: `${fontSize}px`, borderRadius: `${borderRadius}px`, color: textColor };
     let themeClasses = "";
     switch(variant) {
       case "glass": themeClasses = "backdrop-blur-md border border-white/20 shadow-xl"; baseStyles.backgroundColor = "rgba(255,255,255,0.1)"; break;
@@ -99,26 +90,11 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
       case "aurora": themeClasses = "border-none shadow-lg overflow-hidden"; baseStyles.background = "transparent"; break;
       default: themeClasses = "shadow-md"; baseStyles.backgroundColor = bgColor;
     }
-
     return (
-      <motion.button 
-        key={`${text}-${variant}-${intensity}-${a1}-${a2}-${posX}-${posY}`}
-        animate={getIntensityStyle(intensity)}
-        className={cn("px-8 py-3 font-black uppercase tracking-widest text-[10px] relative overflow-hidden transition-all", fontFamily, themeClasses)}
-        style={baseStyles}
-      >
-        {variant === "aurora" && (
-          <motion.div 
-            animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 z-0"
-            style={{ background: `linear-gradient(135deg, ${a1}, ${a2}, ${a1}, ${a2})`, backgroundSize: "400% 400%" }}
-          />
-        )}
+      <motion.button key={`${text}-${variant}-${intensity}-${a1}-${a2}-${posX}-${posY}`} animate={getIntensityStyle(intensity)} className={cn("px-8 py-3 font-black uppercase tracking-widest text-[10px] relative overflow-hidden transition-all", fontFamily, themeClasses)} style={baseStyles}>
+        {variant === "aurora" && <motion.div animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }} transition={{ duration: 5, repeat: Infinity, ease: "linear" }} className="absolute inset-0 z-0" style={{ background: `linear-gradient(135deg, ${a1}, ${a2}, ${a1}, ${a2})`, backgroundSize: "400% 400%" }} />}
         <span className="relative z-10">{text}</span>
-        {btnProps.btnBgImage && (
-          <div className="absolute inset-0 z-0" style={{ backgroundImage: `url(${btnProps.btnBgImage})`, backgroundSize: btnProps.btnBgMode === "repeat" ? "20px auto" : "cover", backgroundRepeat: btnProps.btnBgMode === "repeat" ? "repeat" : "no-repeat", backgroundPosition: "center" }} />
-        )}
+        {btnProps.btnBgImage && <div className="absolute inset-0 z-0" style={{ backgroundImage: `url(${btnProps.btnBgImage})`, backgroundSize: btnProps.btnBgMode === "repeat" ? "20px auto" : "cover", backgroundRepeat: btnProps.btnBgMode === "repeat" ? "repeat" : "no-repeat", backgroundPosition: "center" }} />}
       </motion.button>
     );
   };
@@ -128,7 +104,6 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
       const fullKey = prefix ? `${prefix}${key.charAt(0).toUpperCase() + key.slice(1)}` : key;
       return props[fullKey] !== undefined ? props[fullKey] : fallback;
     };
-
     const variant = get("variant", "solid");
     const color = get("color", "#1f2937");
     const size = get("size", 24);
@@ -138,41 +113,17 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
     const a2 = get("aurora2", "#7000ff");
     const posX = get("posX", 0);
     const posY = get("posY", 0);
-
-    const baseStyles: any = {
-      color: color,
-      fontSize: `${size}px`,
-      transform: `translate(${posX}px, ${posY}px)`,
-      ...getIntensityStyle(intensity)
-    };
-
+    const baseStyles: any = { color: color, fontSize: `${size}px`, transform: `translate(${posX}px, ${posY}px)`, ...getIntensityStyle(intensity) };
     let themeClasses = "";
     if (variant === "aurora") {
       themeClasses = "bg-clip-text text-transparent animate-aurora-text bg-[length:200%_auto]";
       baseStyles.backgroundImage = `linear-gradient(135deg, ${a1}, ${a2}, ${a1})`;
       baseStyles.color = "transparent";
-    } else if (variant === "outline") {
-      baseStyles.WebkitTextStroke = `1px ${color}`;
-      baseStyles.color = "transparent";
-    } else if (variant === "3d") {
-      baseStyles.textShadow = `0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 5px 0 #aaa, 0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 5px rgba(0,0,0,.2), 0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15)`;
-    } else if (variant === "brutalist") {
-      baseStyles.textShadow = `3px 3px 0px rgba(0,0,0,1)`;
-      baseStyles.WebkitTextStroke = `1px black`;
-    }
-
+    } else if (variant === "outline") { baseStyles.WebkitTextStroke = `1px ${color}`; baseStyles.color = "transparent"; } 
+    else if (variant === "3d") { baseStyles.textShadow = `0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 5px 0 #aaa, 0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 5px rgba(0,0,0,.2), 0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15)`; } 
+    else if (variant === "brutalist") { baseStyles.textShadow = `3px 3px 0px rgba(0,0,0,1)`; baseStyles.WebkitTextStroke = `1px black`; }
     const Tag = prefix === "title" ? motion.h1 : prefix === "subtitle" ? motion.p : motion.div;
-
-    return (
-      <Tag 
-        key={`${variant}-${intensity}-${a1}-${a2}-${posX}-${posY}`}
-        animate={getIntensityStyle(intensity)}
-        className={cn("uppercase italic leading-tight transition-all", font, themeClasses)}
-        style={baseStyles}
-      >
-        {text}
-      </Tag>
-    );
+    return <Tag key={`${variant}-${intensity}-${a1}-${a2}-${posX}-${posY}`} animate={getIntensityStyle(intensity)} className={cn("uppercase italic leading-tight transition-all", font, themeClasses)} style={baseStyles}>{text}</Tag>;
   };
 
   return (
@@ -228,9 +179,17 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
         )}
 
         {el.type === "hero-banner" && (
-          <div className={cn("w-full rounded-2xl flex flex-col p-12 overflow-hidden relative shadow-lg transition-all", el.props.align === "left" ? "items-start text-left" : el.props.align === "right" ? "items-end text-right" : "items-center text-center")} style={{ backgroundColor: "#111827", minHeight: `${el.props.height || 400}px`, justifyContent: "center" }}>
-              {el.props.bgType === "video" && el.props.videoUrl ? <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" src={el.props.videoUrl} /> : <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105" style={{ backgroundImage: `url(${el.props.imageUrl || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop'})` }} />}
-              <div className="absolute inset-0 bg-black transition-opacity duration-300" style={{ opacity: (el.props.overlayOpacity || 0) / 100 }}/>
+          <div className={cn("w-full rounded-2xl flex flex-col p-12 overflow-hidden relative shadow-lg transition-all", el.props.align === "left" ? "items-start text-left" : el.props.align === "right" ? "items-end text-right" : "items-center text-center")} style={{ backgroundColor: el.props.bgColor || "#111827", minHeight: `${el.props.height || 400}px`, justifyContent: "center" }}>
+              <motion.div 
+                key={`${el.props.bgEffect}-${el.props.bgType}`}
+                animate={el.props.bgEffect === "ken-burns" ? { scale: [1, 1.15] } : el.props.bgEffect === "zoom-out" ? { scale: [1.2, 1] } : el.props.bgEffect === "float" ? { y: [0, -15, 0], scale: 1.05 } : { scale: 1 }}
+                transition={{ duration: 8, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+                className="absolute inset-0 w-full h-full"
+              >
+                {el.props.bgType === "video" && el.props.videoUrl ? <video autoPlay muted loop playsInline className="w-full h-full object-cover" src={el.props.videoUrl} /> : el.props.imageUrl ? <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${el.props.imageUrl})` }} /> : null}
+                <div className="absolute inset-0 transition-opacity duration-300" style={{ backgroundColor: el.props.overlayColor || "#000000", opacity: (el.props.overlayOpacity || 0) / 100 }}/>
+              </motion.div>
+              
               <div className={cn("relative z-10 w-full" )} style={{ transform: `translate(${el.props.textPosX || 0}px, ${el.props.textPosY || 0}px)`, display: "flex", flexDirection: "column", alignItems: el.props.align === "left" ? "flex-start" : el.props.align === "right" ? "flex-end" : "center" }}>
                 {renderTextWithTheme(el.props.title, el.props, "title")}
                 {renderTextWithTheme(el.props.subtitle, el.props, "subtitle")}
