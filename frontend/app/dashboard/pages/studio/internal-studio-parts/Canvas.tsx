@@ -219,11 +219,17 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
               )}
             </div>
             
-            <nav className="hidden md:flex items-center gap-8 ml-auto">
+            <nav 
+              className="hidden md:flex items-center ml-auto transition-all duration-300"
+              style={{ 
+                transform: `translateX(${el.props.menuPosX || 0}px)`,
+                gap: `${el.props.menuGap || 32}px`
+              }}
+            >
               {(el.props.menuItems || []).map((item: any, idx: number) => (
-                <span key={idx} className="text-[10px] font-black uppercase tracking-widest cursor-pointer hover:opacity-70 transition-opacity" style={{ color: el.props.menuColor || "#4b5563" }}>
-                  {item.label || item}
-                </span>
+                <div key={idx} className="cursor-pointer hover:opacity-70 transition-opacity">
+                  {renderTextWithTheme(item.label || item, el.props, "menu", `${el.id}-${idx}`, false)}
+                </div>
               ))}
             </nav>
 

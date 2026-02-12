@@ -384,21 +384,72 @@ export const DesignerInspector = () => {
 
                     {/* MENÚ 2: LINKS PRINCIPALES */}
                     <ControlGroup title="2. Menú Principal" icon={Layout} defaultOpen={false}>
-                      <div className="space-y-3">
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-[1fr_1fr_32px] gap-2 px-1 mb-1">
+                          <span className="text-[7px] font-black text-gray-400 uppercase">Etiqueta</span>
+                          <span className="text-[7px] font-black text-gray-400 uppercase">Enlace (URL)</span>
+                        </div>
                         {(element.props.menuItems || []).map((item: any, idx: number) => (
-                          <div key={idx} className="p-3 border rounded-xl bg-gray-50/50 space-y-2 relative">
-                            <button onClick={() => handleChange("menuItems", element.props.menuItems.filter((_:any, i:number) => i !== idx))} className="absolute top-2 right-2 text-gray-300 hover:text-red-500"><X size={12}/></button>
-                            <div className="space-y-1">
-                              <span className="text-[8px] font-black text-gray-400 uppercase">Etiqueta</span>
-                              <input type="text" value={item.label} onChange={(e) => { const newItems = [...element.props.menuItems]; newItems[idx].label = e.target.value; handleChange("menuItems", newItems); }} className="w-full p-1.5 border rounded-lg text-[10px] font-bold" />
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-[8px] font-black text-gray-400 uppercase">Enlace (URL)</span>
-                              <input type="text" value={item.url} onChange={(e) => { const newItems = [...element.props.menuItems]; newItems[idx].url = e.target.value; handleChange("menuItems", newItems); }} className="w-full p-1.5 border rounded-lg text-[9px] font-mono text-blue-600" />
-                            </div>
+                          <div key={idx} className="flex gap-2 items-center group">
+                            <input 
+                              type="text" 
+                              value={item.label} 
+                              onChange={(e) => { const newItems = [...element.props.menuItems]; newItems[idx].label = e.target.value; handleChange("menuItems", newItems); }} 
+                              className="flex-1 p-2 border rounded-lg text-[10px] font-bold bg-white" 
+                              placeholder="Nombre"
+                            />
+                            <input 
+                              type="text" 
+                              value={item.url} 
+                              onChange={(e) => { const newItems = [...element.props.menuItems]; newItems[idx].url = e.target.value; handleChange("menuItems", newItems); }} 
+                              className="flex-1 p-2 border rounded-lg text-[9px] font-mono text-blue-600 bg-white" 
+                              placeholder="/"
+                            />
+                            <button 
+                              onClick={() => handleChange("menuItems", element.props.menuItems.filter((_:any, i:number) => i !== idx))} 
+                              className="h-8 w-8 shrink-0 flex items-center justify-center text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                            >
+                              <X size={14}/>
+                            </button>
                           </div>
                         ))}
-                        <button onClick={() => handleChange("menuItems", [...(element.props.menuItems || []), { label: "NUEVO", url: "/" }])} className="w-full py-2 border-2 border-dashed rounded-lg text-[9px] font-black text-gray-400 uppercase">+ Añadir Enlace</button>
+                        <button onClick={() => handleChange("menuItems", [...(element.props.menuItems || []), { label: "NUEVO", url: "/" }])} className="w-full py-2 mt-2 border-2 border-dashed rounded-lg text-[9px] font-black text-gray-400 uppercase hover:border-blue-300 hover:text-blue-500 transition-all">+ Añadir Enlace</button>
+
+                        <div className="space-y-4 pt-4 border-t border-gray-100 mt-4">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={element.props.menuColor || "#4b5563"} onChange={(e) => handleChange("menuColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase font-black">Color</span></div>
+                            <select value={element.props.menuFont || "font-black"} onChange={(e) => handleChange("menuFont", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white outline-none"><option value="font-black">Heavy</option><option value="font-sans">Modern</option><option value="font-serif">Classic</option></select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Tema de Texto</span>
+                            <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                              {["solid", "outline", "3d", "brutalist", "aurora"].map(v => (<button key={v} onClick={() => handleChange("menuVariant", v)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.menuVariant === v || (!element.props.menuVariant && v === "solid")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v}</button>))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Visual</span>
+                            <div className="grid grid-cols-4 gap-1 bg-gray-100 p-1 rounded-lg">
+                              {[{id:"none", l:"Normal"}, {id:"glow", l:"Brillo"}, {id:"neon", l:"Neon"}, {id:"fire", l:"Fuego"}, {id:"glass", l:"Glass"}].map(eff => (
+                                <button key={eff.id} onClick={() => handleChange("menuEffect", eff.id)} className={cn("py-1.5 text-[6px] font-black uppercase rounded-md transition-all", (element.props.menuEffect === eff.id || (!element.props.menuEffect && eff.id === "none")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{eff.l}</button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {element.props.menuVariant === "aurora" && (
+                            <div className="grid grid-cols-2 gap-2 p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                              <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-blue-100"><input type="color" value={element.props.menuAurora1 || "#00f2ff"} onChange={(e) => handleChange("menuAurora1", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[6px] font-black text-gray-400">C1</span></div>
+                              <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-blue-100"><input type="color" value={element.props.menuAurora2 || "#7000ff"} onChange={(e) => handleChange("menuAurora2", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[6px] font-black text-gray-400">C2</span></div>
+                            </div>
+                          )}
+
+                          <div className="space-y-4 pt-2">
+                            <FluidSlider label="Tamaño Letra" value={element.props.menuSize || 10} min={8} max={24} onChange={(val:number) => handleChange("menuSize", val)} />
+                            <FluidSlider label="Posición Menú" value={element.props.menuPosX || 0} min={-200} max={200} onChange={(val:number) => handleChange("menuPosX", val)} />
+                            <FluidSlider label="Separación Links" value={element.props.menuGap || 32} min={0} max={100} onChange={(val:number) => handleChange("menuGap", val)} />
+                          </div>
+                        </div>
                       </div>
                     </ControlGroup>
 
