@@ -111,11 +111,31 @@ export const DesignerInspector = () => {
     const file = e.target.files?.[0];
     if (file && uploadTarget) {
       const url = URL.createObjectURL(file);
+      // Determinamos si es un video para guardar la prop correcta
+      const isVideo = file.type.startsWith('video/');
+      const keyToUpdate = uploadTarget.key;
+      
       if (uploadTarget.id) {
-        const newList = (element.props.extraElements || []).map((item: any) => item.id === uploadTarget.id ? { ...item, [uploadTarget.key]: url } : item);
+        const newList = (element.props.extraElements || []).map((item: any) => 
+          item.id === uploadTarget.id ? { ...item, [keyToUpdate]: url, type: isVideo ? 'video' : 'image' } : item
+        );
         handleChange("extraElements", newList);
       } else {
-        handleChange(uploadTarget.key, url);
+        // Lógica quirúrgica: No confundir fondo con complemento
+        if (keyToUpdate === "floatUrl") {
+          handleChange("floatUrl", url);
+          handleChange("floatType", isVideo ? "video" : "image");
+        } else if (keyToUpdate === "bgBackground") {
+          if (isVideo) {
+            handleChange("videoUrl", url);
+            handleChange("bgType", "video");
+          } else {
+            handleChange("imageUrl", url);
+            handleChange("bgType", "image");
+          }
+        } else {
+          handleChange(keyToUpdate, url);
+        }
       }
       setUploadTarget(null);
     }
@@ -144,7 +164,13 @@ export const DesignerInspector = () => {
             </div>
           )}
           <div className="grid grid-cols-2 gap-3">
-            <select value={props.font || "font-sans"} onChange={(e) => onUpdate({ font: e.target.value })} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white outline-none"><option value="font-black">Black</option><option value="font-sans">Modern</option></select>
+            <select value={props.font || "font-sans"} onChange={(e) => onUpdate({ font: e.target.value })} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white outline-none">
+              <option value="font-sans">Modern (Sans)</option>
+              <option value="font-serif">Classic (Serif)</option>
+              <option value="font-mono">Technical (Mono)</option>
+              <option value="font-black">Heavy (Display)</option>
+              <option value="font-cursive">Elegant (Script)</option>
+            </select>
             <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={props.color || "#ffffff"} onChange={(e) => onUpdate({ color: e.target.value })} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase">Color</span></div>
           </div>
           <FluidSlider label="Tamaño" value={props.size || 24} min={10} max={120} onChange={(val:number) => onUpdate({ size: val })} />
@@ -199,7 +225,7 @@ export const DesignerInspector = () => {
     );
   };
 
-  const renderModularMultimediaDesigner = (props: any, onUpdate: (p: any) => void, title: string, canRemove = false, onRemove?: () => void) => {
+  const renderModularMultimediaDesigner = (props: any, onUpdate: (p: any) => void, title: string, canRemove = false, onRemove?: () => void, uploadKey = "url") => {
     const floatType = props.floatType || props.type || "image";
     const url = props.url || props.floatUrl || props.videoUrl || props.imageUrl;
     
@@ -211,7 +237,7 @@ export const DesignerInspector = () => {
               <button key={t.id} onClick={() => onUpdate({ floatType: t.id, bgType: t.id, type: t.id })} className={cn("flex-1 py-1.5 text-[9px] font-black uppercase rounded-md transition-all", (floatType === t.id) ? "bg-white shadow-sm text-blue-600" : "text-gray-400")}>{t.l}</button>
             ))}
           </div>
-          <div onClick={() => triggerUpload(floatType === "video" ? "videoUrl" : "imageUrl", props.id)} className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 cursor-pointer relative">
+          <div onClick={() => triggerUpload(uploadKey, props.id)} className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 cursor-pointer relative">
             {url ? (
               <div className="relative aspect-square w-20 mx-auto rounded-lg overflow-hidden border">
                 {floatType === "video" ? <div className="w-full h-full bg-black flex items-center justify-center"><Play size={24} className="text-white opacity-50"/></div> : <img src={url} className="w-full h-full object-cover" />}
@@ -272,56 +298,48 @@ export const DesignerInspector = () => {
 
             {sectionKey === "body" && (
               <>
-                {element.type === "text" && renderModularTextDesigner(element.props, (p) => updateElement(sectionKey, selectedElementId, p), "Texto Premium")}
-                {element.type === "button" && renderModularButtonDesigner(element.props, (p) => updateElement(sectionKey, selectedElementId, p), "Botón Premium")}
-                {(element.type === "image" || element.type === "video") && renderModularMultimediaDesigner(element.props, (p) => updateElement(sectionKey, selectedElementId, p), "Multimedia Premium")}
+                {/* Lógica Unificada de Contenido para TODOS los bloques del CUERPO */}
+                {renderModularTextDesigner({ ...element.props, content: element.props.title, variant: element.props.titleVariant, color: element.props.titleColor, size: element.props.titleSize, posX: element.props.titlePosX, posY: element.props.titlePosY, font: element.props.titleFont, aurora1: element.props.titleAurora1, aurora2: element.props.titleAurora2, effect: element.props.titleEffect, intensity: element.props.titleIntensity }, (p) => {
+                  const key = Object.keys(p)[0];
+                  const mapping: any = { content: 'title', variant: 'titleVariant', color: 'titleColor', size: 'titleSize', posX: 'titlePosX', posY: 'titlePosY', font: 'titleFont', aurora1: 'titleAurora1', aurora2: 'titleAurora2', effect: 'titleEffect', intensity: 'titleIntensity' };
+                  handleChange(mapping[key], p[key]);
+                }, "Título de Impacto")}
 
-                {element.type === "hero-banner" && (
-                  <>
-                    {renderModularTextDesigner({ ...element.props, content: element.props.title, variant: element.props.titleVariant, color: element.props.titleColor, size: element.props.titleSize, posX: element.props.titlePosX, posY: element.props.titlePosY, font: element.props.titleFont, aurora1: element.props.titleAurora1, aurora2: element.props.titleAurora2, effect: element.props.titleEffect, intensity: element.props.titleIntensity }, (p) => {
-                      const key = Object.keys(p)[0];
-                      const mapping: any = { content: 'title', variant: 'titleVariant', color: 'titleColor', size: 'titleSize', posX: 'titlePosX', posY: 'titlePosY', font: 'titleFont', aurora1: 'titleAurora1', aurora2: 'titleAurora2', effect: 'titleEffect', intensity: 'titleIntensity' };
-                      handleChange(mapping[key], p[key]);
-                    }, "Título de Impacto")}
+                {renderModularTextDesigner({ ...element.props, content: element.props.subtitle, variant: element.props.subtitleVariant, color: element.props.subtitleColor, size: element.props.subtitleSize, posX: element.props.subtitlePosX, posY: element.props.subtitlePosY, font: element.props.subtitleFont, intensity: element.props.subtitleIntensity }, (p) => {
+                  const key = Object.keys(p)[0];
+                  const mapping: any = { content: 'subtitle', variant: 'subtitleVariant', color: 'subtitleColor', size: 'subtitleSize', posX: 'subtitlePosX', posY: 'subtitlePosY', font: 'subtitleFont', intensity: 'subtitleIntensity' };
+                  handleChange(mapping[key], p[key]);
+                }, "Descripción")}
 
-                    {renderModularTextDesigner({ ...element.props, content: element.props.subtitle, variant: element.props.subtitleVariant, color: element.props.subtitleColor, size: element.props.subtitleSize, posX: element.props.subtitlePosX, posY: element.props.subtitlePosY, font: element.props.subtitleFont, intensity: element.props.subtitleIntensity }, (p) => {
-                      const key = Object.keys(p)[0];
-                      const mapping: any = { content: 'subtitle', variant: 'subtitleVariant', color: 'subtitleColor', size: 'subtitleSize', posX: 'subtitlePosX', posY: 'subtitlePosY', font: 'subtitleFont', intensity: 'subtitleIntensity' };
-                      handleChange(mapping[key], p[key]);
-                    }, "Descripción")}
+                                    {renderModularButtonDesigner({ ...element.props, text: element.props.primaryBtnText, variant: element.props.primaryBtnVariant, bgColor: element.props.primaryBtnBgColor, posX: element.props.primaryBtnPosX, posY: element.props.primaryBtnPosY, size: element.props.primaryBtnSize, borderRadius: element.props.primaryBtnBorderRadius, aurora1: element.props.primaryBtnAurora1, aurora2: element.props.primaryBtnAurora2, intensity: element.props.primaryBtnIntensity }, (p) => {
+                                      const key = Object.keys(p)[0];
+                                      const mapping: any = { text: 'primaryBtnText', variant: 'primaryBtnVariant', bgColor: 'primaryBtnBgColor', posX: 'primaryBtnPosX', posY: 'primaryBtnPosY', size: 'primaryBtnSize', borderRadius: 'primaryBtnBorderRadius', aurora1: 'primaryBtnAurora1', aurora2: 'primaryBtnAurora2', intensity: 'primaryBtnIntensity' };
+                                      handleChange(mapping[key], p[key]);
+                                    }, "Botón Primario")}
+                
+                                    {renderModularButtonDesigner({ ...element.props, text: element.props.secondaryBtnText, variant: element.props.secondaryBtnVariant, posX: element.props.secondaryBtnPosX, posY: element.props.secondaryBtnPosY, borderRadius: element.props.secondaryBtnBorderRadius }, (p) => {
+                                      const key = Object.keys(p)[0];
+                                      const mapping: any = { text: 'secondaryBtnText', variant: 'secondaryBtnVariant', posX: 'secondaryBtnPosX', posY: 'secondaryBtnPosY', borderRadius: 'secondaryBtnBorderRadius' };
+                                      handleChange(mapping[key], p[key]);
+                                    }, "Botón Secundario")}
+                {renderModularMultimediaDesigner({ ...element.props, floatUrl: element.props.floatUrl }, (p) => {
+                  const key = Object.keys(p)[0];
+                  const mapping: any = { floatType: 'floatType', url: 'floatUrl', floatUrl: 'floatUrl', floatAnim: 'floatAnim', size: 'floatSize', floatSize: 'floatSize', radius: 'floatRadius', floatRadius: 'floatRadius', posX: 'floatPosX', floatPosX: 'floatPosX', posY: 'floatPosY', floatPosY: 'floatPosY', floatLinkUrl: 'floatLinkUrl' };
+                  handleChange(mapping[key], p[key]);
+                }, "Imagen de Complemento", false, undefined, "floatUrl")}
 
-                    {renderModularButtonDesigner({ ...element.props, text: element.props.primaryBtnText, variant: element.props.primaryBtnVariant, bgColor: element.props.primaryBtnBgColor, posX: element.props.primaryBtnPosX, posY: element.props.primaryBtnPosY, size: element.props.primaryBtnSize, borderRadius: element.props.primaryBtnRadius, aurora1: element.props.primaryBtnAurora1, aurora2: element.props.primaryBtnAurora2, intensity: element.props.primaryBtnIntensity }, (p) => {
-                      const key = Object.keys(p)[0];
-                      const mapping: any = { text: 'primaryBtnText', variant: 'primaryBtnVariant', bgColor: 'primaryBtnBgColor', posX: 'primaryBtnPosX', posY: 'primaryBtnPosY', size: 'primaryBtnSize', borderRadius: 'primaryBtnRadius', aurora1: 'primaryBtnAurora1', aurora2: 'primaryBtnAurora2', intensity: 'primaryBtnIntensity' };
-                      handleChange(mapping[key], p[key]);
-                    }, "Botón Primario")}
+                {(element.props.extraElements || []).map((extra: any) => (
+                  <React.Fragment key={extra.id}>
+                    {extra.type === 'text' && renderModularTextDesigner(extra, (p) => handleExtraChange(extra.id, p), "Texto Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
+                    {extra.type === 'button' && renderModularButtonDesigner(extra, (p) => handleExtraChange(extra.id, p), "Botón Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
+                    {extra.type === 'image' && renderModularMultimediaDesigner(extra, (p) => handleExtraChange(extra.id, p), "Imagen/Video Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
+                  </React.Fragment>
+                ))}
 
-                    {renderModularButtonDesigner({ ...element.props, text: element.props.secondaryBtnText, variant: element.props.secondaryBtnVariant, posX: element.props.secondaryBtnPosX, posY: element.props.secondaryBtnPosY }, (p) => {
-                      const key = Object.keys(p)[0];
-                      const mapping: any = { text: 'secondaryBtnText', variant: 'secondaryBtnVariant', posX: 'secondaryBtnPosX', posY: 'secondaryBtnPosY' };
-                      handleChange(mapping[key], p[key]);
-                    }, "Botón Secundario")}
-
-                    {renderModularMultimediaDesigner({ ...element.props, floatUrl: element.props.floatUrl }, (p) => {
-                      const key = Object.keys(p)[0];
-                      const mapping: any = { floatType: 'floatType', url: 'floatUrl', floatUrl: 'floatUrl', floatAnim: 'floatAnim', size: 'floatSize', floatSize: 'floatSize', radius: 'floatRadius', floatRadius: 'floatRadius', posX: 'floatPosX', floatPosX: 'floatPosX', posY: 'floatPosY', floatPosY: 'floatPosY', floatLinkUrl: 'floatLinkUrl' };
-                      handleChange(mapping[key], p[key]);
-                    }, "Imagen de Complemento")}
-
-                    {(element.props.extraElements || []).map((extra: any) => (
-                      <React.Fragment key={extra.id}>
-                        {extra.type === 'text' && renderModularTextDesigner(extra, (p) => handleExtraChange(extra.id, p), "Texto Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
-                        {extra.type === 'button' && renderModularButtonDesigner(extra, (p) => handleExtraChange(extra.id, p), "Botón Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
-                        {extra.type === 'image' && renderModularMultimediaDesigner(extra, (p) => handleExtraChange(extra.id, p), "Imagen/Video Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
-                      </React.Fragment>
-                    ))}
-
-                    <div className="relative mt-8">
-                      <button onClick={() => setShowAddMenu(!showAddMenu)} className="w-full py-4 bg-blue-50 border-2 border-dashed border-blue-200 rounded-2xl text-blue-600 font-black text-[10px] uppercase flex items-center justify-center gap-2 hover:bg-blue-100 transition-all shadow-sm"><PlusIcon size={14} /> Agregar Otro Elemento</button>
-                      <AnimatePresence>{showAddMenu && ( <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 w-full bg-white border border-gray-100 shadow-2xl rounded-2xl p-2 z-50 mb-2 grid grid-cols-3 gap-2"> {[{id:'text', l:'Texto', i:Type}, {id:'button', l:'Botón', i:MousePointer2}, {id:'image', l:'Imagen', i:ImageIcon}].map(opt => ( <button key={opt.id} onClick={() => addExtraElement(opt.id as any)} className="flex flex-col items-center gap-2 p-3 hover:bg-blue-50 rounded-xl transition-all"><div className="p-2 bg-blue-500 text-white rounded-lg shadow-sm"><opt.i size={16}/></div><span className="text-[9px] font-black uppercase text-gray-600">{opt.l}</span></button> ))} </motion.div> )}</AnimatePresence>
-                    </div>
-                  </>
-                )}
+                <div className="relative mt-8">
+                  <button onClick={() => setShowAddMenu(!showAddMenu)} className="w-full py-4 bg-blue-50 border-2 border-dashed border-blue-200 rounded-2xl text-blue-600 font-black text-[10px] uppercase flex items-center justify-center gap-2 hover:bg-blue-100 transition-all shadow-sm"><PlusIcon size={14} /> Agregar Otro Elemento</button>
+                  <AnimatePresence>{showAddMenu && ( <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 w-full bg-white border border-gray-100 shadow-2xl rounded-2xl p-2 z-50 mb-2 grid grid-cols-3 gap-2"> {[{id:'text', l:'Texto', i:Type}, {id:'button', l:'Botón', i:MousePointer2}, {id:'image', l:'Imagen', i:ImageIcon}].map(opt => ( <button key={opt.id} onClick={() => addExtraElement(opt.id as any)} className="flex flex-col items-center gap-2 p-3 hover:bg-blue-50 rounded-xl transition-all"><div className="p-2 bg-blue-500 text-white rounded-lg shadow-sm"><opt.i size={16}/></div><span className="text-[9px] font-black uppercase text-gray-600">{opt.l}</span></button> ))} </motion.div> )}</AnimatePresence>
+                </div>
               </>
             )}
           </div>
@@ -330,22 +348,47 @@ export const DesignerInspector = () => {
         {/* --- PESTAÑAS DISEÑO Y EFECTOS --- */}
         {activeTab === "style" && (
           <div className="space-y-4">
-            {element.type === "hero-banner" && (
+            {sectionKey === "body" && (
               <ControlGroup title="Multimedia de Fondo" icon={ImageIcon} defaultOpen={true}>
                 <div className="space-y-4">
                   <div className="flex bg-gray-100 p-1 rounded-lg">{[{id:"image", l:"Imagen"}, {id:"video", l:"Video"}].map(t => (<button key={t.id} onClick={() => handleChange("bgType", t.id)} className={cn("flex-1 py-1.5 text-[9px] font-black uppercase rounded-md transition-all", (element.props.bgType === t.id || (!element.props.bgType && t.id === "image")) ? "bg-white shadow-sm text-blue-600" : "text-gray-400")}>{t.l}</button>))}</div>
-                  <div onClick={() => triggerUpload("imageUrl")} className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 cursor-pointer relative transition-all">
-                    {element.props.imageUrl ? <div className="relative"><img src={element.props.imageUrl} className="h-20 mx-auto rounded-lg shadow-sm" /><button onClick={(e) => { e.stopPropagation(); handleChange("imageUrl", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-xl border-2 border-white hover:scale-110 transition-all z-50"><X size={12}/></button></div> : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR FONDO</p>}
+                  <div onClick={() => triggerUpload("bgBackground")} className="group border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-400 cursor-pointer relative transition-all">
+                    {element.props.imageUrl || element.props.videoUrl ? (
+                      <div className="relative">
+                        {element.props.bgType === "video" ? <div className="h-20 w-20 mx-auto bg-black rounded-lg flex items-center justify-center"><Play size={20} className="text-white opacity-50"/></div> : <img src={element.props.imageUrl} className="h-20 mx-auto rounded-lg shadow-sm" />}
+                        <button onClick={(e) => { e.stopPropagation(); handleChange(element.props.bgType === "video" ? "videoUrl" : "imageUrl", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-xl border-2 border-white hover:scale-110 transition-all z-50"><X size={12}/></button>
+                      </div>
+                    ) : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR FONDO</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-2">{[{id:"none", l:"Normal"}, {id:"ken-burns", l:"Ken Burns"}, {id:"zoom-out", l:"Zoom Out"}, {id:"float", l:"Flotación"}].map(e => (<button key={e.id} onClick={() => handleChange("bgEffect", e.id)} className={cn("py-2 text-[8px] font-black uppercase rounded-lg border", element.props.bgEffect === e.id ? "bg-blue-600 text-white" : "bg-white")}>{e.l}</button>))}</div>
                   <div className="flex items-center gap-3 pt-2 border-t border-gray-50"><input type="color" value={element.props.overlayColor || "#000000"} onChange={(e) => handleChange("overlayColor", e.target.value)} className="w-10 h-10 rounded-xl p-0 border cursor-pointer" /><div className="flex-1"><FluidSlider label="Difuminado" value={element.props.overlayOpacity || 40} min={0} max={95} suffix="%" onChange={(v:number) => handleChange("overlayOpacity", v)} /></div></div>
                 </div>
               </ControlGroup>
             )}
+
+            {element.type === "product-grid" && (
+              <ControlGroup title="Configuración de Grilla" icon={Layout} defaultOpen={true}>
+                <div className="space-y-4">
+                   <div className="grid grid-cols-2 gap-3">
+                      <FluidSlider label="Columnas (PC)" value={element.props.columns || 4} min={1} max={6} onChange={(v:number) => handleChange("columns", v)} />
+                      <FluidSlider label="Productos" value={element.props.itemsCount || 4} min={1} max={20} onChange={(v:number) => handleChange("itemsCount", v)} />
+                   </div>
+                   <div className="space-y-2">
+                     <span className="text-[9px] font-black text-gray-400 uppercase">Estilo de Grilla</span>
+                     <div className="grid grid-cols-2 gap-2">
+                       {[{id:"grid", l:"Cuadrícula"}, {id:"carousel", l:"Carrusel"}].map(l => (
+                         <button key={l.id} onClick={() => handleChange("layout", l.id)} className={cn("py-2 text-[8px] font-black uppercase rounded-lg border", element.props.layout === l.id ? "bg-blue-600 text-white" : "bg-white")}>{l.l}</button>
+                       ))}
+                     </div>
+                   </div>
+                </div>
+              </ControlGroup>
+            )}
+
             <ControlGroup title="Estructura y Tamaño" icon={Move}>
               <div className="space-y-6">
                 <div className="flex bg-gray-100 p-1 rounded-lg border">{["left", "center", "right"].map((pos) => (<button key={pos} onClick={() => handleChange("align", pos)} className={cn("flex-1 p-2 flex justify-center rounded-md transition-all", (element.props.align === pos || (!element.props.align && pos === "center")) ? "bg-white shadow-sm text-blue-600" : "text-gray-400 hover:text-gray-600")}>{pos === "left" && <AlignLeft size={16} />}{pos === "center" && <AlignCenter size={16} />}{pos === "right" && <AlignRight size={16} />}</button>))}</div>
-                <FluidSlider label="Altura" value={element.props.height || (element.type === 'navbar' ? element.props.navHeight : 400)} min={50} max={800} onChange={(v:number) => handleChange(element.type === 'hero-banner' ? 'height' : 'navHeight', v)} />
+                <FluidSlider label="Altura" value={element.props.height || (element.type === 'navbar' ? element.props.navHeight : 400)} min={50} max={800} onChange={(v:number) => handleChange(element.type === 'navbar' ? 'navHeight' : 'height', v)} />
               </div>
             </ControlGroup>
           </div>

@@ -21,7 +21,7 @@ const AVAILABLE_COMPONENTS = {
     { type: "video" as ComponentType, label: "Video Promocional", icon: Video },
     { type: "button" as ComponentType, label: "Botón", icon: MousePointerClick },
     { type: "image" as ComponentType, label: "Imágenes", icon: ImageIcon },
-    { type: "video" as ComponentType, label: "Bloque personalizado", icon: LayoutTemplate },
+    { type: "custom-block" as ComponentType, label: "Bloque personalizado", icon: LayoutTemplate },
   ],
   footer: [
      { type: "text" as ComponentType, label: "Texto Legal", icon: Type },
