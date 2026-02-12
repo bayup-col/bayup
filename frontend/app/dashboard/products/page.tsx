@@ -115,16 +115,30 @@ export default function ProductsPage() {
     const fetchProducts = useCallback(async () => {
         if (!token) return;
         setLoading(true);
+        console.log("Sincronizando catálogo real...");
+        
         try {
-            const [productsData, categoriesData] = await Promise.all([
-                apiRequest<any[]>('/products', { token }),
-                apiRequest<any[]>('/collections', { token })
-            ]);
-            setProducts(productsData || []);
-            setCategories(categoriesData || []);
+            // Intentamos cargar productos
+            try {
+                const productsData = await apiRequest<any[]>('/products', { token });
+                setProducts(Array.isArray(productsData) ? productsData : []);
+                console.log("Productos cargados:", productsData?.length);
+            } catch (pErr) {
+                console.error("Error cargando productos:", pErr);
+                showToast("Error al cargar productos", "error");
+            }
+
+            // Intentamos cargar categorías (colecciones)
+            try {
+                const categoriesData = await apiRequest<any[]>('/collections', { token });
+                setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+                console.log("Categorías cargadas:", categoriesData?.length);
+            } catch (cErr) {
+                console.error("Error cargando categorías:", cErr);
+            }
+
         } catch (err) {
-            console.error(err);
-            showToast("Error al sincronizar catálogo", "error");
+            console.error("Error general de sincronización:", err);
         } finally {
             setLoading(false);
         }
@@ -156,8 +170,8 @@ export default function ProductsPage() {
     }, [products]);
 
     const kpis = [
-        { id: 'total', label: 'Total Productos', value: products.length, icon: <Package size={24}/>, color: 'text-[#004d4d]', bg: 'bg-[#004d4d]/5', trend: 'Live' },
-        { id: 'active', label: 'Items Activos', value: stats.activeCount, icon: <Zap size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: 'Online' },
+        { id: 'total', label: 'Total Productos', value: products.length, icon: <Package size={24}/>, color: 'text-[#004d4d]', bg: 'bg-[#004d4d]/5', trend: 'Live', isSimple: true },
+        { id: 'active', label: 'Items Activos', value: stats.activeCount, icon: <Zap size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: 'Online', isSimple: true },
         { id: 'stock', label: 'Stock Crítico', value: stats.lowStock, icon: <AlertCircle size={24}/>, color: 'text-rose-600', bg: 'bg-rose-50', trend: 'Revisar', isSimple: true },
         { id: 'average', label: 'Ticket Promedio', value: stats.average, icon: <ShoppingBag size={24}/>, color: 'text-cyan-600', bg: 'bg-cyan-50', trend: 'Market OK' },
     ];

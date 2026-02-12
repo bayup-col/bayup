@@ -2,6 +2,7 @@ from fastapi import Depends, FastAPI, HTTPException, status, Request, Background
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text, inspect
 import datetime
@@ -105,6 +106,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
+# Servir archivos estáticos (imágenes de productos)
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 # --- CONFIGURACIÓN DE CONEXIÓN GLOBAL (CORS) ---
 # Configuración profesional: No se puede usar "*" con allow_credentials=True
 app.add_middleware(
@@ -198,29 +204,46 @@ def register_user(user: schemas.UserCreate, background_tasks: BackgroundTasks, d
 
 @app.post("/auth/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = crud.get_user_by_email(db, email=form_data.username)
-    if not user or not security.verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Incorrect email or password")
-    
-    access_token = security.create_access_token(data={"sub": user.email})
-    
-    # Devolvemos todo el perfil con proteccion contra nulos
-    user_plan = user.plan
-    return {
-        "access_token": access_token, 
-        "token_type": "bearer",
-        "user": {
-            "email": user.email,
-            "full_name": user.full_name,
-            "role": user.role,
-            "is_global_staff": user.is_global_staff,
-            "permissions": user.permissions or {},
-            "plan": {
-                "name": user_plan.name if user_plan else "Free",
-                "modules": user_plan.modules if user_plan and user_plan.modules else ['inicio', 'productos', 'pedidos', 'settings']
+    try:
+        user = crud.get_user_by_email(db, email=form_data.username)
+        if not user or not security.verify_password(form_data.password, user.hashed_password):
+            raise HTTPException(status_code=401, detail="Incorrect email or password")
+        
+        access_token = security.create_access_token(data={"sub": user.email})
+        
+        # Devolvemos todo el perfil con proteccion TOTAL contra nulos
+        user_plan = user.plan
+        
+        # Sanitización de permisos
+        user_perms = user.permissions if user.permissions is not None else {}
+        
+        # Sanitización de módulos del plan
+        allowed_modules = []
+        if user_plan and hasattr(user_plan, 'modules') and user_plan.modules:
+            allowed_modules = user_plan.modules
+        else:
+            allowed_modules = ['inicio', 'productos', 'pedidos', 'settings', 'studio'] # 'studio' añadido por defecto
+
+        return {
+            "access_token": access_token, 
+            "token_type": "bearer",
+            "user": {
+                "email": user.email,
+                "full_name": user.full_name,
+                "role": user.role,
+                "is_global_staff": bool(user.is_global_staff),
+                "permissions": user_perms,
+                "plan": {
+                    "name": user_plan.name if user_plan else "Free",
+                    "modules": allowed_modules
+                }
             }
         }
-    }
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(f"CRITICAL LOGIN ERROR: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
 
 @app.post("/auth/forgot-password")
 def forgot_password(data: dict, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):

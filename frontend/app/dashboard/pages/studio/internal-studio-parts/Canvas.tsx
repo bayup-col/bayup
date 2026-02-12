@@ -234,19 +234,25 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
                         minHeight: "200px"
                       }}
                     >
-                    {(el.props.selectedCategory === "all" 
+                    {(el.props.selectedCategory === "all" || !el.props.selectedCategory
                       ? (realProducts || []).slice(0, el.props.itemsCount || 4)
-                      : (realProducts || []).filter((p: any) => String(p.collection_id) === String(el.props.selectedCategory)).slice(0, el.props.itemsCount || 4)
+                      : (realProducts || []).filter((p: any) => {
+                          const pCat = String(p.collection_id || p.category_id || "");
+                          const selectedCat = String(el.props.selectedCategory);
+                          return pCat === selectedCat;
+                        }).slice(0, el.props.itemsCount || 4)
                     ).map((product: any, i: number) => {
                       // Construcción robusta de la URL de imagen
                       let imageUrl = null;
-                      if (typeof product.image_url === 'string' && product.image_url) {
-                        if (product.image_url.startsWith('http')) {
-                          imageUrl = product.image_url;
+                      const rawImg = product.image_url;
+                      
+                      if (typeof rawImg === 'string' && rawImg) {
+                        if (rawImg.startsWith('http')) {
+                          imageUrl = rawImg;
                         } else {
-                          // Si es una ruta relativa, intentamos con la URL del backend
-                          const path = product.image_url.startsWith('/') ? product.image_url : `/${product.image_url}`;
-                          imageUrl = `http://localhost:8000${path}`;
+                          // Limpiamos la ruta para evitar duplicados como /uploads/uploads/
+                          const cleanPath = rawImg.replace(/^\/?uploads\/?/, '');
+                          imageUrl = `http://localhost:8000/uploads/${cleanPath}`;
                         }
                       }
 
@@ -419,6 +425,8 @@ export const Canvas = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
+        
+        console.log("Studio: Intentando cargar inventario real...");
         const { categoryService, productService } = await import('@/lib/api');
         
         const [categories, products] = await Promise.all([
@@ -426,10 +434,12 @@ export const Canvas = () => {
           productService.getAll(token)
         ]);
         
-        setRealCategories(categories);
-        setRealProducts(products);
-      } catch (err) {
-        console.error("Error cargando datos reales en Canvas:", err);
+        setRealCategories(Array.isArray(categories) ? categories : []);
+        setRealProducts(Array.isArray(products) ? products : []);
+        console.log("Studio: Inventario real cargado con éxito.");
+      } catch (err: any) {
+        console.error("Studio: Error crítico al conectar con el inventario real:", err.message);
+        // NO cargamos datos inventados aquí para no confundir al usuario
       }
     };
     fetchData();

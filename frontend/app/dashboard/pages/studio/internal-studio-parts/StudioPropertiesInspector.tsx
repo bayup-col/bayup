@@ -75,15 +75,12 @@ export const DesignerInspector = () => {
     const fetchCategories = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) {
-          console.warn("Studio: No se encontró token de autenticación. Redirigiendo o esperando login...");
-          return;
-        }
+        if (!token) return;
         const { categoryService } = await import('@/lib/api');
         const categories = await categoryService.getAll(token);
-        setRealCategories(categories);
-      } catch (err) {
-        console.error("Error cargando categorías reales:", err);
+        setRealCategories(Array.isArray(categories) ? categories : []);
+      } catch (err: any) {
+        console.error("Inspector: Fallo al cargar categorías reales del sistema.");
       }
     };
     fetchCategories();

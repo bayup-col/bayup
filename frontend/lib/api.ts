@@ -22,8 +22,21 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Error en la petición API');
+        const errorClone = response.clone();
+        let errorMsg = `Error ${response.status}`;
+        try {
+            const errorData = await errorClone.json();
+            errorMsg = errorData.detail || errorMsg;
+        } catch (e) {
+            errorMsg = await response.text() || errorMsg;
+        }
+
+        if (response.status === 401) {
+            console.warn(`Sesión no autorizada en ${endpoint}.`);
+            localStorage.removeItem('token');
+        }
+        
+        throw new Error(errorMsg);
     }
 
     return response.json();
