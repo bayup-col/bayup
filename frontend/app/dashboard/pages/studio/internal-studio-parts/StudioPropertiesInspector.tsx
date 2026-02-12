@@ -9,7 +9,7 @@ import {
   Settings2, Sparkles, Layout, ChevronDown, Check, Upload,
   ShoppingBag, MousePointer2, Play, Link as LinkIcon, Plus as PlusIcon, Trash2,
   Zap, Star, Flame, Wind, Wand2, MonitorPlay, Maximize, RotateCw,
-  User, ShoppingCart, Search
+  User, ShoppingCart, Search, Edit3, Heart, Bell, MessageSquare, Phone, Info
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { v4 as uuidv4 } from "uuid";
@@ -469,6 +469,108 @@ export const DesignerInspector = () => {
                             <div className="flex items-center gap-2"><Search size={14}/><span>Búsqueda</span></div>
                             <span>{element.props.showSearch ? "ON" : "OFF"}</span>
                           </button>
+                        </div>
+
+                        {/* Lista de Iconos Personalizados */}
+                        {(element.props.extraUtilities || []).map((util: any, idx: number) => (
+                          <div key={util.id} className="p-3 border rounded-xl bg-gray-50/50 space-y-3 relative group">
+                            <div className="flex justify-between items-start">
+                              <span className="text-[8px] font-black text-blue-600 uppercase italic">Acceso Personalizado</span>
+                              <div className="flex gap-1">
+                                <button onClick={() => {
+                                  const newLabel = prompt("Nuevo nombre:", util.label);
+                                  if(newLabel) {
+                                    const newList = [...element.props.extraUtilities];
+                                    newList[idx].label = newLabel;
+                                    handleChange("extraUtilities", newList);
+                                  }
+                                }} className="p-1 hover:text-blue-500 transition-colors"><Edit3 size={12}/></button>
+                                <button onClick={() => handleChange("extraUtilities", element.props.extraUtilities.filter((_:any, i:number) => i !== idx))} className="p-1 hover:text-red-500 transition-colors"><Trash2 size={12}/></button>
+                              </div>
+                            </div>
+
+                            {/* Selector de Icono */}
+                            <div className="space-y-1.5">
+                              <span className="text-[7px] font-black text-gray-400 uppercase">Elegir Icono</span>
+                              <div className="grid grid-cols-6 gap-1">
+                                {[
+                                  {n: 'Heart', i: Heart}, {n: 'Bell', i: Bell}, {n: 'Star', i: Star}, 
+                                  {n: 'MessageSquare', i: MessageSquare}, {n: 'Phone', i: Phone}, {n: 'Info', i: Info}
+                                ].map(iconOpt => (
+                                  <button 
+                                    key={iconOpt.n}
+                                    onClick={() => {
+                                      const newList = [...element.props.extraUtilities];
+                                      newList[idx].icon = iconOpt.n;
+                                      handleChange("extraUtilities", newList);
+                                    }}
+                                    className={cn(
+                                      "p-1.5 rounded-md border transition-all flex items-center justify-center",
+                                      util.icon === iconOpt.n ? "bg-blue-500 border-blue-500 text-white shadow-sm" : "bg-white border-gray-100 text-gray-400 hover:border-blue-200"
+                                    )}
+                                  >
+                                    <iconOpt.i size={12} />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 pt-1">
+                              <div className="space-y-1">
+                                <span className="text-[7px] font-black text-gray-400 uppercase">Etiqueta</span>
+                                <input type="text" value={util.label} readOnly className="w-full p-1.5 border rounded-lg text-[10px] font-bold bg-white/50 cursor-default" />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[7px] font-black text-gray-400 uppercase">Redirección</span>
+                                <input type="text" value={util.url} onChange={(e) => {
+                                  const newList = [...element.props.extraUtilities];
+                                  newList[idx].url = e.target.value;
+                                  handleChange("extraUtilities", newList);
+                                }} className="w-full p-1.5 border rounded-lg text-[9px] font-mono text-blue-600 bg-white" placeholder="/" />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        <button 
+                          onClick={() => {
+                            const newUtil = { id: uuidv4(), label: "Favoritos", icon: "Heart", url: "/favoritos", show: true };
+                            handleChange("extraUtilities", [...(element.props.extraUtilities || []), newUtil]);
+                          }} 
+                          className="w-full py-3 bg-blue-50 border-2 border-dashed border-blue-200 rounded-xl text-blue-600 font-black text-[9px] uppercase hover:bg-blue-100 transition-all flex items-center justify-center gap-2"
+                        >
+                          <PlusIcon size={14}/> Añadir Nuevo Acceso
+                        </button>
+
+                        <div className="space-y-4 pt-4 border-t border-gray-100">
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Modo de Visualización</span>
+                            <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                              {[{id:"icon", l:"Icono"}, {id:"text", l:"Letras"}, {id:"both", l:"Ambos"}].map(m => (
+                                <button key={m.id} onClick={() => handleChange("utilityDisplayMode", m.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.utilityDisplayMode === m.id || (!element.props.utilityDisplayMode && m.id === "icon")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{m.l}</button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={element.props.utilityColor || "#6b7280"} onChange={(e) => handleChange("utilityColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase font-black">Color</span></div>
+                            <select value={element.props.utilityFont || "font-black"} onChange={(e) => handleChange("utilityFont", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white outline-none"><option value="font-black">Heavy</option><option value="font-sans">Modern</option><option value="font-serif">Classic</option></select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Visual</span>
+                            <div className="grid grid-cols-4 gap-1 bg-gray-100 p-1 rounded-lg">
+                              {[{id:"none", l:"Normal"}, {id:"glow", l:"Brillo"}, {id:"neon", l:"Neon"}, {id:"fire", l:"Fuego"}, {id:"glass", l:"Glass"}].map(eff => (
+                                <button key={eff.id} onClick={() => handleChange("utilityEffect", eff.id)} className={cn("py-1.5 text-[6px] font-black uppercase rounded-md transition-all", (element.props.utilityEffect === eff.id || (!element.props.utilityEffect && eff.id === "none")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{eff.l}</button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-4 pt-2">
+                            <FluidSlider label="Escala / Tamaño" value={element.props.utilitySize || 18} min={12} max={48} onChange={(val:number) => handleChange("utilitySize", val)} />
+                            <FluidSlider label="Posición Iconos" value={element.props.utilityPosX || 0} min={-200} max={200} onChange={(val:number) => handleChange("utilityPosX", val)} />
+                            <FluidSlider label="Espacio entre Iconos" value={element.props.utilityGap || 16} min={0} max={60} onChange={(val:number) => handleChange("utilityGap", val)} />
+                          </div>
                         </div>
                       </div>
                     </ControlGroup>

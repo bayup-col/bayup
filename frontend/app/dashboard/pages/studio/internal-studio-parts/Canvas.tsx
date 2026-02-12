@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { useStudio, SectionType } from "../context";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Trash2, Plus as PlusIcon, GripVertical, ShoppingBag, ShoppingCart, User, UserCircle, LogIn, Image as ImageIcon, Heart, Search, HelpCircle, Phone, X, Monitor } from "lucide-react";
+import { Trash2, Plus as PlusIcon, GripVertical, ShoppingBag, ShoppingCart, User, UserCircle, LogIn, Image as ImageIcon, Heart, Bell, Star, MessageSquare, Phone, Info, Search, HelpCircle, X, Monitor } from "lucide-react";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
 
 // --- HELPERS ESTABLES ---
@@ -86,7 +86,7 @@ const renderButton = (btnProps: any, prefix: string = "", extraId: string = "") 
   );
 };
 
-const renderTextWithTheme = (text: string, props: any, prefix: string = "", extraId: string = "", isBody = true) => {
+const renderTextWithTheme = (text: any, props: any, prefix: string = "", extraId: string = "", isBody = true) => {
   const get = (key: string, fallback: any) => {
     const fullKey = prefix ? `${prefix}${key.charAt(0).toUpperCase() + key.slice(1)}` : key;
     return props[fullKey] !== undefined ? props[fullKey] : fallback;
@@ -98,19 +98,21 @@ const renderTextWithTheme = (text: string, props: any, prefix: string = "", extr
   const posY = get("posY", 0);
   const effect = get("effect", "none");
   const color = get("color", isBody ? "#ffffff" : "#1f2937");
+  const size = get("size", 24);
+  const isIcon = typeof text !== 'string';
 
   const getIntensityStyle = (val: number) => {
     const intensityVal = val !== undefined ? val : 100;
     if (intensityVal <= 100) return { opacity: intensityVal / 100, filter: "brightness(1)" };
     const extra = (intensityVal - 100) / 100;
-    return { opacity: 1, filter: `brightness(${1 + (extra * 2)})`, textShadow: `0 0 ${extra * 20}px rgba(255,255,255,0.8)` };
+    return { opacity: 1, filter: `brightness(${1 + (extra * 2)})` };
   };
 
   const effectVariants = {
     none: {},
-    glow: { filter: ["drop-shadow(0 0 2px rgba(255,255,255,0.5))", "drop-shadow(0 0 15px rgba(255,255,255,1))", "drop-shadow(0 0 2px rgba(255,255,255,0.5))"] },
-    neon: { textShadow: [`0 0 5px ${color}`, `0 0 25px ${color}`, `0 0 5px ${color}`] },
-    fire: { color: ["#ff4d00", "#ffae00", "#ff4d00"], filter: ["blur(0px)", "blur(1.5px)", "blur(0px)"] },
+    glow: { filter: [`drop-shadow(0 0 2px ${color})`, `drop-shadow(0 0 10px ${color})`, `drop-shadow(0 0 2px ${color})`] },
+    neon: { filter: [`drop-shadow(0 0 5px ${color})`, `drop-shadow(0 0 20px ${color})`, `drop-shadow(0 0 5px ${color})`] },
+    fire: { color: ["#ff4d00", "#ffae00", "#ff4d00"], filter: ["blur(0px)", "blur(1px)", "blur(0px)"] },
     float: { y: [posY, posY - 15, posY] }
   };
 
@@ -125,25 +127,49 @@ const renderTextWithTheme = (text: string, props: any, prefix: string = "", extr
   };
 
   let variantStyles: any = { color: variant === "aurora" ? undefined : color };
+  let extraClasses = "";
   
   if (variant === "outline") {
-    variantStyles.WebkitTextStroke = `1px ${color}`;
-    variantStyles.color = "transparent";
+    if (!isIcon) {
+      variantStyles.WebkitTextStroke = `1px ${color}`;
+      variantStyles.color = "transparent";
+    } else {
+      // Técnica de 4 capas de sombra para un outline SVG perfecto
+      variantStyles.filter = `drop-shadow(1px 1px 0px ${color}) drop-shadow(-1px -1px 0px ${color}) drop-shadow(1px -1px 0px ${color}) drop-shadow(-1px 1px 0px ${color})`;
+      variantStyles.color = "transparent";
+    }
   } else if (variant === "3d") {
-    variantStyles.textShadow = `0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 5px 0 #aaa, 0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 5px rgba(0,0,0,.2), 0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15)`;
+    variantStyles.filter = `drop-shadow(2px 2px 0px rgba(0,0,0,0.2)) drop-shadow(4px 4px 10px rgba(0,0,0,0.1))`;
+    if (!isIcon) variantStyles.textShadow = `0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 5px 0 #aaa`;
   } else if (variant === "brutalist") {
-    variantStyles.textShadow = `3px 3px 0px #000`;
+    variantStyles.filter = `drop-shadow(3px 3px 0px #000)`;
+  } else if (variant === "aurora") {
+    extraClasses = "bg-clip-text text-transparent animate-aurora-text bg-[length:200%_auto]";
+    variantStyles.backgroundImage = `linear-gradient(135deg, ${get("aurora1", "#00f2ff")}, ${get("aurora2", "#7000ff")}, ${get("aurora1", "#00f2ff")})`;
   }
 
   return (
     <Tag 
       key={`text-${prefix}-${extraId}-${variant}-${intensity}`}
       animate={{ x: posX, y: effect === "float" ? undefined : posY, ...getIntensityStyle(intensity), ...(effect !== "none" ? (effectVariants as any)[effect] : {}) }}
-      transition={{ x: { type: "spring", stiffness: 450, damping: 30 }, y: effect === "float" ? { duration: 4, repeat: Infinity, ease: "easeInOut" } : { type: "spring", stiffness: 450, damping: 30 }, filter: { duration: 2, repeat: effect !== "none" ? Infinity : 0 }, textShadow: { duration: 1.5, repeat: effect !== "none" ? Infinity : 0 }, color: { duration: 1, repeat: effect === "fire" ? Infinity : 0 } }}
-      className={cn("uppercase leading-tight font-black", fontMap[get("font", "font-sans")], variant === "aurora" && "bg-clip-text text-transparent animate-aurora-text bg-[length:200%_auto]")}
-      style={{ ...variantStyles, fontSize: `${get("size", 24)}px`, backgroundImage: variant === "aurora" ? `linear-gradient(135deg, ${get("aurora1", "#00f2ff")}, ${get("aurora2", "#7000ff")}, ${get("aurora1", "#00f2ff")})` : undefined }}
+      transition={{ x: { type: "spring", stiffness: 450, damping: 30 }, y: effect === "float" ? { duration: 4, repeat: Infinity, ease: "easeInOut" } : { type: "spring", stiffness: 450, damping: 30 }, filter: { duration: 2, repeat: (effect !== "none" && effect !== "float") ? Infinity : 0 } }}
+      className={cn("uppercase leading-tight font-black", fontMap[get("font", "font-sans")], extraClasses)}
+      style={{ ...variantStyles, fontSize: `${size}px` }}
     >
-      {text}
+      {isIcon ? (
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          background: variant === "aurora" ? variantStyles.backgroundImage : "none",
+          WebkitBackgroundClip: variant === "aurora" ? "text" : "unset",
+          backgroundClip: variant === "aurora" ? "text" : "unset",
+          WebkitTextFillColor: variant === "aurora" ? "transparent" : "unset",
+          color: variant === "aurora" ? "transparent" : "inherit",
+        }}>
+          {variant === "aurora" ? React.cloneElement(text as React.ReactElement, { stroke: "currentColor" }) : text}
+        </div>
+      ) : text}
     </Tag>
   );
 };
@@ -233,10 +259,54 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
               ))}
             </nav>
 
-            <div className="flex items-center gap-4 ml-8 border-l border-gray-100 pl-8">
-              {el.props.showSearch && <Search size={18} style={{ color: el.props.menuColor || "#4b5563" }} className="cursor-pointer opacity-60 hover:opacity-100 transition-opacity" />}
-              {el.props.showUser && <User size={18} style={{ color: el.props.menuColor || "#4b5563" }} className="cursor-pointer opacity-60 hover:opacity-100 transition-opacity" />}
-              {el.props.showCart && <ShoppingCart size={18} style={{ color: el.props.menuColor || "#4b5563" }} className="cursor-pointer opacity-60 hover:opacity-100 transition-opacity" />}
+            <div 
+              className="flex items-center ml-8 border-l border-gray-100 pl-8 transition-all duration-300"
+              style={{ 
+                transform: `translateX(${el.props.utilityPosX || 0}px)`,
+                gap: `${el.props.utilityGap || 16}px`
+              }}
+            >
+              {[
+                { id: 'search', show: el.props.showSearch, icon: Search, label: 'Búsqueda' },
+                { id: 'user', show: el.props.showUser, icon: User, label: 'Acceso' },
+                { id: 'cart', show: el.props.showCart, icon: ShoppingCart, label: 'Carrito' },
+                ...(el.props.extraUtilities || []).map((u: any) => {
+                  const iconMap: any = { Heart, Bell, Star, MessageSquare, Phone, Info };
+                  return { ...u, icon: iconMap[u.icon] || HelpCircle };
+                })
+              ].map((util) => {
+                if (!util.show && util.show !== undefined) return null;
+                
+                const mode = el.props.utilityDisplayMode || "icon";
+                
+                return (
+                  <div key={util.id} className="cursor-pointer hover:opacity-70 transition-opacity flex items-center gap-2">
+                    {(mode === "icon" || mode === "both") && (
+                      <div className="relative">
+                        {renderTextWithTheme(<util.icon size={el.props.utilitySize || 18} />, {
+                          ...el.props,
+                          variant: "solid", // Forzamos sólido para evitar errores de temas
+                          effect: el.props.utilityEffect,
+                          color: el.props.utilityColor,
+                          size: el.props.utilitySize
+                        }, "utility", `${el.id}-${util.id}`, false)}
+                      </div>
+                    )}
+                    {(mode === "text" || mode === "both") && (
+                      <div className="relative">
+                        {renderTextWithTheme(util.label, {
+                          ...el.props,
+                          variant: "solid",
+                          effect: el.props.utilityEffect,
+                          color: el.props.utilityColor,
+                          size: (el.props.utilitySize || 18) * 0.7,
+                          font: el.props.utilityFont
+                        }, "utility", `${el.id}-${util.id}-txt`, false)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -256,19 +326,29 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
               
               {/* Renderizado Específico según Tipo */}
               <div className="w-full my-8">
-                {el.type === "product-grid" && (
-                  <>
-                    <style>{`
-                      .scrollbar-glass::-webkit-scrollbar { height: 8px; }
-                      .scrollbar-glass::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
-                      .scrollbar-glass::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); border-radius: 10px; border: 2px solid rgba(255,255,255,0.1); }
-                      .scrollbar-neon::-webkit-scrollbar { height: 8px; }
-                      .scrollbar-neon::-webkit-scrollbar-track { background: #000; }
-                      .scrollbar-neon::-webkit-scrollbar-thumb { background: #00f2ff; border-radius: 0px; box-shadow: 0 0 10px #00f2ff; }
-                      .scrollbar-minimal::-webkit-scrollbar { height: 4px; }
-                      .scrollbar-minimal::-webkit-scrollbar-track { background: transparent; }
-                      .scrollbar-minimal::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 20px; }
-                    `}</style>
+                                {el.type === "product-grid" && (
+                                  <>
+                                    <style>{`
+                                      @keyframes aurora-text {
+                                        0% { background-position: 0% 50%; }
+                                        50% { background-position: 100% 50%; }
+                                        100% { background-position: 0% 50%; }
+                                      }
+                                      .animate-aurora-text {
+                                        animation: aurora-text 5s linear infinite;
+                                      }
+                                      .scrollbar-glass::-webkit-scrollbar { height: 8px; }
+                                      .scrollbar-glass::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
+                                      .scrollbar-glass::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); border-radius: 10px; border: 2px solid rgba(255,255,255,0.1); }
+                                      
+                                      .scrollbar-neon::-webkit-scrollbar { height: 8px; }
+                                      .scrollbar-neon::-webkit-scrollbar-track { background: #000; }
+                                      .scrollbar-neon::-webkit-scrollbar-thumb { background: #00f2ff; border-radius: 0px; box-shadow: 0 0 10px #00f2ff; }
+                                      
+                                      .scrollbar-minimal::-webkit-scrollbar { height: 4px; }
+                                      .scrollbar-minimal::-webkit-scrollbar-track { background: transparent; }
+                                      .scrollbar-minimal::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 20px; }
+                                    `}</style>
                     <div 
                       className={cn(
                         "w-full transition-all duration-500", 

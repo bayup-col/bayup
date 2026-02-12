@@ -216,7 +216,18 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                             menuSize: 10, menuVariant: "solid", menuEffect: "none",
                             menuAurora1: "#00f2ff", menuAurora2: "#7000ff", menuPosX: 0,
                             menuGap: 32,
-                            utilityColor: "#6b7280", bgColor: "#ffffff", 
+                            utilityColor: "#6b7280", 
+                            utilityFont: "font-black",
+                            utilitySize: 18,
+                            utilityVariant: "solid",
+                            utilityEffect: "none",
+                            utilityDisplayMode: "icon", // icon, text, both
+                            utilityAurora1: "#00f2ff",
+                            utilityAurora2: "#7000ff",
+                            utilityPosX: 0,
+                            utilityGap: 16,
+                            extraUtilities: [], // Para guardar iconos personalizados
+                            bgColor: "#ffffff", 
                             menuItems: [{ label: "Inicio", url: "/" }, { label: "Tienda", url: "/tienda" }, { label: "Sobre Nosotros", url: "/nosotros" }], 
                             utilityType: "icon", showCart: true, showUser: true, showSearch: true 
                           } :              type === "text" ? { 
