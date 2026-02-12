@@ -8,7 +8,8 @@ import {
   AlignLeft, AlignCenter, AlignRight, Bold, Italic, 
   Settings2, Sparkles, Layout, ChevronDown, Check, Upload,
   ShoppingBag, MousePointer2, Play, Link as LinkIcon, Plus as PlusIcon, Trash2,
-  Zap, Star, Flame, Wind, Wand2, MonitorPlay, Maximize, RotateCw
+  Zap, Star, Flame, Wind, Wand2, MonitorPlay, Maximize, RotateCw,
+  User, ShoppingCart, Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { v4 as uuidv4 } from "uuid";
@@ -306,18 +307,132 @@ export const DesignerInspector = () => {
         
         {activeTab === "content" && (
           <div className="space-y-4">
-            {sectionKey === "header" && element.type === "navbar" && (
+            {sectionKey === "header" && (
               <>
-                <ControlGroup title="Identidad Visual" icon={ImageIcon} defaultOpen={true}>
-                  <div className="space-y-4">
-                    <div onClick={() => triggerUpload("logoUrl")} className="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center cursor-pointer hover:border-blue-400 relative">
-                      {element.props.logoUrl ? <div className="relative h-12 mx-auto"><img src={element.props.logoUrl} className="h-full object-contain" /><button onClick={(e) => { e.stopPropagation(); handleChange("logoUrl", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md border-2 border-white"><X size={10}/></button></div> : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR LOGO</p>}
+                {/* BARRA DE ANUNCIOS */}
+                {element.type === "announcement-bar" && (
+                  <ControlGroup title="Mensajes de la Barra" icon={Type} defaultOpen={true}>
+                    <div className="space-y-3">
+                      {(element.props.messages || []).map((msg: string, idx: number) => (
+                        <div key={idx} className="flex gap-2">
+                          <input 
+                            type="text" 
+                            value={msg} 
+                            onChange={(e) => {
+                              const newMsgs = [...element.props.messages];
+                              newMsgs[idx] = e.target.value;
+                              handleChange("messages", newMsgs);
+                            }} 
+                            className="flex-1 p-2 border rounded-lg text-[10px] font-bold" 
+                          />
+                          <button onClick={() => handleChange("messages", element.props.messages.filter((_:any, i:number) => i !== idx))} className="text-red-400 p-1"><X size={14}/></button>
+                        </div>
+                      ))}
+                      <button onClick={() => handleChange("messages", [...(element.props.messages || []), "¡NUEVO MENSAJE!"])} className="w-full py-2 border-2 border-dashed rounded-lg text-[9px] font-black text-gray-400 uppercase">+ Añadir Mensaje</button>
                     </div>
-                    <input type="text" value={element.props.logoText || ""} onChange={(e) => handleChange("logoText", e.target.value)} className="w-full p-3 border rounded-xl text-xs font-bold bg-gray-50/30" placeholder="Nombre de Tienda..." />
-                    <FluidSlider label="Escala Logo" value={element.props.logoSize || 24} min={12} max={120} onChange={(val:number) => handleChange("logoSize", val)} />
-                  </div>
-                </ControlGroup>
-                <ControlGroup title="Menú de Navegación" icon={Layout}><div className="space-y-3">{(element.props.menuItems || []).map((item: any, idx: number) => (<div key={idx} className="flex gap-2"><input type="text" value={item.label} onChange={(e) => { const newItems = [...element.props.menuItems]; newItems[idx].label = e.target.value; handleChange("menuItems", newItems); }} className="flex-1 p-2 border rounded-lg text-[10px] font-bold" /><button onClick={() => handleChange("menuItems", element.props.menuItems.filter((_:any, i:number) => i !== idx))} className="text-red-400"><Trash2 size={14}/></button></div>))}<button onClick={() => handleChange("menuItems", [...(element.props.menuItems || []), { label: "NUEVO", url: "/" }])} className="w-full py-2 border-2 border-dashed rounded-lg text-[9px] font-black text-gray-400">+ AÑADIR LINK</button></div></ControlGroup>
+                  </ControlGroup>
+                )}
+
+                {/* NAVEGACIÓN (NAVBAR) */}
+                {element.type === "navbar" && (
+                  <>
+                    {/* MENÚ 1: LOGOTIPO */}
+                    <ControlGroup title="1. Identidad (Logo)" icon={ImageIcon} defaultOpen={true}>
+                      <div className="space-y-4">
+                        <div onClick={() => triggerUpload("logoUrl")} className="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center cursor-pointer hover:border-blue-400 relative">
+                          {element.props.logoUrl ? <div className="relative h-12 mx-auto"><img src={element.props.logoUrl} className="h-full object-contain" alt="Logo" /><button onClick={(e) => { e.stopPropagation(); handleChange("logoUrl", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md border-2 border-white"><X size={10}/></button></div> : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR LOGO</p>}
+                        </div>
+                        
+                        <div className="space-y-3 pt-2 border-t border-gray-50">
+                          <input type="text" value={element.props.logoText || ""} onChange={(e) => handleChange("logoText", e.target.value)} className="w-full p-3 border rounded-xl text-xs font-bold bg-gray-50/30 uppercase italic" placeholder="Nombre de Tienda..." />
+                          
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={element.props.logoColor || "#2563eb"} onChange={(e) => handleChange("logoColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase font-black">Color</span></div>
+                            <select value={element.props.logoFont || "font-black"} onChange={(e) => handleChange("logoFont", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white"><option value="font-black">Black</option><option value="font-sans">Modern</option><option value="font-serif">Classic</option></select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Tema de Texto</span>
+                            <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                              {["solid", "outline", "3d", "brutalist", "aurora"].map(v => (<button key={v} onClick={() => handleChange("logoVariant", v)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.logoVariant === v || (!element.props.logoVariant && v === "solid")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v}</button>))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Visual</span>
+                            <div className="grid grid-cols-4 gap-1 bg-gray-100 p-1 rounded-lg">
+                              {[{id:"none", l:"Normal"}, {id:"glow", l:"Brillo"}, {id:"neon", l:"Neon"}, {id:"fire", l:"Fuego"}, {id:"glass", l:"Glass"}].map(eff => (
+                                <button key={eff.id} onClick={() => handleChange("logoEffect", eff.id)} className={cn("py-1.5 text-[6px] font-black uppercase rounded-md transition-all", (element.props.logoEffect === eff.id || (!element.props.logoEffect && eff.id === "none")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{eff.l}</button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {element.props.logoVariant === "aurora" && (
+                            <div className="grid grid-cols-2 gap-2 p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                              <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-blue-100"><input type="color" value={element.props.logoAurora1 || "#00f2ff"} onChange={(e) => handleChange("logoAurora1", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[6px] font-black text-gray-400">C1</span></div>
+                              <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-blue-100"><input type="color" value={element.props.logoAurora2 || "#7000ff"} onChange={(e) => handleChange("logoAurora2", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[6px] font-black text-gray-400">C2</span></div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-4 pt-2 border-t border-gray-50">
+                          <FluidSlider label="Escala Logo" value={element.props.logoSize || 24} min={12} max={120} onChange={(val:number) => handleChange("logoSize", val)} />
+                          <FluidSlider label="Posición Logo" value={element.props.logoPosX || 0} min={-200} max={200} onChange={(val:number) => handleChange("logoPosX", val)} />
+                        </div>
+                      </div>
+                    </ControlGroup>
+
+                    {/* MENÚ 2: LINKS PRINCIPALES */}
+                    <ControlGroup title="2. Menú Principal" icon={Layout} defaultOpen={false}>
+                      <div className="space-y-3">
+                        {(element.props.menuItems || []).map((item: any, idx: number) => (
+                          <div key={idx} className="p-3 border rounded-xl bg-gray-50/50 space-y-2 relative">
+                            <button onClick={() => handleChange("menuItems", element.props.menuItems.filter((_:any, i:number) => i !== idx))} className="absolute top-2 right-2 text-gray-300 hover:text-red-500"><X size={12}/></button>
+                            <div className="space-y-1">
+                              <span className="text-[8px] font-black text-gray-400 uppercase">Etiqueta</span>
+                              <input type="text" value={item.label} onChange={(e) => { const newItems = [...element.props.menuItems]; newItems[idx].label = e.target.value; handleChange("menuItems", newItems); }} className="w-full p-1.5 border rounded-lg text-[10px] font-bold" />
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[8px] font-black text-gray-400 uppercase">Enlace (URL)</span>
+                              <input type="text" value={item.url} onChange={(e) => { const newItems = [...element.props.menuItems]; newItems[idx].url = e.target.value; handleChange("menuItems", newItems); }} className="w-full p-1.5 border rounded-lg text-[9px] font-mono text-blue-600" />
+                            </div>
+                          </div>
+                        ))}
+                        <button onClick={() => handleChange("menuItems", [...(element.props.menuItems || []), { label: "NUEVO", url: "/" }])} className="w-full py-2 border-2 border-dashed rounded-lg text-[9px] font-black text-gray-400 uppercase">+ Añadir Enlace</button>
+                      </div>
+                    </ControlGroup>
+
+                    {/* MENÚ 3: ICONOS DE ACCESO */}
+                    <ControlGroup title="3. Iconos de Acceso" icon={MousePointer2} defaultOpen={false}>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-2">
+                          <button onClick={() => handleChange("showUser", !element.props.showUser)} className={cn("flex items-center justify-between px-4 py-3 border rounded-xl text-[10px] font-black uppercase transition-all", element.props.showUser ? "bg-blue-50 text-blue-600 border-blue-200" : "bg-white text-gray-400 border-gray-100")}>
+                            <div className="flex items-center gap-2"><User size={14}/><span>Inicio Sesión</span></div>
+                            <span>{element.props.showUser ? "ON" : "OFF"}</span>
+                          </button>
+                          <button onClick={() => handleChange("showCart", !element.props.showCart)} className={cn("flex items-center justify-between px-4 py-3 border rounded-xl text-[10px] font-black uppercase transition-all", element.props.showCart ? "bg-blue-50 text-blue-600 border-blue-200" : "bg-white text-gray-400 border-gray-100")}>
+                            <div className="flex items-center gap-2"><ShoppingCart size={14}/><span>Carrito</span></div>
+                            <span>{element.props.showCart ? "ON" : "OFF"}</span>
+                          </button>
+                          <button onClick={() => handleChange("showSearch", !element.props.showSearch)} className={cn("flex items-center justify-between px-4 py-3 border rounded-xl text-[10px] font-black uppercase transition-all", element.props.showSearch ? "bg-blue-50 text-blue-600 border-blue-200" : "bg-white text-gray-400 border-gray-100")}>
+                            <div className="flex items-center gap-2"><Search size={14}/><span>Búsqueda</span></div>
+                            <span>{element.props.showSearch ? "ON" : "OFF"}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </ControlGroup>
+                  </>
+                )}
+
+                {/* TEXTO SIMPLE EN HEADER */}
+                {element.type === "text" && (
+                  renderModularTextDesigner(element.props, (p) => updateElement(sectionKey, selectedElementId, p), "Etiqueta de Inicio")
+                )}
+
+                {/* BOTÓN SIMPLE EN HEADER */}
+                {element.type === "button" && (
+                  renderModularButtonDesigner(element.props, (p) => updateElement(sectionKey, selectedElementId, p), "Botón de Acción Rápida")
+                )}
               </>
             )}
 
@@ -372,6 +487,31 @@ export const DesignerInspector = () => {
         {/* --- PESTAÑAS DISEÑO Y EFECTOS --- */}
         {activeTab === "style" && (
           <div className="space-y-4">
+            {sectionKey === "header" && (
+              <>
+                <ControlGroup title="Apariencia de Sección" icon={Palette} defaultOpen={true}>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white h-[38px]"><input type="color" value={element.props.bgColor || "#ffffff"} onChange={(e) => handleChange("bgColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase font-black">Fondo de Sección</span></div>
+                    {element.type === "announcement-bar" && (
+                      <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white h-[38px]"><input type="color" value={element.props.textColor || "#ffffff"} onChange={(e) => handleChange("textColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase font-black">Color del Texto</span></div>
+                    )}
+                    {element.type === "navbar" && (
+                      <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white h-[38px]"><input type="color" value={element.props.menuColor || "#4b5563"} onChange={(e) => handleChange("menuColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase font-black">Color de Menú</span></div>
+                    )}
+                  </div>
+                </ControlGroup>
+                
+                <ControlGroup title="Estructura y Tamaño" icon={Move}>
+                  <div className="space-y-6">
+                    <FluidSlider label="Altura" value={element.props.height || (element.type === 'navbar' ? element.props.navHeight : 40) || 40} min={20} max={200} onChange={(v:number) => handleChange(element.type === 'navbar' ? 'navHeight' : 'height', v)} />
+                    {element.type === "announcement-bar" && (
+                      <FluidSlider label="Tamaño Letra" value={element.props.fontSize || 11} min={8} max={20} onChange={(v:number) => handleChange("fontSize", v)} />
+                    )}
+                  </div>
+                </ControlGroup>
+              </>
+            )}
+
             {sectionKey === "body" && (
               <ControlGroup title="Multimedia de Fondo" icon={ImageIcon} defaultOpen={true}>
                 <div className="space-y-4">

@@ -195,7 +195,45 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
       {selectedElementId === el.id && <div className="absolute -top-10 left-0 bg-blue-500 text-white flex items-center gap-2 px-2 py-1 rounded-t-lg shadow-md z-30"><GripVertical size={12} className="text-blue-200" /><span className="text-[10px] font-bold uppercase tracking-wider">{el.type}</span><button onMouseDown={(e) => { e.stopPropagation(); removeElement(section, el.id); }} className="ml-2 hover:text-red-200"><Trash2 size={12} /></button></div>}
       
       <div className={cn("p-2 pointer-events-none", el.type === "announcement-bar" && "p-0")}>
-        {el.type === "navbar" && <div className={cn("flex items-center px-6 shadow-sm rounded-xl border border-gray-100 overflow-hidden")} style={{ height: `${el.props.navHeight || 80}px`, backgroundColor: el.props.bgColor || "#ffffff" }}><div className={cn("flex items-center gap-2 shrink-0", el.props.logoFont || "font-black italic")} style={{ fontSize: `${el.props.logoSize || 20}px` }}>{el.props.logoUrl ? <img src={el.props.logoUrl} className="object-contain" style={{ height: `${el.props.logoSize || 24}px` }} /> : <span style={{ color: el.props.logoColor || "#2563eb" }}>{el.props.logoText || "LOGO"}</span>}</div><nav className="hidden md:flex items-center gap-8 ml-auto">{(el.props.menuItems || []).map((item: any, idx: number) => <span key={idx} className="text-[10px] font-black uppercase tracking-widest cursor-pointer hover:opacity-70 transition-opacity" style={{ color: el.props.menuColor || "#4b5563" }}>{item.label || item}</span>)}</nav></div>}
+        {el.type === "navbar" && (
+          <div className={cn("flex items-center px-6 shadow-sm rounded-xl border border-gray-100 overflow-hidden")} style={{ height: `${el.props.navHeight || 80}px`, backgroundColor: el.props.bgColor || "#ffffff" }}>
+            <div 
+              className="flex items-center gap-2 shrink-0 transition-all duration-300" 
+              style={{ transform: `translateX(${el.props.logoPosX || 0}px)` }}
+            >
+              {el.props.logoUrl ? (
+                <img src={el.props.logoUrl} className="object-contain" style={{ height: `${el.props.logoSize || 24}px` }} alt="Logo" />
+              ) : (
+                <div className="relative">
+                  {renderTextWithTheme(el.props.logoText || "LOGO", { 
+                    ...el.props, 
+                    variant: el.props.logoVariant, 
+                    effect: el.props.logoEffect,
+                    color: el.props.logoColor,
+                    size: el.props.logoSize,
+                    font: el.props.logoFont,
+                    aurora1: el.props.logoAurora1,
+                    aurora2: el.props.logoAurora2
+                  }, "logo", el.id, false)}
+                </div>
+              )}
+            </div>
+            
+            <nav className="hidden md:flex items-center gap-8 ml-auto">
+              {(el.props.menuItems || []).map((item: any, idx: number) => (
+                <span key={idx} className="text-[10px] font-black uppercase tracking-widest cursor-pointer hover:opacity-70 transition-opacity" style={{ color: el.props.menuColor || "#4b5563" }}>
+                  {item.label || item}
+                </span>
+              ))}
+            </nav>
+
+            <div className="flex items-center gap-4 ml-8 border-l border-gray-100 pl-8">
+              {el.props.showSearch && <Search size={18} style={{ color: el.props.menuColor || "#4b5563" }} className="cursor-pointer opacity-60 hover:opacity-100 transition-opacity" />}
+              {el.props.showUser && <User size={18} style={{ color: el.props.menuColor || "#4b5563" }} className="cursor-pointer opacity-60 hover:opacity-100 transition-opacity" />}
+              {el.props.showCart && <ShoppingCart size={18} style={{ color: el.props.menuColor || "#4b5563" }} className="cursor-pointer opacity-60 hover:opacity-100 transition-opacity" />}
+            </div>
+          </div>
+        )}
         
         {isBody && (
           <div className={cn("w-full rounded-2xl flex flex-col p-12 overflow-hidden relative shadow-lg transition-all items-center text-center")} style={{ backgroundColor: el.props.bgColor || "#111827", minHeight: `${el.props.height || 400}px`, justifyContent: "center" }}>

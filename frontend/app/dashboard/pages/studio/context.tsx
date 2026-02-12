@@ -207,10 +207,14 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
              type === "announcement-bar" ? { 
                messages: ["¡PROMO DISPONIBLE!"], bgColor: "#004d4d", textColor: "#ffffff", fontSize: 11, align: "center", fontFamily: "font-black", behavior: "static"
              } :
-             type === "navbar" ? { 
-               logoText: "MI MARCA", logoUrl: null, logoSize: 24, logoAlign: "left", logoOffset: 0, logoFont: "font-sans", logoColor: "#2563eb", navHeight: 80, align: "center", menuColor: "#4b5563", utilityColor: "#6b7280", bgColor: "#ffffff", menuItems: [{ label: "Inicio", url: "/" }], utilityType: "icon", showCart: true, showUser: true 
-             } :
-             type === "text" ? { 
+                          type === "navbar" ? { 
+                            logoText: "BAYUP SHOP", logoUrl: null, logoSize: 24, logoAlign: "left", logoOffset: 0, 
+                            logoFont: "font-black", logoColor: "#2563eb", logoVariant: "solid", logoEffect: "none",
+                            logoAurora1: "#00f2ff", logoAurora2: "#7000ff", logoPosX: 0,
+                            navHeight: 80, align: "center", menuColor: "#4b5563", utilityColor: "#6b7280", bgColor: "#ffffff", 
+                            menuItems: [{ label: "Inicio", url: "/" }, { label: "Tienda", url: "/tienda" }, { label: "Sobre Nosotros", url: "/nosotros" }], 
+                            utilityType: "icon", showCart: true, showUser: true, showSearch: true 
+                          } :              type === "text" ? { 
                content: "Escribe aquí tu mensaje...", fontSize: 24, color: "#1f2937", variant: "solid", intensity: 100, align: "center", fontFamily: "font-sans", textPosX: 0, textPosY: 0, aurora1: "#00f2ff", aurora2: "#7000ff"
              } :
              type === "button" ? {
