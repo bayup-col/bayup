@@ -1048,6 +1048,87 @@ export const DesignerInspector = () => {
                         )}
                       </div>
                     </ControlGroup>
+                    <ControlGroup title="6. Newsletter" icon={Zap} defaultOpen={false}>
+                      <div className="space-y-4">
+                        <button onClick={() => handleChange("showNewsletter", !element.props.showNewsletter)} className={cn("w-full py-3 border rounded-xl text-[10px] font-black uppercase transition-all", element.props.showNewsletter ? "bg-blue-600 text-white shadow-lg shadow-blue-100" : "bg-white text-gray-400 border-gray-100")}>
+                          Módulo Newsletter: {element.props.showNewsletter ? "VISIBLE" : "OCULTO"}
+                        </button>
+
+                        {element.props.showNewsletter && (
+                          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="p-3 bg-gray-50/50 rounded-2xl border border-gray-100 space-y-4">
+                              <div className="space-y-2">
+                                <span className="text-[7px] font-black text-gray-400 uppercase">Título Principal</span>
+                                <input type="text" value={element.props.newsletterTitle || ""} onChange={(e) => handleChange("newsletterTitle", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white" />
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="flex items-center gap-2 p-1 border rounded-lg bg-white"><input type="color" value={element.props.newsletterTitleColor || "#00f2ff"} onChange={(e) => handleChange("newsletterTitleColor", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[8px] text-gray-400 font-bold uppercase">Color</span></div>
+                                  <FluidSlider label="Tamaño" value={element.props.newsletterTitleSize || 10} min={8} max={40} onChange={(val:number) => handleChange("newsletterTitleSize", val)} />
+                                </div>
+                              </div>
+                              <div className="space-y-2 pt-2 border-t border-gray-100">
+                                <span className="text-[7px] font-black text-gray-400 uppercase">Ayuda (Placeholder)</span>
+                                <input type="text" value={element.props.newsletterPlaceholder || ""} onChange={(e) => handleChange("newsletterPlaceholder", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white" />
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="flex items-center gap-2 p-1 border rounded-lg bg-white"><input type="color" value={element.props.newsletterPlaceholderColor || "#9ca3af"} onChange={(e) => handleChange("newsletterPlaceholderColor", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[8px] text-gray-400 font-bold uppercase">Color</span></div>
+                                  <FluidSlider label="Tamaño" value={element.props.newsletterPlaceholderSize || 12} min={8} max={24} onChange={(val:number) => handleChange("newsletterPlaceholderSize", val)} />
+                                </div>
+                              </div>
+                              <div className="space-y-2 pt-2 border-t border-gray-100">
+                                <span className="text-[7px] font-black text-gray-400 uppercase">Subtexto Final</span>
+                                <input type="text" value={element.props.newsletterSubtext || ""} onChange={(e) => handleChange("newsletterSubtext", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white" />
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="flex items-center gap-2 p-1 border rounded-lg bg-white"><input type="color" value={element.props.newsletterSubColor || "#ffffff"} onChange={(e) => handleChange("newsletterSubColor", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[8px] text-gray-400 font-bold uppercase">Color</span></div>
+                                  <FluidSlider label="Tamaño" value={element.props.newsletterSubSize || 9} min={7} max={20} onChange={(val:number) => handleChange("newsletterSubSize", val)} />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-4 pt-4 border-t border-gray-100">
+                              <span className="text-[8px] font-black text-gray-400 uppercase">Dimensiones y Posición</span>
+                              <FluidSlider label="Ancho Módulo (%)" value={element.props.newsletterContainerWidth || 100} min={30} max={300} onChange={(v:number) => handleChange("newsletterContainerWidth", v)} suffix="%" />
+                              <div className="grid grid-cols-2 gap-3">
+                                <FluidSlider label="Ancho Barra (%)" value={element.props.newsletterInputWidth || 100} min={50} max={100} onChange={(v:number) => handleChange("newsletterInputWidth", v)} suffix="%" />
+                                <FluidSlider label="Altura Barra (px)" value={element.props.newsletterInputHeight || 50} min={30} max={120} onChange={(v:number) => handleChange("newsletterInputHeight", v)} suffix="px" />
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <FluidSlider label="Posición X" value={element.props.newsletterPosX || 0} min={-300} max={300} onChange={(v:number) => handleChange("newsletterPosX", v)} />
+                                <FluidSlider label="Posición Y" value={element.props.newsletterPosY || 0} min={-100} max={100} onChange={(v:number) => handleChange("newsletterPosY", v)} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </ControlGroup>
+
+                    {/* ELEMENTOS MODULARES EXTRA EN FOOTER */}
+                    <div className="space-y-4 pt-4 border-t border-gray-100 mt-8">
+                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 block">Elementos Personalizados</span>
+                      {(element.props.extraElements || []).map((extra: any) => (
+                        <React.Fragment key={extra.id}>
+                          {extra.type === 'text' && renderModularTextDesigner(extra, (p) => handleExtraChange(extra.id, p), "Texto Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
+                          {extra.type === 'button' && renderModularButtonDesigner(extra, (p) => handleExtraChange(extra.id, p), "Botón Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
+                          {(extra.type === 'image' || extra.type === 'video') && renderModularMultimediaDesigner(extra, (p) => handleExtraChange(extra.id, p), "Multimedia Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
+                        </React.Fragment>
+                      ))}
+
+                      <div className="relative">
+                        <button onClick={() => setShowAddMenu(!showAddMenu)} className="w-full py-4 bg-blue-50 border-2 border-dashed border-blue-200 rounded-2xl text-blue-600 font-black text-[10px] uppercase flex items-center justify-center gap-2 hover:bg-blue-100 transition-all shadow-sm">
+                          <PlusIcon size={14} /> Agregar Otro Elemento
+                        </button>
+                        <AnimatePresence>
+                          {showAddMenu && (
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 w-full bg-white border border-gray-100 shadow-2xl rounded-2xl p-2 z-50 mb-2 grid grid-cols-3 gap-2">
+                              {[{id:'text', l:'Texto', i:Type}, {id:'button', l:'Botón', i:MousePointer2}, {id:'image', l:'Imagen', i:ImageIcon}].map(opt => (
+                                <button key={opt.id} onClick={() => { addExtraElement(opt.id as any); setShowAddMenu(false); }} className="flex flex-col items-center gap-2 p-3 hover:bg-blue-50 rounded-xl transition-all">
+                                  <div className="p-2 bg-blue-500 text-white rounded-lg shadow-sm"><opt.i size={16}/></div>
+                                  <span className="text-[9px] font-black uppercase text-gray-600">{opt.l}</span>
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
                   </>
                 )}
               </>

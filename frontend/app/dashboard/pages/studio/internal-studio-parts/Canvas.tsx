@@ -111,8 +111,10 @@ const InsertionPoint = ({ section, index }: { section: SectionType, index: numbe
 
 const renderButton = (btnProps: any, prefix: string = "", extraId: string = "") => {
   const get = (key: string, fallback: any) => {
+    // Si es un elemento extra, priorizamos la propiedad directa
+    if (prefix === "extra" && btnProps[key] !== undefined) return btnProps[key];
     const fullKey = prefix ? `${prefix}${key.charAt(0).toUpperCase() + key.slice(1)}` : key;
-    return btnProps[fullKey] !== undefined ? btnProps[fullKey] : fallback;
+    return btnProps[fullKey] !== undefined ? btnProps[fullKey] : btnProps[key] !== undefined ? btnProps[key] : fallback;
   };
   
   const variant = get("variant", prefix === "secondaryBtn" ? "glass" : "solid");
@@ -149,8 +151,10 @@ const renderButton = (btnProps: any, prefix: string = "", extraId: string = "") 
 
 const renderTextWithTheme = (text: any, props: any, prefix: string = "", extraId: string = "", isBody = true) => {
   const get = (key: string, fallback: any) => {
+    // Si es un elemento extra, priorizamos la propiedad directa
+    if (prefix === "extra" && props[key] !== undefined) return props[key];
     const fullKey = prefix ? `${prefix}${key.charAt(0).toUpperCase() + key.slice(1)}` : key;
-    return props[fullKey] !== undefined ? props[fullKey] : fallback;
+    return props[fullKey] !== undefined ? props[fullKey] : props[key] !== undefined ? props[key] : fallback;
   };
 
   const variant = get("variant", "solid");
@@ -308,10 +312,10 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
 
         {/* FOOTER PREMIUM */}
         {section === "footer" && el.type === "footer-premium" && (
-          <div className="w-full py-16 px-12 rounded-[3rem] shadow-2xl transition-all" style={{ backgroundColor: el.props.bgColor || "#111827", color: el.props.textColor || "#ffffff" }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+          <div className="w-full py-16 px-12 rounded-[3rem] shadow-2xl transition-all relative" style={{ backgroundColor: el.props.bgColor || "#111827", color: el.props.textColor || "#ffffff" }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 relative z-10">
               {/* COL 1: Identidad */}
-              <div className="space-y-6">
+              <div className="space-y-6 flex flex-col items-center text-center">
                 <div 
                   className="transition-all duration-300 relative" 
                   style={{ transform: `translate(${el.props.footerLogoPosX || 0}px, ${el.props.footerLogoPosY || 0}px)` }}
@@ -341,7 +345,7 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
                     variant: el.props.footerDescVariant,
                     effect: el.props.footerDescEffect,
                     color: el.props.footerDescColor,
-                    size: el.props.footerDescSize,
+                    size: el.props.footerDescSize || 12,
                     font: el.props.footerDescFont,
                     aurora1: el.props.footerDescAurora1,
                     aurora2: el.props.footerDescAurora2
@@ -349,22 +353,10 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
                 </div>
 
                 {el.props.showSocial && (
-                  <div className="flex flex-wrap gap-4 pt-4">
+                  <div className="flex gap-4 pt-4 justify-center">
                     {(el.props.socialLinks || []).map((s: any) => (
-                      <div key={s.id} className="group flex flex-col items-center gap-1.5 cursor-pointer">
-                        <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all overflow-hidden">
-                          {s.iconUrl ? (
-                            <img src={s.iconUrl} className="h-full w-full object-cover" alt="" />
-                          ) : (
-                            <span className="text-[10px] font-black uppercase">
-                              {s.platform === 'facebook' ? <Globe size={18}/> : 
-                               s.platform === 'instagram' ? <ImageIcon size={18}/> : 
-                               s.platform === 'whatsapp' ? <MessageSquare size={18}/> : 
-                               s.platform === 'tiktok' ? <Play size={18}/> : s.label.charAt(0)}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[7px] font-black uppercase text-white/40 group-hover:text-white transition-colors">{s.label}</span>
+                      <div key={s.platform} className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all cursor-pointer">
+                        <span className="text-[10px] font-black uppercase">{s.platform?.charAt(0) || "S"}</span>
                       </div>
                     ))}
                   </div>
@@ -412,8 +404,12 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
 
               {/* COL 4: Newsletter */}
               <div 
-                className="space-y-6 transition-all duration-300 relative"
-                style={{ transform: `translate(${el.props.newsletterPosX || 0}px, ${el.props.newsletterPosY || 0}px)` }}
+                className="space-y-6 transition-all duration-300 relative flex-1 min-w-[300px]"
+                style={{ 
+                  transform: `translate(${el.props.newsletterPosX || 0}px, ${el.props.newsletterPosY || 0}px)`,
+                  width: `${el.props.newsletterContainerWidth || 100}%`,
+                  maxWidth: 'none'
+                }}
               >
                 {el.props.showNewsletter && (
                   <div className="space-y-6">
@@ -431,22 +427,60 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
                     </div>
                     
                     <div className="space-y-4">
-                      <div className="relative">
+                      <div 
+                        className="relative transition-all duration-300 flex items-center"
+                        style={{ 
+                          width: `${el.props.newsletterInputWidth || 100}%`,
+                          height: `${el.props.newsletterInputHeight || 50}px`
+                        }}
+                      >
                         <input 
                           type="text" 
                           placeholder={el.props.newsletterPlaceholder}
-                          className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-white/30 transition-all"
+                          style={{ 
+                            height: '100%', 
+                            color: el.props.newsletterPlaceholderColor || '#9ca3af',
+                            fontSize: `${el.props.newsletterPlaceholderSize || 12}px`
+                          }}
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 font-bold outline-none focus:border-white/30 transition-all"
                         />
-                        <button className="absolute right-2 top-2 h-10 w-10 rounded-xl flex items-center justify-center transition-all" style={{ backgroundColor: el.props.accentColor || "#00f2ff", color: "#000" }}>
-                          <PlusIcon size={18} />
+                        <button 
+                          className="absolute right-2 rounded-xl flex items-center justify-center transition-all" 
+                          style={{ 
+                            backgroundColor: el.props.accentColor || "#00f2ff", 
+                            color: "#000",
+                            height: `${Math.max(24, (el.props.newsletterInputHeight || 50) - 12)}px`,
+                            width: `${Math.max(24, (el.props.newsletterInputHeight || 50) - 12)}px`
+                          }}
+                        >
+                          {el.props.newsletterIcon === "Send" ? <LogIn size={18} /> : <PlusIcon size={18} />}
                         </button>
                       </div>
-                      <p className="text-[9px] opacity-40 italic">Únete a nuestra comunidad exclusiva.</p>
+                      
+                      <div className="italic transition-all">
+                        {renderTextWithTheme(el.props.newsletterSubtext || "Únete a nuestra comunidad exclusiva.", {
+                          ...el.props,
+                          newsletterSubVariant: "solid",
+                        }, "newsletterSub", el.id, false)}
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
             </div>
+
+            {/* ELEMENTOS MODULARES EXTRA EN FOOTER */}
+            {(el.props.extraElements || []).length > 0 && (
+              <div className="mt-16 flex flex-wrap justify-center gap-12 border-t border-white/5 pt-12 relative z-30">
+                {(el.props.extraElements || []).map((extra: any) => (
+                  <div key={extra.id} className="relative">
+                    {extra.type === 'text' && renderTextWithTheme(extra.content, extra, "extra", extra.id)}
+                    {extra.type === 'button' && renderButton(extra, "extra", extra.id)}
+                    {(extra.type === 'image' || extra.type === 'video') && renderFloatingElement(extra)}
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 relative">
               <div 
@@ -783,14 +817,14 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
               </div>
 
               {/* Elementos Extra */}
-              {(el.props.extraElements || []).filter((it:any) => it.type === 'text').map((it:any) => renderTextWithTheme(it.content, it, "", it.id, true))}
+              {(el.props.extraElements || []).filter((it:any) => it.type === 'text').map((it:any) => renderTextWithTheme(it.content, it, "extra", it.id, true))}
               {(el.props.extraElements || []).filter((it:any) => it.type === 'image' || it.type === 'video').map((it:any) => renderFloatingElement(it))}
               
               {/* Botones */}
               <div className="flex gap-4 flex-wrap justify-center mt-6">
                 {el.props.primaryBtnText && renderButton(el.props, "primaryBtn")}
                 {el.props.secondaryBtnText && renderButton(el.props, "secondaryBtn")}
-                {(el.props.extraElements || []).filter((it:any) => it.type === 'button').map((it:any) => renderButton(it, "", it.id))}
+                {(el.props.extraElements || []).filter((it:any) => it.type === 'button').map((it:any) => renderButton(it, "extra", it.id))}
               </div>
             </div>
 
