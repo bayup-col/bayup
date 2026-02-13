@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { useStudio, SectionType } from "../context";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Trash2, Plus as PlusIcon, GripVertical, ShoppingBag, ShoppingCart, User, UserCircle, LogIn, Image as ImageIcon, Heart, Bell, Star, MessageSquare, Phone, Info, Search, HelpCircle, X, Monitor } from "lucide-react";
+import { Trash2, Plus as PlusIcon, GripVertical, ShoppingBag, ShoppingCart, User, UserCircle, LogIn, Image as ImageIcon, Heart, Bell, Star, MessageSquare, Phone, Info, Search, HelpCircle, X, Monitor, Globe, Play } from "lucide-react";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
 
 // --- HELPERS ESTABLES ---
@@ -349,10 +349,22 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
                 </div>
 
                 {el.props.showSocial && (
-                  <div className="flex gap-4 pt-4">
+                  <div className="flex flex-wrap gap-4 pt-4">
                     {(el.props.socialLinks || []).map((s: any) => (
-                      <div key={s.platform} className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all cursor-pointer">
-                        <span className="text-[10px] font-black uppercase">{s.platform.charAt(0)}</span>
+                      <div key={s.id} className="group flex flex-col items-center gap-1.5 cursor-pointer">
+                        <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all overflow-hidden">
+                          {s.iconUrl ? (
+                            <img src={s.iconUrl} className="h-full w-full object-cover" alt="" />
+                          ) : (
+                            <span className="text-[10px] font-black uppercase">
+                              {s.platform === 'facebook' ? <Globe size={18}/> : 
+                               s.platform === 'instagram' ? <ImageIcon size={18}/> : 
+                               s.platform === 'whatsapp' ? <MessageSquare size={18}/> : 
+                               s.platform === 'tiktok' ? <Play size={18}/> : s.label.charAt(0)}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[7px] font-black uppercase text-white/40 group-hover:text-white transition-colors">{s.label}</span>
                       </div>
                     ))}
                   </div>
@@ -400,12 +412,8 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
 
               {/* COL 4: Newsletter */}
               <div 
-                className="space-y-6 transition-all duration-300 relative flex-1 min-w-[300px]"
-                style={{ 
-                  transform: `translate(${el.props.newsletterPosX || 0}px, ${el.props.newsletterPosY || 0}px)`,
-                  width: `${el.props.newsletterContainerWidth || 100}%`,
-                  maxWidth: 'none'
-                }}
+                className="space-y-6 transition-all duration-300 relative"
+                style={{ transform: `translate(${el.props.newsletterPosX || 0}px, ${el.props.newsletterPosY || 0}px)` }}
               >
                 {el.props.showNewsletter && (
                   <div className="space-y-6">
@@ -423,43 +431,17 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
                     </div>
                     
                     <div className="space-y-4">
-                      <div 
-                        className="relative transition-all duration-300 flex items-center"
-                        style={{ 
-                          width: `${el.props.newsletterInputWidth || 100}%`,
-                          height: `${el.props.newsletterInputHeight || 50}px`
-                        }}
-                      >
+                      <div className="relative">
                         <input 
                           type="text" 
                           placeholder={el.props.newsletterPlaceholder}
-                          style={{ 
-                            height: '100%', 
-                            color: el.props.newsletterPlaceholderColor || '#9ca3af',
-                            fontSize: `${el.props.newsletterPlaceholderSize || 12}px`
-                          }}
-                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 font-bold outline-none focus:border-white/30 transition-all"
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-white/30 transition-all"
                         />
-                        <button 
-                          className="absolute right-2 rounded-xl flex items-center justify-center transition-all" 
-                          style={{ 
-                            backgroundColor: el.props.accentColor || "#00f2ff", 
-                            color: "#000",
-                            height: `${Math.max(24, (el.props.newsletterInputHeight || 50) - 12)}px`,
-                            width: `${Math.max(24, (el.props.newsletterInputHeight || 50) - 12)}px`
-                          }}
-                        >
-                          {el.props.newsletterIcon === "Send" ? <LogIn size={18} /> : <PlusIcon size={18} />}
+                        <button className="absolute right-2 top-2 h-10 w-10 rounded-xl flex items-center justify-center transition-all" style={{ backgroundColor: el.props.accentColor || "#00f2ff", color: "#000" }}>
+                          <PlusIcon size={18} />
                         </button>
                       </div>
-                      
-                      <div className="italic transition-all">
-                        {renderTextWithTheme(el.props.newsletterSubtext || "Únete a nuestra comunidad exclusiva.", {
-                          ...el.props,
-                          newsletterSubVariant: "solid",
-                          // El helper buscará newsletterSubColor y newsletterSubSize automáticamente de el.props
-                        }, "newsletterSub", el.id, false)}
-                      </div>
+                      <p className="text-[9px] opacity-40 italic">Únete a nuestra comunidad exclusiva.</p>
                     </div>
                   </div>
                 )}

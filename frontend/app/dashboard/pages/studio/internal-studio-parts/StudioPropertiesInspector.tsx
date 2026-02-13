@@ -132,20 +132,26 @@ export const DesignerInspector = () => {
       const keyToUpdate = uploadTarget.key;
       
       if (uploadTarget.id) {
-        // --- CORRECCIÓN QUIRÚRGICA PARA ELEMENTOS EXTRA ---
-        const newList = (element.props.extraElements || []).map((item: any) => {
-          if (item.id === uploadTarget.id) {
-            // Actualizamos la URL y el tipo dinámicamente
-            return { 
-              ...item, 
-              [keyToUpdate]: url, 
-              url: url, // Aseguramos que 'url' siempre tenga el valor
-              type: isVideo ? 'video' : 'image' 
-            };
-          }
-          return item;
-        });
-        handleChange("extraElements", newList);
+        // Lógica para Elementos Extra (Banner/Video)
+        const isExtra = (element.props.extraElements || []).some((it: any) => it.id === uploadTarget.id);
+        if (isExtra) {
+          const newList = (element.props.extraElements || []).map((item: any) => {
+            if (item.id === uploadTarget.id) {
+              return { ...item, [keyToUpdate]: url, url: url, type: isVideo ? 'video' : 'image' };
+            }
+            return item;
+          });
+          handleChange("extraElements", newList);
+        } else {
+          // Lógica para Redes Sociales del Footer
+          const newList = (element.props.socialLinks || []).map((item: any) => {
+            if (item.id === uploadTarget.id) {
+              return { ...item, [keyToUpdate]: url };
+            }
+            return item;
+          });
+          handleChange("socialLinks", newList);
+        }
       } else {
         // Lógica para elementos principales (Fondo o Complemento)
         if (keyToUpdate === "floatUrl") {
@@ -616,6 +622,58 @@ export const DesignerInspector = () => {
                         </div>
                       </div>
                     </ControlGroup>
+
+                    <ControlGroup title="6. Newsletter" icon={Zap} defaultOpen={false}>
+                      <div className="space-y-4">
+                        <button onClick={() => handleChange("showNewsletter", !element.props.showNewsletter)} className={cn("w-full py-3 border rounded-xl text-[10px] font-black uppercase transition-all", element.props.showNewsletter ? "bg-blue-600 text-white shadow-lg" : "bg-white text-gray-400")}>
+                          Módulo Newsletter: {element.props.showNewsletter ? "VISIBLE" : "OCULTO"}
+                        </button>
+
+                        {element.props.showNewsletter && (
+                          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="space-y-2">
+                              <span className="text-[9px] font-black text-gray-400 uppercase">Título del Módulo</span>
+                              <input type="text" value={element.props.newsletterTitle || ""} onChange={(e) => handleChange("newsletterTitle", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white" placeholder="Ej: Suscríbete" />
+                            </div>
+                            <div className="space-y-2">
+                              <span className="text-[9px] font-black text-gray-400 uppercase">Texto de Ayuda (Placeholder)</span>
+                              <input type="text" value={element.props.newsletterPlaceholder || ""} onChange={(e) => handleChange("newsletterPlaceholder", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white" placeholder="Tu mejor email..." />
+                            </div>
+
+                            <div className="space-y-3 pt-2 border-t border-gray-50">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={element.props.newsletterTitleColor || "#00f2ff"} onChange={(e) => handleChange("newsletterTitleColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase font-black">Color</span></div>
+                                <select value={element.props.newsletterTitleFont || "font-black"} onChange={(e) => handleChange("newsletterTitleFont", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white"><option value="font-black">Heavy</option><option value="font-sans">Modern</option></select>
+                              </div>
+
+                              <div className="space-y-2">
+                                <span className="text-[9px] font-black text-gray-400 uppercase">Tema de Texto</span>
+                                <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                                  {["solid", "outline", "3d", "brutalist", "aurora"].map(v => (<button key={v} onClick={() => handleChange("newsletterTitleVariant", v)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", element.props.newsletterTitleVariant === v ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v}</button>))}
+                                </div>
+                              </div>
+
+                              <div className="space-y-2">
+                                <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Visual</span>
+                                <div className="grid grid-cols-4 gap-1 bg-gray-100 p-1 rounded-lg">
+                                  {[{id:"none", l:"Normal"}, {id:"glow", l:"Brillo"}, {id:"neon", l:"Neon"}, {id:"fire", l:"Fuego"}, {id:"glass", l:"Glass"}].map(eff => (
+                                    <button key={eff.id} onClick={() => handleChange("newsletterTitleEffect", eff.id)} className={cn("py-1.5 text-[6px] font-black uppercase rounded-md transition-all", element.props.newsletterTitleEffect === eff.id ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{eff.l}</button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="space-y-4 pt-2 border-t border-gray-100">
+                                <FluidSlider label="Tamaño Título" value={element.props.newsletterTitleSize || 10} min={8} max={32} onChange={(val:number) => handleChange("newsletterTitleSize", val)} />
+                                <div className="grid grid-cols-2 gap-3">
+                                  <FluidSlider label="Posición X" value={element.props.newsletterPosX || 0} min={-200} max={200} onChange={(val:number) => handleChange("newsletterPosX", val)} />
+                                  <FluidSlider label="Posición Y" value={element.props.newsletterPosY || 0} min={-100} max={100} onChange={(val:number) => handleChange("newsletterPosY", val)} />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </ControlGroup>
                   </>
                 )}
 
@@ -928,79 +986,64 @@ export const DesignerInspector = () => {
                       </div>
                     </ControlGroup>
 
-                    <ControlGroup title="3. Redes Sociales" icon={Globe} defaultOpen={false}>
+                    <ControlGroup title="5. Redes Sociales" icon={Globe} defaultOpen={false}>
                       <div className="space-y-4">
-                        <button onClick={() => handleChange("showSocial", !element.props.showSocial)} className={cn("w-full py-3 border rounded-xl text-[10px] font-black uppercase transition-all", element.props.showSocial ? "bg-gray-900 text-white" : "bg-white text-gray-400")}>
-                          Iconos Sociales: {element.props.showSocial ? "ON" : "OFF"}
+                        <button onClick={() => handleChange("showSocial", !element.props.showSocial)} className={cn("w-full py-3 border rounded-xl text-[10px] font-black uppercase transition-all", element.props.showSocial ? "bg-gray-900 text-white shadow-lg shadow-gray-200" : "bg-white text-gray-400 border-gray-100")}>
+                          Iconos Sociales: {element.props.showSocial ? "VISIBLES" : "OCULTOS"}
                         </button>
+                        
                         {element.props.showSocial && (
-                          <div className="grid grid-cols-1 gap-2">
-                            {['facebook', 'instagram', 'whatsapp'].map(plat => (
-                              <div key={plat} className="flex items-center gap-2 p-2 border rounded-xl bg-white">
-                                <span className="text-[10px] font-black uppercase w-20">{plat}</span>
-                                <input type="text" className="flex-1 text-[9px] font-mono text-blue-600 bg-transparent border-none outline-none" placeholder="URL..." />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </ControlGroup>
+                          <div className="space-y-4 animate-in fade-in duration-300">
+                            <div className="grid grid-cols-2 gap-3">
+                              {(element.props.socialLinks || []).map((s: any, idx: number) => (
+                                <div key={s.id} className="p-3 border rounded-2xl bg-white flex flex-col items-center gap-2 shadow-sm relative group">
+                                  <button onClick={() => handleChange("socialLinks", element.props.socialLinks.filter((_:any, i:number) => i !== idx))} className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><X size={10}/></button>
+                                  
+                                  <div onClick={() => triggerUpload("iconUrl", s.id)} className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 cursor-pointer hover:bg-blue-50 transition-colors border border-dashed border-gray-200 overflow-hidden">
+                                    {s.iconUrl ? <img src={s.iconUrl} className="h-full w-full object-cover" alt="" /> : (
+                                      s.platform === 'facebook' ? <Globe size={18}/> : 
+                                      s.platform === 'instagram' ? <ImageIcon size={18}/> : 
+                                      s.platform === 'whatsapp' ? <MessageSquare size={18}/> : 
+                                      s.platform === 'tiktok' ? <Play size={18}/> : <PlusIcon size={18}/>
+                                    )}
+                                  </div>
 
-                    <ControlGroup title="6. Newsletter" icon={Zap} defaultOpen={false}>
-                      <div className="space-y-4">
-                        <button onClick={() => handleChange("showNewsletter", !element.props.showNewsletter)} className={cn("w-full py-3 border rounded-xl text-[10px] font-black uppercase transition-all", element.props.showNewsletter ? "bg-blue-600 text-white shadow-lg" : "bg-white text-gray-400 border-gray-100")}>
-                          Módulo Newsletter: {element.props.showNewsletter ? "VISIBLE" : "OCULTO"}
-                        </button>
-
-                        {element.props.showNewsletter && (
-                          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                            {/* TEXTOS DINÁMICOS */}
-                            <div className="p-3 bg-gray-50/50 rounded-2xl border border-gray-100 space-y-4">
-                              <div className="space-y-2">
-                                <span className="text-[7px] font-black text-gray-400 uppercase">Título</span>
-                                <input type="text" value={element.props.newsletterTitle || ""} onChange={(e) => handleChange("newsletterTitle", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold" />
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div className="flex items-center gap-1 p-1 border rounded-lg bg-white"><input type="color" value={element.props.newsletterTitleColor || "#00f2ff"} onChange={(e) => handleChange("newsletterTitleColor", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[7px] text-gray-400 font-bold uppercase">Color</span></div>
-                                  <FluidSlider label="Tañ." value={element.props.newsletterTitleSize || 10} min={8} max={40} onChange={(v:number) => handleChange("newsletterTitleSize", v)} />
+                                  <input 
+                                    type="text" 
+                                    value={s.label} 
+                                    onChange={(e) => {
+                                      const newList = [...element.props.socialLinks];
+                                      newList[idx].label = e.target.value;
+                                      handleChange("socialLinks", newList);
+                                    }}
+                                    className="w-full text-center text-[8px] font-black uppercase text-gray-900 bg-transparent border-none outline-none" 
+                                    placeholder="Nombre"
+                                  />
+                                  
+                                  <input 
+                                    type="text" 
+                                    value={s.url} 
+                                    onChange={(e) => {
+                                      const newList = [...element.props.socialLinks];
+                                      newList[idx].url = e.target.value;
+                                      handleChange("socialLinks", newList);
+                                    }}
+                                    className="w-full p-1.5 border rounded-md text-[7px] font-mono text-blue-600 bg-gray-50/50 outline-none focus:bg-white transition-all" 
+                                    placeholder="URL..." 
+                                  />
                                 </div>
-                              </div>
-                              <div className="space-y-2 pt-2 border-t border-gray-100">
-                                <span className="text-[7px] font-black text-gray-400 uppercase">Ayuda (Placeholder)</span>
-                                <input type="text" value={element.props.newsletterPlaceholder || ""} onChange={(e) => handleChange("newsletterPlaceholder", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold" />
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div className="flex items-center gap-1 p-1 border rounded-lg bg-white"><input type="color" value={element.props.newsletterPlaceholderColor || "#9ca3af"} onChange={(e) => handleChange("newsletterPlaceholderColor", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[7px] text-gray-400 font-bold uppercase">Color</span></div>
-                                  <FluidSlider label="Tañ." value={element.props.newsletterPlaceholderSize || 12} min={8} max={24} onChange={(v:number) => handleChange("newsletterPlaceholderSize", v)} />
-                                </div>
-                              </div>
-                              <div className="space-y-2 pt-2 border-t border-gray-100">
-                                <span className="text-[7px] font-black text-gray-400 uppercase">Subtexto</span>
-                                <input type="text" value={element.props.newsletterSubtext || ""} onChange={(e) => handleChange("newsletterSubtext", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold" />
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div className="flex items-center gap-1 p-1 border rounded-lg bg-white"><input type="color" value={element.props.newsletterSubColor || "#ffffff"} onChange={(e) => handleChange("newsletterSubColor", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[7px] text-gray-400 font-bold uppercase">Color</span></div>
-                                  <FluidSlider label="Tañ." value={element.props.newsletterSubSize || 9} min={7} max={20} onChange={(v:number) => handleChange("newsletterSubSize", v)} />
-                                </div>
-                              </div>
+                              ))}
                             </div>
-
-                            <div className="space-y-3 pt-2">
-                              <span className="text-[8px] font-black text-gray-400 uppercase">Temas del Título</span>
-                              <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
-                                {["solid", "outline", "3d", "brutalist", "aurora"].map(v => (<button key={v} onClick={() => handleChange("newsletterTitleVariant", v)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", element.props.newsletterTitleVariant === v ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v}</button>))}
-                              </div>
-                            </div>
-
-                            <div className="space-y-4 pt-4 border-t border-gray-100">
-                              <span className="text-[8px] font-black text-gray-400 uppercase">Dimensiones y Posición</span>
-                              <FluidSlider label="Ancho Módulo" value={element.props.newsletterContainerWidth || 100} min={30} max={300} onChange={(v:number) => handleChange("newsletterContainerWidth", v)} suffix="%" />
-                              <div className="grid grid-cols-2 gap-3">
-                                <FluidSlider label="Ancho Barra" value={element.props.newsletterInputWidth || 100} min={50} max={100} onChange={(v:number) => handleChange("newsletterInputWidth", v)} suffix="%" />
-                                <FluidSlider label="Altura Barra" value={element.props.newsletterInputHeight || 50} min={30} max={120} onChange={(v:number) => handleChange("newsletterInputHeight", v)} suffix="px" />
-                              </div>
-                              <div className="grid grid-cols-2 gap-3">
-                                <FluidSlider label="Posición X" value={element.props.newsletterPosX || 0} min={-300} max={300} onChange={(v:number) => handleChange("newsletterPosX", v)} />
-                                <FluidSlider label="Posición Y" value={element.props.newsletterPosY || 0} min={-100} max={100} onChange={(v:number) => handleChange("newsletterPosY", v)} />
-                              </div>
-                            </div>
+                            
+                            <button 
+                              onClick={() => {
+                                const newId = uuidv4();
+                                handleChange("socialLinks", [...(element.props.socialLinks || []), { id: newId, label: 'NUEVA', url: '#', iconType: 'custom' }]);
+                              }}
+                              className="w-full py-3 border-2 border-dashed rounded-xl text-[9px] font-black text-gray-400 uppercase hover:border-blue-300 hover:text-blue-500 transition-all flex items-center justify-center gap-2"
+                            >
+                              <PlusIcon size={14}/> Añadir Red Social
+                            </button>
                           </div>
                         )}
                       </div>

@@ -274,9 +274,10 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                accentColor: "#00f2ff",
                showSocial: true,
                socialLinks: [
-                 { platform: 'instagram', url: '#' },
-                 { platform: 'facebook', url: '#' },
-                 { platform: 'whatsapp', url: '#' }
+                 { id: '1', label: 'Facebook', url: '#', iconType: 'default', platform: 'facebook' },
+                 { id: '2', label: 'Instagram', url: '#', iconType: 'default', platform: 'instagram' },
+                 { id: '3', label: 'WhatsApp', url: '#', iconType: 'default', platform: 'whatsapp' },
+                 { id: '4', label: 'TikTok', url: '#', iconType: 'default', platform: 'tiktok' }
                ],
                menuGroups: [
                  { 
@@ -307,7 +308,6 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                showNewsletter: true,
                newsletterTitle: "Suscripción Pro",
                newsletterPlaceholder: "Tu mejor email...",
-               newsletterSubtext: "Únete a nuestra comunidad exclusiva.",
                newsletterTitleColor: "#00f2ff",
                newsletterTitleFont: "font-black",
                newsletterTitleSize: 10,
@@ -315,15 +315,6 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                newsletterTitleEffect: "none",
                newsletterTitleAurora1: "#00f2ff",
                newsletterTitleAurora2: "#7000ff",
-               newsletterPlaceholderColor: "#9ca3af",
-               newsletterPlaceholderSize: 12,
-               newsletterSubColor: "#ffffff",
-               newsletterSubOpacity: 40,
-               newsletterSubSize: 9,
-               newsletterInputWidth: 100,
-               newsletterInputHeight: 50,
-               newsletterContainerWidth: 100,
-               newsletterIcon: "Plus",
                newsletterPosX: 0,
                newsletterPosY: 0,
                copyright: "© 2026 Bayup Interactive. Todos los derechos reservados."
