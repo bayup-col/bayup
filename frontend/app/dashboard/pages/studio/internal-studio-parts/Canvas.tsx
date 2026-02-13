@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { useStudio, SectionType } from "../context";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Trash2, Plus as PlusIcon, GripVertical, ShoppingBag, ShoppingCart, User, UserCircle, LogIn, Image as ImageIcon, Heart, Bell, Star, MessageSquare, Phone, Info, Search, HelpCircle, X, Monitor, Globe, Play, Zap, Sparkles } from "lucide-react";
+import { Trash2, Plus as PlusIcon, GripVertical, ShoppingBag, ShoppingCart, User, UserCircle, LogIn, Image as ImageIcon, Heart, Bell, Star, MessageSquare, Phone, Info, Search, HelpCircle, X, Monitor, Globe, Play, Zap, Sparkles, Wind } from "lucide-react";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
 
 // --- HELPERS ESTABLES ---
@@ -802,28 +802,61 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
                         gap: `${el.props.gap || 24}px`
                       }}
                     >
-                      {(el.props.cards || []).map((card: any) => (
-                        <motion.div 
-                          key={card.id} 
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex flex-col items-center text-center p-10 bg-white shadow-xl hover:shadow-2xl transition-all border border-gray-100 group relative overflow-hidden"
-                          style={{ borderRadius: `${el.props.borderRadius || 24}px`, backgroundColor: card.bgColor || "#ffffff" }}
-                        >
-                          <div 
-                            className="w-20 h-20 rounded-3xl flex items-center justify-center mb-8 shadow-lg rotate-3 group-hover:rotate-0 transition-transform duration-500"
-                            style={{ backgroundColor: `${card.iconColor}15`, color: card.iconColor }}
-                          >
-                            <Zap size={40} />
-                          </div>
-                          <h3 className="text-2xl font-black uppercase tracking-tight text-gray-900 mb-4">{card.title}</h3>
-                          <p className="text-base text-gray-500 font-medium leading-relaxed">{card.description}</p>
-                          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <Sparkles size={40} style={{ color: card.iconColor }} />
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
+                                    {(el.props.cards || []).map((card: any) => {
+                                      const IconComp = (() => {
+                                        const map: any = { Zap, Star, Heart, Bell, Info, Wind };
+                                        return map[card.icon] || Zap;
+                                      })();
+                                      
+                                      return (
+                                        <motion.div 
+                                          key={card.id} 
+                                          initial={{ opacity: 0, y: 20 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                                              className={cn(
+                                                                "flex flex-col items-center text-center p-10 bg-white shadow-xl hover:shadow-2xl transition-all border border-gray-100 group relative overflow-hidden",
+                                                                card.url && "cursor-pointer active:scale-95"
+                                                              )}
+                                                              style={{ 
+                                                                borderRadius: `${el.props.borderRadius || 24}px`, 
+                                                                backgroundColor: card.bgColor || "#ffffff",
+                                                                transform: `translate(${card.posX || 0}px, ${card.posY || 0}px)`
+                                                              }}
+                                                                                  onClick={() => { if(card.url) window.open(card.url, '_blank'); }}
+                                                                                >
+                                                                                  {card.showIcon !== false && (
+                                                                                    <div 
+                                                                                      className="rounded-3xl flex items-center justify-center mb-8 shadow-lg rotate-3 group-hover:rotate-0 transition-transform duration-500"
+                                                                                      style={{ 
+                                                                                        backgroundColor: `${card.iconColor}15`, 
+                                                                                        color: card.iconColor,
+                                                                                        width: `${card.iconSize || 80}px`,
+                                                                                        height: `${card.iconSize || 80}px`
+                                                                                      }}
+                                                                                    >
+                                                                                      <IconComp size={(card.iconSize || 80) * 0.5} />
+                                                                                    </div>
+                                                                                  )}
+                                                                                  <h3 
+                                                                                    className="font-black uppercase tracking-tight text-gray-900 mb-4"                                                                style={{ fontSize: `${card.titleSize || 20}px` }}
+                                                              >
+                                                                {card.title}
+                                                              </h3>
+                                                              <p 
+                                                                className={cn("font-medium leading-relaxed", card.descFont || "font-sans")}
+                                                                style={{ 
+                                                                  fontSize: `${card.descSize || 14}px`,
+                                                                  color: card.descColor || "#6b7280"
+                                                                }}
+                                                              >
+                                                                {card.description}
+                                                              </p>
+                                                              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                            <Sparkles size={40} style={{ color: card.iconColor }} />
+                                          </div>
+                                        </motion.div>
+                                      );
+                                    })}                    </div>
                   </div>
                 )}
 

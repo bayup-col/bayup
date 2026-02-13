@@ -757,14 +757,192 @@ export const DesignerInspector = () => {
                                       const mapping: any = { text: 'secondaryBtnText', variant: 'secondaryBtnVariant', posX: 'secondaryBtnPosX', posY: 'secondaryBtnPosY', borderRadius: 'secondaryBtnBorderRadius' };
                                       handleChange(mapping[key], p[key]);
                                     }, "Botón Secundario")}
-                {renderModularMultimediaDesigner({ ...element.props, floatUrl: element.props.floatUrl }, (p) => {
-                  const key = Object.keys(p)[0];
-                  const mapping: any = { floatType: 'floatType', url: 'floatUrl', floatUrl: 'floatUrl', floatAnim: 'floatAnim', size: 'floatSize', floatSize: 'floatSize', radius: 'floatRadius', floatRadius: 'floatRadius', posX: 'floatPosX', floatPosX: 'floatPosX', posY: 'floatPosY', floatPosY: 'floatPosY', floatLinkUrl: 'floatLinkUrl' };
-                  handleChange(mapping[key], p[key]);
-                }, "Imagen de Complemento", false, undefined, "floatUrl")}
-
-                                    {(element.props.extraElements || []).map((extra: any) => (
-                                      <React.Fragment key={extra.id}>
+                                {renderModularMultimediaDesigner({ ...element.props, floatUrl: element.props.floatUrl }, (p) => {
+                                  const key = Object.keys(p)[0];
+                                  const mapping: any = { floatType: 'floatType', url: 'floatUrl', floatUrl: 'floatUrl', floatAnim: 'floatAnim', size: 'floatSize', floatSize: 'floatSize', radius: 'floatRadius', floatRadius: 'floatRadius', posX: 'floatPosX', floatPosX: 'floatPosX', posY: 'floatPosY', floatPosY: 'floatPosY', floatLinkUrl: 'floatLinkUrl' };
+                                  handleChange(mapping[key], p[key]);
+                                }, "Imagen de Complemento", false, undefined, "floatUrl")}
+                
+                                {/* SUPER EDITOR DE CARDS */}
+                                {element.type === "cards" && (
+                                  <>
+                                    <div className="mt-8 mb-4">
+                                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] px-2">Gestión de Tarjetas Elite</span>
+                                    </div>
+                
+                                    {(element.props.cards || []).map((card: any, idx: number) => (
+                                      <ControlGroup 
+                                        key={card.id || idx} 
+                                        title={`${idx + 1}. ${card.title || 'Tarjeta'}`} 
+                                        icon={Layout} 
+                                        defaultOpen={idx === 0}
+                                        onRemove={() => {
+                                          const newCards = element.props.cards.filter((_:any, i:number) => i !== idx);
+                                          handleChange("cards", newCards);
+                                        }}
+                                      >
+                                        <div className="space-y-4">
+                                          <div className="space-y-2">
+                                            <span className="text-[8px] font-black text-gray-400 uppercase">Contenido y Acción</span>
+                                            <input type="text" value={card.title || ""} onChange={(e) => {
+                                              const newCards = [...element.props.cards];
+                                              newCards[idx].title = e.target.value;
+                                              handleChange("cards", newCards);
+                                            }} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white" placeholder="Título..." />
+                                            
+                                                                        <textarea value={card.description || ""} onChange={(e) => {
+                                                                          const newCards = [...element.props.cards];
+                                                                          newCards[idx].description = e.target.value;
+                                                                          handleChange("cards", newCards);
+                                                                        }} className="w-full p-2 border rounded-lg text-[9px] bg-white h-16" placeholder="Descripción..." />
+                                            
+                                                                        <div className="grid grid-cols-2 gap-2 pt-1">
+                                                                          <select value={card.descFont || "font-sans"} onChange={(e) => {
+                                                                            const newCards = [...element.props.cards];
+                                                                            newCards[idx].descFont = e.target.value;
+                                                                            handleChange("cards", newCards);
+                                                                          }} className="w-full p-1.5 border rounded-lg text-[8px] font-bold bg-white outline-none">
+                                                                            <option value="font-sans">Sans</option>
+                                                                            <option value="font-serif">Serif</option>
+                                                                            <option value="font-mono">Mono</option>
+                                                                          </select>
+                                                                          <div className="flex items-center gap-2 p-1 border rounded-lg bg-white">
+                                                                            <input type="color" value={card.descColor || "#6b7280"} onChange={(e) => {
+                                                                              const newCards = [...element.props.cards];
+                                                                              newCards[idx].descColor = e.target.value;
+                                                                              handleChange("cards", newCards);
+                                                                            }} className="w-4 h-4 rounded-sm p-0 cursor-pointer" />
+                                                                            <FluidSlider label="T. Desc" value={card.descSize || 14} min={8} max={24} onChange={(v:number) => {
+                                                                              const newCards = [...element.props.cards];
+                                                                              newCards[idx].descSize = v;
+                                                                              handleChange("cards", newCards);
+                                                                            }} />
+                                                                          </div>
+                                                                        </div>                
+                                            <div className="flex items-center gap-2 p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                                               <LinkIcon size={12} className="text-blue-500" />
+                                               <input type="text" value={card.url || ""} onChange={(e) => {
+                                                 const newCards = [...element.props.cards];
+                                                 newCards[idx].url = e.target.value;
+                                                 handleChange("cards", newCards);
+                                               }} className="flex-1 bg-transparent border-none text-[8px] font-mono text-blue-600 outline-none" placeholder="Enlace de Redirección..." />
+                                            </div>
+                                          </div>
+                
+                                                                    <div className="space-y-2 pt-2 border-t border-gray-100">
+                                                                      <div className="flex justify-between items-center mb-1">
+                                                                        <span className="text-[8px] font-black text-gray-400 uppercase">Iconografía y Estética</span>
+                                                                        <button 
+                                                                          onClick={() => {
+                                                                            const newCards = [...element.props.cards];
+                                                                            newCards[idx].showIcon = card.showIcon === false ? true : false;
+                                                                            handleChange("cards", newCards);
+                                                                          }}
+                                                                          className={cn(
+                                                                            "flex items-center gap-1 px-2 py-1 rounded-md text-[7px] font-black uppercase transition-all",
+                                                                            card.showIcon !== false ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
+                                                                          )}
+                                                                        >
+                                                                          {card.showIcon !== false ? <Eye size={10} /> : <EyeOff size={10} />}
+                                                                          <span>{card.showIcon !== false ? "Visible" : "Oculto"}</span>
+                                                                        </button>
+                                                                      </div>
+                                                                      
+                                                                      {card.showIcon !== false && (
+                                                                        <div className="animate-in fade-in slide-in-from-top-1 duration-200 space-y-2">
+                                                                          <div className="grid grid-cols-6 gap-1 bg-gray-100 p-1 rounded-lg">
+                                                                            {[
+                                                                              {n: 'Zap', i: Zap}, {n: 'Star', i: Star}, {n: 'Heart', i: Heart}, 
+                                                                              {n: 'Bell', i: Bell}, {n: 'Info', i: Info}, {n: 'Wind', i: Wind}
+                                                                            ].map(iconOpt => (
+                                                                              <button key={iconOpt.n} onClick={() => {
+                                                                                const newCards = [...element.props.cards];
+                                                                                newCards[idx].icon = iconOpt.n;
+                                                                                handleChange("cards", newCards);
+                                                                              }} className={cn("p-1.5 rounded-md border flex items-center justify-center transition-all", card.icon === iconOpt.n ? "bg-blue-500 text-white shadow-sm border-blue-500" : "bg-white text-gray-400 border-gray-50")}>
+                                                                                <iconOpt.i size={12} />
+                                                                              </button>
+                                                                            ))}
+                                                                          </div>
+                                                                          
+                                                                          <div className="grid grid-cols-2 gap-2">
+                                                                            <div className="flex items-center gap-2 p-1.5 border rounded-lg bg-white"><input type="color" value={card.iconColor || "#2563eb"} onChange={(e) => {
+                                                                              const newCards = [...element.props.cards];
+                                                                              newCards[idx].iconColor = e.target.value;
+                                                                              handleChange("cards", newCards);
+                                                                            }} className="w-5 h-5 rounded-md p-0 cursor-pointer" /><span className="text-[8px] text-gray-400 font-bold uppercase">Color Icono</span></div>
+                                                                            
+                                                                            <div className="flex items-center gap-2 p-1.5 border rounded-lg bg-white"><input type="color" value={card.bgColor || "#ffffff"} onChange={(e) => {
+                                                                              const newCards = [...element.props.cards];
+                                                                              newCards[idx].bgColor = e.target.value;
+                                                                              handleChange("cards", newCards);
+                                                                            }} className="w-5 h-5 rounded-md p-0 cursor-pointer" /><span className="text-[8px] text-gray-400 font-bold uppercase">Fondo Card</span></div>
+                                                                          </div>
+                                                                        </div>
+                                                                      )}
+                                          
+                                                                      {card.showIcon === false && (
+                                                                        <div className="p-2 border rounded-lg bg-white">
+                                                                          <div className="flex items-center gap-2 p-1.5"><input type="color" value={card.bgColor || "#ffffff"} onChange={(e) => {
+                                                                            const newCards = [...element.props.cards];
+                                                                            newCards[idx].bgColor = e.target.value;
+                                                                            handleChange("cards", newCards);
+                                                                          }} className="w-5 h-5 rounded-md p-0 cursor-pointer" /><span className="text-[8px] text-gray-400 font-bold uppercase">Fondo Card</span></div>
+                                                                        </div>
+                                                                      )}
+                                                                    </div>                
+                                          <div className="space-y-4 pt-2 border-t border-gray-100">
+                                            <span className="text-[8px] font-black text-gray-400 uppercase">Dimensiones y Ubicación</span>
+                                            <div className="grid grid-cols-2 gap-3">
+                                              <FluidSlider label="Tamaño Icono" value={card.iconSize || 40} min={20} max={80} onChange={(v:number) => {
+                                                const newCards = [...element.props.cards];
+                                                newCards[idx].iconSize = v;
+                                                handleChange("cards", newCards);
+                                              }} />
+                                              <FluidSlider label="Tamaño Texto" value={card.titleSize || 20} min={10} max={40} onChange={(v:number) => {
+                                                const newCards = [...element.props.cards];
+                                                newCards[idx].titleSize = v;
+                                                handleChange("cards", newCards);
+                                              }} />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                              <FluidSlider label="Posición X" value={card.posX || 0} min={-100} max={100} onChange={(v:number) => {
+                                                const newCards = [...element.props.cards];
+                                                newCards[idx].posX = v;
+                                                handleChange("cards", newCards);
+                                              }} />
+                                              <FluidSlider label="Posición Y" value={card.posY || 0} min={-100} max={100} onChange={(v:number) => {
+                                                const newCards = [...element.props.cards];
+                                                newCards[idx].posY = v;
+                                                handleChange("cards", newCards);
+                                              }} />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </ControlGroup>
+                                    ))}
+                
+                                    <div className="px-2 mb-8">
+                                      <button onClick={() => {
+                                        const newCard = { id: uuidv4(), title: "Nueva Tarjeta", description: "Descripción...", icon: "Star", iconColor: "#2563eb", bgColor: "#ffffff", posX: 0, posY: 0, iconSize: 40, titleSize: 20 };
+                                        handleChange("cards", [...(element.props.cards || []), newCard]);
+                                      }} className="w-full py-4 border-2 border-dashed border-blue-200 rounded-2xl text-[10px] font-black text-blue-500 uppercase flex items-center justify-center gap-2 hover:bg-blue-50 transition-all shadow-sm">
+                                        <PlusIcon size={14} /> Añadir Tarjeta de Impacto
+                                      </button>
+                                    </div>
+                
+                                    <ControlGroup title="Configuración de Grilla Global" icon={Settings2}>
+                                      <div className="space-y-4">
+                                        <FluidSlider label="Columnas en Pantalla" value={element.props.columns || 3} min={1} max={6} onChange={(v:number) => handleChange("columns", v)} />
+                                        <FluidSlider label="Separación entre Cards" value={element.props.gap || 24} min={0} max={100} onChange={(v:number) => handleChange("gap", v)} />
+                                        <FluidSlider label="Redondeo de Bordes" value={element.props.borderRadius || 24} min={0} max={60} onChange={(v:number) => handleChange("borderRadius", v)} />
+                                        <FluidSlider label="Altura del Módulo" value={element.props.height || 400} min={200} max={1200} onChange={(v:number) => handleChange("height", v)} />
+                                      </div>
+                                    </ControlGroup>
+                                  </>
+                                )}
+                
+                                {(element.props.extraElements || []).map((extra: any) => (                                      <React.Fragment key={extra.id}>
                                         {extra.type === 'text' && renderModularTextDesigner(extra, (p) => handleExtraChange(extra.id, p), "Texto Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
                                         {extra.type === 'button' && renderModularButtonDesigner(extra, (p) => handleExtraChange(extra.id, p), "Botón Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
                                         {(extra.type === 'image' || extra.type === 'video') && renderModularMultimediaDesigner(extra, (p) => handleExtraChange(extra.id, p), "Multimedia Extra", true, () => handleChange("extraElements", element.props.extraElements.filter((el:any) => el.id !== extra.id)))}
