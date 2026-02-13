@@ -1418,8 +1418,56 @@ export const DesignerInspector = () => {
                   </div>
                 </ControlGroup>
                 
-                <ControlGroup title="Estructura y Tamaño" icon={Move}>
+                {element.type === "navbar" && (
+                  <ControlGroup title="Efectos de Barra Elite" icon={Sparkles} defaultOpen={true}>
+                    <div className="space-y-2">
+                      <span className="text-[9px] font-black text-gray-400 uppercase">Tema Atmosférico</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { id: "none", l: "Sólido", i: Maximize },
+                          { id: "transparent", l: "Transparente", i: EyeOff },
+                          { id: "glass", l: "Glassmorphism", i: Layout },
+                          { id: "aurora", l: "Aurora Flow", i: Sparkles },
+                          { id: "neon", l: "Neon Border", i: Zap },
+                          { id: "shadow", l: "Sombra Pro", i: RotateCw }
+                        ].map(eff => (
+                          <button 
+                            key={eff.id} 
+                            onClick={() => handleChange("barEffect", eff.id)}
+                            className={cn(
+                              "flex items-center gap-2 p-2 rounded-xl border text-[9px] font-black uppercase transition-all",
+                              (element.props.barEffect === eff.id || (!element.props.barEffect && eff.id === "none")) 
+                                ? "bg-blue-600 text-white border-blue-600 shadow-lg" 
+                                : "bg-white text-gray-400 border-gray-100 hover:bg-gray-50"
+                            )}
+                          >
+                            <eff.i size={12} />
+                            {eff.l}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </ControlGroup>
+                )}
+
+                <ControlGroup title="Estructura y Tamaño" icon={Move} defaultOpen={false}>
                   <div className="space-y-6">
+                    <div className="flex bg-gray-100 p-1 rounded-lg border">
+                      {["left", "center", "right"].map((pos) => (
+                        <button 
+                          key={pos} 
+                          onClick={() => handleChange("align", pos)} 
+                          className={cn(
+                            "flex-1 p-2 flex justify-center rounded-md transition-all", 
+                            (element.props.align === pos || (!element.props.align && pos === "center")) ? "bg-white shadow-sm text-blue-600" : "text-gray-400 hover:text-gray-600"
+                          )}
+                        >
+                          {pos === "left" && <AlignLeft size={16} />}
+                          {pos === "center" && <AlignCenter size={16} />}
+                          {pos === "right" && <AlignRight size={16} />}
+                        </button>
+                      ))}
+                    </div>
                     <FluidSlider label="Altura" value={element.props.height || (element.type === 'navbar' ? element.props.navHeight : 40) || 40} min={20} max={200} onChange={(v:number) => handleChange(element.type === 'navbar' ? 'navHeight' : 'height', v)} />
                     {element.type === "announcement-bar" && (
                       <FluidSlider label="Tamaño Letra" value={element.props.fontSize || 11} min={8} max={20} onChange={(v:number) => handleChange("fontSize", v)} />

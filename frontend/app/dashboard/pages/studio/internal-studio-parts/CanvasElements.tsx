@@ -101,63 +101,125 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
         )}
 
         {el.type === "navbar" && (
-          <div className="flex items-center w-full px-10 shadow-sm border-b border-gray-100 relative transition-all duration-500 overflow-hidden" style={{ height: `${elProps.navHeight || 80}px`, backgroundColor: elProps.bgColor || "#ffffff" }}>
-            
-            {/* 1. ÁREA DE LOGOTIPO (IZQUIERDA) */}
-            <div className="shrink-0 z-10 flex items-center" style={{ transform: `translateX(${elProps.logoPosX || 0}px)` }}>
-              {elProps.logoUrl ? (
-                <img src={elProps.logoUrl} style={{ height: `${elProps.logoSize || 24}px` }} className="object-contain" />
-              ) : (
-                renderTextWithTheme(elProps.logoText || "LOGO", elProps, "logo")
-              )}
-            </div>
-
-            {/* 2. ÁREA DE MENÚ PRINCIPAL (CENTRO) */}
-            <nav className={cn(
-              "hidden md:flex flex-1 items-center gap-8 transition-all px-8",
-              elProps.align === "left" ? "justify-start ml-8" : 
-              elProps.align === "right" ? "justify-end mr-8" : "justify-center"
+          <div 
+            className={cn(
+              "flex items-center w-full px-10 relative transition-all duration-500",
+              (!elProps.barEffect || elProps.barEffect === "none") ? "border-b border-gray-100 shadow-sm" : "",
+              elProps.barEffect === "glass" ? "backdrop-blur-xl backdrop-saturate-150 border border-white/20 shadow-2xl rounded-b-2xl" : "",
+              elProps.barEffect === "shadow" ? "shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-none" : "",
+              elProps.barEffect === "neon" ? "border-b-2 border-blue-500 shadow-[0_8px_20px_rgba(59,130,246,0.6)]" : "",
+              // En previsualización, la barra flota con prioridad máxima si tiene efectos
+              isPreview && (elProps.barEffect === "glass" || elProps.barEffect === "transparent" || elProps.barEffect === "aurora") ? "absolute top-0 inset-x-0 w-full z-[200]" : "relative"
             )} 
-            style={{ transform: `translateX(${elProps.menuPosX || 0}px)` }}>
-              <div className="flex items-center" style={{ gap: `${elProps.menuGap || 32}px` }}>
-                {(elProps.menuItems || []).map((m: any, i: number) => {
-                  // Validación quirúrgica para evitar renderizar objetos
-                  const labelToShow = typeof m === 'string' ? m : (m?.label || "Link");
-                  return (
-                    <div key={i} className="cursor-pointer">
-                      {renderTextWithTheme(labelToShow, elProps, "menu", `nav-item-${i}`)}
-                    </div>
-                  );
-                })}
+            style={{ 
+              height: `${elProps.navHeight || 80}px`, 
+              backgroundColor: (elProps.barEffect === "transparent" || elProps.barEffect === "aurora") ? "rgba(0,0,0,0)" : 
+                               elProps.barEffect === "glass" ? "rgba(255,255,255,0.1)" : 
+                               elProps.bgColor || "#ffffff" 
+            }}
+          >
+            {/* Brillo de luz superior para efecto Glass */}
+            {elProps.barEffect === "glass" && (
+              <div key="navbar-glass-shine" className="absolute inset-x-0 top-0 h-[1px] bg-white/30 z-20" />
+            )}
+
+            {/* Efecto Aurora para la Barra (Capa de fondo animada) */}
+            {elProps.barEffect === "aurora" && (
+              <motion.div 
+                key="navbar-aurora-bg"
+                initial={{ opacity: 0 }}
+                animate={{ 
+                  opacity: 0.6,
+                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] 
+                }}
+                transition={{ 
+                  opacity: { duration: 0.5 },
+                  backgroundPosition: { duration: 12, repeat: Infinity, ease: "linear" } 
+                }}
+                className="absolute inset-0 z-0 pointer-events-none"
+                style={{ 
+                  background: `linear-gradient(90deg, ${elProps.logoAurora1 || "#00f2ff"}, ${elProps.logoAurora2 || "#7000ff"}, ${elProps.logoAurora1 || "#00f2ff"})`,
+                  backgroundSize: "200% 100%"
+                }}
+              />
+            )}
+            {/* CONTENEDOR DE ELEMENTOS (Con sombra para resaltar sobre el vidrio) */}
+            <div className={cn(
+              "flex items-center w-full z-10",
+              elProps.barEffect === "glass" ? "drop-shadow-[0_4px_10px_rgba(0,0,0,0.15)]" : ""
+            )}>
+              {/* 1. ÁREA DE LOGOTIPO (IZQUIERDA) */}
+              <div className="shrink-0 flex items-center" style={{ transform: `translateX(${elProps.logoPosX || 0}px)` }}>
+                {elProps.logoUrl ? (
+                  <img src={elProps.logoUrl} style={{ height: `${elProps.logoSize || 24}px` }} className="object-contain" />
+                ) : (
+                  renderTextWithTheme(elProps.logoText || "LOGO", elProps, "logo")
+                )}
               </div>
-            </nav>
 
-            {/* 3. ÁREA DE UTILIDADES / ICONOS (DERECHA) */}
-            <div className="flex items-center z-10 shrink-0 ml-auto" style={{ gap: `${elProps.utilityGap || 16}px`, transform: `translateX(${elProps.utilityPosX || 0}px)` }}>
-              
-              {/* Elementos Extra del Navbar (Botones/Textos añadidos) */}
-              {(elProps.extraElements || []).map((extra: any) => (
-                <div key={extra.id} className="flex items-center">
-                  {extra.type === 'button' && renderButton(extra, "extra", extra.id)}
-                  {extra.type === 'text' && renderTextWithTheme(extra.content, extra, "extra", extra.id)}
+              {/* 2. ÁREA DE MENÚ PRINCIPAL (CENTRO) */}
+              <nav className={cn(
+                "hidden md:flex flex-1 items-center gap-8 transition-all px-8",
+                elProps.align === "left" ? "justify-start ml-8" : 
+                elProps.align === "right" ? "justify-end mr-8" : "justify-center"
+              )} 
+              style={{ transform: `translateX(${elProps.menuPosX || 0}px)` }}>
+                <div className="flex items-center" style={{ gap: `${elProps.menuGap || 32}px` }}>
+                  {(elProps.menuItems || []).map((m: any, i: number) => {
+                    const labelToShow = typeof m === 'string' ? m : (m?.label || "Link");
+                    return (
+                      <div key={i} className="cursor-pointer">
+                        {renderTextWithTheme(labelToShow, elProps, "menu", `nav-item-${i}`)}
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              </nav>
 
-              <div className="flex items-center" style={{ gap: `${elProps.utilityGap || 16}px` }}>
-                {/* Iconos Estándar */}
-                {elProps.showSearch && renderTextWithTheme(<Search size={elProps.utilitySize || 18} />, elProps, "utility", "nav-search")}
-                {elProps.showUser && renderTextWithTheme(<User size={elProps.utilitySize || 18} />, elProps, "utility", "nav-user")}
-                {elProps.showCart && renderTextWithTheme(<ShoppingCart size={elProps.utilitySize || 18} />, elProps, "utility", "nav-cart")}
+              {/* 3. ÁREA DE UTILIDADES / ICONOS (DERECHA) */}
+              <div className="flex items-center shrink-0 ml-auto" style={{ gap: `${elProps.utilityGap || 16}px`, transform: `translateX(${elProps.utilityPosX || 0}px)` }}>
+                
+                {/* Elementos Extra del Navbar (Botones/Textos añadidos) */}
+                {(elProps.extraElements || []).map((extra: any) => (
+                  <div key={extra.id} className="flex items-center">
+                    {extra.type === 'button' && renderButton(extra, "extra", extra.id)}
+                    {extra.type === 'text' && renderTextWithTheme(extra.content, extra, "extra", extra.id)}
+                  </div>
+                ))}
 
-                {/* Iconos Personalizados (Extra Utilities) */}
-                {(elProps.extraUtilities || []).map((util: any) => {
-                  const IconComp = { Heart, Bell, Star, MessageSquare, Phone, Info }[util.icon] || Info;
-                  return (
-                    <div key={util.id} title={util.label} className="cursor-pointer">
-                      {renderTextWithTheme(<IconComp size={elProps.utilitySize || 18} />, elProps, "utility", util.id)}
-                    </div>
-                  );
-                })}
+                <div className="flex items-center" style={{ gap: `${elProps.utilityGap || 16}px` }}>
+                  {/* Lógica de Renderizado de Utilidades según Modo (Icon, Text, Both) */}
+                  {(() => {
+                    const mode = elProps.utilityDisplayMode || "icon";
+                    const renderUtil = (icon: any, label: string, id: string) => {
+                      const content = (
+                        <div className="flex items-center gap-2">
+                          {(mode === "icon" || mode === "both") && icon}
+                          {(mode === "text" || mode === "both") && <span className="text-[10px] font-black uppercase tracking-tight">{label}</span>}
+                        </div>
+                      );
+                      return renderTextWithTheme(content, elProps, "utility", id);
+                    };
+
+                    return (
+                      <>
+                        {elProps.showSearch && renderUtil(<Search size={elProps.utilitySize || 18} />, "Buscar", "nav-search")}
+                        {elProps.showUser && renderUtil(<User size={elProps.utilitySize || 18} />, "Cuenta", "nav-user")}
+                        {elProps.showCart && renderUtil(<ShoppingCart size={elProps.utilitySize || 18} />, "Carrito", "nav-cart")}
+
+                        {/* Iconos Personalizados (Extra Utilities) */}
+                        {(elProps.extraUtilities || []).map((util: any) => {
+                          const IconComp = { Heart, Bell, Star, MessageSquare, Phone, Info }[util.icon] || Info;
+                          return (
+                            <div key={util.id} title={util.label} className="cursor-pointer">
+                              {renderUtil(<IconComp size={elProps.utilitySize || 18} />, util.label || "Link", util.id)}
+                            </div>
+                          );
+                        })}
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
           </div>

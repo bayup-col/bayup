@@ -8,10 +8,29 @@ import { DraggableCanvasElement } from "./CanvasElements";
 
 const DroppableSection = ({ section, headerRef, children, activeSection, setActiveSection, isPreview = false }: any) => {
   const { setNodeRef, isOver } = useDroppable({ id: section, disabled: isPreview });
-  if (isPreview) return <section ref={headerRef} className="w-full relative">{children}</section>;
+  if (isPreview) return (
+    <section 
+      ref={headerRef} 
+      className={cn(
+        "w-full relative", 
+        section === "header" ? "z-[150] overflow-visible" : "z-[10]"
+      )}
+    >
+      {children}
+    </section>
+  );
   const labels: any = { header: "Inicio / Header", body: "Centro / Cuerpo", footer: "Final / Footer" };
   return (
-    <section ref={(node) => { setNodeRef(node); if (headerRef) (headerRef as any).current = node; }} onClick={() => setActiveSection(section)} className={cn("bg-white rounded-2xl shadow-sm transition-all duration-500 overflow-hidden relative mb-8", activeSection === section ? "ring-4 ring-blue-500/20 scale-[1.02]" : "opacity-80 scale-100", isOver && "ring-4 ring-green-500/30 bg-green-50/10")}>
+    <section 
+      ref={(node) => { setNodeRef(node); if (headerRef) (headerRef as any).current = node; }} 
+      onClick={() => setActiveSection(section)} 
+      className={cn(
+        "rounded-2xl transition-all duration-500 overflow-hidden relative mb-8", 
+        section === "header" ? "bg-transparent" : "bg-white shadow-sm",
+        activeSection === section ? "ring-4 ring-blue-500/20 scale-[1.02]" : "opacity-80 scale-100", 
+        isOver && "ring-4 ring-green-500/30 bg-green-50/10"
+      )}
+    >
       <div className="bg-gray-50/50 px-4 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 flex justify-between items-center">
         <span>{labels[section]}</span>
         {activeSection === section && <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />}
