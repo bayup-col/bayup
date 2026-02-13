@@ -17,9 +17,8 @@ const AVAILABLE_COMPONENTS = {
   body: [
     { type: "hero-banner" as ComponentType, label: "Hero Banner", icon: Monitor },
     { type: "product-grid" as ComponentType, label: "Grilla Productos", icon: ShoppingBag },
-    { type: "text" as ComponentType, label: "Texto / Título", icon: Type },
+    { type: "cards" as ComponentType, label: "Cards", icon: LayoutTemplate },
     { type: "video" as ComponentType, label: "Video Promocional", icon: Video },
-    { type: "button" as ComponentType, label: "Botón", icon: MousePointerClick },
     { type: "image" as ComponentType, label: "Imágenes", icon: ImageIcon },
     { type: "custom-block" as ComponentType, label: "Bloque personalizado", icon: LayoutTemplate },
   ],

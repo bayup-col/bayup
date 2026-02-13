@@ -8,7 +8,7 @@ import { DragEndEvent } from "@dnd-kit/core";
 
 export type SectionType = "header" | "body" | "footer";
 
-export type ComponentType = "text" | "button" | "image" | "product-grid" | "hero-banner" | "video" | "announcement-bar" | "navbar" | "custom-block";
+export type ComponentType = "text" | "button" | "image" | "product-grid" | "hero-banner" | "video" | "announcement-bar" | "navbar" | "custom-block" | "cards";
 
 export interface StudioElement {
   id: string;
@@ -238,6 +238,17 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
              type === "button" ? {
                text: "Haz clic", url: "/", variant: "solid", bgColor: "#2563eb", textColor: "#ffffff", borderRadius: 12, align: "center", font: "font-black", size: 14, intensity: 100, posX: 0, posY: 0, aurora1: "#00f2ff", aurora2: "#7000ff"
              } : 
+             type === "cards" ? {
+               cards: [
+                 { id: uuidv4(), title: "Calidad Premium", description: "Utilizamos los mejores materiales del mercado para garantizar durabilidad extrema.", icon: "Star", iconColor: "#2563eb", bgColor: "#ffffff" },
+                 { id: uuidv4(), title: "Envío Rápido", description: "Recibe tus pedidos en la puerta de tu casa en menos de 24 horas garantizadas.", icon: "Wind", iconColor: "#059669", bgColor: "#ffffff" },
+                 { id: uuidv4(), title: "Soporte 24/7", description: "Nuestro equipo de expertos está disponible en todo momento para ayudarte.", icon: "Zap", iconColor: "#7c3aed", bgColor: "#ffffff" }
+               ],
+               columns: 3,
+               gap: 24,
+               borderRadius: 24,
+               height: 400
+             } :
              type === "footer-premium" ? {
                logoText: "BAYUP SHOP",
                footerLogoUrl: null,

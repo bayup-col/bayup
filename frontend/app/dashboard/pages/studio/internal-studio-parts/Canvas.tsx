@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { useStudio, SectionType } from "../context";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Trash2, Plus as PlusIcon, GripVertical, ShoppingBag, ShoppingCart, User, UserCircle, LogIn, Image as ImageIcon, Heart, Bell, Star, MessageSquare, Phone, Info, Search, HelpCircle, X, Monitor, Globe, Play } from "lucide-react";
+import { Trash2, Plus as PlusIcon, GripVertical, ShoppingBag, ShoppingCart, User, UserCircle, LogIn, Image as ImageIcon, Heart, Bell, Star, MessageSquare, Phone, Info, Search, HelpCircle, X, Monitor, Globe, Play, Zap, Sparkles } from "lucide-react";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
 
 // --- HELPERS ESTABLES ---
@@ -788,6 +788,43 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
                     )}
                   </div>
                 </>
+                )}
+
+                {el.type === "cards" && (
+                  <div 
+                    className="w-full relative transition-all flex flex-col justify-center items-center py-10"
+                    style={{ minHeight: `${el.props.height || 400}px` }}
+                  >
+                    <div 
+                      className="grid w-full max-w-7xl mx-auto px-6 relative z-10"
+                      style={{ 
+                        gridTemplateColumns: `repeat(${el.props.columns || 3}, minmax(0, 1fr))`,
+                        gap: `${el.props.gap || 24}px`
+                      }}
+                    >
+                      {(el.props.cards || []).map((card: any) => (
+                        <motion.div 
+                          key={card.id} 
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex flex-col items-center text-center p-10 bg-white shadow-xl hover:shadow-2xl transition-all border border-gray-100 group relative overflow-hidden"
+                          style={{ borderRadius: `${el.props.borderRadius || 24}px`, backgroundColor: card.bgColor || "#ffffff" }}
+                        >
+                          <div 
+                            className="w-20 h-20 rounded-3xl flex items-center justify-center mb-8 shadow-lg rotate-3 group-hover:rotate-0 transition-transform duration-500"
+                            style={{ backgroundColor: `${card.iconColor}15`, color: card.iconColor }}
+                          >
+                            <Zap size={40} />
+                          </div>
+                          <h3 className="text-2xl font-black uppercase tracking-tight text-gray-900 mb-4">{card.title}</h3>
+                          <p className="text-base text-gray-500 font-medium leading-relaxed">{card.description}</p>
+                          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Sparkles size={40} style={{ color: card.iconColor }} />
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
                 )}
 
                 {el.type === "video" && (

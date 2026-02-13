@@ -666,6 +666,68 @@ export const DesignerInspector = () => {
                 {element.type === "button" && (
                   renderModularButtonDesigner(element.props, (p) => updateElement(sectionKey, selectedElementId, p), "Botón de Acción Rápida")
                 )}
+
+                {/* EDITOR DE CARDS */}
+                {element.type === "cards" && (
+                  <>
+                    <ControlGroup title="Configuración de Tarjetas" icon={Layout} defaultOpen={true}>
+                      <div className="space-y-4">
+                        {(element.props.cards || []).map((card: any, idx: number) => (
+                          <div key={card.id || idx} className="p-4 border rounded-2xl bg-gray-50/50 space-y-4 relative group">
+                            <button onClick={() => {
+                              const newCards = element.props.cards.filter((_:any, i:number) => i !== idx);
+                              handleChange("cards", newCards);
+                            }} className="absolute top-2 right-2 text-red-400 hover:text-red-600"><X size={14}/></button>
+                            
+                            <div className="space-y-2">
+                              <span className="text-[7px] font-black text-gray-400 uppercase">Título de Tarjeta</span>
+                              <input type="text" value={card.title || ""} onChange={(e) => {
+                                const newCards = [...element.props.cards];
+                                newCards[idx].title = e.target.value;
+                                handleChange("cards", newCards);
+                              }} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white" />
+                            </div>
+
+                            <div className="space-y-2">
+                              <span className="text-[7px] font-black text-gray-400 uppercase">Descripción</span>
+                              <textarea value={card.description || ""} onChange={(e) => {
+                                const newCards = [...element.props.cards];
+                                newCards[idx].description = e.target.value;
+                                handleChange("cards", newCards);
+                              }} className="w-full p-2 border rounded-lg text-[9px] bg-white h-16" />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                               <div className="flex items-center gap-2 p-1.5 border rounded-lg bg-white"><input type="color" value={card.iconColor || "#2563eb"} onChange={(e) => {
+                                 const newCards = [...element.props.cards];
+                                 newCards[idx].iconColor = e.target.value;
+                                 handleChange("cards", newCards);
+                               }} className="w-5 h-5 rounded-md p-0 cursor-pointer" /><span className="text-[8px] text-gray-400 font-bold uppercase">Color Icono</span></div>
+                               
+                               <div className="flex items-center gap-2 p-1.5 border rounded-lg bg-white"><input type="color" value={card.bgColor || "#ffffff"} onChange={(e) => {
+                                 const newCards = [...element.props.cards];
+                                 newCards[idx].bgColor = e.target.value;
+                                 handleChange("cards", newCards);
+                               }} className="w-5 h-5 rounded-md p-0 cursor-pointer" /><span className="text-[8px] text-gray-400 font-bold uppercase">Fondo Card</span></div>
+                            </div>
+                          </div>
+                        ))}
+                        <button onClick={() => {
+                          const newCard = { id: uuidv4(), title: "Nueva Tarjeta", description: "Descripción de ejemplo...", icon: "Star", iconColor: "#2563eb", bgColor: "#ffffff" };
+                          handleChange("cards", [...(element.props.cards || []), newCard]);
+                        }} className="w-full py-3 border-2 border-dashed rounded-xl text-[9px] font-black text-gray-400 uppercase hover:text-blue-500 transition-all">+ Añadir Tarjeta</button>
+                      </div>
+                    </ControlGroup>
+
+                    <ControlGroup title="Diseño de Grilla" icon={Layout}>
+                      <div className="space-y-4">
+                        <FluidSlider label="Columnas" value={element.props.columns || 3} min={1} max={4} onChange={(v:number) => handleChange("columns", v)} />
+                        <FluidSlider label="Espaciado (Gap)" value={element.props.gap || 24} min={0} max={60} onChange={(v:number) => handleChange("gap", v)} />
+                        <FluidSlider label="Redondeo" value={element.props.borderRadius || 24} min={0} max={60} onChange={(v:number) => handleChange("borderRadius", v)} />
+                      </div>
+                    </ControlGroup>
+                  </>
+                )}
               </>
             )}
 
