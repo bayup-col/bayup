@@ -9,7 +9,7 @@ import {
   Settings2, Sparkles, Layout, ChevronDown, Check, Upload,
   ShoppingBag, MousePointer2, Play, Link as LinkIcon, Plus as PlusIcon, Trash2,
   Zap, Star, Flame, Wind, Wand2, MonitorPlay, Maximize, RotateCw,
-  User, ShoppingCart, Search, Edit3, Heart, Bell, MessageSquare, Phone, Info
+  User, ShoppingCart, Search, Edit3, Heart, Bell, MessageSquare, Phone, Info, Globe, Eye, EyeOff
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { v4 as uuidv4 } from "uuid";
@@ -676,6 +676,279 @@ export const DesignerInspector = () => {
                 </div>
               </>
             )}
+
+            {sectionKey === "footer" && (
+              <>
+                {/* FOOTER PREMIUM */}
+                {element.type === "footer-premium" && (
+                  <>
+                    <ControlGroup title="1. Identidad de Marca" icon={ImageIcon} defaultOpen={true}>
+                      <div className="space-y-4">
+                        <div onClick={() => triggerUpload("footerLogoUrl")} className="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center cursor-pointer hover:border-blue-400 relative">
+                          {element.props.footerLogoUrl ? <div className="relative h-12 mx-auto"><img src={element.props.footerLogoUrl} className="h-full object-contain" alt="Logo" /><button onClick={(e) => { e.stopPropagation(); handleChange("footerLogoUrl", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md border-2 border-white"><X size={10}/></button></div> : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR LOGO</p>}
+                        </div>
+
+                        <div className="space-y-3 pt-2 border-t border-gray-50">
+                          <input type="text" value={element.props.logoText || ""} onChange={(e) => handleChange("logoText", e.target.value)} className="w-full p-3 border rounded-xl text-xs font-bold uppercase italic bg-gray-50" placeholder="Nombre de Empresa..." />
+                          
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={element.props.footerLogoColor || "#00f2ff"} onChange={(e) => handleChange("footerLogoColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase font-black">Color</span></div>
+                            <select value={element.props.footerLogoFont || "font-black"} onChange={(e) => handleChange("footerLogoFont", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white"><option value="font-black">Black</option><option value="font-sans">Modern</option><option value="font-serif">Classic</option></select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Tema de Texto</span>
+                            <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                              {["solid", "outline", "3d", "brutalist", "aurora"].map(v => (<button key={v} onClick={() => handleChange("footerLogoVariant", v)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.footerLogoVariant === v || (!element.props.footerLogoVariant && v === "solid")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v}</button>))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Visual</span>
+                            <div className="grid grid-cols-4 gap-1 bg-gray-100 p-1 rounded-lg">
+                              {[{id:"none", l:"Normal"}, {id:"glow", l:"Brillo"}, {id:"neon", l:"Neon"}, {id:"fire", l:"Fuego"}, {id:"glass", l:"Glass"}].map(eff => (
+                                <button key={eff.id} onClick={() => handleChange("footerLogoEffect", eff.id)} className={cn("py-1.5 text-[6px] font-black uppercase rounded-md transition-all", (element.props.footerLogoEffect === eff.id || (!element.props.footerLogoEffect && eff.id === "none")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{eff.l}</button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {element.props.footerLogoVariant === "aurora" && (
+                            <div className="grid grid-cols-2 gap-2 p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                              <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-blue-100"><input type="color" value={element.props.footerLogoAurora1 || "#00f2ff"} onChange={(e) => handleChange("footerLogoAurora1", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[6px] font-black text-gray-400">C1</span></div>
+                              <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-blue-100"><input type="color" value={element.props.footerLogoAurora2 || "#7000ff"} onChange={(e) => handleChange("footerLogoAurora2", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[6px] font-black text-gray-400">C2</span></div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-4 pt-2 border-t border-gray-50">
+                          <FluidSlider label="Tamaño / Escala" value={element.props.footerLogoSize || 24} min={12} max={120} onChange={(val:number) => handleChange("footerLogoSize", val)} />
+                          <div className="grid grid-cols-2 gap-3">
+                            <FluidSlider label="Posición X" value={element.props.footerLogoPosX || 0} min={-200} max={200} onChange={(val:number) => handleChange("footerLogoPosX", val)} />
+                            <FluidSlider label="Posición Y" value={element.props.footerLogoPosY || 0} min={-100} max={100} onChange={(val:number) => handleChange("footerLogoPosY", val)} />
+                          </div>
+                        </div>
+                      </div>
+                    </ControlGroup>
+
+                    <ControlGroup title="2. Descripción" icon={Type} defaultOpen={false}>
+                      <div className="space-y-4">
+                        <textarea value={element.props.description || ""} onChange={(e) => handleChange("description", e.target.value)} className="w-full p-3 border rounded-xl text-[10px] font-medium bg-white uppercase italic" placeholder="Escribe la descripción..." rows={3} />
+                        
+                        <div className="space-y-3 pt-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={element.props.footerDescColor || "#ffffff"} onChange={(e) => handleChange("footerDescColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase font-black">Color</span></div>
+                            <select value={element.props.footerDescFont || "font-sans"} onChange={(e) => handleChange("footerDescFont", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white"><option value="font-sans">Modern</option><option value="font-black">Heavy</option><option value="font-serif">Classic</option></select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Tema de Texto</span>
+                            <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                              {["solid", "outline", "3d", "brutalist", "aurora"].map(v => (<button key={v} onClick={() => handleChange("footerDescVariant", v)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.footerDescVariant === v || (!element.props.footerDescVariant && v === "solid")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v}</button>))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Visual</span>
+                            <div className="grid grid-cols-4 gap-1 bg-gray-100 p-1 rounded-lg">
+                              {[{id:"none", l:"Normal"}, {id:"glow", l:"Brillo"}, {id:"neon", l:"Neon"}, {id:"fire", l:"Fuego"}, {id:"glass", l:"Glass"}].map(eff => (
+                                <button key={eff.id} onClick={() => handleChange("footerDescEffect", eff.id)} className={cn("py-1.5 text-[6px] font-black uppercase rounded-md transition-all", (element.props.footerDescEffect === eff.id || (!element.props.footerDescEffect && eff.id === "none")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{eff.l}</button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {element.props.footerDescVariant === "aurora" && (
+                            <div className="grid grid-cols-2 gap-2 p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                              <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-blue-100"><input type="color" value={element.props.footerDescAurora1 || "#00f2ff"} onChange={(e) => handleChange("footerDescAurora1", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[6px] font-black text-gray-400">C1</span></div>
+                              <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-blue-100"><input type="color" value={element.props.footerDescAurora2 || "#7000ff"} onChange={(e) => handleChange("footerDescAurora2", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[6px] font-black text-gray-400">C2</span></div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-4 pt-2 border-t border-gray-100">
+                          <FluidSlider label="Tamaño / Escala" value={element.props.footerDescSize || 49} min={10} max={100} onChange={(val:number) => handleChange("footerDescSize", val)} />
+                          <div className="grid grid-cols-2 gap-3">
+                            <FluidSlider label="Posición X" value={element.props.footerDescPosX || 29} min={-300} max={300} onChange={(val:number) => handleChange("footerDescPosX", val)} />
+                            <FluidSlider label="Posición Y" value={element.props.footerDescPosY || -38} min={-200} max={200} onChange={(val:number) => handleChange("footerDescPosY", val)} />
+                          </div>
+                        </div>
+                      </div>
+                    </ControlGroup>
+
+                    <ControlGroup title="3. Pie de Página" icon={Settings2} defaultOpen={false}>
+                      <div className="space-y-4">
+                        <input type="text" value={element.props.copyright || ""} onChange={(e) => handleChange("copyright", e.target.value)} className="w-full p-3 border rounded-xl text-[10px] font-bold bg-white" placeholder="© 2026 Empresa..." />
+                        
+                        <div className="space-y-3 pt-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={element.props.footerCopyColor || "#ffffff"} onChange={(e) => handleChange("footerCopyColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase font-black">Color</span></div>
+                            <select value={element.props.footerCopyFont || "font-sans"} onChange={(e) => handleChange("footerCopyFont", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white"><option value="font-sans">Modern</option><option value="font-black">Heavy</option><option value="font-serif">Classic</option></select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Tema de Texto</span>
+                            <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                              {["solid", "outline", "3d", "brutalist", "aurora"].map(v => (<button key={v} onClick={() => handleChange("footerCopyVariant", v)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.footerCopyVariant === v || (!element.props.footerCopyVariant && v === "solid")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v}</button>))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Visual</span>
+                            <div className="grid grid-cols-4 gap-1 bg-gray-100 p-1 rounded-lg">
+                              {[{id:"none", l:"Normal"}, {id:"glow", l:"Brillo"}, {id:"neon", l:"Neon"}, {id:"fire", l:"Fuego"}, {id:"glass", l:"Glass"}].map(eff => (
+                                <button key={eff.id} onClick={() => handleChange("footerCopyEffect", eff.id)} className={cn("py-1.5 text-[6px] font-black uppercase rounded-md transition-all", (element.props.footerCopyEffect === eff.id || (!element.props.footerCopyEffect && eff.id === "none")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{eff.l}</button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {element.props.footerCopyVariant === "aurora" && (
+                            <div className="grid grid-cols-2 gap-2 p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                              <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-blue-100"><input type="color" value={element.props.footerCopyAurora1 || "#00f2ff"} onChange={(e) => handleChange("footerCopyAurora1", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[6px] font-black text-gray-400">C1</span></div>
+                              <div className="flex items-center gap-1.5 bg-white p-1 rounded-md border border-blue-100"><input type="color" value={element.props.footerCopyAurora2 || "#7000ff"} onChange={(e) => handleChange("footerCopyAurora2", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[6px] font-black text-gray-400">C2</span></div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-4 pt-2 border-t border-gray-100">
+                          <FluidSlider label="Tamaño / Escala" value={element.props.footerCopySize || 10} min={8} max={40} onChange={(val:number) => handleChange("footerCopySize", val)} />
+                          <div className="grid grid-cols-2 gap-3">
+                            <FluidSlider label="Posición X" value={element.props.footerCopyPosX || 0} min={-300} max={300} onChange={(val:number) => handleChange("footerCopyPosX", val)} />
+                            <FluidSlider label="Posición Y" value={element.props.footerCopyPosY || 0} min={-100} max={100} onChange={(val:number) => handleChange("footerCopyPosY", val)} />
+                          </div>
+                        </div>
+                      </div>
+                    </ControlGroup>
+
+                    <ControlGroup title="4. Secciones Informativas" icon={Layout} defaultOpen={false}>
+                      <div className="space-y-6">
+                        {(element.props.menuGroups || []).map((group: any, gIdx: number) => (
+                          <div key={gIdx} className={cn("p-4 border rounded-[2rem] transition-all duration-300 space-y-4", group.show === false ? "bg-gray-100/50 opacity-60 grayscale" : "bg-gray-50/50 border-blue-100 shadow-sm")}>
+                            <div className="flex justify-between items-center gap-4">
+                              <input 
+                                type="text" 
+                                value={group.title} 
+                                onChange={(e) => {
+                                  const newGroups = [...element.props.menuGroups];
+                                  newGroups[gIdx].title = e.target.value;
+                                  handleChange("menuGroups", newGroups);
+                                }}
+                                className={cn(
+                                  "text-[10px] font-black uppercase tracking-widest bg-transparent border-none outline-none focus:ring-2 focus:ring-blue-100 rounded-md px-1 flex-1", 
+                                  group.show === false ? "text-gray-400" : "text-blue-600"
+                                )} 
+                              />
+                              <div className="flex items-center gap-1">
+                                <div className="p-1.5 text-gray-300">
+                                  <Edit3 size={12}/>
+                                </div>
+                                <button 
+                                  onClick={() => {
+                                    const newGroups = [...element.props.menuGroups];
+                                    newGroups[gIdx].show = group.show === false ? true : false;
+                                    handleChange("menuGroups", newGroups);
+                                  }}
+                                  className={cn("p-1.5 rounded-lg transition-all", group.show === false ? "bg-amber-100 text-amber-600" : "hover:bg-white text-gray-400 hover:text-blue-500")}
+                                >
+                                  {group.show === false ? <EyeOff size={12}/> : <Eye size={12}/>}
+                                </button>
+                              </div>
+                            </div>
+                            
+                            {group.show !== false && (
+                              <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-300">
+                                {group.links.map((link: any, lIdx: number) => (
+                                  <div key={lIdx} className="grid grid-cols-[1.2fr_0.8fr_28px] gap-1.5 items-center">
+                                    <input 
+                                      type="text" 
+                                      value={link.label} 
+                                      onChange={(e) => {
+                                        const newGroups = [...element.props.menuGroups];
+                                        newGroups[gIdx].links[lIdx].label = e.target.value;
+                                        handleChange("menuGroups", newGroups);
+                                      }} 
+                                      className="w-full p-1.5 border rounded-lg text-[9px] font-bold bg-white" 
+                                      placeholder="Nombre"
+                                    />
+                                    <input 
+                                      type="text" 
+                                      value={link.url} 
+                                      onChange={(e) => {
+                                        const newGroups = [...element.props.menuGroups];
+                                        newGroups[gIdx].links[lIdx].url = e.target.value;
+                                        handleChange("menuGroups", newGroups);
+                                      }} 
+                                      className="w-full p-1.5 border rounded-lg text-[8px] font-mono text-blue-600 bg-white" 
+                                      placeholder="/"
+                                    />
+                                    <button onClick={() => {
+                                      const newGroups = [...element.props.menuGroups];
+                                      newGroups[gIdx].links = newGroups[gIdx].links.filter((_:any, i:number) => i !== lIdx);
+                                      handleChange("menuGroups", newGroups);
+                                    }} className="h-7 w-7 flex items-center justify-center text-red-400 hover:bg-red-50 rounded-md transition-all"><Trash2 size={12}/></button>
+                                  </div>
+                                ))}
+                                <button onClick={() => {
+                                  const newGroups = [...element.props.menuGroups];
+                                  newGroups[gIdx].links.push({ label: "NUEVO", url: "/" });
+                                  handleChange("menuGroups", newGroups);
+                                }} className="w-full py-1.5 border-2 border-dashed rounded-lg text-[8px] font-black text-gray-400 uppercase hover:border-blue-200 hover:text-blue-500 transition-all">+ Link</button>
+
+                                {/* --- SUB-MENÚS DE ESTILO POR SECCIÓN --- */}
+                                <div className="pt-2 border-t border-gray-100 space-y-3">
+                                  {/* Estilo de Título de Grupo */}
+                                  <div className="p-2 bg-white rounded-xl space-y-2 border border-gray-50">
+                                    <span className="text-[7px] font-black text-gray-400 uppercase">Estilo de Título ({group.title})</span>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div className="flex items-center gap-1.5 p-1 border rounded-md"><input type="color" value={group.titleColor || "#00f2ff"} onChange={(e) => { const ng = [...element.props.menuGroups]; ng[gIdx].titleColor = e.target.value; handleChange("menuGroups", ng); }} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[7px] text-gray-400 font-bold uppercase">Color</span></div>
+                                      <select value={group.titleFont || "font-black"} onChange={(e) => { const ng = [...element.props.menuGroups]; ng[gIdx].titleFont = e.target.value; handleChange("menuGroups", ng); }} className="w-full p-1 border rounded-md text-[8px] font-bold bg-gray-50"><option value="font-black">Heavy</option><option value="font-sans">Sans</option></select>
+                                    </div>
+                                    <FluidSlider label="Tamaño Título" value={group.titleSize || 10} min={8} max={20} onChange={(v:number) => { const ng = [...element.props.menuGroups]; ng[gIdx].titleSize = v; handleChange("menuGroups", ng); }} />
+                                  </div>
+
+                                  {/* Estilo de Enlaces en Masa */}
+                                  <div className="p-2 bg-white rounded-xl space-y-2 border border-gray-50">
+                                    <span className="text-[7px] font-black text-gray-400 uppercase">Estilo de Enlaces (Todos)</span>
+                                    <div className="flex items-center gap-2 p-1 border rounded-md w-full mb-2"><input type="color" value={group.linksColor || "#ffffff"} onChange={(e) => { const ng = [...element.props.menuGroups]; ng[gIdx].linksColor = e.target.value; handleChange("menuGroups", ng); }} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[7px] text-gray-400 font-bold uppercase">Color Global</span></div>
+                                    <div className="grid grid-cols-1 gap-2">
+                                      <FluidSlider label="Tamaño Texto" value={group.linksSize || 14} min={8} max={24} onChange={(v:number) => { const ng = [...element.props.menuGroups]; ng[gIdx].linksSize = v; handleChange("menuGroups", ng); }} />
+                                      <FluidSlider label="Separación (Gap)" value={group.linksGap || 16} min={0} max={40} onChange={(v:number) => { const ng = [...element.props.menuGroups]; ng[gIdx].linksGap = v; handleChange("menuGroups", ng); }} />
+                                      <FluidSlider label="Opacidad" value={group.linksOpacity || 40} min={0} max={100} suffix="%" onChange={(v:number) => { const ng = [...element.props.menuGroups]; ng[gIdx].linksOpacity = v; handleChange("menuGroups", ng); }} />
+                                    </div>
+                                  </div>
+
+                                  {/* Posición de la Sección */}
+                                  <div className="p-2 bg-blue-50/30 rounded-xl border border-blue-50 space-y-2">
+                                    <FluidSlider label="Posición X" value={group.posX || 0} min={-150} max={150} onChange={(v:number) => { const ng = [...element.props.menuGroups]; ng[gIdx].posX = v; handleChange("menuGroups", ng); }} />
+                                    <FluidSlider label="Posición Y" value={group.posY || 0} min={-100} max={100} onChange={(v:number) => { const ng = [...element.props.menuGroups]; ng[gIdx].posY = v; handleChange("menuGroups", ng); }} />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </ControlGroup>
+
+                    <ControlGroup title="3. Redes Sociales" icon={Globe} defaultOpen={false}>
+                      <div className="space-y-4">
+                        <button onClick={() => handleChange("showSocial", !element.props.showSocial)} className={cn("w-full py-3 border rounded-xl text-[10px] font-black uppercase transition-all", element.props.showSocial ? "bg-gray-900 text-white" : "bg-white text-gray-400")}>
+                          Iconos Sociales: {element.props.showSocial ? "ON" : "OFF"}
+                        </button>
+                        {element.props.showSocial && (
+                          <div className="grid grid-cols-1 gap-2">
+                            {['facebook', 'instagram', 'whatsapp'].map(plat => (
+                              <div key={plat} className="flex items-center gap-2 p-2 border rounded-xl bg-white">
+                                <span className="text-[10px] font-black uppercase w-20">{plat}</span>
+                                <input type="text" className="flex-1 text-[9px] font-mono text-blue-600 bg-transparent border-none outline-none" placeholder="URL..." />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </ControlGroup>
+                  </>
+                )}
+              </>
+            )}
           </div>
         )}
 
@@ -702,6 +975,18 @@ export const DesignerInspector = () => {
                     {element.type === "announcement-bar" && (
                       <FluidSlider label="Tamaño Letra" value={element.props.fontSize || 11} min={8} max={20} onChange={(v:number) => handleChange("fontSize", v)} />
                     )}
+                  </div>
+                </ControlGroup>
+              </>
+            )}
+
+            {sectionKey === "footer" && (
+              <>
+                <ControlGroup title="Colores de Marca" icon={Palette} defaultOpen={true}>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white h-[38px]"><input type="color" value={element.props.bgColor || "#111827"} onChange={(e) => handleChange("bgColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase font-black">Fondo Footer</span></div>
+                    <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white h-[38px]"><input type="color" value={element.props.textColor || "#ffffff"} onChange={(e) => handleChange("textColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase font-black">Color de Texto</span></div>
+                    <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white h-[38px]"><input type="color" value={element.props.accentColor || "#00f2ff"} onChange={(e) => handleChange("accentColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase font-black">Color de Énfasis</span></div>
                   </div>
                 </ControlGroup>
               </>

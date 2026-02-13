@@ -306,6 +306,144 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
           </div>
         )}
 
+        {/* FOOTER PREMIUM */}
+        {section === "footer" && el.type === "footer-premium" && (
+          <div className="w-full py-16 px-12 rounded-[3rem] shadow-2xl transition-all" style={{ backgroundColor: el.props.bgColor || "#111827", color: el.props.textColor || "#ffffff" }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+              {/* COL 1: Identidad */}
+              <div className="space-y-6">
+                <div 
+                  className="transition-all duration-300 relative" 
+                  style={{ transform: `translate(${el.props.footerLogoPosX || 0}px, ${el.props.footerLogoPosY || 0}px)` }}
+                >
+                  {el.props.footerLogoUrl ? (
+                    <img src={el.props.footerLogoUrl} className="object-contain" style={{ height: `${el.props.footerLogoSize || 24}px` }} alt="Footer Logo" />
+                  ) : (
+                    renderTextWithTheme(el.props.logoText || "LOGO", {
+                      ...el.props,
+                      variant: el.props.footerLogoVariant,
+                      effect: el.props.footerLogoEffect,
+                      color: el.props.footerLogoColor,
+                      size: el.props.footerLogoSize,
+                      font: el.props.footerLogoFont,
+                      aurora1: el.props.footerLogoAurora1,
+                      aurora2: el.props.footerLogoAurora2
+                    }, "footerLogo", el.id, false)
+                  )}
+                </div>
+                
+                <div 
+                  className="transition-all duration-300 relative" 
+                  style={{ transform: `translate(${el.props.footerDescPosX || 0}px, ${el.props.footerDescPosY || 0}px)` }}
+                >
+                  {renderTextWithTheme(el.props.description, {
+                    ...el.props,
+                    variant: el.props.footerDescVariant,
+                    effect: el.props.footerDescEffect,
+                    color: el.props.footerDescColor,
+                    size: el.props.footerDescSize,
+                    font: el.props.footerDescFont,
+                    aurora1: el.props.footerDescAurora1,
+                    aurora2: el.props.footerDescAurora2
+                  }, "footerDesc", el.id, false)}
+                </div>
+
+                {el.props.showSocial && (
+                  <div className="flex gap-4 pt-4">
+                    {(el.props.socialLinks || []).map((s: any) => (
+                      <div key={s.platform} className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all cursor-pointer">
+                        <span className="text-[10px] font-black uppercase">{s.platform.charAt(0)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* COL 2 & 3: Menús */}
+              {(el.props.menuGroups || [])
+                .filter((group: any) => group.show !== false)
+                .map((group: any, idx: number) => (
+                <div 
+                  key={idx} 
+                  className="space-y-6 transition-all duration-300"
+                  style={{ transform: `translate(${group.posX || 0}px, ${group.posY || 0}px)` }}
+                >
+                  <h4 
+                    className={cn("uppercase tracking-[0.2em]", group.titleFont || "font-black")} 
+                    style={{ 
+                      color: group.titleColor || el.props.accentColor || "#00f2ff",
+                      fontSize: `${group.titleSize || 10}px`
+                    }}
+                  >
+                    {group.title}
+                  </h4>
+                  <ul 
+                    className="flex flex-col"
+                    style={{ gap: `${group.linksGap || 16}px` }}
+                  >
+                    {(group.links || []).map((link: any, lIdx: number) => (
+                      <li 
+                        key={lIdx} 
+                        className="font-bold hover:translate-x-2 transition-all cursor-pointer"
+                        style={{ 
+                          color: group.linksColor || "#ffffff",
+                          fontSize: `${group.linksSize || 14}px`,
+                          opacity: (group.linksOpacity !== undefined ? group.linksOpacity : 40) / 100
+                        }}
+                      >
+                        {link.label}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+
+              {/* COL 4: Newsletter */}
+              <div className="space-y-6">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: el.props.accentColor || "#00f2ff" }}>Suscripción Pro</h4>
+                {el.props.showNewsletter && (
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        placeholder={el.props.newsletterPlaceholder}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-white/30 transition-all"
+                      />
+                      <button className="absolute right-2 top-2 h-10 w-10 rounded-xl flex items-center justify-center transition-all" style={{ backgroundColor: el.props.accentColor || "#00f2ff", color: "#000" }}>
+                        <PlusIcon size={18} />
+                      </button>
+                    </div>
+                    <p className="text-[9px] opacity-40 italic">Únete a nuestra comunidad exclusiva.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 relative">
+              <div 
+                className="transition-all duration-300"
+                style={{ transform: `translate(${el.props.footerCopyPosX || 0}px, ${el.props.footerCopyPosY || 0}px)` }}
+              >
+                {renderTextWithTheme(el.props.copyright, {
+                  ...el.props,
+                  variant: el.props.footerCopyVariant,
+                  effect: el.props.footerCopyEffect,
+                  color: el.props.footerCopyColor,
+                  size: el.props.footerCopySize,
+                  font: el.props.footerCopyFont,
+                  aurora1: el.props.footerCopyAurora1,
+                  aurora2: el.props.footerCopyAurora2
+                }, "footerCopy", el.id, false)}
+              </div>
+              <div className="flex gap-6 opacity-30 text-[10px] font-black uppercase">
+                <span>Privacidad</span>
+                <span>Términos</span>
+                <span>Cookies</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {el.type === "navbar" && (
           <div className={cn("flex items-center px-6 shadow-sm rounded-xl border border-gray-100 overflow-hidden")} style={{ height: `${el.props.navHeight || 80}px`, backgroundColor: el.props.bgColor || "#ffffff" }}>
             <div 

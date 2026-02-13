@@ -237,6 +237,76 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
              } :
              type === "button" ? {
                text: "Haz clic", url: "/", variant: "solid", bgColor: "#2563eb", textColor: "#ffffff", borderRadius: 12, align: "center", font: "font-black", size: 14, intensity: 100, posX: 0, posY: 0, aurora1: "#00f2ff", aurora2: "#7000ff"
+             } : 
+             type === "footer-premium" ? {
+               logoText: "BAYUP SHOP",
+               footerLogoUrl: null,
+               footerLogoSize: 24,
+               footerLogoPosX: 0,
+               footerLogoPosY: 0,
+               footerLogoColor: "#00f2ff",
+               footerLogoFont: "font-black",
+               footerLogoVariant: "solid",
+               footerLogoEffect: "none",
+               footerLogoAurora1: "#00f2ff",
+               footerLogoAurora2: "#7000ff",
+               description: "Transformando la forma en que el mundo compra online con tecnología de vanguardia.",
+               footerDescColor: "#ffffff",
+               footerDescFont: "font-sans",
+               footerDescVariant: "solid",
+               footerDescEffect: "none",
+               footerDescAurora1: "#00f2ff",
+               footerDescAurora2: "#7000ff",
+               footerDescSize: 49,
+               footerDescPosX: 29,
+               footerDescPosY: -38,
+               footerCopyColor: "#ffffff",
+               footerCopyFont: "font-sans",
+               footerCopyVariant: "solid",
+               footerCopyEffect: "none",
+               footerCopyAurora1: "#00f2ff",
+               footerCopyAurora2: "#7000ff",
+               footerCopySize: 10,
+               footerCopyPosX: 0,
+               footerCopyPosY: 0,
+               bgColor: "#111827",
+               textColor: "#ffffff",
+               accentColor: "#00f2ff",
+               showSocial: true,
+               socialLinks: [
+                 { platform: 'instagram', url: '#' },
+                 { platform: 'facebook', url: '#' },
+                 { platform: 'whatsapp', url: '#' }
+               ],
+               menuGroups: [
+                 { 
+                   title: "Navegación", 
+                   show: true,
+                   titleColor: "#00f2ff", titleSize: 10, titleFont: "font-black",
+                   linksColor: "#ffffff", linksSize: 14, linksGap: 16, linksOpacity: 40,
+                   posX: 0, posY: 0,
+                   links: [{ label: "Inicio", url: "/" }, { label: "Tienda", url: "/tienda" }, { label: "Sobre Nosotros", url: "/nosotros" }] 
+                 },
+                 { 
+                   title: "Legal", 
+                   show: true,
+                   titleColor: "#00f2ff", titleSize: 10, titleFont: "font-black",
+                   linksColor: "#ffffff", linksSize: 14, linksGap: 16, linksOpacity: 40,
+                   posX: 0, posY: 0,
+                   links: [{ label: "Términos", url: "/terms" }, { label: "Privacidad", url: "/privacy" }, { label: "Garantía", url: "/warranty" }] 
+                 },
+                 { 
+                   title: "Contacto", 
+                   show: true,
+                   titleColor: "#00f2ff", titleSize: 10, titleFont: "font-black",
+                   linksColor: "#ffffff", linksSize: 14, linksGap: 16, linksOpacity: 40,
+                   posX: 0, posY: 0,
+                   links: [{ label: "Email", url: "mailto:info@bayup.com" }, { label: "WhatsApp", url: "https://wa.me/..." }] 
+                 }
+               ],
+               showNewsletter: true,
+               newsletterPlaceholder: "Tu mejor email...",
+               copyright: "© 2026 Bayup Interactive. Todos los derechos reservados."
              } : { content: "Nuevo Elemento" },
     };
 

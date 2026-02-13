@@ -24,6 +24,7 @@ const AVAILABLE_COMPONENTS = {
     { type: "custom-block" as ComponentType, label: "Bloque personalizado", icon: LayoutTemplate },
   ],
   footer: [
+     { type: "footer-premium" as ComponentType, label: "Footer Premium", icon: LayoutTemplate },
      { type: "text" as ComponentType, label: "Texto Legal", icon: Type },
      { type: "image" as ComponentType, label: "Iconos Redes", icon: ImageIcon },
   ]
