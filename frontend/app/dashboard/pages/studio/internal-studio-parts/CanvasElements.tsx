@@ -101,13 +101,65 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
         )}
 
         {el.type === "navbar" && (
-          <div className="flex items-center px-10 shadow-sm border-b border-gray-100" style={{ height: `${elProps.navHeight || 80}px`, backgroundColor: elProps.bgColor || "#ffffff" }}>
-            <div className="shrink-0" style={{ transform: `translateX(${elProps.logoPosX || 0}px)` }}>
-              {elProps.logoUrl ? <img src={elProps.logoUrl} style={{ height: `${elProps.logoSize || 24}px` }} /> : renderTextWithTheme(elProps.logoText || "LOGO", elProps, "logo")}
+          <div className="flex items-center w-full px-10 shadow-sm border-b border-gray-100 relative transition-all duration-500 overflow-hidden" style={{ height: `${elProps.navHeight || 80}px`, backgroundColor: elProps.bgColor || "#ffffff" }}>
+            
+            {/* 1. ÁREA DE LOGOTIPO (IZQUIERDA) */}
+            <div className="shrink-0 z-10 flex items-center" style={{ transform: `translateX(${elProps.logoPosX || 0}px)` }}>
+              {elProps.logoUrl ? (
+                <img src={elProps.logoUrl} style={{ height: `${elProps.logoSize || 24}px` }} className="object-contain" />
+              ) : (
+                renderTextWithTheme(elProps.logoText || "LOGO", elProps, "logo")
+              )}
             </div>
-            <nav className="hidden md:flex items-center mx-auto gap-8" style={{ transform: `translateX(${elProps.menuPosX || 0}px)` }}>
-              {(elProps.menuItems || []).map((m: any, i: number) => <div key={i} className="cursor-pointer">{renderTextWithTheme(m.label || m, elProps, "menu")}</div>)}
+
+            {/* 2. ÁREA DE MENÚ PRINCIPAL (CENTRO) */}
+            <nav className={cn(
+              "hidden md:flex flex-1 items-center gap-8 transition-all px-8",
+              elProps.align === "left" ? "justify-start ml-8" : 
+              elProps.align === "right" ? "justify-end mr-8" : "justify-center"
+            )} 
+            style={{ transform: `translateX(${elProps.menuPosX || 0}px)` }}>
+              <div className="flex items-center" style={{ gap: `${elProps.menuGap || 32}px` }}>
+                {(elProps.menuItems || []).map((m: any, i: number) => {
+                  // Validación quirúrgica para evitar renderizar objetos
+                  const labelToShow = typeof m === 'string' ? m : (m?.label || "Link");
+                  return (
+                    <div key={i} className="cursor-pointer">
+                      {renderTextWithTheme(labelToShow, elProps, "menu", `nav-item-${i}`)}
+                    </div>
+                  );
+                })}
+              </div>
             </nav>
+
+            {/* 3. ÁREA DE UTILIDADES / ICONOS (DERECHA) */}
+            <div className="flex items-center z-10 shrink-0 ml-auto" style={{ gap: `${elProps.utilityGap || 16}px`, transform: `translateX(${elProps.utilityPosX || 0}px)` }}>
+              
+              {/* Elementos Extra del Navbar (Botones/Textos añadidos) */}
+              {(elProps.extraElements || []).map((extra: any) => (
+                <div key={extra.id} className="flex items-center">
+                  {extra.type === 'button' && renderButton(extra, "extra", extra.id)}
+                  {extra.type === 'text' && renderTextWithTheme(extra.content, extra, "extra", extra.id)}
+                </div>
+              ))}
+
+              <div className="flex items-center" style={{ gap: `${elProps.utilityGap || 16}px` }}>
+                {/* Iconos Estándar */}
+                {elProps.showSearch && renderTextWithTheme(<Search size={elProps.utilitySize || 18} />, elProps, "utility", "nav-search")}
+                {elProps.showUser && renderTextWithTheme(<User size={elProps.utilitySize || 18} />, elProps, "utility", "nav-user")}
+                {elProps.showCart && renderTextWithTheme(<ShoppingCart size={elProps.utilitySize || 18} />, elProps, "utility", "nav-cart")}
+
+                {/* Iconos Personalizados (Extra Utilities) */}
+                {(elProps.extraUtilities || []).map((util: any) => {
+                  const IconComp = { Heart, Bell, Star, MessageSquare, Phone, Info }[util.icon] || Info;
+                  return (
+                    <div key={util.id} title={util.label} className="cursor-pointer">
+                      {renderTextWithTheme(<IconComp size={elProps.utilitySize || 18} />, elProps, "utility", util.id)}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 

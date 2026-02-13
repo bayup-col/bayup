@@ -446,31 +446,46 @@ export const DesignerInspector = () => {
                     {/* MENÚ 2: LINKS PRINCIPALES */}
                     <ControlGroup title="2. Menú Principal" icon={Layout} defaultOpen={false}>
                       <div className="space-y-2">
-                        <div className="grid grid-cols-[1fr_1fr_32px] gap-2 px-1 mb-1">
+                        <div className="grid grid-cols-[1fr_1fr_40px] gap-2 px-1 mb-1">
                           <span className="text-[7px] font-black text-gray-400 uppercase">Etiqueta</span>
                           <span className="text-[7px] font-black text-gray-400 uppercase">Enlace (URL)</span>
+                          <span className="text-[7px] font-black text-gray-400 uppercase text-center">Borrar</span>
                         </div>
                         {(element.props.menuItems || []).map((item: any, idx: number) => (
-                          <div key={idx} className="flex gap-2 items-center group">
+                          <div key={idx} className="grid grid-cols-[1fr_1fr_40px] gap-2 items-center group">
                             <input 
                               type="text" 
-                              value={item.label} 
-                              onChange={(e) => { const newItems = [...element.props.menuItems]; newItems[idx].label = e.target.value; handleChange("menuItems", newItems); }} 
-                              className="flex-1 p-2 border rounded-lg text-[10px] font-bold bg-white" 
+                              value={typeof item === 'string' ? item : (item.label || "")} 
+                              onChange={(e) => { 
+                                const newItems = [...element.props.menuItems]; 
+                                if (typeof newItems[idx] === 'string') newItems[idx] = { label: e.target.value, url: "/" };
+                                else newItems[idx].label = e.target.value; 
+                                handleChange("menuItems", newItems); 
+                              }} 
+                              className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white" 
                               placeholder="Nombre"
                             />
                             <input 
                               type="text" 
-                              value={item.url} 
-                              onChange={(e) => { const newItems = [...element.props.menuItems]; newItems[idx].url = e.target.value; handleChange("menuItems", newItems); }} 
-                              className="flex-1 p-2 border rounded-lg text-[9px] font-mono text-blue-600 bg-white" 
+                              value={item.url || "/"} 
+                              onChange={(e) => { 
+                                const newItems = [...element.props.menuItems]; 
+                                if (typeof newItems[idx] === 'string') newItems[idx] = { label: newItems[idx], url: e.target.value };
+                                else newItems[idx].url = e.target.value; 
+                                handleChange("menuItems", newItems); 
+                              }} 
+                              className="w-full p-2 border rounded-lg text-[9px] font-mono text-blue-600 bg-white" 
                               placeholder="/"
                             />
                             <button 
-                              onClick={() => handleChange("menuItems", element.props.menuItems.filter((_:any, i:number) => i !== idx))} 
-                              className="h-8 w-8 shrink-0 flex items-center justify-center text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                              onClick={() => {
+                                const newItems = element.props.menuItems.filter((_: any, i: number) => i !== idx);
+                                handleChange("menuItems", newItems);
+                              }} 
+                              className="h-8 w-full flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all border border-transparent hover:border-red-100"
+                              title="Eliminar enlace"
                             >
-                              <X size={14}/>
+                              <X size={16} strokeWidth={3} />
                             </button>
                           </div>
                         ))}
