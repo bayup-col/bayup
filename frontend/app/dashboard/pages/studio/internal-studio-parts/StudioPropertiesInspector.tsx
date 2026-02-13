@@ -277,9 +277,12 @@ export const DesignerInspector = () => {
               </div>
             ) : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR {floatType === "video" ? "VIDEO" : "IMAGEN"}</p>}
           </div>
-          <input type="text" value={url || ""} onChange={(e) => onUpdate({ url: e.target.value, floatUrl: e.target.value, videoUrl: e.target.value, imageUrl: e.target.value })} className="w-full p-2 border rounded-lg text-[10px] font-mono text-blue-600 bg-gray-50/30" placeholder="O pega URL..." />
+          <div className="grid grid-cols-1 gap-2 pt-2 border-t border-gray-50">
+            <span className="text-[9px] font-black text-gray-400 uppercase block mb-1">Vínculo (Redirección)</span>
+            <input type="text" value={props.linkUrl || ""} onChange={(e) => onUpdate({ linkUrl: e.target.value })} className="w-full p-2 border rounded-lg text-[10px] font-mono text-blue-600 bg-gray-50/30" placeholder="https://..." />
+          </div>
           
-          <div className="space-y-2">
+          <div className="space-y-2 pt-2 border-t border-gray-50">
             <span className="text-[9px] font-black text-gray-400 uppercase">Efectos Dinámicos</span>
             <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
               {[{id:"none", l:"Normal", i:Wand2}, {id:"float", l:"Flotar", i:Wind}, {id:"zoom", l:"Zoom", i:Maximize}, {id:"blink", l:"Parpadeo", i:Zap}, {id:"rotate", l:"Rotar", i:RotateCw}, {id:"pulse", l:"Pulso", i:Star}].map(eff => (
