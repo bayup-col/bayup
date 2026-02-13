@@ -319,7 +319,16 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
 
         {/* FOOTER PREMIUM */}
         {section === "footer" && el.type === "footer-premium" && (
-          <div className="w-full py-16 px-12 rounded-[3rem] shadow-2xl transition-all relative" style={{ backgroundColor: el.props.bgColor || "#111827", color: el.props.textColor || "#ffffff" }}>
+          <div 
+            className="w-full px-12 rounded-[3rem] shadow-2xl transition-all relative flex flex-col justify-center overflow-hidden" 
+            style={{ 
+              backgroundColor: el.props.bgColor || "#111827", 
+              color: el.props.textColor || "#ffffff",
+              minHeight: `${el.props.height || 400}px`,
+              paddingTop: `${Math.max(20, (el.props.height || 400) / 8)}px`,
+              paddingBottom: `${Math.max(20, (el.props.height || 400) / 8)}px`
+            }}
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 relative z-10">
               {/* COL 1: Identidad */}
               <div className="space-y-6 flex flex-col items-center text-center">
