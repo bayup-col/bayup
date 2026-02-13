@@ -399,21 +399,68 @@ const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement,
               ))}
 
               {/* COL 4: Newsletter */}
-              <div className="space-y-6">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: el.props.accentColor || "#00f2ff" }}>Suscripción Pro</h4>
+              <div 
+                className="space-y-6 transition-all duration-300 relative flex-1 min-w-[300px]"
+                style={{ 
+                  transform: `translate(${el.props.newsletterPosX || 0}px, ${el.props.newsletterPosY || 0}px)`,
+                  width: `${el.props.newsletterContainerWidth || 100}%`,
+                  maxWidth: 'none'
+                }}
+              >
                 {el.props.showNewsletter && (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="relative">
-                      <input 
-                        type="text" 
-                        placeholder={el.props.newsletterPlaceholder}
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-white/30 transition-all"
-                      />
-                      <button className="absolute right-2 top-2 h-10 w-10 rounded-xl flex items-center justify-center transition-all" style={{ backgroundColor: el.props.accentColor || "#00f2ff", color: "#000" }}>
-                        <PlusIcon size={18} />
-                      </button>
+                      {renderTextWithTheme(el.props.newsletterTitle || "Suscripción Pro", {
+                        ...el.props,
+                        variant: el.props.newsletterTitleVariant,
+                        effect: el.props.newsletterTitleEffect,
+                        color: el.props.newsletterTitleColor,
+                        size: el.props.newsletterTitleSize,
+                        font: el.props.newsletterTitleFont,
+                        aurora1: el.props.newsletterTitleAurora1,
+                        aurora2: el.props.newsletterTitleAurora2
+                      }, "newsletterTitle", el.id, false)}
                     </div>
-                    <p className="text-[9px] opacity-40 italic">Únete a nuestra comunidad exclusiva.</p>
+                    
+                    <div className="space-y-4">
+                      <div 
+                        className="relative transition-all duration-300 flex items-center"
+                        style={{ 
+                          width: `${el.props.newsletterInputWidth || 100}%`,
+                          height: `${el.props.newsletterInputHeight || 50}px`
+                        }}
+                      >
+                        <input 
+                          type="text" 
+                          placeholder={el.props.newsletterPlaceholder}
+                          style={{ 
+                            height: '100%', 
+                            color: el.props.newsletterPlaceholderColor || '#9ca3af',
+                            fontSize: `${el.props.newsletterPlaceholderSize || 12}px`
+                          }}
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 font-bold outline-none focus:border-white/30 transition-all"
+                        />
+                        <button 
+                          className="absolute right-2 rounded-xl flex items-center justify-center transition-all" 
+                          style={{ 
+                            backgroundColor: el.props.accentColor || "#00f2ff", 
+                            color: "#000",
+                            height: `${Math.max(24, (el.props.newsletterInputHeight || 50) - 12)}px`,
+                            width: `${Math.max(24, (el.props.newsletterInputHeight || 50) - 12)}px`
+                          }}
+                        >
+                          {el.props.newsletterIcon === "Send" ? <LogIn size={18} /> : <PlusIcon size={18} />}
+                        </button>
+                      </div>
+                      
+                      <div className="italic transition-all">
+                        {renderTextWithTheme(el.props.newsletterSubtext || "Únete a nuestra comunidad exclusiva.", {
+                          ...el.props,
+                          newsletterSubVariant: "solid",
+                          // El helper buscará newsletterSubColor y newsletterSubSize automáticamente de el.props
+                        }, "newsletterSub", el.id, false)}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

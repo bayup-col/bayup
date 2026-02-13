@@ -945,6 +945,66 @@ export const DesignerInspector = () => {
                         )}
                       </div>
                     </ControlGroup>
+
+                    <ControlGroup title="6. Newsletter" icon={Zap} defaultOpen={false}>
+                      <div className="space-y-4">
+                        <button onClick={() => handleChange("showNewsletter", !element.props.showNewsletter)} className={cn("w-full py-3 border rounded-xl text-[10px] font-black uppercase transition-all", element.props.showNewsletter ? "bg-blue-600 text-white shadow-lg" : "bg-white text-gray-400 border-gray-100")}>
+                          Módulo Newsletter: {element.props.showNewsletter ? "VISIBLE" : "OCULTO"}
+                        </button>
+
+                        {element.props.showNewsletter && (
+                          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                            {/* TEXTOS DINÁMICOS */}
+                            <div className="p-3 bg-gray-50/50 rounded-2xl border border-gray-100 space-y-4">
+                              <div className="space-y-2">
+                                <span className="text-[7px] font-black text-gray-400 uppercase">Título</span>
+                                <input type="text" value={element.props.newsletterTitle || ""} onChange={(e) => handleChange("newsletterTitle", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold" />
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="flex items-center gap-1 p-1 border rounded-lg bg-white"><input type="color" value={element.props.newsletterTitleColor || "#00f2ff"} onChange={(e) => handleChange("newsletterTitleColor", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[7px] text-gray-400 font-bold uppercase">Color</span></div>
+                                  <FluidSlider label="Tañ." value={element.props.newsletterTitleSize || 10} min={8} max={40} onChange={(v:number) => handleChange("newsletterTitleSize", v)} />
+                                </div>
+                              </div>
+                              <div className="space-y-2 pt-2 border-t border-gray-100">
+                                <span className="text-[7px] font-black text-gray-400 uppercase">Ayuda (Placeholder)</span>
+                                <input type="text" value={element.props.newsletterPlaceholder || ""} onChange={(e) => handleChange("newsletterPlaceholder", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold" />
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="flex items-center gap-1 p-1 border rounded-lg bg-white"><input type="color" value={element.props.newsletterPlaceholderColor || "#9ca3af"} onChange={(e) => handleChange("newsletterPlaceholderColor", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[7px] text-gray-400 font-bold uppercase">Color</span></div>
+                                  <FluidSlider label="Tañ." value={element.props.newsletterPlaceholderSize || 12} min={8} max={24} onChange={(v:number) => handleChange("newsletterPlaceholderSize", v)} />
+                                </div>
+                              </div>
+                              <div className="space-y-2 pt-2 border-t border-gray-100">
+                                <span className="text-[7px] font-black text-gray-400 uppercase">Subtexto</span>
+                                <input type="text" value={element.props.newsletterSubtext || ""} onChange={(e) => handleChange("newsletterSubtext", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold" />
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="flex items-center gap-1 p-1 border rounded-lg bg-white"><input type="color" value={element.props.newsletterSubColor || "#ffffff"} onChange={(e) => handleChange("newsletterSubColor", e.target.value)} className="w-4 h-4 rounded-sm p-0 cursor-pointer" /><span className="text-[7px] text-gray-400 font-bold uppercase">Color</span></div>
+                                  <FluidSlider label="Tañ." value={element.props.newsletterSubSize || 9} min={7} max={20} onChange={(v:number) => handleChange("newsletterSubSize", v)} />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-3 pt-2">
+                              <span className="text-[8px] font-black text-gray-400 uppercase">Temas del Título</span>
+                              <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                                {["solid", "outline", "3d", "brutalist", "aurora"].map(v => (<button key={v} onClick={() => handleChange("newsletterTitleVariant", v)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", element.props.newsletterTitleVariant === v ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v}</button>))}
+                              </div>
+                            </div>
+
+                            <div className="space-y-4 pt-4 border-t border-gray-100">
+                              <span className="text-[8px] font-black text-gray-400 uppercase">Dimensiones y Posición</span>
+                              <FluidSlider label="Ancho Módulo" value={element.props.newsletterContainerWidth || 100} min={30} max={300} onChange={(v:number) => handleChange("newsletterContainerWidth", v)} suffix="%" />
+                              <div className="grid grid-cols-2 gap-3">
+                                <FluidSlider label="Ancho Barra" value={element.props.newsletterInputWidth || 100} min={50} max={100} onChange={(v:number) => handleChange("newsletterInputWidth", v)} suffix="%" />
+                                <FluidSlider label="Altura Barra" value={element.props.newsletterInputHeight || 50} min={30} max={120} onChange={(v:number) => handleChange("newsletterInputHeight", v)} suffix="px" />
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <FluidSlider label="Posición X" value={element.props.newsletterPosX || 0} min={-300} max={300} onChange={(v:number) => handleChange("newsletterPosX", v)} />
+                                <FluidSlider label="Posición Y" value={element.props.newsletterPosY || 0} min={-100} max={100} onChange={(v:number) => handleChange("newsletterPosY", v)} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </ControlGroup>
                   </>
                 )}
               </>
