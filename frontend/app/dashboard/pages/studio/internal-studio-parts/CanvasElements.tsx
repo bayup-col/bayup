@@ -44,6 +44,9 @@ export const AnnouncementSlides = ({ messages, animationType = "slide", speed = 
 
 export const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement, setActiveSection, removeElement, realCategories, realProducts, isPreview = false }: any) => {
   const { viewport } = useStudio();
+  const [scrollProgress, setScrollProgress] = React.useState(0);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ 
     id: el.id, data: { type: el.type, id: el.id, section: section }, disabled: isPreview 
   });
@@ -53,10 +56,24 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
     ...(el.props.responsiveOverrides?.[viewport] || {})
   };
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    if (target.scrollWidth > target.clientWidth) {
+      const progress = target.scrollLeft / (target.scrollWidth - target.clientWidth);
+      setScrollProgress(progress || 0);
+    }
+  };
+
   const style = { transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined, opacity: isDragging ? 0.3 : 1 };
 
   return (
-    <motion.div ref={setNodeRef} style={style} {...(isPreview ? {} : { ...listeners, ...attributes })} onClick={(e) => { if (isPreview) return; e.stopPropagation(); selectElement(el.id); setActiveSection(section); }} className={cn("relative group transition-all", !isPreview && (selectedElementId === el.id ? "ring-2 ring-blue-500 rounded-lg shadow-lg z-10" : "hover:ring-1 hover:ring-blue-300 rounded-lg"))}>
+    <motion.div 
+      ref={setNodeRef} 
+      style={style} 
+      {...(isPreview ? {} : { ...listeners, ...attributes })} 
+      onClick={(e) => { if (isPreview) return; e.stopPropagation(); selectElement(el.id); setActiveSection(section); }} 
+      className={cn("relative group transition-all", !isPreview && (selectedElementId === el.id ? "ring-2 ring-blue-500 rounded-lg shadow-lg z-10" : "hover:ring-1 hover:ring-blue-300 rounded-lg"))}
+    >
       
       {(!isPreview && selectedElementId === el.id) && (
         <div className="absolute -top-10 left-0 bg-blue-500 text-white flex items-center gap-2 px-2 py-1 rounded-t-lg shadow-md z-30">
@@ -104,8 +121,8 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
           <div 
             className={cn(
               "flex items-center w-full px-10 relative transition-all duration-500",
-              (!elProps.barEffect || elProps.barEffect === "none") ? "border-b border-gray-100 shadow-sm" : "",
-              elProps.barEffect === "glass" ? "backdrop-blur-xl backdrop-saturate-150 border border-white/20 shadow-2xl rounded-b-2xl" : "",
+              (!elProps.barEffect || elProps.barEffect === "none") ? "border-b border-gray-100 shadow-sm overflow-hidden" : "",
+              elProps.barEffect === "glass" ? "backdrop-blur-xl backdrop-saturate-150 border border-white/20 shadow-2xl rounded-b-2xl" : "overflow-hidden",
               elProps.barEffect === "shadow" ? "shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-none" : "",
               elProps.barEffect === "neon" ? "border-b-2 border-blue-500 shadow-[0_8px_20px_rgba(59,130,246,0.6)]" : "",
               // En previsualización, la barra flota con prioridad máxima si tiene efectos
@@ -143,6 +160,7 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                 }}
               />
             )}
+            
             {/* CONTENEDOR DE ELEMENTOS (Con sombra para resaltar sobre el vidrio) */}
             <div className={cn(
               "flex items-center w-full z-10",
@@ -183,12 +201,11 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                 {(elProps.extraElements || []).map((extra: any) => (
                   <div key={extra.id} className="flex items-center">
                     {extra.type === 'button' && renderButton(extra, "extra", extra.id)}
-                    {extra.type === 'text' && renderTextWithTheme(extra.content, extra, "extra", extra.id)}
+                    {extra.type === 'text' && renderTextWithTheme(extra.content || extra.title, extra, "extra", extra.id)}
                   </div>
                 ))}
 
                 <div className="flex items-center" style={{ gap: `${elProps.utilityGap || 16}px` }}>
-                  {/* Lógica de Renderizado de Utilidades según Modo (Icon, Text, Both) */}
                   {(() => {
                     const mode = elProps.utilityDisplayMode || "icon";
                     const renderUtil = (icon: any, label: string, id: string) => {
@@ -207,7 +224,6 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                         {elProps.showUser && renderUtil(<User size={elProps.utilitySize || 18} />, "Cuenta", "nav-user")}
                         {elProps.showCart && renderUtil(<ShoppingCart size={elProps.utilitySize || 18} />, "Carrito", "nav-cart")}
 
-                        {/* Iconos Personalizados (Extra Utilities) */}
                         {(elProps.extraUtilities || []).map((util: any) => {
                           const IconComp = { Heart, Bell, Star, MessageSquare, Phone, Info }[util.icon] || Info;
                           return (
@@ -226,18 +242,21 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
         )}
 
         {section === "body" && (
-          <div className="w-full flex flex-col p-12 overflow-hidden relative shadow-lg items-center text-center" style={{ backgroundColor: elProps.bgColor || "#111827", minHeight: `${elProps.height || 400}px`, justifyContent: "center" }}>
+          <motion.div 
+            layout
+            initial={false}
+            animate={{ 
+              height: elProps.height || 400,
+              backgroundColor: elProps.bgColor || "#111827"
+            }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="w-full flex flex-col p-12 overflow-hidden relative shadow-lg items-center text-center justify-center"
+          >
             
             {/* FONDO MULTIMEDIA (IMAGEN/VIDEO) */}
             {elProps.bgType === "video" && (elProps.videoUrl || elProps.videoExternalUrl) && (
               <div className="absolute inset-0 z-0">
-                <video 
-                  src={elProps.videoUrl} 
-                  autoPlay 
-                  muted 
-                  loop 
-                  className="w-full h-full object-cover"
-                />
+                <video src={elProps.videoUrl} autoPlay muted loop className="w-full h-full object-cover" />
               </div>
             )}
             
@@ -252,23 +271,15 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
             )}
 
             {/* CAPA DE OVERLAY (DIFUMINADO) */}
-            <div 
-              className="absolute inset-0 z-[1]" 
-              style={{ 
-                backgroundColor: elProps.overlayColor || "#000000", 
-                opacity: (elProps.overlayOpacity || 0) / 100 
-              }} 
-            />
+            <div className="absolute inset-0 z-[1]" style={{ backgroundColor: elProps.overlayColor || "#000000", opacity: (elProps.overlayOpacity || 0) / 100 }} />
 
             {/* IMAGEN DE COMPLEMENTO (FLOAT) PRINCIPAL */}
             {elProps.floatUrl && (
               <motion.div
                 animate={{ 
-                  x: elProps.floatPosX || 0, 
-                  y: elProps.floatPosY || 0,
+                  x: elProps.floatPosX || 0, y: elProps.floatPosY || 0,
                   rotate: elProps.floatAnim === "rotate" ? [0, 360] : 0,
-                  scale: elProps.floatAnim === "pulse" ? [1, 1.05, 1] : 
-                         elProps.floatAnim === "zoom" ? [0.9, 1.1] : 1
+                  scale: elProps.floatAnim === "pulse" ? [1, 1.05, 1] : elProps.floatAnim === "zoom" ? [0.9, 1.1] : 1
                 }}
                 transition={{ 
                   x: { type: "spring", stiffness: 450, damping: 30 },
@@ -282,28 +293,14 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                   elProps.floatAnim === "blink" ? "animate-pulse" : "",
                   elProps.floatLinkUrl ? "cursor-pointer pointer-events-auto" : "pointer-events-none"
                 )}
-                style={{ 
-                  width: `${elProps.floatSize || 150}px`,
-                  aspectRatio: "1/1",
-                  borderRadius: `${(elProps.floatRadius || 0) / 2}%`
-                }}
+                style={{ width: `${elProps.floatSize || 150}px`, aspectRatio: "1/1", borderRadius: `${(elProps.floatRadius || 0) / 2}%` }}
               >
                 {elProps.floatLinkUrl ? (
                   <a href={elProps.floatLinkUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
-                    {elProps.floatType === "video" ? (
-                      <video src={elProps.floatUrl} autoPlay muted loop className="w-full h-full object-cover" />
-                    ) : (
-                      <img src={elProps.floatUrl} className="w-full h-full object-cover shadow-2xl" />
-                    )}
+                    {elProps.floatType === "video" ? <video src={elProps.floatUrl} autoPlay muted loop className="w-full h-full object-cover" /> : <img src={elProps.floatUrl} className="w-full h-full object-cover shadow-2xl" />}
                   </a>
                 ) : (
-                  <>
-                    {elProps.floatType === "video" ? (
-                      <video src={elProps.floatUrl} autoPlay muted loop className="w-full h-full object-cover" />
-                    ) : (
-                      <img src={elProps.floatUrl} className="w-full h-full object-cover shadow-2xl" />
-                    )}
-                  </>
+                  elProps.floatType === "video" ? <video src={elProps.floatUrl} autoPlay muted loop className="w-full h-full object-cover" /> : <img src={elProps.floatUrl} className="w-full h-full object-cover shadow-2xl" />
                 )}
               </motion.div>
             )}
@@ -311,175 +308,82 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
             {/* ELEMENTOS MULTIMEDIA EXTRA (FLOTANTES) */}
             {(elProps.extraElements || []).filter((ex: any) => (ex.type === 'image' || ex.type === 'video') && (ex.url || ex.floatUrl)).map((extra: any) => (
               <motion.div 
-                key={extra.id} 
-                animate={{ x: extra.posX || 0, y: extra.posY || 0 }}
-                transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                key={extra.id} animate={{ x: extra.posX || 0, y: extra.posY || 0 }} transition={{ type: "spring", stiffness: 450, damping: 30 }}
                 className="absolute z-30 pointer-events-none overflow-hidden"
-                style={{ 
-                  width: `${extra.size || 100}px`,
-                  aspectRatio: "1/1",
-                  borderRadius: `${(extra.radius || 0) / 2}%`
-                }}
+                style={{ width: `${extra.size || 100}px`, aspectRatio: "1/1", borderRadius: `${(extra.radius || 0) / 2}%` }}
               >
-                {(extra.url || extra.floatUrl) && (
-                  extra.type === 'video' ? (
-                    <video src={extra.url || extra.floatUrl} autoPlay muted loop className="w-full h-full object-cover shadow-2xl" />
-                  ) : (
-                    <img src={extra.url || extra.floatUrl} className="w-full h-full object-cover shadow-2xl" />
-                  )
-                )}
+                {extra.type === 'video' ? <video src={extra.url || extra.floatUrl} autoPlay muted loop className="w-full h-full object-cover shadow-2xl" /> : <img src={extra.url || extra.floatUrl} className="w-full h-full object-cover shadow-2xl" />}
               </motion.div>
             ))}
 
             <div className="relative z-10 w-full flex flex-col items-center gap-8">
               <div className="space-y-4 w-full">
-                {elProps.title && (
-                  <div className="w-full">
-                    {renderTextWithTheme(elProps.title, elProps, "title")}
-                  </div>
-                )}
-                {elProps.subtitle && (
-                  <div className="w-full">
-                    {renderTextWithTheme(elProps.subtitle, elProps, "subtitle")}
-                  </div>
-                )}
+                {elProps.title && <div className="w-full">{renderTextWithTheme(elProps.title, elProps, "title")}</div>}
+                {elProps.subtitle && <div className="w-full">{renderTextWithTheme(elProps.subtitle, elProps, "subtitle")}</div>}
               </div>
 
-              {/* CONTENEDOR DE BOTONES Y ELEMENTOS EXTRA DE TEXTO/BOTÓN */}
               <div className="flex flex-wrap justify-center items-center gap-6 w-full">
-                {elProps.primaryBtnText && (
-                  renderButton(elProps, "primaryBtn")
-                )}
-                {elProps.secondaryBtnText && (
-                  renderButton(elProps, "secondaryBtn")
-                )}
-
-                {/* Solo Botones y Textos extra se mantienen en el flujo flex */}
+                {elProps.primaryBtnText && renderButton(elProps, "primaryBtn")}
+                {elProps.secondaryBtnText && renderButton(elProps, "secondaryBtn")}
                 {(elProps.extraElements || []).filter((ex: any) => ex.type === 'button' || ex.type === 'text').map((extra: any) => (
-                  <div key={extra.id} className="transition-all">
-                    {extra.type === 'button' && renderButton(extra, "extra", extra.id)}
-                    {extra.type === 'text' && renderTextWithTheme(extra.content || extra.title, extra, "extra", extra.id)}
-                  </div>
+                  <div key={extra.id}>{extra.type === 'button' ? renderButton(extra, "extra", extra.id) : renderTextWithTheme(extra.content || extra.title, extra, "extra", extra.id)}</div>
                 ))}
               </div>
               
-              {/* RENDERIZADO ESPECÍFICO SEGÚN TIPO (GRILLA DE PRODUCTOS, ETC) */}
               {el.type === "product-grid" && (
-                <div className="w-full">
-                  <div className={cn(
-                    "grid w-full transition-all duration-500",
-                    elProps.layout === "carousel" ? "flex overflow-x-auto pb-6 custom-scrollbar scroll-smooth" : "grid"
-                  )}
-                  style={{ 
-                    gridTemplateColumns: elProps.layout === "grid" ? `repeat(${elProps.columns || 4}, minmax(0, 1fr))` : "none",
-                    gap: `${elProps.gridGap || 24}px`
-                  }}>
-                    {/* LÓGICA DE FILTRADO Y RENDERIZADO DE PRODUCTOS */}
+                <div className="w-full mt-12">
+                  <div 
+                    ref={scrollContainerRef} onScroll={handleScroll}
+                    className={cn("grid w-full transition-all duration-500", elProps.layout === "carousel" ? "flex overflow-x-auto pb-8 custom-scrollbar scroll-smooth" : "grid")}
+                    style={{ 
+                      gridTemplateColumns: elProps.layout === "grid" ? `repeat(${elProps.columns || 4}, minmax(0, 1fr))` : "none",
+                      gap: `${elProps.gridGap || 24}px`
+                    }}>
                     {(() => {
                       const filteredProducts = (realProducts || [])
-                        .filter((p: any) => elProps.selectedCategory === "all" || p.category_id === elProps.selectedCategory)
+                        .filter((p: any) => !elProps.selectedCategory || elProps.selectedCategory === "all" || p.category_id === elProps.selectedCategory)
                         .slice(0, elProps.itemsCount || 4);
-                      
-                      // Si no hay productos reales, creamos placeholders que imiten la estructura
                       const displayItems = filteredProducts.length > 0 ? filteredProducts : Array.from({ length: elProps.itemsCount || 4 });
 
                       return displayItems.map((p: any, i: number) => (
                         <motion.div 
-                          key={p?.id || i} 
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                          className={cn(
-                            "relative group flex flex-col transition-all duration-300",
-                            elProps.cardStyle === "glass" ? "bg-white/10 backdrop-blur-md border border-white/20 shadow-xl" : 
-                            elProps.cardStyle === "minimal" ? "bg-transparent border-none" : "bg-white shadow-lg",
-                            "rounded-[20px] overflow-hidden"
-                          )}
-                          style={{ 
-                            minWidth: elProps.layout === "carousel" ? "280px" : "auto",
-                            borderRadius: `${elProps.cardBorderRadius || 20}px`,
-                            height: elProps.cardHeight ? `${elProps.cardHeight}px` : (elProps.showDescription ? "450px" : "350px")
-                          }}
+                          key={p?.id || `prod-${i}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                          className={cn("relative group flex flex-col transition-all duration-300", elProps.cardStyle === "glass" ? "bg-white/10 backdrop-blur-md border border-white/20 shadow-xl" : elProps.cardStyle === "minimal" ? "bg-transparent border-none" : "bg-white shadow-lg", "rounded-[20px] overflow-hidden")}
+                          style={{ minWidth: elProps.layout === "carousel" ? "280px" : "auto", borderRadius: `${elProps.cardBorderRadius || 20}px`, height: elProps.cardHeight ? `${elProps.cardHeight}px` : (elProps.showDescription ? "450px" : "350px") }}
                         >
-                          {/* ETIQUETA DE OFERTA */}
-                          {elProps.showOfferBadge && (
-                            <div className="absolute top-6 left-6 z-20 bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse">
-                              {elProps.offerBadgeText || "OFERTA"}
-                            </div>
-                          )}
-
-                          {/* IMAGEN DEL PRODUCTO (CONTENIDA) */}
+                          {elProps.showOfferBadge && <div className="absolute top-6 left-6 z-20 bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse">{elProps.offerBadgeText || "OFERTA"}</div>}
                           <div className="p-4 pb-0 w-full">
-                            <div className={cn(
-                              "w-full bg-gray-50/10 relative overflow-hidden",
-                              elProps.imageAspectRatio === "square" ? "aspect-square" : "aspect-[4/5]"
-                            )}
-                            style={{ borderRadius: `${(elProps.cardBorderRadius || 20) * 0.6}px` }}
-                            >
-                              {p?.main_image ? (
-                                <img src={p.main_image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                  <ShoppingBag size={40} className="opacity-20" />
-                                </div>
-                              )}
+                            <div className="w-full bg-gray-50/10 relative overflow-hidden aspect-square" style={{ borderRadius: `${(elProps.cardBorderRadius || 20) * 0.6}px` }}>
+                              {p?.main_image ? <img src={p.main_image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><ShoppingBag size={40} className="opacity-20" /></div>}
                             </div>
                           </div>
-
-                          {/* INFO DEL PRODUCTO */}
-                          <div className="p-6 pt-4 flex flex-col gap-4 text-left flex-1">
+                          <div className="p-6 pt-4 flex flex-col gap-4 text-left flex-1 justify-between">
                             <div className="space-y-2">
-                              <h3 className={cn("font-black uppercase tracking-tighter leading-none", elProps.cardStyle === "glass" ? "text-white" : "text-gray-900")} style={{ fontSize: "14px" }}>
-                                {p?.title || "Producto de Ejemplo"}
-                              </h3>
-                              
-                              {elProps.showDescription && (
-                                <p className="line-clamp-2 opacity-60" style={{ 
-                                  color: elProps.descriptionColor || "#9ca3af",
-                                  fontSize: `${elProps.descriptionSize || 9}px`,
-                                  fontFamily: elProps.descriptionFont || "font-sans"
-                                }}>
-                                  {p?.description || "Una breve descripción del producto que resalta sus mejores cualidades y beneficios para el cliente."}
-                                </p>
-                              )}
+                              <h3 className={cn("font-black uppercase tracking-tighter leading-none", elProps.cardStyle === "glass" ? "text-white" : "text-gray-900")} style={{ fontSize: "14px" }}>{p?.title || "Producto de Ejemplo"}</h3>
+                              {elProps.showDescription && <div className="line-clamp-2">{renderTextWithTheme(p?.description || "Una breve descripción del producto...", elProps, "description", `desc-${i}`, elProps.cardStyle !== "glass")}</div>}
                             </div>
-
                             <div className="flex flex-col items-start gap-4">
-                              {elProps.showPrice && (
-                                <div className="flex flex-col">
-                                  {renderTextWithTheme(`$${p?.price || "99.00"}`, elProps, "price", `price-${i}`, elProps.cardStyle !== "glass")}
-                                </div>
-                              )}
-                              
-                              {elProps.showAddToCart && (
-                                <div className="scale-90 origin-left">
-                                  {renderButton({ 
-                                    text: elProps.addToCartText || "Añadir", 
-                                    variant: elProps.addToCartVariant || "solid",
-                                    bgColor: elProps.addToCartBgColor || "#000000",
-                                    textColor: elProps.addToCartTextColor || "#ffffff",
-                                    borderRadius: elProps.addToCartBorderRadius || 12,
-                                    size: elProps.addToCartSize || 10
-                                  }, "addToCart", `btn-cart-${i}`)}
-                                </div>
-                              )}
+                              {elProps.showPrice && <div className="flex flex-col">{(() => {
+                                const rawPrice = p?.price || "99000";
+                                const formattedPrice = new Intl.NumberFormat('es-CO').format(Number(rawPrice));
+                                return renderTextWithTheme(`$${formattedPrice}`, elProps, "price", `price-${i}`, elProps.cardStyle !== "glass");
+                              })()}</div>}
+                              {elProps.showAddToCart && <div className="scale-90 origin-left">{renderButton({ text: elProps.addToCartText || "Añadir", variant: elProps.addToCartVariant || "solid", bgColor: elProps.addToCartBgColor || "#000000", textColor: elProps.addToCartTextColor || "#ffffff", borderRadius: elProps.addToCartBorderRadius || 12, size: elProps.addToCartSize || 10, posX: elProps.addToCartPosX || 0, posY: elProps.addToCartPosY || 0 }, "addToCart", `btn-cart-${i}`)}</div>}
                             </div>
                           </div>
                         </motion.div>
                       ));
                     })()}
                   </div>
-                  
-                  {/* BARRA DE SCROLL PARA CARRUSEL */}
                   {elProps.layout === "carousel" && elProps.showScrollbar && (
-                    <div className="mt-6 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 w-1/3 rounded-full" />
+                    <div className={cn("mt-8 mx-auto rounded-full overflow-hidden transition-all duration-500 relative", elProps.scrollbarStyle === "minimal" ? "h-0.5 w-1/2 bg-gray-100" : "h-1.5 w-full bg-gray-200/50", elProps.scrollbarStyle === "glass" ? "backdrop-blur-md bg-white/10 border border-white/20 shadow-lg" : "", elProps.scrollbarStyle === "neon" ? "bg-blue-900/20 border border-blue-500/30" : "")}>
+                      <motion.div className={cn("absolute top-0 h-full rounded-full", elProps.scrollbarStyle === "minimal" ? "bg-gray-400" : "bg-blue-600", elProps.scrollbarStyle === "neon" ? "bg-cyan-400 shadow-[0_0_15px_cyan]" : "")} style={{ width: "30%", left: `${scrollProgress * 70}%`, background: elProps.scrollbarStyle === "glass" ? "linear-gradient(90deg, rgba(255,255,255,0.2), rgba(255,255,255,0.8))" : undefined }} />
                     </div>
                   )}
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
     </motion.div>
