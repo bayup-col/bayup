@@ -22,21 +22,41 @@ export const renderButton = (btnProps: any, prefix: string = "", extraId: string
   const radius = get("borderRadius", 12);
 
   let themeStyles: any = { backgroundColor: bgColor, color: textColor, fontSize: `${size}px`, borderRadius: `${radius}px` };
-  let themeClasses = "relative overflow-hidden transition-all duration-200 font-black uppercase tracking-widest text-[10px] px-8 py-3";
+  let themeClasses = "relative overflow-hidden transition-all duration-200 font-black uppercase tracking-widest text-[10px] px-8 py-3 select-none";
+
+  if (variant === "aurora") {
+    themeStyles.backgroundImage = `linear-gradient(135deg, ${get("aurora1", "#00f2ff")}, ${get("aurora2", "#7000ff")}, ${get("aurora1", "#00f2ff")}, ${get("aurora2", "#7000ff")})`;
+    themeStyles.backgroundSize = "400% 400%";
+    themeStyles.backgroundColor = undefined;
+    themeStyles.color = "#ffffff";
+  }
 
   switch(variant) {
     case "glass": themeClasses += " backdrop-blur-md bg-white/10 border border-white/20 shadow-xl"; themeStyles.backgroundColor = undefined; break;
     case "outline": themeClasses += " border-2 bg-transparent"; themeStyles.borderColor = bgColor; themeStyles.color = bgColor; themeStyles.backgroundColor = undefined; break;
     case "3d": themeClasses += " shadow-[0_6px_0_0_rgba(0,0,0,0.3)] active:translate-y-1 active:shadow-none"; break;
-    case "aurora": themeClasses += " border-none shadow-lg"; themeStyles.backgroundColor = undefined; break;
+    case "aurora": themeClasses += " border-none shadow-lg"; break;
     case "neon": themeClasses += " border-2"; themeStyles.borderColor = bgColor; themeStyles.boxShadow = `0 0 15px ${bgColor}`; break;
     case "brutalist": themeClasses += " border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"; break;
     default: themeClasses += " shadow-md";
   }
 
   return (
-    <motion.button key={`btn-${prefix}-${extraId}-${variant}`} animate={{ x: posX, y: posY }} transition={{ type: "spring", stiffness: 450, damping: 30 }} className={themeClasses} style={themeStyles}>
-      {variant === "aurora" && <div className="absolute inset-0 z-0 animate-gradient-slow" style={{ background: `linear-gradient(135deg, ${get("aurora1", "#00f2ff")}, ${get("aurora2", "#7000ff")}, ${get("aurora1", "#00f2ff")})`, backgroundSize: "400% 400%" }} />}
+    <motion.button 
+      key={`btn-${prefix}-${extraId}-${variant}`} 
+      animate={{ 
+        x: posX, 
+        y: posY,
+        backgroundPosition: variant === "aurora" ? ["0% 0%", "100% 100%", "0% 0%"] : "0% 0%"
+      }} 
+      transition={{ 
+        x: { type: "spring", stiffness: 450, damping: 30 },
+        y: { type: "spring", stiffness: 450, damping: 30 },
+        backgroundPosition: variant === "aurora" ? { duration: 6, repeat: Infinity, ease: "linear" } : { duration: 0 }
+      }}
+      className={themeClasses} 
+      style={themeStyles}
+    >
       <span className="relative z-10">{text}</span>
     </motion.button>
   );
@@ -59,15 +79,15 @@ export const renderTextWithTheme = (text: any, props: any, prefix: string = "", 
   const font = get("font", "font-sans");
   const isIcon = typeof text !== 'string';
 
-  // POTENCIADOR DE INTENSIDAD (Afecta brillo, escala y opacidad)
+  // POTENCIADOR DE INTENSIDAD (Afecta brillo, escala y opacidad de forma equilibrada)
   const intensityFactor = intensity / 100;
-  const brightness = 100 + (intensity > 100 ? (intensity - 100) * 0.5 : 0);
-  const scale = 1 + (intensity > 150 ? (intensity - 150) * 0.001 : 0);
+  const brightness = 100 + (intensity > 100 ? (intensity - 100) * 0.8 : 0);
+  const scale = 1 + (intensity > 100 ? (intensity - 100) * 0.0015 : 0);
 
   let themeStyles: any = { 
     color, 
     fontSize: isIcon ? "inherit" : `${size}px`, 
-    opacity: Math.min(intensityFactor, 1),
+    opacity: Math.min(intensityFactor, 1.1),
     filter: `brightness(${brightness}%)`,
     transform: `scale(${scale})`,
   };
@@ -103,16 +123,16 @@ export const renderTextWithTheme = (text: any, props: any, prefix: string = "", 
   // --- EFECTOS VISUALES (EFFECTS) ---
   switch(effect) {
     case "glow": 
-      themeStyles.filter += ` drop-shadow(0 0 ${10 * intensityFactor}px ${color})`; 
+      themeStyles.filter += ` drop-shadow(0 0 ${15 * intensityFactor}px ${color}) saturate(${100 + intensityFactor * 50}%)`; 
       break;
     case "neon": 
-      themeStyles.filter += ` drop-shadow(0 0 5px ${color}) drop-shadow(0 0 20px ${color})`; 
+      themeStyles.filter += ` drop-shadow(0 0 5px ${color}) drop-shadow(0 0 ${25 * intensityFactor}px ${color})`; 
       themeClasses += " animate-pulse";
       break;
     case "fire": 
       themeClasses += " bg-clip-text text-transparent bg-gradient-to-t from-red-600 via-orange-500 to-yellow-400 animate-pulse"; 
       themeStyles.backgroundImage = `linear-gradient(to top, #ff0000, #ff8000, #ffff00)`;
-      themeStyles.filter += ` drop-shadow(0 0 15px #ff4d00)`;
+      themeStyles.filter += ` drop-shadow(0 0 ${20 * intensityFactor}px #ff4d00) contrast(${100 + intensityFactor * 20}%)`;
       break;
     case "float":
       themeClasses += " animate-float";

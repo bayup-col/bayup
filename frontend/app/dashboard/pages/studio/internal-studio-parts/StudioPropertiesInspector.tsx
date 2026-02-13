@@ -190,7 +190,11 @@ export const DesignerInspector = () => {
     return (
       <ControlGroup title={title} icon={Type} onRemove={canRemove ? onRemove : null} defaultOpen={true}>
         <div className="space-y-4">
-          <textarea value={props.content || props.title || ""} onChange={(e) => onUpdate({ content: e.target.value, title: e.target.value })} className="w-full p-3 border rounded-xl text-sm font-black bg-gray-50/30 uppercase italic" />
+          <textarea 
+            value={props.content ?? props.title ?? ""} 
+            onChange={(e) => onUpdate({ content: e.target.value, title: e.target.value })} 
+            className="w-full p-3 border rounded-xl text-sm font-black bg-gray-50/30 uppercase italic" 
+          />
           <div className="space-y-2">
             <span className="text-[9px] font-black text-gray-400 uppercase">Temas de Diseño</span>
             <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
@@ -765,27 +769,56 @@ export const DesignerInspector = () => {
                   handleChange(mapping[key], p[key]);
                 }, "Título de Impacto")}
 
-                {renderModularTextDesigner({ ...element.props, content: element.props.subtitle, variant: element.props.subtitleVariant, color: element.props.subtitleColor, size: element.props.subtitleSize, posX: element.props.subtitlePosX, posY: element.props.subtitlePosY, font: element.props.subtitleFont, intensity: element.props.subtitleIntensity }, (p) => {
+                {renderModularTextDesigner({ ...element.props, content: element.props.subtitle, variant: element.props.subtitleVariant, color: element.props.subtitleColor, size: element.props.subtitleSize, posX: element.props.subtitlePosX, posY: element.props.subtitlePosY, font: element.props.subtitleFont, intensity: element.props.subtitleIntensity, effect: element.props.subtitleEffect }, (p) => {
                   const key = Object.keys(p)[0];
-                  const mapping: any = { content: 'subtitle', variant: 'subtitleVariant', color: 'subtitleColor', size: 'subtitleSize', posX: 'subtitlePosX', posY: 'subtitlePosY', font: 'subtitleFont', intensity: 'subtitleIntensity' };
+                  const mapping: any = { 
+                    content: 'subtitle', 
+                    variant: 'subtitleVariant', 
+                    color: 'subtitleColor', 
+                    size: 'subtitleSize', 
+                    posX: 'subtitlePosX', 
+                    posY: 'subtitlePosY', 
+                    font: 'subtitleFont', 
+                    intensity: 'subtitleIntensity',
+                    effect: 'subtitleEffect' 
+                  };
                   handleChange(mapping[key], p[key]);
                 }, "Descripción")}
 
-                                    {renderModularButtonDesigner({ ...element.props, text: element.props.primaryBtnText, variant: element.props.primaryBtnVariant, bgColor: element.props.primaryBtnBgColor, posX: element.props.primaryBtnPosX, posY: element.props.primaryBtnPosY, size: element.props.primaryBtnSize, borderRadius: element.props.primaryBtnBorderRadius, aurora1: element.props.primaryBtnAurora1, aurora2: element.props.primaryBtnAurora2, intensity: element.props.primaryBtnIntensity }, (p) => {
+                                    {renderModularButtonDesigner({ ...element.props, text: element.props.primaryBtnText, url: element.props.primaryBtnUrl, variant: element.props.primaryBtnVariant, bgColor: element.props.primaryBtnBgColor, posX: element.props.primaryBtnPosX, posY: element.props.primaryBtnPosY, size: element.props.primaryBtnSize, borderRadius: element.props.primaryBtnBorderRadius, aurora1: element.props.primaryBtnAurora1, aurora2: element.props.primaryBtnAurora2, intensity: element.props.primaryBtnIntensity }, (p) => {
                                       const key = Object.keys(p)[0];
-                                      const mapping: any = { text: 'primaryBtnText', variant: 'primaryBtnVariant', bgColor: 'primaryBtnBgColor', posX: 'primaryBtnPosX', posY: 'primaryBtnPosY', size: 'primaryBtnSize', borderRadius: 'primaryBtnBorderRadius', aurora1: 'primaryBtnAurora1', aurora2: 'primaryBtnAurora2', intensity: 'primaryBtnIntensity' };
+                                      const mapping: any = { text: 'primaryBtnText', url: 'primaryBtnUrl', variant: 'primaryBtnVariant', bgColor: 'primaryBtnBgColor', posX: 'primaryBtnPosX', posY: 'primaryBtnPosY', size: 'primaryBtnSize', borderRadius: 'primaryBtnBorderRadius', aurora1: 'primaryBtnAurora1', aurora2: 'primaryBtnAurora2', intensity: 'primaryBtnIntensity' };
                                       handleChange(mapping[key], p[key]);
                                     }, "Botón Primario")}
                 
-                                    {renderModularButtonDesigner({ ...element.props, text: element.props.secondaryBtnText, variant: element.props.secondaryBtnVariant, posX: element.props.secondaryBtnPosX, posY: element.props.secondaryBtnPosY, borderRadius: element.props.secondaryBtnBorderRadius }, (p) => {
+                                    {renderModularButtonDesigner({ ...element.props, text: element.props.secondaryBtnText, url: element.props.secondaryBtnUrl, variant: element.props.secondaryBtnVariant, posX: element.props.secondaryBtnPosX, posY: element.props.secondaryBtnPosY, size: element.props.secondaryBtnSize, borderRadius: element.props.secondaryBtnBorderRadius }, (p) => {
                                       const key = Object.keys(p)[0];
-                                      const mapping: any = { text: 'secondaryBtnText', variant: 'secondaryBtnVariant', posX: 'secondaryBtnPosX', posY: 'secondaryBtnPosY', borderRadius: 'secondaryBtnBorderRadius' };
+                                      const mapping: any = { text: 'secondaryBtnText', url: 'secondaryBtnUrl', variant: 'secondaryBtnVariant', posX: 'secondaryBtnPosX', posY: 'secondaryBtnPosY', size: 'secondaryBtnSize', borderRadius: 'secondaryBtnBorderRadius' };
                                       handleChange(mapping[key], p[key]);
                                     }, "Botón Secundario")}
-                                {renderModularMultimediaDesigner({ ...element.props, floatUrl: element.props.floatUrl }, (p) => {
-                                  const key = Object.keys(p)[0];
-                                  const mapping: any = { floatType: 'floatType', url: 'floatUrl', floatUrl: 'floatUrl', floatAnim: 'floatAnim', size: 'floatSize', floatSize: 'floatSize', radius: 'floatRadius', floatRadius: 'floatRadius', posX: 'floatPosX', floatPosX: 'floatPosX', posY: 'floatPosY', floatPosY: 'floatPosY', floatLinkUrl: 'floatLinkUrl' };
-                                  handleChange(mapping[key], p[key]);
+                                {renderModularMultimediaDesigner({ ...element.props, floatUrl: element.props.floatUrl, linkUrl: element.props.floatLinkUrl }, (p) => {
+                                  const mapping: any = { 
+                                    floatType: 'floatType', 
+                                    url: 'floatUrl', 
+                                    floatUrl: 'floatUrl', 
+                                    floatAnim: 'floatAnim', 
+                                    size: 'floatSize', 
+                                    floatSize: 'floatSize', 
+                                    radius: 'floatRadius', 
+                                    floatRadius: 'floatRadius', 
+                                    posX: 'floatPosX', 
+                                    floatPosX: 'floatPosX', 
+                                    posY: 'floatPosY', 
+                                    floatPosY: 'floatPosY', 
+                                    linkUrl: 'floatLinkUrl',
+                                    floatLinkUrl: 'floatLinkUrl' 
+                                  };
+                                  // Procesar todas las claves del objeto p
+                                  const updates: Record<string, any> = {};
+                                  Object.keys(p).forEach(k => {
+                                    if (mapping[k]) updates[mapping[k]] = p[k];
+                                  });
+                                  updateElement(sectionKey, selectedElementId, updates);
                                 }, "Imagen de Complemento", false, undefined, "floatUrl")}
                 
                                 {/* SUPER EDITOR DE CARDS */}

@@ -260,10 +260,108 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
               }} 
             />
 
-            <div className="relative z-10 space-y-6 w-full">
-              {elProps.title && renderTextWithTheme(elProps.title, elProps, "title")}
-              {elProps.subtitle && renderTextWithTheme(elProps.subtitle, elProps, "subtitle")}
-              {elProps.primaryBtnText && renderButton(elProps, "primaryBtn")}
+            {/* IMAGEN DE COMPLEMENTO (FLOAT) PRINCIPAL */}
+            {elProps.floatUrl && (
+              <motion.div
+                animate={{ 
+                  x: elProps.floatPosX || 0, 
+                  y: elProps.floatPosY || 0,
+                  rotate: elProps.floatAnim === "rotate" ? [0, 360] : 0,
+                  scale: elProps.floatAnim === "pulse" ? [1, 1.05, 1] : 
+                         elProps.floatAnim === "zoom" ? [0.9, 1.1] : 1
+                }}
+                transition={{ 
+                  x: { type: "spring", stiffness: 450, damping: 30 },
+                  y: { type: "spring", stiffness: 450, damping: 30 },
+                  rotate: elProps.floatAnim === "rotate" ? { duration: 10, repeat: Infinity, ease: "linear" } : {},
+                  scale: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+                }}
+                className={cn(
+                  "absolute z-20 overflow-hidden",
+                  elProps.floatAnim === "float" ? "animate-float" : "",
+                  elProps.floatAnim === "blink" ? "animate-pulse" : "",
+                  elProps.floatLinkUrl ? "cursor-pointer pointer-events-auto" : "pointer-events-none"
+                )}
+                style={{ 
+                  width: `${elProps.floatSize || 150}px`,
+                  aspectRatio: "1/1",
+                  borderRadius: `${(elProps.floatRadius || 0) / 2}%`
+                }}
+              >
+                {elProps.floatLinkUrl ? (
+                  <a href={elProps.floatLinkUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+                    {elProps.floatType === "video" ? (
+                      <video src={elProps.floatUrl} autoPlay muted loop className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={elProps.floatUrl} className="w-full h-full object-cover shadow-2xl" />
+                    )}
+                  </a>
+                ) : (
+                  <>
+                    {elProps.floatType === "video" ? (
+                      <video src={elProps.floatUrl} autoPlay muted loop className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={elProps.floatUrl} className="w-full h-full object-cover shadow-2xl" />
+                    )}
+                  </>
+                )}
+              </motion.div>
+            )}
+
+            {/* ELEMENTOS MULTIMEDIA EXTRA (FLOTANTES) */}
+            {(elProps.extraElements || []).filter((ex: any) => (ex.type === 'image' || ex.type === 'video') && (ex.url || ex.floatUrl)).map((extra: any) => (
+              <motion.div 
+                key={extra.id} 
+                animate={{ x: extra.posX || 0, y: extra.posY || 0 }}
+                transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                className="absolute z-30 pointer-events-none overflow-hidden"
+                style={{ 
+                  width: `${extra.size || 100}px`,
+                  aspectRatio: "1/1",
+                  borderRadius: `${(extra.radius || 0) / 2}%`
+                }}
+              >
+                {(extra.url || extra.floatUrl) && (
+                  extra.type === 'video' ? (
+                    <video src={extra.url || extra.floatUrl} autoPlay muted loop className="w-full h-full object-cover shadow-2xl" />
+                  ) : (
+                    <img src={extra.url || extra.floatUrl} className="w-full h-full object-cover shadow-2xl" />
+                  )
+                )}
+              </motion.div>
+            ))}
+
+            <div className="relative z-10 w-full flex flex-col items-center gap-8">
+              <div className="space-y-4 w-full">
+                {elProps.title && (
+                  <div className="w-full">
+                    {renderTextWithTheme(elProps.title, elProps, "title")}
+                  </div>
+                )}
+                {elProps.subtitle && (
+                  <div className="w-full">
+                    {renderTextWithTheme(elProps.subtitle, elProps, "subtitle")}
+                  </div>
+                )}
+              </div>
+
+              {/* CONTENEDOR DE BOTONES Y ELEMENTOS EXTRA DE TEXTO/BOTÓN */}
+              <div className="flex flex-wrap justify-center items-center gap-6 w-full">
+                {elProps.primaryBtnText && (
+                  renderButton(elProps, "primaryBtn")
+                )}
+                {elProps.secondaryBtnText && (
+                  renderButton(elProps, "secondaryBtn")
+                )}
+
+                {/* Solo Botones y Textos extra se mantienen en el flujo flex */}
+                {(elProps.extraElements || []).filter((ex: any) => ex.type === 'button' || ex.type === 'text').map((extra: any) => (
+                  <div key={extra.id} className="transition-all">
+                    {extra.type === 'button' && renderButton(extra, "extra", extra.id)}
+                    {extra.type === 'text' && renderTextWithTheme(extra.content || extra.title, extra, "extra", extra.id)}
+                  </div>
+                ))}
+              </div>
               
               {/* RENDERIZADO ESPECÍFICO SEGÚN TIPO (GRILLA DE PRODUCTOS, ETC) */}
               {el.type === "product-grid" && (
