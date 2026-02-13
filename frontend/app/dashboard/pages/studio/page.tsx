@@ -12,8 +12,18 @@ import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { cn } from "@/lib/utils";
 
 const StudioInterface = () => {
-  const { sidebarView, toggleSidebar, handleDragEnd, viewport, setViewport, activeSection } = useStudio();
+  const { 
+    sidebarView, toggleSidebar, handleDragEnd, 
+    viewport, setViewport, 
+    editMode, setEditMode,
+    activeSection, pageData 
+  } = useStudio();
   const [activeDragItem, setActiveDragItem] = useState<ComponentType | null>(null);
+
+  const handlePreview = () => {
+    localStorage.setItem("bayup-studio-preview", JSON.stringify(pageData));
+    window.open("/studio-preview", "_blank");
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -45,16 +55,33 @@ const StudioInterface = () => {
           </div>
         </div>
 
-        <div className="hidden md:flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200">
-           <button onClick={() => setViewport("desktop")} className={cn("p-2 rounded-lg transition-all", viewport === "desktop" ? "text-blue-600 bg-white shadow-sm" : "text-gray-400")}>
-             <Monitor size={16} />
-           </button>
-           <button onClick={() => setViewport("tablet")} className={cn("p-2 rounded-lg transition-all", viewport === "tablet" ? "text-blue-600 bg-white shadow-sm" : "text-gray-400")}>
-             <Tablet size={16} />
-           </button>
-           <button onClick={() => setViewport("mobile")} className={cn("p-2 rounded-lg transition-all", viewport === "mobile" ? "text-blue-600 bg-white shadow-sm" : "text-gray-400")}>
-             <Smartphone size={16} />
-           </button>
+        <div className="hidden md:flex items-center gap-4">
+          <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200">
+             <button onClick={() => setViewport("desktop")} className={cn("p-2 rounded-lg transition-all", viewport === "desktop" ? "text-blue-600 bg-white shadow-sm" : "text-gray-400")}>
+               <Monitor size={16} />
+             </button>
+             <button onClick={() => setViewport("tablet")} className={cn("p-2 rounded-lg transition-all", viewport === "tablet" ? "text-blue-600 bg-white shadow-sm" : "text-gray-400")}>
+               <Tablet size={16} />
+             </button>
+             <button onClick={() => setViewport("mobile")} className={cn("p-2 rounded-lg transition-all", viewport === "mobile" ? "text-blue-600 bg-white shadow-sm" : "text-gray-400")}>
+               <Smartphone size={16} />
+             </button>
+          </div>
+
+          <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200">
+            <button 
+              onClick={() => setEditMode("all")}
+              className={cn("px-3 py-1.5 text-[10px] font-black rounded-lg transition-all", editMode === "all" ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}
+            >
+              EDITAR TODO
+            </button>
+            <button 
+              onClick={() => setEditMode("individual")}
+              className={cn("px-3 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase", editMode === "individual" ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}
+            >
+              SOLO {viewport === "desktop" ? "PC" : viewport === "tablet" ? "TABLET" : "CELULAR"}
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -66,7 +93,10 @@ const StudioInterface = () => {
               <ChevronLeft size={14} /> Toolbox
             </button>
           )}
-          <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={handlePreview}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
             <Eye size={18} />
             <span>Previsualizar</span>
           </button>

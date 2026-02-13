@@ -27,6 +27,8 @@ const config: Config = {
         "float": "float 6s ease-in-out infinite",
         "aurora-border": "aurora-border 6s linear infinite",
         "aurora": "aurora-border 4s linear infinite",
+        "gradient-x": "gradient-x 3s ease infinite",
+        "gradient-slow": "gradient-x 8s ease infinite",
       },
       keyframes: {
         scanline: {
@@ -40,6 +42,10 @@ const config: Config = {
         "aurora-border": {
           "0%": { transform: "rotate(0deg)" },
           "100%": { transform: "rotate(360deg)" },
+        },
+        "gradient-x": {
+          "0%, 100%": { "background-position": "0% 50%" },
+          "50%": { "background-position": "100% 50%" },
         }
       },
     },

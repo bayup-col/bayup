@@ -26,12 +26,31 @@ const DEFAULT_SCHEMA: PageSchema = {
   header: {
     elements: [
       { 
-        id: "nav-1", 
+        id: "nav-default", 
         type: "navbar", 
         props: { 
-          logoText: "BAYUP SHOP",
-          menuItems: [{ label: "Inicio", url: "/" }, { label: "Tienda", url: "/tienda" }, { label: "Sobre Nosotros", url: "/nosotros" }],
-          showCart: true, showUser: true, logoColor: "#2563eb", navHeight: 80, align: "center", bgColor: "#ffffff"
+          logoText: "BAYUP STUDIO", logoUrl: null, logoSize: 24, logoAlign: "left", logoOffset: 0, 
+          logoFont: "font-black", logoColor: "#2563eb", logoVariant: "aurora", logoEffect: "none",
+          logoAurora1: "#00f2ff", logoAurora2: "#7000ff", logoPosX: 0,
+          navHeight: 80, align: "center", menuColor: "#4b5563", 
+          menuFont: "font-black",
+          menuSize: 10, menuVariant: "solid", menuEffect: "none",
+          menuAurora1: "#00f2ff", menuAurora2: "#7000ff", menuPosX: 0,
+          menuGap: 32,
+          utilityColor: "#6b7280", 
+          utilityFont: "font-black",
+          utilitySize: 18,
+          utilityVariant: "solid",
+          utilityEffect: "none",
+          utilityDisplayMode: "icon",
+          utilityAurora1: "#00f2ff",
+          utilityAurora2: "#7000ff",
+          utilityPosX: 0,
+          utilityGap: 16,
+          extraUtilities: [],
+          bgColor: "#ffffff", 
+          menuItems: [{ label: "Inicio", url: "/" }, { label: "Tienda", url: "/tienda" }, { label: "Contacto", url: "/contacto" }], 
+          showCart: true, showUser: true, showSearch: true 
         } 
       },
     ],
@@ -40,53 +59,85 @@ const DEFAULT_SCHEMA: PageSchema = {
   body: {
     elements: [
         { 
-          id: "hero-1", 
-          type: "hero-banner", 
+          id: "hero-default", 
+          type: "product-grid", 
           props: { 
-            title: "NUEVA COLECCIÓN 2026", 
-            subtitle: "Descubre las tendencias que están transformando el mundo.", 
-            bgType: "image",
-            imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop",
-            videoUrl: "",
-            overlayOpacity: 40,
-            overlayColor: "#000000",
-            bgEffect: "none",
-            align: "center",
-            textPosX: 0,
-            textPosY: 0,
-            height: 500,
-            bgColor: "#ffffff",
+            title: "ESTILO DEFINITIVO", 
+            subtitle: "Diseña tu tienda con el editor más potente del mercado.", 
+            columns: 4,
+            itemsCount: 4,
+            layout: "grid",
+            cardStyle: "premium", 
+            cardBorderRadius: 20,
+            cardHeight: 450,
+            showPrice: true,
+            selectedCategory: "all",
+            showAddToCart: true,
+            bgColor: "#111827",
             titleColor: "#ffffff",
             titleSize: 48,
-            titleIntensity: 100,
-            titleVariant: "solid",
+            titleVariant: "aurora",
             titleAurora1: "#00f2ff",
             titleAurora2: "#7000ff",
-            subtitleColor: "#ffffff",
+            subtitleColor: "#9ca3af",
             subtitleSize: 18,
-            subtitleIntensity: 100,
-            subtitleVariant: "solid",
-            subtitleAurora1: "#ff0080",
-            subtitleAurora2: "#7000ff",
             primaryBtnText: "Explorar Ahora",
-            primaryBtnVariant: "solid",
-            primaryBtnBgColor: "#2563eb",
-            primaryBtnColor: "#ffffff",
-            primaryBtnIntensity: 100,
-            secondaryBtnText: "Ver más",
-            secondaryBtnVariant: "glass"
+            primaryBtnVariant: "aurora",
+            primaryBtnAurora1: "#00f2ff",
+            primaryBtnAurora2: "#7000ff"
           } 
         },
     ],
     styles: { backgroundColor: "#ffffff" },
   },
   footer: {
-    elements: [{ id: "f1", type: "text", props: { content: "© 2026 Bayup Interactive. Todos los derechos reservados.", fontSize: 12, align: "center", color: "#ffffff", variant: "solid", intensity: 100 } }],
+    elements: [
+      { 
+        id: "footer-default", 
+        type: "footer-premium", 
+        props: { 
+          logoText: "BAYUP STUDIO",
+          footerLogoSize: 24,
+          footerLogoColor: "#00f2ff",
+          footerLogoFont: "font-black",
+          footerLogoVariant: "aurora",
+          footerLogoAurora1: "#00f2ff",
+          footerLogoAurora2: "#7000ff",
+          description: "La herramienta líder para creadores digitales y empresarios de éxito.",
+          footerDescColor: "#ffffff",
+          footerDescSize: 12,
+          footerCopyColor: "#ffffff",
+          footerCopySize: 10,
+          bgColor: "#000000",
+          textColor: "#ffffff",
+          accentColor: "#00f2ff",
+          showSocial: true,
+          menuGroups: [
+            { 
+              title: "Estudio", 
+              show: true,
+              titleColor: "#00f2ff", titleSize: 10, titleFont: "font-black",
+              linksColor: "#ffffff", linksSize: 14, linksGap: 16, linksOpacity: 40,
+              links: [{ label: "Editor", url: "#" }, { label: "Plantillas", url: "#" }] 
+            },
+            { 
+              title: "Legal", 
+              show: true,
+              titleColor: "#00f2ff", titleSize: 10, titleFont: "font-black",
+              linksColor: "#ffffff", linksSize: 14, linksGap: 16, linksOpacity: 40,
+              links: [{ label: "Privacidad", url: "#" }, { label: "Términos", url: "#" }] 
+            }
+          ],
+          copyright: "© 2026 Bayup Professional Studio. Definición de Excelencia."
+        } 
+      }
+    ],
     styles: { backgroundColor: "#111827", color: "white" },
   },
 };
 
 export type ViewportType = "desktop" | "tablet" | "mobile";
+export type EditMode = "all" | "individual";
 
 interface StudioContextType {
   activeSection: SectionType;
@@ -102,6 +153,8 @@ interface StudioContextType {
   handleDragEnd: (event: DragEndEvent) => void;
   viewport: ViewportType;
   setViewport: (v: ViewportType) => void;
+  editMode: EditMode;
+  setEditMode: (mode: EditMode) => void;
 }
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
@@ -112,6 +165,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   const [pageData, setPageData] = useState<PageSchema>(DEFAULT_SCHEMA);
   const [sidebarView, setSidebarView] = useState<"toolbox" | "properties">("toolbox");
   const [viewport, setViewport] = useState<ViewportType>("desktop");
+  const [editMode, setEditMode] = useState<EditMode>("all");
 
   const selectElement = (id: string | null) => {
     setSelectedElementId(id);
@@ -119,6 +173,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addElement = (section: SectionType, type: ComponentType, index?: number) => {
+    // ... (rest of addElement remains same)
     // Definimos las props base para cualquier elemento del CUERPO para mantener consistencia
     const standardBodyProps = {
       title: "Nuevo Bloque",
@@ -375,7 +430,42 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
 
   const updateElement = (section: SectionType, id: string, newProps: Record<string, any>) => {
     setPageData((prev) => ({
-      ...prev, [section]: { ...prev[section], elements: prev[section].elements.map((el) => el.id === id ? { ...el, props: { ...el.props, ...newProps } } : el) }
+      ...prev,
+      [section]: {
+        ...prev[section],
+        elements: prev[section].elements.map((el) => {
+          if (el.id !== id) return el;
+
+          if (editMode === "individual") {
+            // Guardar en overrides específicos para el viewport actual
+            const currentOverrides = el.props.responsiveOverrides || {};
+            const viewportOverrides = currentOverrides[viewport] || {};
+            
+            return {
+              ...el,
+              props: {
+                ...el.props,
+                responsiveOverrides: {
+                  ...currentOverrides,
+                  [viewport]: {
+                    ...viewportOverrides,
+                    ...newProps
+                  }
+                }
+              }
+            };
+          } else {
+            // Guardar en la base (afecta a todos si no hay overrides)
+            return {
+              ...el,
+              props: {
+                ...el.props,
+                ...newProps
+              }
+            };
+          }
+        })
+      }
     }));
   };
 
@@ -389,7 +479,14 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   const toggleSidebar = (view: "toolbox" | "properties") => setSidebarView(view);
 
   return (
-    <StudioContext.Provider value={{ activeSection, setActiveSection, selectedElementId, selectElement, pageData, addElement, updateElement, removeElement, sidebarView, toggleSidebar, handleDragEnd, viewport, setViewport }}>
+    <StudioContext.Provider value={{ 
+      activeSection, setActiveSection, 
+      selectedElementId, selectElement, 
+      pageData, addElement, updateElement, removeElement, 
+      sidebarView, toggleSidebar, 
+      handleDragEnd, viewport, setViewport,
+      editMode, setEditMode
+    }}>
       {children}
     </StudioContext.Provider>
   );

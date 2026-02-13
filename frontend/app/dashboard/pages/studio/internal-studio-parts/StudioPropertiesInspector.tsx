@@ -65,7 +65,7 @@ const ControlGroup = ({ title, icon: Icon, children, defaultOpen = false, onRemo
 // --- COMPONENTE PRINCIPAL ---
 
 export const DesignerInspector = () => {
-  const { selectedElementId, selectElement, pageData, updateElement, sidebarView } = useStudio();
+  const { selectedElementId, selectElement, pageData, updateElement, sidebarView, viewport } = useStudio();
   const [activeTab, setActiveTab] = useState<TabType>("content");
   const [uploadTarget, setUploadTarget] = useState<{ id: string | null, key: string } | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -92,10 +92,20 @@ export const DesignerInspector = () => {
     const sections: SectionType[] = ["header", "body", "footer"];
     for (const section of sections) {
       const found = pageData[section].elements.find(el => el.id === selectedElementId);
-      if (found) return { element: found, sectionKey: section };
+      if (found) {
+        // MEZCLA DE PROPS PARA EL INSPECTOR (Base + Overrides del Viewport actual)
+        const effectiveProps = {
+          ...found.props,
+          ...(found.props.responsiveOverrides?.[viewport] || {})
+        };
+        return { 
+          element: { ...found, props: effectiveProps }, 
+          sectionKey: section 
+        };
+      }
     }
     return null;
-  }, [pageData, selectedElementId]);
+  }, [pageData, selectedElementId, viewport]);
 
   if (sidebarView !== "properties" || !selectedElementId || !elementData) return null;
   const { element, sectionKey } = elementData;
