@@ -382,6 +382,100 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                   )}
                 </div>
               )}
+
+              {/* --- PLANTILLA MAESTRA DE PRODUCTO (COLECCIONES) --- */}
+              {el.type === "product-master-view" && (
+                <div className="w-full grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-16 py-8 px-4 text-left animate-in fade-in duration-1000">
+                  
+                  {/* LADO IZQUIERDO: GALERÍA ELITE */}
+                  <div className="flex flex-col gap-6">
+                    <div className="w-full aspect-[4/5] bg-gray-50 rounded-[2.5rem] overflow-hidden shadow-2xl relative group border border-gray-100">
+                      {elProps.badgeText && (
+                        <div className="absolute top-8 left-8 z-10 bg-black text-white text-[10px] font-black px-5 py-2.5 rounded-full tracking-[0.2em] uppercase shadow-2xl">
+                          {elProps.badgeText}
+                        </div>
+                      )}
+                      <img 
+                        src={elProps.mainImage || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop"} 
+                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                      />
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
+                      {(elProps.thumbnails || []).map((thumb: string, idx: number) => (
+                        <div key={idx} className="w-24 h-24 shrink-0 rounded-3xl border-2 border-transparent hover:border-black cursor-pointer overflow-hidden transition-all bg-gray-50 p-1">
+                          <img src={thumb} className="w-full h-full object-cover rounded-[1.2rem] opacity-60 hover:opacity-100" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* LADO DERECHO: INFO & CONVERSIÓN */}
+                  <div className="flex flex-col gap-10">
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <span className="text-blue-600 font-black text-[10px] uppercase tracking-[0.4em]">Exclusividad Bayup</span>
+                        {renderTextWithTheme(elProps.title || "PRODUCTO PREMIUM", elProps, "title")}
+                      </div>
+                      
+                      <div className="flex items-center gap-6">
+                        {(() => {
+                          const formattedPrice = new Intl.NumberFormat('es-CO').format(Number(elProps.price || 1500000));
+                          return renderTextWithTheme(`$${formattedPrice}`, elProps, "price", "pdp-price");
+                        })()}
+                        <span className="text-gray-300 line-through text-sm font-bold">$2.100.000</span>
+                      </div>
+
+                      <div className="border-l-4 border-black pl-8 py-2">
+                        {renderTextWithTheme(elProps.description || "Descripción detallada del producto...", elProps, "description")}
+                      </div>
+                    </div>
+
+                    {/* SELECTOR DE VARIANTES PROFESIONAL */}
+                    <div className="space-y-10 pt-10 border-t border-gray-100">
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-end">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Talla / Medida</span>
+                          <span className="text-[9px] font-bold text-blue-600 underline cursor-pointer">Guía de Tallas</span>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                          {(elProps.variants || ["S", "M", "L"]).map((v: string) => (
+                            <button key={v} className={cn(
+                              "min-w-[70px] h-12 flex items-center justify-center rounded-2xl text-[10px] font-black transition-all border-2 uppercase",
+                              v === "M" ? "bg-black text-white border-black shadow-xl scale-105" : "bg-white text-gray-400 border-gray-100 hover:border-black hover:text-black"
+                            )}>
+                              {v}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Seleccionar Color</span>
+                        <div className="flex gap-4">
+                          {(elProps.colors || ["#000000", "#ffffff"]).map((c: string) => (
+                            <button key={c} className={cn(
+                              "w-12 h-12 rounded-full border-4 transition-all p-1 shadow-sm",
+                              c === "#000000" ? "border-blue-500 scale-110 shadow-lg" : "border-transparent hover:border-gray-200"
+                            )}>
+                              <div className="w-full h-full rounded-full border border-black/5 shadow-inner" style={{ backgroundColor: c }} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* BOTONES DE ACCIÓN PDP */}
+                    <div className="flex flex-col gap-4 pt-10">
+                      <div className="w-full scale-105">
+                        {renderButton({ text: "Añadir a mi Carrito", variant: "aurora", size: 14, borderRadius: 24 }, "extra", "pdp-cart-btn")}
+                      </div>
+                      <button className="w-full py-5 rounded-[1.5rem] border-2 border-black text-black font-black text-[10px] uppercase tracking-[0.3em] hover:bg-black hover:text-white transition-all active:scale-95 shadow-lg shadow-gray-100">
+                        Comprar Ahora — Checkout Express
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

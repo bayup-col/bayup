@@ -76,7 +76,10 @@ export default function PagesDashboard() {
                             </div>
 
                             <div className="flex items-center gap-4 relative z-10">
-                                <Link href="/dashboard/pages/studio" className="flex-1 lg:flex-none">
+                                <Link 
+                                    href={`/dashboard/pages/studio?page=${page.is_home ? 'home' : page.title.toLowerCase()}`} 
+                                    className="flex-1 lg:flex-none"
+                                >
                                     <button className="w-full lg:w-auto h-14 px-10 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-[#004d4d] transition-all flex items-center justify-center gap-3 group/btn active:scale-95">
                                         Personalizar Diseño
                                         <Edit3 size={14} className="text-[#00f2ff] group-hover/btn:rotate-12 transition-transform"/>

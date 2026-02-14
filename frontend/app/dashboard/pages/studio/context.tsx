@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { DragEndEvent } from "@dnd-kit/core";
+import { useSearchParams } from "next/navigation";
 
 // --- Tipos ---
 
@@ -139,6 +140,34 @@ const DEFAULT_SCHEMA: PageSchema = {
 export type ViewportType = "desktop" | "tablet" | "mobile";
 export type EditMode = "all" | "individual";
 
+const PRODUCT_SCHEMA: PageSchema = {
+  header: { elements: [], styles: {} },
+  body: {
+    elements: [
+      { 
+        id: "pdp-main", 
+        type: "product-master-view", 
+        props: { 
+          badgeText: "NUEVA COLECCIÓN",
+          title: "PRODUCTO PREMIUN V1",
+          description: "Diseño vanguardista con materiales de alta gama. Una pieza única para quienes buscan exclusividad y estilo en cada detalle.",
+          price: "1500000",
+          variants: ["S", "M", "L", "XL"],
+          colors: ["#000000", "#ffffff", "#2563eb"],
+          mainImage: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop",
+          thumbnails: [
+            "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?q=80&w=2070&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2070&auto=format&fit=crop"
+          ]
+        } 
+      },
+    ],
+    styles: { backgroundColor: "#ffffff" },
+  },
+  footer: { elements: [], styles: {} },
+};
+
 interface StudioContextType {
   activeSection: SectionType;
   setActiveSection: (section: SectionType) => void;
@@ -160,12 +189,23 @@ interface StudioContextType {
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
 
 export const StudioProvider = ({ children }: { children: ReactNode }) => {
+  const searchParams = useSearchParams();
+  const pageKey = searchParams.get("page") || "home";
+
   const [activeSection, setActiveSection] = useState<SectionType>("body");
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
-  const [pageData, setPageData] = useState<PageSchema>(DEFAULT_SCHEMA);
+  
+  // Guardamos datos de cada página de forma independiente
+  const [pagesData, setPagesData] = useState<Record<string, PageSchema>>({
+    home: DEFAULT_SCHEMA,
+    colecciones: PRODUCT_SCHEMA
+  });
+
   const [sidebarView, setSidebarView] = useState<"toolbox" | "properties">("toolbox");
   const [viewport, setViewport] = useState<ViewportType>("desktop");
   const [editMode, setEditMode] = useState<EditMode>("all");
+
+  const pageData = pagesData[pageKey] || DEFAULT_SCHEMA;
 
   const selectElement = (id: string | null) => {
     setSelectedElementId(id);
@@ -173,6 +213,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addElement = (section: SectionType, type: ComponentType, index?: number) => {
+    // ... logic remains standard
     // ... (rest of addElement remains same)
     // Definimos las props base para cualquier elemento del CUERPO para mantener consistencia
     const standardBodyProps = {

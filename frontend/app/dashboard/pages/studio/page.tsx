@@ -159,8 +159,10 @@ export default function StudioPage() {
   }
 
   return (
-    <StudioProvider>
-      <StudioInterface />
-    </StudioProvider>
+    <React.Suspense fallback={<div className="h-screen w-screen bg-gray-100 flex items-center justify-center font-bold text-gray-400 uppercase tracking-widest animate-pulse">Iniciando Motor Platinum...</div>}>
+      <StudioProvider>
+        <StudioInterface />
+      </StudioProvider>
+    </React.Suspense>
   );
 }
