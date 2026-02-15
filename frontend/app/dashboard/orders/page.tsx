@@ -24,6 +24,7 @@ import {
   ImageIcon,
   TrendingUp,
   Globe,
+  Store,
   MessageSquare,
   Smartphone,
   CheckCheck,
