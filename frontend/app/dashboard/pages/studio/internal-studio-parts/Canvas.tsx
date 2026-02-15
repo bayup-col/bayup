@@ -94,8 +94,8 @@ export const Canvas = ({ overrideData = null, isPreview = false }: { overrideDat
   const pageData = overrideData || studio.pageData;
   const { activeSection, setActiveSection, selectElement, selectedElementId, removeElement, viewport, pageKey } = studio;
   
-  const [realCategories, setRealCategories] = React.useState([]);
-  const [realProducts, setRealProducts] = React.useState([]);
+  const [realCategories, setRealCategories] = React.useState<any[]>([]);
+  const [realProducts, setRealProducts] = React.useState<any[]>([]);
   const headerRef = useRef(null);
   const bodyRef = useRef(null);
   const footerRef = useRef(null);
