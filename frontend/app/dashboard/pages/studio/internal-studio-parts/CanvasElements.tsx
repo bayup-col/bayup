@@ -210,7 +210,8 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                         {elProps.showUser && renderUtil(<User size={elProps.utilitySize || 18} />, "Cuenta", "nav-user")}
                         {elProps.showCart && renderUtil(<ShoppingCart size={elProps.utilitySize || 18} />, "Carrito", "nav-cart")}
                         {(elProps.extraUtilities || []).map((util: any) => {
-                          const IconComp = { Heart, Bell, Star, MessageSquare, Phone, Info }[util.icon] || Info;
+                          const iconMap: any = { Heart, Bell, Star, MessageSquare, Phone, Info };
+                          const IconComp = iconMap[util.icon] || Info;
                           return ( <div key={util.id} title={util.label} className="cursor-pointer">{renderUtil(<IconComp size={elProps.utilitySize || 18} />, util.label || "Link", util.id)}</div> );
                         })}
                       </>
