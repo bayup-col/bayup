@@ -3,7 +3,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { Trash2, GripVertical, ShoppingBag, Plus as PlusIcon, Globe, Monitor, Search, User, ShoppingCart, Heart, Bell, Star, MessageSquare, Phone, Info, HelpCircle, Sparkles, Wind, Zap, X } from "lucide-react";
+import { Trash2, GripVertical, ShoppingBag, Plus as PlusIcon, Globe, Monitor, Search, User, ShoppingCart, Heart, Bell, Star, MessageSquare, Phone, Info, HelpCircle, Sparkles, Wind, Zap, X, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { renderButton, renderTextWithTheme } from "./VisualEngine";
 import { useStudio } from "../context";
@@ -75,11 +75,15 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
       style={style} 
       {...(isPreview ? {} : { ...listeners, ...attributes })} 
       onClick={(e) => { if (isPreview) return; e.stopPropagation(); selectElement(el.id); setActiveSection(section); }} 
-      className={cn("relative group transition-all", !isPreview && (selectedElementId === el.id ? "ring-2 ring-blue-500 rounded-lg shadow-lg z-10" : "hover:ring-1 hover:ring-blue-300 rounded-lg"))}
+      className={cn(
+        "relative group transition-all", 
+        !isPreview && (selectedElementId === el.id ? "ring-2 ring-blue-500 rounded-lg shadow-xl z-[400]" : "hover:ring-1 hover:ring-blue-300 rounded-lg"),
+        selectedElementId === el.id ? "overflow-visible" : "overflow-hidden"
+      )}
     >
       
       {(!isPreview && selectedElementId === el.id) && (
-        <div className="absolute -top-10 left-0 bg-blue-600 text-white flex items-center gap-3 px-3 py-1.5 rounded-t-xl shadow-[0_10px_30px_rgba(37,99,235,0.3)] z-[300] border-x border-t border-blue-400">
+        <div className="absolute -top-10 left-0 flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-t-xl shadow-[0_10px_30px_rgba(37,99,235,0.3)] z-[300] border-x border-t border-blue-400 animate-in fade-in slide-in-from-bottom-1 duration-200">
           <div className="cursor-grab active:cursor-grabbing p-1 hover:bg-white/20 rounded-md transition-colors">
             <GripVertical size={14} />
           </div>
@@ -192,7 +196,6 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                           {(mode === "text" || mode === "both") && <span className="text-[10px] font-black uppercase tracking-tight">{label}</span>}
                         </div>
                       );
-                      // Pasamos explícitamente el variant para que renderTextWithTheme lo detecte
                       const utilProps = { 
                         ...elProps, 
                         variant: elProps.utilityVariant || "solid",
@@ -221,8 +224,18 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
 
         {section === "body" && (
           <motion.div 
-            layout initial={false} animate={{ height: elProps.height || 400, backgroundColor: elProps.bgColor || (pageKey === "colecciones" ? "#ffffff" : "#111827") }} transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="w-full flex flex-col p-12 overflow-hidden relative shadow-lg items-center text-center justify-center"
+            layout initial={false} 
+            animate={{ 
+              minHeight: elProps.height || 400, 
+              height: "auto",
+              backgroundColor: elProps.bgColor || (pageKey === "colecciones" ? "#ffffff" : "#111827") 
+            }} 
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className={cn(
+              "w-full flex flex-col p-12 relative shadow-lg items-center text-center",
+              el.type === "product-grid" ? "justify-start" : "justify-center",
+              selectedElementId === el.id ? "overflow-visible" : "overflow-hidden"
+            )}
           >
             {elProps.bgType === "video" && (elProps.videoUrl || elProps.videoExternalUrl) && (
               <div className="absolute inset-0 z-0"><video src={elProps.videoUrl} autoPlay muted loop className="w-full h-full object-cover" /></div>
@@ -258,39 +271,217 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                   <div key={extra.id}>{extra.type === 'button' ? renderButton(extra, "extra", extra.id) : renderTextWithTheme(extra.content || extra.title, extra, "extra", extra.id)}</div>
                 ))}
               </div>
+              
               {el.type === "product-grid" && (
-                <div className="w-full mt-12">
-                  <div ref={scrollContainerRef} onScroll={handleScroll} className={cn("grid w-full transition-all duration-500", elProps.layout === "carousel" ? "flex overflow-x-auto pb-8 custom-scrollbar scroll-smooth" : "grid")} style={{ gridTemplateColumns: elProps.layout === "grid" ? `repeat(${elProps.columns || 4}, minmax(0, 1fr))` : "none", gap: `${elProps.gridGap || 24}px` }}>
-                    {(() => {
-                      const filteredProducts = (realProducts || []).filter((p: any) => !elProps.selectedCategory || elProps.selectedCategory === "all" || p.category_id === elProps.selectedCategory).slice(0, elProps.itemsCount || 4);
-                      const displayItems = filteredProducts.length > 0 ? filteredProducts : Array.from({ length: elProps.itemsCount || 4 });
-                      return displayItems.map((p: any, i: number) => (
-                        <motion.div key={p?.id || `prod-${i}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className={cn("relative group flex flex-col transition-all duration-300", elProps.cardStyle === "glass" ? "bg-white/10 backdrop-blur-md border border-white/20 shadow-xl" : elProps.cardStyle === "minimal" ? "bg-transparent border-none" : "bg-white shadow-lg", "rounded-[20px] overflow-hidden")} style={{ minWidth: elProps.layout === "carousel" ? "280px" : "auto", borderRadius: `${elProps.cardBorderRadius || 20}px`, height: elProps.cardHeight ? `${elProps.cardHeight}px` : (elProps.showDescription ? "450px" : "350px") }}>
-                          {elProps.showOfferBadge && <div className="absolute top-6 left-6 z-20 bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse">{elProps.offerBadgeText || "OFERTA"}</div>}
-                          <div className="p-4 pb-0 w-full">
-                            <div className="w-full bg-gray-50/10 relative overflow-hidden aspect-square" style={{ borderRadius: `${(elProps.cardBorderRadius || 20) * 0.6}px` }}>
-                              {p?.main_image ? <img src={p.main_image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><ShoppingBag size={40} className="opacity-20" /></div>}
+                <div 
+                  className={cn(
+                    "w-full mt-12 flex flex-col", 
+                    elProps.filterPlacement === "top" ? "flex-col" : 
+                    elProps.filterPlacement === "right" ? "lg:flex-row-reverse" : "lg:flex-row",
+                    elProps.showFilters ? "items-start" : "items-center"
+                  )}
+                  style={{ gap: `${elProps.filterGridGap || 40}px` }}
+                >
+                  
+                  {/* SIDEBAR / TOPBAR DE FILTROS */}
+                  {elProps.showFilters && (
+                    <div 
+                      className={cn(
+                        "shrink-0 space-y-8 text-left transition-all duration-500 animate-in fade-in",
+                        elProps.filterPlacement === "top" ? "w-full flex flex-wrap items-end gap-8 mb-4 p-6" : "p-6 sticky top-4",
+                        elProps.filterPlacement === "top" ? "slide-in-from-top" : elProps.filterPlacement === "right" ? "slide-in-from-right" : "slide-in-from-left",
+                        elProps.filterGlass ? "backdrop-blur-xl border-white/20" : "border-gray-100",
+                        elProps.filterShadow ? "shadow-2xl shadow-gray-200/50" : ""
+                      )}
+                      style={{ 
+                        backgroundColor: elProps.filterGlass ? "rgba(255,255,255,0.1)" : (elProps.filterBg || "#f9fafb"),
+                        borderRadius: `${elProps.filterRadius || 32}px`,
+                        borderWidth: "1px",
+                        width: elProps.filterPlacement === "top" ? "100%" : `${elProps.filterWidth || 260}px`,
+                        minWidth: elProps.filterPlacement === "top" ? "100%" : `${elProps.filterWidth || 260}px`,
+                        transform: `translate(${elProps.filterPosX || 0}px, ${elProps.filterPosY || 0}px)`,
+                        zIndex: 20
+                      }}
+                    >
+                      <div className={cn(elProps.filterPlacement === "top" && "flex-1 min-w-[200px] mb-0")}>
+                        <h4 className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-4" style={{ color: elProps.filterTextColor ? `${elProps.filterTextColor}80` : undefined }}>Filtrar Categoría</h4>
+                        <div className={cn(
+                          "gap-2", 
+                          elProps.filterStyle === "pills" || elProps.filterPlacement === "top" ? "flex flex-wrap" : "space-y-2 flex flex-col"
+                        )}>
+                          {["Todas", "Nueva Colección", "Accesorios", "Exclusivos"].map((c, idx) => (
+                            <div key={c} className={cn(
+                              "flex items-center gap-2 cursor-pointer group transition-all",
+                              elProps.filterStyle === "pills" ? "px-4 py-2 border-2" : "hover:translate-x-1"
+                            )}
+                            style={{ 
+                              borderRadius: elProps.filterStyle === "pills" ? "99px" : "0px",
+                              borderColor: elProps.filterStyle === "pills" ? (idx === 0 ? elProps.filterAccent : "transparent") : "transparent",
+                              backgroundColor: elProps.filterStyle === "pills" && idx === 0 ? `${elProps.filterAccent}10` : "transparent"
+                            }}>
+                              {elProps.filterStyle !== "pills" && (
+                                <div className="w-4 h-4 rounded-md border-2 transition-colors" 
+                                     style={{ borderColor: idx === 0 ? (elProps.filterAccent || "#2563eb") : "#e5e7eb", backgroundColor: idx === 0 ? (elProps.filterAccent || "#2563eb") : "transparent" }} />
+                              )}
+                              <span className={cn("font-bold")} style={{ 
+                                fontSize: `${elProps.filterTextSize || 12}px`,
+                                color: idx === 0 ? (elProps.filterAccent || "#2563eb") : (elProps.filterTextColor || "#4b5563")
+                              }}>{c}</span>
                             </div>
-                          </div>
-                          <div className="p-6 pt-4 flex flex-col gap-4 text-left flex-1 justify-between">
-                            <div className="space-y-2">
-                              <h3 className={cn("font-black uppercase tracking-tighter leading-none", elProps.cardStyle === "glass" ? "text-white" : "text-gray-900")} style={{ fontSize: "14px" }}>{p?.title || "Producto de Ejemplo"}</h3>
-                              {elProps.showDescription && <div className="line-clamp-2">{renderTextWithTheme(p?.description || "Una breve descripción del producto...", elProps, "description", `desc-${i}`, elProps.cardStyle !== "glass")}</div>}
-                            </div>
-                            <div className="flex flex-col items-start gap-4">
-                              {elProps.showPrice && <div className="flex flex-col">{(() => { const rawPrice = p?.price || "99000"; const formattedPrice = new Intl.NumberFormat('es-CO').format(Number(rawPrice)); return renderTextWithTheme(`$${formattedPrice}`, elProps, "price", `price-${i}`, elProps.cardStyle !== "glass"); })()}</div>}
-                              {elProps.showAddToCart && <div className="scale-90 origin-left">{renderButton({ text: elProps.addToCartText || "Añadir", variant: elProps.addToCartVariant || "solid", bgColor: elProps.addToCartBgColor || "#000000", textColor: elProps.addToCartTextColor || "#ffffff", borderRadius: elProps.addToCartBorderRadius || 12, size: elProps.addToCartSize || 10, posX: elProps.addToCartPosX || 0, posY: elProps.addToCartPosY || 0 }, "addToCart", `btn-cart-${i}`)}</div>}
-                            </div>
-                          </div>
-                        </motion.div>
-                      ));
-                    })()}
-                  </div>
-                  {elProps.layout === "carousel" && elProps.showScrollbar && (
-                    <div className={cn("mt-8 mx-auto rounded-full overflow-hidden transition-all duration-500 relative", elProps.scrollbarStyle === "minimal" ? "h-0.5 w-1/2 bg-gray-100" : "h-1.5 w-full bg-gray-200/50", elProps.scrollbarStyle === "glass" ? "backdrop-blur-md bg-white/10 border border-white/20 shadow-lg" : "", elProps.scrollbarStyle === "neon" ? "bg-blue-900/20 border border-blue-500/30" : "")}>
-                      <motion.div className={cn("absolute top-0 h-full rounded-full", elProps.scrollbarStyle === "minimal" ? "bg-gray-400" : "bg-blue-600", elProps.scrollbarStyle === "neon" ? "bg-cyan-400 shadow-[0_0_15px_cyan]" : "")} style={{ width: "30%", left: `${scrollProgress * 70}%`, background: elProps.scrollbarStyle === "glass" ? "linear-gradient(90deg, rgba(255,255,255,0.2), rgba(255,255,255,0.8))" : undefined }} />
+                          ))}
+                        </div>
+                      </div>
+                      <div className={cn(elProps.filterPlacement === "top" && "flex-1 min-w-[200px] mb-0")}>
+                        <h4 className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-4" style={{ color: elProps.filterTextColor ? `${elProps.filterTextColor}80` : undefined }}>Rango de Precio</h4>
+                        <div className="h-1.5 w-full bg-gray-200 rounded-full relative">
+                          <div className="absolute inset-y-0 left-0 w-2/3 rounded-full" style={{ backgroundColor: elProps.filterAccent || "#2563eb" }} />
+                          <div className="absolute top-1/2 left-2/3 -translate-y-1/2 w-4 h-4 bg-white border-2 rounded-full shadow-md" style={{ borderColor: elProps.filterAccent || "#2563eb" }} />
+                        </div>
+                        <div className="flex justify-between mt-2 font-mono text-[9px] text-gray-400"><span>$0</span><span>$2.5M+</span></div>
+                      </div>
                     </div>
                   )}
+
+                  <div className="flex-1 w-full">
+                    <div ref={scrollContainerRef} onScroll={handleScroll} className={cn("grid w-full transition-all duration-500", elProps.layout === "carousel" ? "flex overflow-x-auto pb-8 custom-scrollbar scroll-smooth" : "grid")} style={{ gridTemplateColumns: elProps.layout === "grid" ? `repeat(${elProps.columns || 4}, minmax(0, 1fr))` : "none", gap: `${elProps.gridGap || 24}px` }}>
+                      {(() => {
+                        const filteredProducts = (realProducts || []).filter((p: any) => !elProps.selectedCategory || elProps.selectedCategory === "all" || p.category_id === elProps.selectedCategory).slice(0, elProps.itemsCount || 4);
+                        
+                        // Mock Data de Alta Calidad
+                        const MOCK_IMAGES = [
+                          "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop",
+                          "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2070&auto=format&fit=crop",
+                          "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?q=80&w=2070&auto=format&fit=crop",
+                          "https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=2080&auto=format&fit=crop"
+                        ];
+
+                        const displayItems = filteredProducts.length > 0 
+                          ? filteredProducts 
+                          : Array.from({ length: elProps.itemsCount || 4 }).map((_, i) => ({
+                              id: `mock-${i}`,
+                              title: `Producto Elite v${i + 1}`,
+                              price: 150000 + (i * 25000),
+                              description: "Diseño premium con materiales de alta calidad para un estilo de vida excepcional.",
+                              main_image: MOCK_IMAGES[i % MOCK_IMAGES.length]
+                            }));
+
+                        return displayItems.map((p: any, i: number) => (
+                          <motion.div 
+                            key={p?.id || `prod-${i}`} 
+                            initial={{ opacity: 0, y: 20 }} 
+                            animate={{ 
+                              opacity: 1, 
+                              y: elProps.cardPosY || 0 
+                            }} 
+                            whileHover={{ y: (elProps.cardPosY || 0) - 10, scale: 1.02 }}
+                            transition={{ delay: i * 0.05 }} 
+                            className={cn(
+                              "relative group flex flex-col transition-all duration-500", 
+                              elProps.cardStyle === "glass" ? "bg-white/5 backdrop-blur-xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.3)]" : 
+                              elProps.cardStyle === "minimal" ? "bg-transparent border-none shadow-none" : 
+                              "bg-white shadow-[0_10px_40px_rgba(0,0,0,0.04)] border border-gray-100 hover:shadow-[0_30px_70px_rgba(0,0,0,0.12)]",
+                              "rounded-[2.5rem] overflow-hidden"
+                            )} 
+                            style={{ 
+                              minWidth: elProps.layout === "carousel" ? "300px" : "auto", 
+                              borderRadius: `${elProps.cardBorderRadius || 40}px`, 
+                              height: elProps.cardHeight ? `${elProps.cardHeight}px` : (elProps.showDescription ? "500px" : "420px") 
+                            }}
+                          >
+                            {elProps.showOfferBadge && (
+                              <div 
+                                className={cn(
+                                  "absolute top-6 left-6 z-20 text-[10px] font-black px-4 py-1.5 rounded-full shadow-2xl transition-all",
+                                  elProps.offerBadgePulse !== false ? "animate-pulse" : ""
+                                )}
+                                style={{ 
+                                  backgroundColor: elProps.offerBadgeBg || "#ef4444", 
+                                  color: elProps.offerBadgeColor || "#ffffff",
+                                  letterSpacing: "0.1em"
+                                }}
+                              >
+                                {elProps.offerBadgeText || "OFERTA"}
+                              </div>
+                            )}
+                            <div className="p-5 pb-0 w-full h-[60%] shrink-0">
+                              <div className="w-full h-full bg-gray-50/50 relative overflow-hidden" style={{ borderRadius: `${(elProps.cardBorderRadius || 40) * 0.7}px` }}>
+                                {p?.main_image ? (
+                                  <img src={p.main_image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-gray-200">
+                                    <ShoppingBag size={48} className="opacity-10" />
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-500" />
+                              </div>
+                            </div>
+                            <div className={cn(
+                              "p-8 pt-6 flex flex-col gap-4 flex-1 justify-between",
+                              elProps.cardAlign === "center" ? "text-center items-center" : 
+                              elProps.cardAlign === "right" ? "text-right items-end" : "text-left items-start"
+                            )}>
+                              <div className={cn("space-y-3 w-full flex flex-col", elProps.cardAlign === "center" ? "items-center" : elProps.cardAlign === "right" ? "items-end" : "items-start")}>
+                                {renderTextWithTheme(p?.title || "Producto de Ejemplo", { 
+                                  ...elProps, 
+                                  variant: elProps.cardTitleVariant || "solid",
+                                  color: elProps.cardTitleColor || (elProps.cardStyle === "glass" ? "#ffffff" : "#111827"), 
+                                  size: elProps.cardTitleSize || 16, 
+                                  font: elProps.cardTitleFont || "font-black",
+                                  aurora1: elProps.cardTitleAurora1,
+                                  aurora2: elProps.cardTitleAurora2,
+                                  intensity: elProps.cardTitleIntensity || 100
+                                }, "none", `title-${i}`)}
+                                
+                                {elProps.showDescription && <div className={cn("line-clamp-2 w-full opacity-60", elProps.cardAlign === "center" ? "text-center" : elProps.cardAlign === "right" ? "text-right" : "text-left")}>
+                                  {renderTextWithTheme(p?.description || "Una breve descripción del producto...", { 
+                                    ...elProps, 
+                                    variant: elProps.descriptionVariant || "solid",
+                                    color: elProps.descriptionColor || "#6b7280", 
+                                    size: elProps.descriptionSize || 11, 
+                                    font: elProps.descriptionFont || "font-sans",
+                                    intensity: elProps.descriptionIntensity || 100
+                                  }, "none", `desc-${i}`, elProps.cardStyle !== "glass")}
+                                </div>}
+                              </div>
+                              
+                              <div className={cn("flex flex-col gap-5 w-full", elProps.cardAlign === "center" ? "items-center" : elProps.cardAlign === "right" ? "items-end" : "items-start")}>
+                                {elProps.showPrice && <div className="flex flex-col">
+                                  {(() => { 
+                                    const rawPrice = p?.price || "99000"; 
+                                    const formattedPrice = new Intl.NumberFormat('es-CO').format(Number(rawPrice)); 
+                                    return renderTextWithTheme(`$${formattedPrice}`, { 
+                                      ...elProps, 
+                                      variant: elProps.priceVariant || "solid",
+                                      color: elProps.priceColor || "#2563eb", 
+                                      size: elProps.priceSize || 18, 
+                                      font: elProps.priceFont || "font-black",
+                                      aurora1: elProps.priceAurora1,
+                                      aurora2: elProps.priceAurora2,
+                                      intensity: elProps.priceIntensity || 100
+                                    }, "none", `price-${i}`, elProps.cardStyle !== "glass"); 
+                                  })()}
+                                </div>}
+                                {elProps.showAddToCart && (
+                                  <div className={cn(elProps.cardAlign === "center" ? "" : elProps.cardAlign === "right" ? "origin-right" : "origin-left", "transition-transform group-hover:scale-105")}>
+                                    {renderButton({ 
+                                      text: elProps.addToCartText || "Añadir", 
+                                      variant: elProps.addToCartVariant || "solid", 
+                                      bgColor: elProps.addToCartBgColor || "#000000", 
+                                      textColor: elProps.addToCartTextColor || "#ffffff", 
+                                      borderRadius: elProps.addToCartBorderRadius || 12, 
+                                      size: elProps.addToCartSize || 10, 
+                                      posX: elProps.addToCartPosX || 0, 
+                                      posY: elProps.addToCartPosY || 0 
+                                    }, "addToCart", `btn-cart-${i}`)}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
                 </div>
               )}
 

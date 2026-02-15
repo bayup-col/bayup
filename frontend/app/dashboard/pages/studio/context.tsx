@@ -147,7 +147,7 @@ const PRODUCT_SCHEMA: PageSchema = {
         props: { 
           height: 1000,
           badgeText: "NUEVA COLECCIÓN",
-          title: "PRODUCTO PREMIUN V1",
+          title: "PRODUCTO PREMIUM V1",
           description: "Diseño vanguardista con materiales de alta gama. Una pieza única para quienes buscan exclusividad y estilo en cada detalle.",
           price: "1500000",
           variants: ["S", "M", "L", "XL"],
@@ -160,6 +160,41 @@ const PRODUCT_SCHEMA: PageSchema = {
           ]
         } 
       },
+    ],
+    styles: { backgroundColor: "#ffffff" },
+  },
+  footer: { elements: [], styles: {} },
+};
+
+const ALL_PRODUCTS_SCHEMA: PageSchema = {
+  header: { elements: [], styles: {} },
+  body: {
+    elements: [
+      { 
+        id: "products-banner", 
+        type: "hero-banner", 
+        props: { 
+          title: "NUESTRO CATÁLOGO", 
+          subtitle: "Explora nuestra selección exclusiva de productos premium.", 
+          height: 300, 
+          bgColor: "#004d4d",
+          titleSize: 42,
+          titleFont: "font-black"
+        } 
+      },
+      { 
+        id: "products-grid-main", 
+        type: "product-grid", 
+        props: { 
+          columns: 4, 
+          itemsCount: 12, 
+          showFilters: true,
+          filterPlacement: "left",
+          filterStyle: "list",
+          layout: "grid",
+          cardStyle: "premium"
+        } 
+      }
     ],
     styles: { backgroundColor: "#ffffff" },
   },
@@ -203,8 +238,24 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   
   const [pagesData, setPagesData] = useState<Record<string, PageSchema>>({
     home: DEFAULT_SCHEMA,
-    colecciones: PRODUCT_SCHEMA
+    colecciones: PRODUCT_SCHEMA,
+    "todos los productos": ALL_PRODUCTS_SCHEMA
   });
+
+  useEffect(() => {
+    const fetchSavedPage = async () => {
+      try {
+        const { shopPageService } = await import("@/lib/api");
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        const response = await shopPageService.get(token, pageKey);
+        if (response && response.schema_data) {
+          setPagesData(prev => ({ ...prev, [pageKey]: response.schema_data }));
+        }
+      } catch (e) { /* Usar default si falla */ }
+    };
+    fetchSavedPage();
+  }, [pageKey]);
 
   const [headerLocked, setHeaderLocked] = useState(true);
   const [footerLocked, setFooterLocked] = useState(true);

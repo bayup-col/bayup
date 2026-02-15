@@ -19,6 +19,7 @@ import Link from 'next/link';
 const MOCK_PAGES = [
     { id: 'p1', title: 'Página de Inicio', url: '/', status: 'published', is_home: true },
     { id: 'p2', title: 'Colecciones', url: '/colecciones', status: 'draft', is_home: false },
+    { id: 'p5', title: 'Todos los Productos', url: '/productos', status: 'published', is_home: false },
     { id: 'p3', title: 'Sobre la Marca', url: '/nosotros', status: 'published', is_home: false },
     { id: 'p4', title: 'Políticas & Legal', url: '/legal', status: 'published', is_home: false },
 ];
