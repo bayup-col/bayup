@@ -24,6 +24,7 @@ import {
   ImageIcon,
   TrendingUp,
   Globe,
+  Store,
   MessageSquare,
   Smartphone,
   CheckCheck,
@@ -42,8 +43,7 @@ import {
   ShieldCheck,
   FileText,
   Printer,
-  User,
-  Store
+  User
 } from 'lucide-react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
