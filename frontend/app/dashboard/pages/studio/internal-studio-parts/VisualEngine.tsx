@@ -90,33 +90,45 @@ export const renderTextWithTheme = (text: any, props: any, prefix: string = "", 
     opacity: Math.min(intensityFactor, 1.1),
     filter: `brightness(${brightness}%)`,
     transform: `scale(${scale})`,
+    fill: "currentColor",
+    stroke: "none"
   };
   
-  let themeClasses = cn(font, "relative transition-all duration-300 inline-block select-none");
+  let themeClasses = cn(font, "relative transition-all duration-300 inline-flex items-center justify-center select-none");
 
   if (font === "font-black") themeClasses += " font-black uppercase tracking-tighter leading-none";
 
   // --- DISEÑOS (VARIANTS) ---
   switch(variant) {
     case "outline": 
-      themeClasses += " text-transparent"; 
-      themeStyles.WebkitTextStroke = `${Math.max(1, size/20)}px ${color}`;
+      themeStyles.color = "transparent"; 
+      themeStyles.WebkitTextStroke = `${Math.max(1, size/22)}px ${color}`;
+      themeStyles.stroke = color;
+      themeStyles.strokeWidth = `${Math.max(0.5, size/24)}px`;
+      themeStyles.fill = "none";
+      themeStyles.paintOrder = "stroke fill";
       break;
     case "3d": 
       themeClasses += " drop-shadow-[0_8px_15px_rgba(0,0,0,0.6)]"; 
       themeStyles.textShadow = `0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 5px 0 #aaa, 0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 5px rgba(0,0,0,.2), 0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15)`;
+      themeStyles.filter += ` drop-shadow(0 4px 4px rgba(0,0,0,0.5))`;
       break;
     case "brutalist": 
-      themeClasses += " font-black uppercase tracking-tighter shadow-black"; 
+      themeStyles.color = color;
+      themeStyles.WebkitTextStroke = `1.5px #000`;
+      themeStyles.stroke = "#000";
+      themeStyles.strokeWidth = "1.5px";
       themeStyles.textShadow = `4px 4px 0px #000`;
-      themeStyles.color = "white"; 
+      themeStyles.filter += ` drop-shadow(4px 4px 0px #000)`;
+      themeStyles.paintOrder = "stroke fill";
       break;
     case "aurora": 
-      themeClasses += " bg-clip-text text-transparent"; 
+      themeStyles.color = color; // Los iconos usan el color base para simular aurora si no hay soporte de máscara
       themeStyles.backgroundImage = `linear-gradient(135deg, ${get("aurora1", "#00f2ff")}, ${get("aurora2", "#7000ff")}, ${get("aurora1", "#00f2ff")}, ${get("aurora2", "#7000ff")})`; 
       themeStyles.backgroundSize = '400% 400%';
       themeStyles.WebkitBackgroundClip = 'text';
       themeStyles.WebkitTextFillColor = 'transparent';
+      themeStyles.filter += ` drop-shadow(0 0 8px ${get("aurora1", "#00f2ff")})`;
       break;
   }
 
@@ -145,7 +157,7 @@ export const renderTextWithTheme = (text: any, props: any, prefix: string = "", 
   const isAurora = variant === "aurora";
 
   return (
-    <motion.span 
+    <motion.div 
       key={`text-${prefix}-${extraId}-${variant}-${effect}`} 
       animate={{ 
         x: posX, 
@@ -161,6 +173,6 @@ export const renderTextWithTheme = (text: any, props: any, prefix: string = "", 
       style={themeStyles}
     >
       {text}
-    </motion.span>
+    </motion.div>
   );
 };

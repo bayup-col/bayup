@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 # Cargar variables de entorno desde .env
 load_dotenv()
 
-# Conexión dinámica: Lee de .env en producción/local, o usa SQLite como respaldo seguro
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
+# Conexión dinámica: Forzamos SQLite para desarrollo local y evitar errores de DNS con Supabase
+DATABASE_URL = "sqlite:///./sql_app.db"
 
 # For SQLite in-memory, we need StaticPool to share the same database between sessions
 if DATABASE_URL.startswith("sqlite"):

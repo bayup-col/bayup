@@ -3,7 +3,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { Trash2, GripVertical, ShoppingBag, Plus as PlusIcon, Globe, Monitor, Search, User, ShoppingCart, Heart, Bell, Star, MessageSquare, Phone, Info, HelpCircle, Sparkles, Wind, Zap } from "lucide-react";
+import { Trash2, GripVertical, ShoppingBag, Plus as PlusIcon, Globe, Monitor, Search, User, ShoppingCart, Heart, Bell, Star, MessageSquare, Phone, Info, HelpCircle, Sparkles, Wind, Zap, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { renderButton, renderTextWithTheme } from "./VisualEngine";
 import { useStudio } from "../context";
@@ -43,7 +43,7 @@ export const AnnouncementSlides = ({ messages, animationType = "slide", speed = 
 };
 
 export const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement, setActiveSection, removeElement, realCategories, realProducts, isPreview = false }: any) => {
-  const { viewport } = useStudio();
+  const { viewport, pageKey } = useStudio();
   const [scrollProgress, setScrollProgress] = React.useState(0);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -64,7 +64,10 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
     }
   };
 
-  const style = { transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined, opacity: isDragging ? 0.3 : 1 };
+  const style = { 
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined, 
+    opacity: isDragging ? 0.3 : 1 
+  };
 
   return (
     <motion.div 
@@ -76,14 +79,23 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
     >
       
       {(!isPreview && selectedElementId === el.id) && (
-        <div className="absolute -top-10 left-0 bg-blue-500 text-white flex items-center gap-2 px-2 py-1 rounded-t-lg shadow-md z-30">
-          <GripVertical size={12} />
-          <span className="text-[10px] font-bold uppercase">{el.type}</span>
-          <button onMouseDown={(e) => { e.stopPropagation(); removeElement(section, el.id); }} className="ml-2 hover:text-red-200"><Trash2 size={12} /></button>
+        <div className="absolute -top-10 left-0 bg-blue-600 text-white flex items-center gap-3 px-3 py-1.5 rounded-t-xl shadow-[0_10px_30px_rgba(37,99,235,0.3)] z-[300] border-x border-t border-blue-400">
+          <div className="cursor-grab active:cursor-grabbing p-1 hover:bg-white/20 rounded-md transition-colors">
+            <GripVertical size={14} />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-widest">{el.type}</span>
+          <div className="w-px h-4 bg-white/20 mx-1" />
+          <button 
+            onMouseDown={(e) => { e.stopPropagation(); removeElement(section, el.id); }} 
+            className="p-1 hover:bg-red-500 rounded-md transition-all group/del"
+            title="Eliminar Bloque"
+          >
+            <Trash2 size={14} className="group-hover/del:scale-110" />
+          </button>
         </div>
       )}
 
-      <div className={cn(!isPreview && "p-2", el.type === "announcement-bar" && "p-0")}>
+      <div className={cn(!isPreview && "p-2", (el.type === "announcement-bar" || el.type === "navbar") && "p-0")}>
         {el.type === "announcement-bar" && (
           <div className="w-full overflow-hidden flex items-center" style={{ height: `${elProps.height || 40}px`, backgroundColor: elProps.bgColor || "#004d4d" }}>
             <div className="w-full h-full flex items-center font-black uppercase" style={{ color: elProps.textColor || "#ffffff", fontSize: `${elProps.fontSize || 11}px` }}>
@@ -125,7 +137,6 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
               elProps.barEffect === "glass" ? "backdrop-blur-xl backdrop-saturate-150 border border-white/20 shadow-2xl rounded-b-2xl" : "overflow-hidden",
               elProps.barEffect === "shadow" ? "shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-none" : "",
               elProps.barEffect === "neon" ? "border-b-2 border-blue-500 shadow-[0_8px_20px_rgba(59,130,246,0.6)]" : "",
-              // En previsualización, la barra flota con prioridad máxima si tiene efectos
               isPreview && (elProps.barEffect === "glass" || elProps.barEffect === "transparent" || elProps.barEffect === "aurora") ? "absolute top-0 inset-x-0 w-full z-[200]" : "relative"
             )} 
             style={{ 
@@ -135,76 +146,42 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                                elProps.bgColor || "#ffffff" 
             }}
           >
-            {/* Brillo de luz superior para efecto Glass */}
             {elProps.barEffect === "glass" && (
               <div key="navbar-glass-shine" className="absolute inset-x-0 top-0 h-[1px] bg-white/30 z-20" />
             )}
-
-            {/* Efecto Aurora para la Barra (Capa de fondo animada) */}
             {elProps.barEffect === "aurora" && (
               <motion.div 
-                key="navbar-aurora-bg"
-                initial={{ opacity: 0 }}
-                animate={{ 
-                  opacity: 0.6,
-                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] 
-                }}
-                transition={{ 
-                  opacity: { duration: 0.5 },
-                  backgroundPosition: { duration: 12, repeat: Infinity, ease: "linear" } 
-                }}
-                className="absolute inset-0 z-0 pointer-events-none"
-                style={{ 
-                  background: `linear-gradient(90deg, ${elProps.logoAurora1 || "#00f2ff"}, ${elProps.logoAurora2 || "#7000ff"}, ${elProps.logoAurora1 || "#00f2ff"})`,
-                  backgroundSize: "200% 100%"
-                }}
+                key="navbar-aurora-bg" initial={{ opacity: 0 }} animate={{ opacity: 0.6, backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }} transition={{ opacity: { duration: 0.5 }, backgroundPosition: { duration: 12, repeat: Infinity, ease: "linear" } }}
+                className="absolute inset-0 z-0 pointer-events-none" style={{ background: `linear-gradient(90deg, ${elProps.logoAurora1 || "#00f2ff"}, ${elProps.logoAurora2 || "#7000ff"}, ${elProps.logoAurora1 || "#00f2ff"})`, backgroundSize: "200% 100%" }}
               />
             )}
-            
-            {/* CONTENEDOR DE ELEMENTOS (Con sombra para resaltar sobre el vidrio) */}
-            <div className={cn(
-              "flex items-center w-full z-10",
-              elProps.barEffect === "glass" ? "drop-shadow-[0_4px_10px_rgba(0,0,0,0.15)]" : ""
-            )}>
-              {/* 1. ÁREA DE LOGOTIPO (IZQUIERDA) */}
+            <div className={cn("flex items-center w-full z-10", elProps.barEffect === "glass" ? "drop-shadow-[0_4px_10px_rgba(0,0,0,0.15)]" : "")}>
               <div className="shrink-0 flex items-center" style={{ transform: `translateX(${elProps.logoPosX || 0}px)` }}>
-                {elProps.logoUrl ? (
-                  <img src={elProps.logoUrl} style={{ height: `${elProps.logoSize || 24}px` }} className="object-contain" />
-                ) : (
-                  renderTextWithTheme(elProps.logoText || "LOGO", elProps, "logo")
-                )}
+                {elProps.logoUrl ? <img src={elProps.logoUrl} style={{ height: `${elProps.logoSize || 24}px` }} className="object-contain" /> : renderTextWithTheme(elProps.logoText || "LOGO", elProps, "logo")}
               </div>
-
-              {/* 2. ÁREA DE MENÚ PRINCIPAL (CENTRO) */}
-              <nav className={cn(
-                "hidden md:flex flex-1 items-center gap-8 transition-all px-8",
-                elProps.align === "left" ? "justify-start ml-8" : 
-                elProps.align === "right" ? "justify-end mr-8" : "justify-center"
-              )} 
-              style={{ transform: `translateX(${elProps.menuPosX || 0}px)` }}>
+              <nav className={cn("hidden md:flex flex-1 items-center gap-8 transition-all px-8", elProps.align === "left" ? "justify-start ml-8" : elProps.align === "right" ? "justify-end mr-8" : "justify-center")} style={{ transform: `translateX(${elProps.menuPosX || 0}px)` }}>
                 <div className="flex items-center" style={{ gap: `${elProps.menuGap || 32}px` }}>
                   {(elProps.menuItems || []).map((m: any, i: number) => {
                     const labelToShow = typeof m === 'string' ? m : (m?.label || "Link");
+                    const menuProps = {
+                      ...elProps,
+                      variant: elProps.menuVariant || "solid",
+                      color: elProps.menuColor || "#4b5563",
+                      size: elProps.menuSize || 10,
+                      font: elProps.menuFont || "font-black"
+                    };
                     return (
                       <div key={i} className="cursor-pointer">
-                        {renderTextWithTheme(labelToShow, elProps, "menu", `nav-item-${i}`)}
+                        {renderTextWithTheme(labelToShow, menuProps, "none", `nav-item-${i}`)}
                       </div>
                     );
                   })}
                 </div>
               </nav>
-
-              {/* 3. ÁREA DE UTILIDADES / ICONOS (DERECHA) */}
               <div className="flex items-center shrink-0 ml-auto" style={{ gap: `${elProps.utilityGap || 16}px`, transform: `translateX(${elProps.utilityPosX || 0}px)` }}>
-                
-                {/* Elementos Extra del Navbar (Botones/Textos añadidos) */}
-                {(elProps.extraElements || []).map((extra: any) => (
-                  <div key={extra.id} className="flex items-center">
-                    {extra.type === 'button' && renderButton(extra, "extra", extra.id)}
-                    {extra.type === 'text' && renderTextWithTheme(extra.content || extra.title, extra, "extra", extra.id)}
-                  </div>
+                {(elProps.extraElements || []).filter((ex: any) => ex.type === 'button' || ex.type === 'text').map((extra: any) => (
+                  <div key={extra.id}>{extra.type === 'button' ? renderButton(extra, "extra", extra.id) : renderTextWithTheme(extra.content || extra.title, extra, "extra", extra.id)}</div>
                 ))}
-
                 <div className="flex items-center" style={{ gap: `${elProps.utilityGap || 16}px` }}>
                   {(() => {
                     const mode = elProps.utilityDisplayMode || "icon";
@@ -215,22 +192,23 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                           {(mode === "text" || mode === "both") && <span className="text-[10px] font-black uppercase tracking-tight">{label}</span>}
                         </div>
                       );
-                      return renderTextWithTheme(content, elProps, "utility", id);
+                      // Pasamos explícitamente el variant para que renderTextWithTheme lo detecte
+                      const utilProps = { 
+                        ...elProps, 
+                        variant: elProps.utilityVariant || "solid",
+                        color: elProps.utilityColor || "#6b7280",
+                        size: elProps.utilitySize || 18
+                      };
+                      return renderTextWithTheme(content, utilProps, "none", id);
                     };
-
                     return (
                       <>
                         {elProps.showSearch && renderUtil(<Search size={elProps.utilitySize || 18} />, "Buscar", "nav-search")}
                         {elProps.showUser && renderUtil(<User size={elProps.utilitySize || 18} />, "Cuenta", "nav-user")}
                         {elProps.showCart && renderUtil(<ShoppingCart size={elProps.utilitySize || 18} />, "Carrito", "nav-cart")}
-
                         {(elProps.extraUtilities || []).map((util: any) => {
                           const IconComp = { Heart, Bell, Star, MessageSquare, Phone, Info }[util.icon] || Info;
-                          return (
-                            <div key={util.id} title={util.label} className="cursor-pointer">
-                              {renderUtil(<IconComp size={elProps.utilitySize || 18} />, util.label || "Link", util.id)}
-                            </div>
-                          );
+                          return ( <div key={util.id} title={util.label} className="cursor-pointer">{renderUtil(<IconComp size={elProps.utilitySize || 18} />, util.label || "Link", util.id)}</div> );
                         })}
                       </>
                     );
@@ -243,85 +221,36 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
 
         {section === "body" && (
           <motion.div 
-            layout
-            initial={false}
-            animate={{ 
-              height: elProps.height || 400,
-              backgroundColor: elProps.bgColor || "#111827"
-            }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            layout initial={false} animate={{ height: elProps.height || 400, backgroundColor: elProps.bgColor || (pageKey === "colecciones" ? "#ffffff" : "#111827") }} transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="w-full flex flex-col p-12 overflow-hidden relative shadow-lg items-center text-center justify-center"
           >
-            
-            {/* FONDO MULTIMEDIA (IMAGEN/VIDEO) */}
             {elProps.bgType === "video" && (elProps.videoUrl || elProps.videoExternalUrl) && (
-              <div className="absolute inset-0 z-0">
-                <video src={elProps.videoUrl} autoPlay muted loop className="w-full h-full object-cover" />
-              </div>
+              <div className="absolute inset-0 z-0"><video src={elProps.videoUrl} autoPlay muted loop className="w-full h-full object-cover" /></div>
             )}
-            
             {elProps.bgType === "image" && elProps.imageUrl && (
-              <div 
-                className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000"
-                style={{ 
-                  backgroundImage: `url(${elProps.imageUrl})`,
-                  transform: elProps.bgEffect === "ken-burns" ? "scale(1.1)" : "scale(1)"
-                }}
-              />
+              <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000" style={{ backgroundImage: `url(${elProps.imageUrl})`, transform: elProps.bgEffect === "ken-burns" ? "scale(1.1)" : "scale(1)" }} />
             )}
-
-            {/* CAPA DE OVERLAY (DIFUMINADO) */}
             <div className="absolute inset-0 z-[1]" style={{ backgroundColor: elProps.overlayColor || "#000000", opacity: (elProps.overlayOpacity || 0) / 100 }} />
-
-            {/* IMAGEN DE COMPLEMENTO (FLOAT) PRINCIPAL */}
             {elProps.floatUrl && (
               <motion.div
-                animate={{ 
-                  x: elProps.floatPosX || 0, y: elProps.floatPosY || 0,
-                  rotate: elProps.floatAnim === "rotate" ? [0, 360] : 0,
-                  scale: elProps.floatAnim === "pulse" ? [1, 1.05, 1] : elProps.floatAnim === "zoom" ? [0.9, 1.1] : 1
-                }}
-                transition={{ 
-                  x: { type: "spring", stiffness: 450, damping: 30 },
-                  y: { type: "spring", stiffness: 450, damping: 30 },
-                  rotate: elProps.floatAnim === "rotate" ? { duration: 10, repeat: Infinity, ease: "linear" } : {},
-                  scale: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-                }}
-                className={cn(
-                  "absolute z-20 overflow-hidden",
-                  elProps.floatAnim === "float" ? "animate-float" : "",
-                  elProps.floatAnim === "blink" ? "animate-pulse" : "",
-                  elProps.floatLinkUrl ? "cursor-pointer pointer-events-auto" : "pointer-events-none"
-                )}
+                animate={{ x: elProps.floatPosX || 0, y: elProps.floatPosY || 0, rotate: elProps.floatAnim === "rotate" ? [0, 360] : 0, scale: elProps.floatAnim === "pulse" ? [1, 1.05, 1] : elProps.floatAnim === "zoom" ? [0.9, 1.1] : 1 }}
+                transition={{ x: { type: "spring", stiffness: 450, damping: 30 }, y: { type: "spring", stiffness: 450, damping: 30 }, rotate: elProps.floatAnim === "rotate" ? { duration: 10, repeat: Infinity, ease: "linear" } : {}, scale: { duration: 2, repeat: Infinity, ease: "easeInOut" } }}
+                className={cn("absolute z-20 overflow-hidden", elProps.floatAnim === "float" ? "animate-float" : "", elProps.floatAnim === "blink" ? "animate-pulse" : "", elProps.floatLinkUrl ? "cursor-pointer pointer-events-auto" : "pointer-events-none")}
                 style={{ width: `${elProps.floatSize || 150}px`, aspectRatio: "1/1", borderRadius: `${(elProps.floatRadius || 0) / 2}%` }}
               >
-                {elProps.floatLinkUrl ? (
-                  <a href={elProps.floatLinkUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
-                    {elProps.floatType === "video" ? <video src={elProps.floatUrl} autoPlay muted loop className="w-full h-full object-cover" /> : <img src={elProps.floatUrl} className="w-full h-full object-cover shadow-2xl" />}
-                  </a>
-                ) : (
-                  elProps.floatType === "video" ? <video src={elProps.floatUrl} autoPlay muted loop className="w-full h-full object-cover" /> : <img src={elProps.floatUrl} className="w-full h-full object-cover shadow-2xl" />
-                )}
+                {elProps.floatLinkUrl ? ( <a href={elProps.floatLinkUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-full">{elProps.floatType === "video" ? <video src={elProps.floatUrl} autoPlay muted loop className="w-full h-full object-cover" /> : <img src={elProps.floatUrl} className="w-full h-full object-cover shadow-2xl" />}</a> ) : ( elProps.floatType === "video" ? <video src={elProps.floatUrl} autoPlay muted loop className="w-full h-full object-cover" /> : <img src={elProps.floatUrl} className="w-full h-full object-cover shadow-2xl" /> )}
               </motion.div>
             )}
-
-            {/* ELEMENTOS MULTIMEDIA EXTRA (FLOTANTES) */}
             {(elProps.extraElements || []).filter((ex: any) => (ex.type === 'image' || ex.type === 'video') && (ex.url || ex.floatUrl)).map((extra: any) => (
-              <motion.div 
-                key={extra.id} animate={{ x: extra.posX || 0, y: extra.posY || 0 }} transition={{ type: "spring", stiffness: 450, damping: 30 }}
-                className="absolute z-30 pointer-events-none overflow-hidden"
-                style={{ width: `${extra.size || 100}px`, aspectRatio: "1/1", borderRadius: `${(extra.radius || 0) / 2}%` }}
-              >
+              <motion.div key={extra.id} animate={{ x: extra.posX || 0, y: extra.posY || 0 }} transition={{ type: "spring", stiffness: 450, damping: 30 }} className="absolute z-30 pointer-events-none overflow-hidden" style={{ width: `${extra.size || 100}px`, aspectRatio: "1/1", borderRadius: `${(extra.radius || 0) / 2}%` }}>
                 {extra.type === 'video' ? <video src={extra.url || extra.floatUrl} autoPlay muted loop className="w-full h-full object-cover shadow-2xl" /> : <img src={extra.url || extra.floatUrl} className="w-full h-full object-cover shadow-2xl" />}
               </motion.div>
             ))}
-
             <div className="relative z-10 w-full flex flex-col items-center gap-8">
               <div className="space-y-4 w-full">
                 {elProps.title && <div className="w-full">{renderTextWithTheme(elProps.title, elProps, "title")}</div>}
                 {elProps.subtitle && <div className="w-full">{renderTextWithTheme(elProps.subtitle, elProps, "subtitle")}</div>}
               </div>
-
               <div className="flex flex-wrap justify-center items-center gap-6 w-full">
                 {elProps.primaryBtnText && renderButton(elProps, "primaryBtn")}
                 {elProps.secondaryBtnText && renderButton(elProps, "secondaryBtn")}
@@ -329,28 +258,14 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                   <div key={extra.id}>{extra.type === 'button' ? renderButton(extra, "extra", extra.id) : renderTextWithTheme(extra.content || extra.title, extra, "extra", extra.id)}</div>
                 ))}
               </div>
-              
               {el.type === "product-grid" && (
                 <div className="w-full mt-12">
-                  <div 
-                    ref={scrollContainerRef} onScroll={handleScroll}
-                    className={cn("grid w-full transition-all duration-500", elProps.layout === "carousel" ? "flex overflow-x-auto pb-8 custom-scrollbar scroll-smooth" : "grid")}
-                    style={{ 
-                      gridTemplateColumns: elProps.layout === "grid" ? `repeat(${elProps.columns || 4}, minmax(0, 1fr))` : "none",
-                      gap: `${elProps.gridGap || 24}px`
-                    }}>
+                  <div ref={scrollContainerRef} onScroll={handleScroll} className={cn("grid w-full transition-all duration-500", elProps.layout === "carousel" ? "flex overflow-x-auto pb-8 custom-scrollbar scroll-smooth" : "grid")} style={{ gridTemplateColumns: elProps.layout === "grid" ? `repeat(${elProps.columns || 4}, minmax(0, 1fr))` : "none", gap: `${elProps.gridGap || 24}px` }}>
                     {(() => {
-                      const filteredProducts = (realProducts || [])
-                        .filter((p: any) => !elProps.selectedCategory || elProps.selectedCategory === "all" || p.category_id === elProps.selectedCategory)
-                        .slice(0, elProps.itemsCount || 4);
+                      const filteredProducts = (realProducts || []).filter((p: any) => !elProps.selectedCategory || elProps.selectedCategory === "all" || p.category_id === elProps.selectedCategory).slice(0, elProps.itemsCount || 4);
                       const displayItems = filteredProducts.length > 0 ? filteredProducts : Array.from({ length: elProps.itemsCount || 4 });
-
                       return displayItems.map((p: any, i: number) => (
-                        <motion.div 
-                          key={p?.id || `prod-${i}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                          className={cn("relative group flex flex-col transition-all duration-300", elProps.cardStyle === "glass" ? "bg-white/10 backdrop-blur-md border border-white/20 shadow-xl" : elProps.cardStyle === "minimal" ? "bg-transparent border-none" : "bg-white shadow-lg", "rounded-[20px] overflow-hidden")}
-                          style={{ minWidth: elProps.layout === "carousel" ? "280px" : "auto", borderRadius: `${elProps.cardBorderRadius || 20}px`, height: elProps.cardHeight ? `${elProps.cardHeight}px` : (elProps.showDescription ? "450px" : "350px") }}
-                        >
+                        <motion.div key={p?.id || `prod-${i}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className={cn("relative group flex flex-col transition-all duration-300", elProps.cardStyle === "glass" ? "bg-white/10 backdrop-blur-md border border-white/20 shadow-xl" : elProps.cardStyle === "minimal" ? "bg-transparent border-none" : "bg-white shadow-lg", "rounded-[20px] overflow-hidden")} style={{ minWidth: elProps.layout === "carousel" ? "280px" : "auto", borderRadius: `${elProps.cardBorderRadius || 20}px`, height: elProps.cardHeight ? `${elProps.cardHeight}px` : (elProps.showDescription ? "450px" : "350px") }}>
                           {elProps.showOfferBadge && <div className="absolute top-6 left-6 z-20 bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse">{elProps.offerBadgeText || "OFERTA"}</div>}
                           <div className="p-4 pb-0 w-full">
                             <div className="w-full bg-gray-50/10 relative overflow-hidden aspect-square" style={{ borderRadius: `${(elProps.cardBorderRadius || 20) * 0.6}px` }}>
@@ -363,11 +278,7 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                               {elProps.showDescription && <div className="line-clamp-2">{renderTextWithTheme(p?.description || "Una breve descripción del producto...", elProps, "description", `desc-${i}`, elProps.cardStyle !== "glass")}</div>}
                             </div>
                             <div className="flex flex-col items-start gap-4">
-                              {elProps.showPrice && <div className="flex flex-col">{(() => {
-                                const rawPrice = p?.price || "99000";
-                                const formattedPrice = new Intl.NumberFormat('es-CO').format(Number(rawPrice));
-                                return renderTextWithTheme(`$${formattedPrice}`, elProps, "price", `price-${i}`, elProps.cardStyle !== "glass");
-                              })()}</div>}
+                              {elProps.showPrice && <div className="flex flex-col">{(() => { const rawPrice = p?.price || "99000"; const formattedPrice = new Intl.NumberFormat('es-CO').format(Number(rawPrice)); return renderTextWithTheme(`$${formattedPrice}`, elProps, "price", `price-${i}`, elProps.cardStyle !== "glass"); })()}</div>}
                               {elProps.showAddToCart && <div className="scale-90 origin-left">{renderButton({ text: elProps.addToCartText || "Añadir", variant: elProps.addToCartVariant || "solid", bgColor: elProps.addToCartBgColor || "#000000", textColor: elProps.addToCartTextColor || "#ffffff", borderRadius: elProps.addToCartBorderRadius || 12, size: elProps.addToCartSize || 10, posX: elProps.addToCartPosX || 0, posY: elProps.addToCartPosY || 0 }, "addToCart", `btn-cart-${i}`)}</div>}
                             </div>
                           </div>
@@ -385,93 +296,57 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
 
               {/* --- PLANTILLA MAESTRA DE PRODUCTO (COLECCIONES) --- */}
               {el.type === "product-master-view" && (
-                <div className="w-full grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-16 py-8 px-4 text-left animate-in fade-in duration-1000">
-                  
-                  {/* LADO IZQUIERDO: GALERÍA ELITE */}
-                  <div className="flex flex-col gap-6">
-                    <div className="w-full aspect-[4/5] bg-gray-50 rounded-[2.5rem] overflow-hidden shadow-2xl relative group border border-gray-100">
-                      {elProps.badgeText && (
-                        <div className="absolute top-8 left-8 z-10 bg-black text-white text-[10px] font-black px-5 py-2.5 rounded-full tracking-[0.2em] uppercase shadow-2xl">
-                          {elProps.badgeText}
-                        </div>
-                      )}
-                      <img 
-                        src={elProps.mainImage || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop"} 
-                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                      />
+                <div className="w-full grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-24 py-20 px-8 text-left animate-in fade-in duration-1000">
+                  <div className="flex flex-col gap-8" style={{ transform: `scale(${(elProps.galleryScale || 100) / 100})`, transformOrigin: "top left" }}>
+                    <div className="w-full aspect-[4/5] bg-gray-50 overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.25)] relative group border border-gray-100" style={{ borderRadius: `${elProps.galleryRadius || 48}px` }}>
+                      {elProps.badgeText && <div className="absolute top-10 left-10 z-10 bg-black text-white text-[11px] font-black px-6 py-3 rounded-full tracking-[0.3em] uppercase shadow-2xl">{elProps.badgeText}</div>}
+                      <img src={elProps.mainImage || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop"} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
                     </div>
-                    <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
+                    <div className="flex gap-6 overflow-x-auto pb-4 custom-scrollbar">
                       {(elProps.thumbnails || []).map((thumb: string, idx: number) => (
-                        <div key={idx} className="w-24 h-24 shrink-0 rounded-3xl border-2 border-transparent hover:border-black cursor-pointer overflow-hidden transition-all bg-gray-50 p-1">
-                          <img src={thumb} className="w-full h-full object-cover rounded-[1.2rem] opacity-60 hover:opacity-100" />
+                        <div key={idx} className="w-28 h-28 shrink-0 border-2 border-transparent hover:border-black cursor-pointer overflow-hidden transition-all bg-gray-50 p-1.5 shadow-sm" style={{ borderRadius: `${(elProps.galleryRadius || 48) * 0.4}px` }}>
+                          <img src={thumb} className="w-full h-full object-cover opacity-60 hover:opacity-100" style={{ borderRadius: `${(elProps.galleryRadius || 48) * 0.3}px` }} />
                         </div>
                       ))}
                     </div>
                   </div>
-
-                  {/* LADO DERECHO: INFO & CONVERSIÓN */}
-                  <div className="flex flex-col gap-10">
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <span className="text-blue-600 font-black text-[10px] uppercase tracking-[0.4em]">Exclusividad Bayup</span>
-                        {renderTextWithTheme(elProps.title || "PRODUCTO PREMIUM", elProps, "title")}
+                  <div className="flex flex-col gap-12 py-6">
+                    <div className="space-y-8">
+                      <div className="space-y-3">
+                        <span className="text-blue-600 font-black text-[11px] uppercase tracking-[0.5em] mb-2 block">Bayup Haute Couture</span>
+                        {renderTextWithTheme(elProps.title || "PRODUCTO PREMIUM", { ...elProps, size: elProps.titleSize || 48 }, "title")}
                       </div>
-                      
-                      <div className="flex items-center gap-6">
-                        {(() => {
-                          const formattedPrice = new Intl.NumberFormat('es-CO').format(Number(elProps.price || 1500000));
-                          return renderTextWithTheme(`$${formattedPrice}`, elProps, "price", "pdp-price");
-                        })()}
-                        <span className="text-gray-300 line-through text-sm font-bold">$2.100.000</span>
+                      <div className="flex items-center gap-8">
+                        {(() => { const formattedPrice = new Intl.NumberFormat('es-CO').format(Number(elProps.price || 1500000)); return renderTextWithTheme(`$${formattedPrice}`, { ...elProps, size: elProps.priceSize || 32 }, "price", "pdp-price"); })()}
+                        <div className="flex flex-col"><span className="text-gray-300 line-through text-base font-bold opacity-50">$2.100.000</span><span className="text-green-500 text-[10px] font-black uppercase">Ahorras 30%</span></div>
                       </div>
-
-                      <div className="border-l-4 border-black pl-8 py-2">
-                        {renderTextWithTheme(elProps.description || "Descripción detallada del producto...", elProps, "description")}
+                      <div className="border-l-8 border-black pl-10 py-4 max-w-lg bg-gray-50/30 rounded-r-3xl">
+                        {renderTextWithTheme(elProps.description || "Descripción detallada del producto...", { ...elProps, size: elProps.descSize || 16 }, "description")}
                       </div>
                     </div>
-
-                    {/* SELECTOR DE VARIANTES PROFESIONAL */}
                     <div className="space-y-10 pt-10 border-t border-gray-100">
                       <div className="space-y-4">
-                        <div className="flex justify-between items-end">
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Talla / Medida</span>
-                          <span className="text-[9px] font-bold text-blue-600 underline cursor-pointer">Guía de Tallas</span>
-                        </div>
+                        <div className="flex justify-between items-end"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Talla / Medida</span><span className="text-[9px] font-bold text-blue-600 underline cursor-pointer">Guía de Tallas</span></div>
                         <div className="flex flex-wrap gap-3">
                           {(elProps.variants || ["S", "M", "L"]).map((v: string) => (
-                            <button key={v} className={cn(
-                              "min-w-[70px] h-12 flex items-center justify-center rounded-2xl text-[10px] font-black transition-all border-2 uppercase",
-                              v === "M" ? "bg-black text-white border-black shadow-xl scale-105" : "bg-white text-gray-400 border-gray-100 hover:border-black hover:text-black"
-                            )}>
-                              {v}
-                            </button>
+                            <button key={v} className={cn("min-w-[70px] h-12 flex items-center justify-center rounded-2xl text-[10px] font-black transition-all border-2 uppercase", v === "M" ? "bg-black text-white border-black shadow-xl scale-105" : "bg-white text-gray-400 border-gray-100 hover:border-black hover:text-black")}>{v}</button>
                           ))}
                         </div>
                       </div>
-
                       <div className="space-y-4">
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Seleccionar Color</span>
                         <div className="flex gap-4">
                           {(elProps.colors || ["#000000", "#ffffff"]).map((c: string) => (
-                            <button key={c} className={cn(
-                              "w-12 h-12 rounded-full border-4 transition-all p-1 shadow-sm",
-                              c === "#000000" ? "border-blue-500 scale-110 shadow-lg" : "border-transparent hover:border-gray-200"
-                            )}>
+                            <button key={c} className={cn("w-12 h-12 rounded-full border-4 transition-all p-1 shadow-sm", c === "#000000" ? "border-blue-500 scale-110 shadow-lg" : "border-transparent hover:border-gray-200")}>
                               <div className="w-full h-full rounded-full border border-black/5 shadow-inner" style={{ backgroundColor: c }} />
                             </button>
                           ))}
                         </div>
                       </div>
                     </div>
-
-                    {/* BOTONES DE ACCIÓN PDP */}
                     <div className="flex flex-col gap-4 pt-10">
-                      <div className="w-full scale-105">
-                        {renderButton({ text: "Añadir a mi Carrito", variant: "aurora", size: 14, borderRadius: 24 }, "extra", "pdp-cart-btn")}
-                      </div>
-                      <button className="w-full py-5 rounded-[1.5rem] border-2 border-black text-black font-black text-[10px] uppercase tracking-[0.3em] hover:bg-black hover:text-white transition-all active:scale-95 shadow-lg shadow-gray-100">
-                        Comprar Ahora — Checkout Express
-                      </button>
+                      <div className="w-full scale-105">{renderButton({ text: "Añadir a mi Carrito", variant: "aurora", size: 14, borderRadius: 24 }, "extra", "pdp-cart-btn")}</div>
+                      <button className="w-full py-5 rounded-[1.5rem] border-2 border-black text-black font-black text-[10px] uppercase tracking-[0.3em] hover:bg-black hover:text-white transition-all active:scale-95 shadow-lg shadow-gray-100">Comprar Ahora — Checkout Express</button>
                     </div>
                   </div>
                 </div>

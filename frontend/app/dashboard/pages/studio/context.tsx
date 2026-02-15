@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, Suspense } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { DragEndEvent } from "@dnd-kit/core";
 import { useSearchParams } from "next/navigation";
@@ -9,7 +9,7 @@ import { useSearchParams } from "next/navigation";
 
 export type SectionType = "header" | "body" | "footer";
 
-export type ComponentType = "text" | "button" | "image" | "product-grid" | "hero-banner" | "video" | "announcement-bar" | "navbar" | "custom-block" | "cards";
+export type ComponentType = "text" | "button" | "image" | "product-grid" | "hero-banner" | "video" | "announcement-bar" | "navbar" | "custom-block" | "cards" | "product-master-view";
 
 export interface StudioElement {
   id: string;
@@ -31,7 +31,7 @@ const DEFAULT_SCHEMA: PageSchema = {
         type: "navbar", 
         props: { 
           logoText: "BAYUP STUDIO", logoUrl: null, logoSize: 24, logoAlign: "left", logoOffset: 0, 
-          logoFont: "font-black", logoColor: "#2563eb", logoVariant: "aurora", logoEffect: "none",
+          logoFont: "font-black", logoColor: "#2563eb", logoVariant: "solid", logoEffect: "none",
           logoAurora1: "#00f2ff", logoAurora2: "#7000ff", logoPosX: 0,
           navHeight: 80, align: "center", menuColor: "#4b5563", 
           menuFont: "font-black",
@@ -61,31 +61,30 @@ const DEFAULT_SCHEMA: PageSchema = {
     elements: [
         { 
           id: "hero-default", 
-          type: "product-grid", 
+          type: "hero-banner", 
           props: { 
             title: "ESTILO DEFINITIVO", 
             subtitle: "Diseña tu tienda con el editor más potente del mercado.", 
-            columns: 4,
-            itemsCount: 4,
-            layout: "grid",
-            cardStyle: "premium", 
-            cardBorderRadius: 20,
-            cardHeight: 450,
-            showPrice: true,
-            selectedCategory: "all",
-            showAddToCart: true,
-            bgColor: "#111827",
             titleColor: "#ffffff",
-            titleSize: 48,
+            titleSize: 56,
             titleVariant: "aurora",
             titleAurora1: "#00f2ff",
             titleAurora2: "#7000ff",
-            subtitleColor: "#9ca3af",
+            titleFont: "font-black",
+            subtitleColor: "#ffffff",
             subtitleSize: 18,
+            bgType: "image",
+            imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop",
+            overlayOpacity: 50,
+            overlayColor: "#000000",
+            height: 600,
+            align: "center",
             primaryBtnText: "Explorar Ahora",
             primaryBtnVariant: "aurora",
             primaryBtnAurora1: "#00f2ff",
-            primaryBtnAurora2: "#7000ff"
+            primaryBtnAurora2: "#7000ff",
+            secondaryBtnText: "Saber más",
+            secondaryBtnVariant: "glass"
           } 
         },
     ],
@@ -101,7 +100,8 @@ const DEFAULT_SCHEMA: PageSchema = {
           footerLogoSize: 24,
           footerLogoColor: "#00f2ff",
           footerLogoFont: "font-black",
-          footerLogoVariant: "aurora",
+          footerLogoVariant: "solid",
+          footerLogoEffect: "none",
           footerLogoAurora1: "#00f2ff",
           footerLogoAurora2: "#7000ff",
           description: "La herramienta líder para creadores digitales y empresarios de éxito.",
@@ -137,9 +137,6 @@ const DEFAULT_SCHEMA: PageSchema = {
   },
 };
 
-export type ViewportType = "desktop" | "tablet" | "mobile";
-export type EditMode = "all" | "individual";
-
 const PRODUCT_SCHEMA: PageSchema = {
   header: { elements: [], styles: {} },
   body: {
@@ -148,6 +145,7 @@ const PRODUCT_SCHEMA: PageSchema = {
         id: "pdp-main", 
         type: "product-master-view", 
         props: { 
+          height: 1000,
           badgeText: "NUEVA COLECCIÓN",
           title: "PRODUCTO PREMIUN V1",
           description: "Diseño vanguardista con materiales de alta gama. Una pieza única para quienes buscan exclusividad y estilo en cada detalle.",
@@ -168,6 +166,9 @@ const PRODUCT_SCHEMA: PageSchema = {
   footer: { elements: [], styles: {} },
 };
 
+export type ViewportType = "desktop" | "tablet" | "mobile";
+export type EditMode = "all" | "individual";
+
 interface StudioContextType {
   activeSection: SectionType;
   setActiveSection: (section: SectionType) => void;
@@ -184,6 +185,11 @@ interface StudioContextType {
   setViewport: (v: ViewportType) => void;
   editMode: EditMode;
   setEditMode: (mode: EditMode) => void;
+  pageKey: string;
+  headerLocked: boolean;
+  setHeaderLocked: (locked: boolean) => void;
+  footerLocked: boolean;
+  setFooterLocked: (locked: boolean) => void;
 }
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
@@ -195,27 +201,90 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   const [activeSection, setActiveSection] = useState<SectionType>("body");
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   
-  // Guardamos datos de cada página de forma independiente
   const [pagesData, setPagesData] = useState<Record<string, PageSchema>>({
     home: DEFAULT_SCHEMA,
     colecciones: PRODUCT_SCHEMA
   });
 
+  const [headerLocked, setHeaderLocked] = useState(true);
+  const [footerLocked, setFooterLocked] = useState(true);
   const [sidebarView, setSidebarView] = useState<"toolbox" | "properties">("toolbox");
   const [viewport, setViewport] = useState<ViewportType>("desktop");
   const [editMode, setEditMode] = useState<EditMode>("all");
 
-  const pageData = pagesData[pageKey] || DEFAULT_SCHEMA;
+  const pageData = React.useMemo(() => {
+    const currentData = pagesData[pageKey] || DEFAULT_SCHEMA;
+    if (pageKey === "home") return currentData;
+    return {
+      ...currentData,
+      header: headerLocked ? pagesData.home.header : currentData.header,
+      footer: footerLocked ? pagesData.home.footer : currentData.footer,
+    };
+  }, [pagesData, pageKey, headerLocked, footerLocked]);
 
   const selectElement = (id: string | null) => {
     setSelectedElementId(id);
     setSidebarView(id ? "properties" : "toolbox");
   };
 
+  const moveElement = (fromSection: SectionType, toSection: SectionType, elementId: string, toIndex: number) => {
+    if (pageKey !== "home") {
+      if (fromSection === "header" && headerLocked) return;
+      if (fromSection === "footer" && footerLocked) return;
+      if (toSection === "header" && headerLocked) return;
+      if (toSection === "footer" && footerLocked) return;
+    }
+    setPagesData((prev) => {
+      const currentPage = prev[pageKey] || DEFAULT_SCHEMA;
+      const sourceElements = [...currentPage[fromSection].elements];
+      const elementIdx = sourceElements.findIndex(el => el.id === elementId);
+      if (elementIdx === -1) return prev;
+      
+      const [elementToMove] = sourceElements.splice(elementIdx, 1);
+      const targetSectionElements = fromSection === toSection ? sourceElements : [...currentPage[toSection].elements];
+      const finalElements = [...targetSectionElements];
+      finalElements.splice(toIndex, 0, elementToMove);
+
+      if (fromSection === toSection) {
+        return { ...prev, [pageKey]: { ...currentPage, [fromSection]: { ...currentPage[fromSection], elements: finalElements } } };
+      }
+      return { 
+        ...prev, 
+        [pageKey]: { 
+          ...currentPage, 
+          [fromSection]: { ...currentPage[fromSection], elements: sourceElements },
+          [toSection]: { ...currentPage[toSection], elements: finalElements }
+        } 
+      };
+    });
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { over, active } = event;
+    if (over && active.data.current) {
+      const isNew = active.data.current.isNew;
+      const componentType = active.data.current.type as ComponentType;
+      
+      if (over.id.toString().startsWith("insert-")) {
+        const { section, index } = over.data.current as any;
+        if (isNew) addElement(section, componentType, index);
+        else moveElement(active.data.current.section, section, active.data.current.id, index);
+      } else {
+        const targetSection = over.id as SectionType;
+        if (targetSection === activeSection) {
+          if (isNew) addElement(targetSection, componentType);
+          else moveElement(active.data.current.section, targetSection, active.data.current.id, pageData[targetSection].elements.length);
+        }
+      }
+    }
+  };
+
   const addElement = (section: SectionType, type: ComponentType, index?: number) => {
-    // ... logic remains standard
-    // ... (rest of addElement remains same)
-    // Definimos las props base para cualquier elemento del CUERPO para mantener consistencia
+    if (pageKey !== "home") {
+      if (section === "header" && headerLocked) return;
+      if (section === "footer" && footerLocked) return;
+    }
+    
     const standardBodyProps = {
       title: "Nuevo Bloque",
       subtitle: "Añade una descripción impactante aquí.",
@@ -244,12 +313,12 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     const newElement: StudioElement = {
       id: uuidv4(),
       type,
-      props: type === "hero-banner" ? { 
-               ...standardBodyProps, 
-               title: "Nuevo Banner", 
-               bgType: "image", 
+      props: type === "hero-banner" ? {
+               ...standardBodyProps,
+               title: "Nuevo Banner",
+               bgType: "image",
                imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop"
-             } : 
+             } :
              type === "product-grid" ? {
                ...standardBodyProps,
                title: "Nuestros Productos",
@@ -300,35 +369,36 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                ...standardBodyProps,
                title: "Bloque Personalizado"
              } :
-                                       type === "announcement-bar" ? { 
-                                         messages: ["¡PROMO DISPONIBLE!"], bgColor: "#004d4d", textColor: "#ffffff", fontSize: 11, align: "center", fontFamily: "font-black", behavior: "static",
-                                         messageAnimation: "slide",
-                                         messageSpeed: 20
-                                       } : 
-                                                    type === "navbar" ? { 
-                                                      logoText: "BAYUP SHOP", logoUrl: null, logoSize: 24, logoAlign: "left", logoOffset: 0, 
-                            logoFont: "font-black", logoColor: "#2563eb", logoVariant: "solid", logoEffect: "none",
-                            logoAurora1: "#00f2ff", logoAurora2: "#7000ff", logoPosX: 0,
-                            navHeight: 80, align: "center", menuColor: "#4b5563", 
-                            menuFont: "font-black",
-                            menuSize: 10, menuVariant: "solid", menuEffect: "none",
-                            menuAurora1: "#00f2ff", menuAurora2: "#7000ff", menuPosX: 0,
-                            menuGap: 32,
-                            utilityColor: "#6b7280", 
-                            utilityFont: "font-black",
-                            utilitySize: 18,
-                            utilityVariant: "solid",
-                            utilityEffect: "none",
-                            utilityDisplayMode: "icon", // icon, text, both
-                            utilityAurora1: "#00f2ff",
-                            utilityAurora2: "#7000ff",
-                            utilityPosX: 0,
-                            utilityGap: 16,
-                            extraUtilities: [], // Para guardar iconos personalizados
-                            bgColor: "#ffffff", 
-                            menuItems: [{ label: "Inicio", url: "/" }, { label: "Tienda", url: "/tienda" }, { label: "Sobre Nosotros", url: "/nosotros" }], 
-                            utilityType: "icon", showCart: true, showUser: true, showSearch: true 
-                          } :              type === "text" ? { 
+             type === "announcement-bar" ? {
+               messages: ["¡PROMO DISPONIBLE!"], bgColor: "#004d4d", textColor: "#ffffff", fontSize: 11, align: "center", fontFamily: "font-black", behavior: "static",
+               messageAnimation: "slide",   
+               messageSpeed: 20
+             } :
+             type === "navbar" ? {
+                logoText: "BAYUP SHOP", logoUrl: null, logoSize: 24, logoAlign: "left", logoOffset: 0, 
+                logoFont: "font-black", logoColor: "#2563eb", logoVariant: "solid", logoEffect: "none",
+                logoAurora1: "#00f2ff", logoAurora2: "#7000ff", logoPosX: 0,
+                navHeight: 80, align: "center", menuColor: "#4b5563",
+                menuFont: "font-black",
+                menuSize: 10, menuVariant: "solid", menuEffect: "none",
+                menuAurora1: "#00f2ff", menuAurora2: "#7000ff", menuPosX: 0,
+                menuGap: 32,
+                utilityColor: "#6b7280",
+                utilityFont: "font-black",
+                utilitySize: 18,
+                utilityVariant: "solid",
+                utilityEffect: "none",
+                utilityDisplayMode: "icon",
+                utilityAurora1: "#00f2ff",
+                utilityAurora2: "#7000ff",
+                utilityPosX: 0,
+                utilityGap: 16,
+                extraUtilities: [],
+                bgColor: "#ffffff",
+                menuItems: [{ label: "Inicio", url: "/" }, { label: "Tienda", url: "/tienda" }, { label: "Sobre Nosotros", url: "/nosotros" }],
+                utilityType: "icon", showCart: true, showUser: true, showSearch: true
+              } :
+             type === "text" ? {        
                content: "Escribe aquí tu mensaje...", fontSize: 24, color: "#1f2937", variant: "solid", intensity: 100, align: "center", fontFamily: "font-sans", textPosX: 0, textPosY: 0, aurora1: "#00f2ff", aurora2: "#7000ff"
              } :
              type === "button" ? {
@@ -337,7 +407,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
              type === "cards" ? {
                cards: [
                  { id: uuidv4(), title: "Calidad Premium", description: "Utilizamos los mejores materiales del mercado para garantizar durabilidad extrema.", icon: "Star", iconColor: "#2563eb", bgColor: "#ffffff" },
-                 { id: uuidv4(), title: "Envío Rápido", description: "Recibe tus pedidos en la puerta de tu casa en menos de 24 horas garantizadas.", icon: "Wind", iconColor: "#059669", bgColor: "#ffffff" },
+                 { id: uuidv4(), title: "Envío Rápido", description: "Recibe tus pedidos en la puerta de tu casa en menos de 24 horas garantizadas.", icon: "Wind", iconColor: "#059669", bgColor: "#ffffff" },     
                  { id: uuidv4(), title: "Soporte 24/7", description: "Nuestro equipo de expertos está disponible en todo momento para ayudarte.", icon: "Zap", iconColor: "#7c3aed", bgColor: "#ffffff" }
                ],
                columns: 3,
@@ -387,29 +457,29 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                  { id: '4', label: 'TikTok', url: '#', iconType: 'default', platform: 'tiktok' }
                ],
                menuGroups: [
-                 { 
-                   title: "Navegación", 
+                 {
+                   title: "Navegación",
                    show: true,
                    titleColor: "#00f2ff", titleSize: 10, titleFont: "font-black",
                    linksColor: "#ffffff", linksSize: 14, linksGap: 16, linksOpacity: 40,
                    posX: 0, posY: 0,
-                   links: [{ label: "Inicio", url: "/" }, { label: "Tienda", url: "/tienda" }, { label: "Sobre Nosotros", url: "/nosotros" }] 
+                   links: [{ label: "Inicio", url: "/" }, { label: "Tienda", url: "/tienda" }, { label: "Sobre Nosotros", url: "/nosotros" }]
                  },
-                 { 
-                   title: "Legal", 
+                 {
+                   title: "Legal",
                    show: true,
                    titleColor: "#00f2ff", titleSize: 10, titleFont: "font-black",
                    linksColor: "#ffffff", linksSize: 14, linksGap: 16, linksOpacity: 40,
                    posX: 0, posY: 0,
-                   links: [{ label: "Términos", url: "/terms" }, { label: "Privacidad", url: "/privacy" }, { label: "Garantía", url: "/warranty" }] 
+                   links: [{ label: "Términos", url: "/terms" }, { label: "Privacidad", url: "/privacy" }, { label: "Garantía", url: "/warranty" }]
                  },
-                 { 
+                 {
                    title: "Contacto", 
                    show: true,
                    titleColor: "#00f2ff", titleSize: 10, titleFont: "font-black",
                    linksColor: "#ffffff", linksSize: 14, linksGap: 16, linksOpacity: 40,
                    posX: 0, posY: 0,
-                   links: [{ label: "Email", url: "mailto:info@bayup.com" }, { label: "WhatsApp", url: "https://wa.me/..." }] 
+                   links: [{ label: "Email", url: "mailto:info@bayup.com" }, { label: "WhatsApp", url: "https://wa.me/..." }]
                  }
                ],
                showNewsletter: true,
@@ -425,108 +495,72 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                newsletterPosX: 0,
                newsletterPosY: 0,
                copyright: "© 2026 Bayup Interactive. Todos los derechos reservados."
+             } :
+             type === "product-master-view" ? {
+                height: 1000,
+                badgeText: "NUEVA COLECCIÓN",
+                title: "PRODUCTO PREMIUM V1",
+                description: "Diseño vanguardista con materiales de alta gama.",
+                price: "1500000",
+                variants: ["S", "M", "L", "XL"],
+                colors: ["#000000", "#ffffff", "#2563eb"],
+                mainImage: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop"
              } : { content: "Nuevo Elemento" },
     };
 
-    setPageData((prev) => {
-      const newElements = [...prev[section].elements];
+    setPagesData((prev) => {
+      const currentPage = prev[pageKey] || DEFAULT_SCHEMA;
+      const newElements = [...currentPage[section].elements];
       if (typeof index === 'number') newElements.splice(index, 0, newElement);
       else newElements.push(newElement);
-      return { ...prev, [section]: { ...prev[section], elements: newElements } };
+      return { ...prev, [pageKey]: { ...currentPage, [section]: { ...currentPage[section], elements: newElements } } };
     });
-  };
-
-  const moveElement = (fromSection: SectionType, toSection: SectionType, elementId: string, toIndex: number) => {
-    setPageData((prev) => {
-      const sourceElements = [...prev[fromSection].elements];
-      const elementIdx = sourceElements.findIndex(el => el.id === elementId);
-      if (elementIdx === -1) return prev;
-      const [elementToMove] = sourceElements.splice(elementIdx, 1);
-      const targetSectionElements = fromSection === toSection ? sourceElements : [...prev[toSection].elements];
-      const finalElements = [...targetSectionElements];
-      finalElements.splice(toIndex, 0, elementToMove);
-      if (fromSection === toSection) return { ...prev, [fromSection]: { ...prev[fromSection], elements: finalElements } };
-      return { ...prev, [fromSection]: { ...prev[fromSection], elements: sourceElements }, [toSection]: { ...prev[toSection], elements: finalElements } };
-    });
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { over, active } = event;
-    if (over && active.data.current) {
-      const isNew = active.data.current.isNew;
-      const componentType = active.data.current.type as ComponentType;
-      if (over.id.toString().startsWith("insert-")) {
-        const { section, index } = over.data.current as any;
-        if (isNew) addElement(section, componentType, index);
-        else moveElement(active.data.current.section, section, active.data.current.id, index);
-      } else {
-        const targetSection = over.id as SectionType;
-        if (targetSection === activeSection) {
-          if (isNew) addElement(targetSection, componentType);
-          else moveElement(active.data.current.section, targetSection, active.data.current.id, pageData[targetSection].elements.length);
-        }
-      }
-    }
   };
 
   const updateElement = (section: SectionType, id: string, newProps: Record<string, any>) => {
-    setPageData((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        elements: prev[section].elements.map((el) => {
-          if (el.id !== id) return el;
-
-          if (editMode === "individual") {
-            // Guardar en overrides específicos para el viewport actual
-            const currentOverrides = el.props.responsiveOverrides || {};
-            const viewportOverrides = currentOverrides[viewport] || {};
-            
-            return {
-              ...el,
-              props: {
-                ...el.props,
-                responsiveOverrides: {
-                  ...currentOverrides,
-                  [viewport]: {
-                    ...viewportOverrides,
-                    ...newProps
-                  }
-                }
+    if (pageKey !== "home") {
+      if (section === "header" && headerLocked) return;
+      if (section === "footer" && footerLocked) return;
+    }
+    setPagesData((prev) => {
+      const currentPage = prev[pageKey] || DEFAULT_SCHEMA;
+      return {
+        ...prev,
+        [pageKey]: {
+          ...currentPage,
+          [section]: {
+            ...currentPage[section],
+            elements: currentPage[section].elements.map((el) => {
+              if (el.id !== id) return el;
+              if (editMode === "individual") {
+                const currentOverrides = el.props.responsiveOverrides || {};
+                return { ...el, props: { ...el.props, responsiveOverrides: { ...currentOverrides, [viewport]: { ...(currentOverrides[viewport] || {}), ...newProps } } } };
               }
-            };
-          } else {
-            // Guardar en la base (afecta a todos si no hay overrides)
-            return {
-              ...el,
-              props: {
-                ...el.props,
-                ...newProps
-              }
-            };
+              return { ...el, props: { ...el.props, ...newProps } };
+            })
           }
-        })
-      }
-    }));
+        }
+      };
+    });
   };
 
   const removeElement = (section: SectionType, id: string) => {
-    setPageData((prev) => ({
-      ...prev, [section]: { ...prev[section], elements: prev[section].elements.filter((el) => el.id !== id) }
-    }));
+    if (pageKey !== "home") {
+      if (section === "header" && headerLocked) return;
+      if (section === "footer" && footerLocked) return;
+    }
+    setPagesData((prev) => {
+      const currentPage = prev[pageKey] || DEFAULT_SCHEMA;
+      return { ...prev, [pageKey]: { ...currentPage, [section]: { ...currentPage[section], elements: currentPage[section].elements.filter((el) => el.id !== id) } } };
+    });
     if (selectedElementId === id) selectElement(null);
   };
 
-  const toggleSidebar = (view: "toolbox" | "properties") => setSidebarView(view);
-
   return (
     <StudioContext.Provider value={{ 
-      activeSection, setActiveSection, 
-      selectedElementId, selectElement, 
-      pageData, addElement, updateElement, removeElement, 
-      sidebarView, toggleSidebar, 
-      handleDragEnd, viewport, setViewport,
-      editMode, setEditMode
+      activeSection, setActiveSection, selectedElementId, selectElement, pageData, addElement, updateElement, removeElement, 
+      sidebarView, toggleSidebar: setSidebarView, handleDragEnd, viewport, setViewport, editMode, setEditMode, 
+      pageKey, headerLocked, setHeaderLocked, footerLocked, setFooterLocked 
     }}>
       {children}
     </StudioContext.Provider>
