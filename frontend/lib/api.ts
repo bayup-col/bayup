@@ -127,6 +127,15 @@ export const categoryService = {
         apiRequest(`/collections/${id}`, { method: 'DELETE', token }),
 };
 
+export const shopPageService = {
+    get: (token: string, pageKey: string) => 
+        apiRequest<any>(`/shop-pages/${pageKey}`, { token }),
+    save: (token: string, data: any) => 
+        apiRequest('/shop-pages', { method: 'POST', token, body: JSON.stringify(data) }),
+    getPublic: (tenantId: string, pageKey: string) => 
+        apiRequest<any>(`/public/shop-pages/${tenantId}/${pageKey}`),
+};
+
 export const publicService = {
     getStorePage: (tenantId: string, slug: string) => 
         apiRequest<any>(`/public/stores/${tenantId}/pages/${slug}`),
