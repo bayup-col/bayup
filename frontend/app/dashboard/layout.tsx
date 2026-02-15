@@ -118,8 +118,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       const getLinkStyles = (path: string, type: 'admin' | 'super' = 'admin', isSub = false) => {
       const isActive = pathname === path || (path !== '/dashboard' && pathname?.startsWith(path));
-      const base = `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 `;
-      const subBase = `flex items-center gap-3 px-4 py-2 ml-9 rounded-xl text-xs font-bold transition-all duration-300 `;
+      const base = `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 capitalize `;
+      const subBase = `flex items-center gap-3 px-4 py-2 ml-9 rounded-xl text-xs font-bold transition-all duration-300 capitalize `;
       
       if (type === 'super') {
         return (isSub ? subBase : base) + (isActive 
@@ -259,7 +259,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                       {/* Inner Body */}
                       <div className={`relative flex items-center justify-center w-full py-4 px-6 backdrop-blur-2xl rounded-[calc(1rem-1.5px)] transition-all duration-500 ${theme === 'dark' ? 'bg-[#001a1a]/90 group-hover/conic:bg-[#001a1a]' : 'bg-white/80 group-hover/conic:bg-white/95'}`}>
-                          <span className={`relative z-10 text-[10px] font-black uppercase tracking-[0.25em] flex items-center gap-2 transition-colors ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
+                          <span className={`relative z-10 text-[10px] font-black capitalize tracking-[0.1em] flex items-center gap-2 transition-colors ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
                               <ExternalLink size={14} className="opacity-80" />
                               Ver tienda online
                           </span>
@@ -274,7 +274,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar">
                 {hasVisibleModules(['m_inicio', 'm_facturacion', 'm_pedidos', 'm_envios', 'm_productos']) && (
                     <div>
-                        <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Operación</p>
+                        <p className="px-4 text-[11px] font-black text-gray-400 capitalize tracking-tight mb-3">Operación</p>
                         <div className="space-y-1">
                             <MenuItem href="/dashboard" label={<><LayoutDashboard size={16} className="mr-2" /> Inicio</>} id="m_inicio" />
                             <MenuItem href="/dashboard/invoicing" label={<><FileText size={16} className="mr-2" /> Facturación</>} id="m_facturacion" />
@@ -345,7 +345,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                 {hasVisibleModules(['m_web_analytics', 'm_marketing', 'm_loyalty', 'm_discounts', 'm_automations', 'm_ai_assistants']) && (
                     <div>
-                        <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Crecimiento</p>
+                        <p className="px-4 text-[11px] font-black text-gray-400 capitalize tracking-tight mb-3">Crecimiento</p>
                         <div className="space-y-1">
                             <MenuItem href="/dashboard/web-analytics" label={<><BarChart3 size={16} className="mr-2" /> Estadísticas Web</>} id="m_web_analytics" />
                             <MenuItem href="/dashboard/marketing" label={<><TrendingUp size={16} className="mr-2" /> Marketing</>} id="m_marketing" />
@@ -358,7 +358,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 )}
 
                 <div>
-                    <p className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] mb-3">Gestión</p>
+                    <p className="px-4 text-[11px] font-black text-gray-400 capitalize tracking-tight mb-3">Gestión</p>
                     <div className="space-y-1">
                         
                         {/* BLINDAJE CONFIGURACIÓN */}

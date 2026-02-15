@@ -113,12 +113,12 @@ export const DashboardHeader = ({
                                         <div className="fixed inset-0 z-40" onClick={() => setNotificationsOpen(false)}></div>
                                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 mt-6 w-80 bg-white/95 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white overflow-hidden z-[110]">
                                             <div className="p-6 border-b border-[#004d4d]/5 flex items-center justify-between">
-                                                <h3 className="text-[10px] font-black text-[#004d4d] uppercase tracking-widest">Notificaciones</h3>
+                                                <h3 className="text-[10px] font-black text-[#004d4d] capitalize tracking-tight">Notificaciones</h3>
                                                 {unreadCount > 0 && <span className="bg-emerald-500 text-white text-[8px] font-bold px-2 py-0.5 rounded-full">{unreadCount}</span>}
                                             </div>
                                             <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
                                                 {notifications.length === 0 ? (
-                                                    <div className="p-10 text-center text-gray-400 text-[10px] font-black uppercase">Sin actividad</div>
+                                                    <div className="p-10 text-center text-gray-400 text-[10px] font-black capitalize">Sin actividad</div>
                                                 ) : notifications.map((n) => {
                                                     const styles = getNotificationStyles(n.type);
                                                     return (

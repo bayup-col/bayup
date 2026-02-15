@@ -79,6 +79,7 @@ export default function DashboardPage() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
   const [activities, setActivities] = useState<any[]>([]);
+  const [companyName, setCompanyName] = useState('Empresario');
   const [realStats, setRealStats] = useState({ 
     revenue: 0, 
     orders_count: 0, 
@@ -87,6 +88,17 @@ export default function DashboardPage() {
     avg_ticket: 0,
     out_of_stock: 0
   });
+
+  useEffect(() => {
+    // Intentar cargar nombre de empresa real
+    const savedData = localStorage.getItem('bayup_general_settings');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        if (parsed.identity?.name) setCompanyName(parsed.identity.name);
+      } catch (e) { console.error(e); }
+    }
+  }, []);
 
   const loadDashboardData = useCallback(async () => {
     if (!token) return;
@@ -268,10 +280,10 @@ export default function DashboardPage() {
               <div className="flex-1 space-y-4 text-center xl:text-left">
                   <div className="flex items-center justify-center xl:justify-start gap-3">
                       <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">tu panel de control</span>
+                      <span className="text-[10px] font-black capitalize tracking-[0.3em] text-[#004d4d]/60 italic">Tu panel de control</span>
                   </div>
-                  <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A] pb-2 overflow-visible">
-                      ¡HOLA, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block px-1 pr-4">{userEmail?.split('@')[0]}</span>!
+                  <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter capitalize leading-none text-[#001A1A] pb-2 overflow-visible">
+                      ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block px-1 pr-4">{companyName}</span>!
                   </h1>
                   <p className="text-gray-400 font-medium text-lg italic max-w-2xl">
                       ¡Aquí tienes el resumen de tu negocio hoy! 🚀
@@ -280,11 +292,11 @@ export default function DashboardPage() {
               <div className="flex gap-4 shrink-0 relative z-20">
                   <Link href="/dashboard/products/new" className="h-16 px-10 bg-white border-2 border-gray-100 rounded-full flex items-center justify-center gap-3 hover:bg-[#004d4d] hover:text-white hover:border-[#004d4d] transition-all shadow-xl group">
                       <Plus size={20} className="group-hover:rotate-90 transition-transform" /> 
-                      <span className="font-black uppercase tracking-widest text-[10px]">Nuevo Producto</span>
+                      <span className="font-black capitalize tracking-widest text-[10px]">Nuevo producto</span>
                   </Link>
                   <button onClick={handleDownloadReport} className="h-16 px-10 bg-[#004d4d] text-white rounded-full flex items-center justify-center gap-3 shadow-2xl hover:bg-black transition-all group">
                       <FileText size={20} className="text-cyan transition-transform group-hover:scale-110"/> 
-                      <span className="font-black uppercase tracking-widest text-[10px]">Descargar Día</span>
+                      <span className="font-black capitalize tracking-widest text-[10px]">Descargar día</span>
                   </button>
               </div>
             </div>
@@ -310,12 +322,12 @@ export default function DashboardPage() {
                           <Sparkles size={12} fill="currentColor" />
                       </div>
                   </div>
-                  <span className="px-4 py-1 bg-cyan/10 text-cyan rounded-full text-[8px] font-black uppercase tracking-[0.3em] border border-cyan/20">Tu asesor inteligente</span>
+                  <span className="px-4 py-1 bg-cyan/10 text-cyan rounded-full text-[8px] font-black capitalize tracking-[0.1em] border border-cyan/20">Tu asesor inteligente</span>
               </div>
 
               {/* CONTENIDO DE VALOR EN EL CENTRO */}
               <div className="mt-10 mb-10 space-y-6 flex flex-col items-center text-center w-full max-w-2xl">
-                  <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-tight">{advisorInsight.title}</h3>
+                  <h3 className="text-3xl font-black text-white italic capitalize tracking-tighter leading-tight">{advisorInsight.title}</h3>
                   <p className="text-gray-400 text-base leading-relaxed italic px-4">
                       &quot;{advisorInsight.message}&quot;
                   </p>
@@ -323,8 +335,8 @@ export default function DashboardPage() {
 
               {/* ETIQUETAS DE IMPACTO AL FINAL */}
               <div className="flex flex-wrap justify-center gap-4">
-                  <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black uppercase text-cyan tracking-widest">Viabilidad: {advisorInsight.viability}</div>
-                  <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black uppercase text-emerald-400 tracking-widest">Impacto: {advisorInsight.impact}</div>
+                  <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black capitalize tracking-widest">Viabilidad: {advisorInsight.viability}</div>
+                  <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black capitalize tracking-widest">Impacto: {advisorInsight.impact}</div>
               </div>
           </PremiumCard>
 
@@ -333,9 +345,9 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between border-b border-gray-100 pb-6">
                       <div className="flex items-center gap-3">
                           <Activity size={20} className="text-[#004d4d]"/>
-                          <h4 className="text-xs font-black uppercase tracking-widest text-gray-900">Actividad Live</h4>
+                          <h4 className="text-xs font-black capitalize tracking-widest text-gray-900">Actividad en tiempo real</h4>
                       </div>
-                      <Link href="/dashboard/reports" className="text-[9px] font-black uppercase text-cyan hover:underline tracking-tighter">Ver Todo</Link>
+                      <Link href="/dashboard/reports" className="text-[9px] font-black capitalize text-cyan hover:underline tracking-tighter">Ver todo</Link>
                   </div>
                   <div className="space-y-6">
                       {activities.length > 0 ? activities.map((act, i) => (
@@ -344,28 +356,28 @@ export default function DashboardPage() {
                                   <RefreshCw size={16} className="group-hover/item:rotate-180 transition-transform duration-700"/>
                               </div>
                               <div className="flex-1 min-w-0">
-                                  <p className="text-[11px] font-black text-gray-900 truncate uppercase">{act.user_name || 'Sistema'}</p>
+                                  <p className="text-[11px] font-black text-gray-900 truncate capitalize">{act.user_name || 'Sistema'}</p>
                                   <p className="text-[9px] text-gray-400 truncate font-medium italic">{act.detail}</p>
                               </div>
-                              <span className="text-[8px] font-bold text-gray-300 uppercase shrink-0">Hace poco</span>
+                              <span className="text-[8px] font-bold text-gray-300 capitalize shrink-0">Hace poco</span>
                           </div>
                       )) : (
                           <div className="py-12 flex flex-col items-center justify-center text-center space-y-4">
                               <div className="h-12 w-12 rounded-full border-4 border-gray-50 border-t-cyan animate-spin" />
-                              <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Sincronizando flujo...</p>
+                              <p className="text-[10px] font-black text-gray-300 capitalize tracking-widest">Sincronizando flujo...</p>
                           </div>
                       )}
                   </div>
               </div>
-              <button onClick={loadDashboardData} className="w-full py-4 mt-8 bg-gray-50 rounded-2xl text-[9px] font-black uppercase text-gray-400 hover:bg-[#004d4d] hover:text-white transition-all">Refrescar Terminal</button>
+              <button onClick={loadDashboardData} className="w-full py-4 mt-8 bg-gray-50 rounded-2xl text-[9px] font-black capitalize text-gray-400 hover:bg-[#004d4d] hover:text-white transition-all">Refrescar terminal</button>
           </PremiumCard>
       </div>
 
       {/* 4. SECCIÓN DE ACCESOS DIRECTOS PREMIUM */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <AccessCard label="Inventario Maestro" sub="Control de 360° de tus productos" href="/dashboard/products" icon={<Package size={32}/>} />
-          <AccessCard label="Reportes Completos" sub="Gestión de flujo de caja real" href="/dashboard/reports" icon={<FileText size={32}/>} />
-          <AccessCard label="Chats Importantes" sub="WhatsApp, Web y POS Físico" href="/dashboard/chats" icon={<MessageSquare size={32}/>} />
+          <AccessCard label="Inventario maestro" sub="Control de 360° de tus productos" href="/dashboard/products" icon={<Package size={32}/>} />
+          <AccessCard label="Reportes completos" sub="Gestión de flujo de caja real" href="/dashboard/reports" icon={<FileText size={32}/>} />
+          <AccessCard label="Chats importantes" sub="WhatsApp, Web y POS Físico" href="/dashboard/chats" icon={<MessageSquare size={32}/>} />
       </div>
 
       <OnboardingModal isOpen={isOnboardingOpen} onClose={() => setIsOnboardingOpen(false)} onComplete={() => {}} />
@@ -398,12 +410,12 @@ function MetricKPI({ label, value, icon, color, bg, trend, isCurrency = false, i
                 <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg group-hover:scale-110 border border-white/50 ${bg} ${color}`}>
                     {icon}
                 </div>
-                <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                <div className={`px-3 py-1 rounded-full text-[9px] font-black capitalize tracking-wider ${trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
                     {trend}
                 </div>
             </div>
             <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5">{label}</p>
+                <p className="text-[10px] font-black text-gray-400 capitalize tracking-tight mb-1.5">{label}</p>
                 <h3 className="text-3xl font-black text-gray-900 tracking-tighter">
                     {isCurrency && "$ "}<AnimatedNumber value={value} type={isPercentage ? 'percentage' : 'simple'} />
                 </h3>
