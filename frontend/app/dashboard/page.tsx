@@ -79,7 +79,7 @@ export default function DashboardPage() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
   const [activities, setActivities] = useState<any[]>([]);
-  const [companyName, setCompanyName] = useState('Empresario');
+  const [companyName, setCompanyName] = useState('...');
   const [realStats, setRealStats] = useState({ 
     revenue: 0, 
     orders_count: 0, 
@@ -95,8 +95,17 @@ export default function DashboardPage() {
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        if (parsed.identity?.name) setCompanyName(parsed.identity.name);
-      } catch (e) { console.error(e); }
+        if (parsed.identity?.name) {
+            setCompanyName(parsed.identity.name);
+        } else {
+            setCompanyName('Tu empresa');
+        }
+      } catch (e) { 
+        console.error(e);
+        setCompanyName('Tu empresa');
+      }
+    } else {
+        setCompanyName('Tu empresa');
     }
   }, []);
 
@@ -137,7 +146,7 @@ export default function DashboardPage() {
     
     if (low_stock > 0) {
         return {
-            title: "Inventario en Riesgo",
+            title: "Inventario en riesgo",
             message: `He detectado que tienes ${low_stock} productos con stock crítico. Reabastece estas unidades pronto para evitar perder ventas esta semana.`,
             viability: "98%",
             impact: "Crítico"
@@ -146,7 +155,7 @@ export default function DashboardPage() {
     
     if (revenue === 0) {
         return {
-            title: "Impulso de Ventas",
+            title: "Impulso de ventas",
             message: "Hoy el flujo está tranquilo. Sugiero enviar un mensaje masivo por WhatsApp a tus clientes habituales con una oferta relámpago de 24 horas.",
             viability: "85%",
             impact: "Alto"
@@ -155,7 +164,7 @@ export default function DashboardPage() {
 
     if (orders_count > 5) {
         return {
-            title: "Optimización de Logística",
+            title: "Optimización de logística",
             message: `Tienes ${orders_count} pedidos pendientes por procesar. Sugiero agrupar los despachos por zona para reducir costos de envío hoy.`,
             viability: "92%",
             impact: "Medio"
@@ -164,7 +173,7 @@ export default function DashboardPage() {
 
     if (avg_ticket < 50000 && revenue > 0) {
         return {
-            title: "Estrategia de Ticket",
+            title: "Estrategia de ticket",
             message: "Tu ticket promedio está por debajo de la meta. Intenta crear 'Kits' o combos de productos para incentivar compras de mayor valor.",
             viability: "90%",
             impact: "Alto"
@@ -189,7 +198,7 @@ export default function DashboardPage() {
       }, [loadDashboardData]);
     const kpis = [
     { 
-        label: "Ventas de Hoy", 
+        label: "Ventas de hoy", 
         value: realStats.revenue, 
         icon: <DollarSign size={24}/>, 
         color: "text-emerald-600", 
@@ -197,28 +206,28 @@ export default function DashboardPage() {
         trend: "Live", 
         isCurrency: true,
         details: [
-            { l: "Ticket Prom.", v: `$ ${realStats.avg_ticket.toLocaleString()}`, icon: <DollarSign size={14}/> },
-            { l: "Margen Bruto", v: `${realStats.revenue > 0 ? '---' : '0%'}`, icon: <Zap size={14}/> },
-            { l: "Ventas/Hora", v: `${(realStats.orders_count / 24).toFixed(1)}`, icon: <Activity size={14}/> }
+            { l: "Ticket prom.", v: `$ ${realStats.avg_ticket.toLocaleString()}`, icon: <DollarSign size={14}/> },
+            { l: "Margen bruto", v: `${realStats.revenue > 0 ? '---' : '0%'}`, icon: <Zap size={14}/> },
+            { l: "Ventas/hora", v: `${(realStats.orders_count / 24).toFixed(1)}`, icon: <Activity size={14}/> }
         ],
         advice: realStats.revenue > 0 ? "Ventas activas detectadas. El flujo es positivo." : "Aún no hay ventas registradas hoy. ¡Es hora de lanzar una campaña!"
     },
     { 
-        label: "Pedidos Pendientes", 
+        label: "Pedidos pendientes", 
         value: realStats.orders_count, 
         icon: <ShoppingBag size={24}/>, 
         color: "text-cyan-500", 
         bg: "bg-cyan-50", 
         trend: "Estable",
         details: [
-            { l: "Por Despachar", v: `${realStats.orders_count}`, icon: <Package size={14}/> },
-            { l: "En Tránsito", v: "0", icon: <TrendingUp size={14}/> },
-            { l: "Demora Prom.", v: "---", icon: <Activity size={14}/> }
+            { l: "Por despachar", v: `${realStats.orders_count}`, icon: <Package size={14}/> },
+            { l: "En tránsito", v: "0", icon: <TrendingUp size={14}/> },
+            { l: "Demora prom.", v: "---", icon: <Activity size={14}/> }
         ],
         advice: realStats.orders_count > 0 ? "Tienes pedidos pendientes. Prioriza el despacho." : "No hay órdenes pendientes. Excelente eficiencia operativa."
     },
     { 
-        label: "Tasa de Conversión", 
+        label: "Tasa de conversión", 
         value: realStats.conversion, 
         icon: <TrendingUp size={24}/>, 
         color: "text-purple-600", 
@@ -228,21 +237,21 @@ export default function DashboardPage() {
         details: [
             { l: "Visitas", v: "0", icon: <Target size={14}/> },
             { l: "Carritos", v: "0", icon: <ShoppingBag size={14}/> },
-            { l: "ROI Proy.", v: "0x", icon: <Sparkles size={14}/> }
+            { l: "ROI proy.", v: "0x", icon: <Sparkles size={14}/> }
         ],
         advice: "Conecta tu tienda para empezar a rastrear el comportamiento de tus visitantes."
     },
     { 
-        label: "Inventario Bajo", 
+        label: "Inventario bajo", 
         value: realStats.low_stock, 
         icon: <Package size={24}/>, 
         color: "text-rose-600", 
         bg: "bg-rose-50", 
         trend: realStats.low_stock > 0 ? "Atención" : "OK",
         details: [
-            { l: "Items Agotados", v: `${realStats.out_of_stock}`, icon: <Package size={14}/> },
+            { l: "Items agotados", v: `${realStats.out_of_stock}`, icon: <Package size={14}/> },
             { l: "Reposición", v: "No iniciada", icon: <Activity size={14}/> },
-            { l: "Valor Inmov.", v: "$ 0", icon: <DollarSign size={14}/> }
+            { l: "Valor inmov.", v: "$ 0", icon: <DollarSign size={14}/> }
         ],
         advice: realStats.low_stock > 0 ? `Tienes ${realStats.low_stock} productos por agotarse. Reabastece pronto.` : "Tus niveles de inventario están saludables."
     },
@@ -260,7 +269,7 @@ export default function DashboardPage() {
               ]);
               
               await generateDailyReport({
-                  userName: userEmail?.split('@')[0] || 'Empresario',
+                  userName: companyName,
                   products: products || [],
                   orders: orders || [],
                   expenses: expenses || []
@@ -280,9 +289,9 @@ export default function DashboardPage() {
               <div className="flex-1 space-y-4 text-center xl:text-left">
                   <div className="flex items-center justify-center xl:justify-start gap-3">
                       <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                      <span className="text-[10px] font-black capitalize tracking-[0.3em] text-[#004d4d]/60 italic">Tu panel de control</span>
+                      <span className="text-[10px] font-black tracking-[0.3em] text-[#004d4d]/60 italic">Tú panel de control</span>
                   </div>
-                  <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter capitalize leading-none text-[#001A1A] pb-2 overflow-visible">
+                  <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter leading-none text-[#001A1A] pb-2 overflow-visible">
                       ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block px-1 pr-4">{companyName}</span>!
                   </h1>
                   <p className="text-gray-400 font-medium text-lg italic max-w-2xl">
@@ -292,11 +301,11 @@ export default function DashboardPage() {
               <div className="flex gap-4 shrink-0 relative z-20">
                   <Link href="/dashboard/products/new" className="h-16 px-10 bg-white border-2 border-gray-100 rounded-full flex items-center justify-center gap-3 hover:bg-[#004d4d] hover:text-white hover:border-[#004d4d] transition-all shadow-xl group">
                       <Plus size={20} className="group-hover:rotate-90 transition-transform" /> 
-                      <span className="font-black capitalize tracking-widest text-[10px]">Nuevo producto</span>
+                      <span className="font-black tracking-widest text-[10px]">Nuevo producto</span>
                   </Link>
                   <button onClick={handleDownloadReport} className="h-16 px-10 bg-[#004d4d] text-white rounded-full flex items-center justify-center gap-3 shadow-2xl hover:bg-black transition-all group">
                       <FileText size={20} className="text-cyan transition-transform group-hover:scale-110"/> 
-                      <span className="font-black capitalize tracking-widest text-[10px]">Descargar día</span>
+                      <span className="font-black tracking-widest text-[10px]">Descargar reporte diario</span>
                   </button>
               </div>
             </div>
@@ -322,12 +331,12 @@ export default function DashboardPage() {
                           <Sparkles size={12} fill="currentColor" />
                       </div>
                   </div>
-                  <span className="px-4 py-1 bg-cyan/10 text-cyan rounded-full text-[8px] font-black capitalize tracking-[0.1em] border border-cyan/20">Tu asesor inteligente</span>
+                  <span className="px-4 py-1 bg-cyan/10 text-cyan rounded-full text-[8px] font-black tracking-[0.1em] border border-cyan/20">Tu asesor inteligente</span>
               </div>
 
               {/* CONTENIDO DE VALOR EN EL CENTRO */}
               <div className="mt-10 mb-10 space-y-6 flex flex-col items-center text-center w-full max-w-2xl">
-                  <h3 className="text-3xl font-black text-white italic capitalize tracking-tighter leading-tight">{advisorInsight.title}</h3>
+                  <h3 className="text-3xl font-black text-white italic tracking-tighter leading-tight">{advisorInsight.title}</h3>
                   <p className="text-gray-400 text-base leading-relaxed italic px-4">
                       &quot;{advisorInsight.message}&quot;
                   </p>
@@ -335,8 +344,8 @@ export default function DashboardPage() {
 
               {/* ETIQUETAS DE IMPACTO AL FINAL */}
               <div className="flex flex-wrap justify-center gap-4">
-                  <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black capitalize tracking-widest">Viabilidad: {advisorInsight.viability}</div>
-                  <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black capitalize tracking-widest">Impacto: {advisorInsight.impact}</div>
+                  <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black tracking-widest">Viabilidad: {advisorInsight.viability}</div>
+                  <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black tracking-widest">Impacto: {advisorInsight.impact}</div>
               </div>
           </PremiumCard>
 
@@ -345,9 +354,9 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between border-b border-gray-100 pb-6">
                       <div className="flex items-center gap-3">
                           <Activity size={20} className="text-[#004d4d]"/>
-                          <h4 className="text-xs font-black capitalize tracking-widest text-gray-900">Actividad en tiempo real</h4>
+                          <h4 className="text-xs font-black tracking-widest text-gray-900">Actividad en tiempo real</h4>
                       </div>
-                      <Link href="/dashboard/reports" className="text-[9px] font-black capitalize text-cyan hover:underline tracking-tighter">Ver todo</Link>
+                      <Link href="/dashboard/reports" className="text-[9px] font-black text-cyan hover:underline tracking-tighter">Ver todo</Link>
                   </div>
                   <div className="space-y-6">
                       {activities.length > 0 ? activities.map((act, i) => (
@@ -356,20 +365,20 @@ export default function DashboardPage() {
                                   <RefreshCw size={16} className="group-hover/item:rotate-180 transition-transform duration-700"/>
                               </div>
                               <div className="flex-1 min-w-0">
-                                  <p className="text-[11px] font-black text-gray-900 truncate capitalize">{act.user_name || 'Sistema'}</p>
+                                  <p className="text-[11px] font-black text-gray-900 truncate">{act.user_name || 'Sistema'}</p>
                                   <p className="text-[9px] text-gray-400 truncate font-medium italic">{act.detail}</p>
                               </div>
-                              <span className="text-[8px] font-bold text-gray-300 capitalize shrink-0">Hace poco</span>
+                              <span className="text-[8px] font-bold text-gray-300 shrink-0">Hace poco</span>
                           </div>
                       )) : (
                           <div className="py-12 flex flex-col items-center justify-center text-center space-y-4">
                               <div className="h-12 w-12 rounded-full border-4 border-gray-50 border-t-cyan animate-spin" />
-                              <p className="text-[10px] font-black text-gray-300 capitalize tracking-widest">Sincronizando flujo...</p>
+                              <p className="text-[10px] font-black text-gray-300 tracking-widest">Sincronizando flujo...</p>
                           </div>
                       )}
                   </div>
               </div>
-              <button onClick={loadDashboardData} className="w-full py-4 mt-8 bg-gray-50 rounded-2xl text-[9px] font-black capitalize text-gray-400 hover:bg-[#004d4d] hover:text-white transition-all">Refrescar terminal</button>
+              <button onClick={loadDashboardData} className="w-full py-4 mt-8 bg-gray-50 rounded-2xl text-[9px] font-black text-gray-400 hover:bg-[#004d4d] hover:text-white transition-all">Refrescar terminal</button>
           </PremiumCard>
       </div>
 
@@ -410,12 +419,12 @@ function MetricKPI({ label, value, icon, color, bg, trend, isCurrency = false, i
                 <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg group-hover:scale-110 border border-white/50 ${bg} ${color}`}>
                     {icon}
                 </div>
-                <div className={`px-3 py-1 rounded-full text-[9px] font-black capitalize tracking-wider ${trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                <div className={`px-3 py-1 rounded-full text-[9px] font-black tracking-wider ${trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
                     {trend}
                 </div>
             </div>
             <div>
-                <p className="text-[10px] font-black text-gray-400 capitalize tracking-tight mb-1.5">{label}</p>
+                <p className="text-[10px] font-black text-gray-400 tracking-tight mb-1.5">{label}</p>
                 <h3 className="text-3xl font-black text-gray-900 tracking-tighter">
                     {isCurrency && "$ "}<AnimatedNumber value={value} type={isPercentage ? 'percentage' : 'simple'} />
                 </h3>
