@@ -296,7 +296,7 @@ export default function InvoicingPage() {
                     <div className="space-y-10 p-4">
                         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 px-4">
                             <div><div className="flex items-center gap-3 mb-2"><div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" /><span className="text-[10px] font-black tracking-[0.3em] text-[#004d4d]/60 italic">Terminal de facturación v2.0</span></div><h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-none text-[#001A1A]">Factura<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">ción</span></h1><p className="text-gray-400 font-medium text-lg italic mt-4">¡Lleva el control de todas tus ventas aquí! 💰</p></div>
-                            <button onClick={() => setIsPOSActive(true)} className="h-16 px-10 bg-gray-900 text-white rounded-full font-black text-[11px] tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Nueva venta POS</button>
+                            <button onClick={() => setIsPOSActive(true)} className="h-16 px-10 bg-[#004d4d] text-white rounded-full font-black text-[11px] tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Nueva venta POS</button>
                         </header>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
