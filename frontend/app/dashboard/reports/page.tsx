@@ -72,6 +72,20 @@ import {
     Legend
 } from 'recharts';
 
+// --- COMPONENTE DE NÚMEROS ANIMADOS ---
+const AnimatedNumber = memo(({ value, type = 'currency', className }: { value: number, className?: string, type?: 'currency' | 'percentage' | 'simple' }) => {
+    const spring = useSpring(0, { mass: 0.8, stiffness: 75, damping: 15 });
+    const display = useTransform(spring, (current: number) => {
+        if (type === 'percentage') return `${current.toFixed(1)}%`;
+        if (type === 'simple') return Math.round(current).toLocaleString();
+        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(current);
+    });
+
+    useEffect(() => { spring.set(value); }, [value, spring]);
+    return <motion.span className={className}>{display}</motion.span>;
+});
+AnimatedNumber.displayName = 'AnimatedNumber';
+
 // --- CONFIGURACIÓN DE COLORES ---
 const COLORS = {
     primary: "#004d4d",
@@ -608,7 +622,7 @@ function ReportsContent() {
             <div className="flex items-center justify-center gap-6 shrink-0 relative z-20">
                 <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl shadow-gray-200/50 backdrop-blur-xl flex items-center relative">
                     {[
-                        { id: 'general', label: 'General', icon: <LayoutGrid size size={14}/> },
+                        { id: 'general', label: 'General', icon: <LayoutGrid size={14}/> },
                         { id: 'sucursales', label: 'Sucursales', icon: <Store size={14}/> },
                         { id: 'asesores', label: 'Asesores', icon: <Users size={14}/> },
                         { id: 'bayt', label: 'Bayt insight', icon: <Sparkles size={14}/> }
