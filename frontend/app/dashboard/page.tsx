@@ -90,22 +90,24 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    // Intentar cargar nombre de empresa real
+    // Intentar cargar nombre de empresa real desde los ajustes generales
     const savedData = localStorage.getItem('bayup_general_settings');
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        if (parsed.identity?.name) {
+        // Priorizar el nombre de la identidad corporativa
+        if (parsed.identity?.name && parsed.identity.name.trim() !== "") {
             setCompanyName(parsed.identity.name);
         } else {
-            setCompanyName('Tu empresa');
+            setCompanyName('Mi Negocio');
         }
       } catch (e) { 
-        console.error(e);
-        setCompanyName('Tu empresa');
+        console.error("Error al parsear ajustes de empresa:", e);
+        setCompanyName('Mi Negocio');
       }
     } else {
-        setCompanyName('Tu empresa');
+        // Fallback elegante
+        setCompanyName('Mi Negocio');
     }
   }, []);
 
