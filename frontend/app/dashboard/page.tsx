@@ -91,24 +91,34 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // Intentar cargar nombre de empresa real desde los ajustes generales
-    const savedData = localStorage.getItem('bayup_general_settings');
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        // Priorizar el nombre de la identidad corporativa
-        if (parsed.identity?.name && parsed.identity.name.trim() !== "") {
-            setCompanyName(parsed.identity.name);
+    const loadName = () => {
+        const savedData = localStorage.getItem('bayup_general_settings');
+        if (savedData) {
+            try {
+                const parsed = JSON.parse(savedData);
+                if (parsed.identity?.name && parsed.identity.name.trim() !== "") {
+                    setCompanyName(parsed.identity.name);
+                } else {
+                    setCompanyName('Mi Negocio');
+                }
+            } catch (e) { 
+                console.error("Error al parsear ajustes de empresa:", e);
+                setCompanyName('Mi Negocio');
+            }
         } else {
             setCompanyName('Mi Negocio');
         }
-      } catch (e) { 
-        console.error("Error al parsear ajustes de empresa:", e);
-        setCompanyName('Mi Negocio');
-      }
-    } else {
-        // Fallback elegante
-        setCompanyName('Mi Negocio');
-    }
+    };
+
+    loadName();
+
+    // Escuchar actualizaciones en tiempo real desde otros componentes
+    const handleNameUpdate = (e: any) => {
+        if (e.detail) setCompanyName(e.detail);
+    };
+
+    window.addEventListener('bayup_name_update', handleNameUpdate);
+    return () => window.removeEventListener('bayup_name_update', handleNameUpdate);
   }, []);
 
   const loadDashboardData = useCallback(async () => {

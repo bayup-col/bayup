@@ -105,6 +105,17 @@ export default function GeneralSettings() {
     ];
 
     useEffect(() => {
+        // Cargar datos locales primero para consistencia inmediata
+        const savedData = localStorage.getItem('bayup_general_settings');
+        if (savedData) {
+            try {
+                const parsed = JSON.parse(savedData);
+                if (parsed.identity) setIdentity(parsed.identity);
+                if (parsed.contact) setContact(parsed.contact);
+                if (parsed.social_links) setSocialLinks(parsed.social_links);
+            } catch (e) { console.error("Error al cargar datos locales", e); }
+        }
+
         const fetchStoreData = async () => {
             if (!token) return;
             try {
@@ -182,6 +193,15 @@ export default function GeneralSettings() {
             }
 
             window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: identity.name }));
+            
+            // Persistir localmente para reflejo inmediato en Dashboard
+            const settingsToSave = {
+                identity: identity,
+                contact: contact,
+                social_links: socialLinks
+            };
+            localStorage.setItem('bayup_general_settings', JSON.stringify(settingsToSave));
+            
             showToast("Configuración sincronizada con éxito 🚀", "success");
         } catch (e: any) { 
             showToast(e.message || "Error al sincronizar", "error"); 
