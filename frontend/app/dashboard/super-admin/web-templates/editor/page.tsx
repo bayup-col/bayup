@@ -7,6 +7,7 @@ import { Canvas } from "../../../pages/studio/internal-studio-parts/Canvas";
 import { DesignerInspector } from "../../../pages/studio/internal-studio-parts/StudioPropertiesInspector";
 import { ChevronLeft, Save, Eye, Smartphone, Monitor, Tablet, MousePointer2, CheckCircle2, X, Globe, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCenter } from "@dnd-kit/core";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { cn } from "@/lib/utils";
