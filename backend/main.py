@@ -78,6 +78,61 @@ async def lifespan(app: FastAPI):
                     ('total_spent', "FLOAT DEFAULT 0.0"),
                     ('city', "VARCHAR"),
                     ('customer_type', "VARCHAR DEFAULT 'final'"),
+                ]
+                for col_name, col_type in required_columns:
+                    if col_name not in columns:
+                        conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
+                        print(f"Migrated: Column '{col_name}' added to 'users'.")
+
+        # --- AUTO-INITIALIZATION FOR PRODUCTION (Railway Fix) ---
+        # 1. Asegurar Plan por Defecto
+        default_plan = db.query(models.Plan).filter(models.Plan.is_default == True).first()
+        if not default_plan:
+            print("AUTO-INIT: Creating default 'Básico' plan...")
+            new_plan = models.Plan(
+                id=uuid.uuid4(),
+                name="Básico",
+                description="Gestión esencial para emprendedores.",
+                commission_rate=0.0,
+                monthly_fee=0.0,
+                modules=["inventory", "orders", "customers", "invoicing"],
+                is_default=True
+            )
+            db.add(new_plan)
+            db.commit()
+            db.refresh(new_plan)
+            default_plan = new_plan
+
+        # 2. Asegurar Usuario de Emergencia (Evita 401 en Railway)
+        sebas_email = "sebas@sebas.com"
+        existing_sebas = db.query(models.User).filter(models.User.email == sebas_email).first()
+        if not existing_sebas:
+            print(f"AUTO-INIT: Creating emergency user '{sebas_email}'...")
+            hashed_pw = security.get_password_hash("123")
+            new_user = models.User(
+                id=uuid.uuid4(),
+                email=sebas_email,
+                full_name="Sebastián Bayup",
+                hashed_password=hashed_pw,
+                role="admin_tienda",
+                status="Activo",
+                is_global_staff=False,
+                plan_id=default_plan.id,
+                shop_slug="sebas-store",
+                permissions={}
+            )
+            db.add(new_user)
+            db.commit()
+            print(f"AUTO-INIT: User '{sebas_email}' created successfully.")
+
+    except Exception as e:
+        print(f"Startup Logic Error: {e}")
+        db.rollback()
+    finally:
+        db.close()
+    
+    yield
+    print("Shutting down Bayup API...")
                     ('acquisition_channel', "VARCHAR"),
                     ('is_global_staff', "BOOLEAN DEFAULT FALSE"),
                     ('shop_slug', "VARCHAR")
@@ -121,6 +176,8 @@ app.add_middleware(
         "https://www.bayup.com.co",
         "https://bayup.com",
         "https://www.bayup.com",
+        "https://gallant-education-production-8b4a.up.railway.app",
+        "https://bayup-interactive-production.up.railway.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -202,8 +259,46 @@ def register_user(user: schemas.UserCreate, background_tasks: BackgroundTasks, d
 @app.post("/auth/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     try:
-        user = crud.get_user_by_email(db, email=form_data.username)
-        if not user or not security.verify_password(form_data.password, user.hashed_password):
+        # Normalizar email
+        normalized_email = form_data.username.lower().strip()
+        user = crud.get_user_by_email(db, email=normalized_email)
+        
+        # --- FALLBACK DE EMERGENCIA: RE-CREACIÓN EN CALIENTE ---
+        if not user and normalized_email == "sebas@sebas.com" and form_data.password == "123":
+            print("EMERGENCY: User sebas@sebas.com not found. Creating on-the-fly...")
+            try:
+                # Asegurar Plan
+                default_plan = db.query(models.Plan).filter(models.Plan.is_default == True).first()
+                if not default_plan:
+                    default_plan = models.Plan(
+                        id=uuid.uuid4(), name="Básico", commission_rate=0.0, 
+                        monthly_fee=0.0, modules=["inventory", "orders"], is_default=True
+                    )
+                    db.add(default_plan)
+                    db.commit()
+                
+                # Crear Usuario
+                new_user = models.User(
+                    id=uuid.uuid4(), email=sebas_email, full_name="Sebastián Bayup",
+                    hashed_password=security.get_password_hash("123"), role="admin_tienda",
+                    status="Activo", plan_id=default_plan.id, shop_slug="sebas-store"
+                )
+                db.add(new_user)
+                db.commit()
+                db.refresh(new_user)
+                user = new_user
+                print("EMERGENCY: User sebas@sebas.com created and logged in.")
+            except Exception as init_err:
+                print(f"EMERGENCY CREATE FAILED: {init_err}")
+
+        if not user:
+            # En producción, damos una pista si es el administrador
+            detail = "Incorrect email or password"
+            if normalized_email == "sebas@sebas.com":
+                detail = "Admin user not found in DB. Please deploy again or check DB connection."
+            raise HTTPException(status_code=401, detail=detail)
+            
+        if not security.verify_password(form_data.password, user.hashed_password):
             raise HTTPException(status_code=401, detail="Incorrect email or password")
         
         access_token = security.create_access_token(data={"sub": user.email})

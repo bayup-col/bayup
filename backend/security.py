@@ -10,7 +10,12 @@ import crud, models, schemas
 from database import get_db
 
 # --- Configuration ---
-SECRET_KEY = "a_very_secret_key_that_should_be_in_env_var"  # TODO: Move to environment variable
+# Cargar variables de entorno
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_that_should_be_in_env_var")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480 # 8 Horas
 

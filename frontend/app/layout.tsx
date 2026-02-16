@@ -22,6 +22,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const originalWarn = console.warn;
+                console.warn = function() {
+                  if (arguments[0] && typeof arguments[0] === 'string' && arguments[0].includes('feature_collector.js')) {
+                    return;
+                  }
+                  originalWarn.apply(console, arguments);
+                };
+              })();
+            `,
+          }}
+        />
+      </head>
       <body>
         <Providers>
           {children}
