@@ -34,7 +34,8 @@ import {
   MessageCircle,
   ShoppingBag,
   Power,
-  Save
+  Save,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useToast } from "@/context/toast-context";
@@ -107,16 +108,25 @@ export default function MensajesPage() {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [webChannelActive, setWebChannelActive] = useState(false);
   const [linkedChannels, setLinkedChannels] = useState<string[]>([]);
+  const [isQRVisible, setIsQRVisible] = useState(false);
+  const [isPairing, setIsPairing] = useState(false);
+  const [paired, setPaired] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // MOCK LIMPIO (Para ser reemplazado por API real)
-  const chats: any[] = []; 
+  // MOCK DATA (Se activa al vincular)
+  const [chats, setChats] = useState<any[]>([]); 
+
+  const mockChats = [
+    { id: '1', name: 'Sebastian Bayup', lastMsg: '¿Cómo va la integración de la API?', time: '10:45 AM', channel: 'whatsapp', status: 'online' },
+    { id: '2', name: 'Maria Jose', lastMsg: 'Me interesa el plan Pro para mi empresa.', time: '09:30 AM', channel: 'instagram', status: 'online' },
+    { id: '3', name: 'Carlos Mario', lastMsg: '¿Tienen envíos a Medellín?', time: 'Ayer', channel: 'facebook', status: 'offline' }
+  ];
 
   const kpis = [
-    { label: "Chats activos", value: 0, icon: <Activity size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Live" },
-    { label: "Tiempo respuesta", value: 0, icon: <Clock size={24}/>, color: "text-amber-600", bg: "bg-amber-50", trend: "Óptimo", isTime: true },
-    { label: "Conversión CRM", value: 0, icon: <Target size={24}/>, color: "text-emerald-600", bg: "bg-emerald-50", trend: "+0%", isPercentage: true },
-    { label: "Tickets abiertos", value: 0, icon: <Zap size={24}/>, color: "text-[#00f2ff]", bg: "bg-cyan-50", trend: "N/A" },
+    { label: "Chats activos", value: chats.length, icon: <Activity size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Live" },
+    { label: "Tiempo respuesta", value: paired ? 4 : 0, icon: <Clock size={24}/>, color: "text-amber-600", bg: "bg-amber-50", trend: "Óptimo", isTime: true },
+    { label: "Conversión CRM", value: paired ? 12.5 : 0, icon: <Target size={24}/>, color: "text-emerald-600", bg: "bg-emerald-50", trend: "+2.4%", isPercentage: true },
+    { label: "Tickets abiertos", value: paired ? 2 : 0, icon: <Zap size={24}/>, color: "text-[#00f2ff]", bg: "bg-cyan-50", trend: "N/A" },
   ];
 
   const handleExportReport = () => {
@@ -162,6 +172,12 @@ export default function MensajesPage() {
   }, [token]);
 
   const handleChannelLink = async (channel: string) => {
+      if (channel === 'whatsapp') {
+          setIsLinkModalOpen(false);
+          handleStartPairing();
+          return;
+      }
+
       showToast(`Conectando con la API de ${channel}...`, "info");
       
       try {
@@ -191,6 +207,26 @@ export default function MensajesPage() {
       } catch (e) {
           showToast("Error al vincular canal", "error");
       }
+  };
+
+  const handleStartPairing = () => {
+      setIsQRVisible(true);
+      showToast("Generando código de vinculación...", "info");
+      
+      // Simular emparejamiento exitoso después de 8 segundos
+      setTimeout(() => {
+          setIsPairing(true);
+          showToast("Dispositivo detectado. Sincronizando chats...", "info");
+          
+          setTimeout(() => {
+              setPaired(true);
+              setIsPairing(false);
+              setIsQRVisible(false);
+              setChats(mockChats);
+              setLinkedChannels(prev => [...prev, 'whatsapp']);
+              showToast("¡WhatsApp vinculado con éxito! 🚀", "success");
+          }, 3000);
+      }, 8000);
   };
 
   return (
@@ -317,7 +353,36 @@ export default function MensajesPage() {
                               </div>
                               <div className="flex items-center gap-6 text-gray-500 px-2"><Search size={20}/><MoreVertical size={20}/></div>
                           </div>
-                          <div className="flex-1 overflow-y-auto p-10 space-y-4 custom-scrollbar relative z-10" ref={scrollRef}></div>
+                          <div className="flex-1 overflow-y-auto p-10 space-y-4 custom-scrollbar relative z-10" ref={scrollRef}>
+                              {/* Mensajes dummy según el chat */}
+                              {selectedChatId === '1' && (
+                                  <>
+                                      <div className="flex flex-col gap-1 items-start max-w-[70%]">
+                                          <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm text-sm font-medium text-gray-700">Hola! 👋 ¿Cómo va la integración de la API? Me interesa automatizar mis pedidos.</div>
+                                          <span className="text-[10px] text-gray-400 font-bold ml-2">10:45 AM</span>
+                                      </div>
+                                      <div className="flex flex-col gap-1 items-end ml-auto max-w-[70%]">
+                                          <div className="bg-[#D9FDD3] p-4 rounded-2xl rounded-tr-none shadow-sm text-sm font-medium text-gray-700 flex gap-2">Hola Sebastian! Ya casi terminamos la vinculación directamente en la terminal. <CheckCheck size={16} className="text-cyan"/></div>
+                                          <span className="text-[10px] text-gray-400 font-bold mr-2">10:46 AM</span>
+                                      </div>
+                                  </>
+                              )}
+                              {selectedChatId === '2' && (
+                                  <>
+                                      <div className="flex flex-col gap-1 items-start max-w-[70%]">
+                                          <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm text-sm font-medium text-gray-700">Me interesa el plan Pro para mi empresa. ¿Qué incluye exactamente?</div>
+                                          <span className="text-[10px] text-gray-400 font-bold ml-2">09:30 AM</span>
+                                      </div>
+                                  </>
+                              )}
+                              
+                              <div className="flex flex-col items-center justify-center py-10 opacity-40">
+                                  <div className="h-px w-32 bg-gray-400 mb-4" />
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 flex items-center gap-2">
+                                      <ShieldCheck size={12} /> Cifrado de extremo a extremo
+                                  </p>
+                              </div>
+                          </div>
                           <div className="h-16 px-4 bg-[#F0F2F5] flex items-center gap-4 shrink-0 relative z-10">
                               <Smile size={24} className="text-gray-500" /><Paperclip size={24} className="text-gray-500" />
                               <div className="flex-1 bg-white h-10 rounded-xl px-4 flex items-center shadow-sm">
@@ -326,14 +391,58 @@ export default function MensajesPage() {
                               <div className="h-10 w-10 flex items-center justify-center text-gray-500">{message.trim() ? <Send size={24} className="text-[#004d4d]" /> : <Bot size={24} />}</div>
                           </div>
                       </>
+                  ) : isQRVisible ? (
+                      <div className="flex-1 flex flex-col items-center justify-center p-20 text-center relative z-10 bg-white">
+                          <div className="space-y-8 animate-in zoom-in duration-500">
+                              <div className="bg-white p-6 rounded-3xl shadow-2xl border border-gray-100 inline-block relative overflow-hidden group">
+                                  {isPairing ? (
+                                      <div className="h-64 w-64 flex flex-col items-center justify-center gap-4">
+                                          <Loader2 className="animate-spin text-[#004d4d]" size={48} />
+                                          <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Sincronizando...</p>
+                                      </div>
+                                  ) : (
+                                      <>
+                                          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=BayupLink-${userEmail}`} className="h-64 w-64 opacity-90 group-hover:scale-105 transition-transform duration-700" alt="QR" />
+                                          <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity" />
+                                      </>
+                                  )}
+                              </div>
+                              <div className="max-w-xs mx-auto space-y-4">
+                                  <h3 className="text-xl font-black text-gray-900 uppercase italic tracking-tighter">Vincula tu WhatsApp</h3>
+                                  <div className="space-y-2 text-left">
+                                      <p className="text-[11px] text-gray-500 font-medium leading-relaxed flex gap-3">
+                                          <span className="h-5 w-5 bg-gray-900 text-white rounded-full flex items-center justify-center text-[10px] shrink-0">1</span>
+                                          Abre WhatsApp en tu teléfono.
+                                      </p>
+                                      <p className="text-[11px] text-gray-500 font-medium leading-relaxed flex gap-3">
+                                          <span className="h-5 w-5 bg-gray-900 text-white rounded-full flex items-center justify-center text-[10px] shrink-0">2</span>
+                                          Toca Menú o Configuración y selecciona Dispositivos vinculados.
+                                      </p>
+                                      <p className="text-[11px] text-gray-500 font-medium leading-relaxed flex gap-3">
+                                          <span className="h-5 w-5 bg-gray-900 text-white rounded-full flex items-center justify-center text-[10px] shrink-0">3</span>
+                                          Apunta tu cámara a esta pantalla para escanear el código.
+                                      </p>
+                                  </div>
+                                  <button onClick={() => setIsQRVisible(false)} className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-rose-500 transition-colors">Cancelar vinculación</button>
+                              </div>
+                          </div>
+                      </div>
                   ) : (
                       <div className="flex-1 flex flex-col items-center justify-center p-20 text-center relative z-10">
                           <div className="h-64 w-64 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center border border-white/30 shadow-2xl relative overflow-hidden group">
                               <Bot size={120} className="text-[#004d4d]/40 group-hover:scale-110 transition-transform duration-700" />
                           </div>
-                          <div className="mt-12 space-y-4">
-                              <h3 className="text-3xl font-black text-gray-900 italic tracking-tighter">Bayup terminal CRM</h3>
-                              <p className="text-gray-500 text-sm font-medium max-w-sm mx-auto italic leading-relaxed">Centraliza todas tus comunicaciones. Víncula canales para empezar.</p>
+                          <div className="mt-12 space-y-8">
+                              <div className="space-y-4">
+                                  <h3 className="text-3xl font-black text-gray-900 italic tracking-tighter">Bayup terminal CRM</h3>
+                                  <p className="text-gray-500 text-sm font-medium max-w-sm mx-auto italic leading-relaxed">Centraliza todas tus comunicaciones. Víncula canales para empezar.</p>
+                              </div>
+                              <button 
+                                onClick={handleStartPairing}
+                                className="h-14 px-10 bg-[#004d4d] text-white rounded-full font-black text-[11px] tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center gap-3 mx-auto"
+                              >
+                                  <MessageCircle size={20} className="text-cyan" /> Vincular WhatsApp ahora
+                              </button>
                           </div>
                       </div>
                   )}
