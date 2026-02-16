@@ -115,6 +115,8 @@ export default function MensajesPage() {
   const [paired, setPaired] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [chats, setChats] = useState<any[]>([]);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<any>(null);
 
@@ -123,6 +125,27 @@ export default function MensajesPage() {
       const bridgeUrl = process.env.NEXT_PUBLIC_WHATSAPP_BRIDGE_URL || 'http://localhost:8001';
       const socket = io(bridgeUrl);
       socketRef.current = socket;
+
+      const fetchRealChats = async () => {
+          try {
+              const res = await fetch(`${bridgeUrl}/chats`);
+              if (res.ok) {
+                  const realChats = await res.json();
+                  setChats(realChats);
+                  setLinkedChannels(prev => prev.includes('whatsapp') ? prev : [...prev, 'whatsapp']);
+              }
+          } catch (e) { console.error("Error cargando chats", e); }
+      };
+
+      socket.on('status', (status: string) => {
+          console.log("Bridge Status:", status);
+          if (status === 'ready') {
+              setPaired(true);
+              setIsQRVisible(false);
+              fetchRealChats();
+          }
+          if (status === 'qr') setIsQRVisible(true);
+      });
 
       socket.on('qr', (url: string) => {
           setQrCodeUrl(url);
@@ -134,24 +157,41 @@ export default function MensajesPage() {
           setPaired(true);
           setIsQRVisible(false);
           setIsPairing(false);
-          showToast("¡WhatsApp conectado de verdad! ✨", "success");
-          
-          // Cargar chats reales
-          try {
-              const res = await fetch(`${bridgeUrl}/chats`);
-              if (res.ok) {
-                  const realChats = await res.json();
-                  setChats(realChats);
-              }
-          } catch (e) { console.error("Error cargando chats", e); }
+          showToast("¡WhatsApp conectado! ✨", "success");
+          fetchRealChats();
       });
 
       socket.on('new_message', (msg: any) => {
-          showToast(`Nuevo mensaje de ${msg.name || msg.from}`, "info");
+          // Si es el chat actual, podríamos refrescar mensajes
+          fetchRealChats(); // Refrescar lista al recibir mensaje
       });
 
       return () => { socket.disconnect(); };
   }, [showToast]);
+
+  // --- CARGAR MENSAJES DEL CHAT SELECCIONADO ---
+  useEffect(() => {
+      if (!selectedChatId) return;
+      
+      const fetchMessages = async () => {
+          setIsMessagesLoading(true);
+          const bridgeUrl = process.env.NEXT_PUBLIC_WHATSAPP_BRIDGE_URL || 'http://localhost:8001';
+          try {
+              const res = await fetch(`${bridgeUrl}/chats/${encodeURIComponent(selectedChatId)}/messages`);
+              if (res.ok) {
+                  const msgs = await res.json();
+                  setChatMessages(msgs);
+                  // Scroll al final
+                  setTimeout(() => {
+                      if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+                  }, 100);
+              }
+          } catch (e) { console.error(e); }
+          finally { setIsMessagesLoading(false); }
+      };
+
+      fetchMessages();
+  }, [selectedChatId]);
 
   const kpis = [
     { label: "Chats activos", value: chats.length, icon: <Activity size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Live" },
@@ -249,6 +289,36 @@ export default function MensajesPage() {
       showToast("Solicitando QR al servidor...", "info");
   };
 
+  const handleSendMessage = async () => {
+      if (!message.trim() || !selectedChatId) return;
+      
+      const bridgeUrl = process.env.NEXT_PUBLIC_WHATSAPP_BRIDGE_URL || 'http://localhost:8001';
+      const body = message;
+      setMessage(""); // Limpiar input inmediatamente
+
+      try {
+          const res = await fetch(`${bridgeUrl}/send`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ to: selectedChatId, body })
+          });
+
+          if (res.ok) {
+              // Añadir mensaje optimista
+              const newMsg = {
+                  id: Date.now().toString(),
+                  body,
+                  fromMe: true,
+                  time: new Date().toLocaleTimeString()
+              };
+              setChatMessages(prev => [...prev, newMsg]);
+              setTimeout(() => {
+                  if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+              }, 100);
+          }
+      } catch (e) { showToast("Error al enviar mensaje", "error"); }
+  };
+
   return (
     <div className="w-full space-y-10 pb-20 animate-in fade-in duration-1000 flex flex-col">
       
@@ -337,21 +407,26 @@ export default function MensajesPage() {
                               <p className="text-xs text-gray-400 font-medium leading-relaxed italic">Víncula tus cuentas para recibir transmisiones en tiempo real.</p>
                           </div>
                       ) : (
-                          chats.map((chat) => (
+                          chats
+                            .filter(c => c.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+                            .map((chat) => (
                               <div key={chat.id} onClick={() => setSelectedChatId(chat.id)} className={`h-[72px] px-4 flex items-center gap-4 cursor-pointer border-b border-gray-50 transition-colors ${selectedChatId === chat.id ? 'bg-[#F0F2F5]' : 'hover:bg-[#F5F6F6]'}`}>
                                   <div className="relative shrink-0">
-                                      <div className="h-12 w-12 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-lg font-black text-gray-400 italic">{chat.name.charAt(0)}</div>
+                                      <div className="h-12 w-12 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-lg font-black text-gray-400 italic">{(chat.name || '?').charAt(0)}</div>
                                       <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-white p-0.5 shadow-md">
-                                          <img src={CHANNEL_CONFIG[chat.channel as keyof typeof CHANNEL_CONFIG].logo} alt="" className="h-full w-full object-contain rounded-full" />
+                                          <img src={CHANNEL_CONFIG[(chat.channel || 'whatsapp') as keyof typeof CHANNEL_CONFIG].logo} alt="" className="h-full w-full object-contain rounded-full" />
                                       </div>
                                   </div>
                                   <div className="flex-1 min-w-0 pr-2">
                                       <div className="flex justify-between items-baseline mb-1">
-                                          <h5 className="text-[15px] font-bold text-gray-900 truncate">{chat.name}</h5>
+                                          <h5 className="text-[15px] font-bold text-gray-900 truncate">{chat.name || 'Chat sin nombre'}</h5>
                                           <span className="text-[11px] text-gray-400 font-medium">{chat.time}</span>
                                       </div>
                                       <p className="text-[13px] text-gray-500 truncate font-medium">{chat.lastMsg}</p>
                                   </div>
+                                  {chat.unread > 0 && (
+                                      <div className="h-5 w-5 bg-emerald-500 rounded-full flex items-center justify-center text-[10px] text-white font-bold shrink-0">{chat.unread}</div>
+                                  )}
                               </div>
                           ))
                       )}
@@ -374,26 +449,24 @@ export default function MensajesPage() {
                               <div className="flex items-center gap-6 text-gray-500 px-2"><Search size={20}/><MoreVertical size={20}/></div>
                           </div>
                           <div className="flex-1 overflow-y-auto p-10 space-y-4 custom-scrollbar relative z-10" ref={scrollRef}>
-                              {/* Mensajes dummy según el chat */}
-                              {selectedChatId === '1' && (
-                                  <>
-                                      <div className="flex flex-col gap-1 items-start max-w-[70%]">
-                                          <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm text-sm font-medium text-gray-700">Hola! 👋 ¿Cómo va la integración de la API? Me interesa automatizar mis pedidos.</div>
-                                          <span className="text-[10px] text-gray-400 font-bold ml-2">10:45 AM</span>
+                              {isMessagesLoading ? (
+                                  <div className="h-full flex items-center justify-center">
+                                      <Loader2 className="animate-spin text-[#004d4d]" size={32} />
+                                  </div>
+                              ) : chatMessages.length > 0 ? (
+                                  chatMessages.map((msg) => (
+                                      <div key={msg.id} className={`flex flex-col gap-1 ${msg.fromMe ? 'items-end ml-auto' : 'items-start'} max-w-[70%]`}>
+                                          <div className={`p-4 rounded-2xl shadow-sm text-sm font-medium ${msg.fromMe ? 'bg-[#D9FDD3] rounded-tr-none text-gray-700' : 'bg-white rounded-tl-none text-gray-700'}`}>
+                                              {msg.body}
+                                              {msg.fromMe && <div className="flex justify-end mt-1"><CheckCheck size={14} className="text-cyan-500" /></div>}
+                                          </div>
+                                          <span className={`text-[10px] text-gray-400 font-bold ${msg.fromMe ? 'mr-2' : 'ml-2'}`}>{msg.time}</span>
                                       </div>
-                                      <div className="flex flex-col gap-1 items-end ml-auto max-w-[70%]">
-                                          <div className="bg-[#D9FDD3] p-4 rounded-2xl rounded-tr-none shadow-sm text-sm font-medium text-gray-700 flex gap-2">Hola Sebastian! Ya casi terminamos la vinculación directamente en la terminal. <CheckCheck size={16} className="text-cyan"/></div>
-                                          <span className="text-[10px] text-gray-400 font-bold mr-2">10:46 AM</span>
-                                      </div>
-                                  </>
-                              )}
-                              {selectedChatId === '2' && (
-                                  <>
-                                      <div className="flex flex-col gap-1 items-start max-w-[70%]">
-                                          <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm text-sm font-medium text-gray-700">Me interesa el plan Pro para mi empresa. ¿Qué incluye exactamente?</div>
-                                          <span className="text-[10px] text-gray-400 font-bold ml-2">09:30 AM</span>
-                                      </div>
-                                  </>
+                                  ))
+                              ) : (
+                                  <div className="h-full flex items-center justify-center opacity-20">
+                                      <p className="text-sm font-black uppercase tracking-widest">No hay mensajes recientes</p>
+                                  </div>
                               )}
                               
                               <div className="flex flex-col items-center justify-center py-10 opacity-40">
@@ -406,24 +479,35 @@ export default function MensajesPage() {
                           <div className="h-16 px-4 bg-[#F0F2F5] flex items-center gap-4 shrink-0 relative z-10">
                               <Smile size={24} className="text-gray-500" /><Paperclip size={24} className="text-gray-500" />
                               <div className="flex-1 bg-white h-10 rounded-xl px-4 flex items-center shadow-sm">
-                                  <input placeholder="Escribe un mensaje" className="w-full bg-transparent border-none text-[14px] outline-none text-gray-700 font-medium" value={message} onChange={(e) => setMessage(e.target.value)} />
+                                  <input 
+                                    placeholder="Escribe un mensaje" 
+                                    className="w-full bg-transparent border-none text-[14px] outline-none text-gray-700 font-medium" 
+                                    value={message} 
+                                    onChange={(e) => setMessage(e.target.value)} 
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                                  />
                               </div>
-                              <div className="h-10 w-10 flex items-center justify-center text-gray-500">{message.trim() ? <Send size={24} className="text-[#004d4d]" /> : <Bot size={24} />}</div>
+                              <button 
+                                onClick={handleSendMessage}
+                                className="h-10 w-10 flex items-center justify-center text-gray-500 hover:text-[#004d4d] transition-colors"
+                              >
+                                {message.trim() ? <Send size={24} className="text-[#004d4d]" /> : <Bot size={24} />}
+                              </button>
                           </div>
                       </>
                   ) : isQRVisible ? (
                       <div className="flex-1 flex flex-col items-center justify-center p-20 text-center relative z-10 bg-white">
                           <div className="space-y-8 animate-in zoom-in duration-500">
                               <div className="bg-white p-6 rounded-3xl shadow-2xl border border-gray-100 inline-block relative overflow-hidden group">
-                                  {isPairing ? (
+                                  {isPairing || !qrCodeUrl ? (
                                       <div className="h-64 w-64 flex flex-col items-center justify-center gap-4">
                                           <Loader2 className="animate-spin text-[#004d4d]" size={48} />
-                                          <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Sincronizando...</p>
+                                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Solicitando conexión...</p>
                                       </div>
                                   ) : (
                                       <>
-                                          <img src={qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=BayupLink-Pending`} className="h-64 w-64 opacity-90 group-hover:scale-105 transition-transform duration-700" alt="QR" />
-                                          <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity" />
+                                          <img src={qrCodeUrl} className="h-64 w-64 opacity-90 group-hover:scale-105 transition-transform duration-700" alt="QR" />
+                                          <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity" />
                                       </>
                                   )}
                               </div>
