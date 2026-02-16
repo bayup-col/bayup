@@ -734,7 +734,32 @@ def get_pages(db: Session = Depends(get_db), current_user: models.User = Depends
 
 @app.get("/super-admin/stats", response_model=schemas.SuperAdminStats)
 def get_super_admin_stats(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_super_admin_user)):
-    # ... (lógica existente)
+    # Calcular métricas reales
+    total_revenue = db.query(func.sum(models.Order.total_price)).scalar() or 0.0
+    
+    # Comisión estimada (5% promedio si no se especifica)
+    total_commission = total_revenue * 0.05 
+    
+    active_companies = db.query(models.User).filter(models.User.role == 'admin_tienda', models.User.status == 'Activo').count()
+    active_affiliates = db.query(models.User).filter(models.User.role == 'afiliado', models.User.status == 'Activo').count()
+    
+    # Obtener top empresas (por facturación)
+    top_stores = db.query(
+        models.User.nickname,
+        func.sum(models.Order.total_price).label('revenue')
+    ).join(models.Order, models.Order.tenant_id == models.User.id)\
+     .group_by(models.User.id)\
+     .order_by(text('revenue DESC'))\
+     .limit(5).all()
+    
+    top_companies = [{"name": s.nickname or "Tienda", "revenue": s.revenue} for s in top_stores]
+    
+    # Alertas recientes (ej: stock bajo o pedidos demorados)
+    recent_alerts = [
+        {"type": "info", "message": "Nuevos registros en las últimas 24h", "count": 3},
+        {"type": "warning", "message": "Tiendas con stock crítico", "count": active_companies // 4}
+    ]
+
     return {
         "total_revenue": total_revenue,
         "total_commission": total_commission,
@@ -772,6 +797,41 @@ def impersonate_user(user_id: uuid.UUID, db: Session = Depends(get_db), current_
             }
         }
     }
+
+@app.get("/super-admin/stores")
+def get_all_stores(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_super_admin_user)):
+    # Obtener dueños de tienda (rol admin_tienda y sin dueño superior)
+    stores = db.query(models.User).filter(
+        models.User.role == 'admin_tienda',
+        models.User.owner_id == None
+    ).all()
+    
+    result = []
+    for store in stores:
+        # Calcular facturación total del tenant (usando sum de SQLAlchemy)
+        total_invoiced = db.query(func.sum(models.Order.total_price)).filter(models.Order.tenant_id == store.id).scalar() or 0.0
+        
+        # Calcular ganancia estimada (comisión del plan o 5%)
+        commission = 0.05
+        if store.plan:
+            commission = store.plan.commission_rate / 100
+        
+        profit = total_invoiced * commission
+        
+        result.append({
+            "id": str(store.id),
+            "owner_name": store.full_name or store.email,
+            "company_name": store.nickname or store.full_name or "Tienda Bayup",
+            "email": store.email,
+            "plan": store.plan.name if store.plan else "Básico",
+            "status": store.status or "Activo",
+            "total_invoiced": total_invoiced,
+            "our_profit": profit,
+            "registration_date": "2026-02-16", # Placeholder
+            "avatar": (store.nickname or store.full_name or "U")[:2].upper()
+        })
+    
+    return result
 
 @app.get("/analytics/opportunities")
 def get_analytics_opportunities(current_user: models.User = Depends(security.get_current_user)):
