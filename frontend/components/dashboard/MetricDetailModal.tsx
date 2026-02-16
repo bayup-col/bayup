@@ -75,8 +75,8 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
                         {metric.icon}
                     </div>
                     <div>
-                        <h2 className="text-xl font-black italic uppercase tracking-tighter text-[#004d4d]">{metric.label}</h2>
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Análisis Táctico Live</p>
+                        <h2 className="text-xl font-black italic tracking-tighter text-[#004d4d]">{metric.label}</h2>
+                        <p className="text-[9px] font-black text-gray-400 tracking-widest">Análisis táctico live</p>
                     </div>
                 </div>
                 <button 
@@ -97,7 +97,7 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
                             {metric.isCurrency && "$ "}{metric.value.toLocaleString()}
                             {metric.isPercentage && "%"}
                         </span>
-                        <div className="flex items-center gap-2 text-emerald-600 text-[10px] font-black uppercase tracking-tighter">
+                        <div className="flex items-center gap-2 text-emerald-600 text-[10px] font-black tracking-tighter">
                             <ArrowUpRight size={14} /> {metric.trend} <span className="text-gray-300 ml-1">v2.0</span>
                         </div>
                     </div>
@@ -115,10 +115,10 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
                 <div className="grid grid-cols-3 gap-4 border-y border-gray-100 py-8">
                     {metric.details?.map((sm, i) => (
                         <div key={i} className="space-y-1 text-center border-r last:border-r-0 border-gray-100">
-                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-center gap-1">
+                            <p className="text-[8px] font-black text-gray-400 tracking-widest flex items-center justify-center gap-1">
                                 {sm.icon} {sm.l}
                             </p>
-                            <p className="text-lg font-black text-[#004d4d] italic uppercase">{sm.v}</p>
+                            <p className="text-lg font-black text-[#004d4d] italic">{sm.v}</p>
                         </div>
                     ))}
                 </div>
@@ -133,7 +133,7 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
                             <Bot size={20} className="text-cyan animate-pulse" />
                         </div>
                         <div className="space-y-3">
-                            <p className="text-[10px] font-black text-cyan uppercase tracking-[0.2em]">Bayt Insight</p>
+                            <p className="text-[10px] font-black text-cyan tracking-[0.2em]">Bayt insight</p>
                             <p className="text-sm font-medium leading-relaxed italic text-gray-300">
                                 &quot;{metric.advice || "Analizando comportamiento de mercado..."}&quot;
                             </p>
@@ -143,9 +143,9 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
 
                 <button 
                     onClick={onClose}
-                    className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl shadow-gray-200"
+                    className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] tracking-[0.2em] hover:bg-black transition-all shadow-xl shadow-gray-200"
                 >
-                    Continuar Operación
+                    Continuar operación
                 </button>
             </div>
           </motion.div>
