@@ -28,11 +28,22 @@ export default function RootLayout({
             __html: `
               (function() {
                 const originalWarn = console.warn;
+                const originalError = console.error;
+                
                 console.warn = function() {
-                  if (arguments[0] && typeof arguments[0] === 'string' && arguments[0].includes('feature_collector.js')) {
+                  const msg = arguments[0];
+                  if (msg && typeof msg === 'string' && (msg.includes('feature_collector') || msg.includes('deprecated parameters'))) {
                     return;
                   }
                   originalWarn.apply(console, arguments);
+                };
+
+                console.error = function() {
+                  const msg = arguments[0];
+                  if (msg && typeof msg === 'string' && msg.includes('feature_collector')) {
+                    return;
+                  }
+                  originalError.apply(console, arguments);
                 };
               })();
             `,

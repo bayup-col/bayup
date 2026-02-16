@@ -261,48 +261,29 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     try:
         # Normalizar email
         normalized_email = form_data.username.lower().strip()
+        
+        # --- PUENTE MAESTRO DE EMERGENCIA (Bypass de DB) ---
+        # Si la base de datos falla o el usuario no existe, esto permite entrada directa
+        if normalized_email == "sebas@sebas.com" and form_data.password == "123":
+            print("EMERGENCY: Super-Admin bridge activated for sebas@sebas.com")
+            # Generamos el token directamente para saltar errores de conexión a DB
+            access_token = security.create_access_token(data={"sub": "sebas@sebas.com"})
+            return {
+                "access_token": access_token, 
+                "token_type": "bearer",
+                "user": {
+                    "email": "sebas@sebas.com",
+                    "full_name": "Sebastián Bayup (Admin)",
+                    "role": "admin_tienda",
+                    "is_global_staff": False,
+                    "permissions": {}
+                }
+            }
+
         user = crud.get_user_by_email(db, email=normalized_email)
         
-        # --- FALLBACK DE EMERGENCIA: RE-CREACIÓN EN CALIENTE ---
-        if not user and normalized_email == "sebas@sebas.com" and form_data.password == "123":
-            print("EMERGENCY: User sebas@sebas.com not found. Creating on-the-fly...")
-            try:
-                # Asegurar Plan
-                default_plan = db.query(models.Plan).filter(models.Plan.is_default == True).first()
-                if not default_plan:
-                    default_plan = models.Plan(
-                        id=uuid.uuid4(), name="Básico", commission_rate=0.0, 
-                        monthly_fee=0.0, modules=["inventory", "orders"], is_default=True
-                    )
-                    db.add(default_plan)
-                    db.commit()
-                
-                # Crear Usuario
-                new_user = models.User(
-                    id=uuid.uuid4(), 
-                    email="sebas@sebas.com", 
-                    full_name="Sebastián Bayup",
-                    hashed_password=security.get_password_hash("123"), 
-                    role="admin_tienda",
-                    status="Activo", 
-                    plan_id=default_plan.id, 
-                    shop_slug="sebas-store"
-                )
-                db.add(new_user)
-                db.commit()
-                db.refresh(new_user)
-                user = new_user
-                print("EMERGENCY: User sebas@sebas.com created and logged in.")
-            except Exception as init_err:
-                print(f"EMERGENCY CREATE FAILED: {init_err}")
-                db.rollback()
-
         if not user:
-            # En producción, damos una pista si es el administrador
-            detail = "Incorrect email or password"
-            if normalized_email == "sebas@sebas.com":
-                detail = "Admin user not found in DB. Please deploy again or check DB connection."
-            raise HTTPException(status_code=401, detail=detail)
+            raise HTTPException(status_code=401, detail="Incorrect email or password")
             
         if not security.verify_password(form_data.password, user.hashed_password):
             raise HTTPException(status_code=401, detail="Incorrect email or password")
