@@ -15,6 +15,7 @@ import { useAuth } from "@/context/auth-context";
 import { motion, AnimatePresence } from "framer-motion";
 
 const MasterEditorInterface = () => {
+  const searchParams = useSearchParams();
   const { 
     sidebarView, toggleSidebar, handleDragEnd, 
     viewport, setViewport, 
