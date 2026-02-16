@@ -118,8 +118,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       const getLinkStyles = (path: string, type: 'admin' | 'super' = 'admin', isSub = false) => {
       const isActive = pathname === path || (path !== '/dashboard' && pathname?.startsWith(path));
-      const base = `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 capitalize `;
-      const subBase = `flex items-center gap-3 px-4 py-2 ml-9 rounded-xl text-xs font-bold transition-all duration-300 capitalize `;
+      const base = `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300  `;
+      const subBase = `flex items-center gap-3 px-4 py-2 ml-9 rounded-xl text-xs font-bold transition-all duration-300  `;
       
       if (type === 'super') {
         return (isSub ? subBase : base) + (isActive 
@@ -240,12 +240,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="p-4 border-b border-white/10 relative">
               <div className={`backdrop-blur-md p-6 rounded-[2.5rem] border shadow-sm flex flex-col items-center text-center transition-all duration-500 ${theme === 'dark' ? 'bg-[#002626]/40 border-[#00F2FF]/10' : 'bg-white/10 border-white/30'}`}>
                   <div className="flex flex-col items-center">
-                      <span className={`text-base font-black leading-tight uppercase tracking-tighter transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                      <span className={`text-base font-black leading-tight  tracking-tighter transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                           {companyName}
                       </span>
                       <div className="flex items-center gap-1.5 mt-1.5">
                           <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>
-                          <span className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-[#004d4d]'}`}>En línea</span>
+                          <span className={`text-[9px] font-black  tracking-widest transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-[#004d4d]'}`}>En línea</span>
                       </div>
                   </div>
                   
@@ -260,8 +260,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                       {/* Inner Body */}
                       <div className={`relative flex items-center justify-center w-full py-4 px-6 backdrop-blur-2xl rounded-[calc(1rem-1.5px)] transition-all duration-500 ${theme === 'dark' ? 'bg-[#001a1a]/90 group-hover/conic:bg-[#001a1a]' : 'bg-white/80 group-hover/conic:bg-white/95'}`}>
-                          <span className={`relative z-10 text-[10px] font-black capitalize tracking-[0.1em] flex items-center gap-2 transition-colors ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
-                              <ExternalLink size={14} className="opacity-80" />
+                          <span className={`relative z-10 text-[10px] font-black  tracking-[0.1em] flex items-center gap-2 transition-colors ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
+                              <Eye size={14} className="opacity-80" />
                               Ver tienda online
                           </span>
                       </div>
@@ -275,7 +275,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar">
                 {hasVisibleModules(['m_inicio', 'm_facturacion', 'm_pedidos', 'm_envios', 'm_productos']) && (
                     <div>
-                        <p className="px-4 text-[11px] font-black text-gray-400 capitalize tracking-tight mb-3">Operación</p>
+                        <p className="px-4 text-[11px] font-black text-gray-400  tracking-tight mb-3">Operación</p>
                         <div className="space-y-1">
                             <MenuItem href="/dashboard" label={<><LayoutDashboard size={16} className="mr-2" /> Inicio</>} id="m_inicio" />
                             <MenuItem href="/dashboard/invoicing" label={<><FileText size={16} className="mr-2" /> Facturación</>} id="m_facturacion" />
@@ -346,7 +346,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                 {hasVisibleModules(['m_web_analytics', 'm_marketing', 'm_loyalty', 'm_discounts', 'm_automations', 'm_ai_assistants']) && (
                     <div>
-                        <p className="px-4 text-[11px] font-black text-gray-400 capitalize tracking-tight mb-3">Crecimiento</p>
+                        <p className="px-4 text-[11px] font-black text-gray-400  tracking-tight mb-3">Crecimiento</p>
                         <div className="space-y-1">
                             <MenuItem href="/dashboard/web-analytics" label={<><BarChart3 size={16} className="mr-2" /> Estadísticas Web</>} id="m_web_analytics" />
                             <MenuItem href="/dashboard/marketing" label={<><TrendingUp size={16} className="mr-2" /> Marketing</>} id="m_marketing" />
@@ -359,7 +359,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 )}
 
                 <div>
-                    <p className="px-4 text-[11px] font-black text-gray-400 capitalize tracking-tight mb-3">Gestión</p>
+                    <p className="px-4 text-[11px] font-black text-gray-400  tracking-tight mb-3">Gestión</p>
                     <div className="space-y-1">
                         
                         {/* BLINDAJE CONFIGURACIÓN */}
@@ -502,20 +502,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 className="absolute right-10 top-24 w-64 bg-white/95 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-white overflow-hidden z-[110]"
               >
                 <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Conectado como</p>
+                  <p className="text-[10px] font-black text-gray-400  tracking-widest">Conectado como</p>
                   <p className="text-sm font-black text-gray-900 truncate mt-1">{userEmail}</p>
                 </div>
                 <div className="p-2">
                   <button 
                     onClick={() => { setIsUserSettingsOpen(true); setUserMenuOpen(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-gray-600 hover:bg-[#004d4d]/5 hover:text-[#004d4d] transition-all"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black  tracking-widest text-gray-600 hover:bg-[#004d4d]/5 hover:text-[#004d4d] transition-all"
                   >
                     <User size={16} /> Perfil y Ajustes
                   </button>
                   <div className="my-1 border-t border-gray-100"></div>
                   <button 
                     onClick={() => { logout(); setUserMenuOpen(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-rose-600 hover:bg-rose-50 transition-all"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black  tracking-widest text-rose-600 hover:bg-rose-50 transition-all"
                   >
                     <LogOut size={16} /> Cerrar Sesión
                   </button>
@@ -553,7 +553,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <div className="relative z-10 flex items-center gap-8">
                         <div className="relative group">
                             <div className="h-24 w-24 rounded-[2rem] bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-4xl font-black shadow-2xl border-4 border-white/10">
-                                {userEmail?.charAt(0).toUpperCase()}
+                                {userEmail?.charAt(0).to()}
                             </div>
                             <button className="absolute -bottom-2 -right-2 h-10 w-10 bg-white text-gray-900 rounded-2xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform active:scale-95">
                                 <Camera size={18} />
@@ -562,8 +562,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         <div>
                             <h2 className="text-3xl font-black tracking-tight">{userEmail?.split('@')[0]}</h2>
                             <div className="flex items-center gap-3 mt-2">
-                                <span className="bg-purple-600 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">{userRole?.replace('_', ' ')}</span>
-                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest italic">{userEmail}</span>
+                                <span className="bg-purple-600 text-white text-[9px] font-black px-3 py-1 rounded-full  tracking-widest">{userRole?.replace('_', ' ')}</span>
+                                <span className="text-[10px] text-gray-400 font-bold  tracking-widest italic">{userEmail}</span>
                             </div>
                         </div>
                     </div>
@@ -578,7 +578,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         <button 
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex items-center gap-2 px-6 py-5 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab.id ? 'text-purple-600' : 'text-gray-400 hover:text-gray-600'}`}
+                            className={`flex items-center gap-2 px-6 py-5 text-[10px] font-black  tracking-widest transition-all relative ${activeTab === tab.id ? 'text-purple-600' : 'text-gray-400 hover:text-gray-600'}`}
                         >
                             {tab.icon}
                             {tab.label}
@@ -592,16 +592,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Público</label>
+                                    <label className="text-[10px] font-black text-gray-400  tracking-widest ml-1">Nombre Público</label>
                                     <input type="text" defaultValue={userEmail?.split('@')[0]} className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Cargo / Rol</label>
+                                    <label className="text-[10px] font-black text-gray-400  tracking-widest ml-1">Cargo / Rol</label>
                                     <input type="text" value={userRole === 'admin' ? 'Administrador de Tienda' : 'Super Administrador'} disabled className="w-full p-4 bg-gray-100 border border-gray-100 text-gray-400 rounded-2xl outline-none text-sm font-bold italic" />
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Biografía Breve</label>
+                                <label className="text-[10px] font-black text-gray-400  tracking-widest ml-1">Biografía Breve</label>
                                 <textarea rows={3} placeholder="Cuéntanos un poco sobre ti..." className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-medium transition-all resize-none" />
                             </div>
                         </div>
@@ -611,16 +611,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
                             <div className="space-y-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Contraseña Actual</label>
+                                    <label className="text-[10px] font-black text-gray-400  tracking-widest ml-1">Contraseña Actual</label>
                                     <input type="password" placeholder="••••••••" className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all" />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nueva Contraseña</label>
+                                        <label className="text-[10px] font-black text-gray-400  tracking-widest ml-1">Nueva Contraseña</label>
                                         <input type="password" placeholder="••••••••" className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all" />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Confirmar Nueva Contraseña</label>
+                                        <label className="text-[10px] font-black text-gray-400  tracking-widest ml-1">Confirmar Nueva Contraseña</label>
                                         <input type="password" placeholder="••••••••" className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all" />
                                     </div>
                                 </div>
@@ -635,8 +635,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     <div className="flex items-center gap-3">
                                         <Bell size={18} className="text-purple-600" />
                                         <div>
-                                            <p className="text-xs font-black text-gray-900 uppercase tracking-widest">Notificaciones Email</p>
-                                            <p className="text-[10px] text-gray-500 font-bold uppercase mt-0.5">Alertas de ventas y stock</p>
+                                            <p className="text-xs font-black text-gray-900  tracking-widest">Notificaciones Email</p>
+                                            <p className="text-[10px] text-gray-500 font-bold  mt-0.5">Alertas de ventas y stock</p>
                                         </div>
                                     </div>
                                     <div className="h-6 w-11 bg-purple-600 rounded-full relative flex items-center px-1 cursor-pointer">
@@ -647,8 +647,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     <div className="flex items-center gap-3">
                                         <MessageSquare size={18} className="text-emerald-600" />
                                         <div>
-                                            <p className="text-xs font-black text-gray-900 uppercase tracking-widest">Alertas WhatsApp</p>
-                                            <p className="text-[10px] text-gray-500 font-bold uppercase mt-0.5">Notificaciones en tiempo real</p>
+                                            <p className="text-xs font-black text-gray-900  tracking-widest">Alertas WhatsApp</p>
+                                            <p className="text-[10px] text-gray-500 font-bold  mt-0.5">Notificaciones en tiempo real</p>
                                         </div>
                                     </div>
                                     <div className="h-6 w-11 bg-gray-200 rounded-full relative flex items-center px-1 cursor-pointer">
@@ -661,8 +661,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 </div>
 
                 <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
-                    <button onClick={() => setIsUserSettingsOpen(false)} className="text-[10px] font-black uppercase text-gray-400 hover:text-gray-900 tracking-[0.2em] transition-colors">Descartar</button>
-                    <button onClick={() => setIsUserSettingsOpen(false)} className="bg-purple-600 hover:bg-purple-700 text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-purple-100 active:scale-95 transition-all">Guardar Ajustes</button>
+                    <button onClick={() => setIsUserSettingsOpen(false)} className="text-[10px] font-black  text-gray-400 hover:text-gray-900 tracking-[0.2em] transition-colors">Descartar</button>
+                    <button onClick={() => setIsUserSettingsOpen(false)} className="bg-purple-600 hover:bg-purple-700 text-white px-10 py-4 rounded-2xl font-black text-[10px]  tracking-[0.2em] shadow-xl shadow-purple-100 active:scale-95 transition-all">Guardar Ajustes</button>
                 </div>
             </div>
         </div>
