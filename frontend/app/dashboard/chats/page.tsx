@@ -98,6 +98,8 @@ const CHANNEL_CONFIG = {
   web: { label: 'Canal Web', color: 'bg-[#004d4d]', icon: <Globe size={20} />, logo: 'https://upload.wikimedia.org/wikipedia/commons/a/ab/Android_O_Preview_Icon.png' }
 };
 
+import { io } from 'socket.io-client';
+
 export default function MensajesPage() {
   const { token, userEmail } = useAuth();
   const { showToast } = useToast();
@@ -111,16 +113,45 @@ export default function MensajesPage() {
   const [isQRVisible, setIsQRVisible] = useState(false);
   const [isPairing, setIsPairing] = useState(false);
   const [paired, setPaired] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [chats, setChats] = useState<any[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<any>(null);
 
-  // MOCK DATA (Se activa al vincular)
-  const [chats, setChats] = useState<any[]>([]); 
+  // --- CONEXIÓN REAL CON EL PUENTE WHATSAPP ---
+  useEffect(() => {
+      const bridgeUrl = process.env.NEXT_PUBLIC_WHATSAPP_BRIDGE_URL || 'http://localhost:8001';
+      const socket = io(bridgeUrl);
+      socketRef.current = socket;
 
-  const mockChats = [
-    { id: '1', name: 'Sebastian Bayup', lastMsg: '¿Cómo va la integración de la API?', time: '10:45 AM', channel: 'whatsapp', status: 'online' },
-    { id: '2', name: 'Maria Jose', lastMsg: 'Me interesa el plan Pro para mi empresa.', time: '09:30 AM', channel: 'instagram', status: 'online' },
-    { id: '3', name: 'Carlos Mario', lastMsg: '¿Tienen envíos a Medellín?', time: 'Ayer', channel: 'facebook', status: 'offline' }
-  ];
+      socket.on('qr', (url: string) => {
+          setQrCodeUrl(url);
+          setIsQRVisible(true);
+          setIsPairing(false);
+      });
+
+      socket.on('ready', async () => {
+          setPaired(true);
+          setIsQRVisible(false);
+          setIsPairing(false);
+          showToast("¡WhatsApp conectado de verdad! ✨", "success");
+          
+          // Cargar chats reales
+          try {
+              const res = await fetch(`${bridgeUrl}/chats`);
+              if (res.ok) {
+                  const realChats = await res.json();
+                  setChats(realChats);
+              }
+          } catch (e) { console.error("Error cargando chats", e); }
+      });
+
+      socket.on('new_message', (msg: any) => {
+          showToast(`Nuevo mensaje de ${msg.name || msg.from}`, "info");
+      });
+
+      return () => { socket.disconnect(); };
+  }, [showToast]);
 
   const kpis = [
     { label: "Chats activos", value: chats.length, icon: <Activity size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Live" },
@@ -210,23 +241,12 @@ export default function MensajesPage() {
   };
 
   const handleStartPairing = () => {
+      if (paired) {
+          showToast("Ya estás conectado", "info");
+          return;
+      }
       setIsQRVisible(true);
-      showToast("Generando código de vinculación...", "info");
-      
-      // Simular emparejamiento exitoso después de 8 segundos
-      setTimeout(() => {
-          setIsPairing(true);
-          showToast("Dispositivo detectado. Sincronizando chats...", "info");
-          
-          setTimeout(() => {
-              setPaired(true);
-              setIsPairing(false);
-              setIsQRVisible(false);
-              setChats(mockChats);
-              setLinkedChannels(prev => [...prev, 'whatsapp']);
-              showToast("¡WhatsApp vinculado con éxito! 🚀", "success");
-          }, 3000);
-      }, 8000);
+      showToast("Solicitando QR al servidor...", "info");
   };
 
   return (
@@ -402,7 +422,7 @@ export default function MensajesPage() {
                                       </div>
                                   ) : (
                                       <>
-                                          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=BayupLink-${userEmail}`} className="h-64 w-64 opacity-90 group-hover:scale-105 transition-transform duration-700" alt="QR" />
+                                          <img src={qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=BayupLink-Pending`} className="h-64 w-64 opacity-90 group-hover:scale-105 transition-transform duration-700" alt="QR" />
                                           <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity" />
                                       </>
                                   )}
