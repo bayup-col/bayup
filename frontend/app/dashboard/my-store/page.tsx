@@ -104,7 +104,7 @@ export default function MyStoreHub() {
                                     </button>
                                 </Link>
                                 <button className="w-full h-16 bg-white border border-gray-100 text-gray-900 rounded-[1.8rem] font-black text-[10px] tracking-[0.2em] shadow-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-3 active:scale-95">
-                                    <Globe size={16} className="text-purple-500" /> Ver tienda online
+                                    <ExternalLink size={16} className="text-purple-500" /> Ver tienda online
                                 </button>
                             </div>
 
