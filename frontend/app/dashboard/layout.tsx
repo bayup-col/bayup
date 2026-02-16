@@ -39,7 +39,8 @@ import {
   X,
   Ghost,
   ExternalLink,
-  LogOut
+  LogOut,
+  Eye
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
