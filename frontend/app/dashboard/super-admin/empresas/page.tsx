@@ -1,21 +1,22 @@
-"use client";
-
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/context/auth-context";
-import { Loader2, Search, Filter } from "lucide-react";
+import { Loader2, Search, Filter, Package, ShoppingBag, Zap, Mail, Phone, Calendar, User, Bot, Sparkles, ShieldCheck, ExternalLink, ArrowUpRight } from "lucide-react";
 
 interface CompanyClient {
     id: string;
     owner_name: string;
     company_name: string;
     email: string;
-    niche?: string;
+    phone: string;
     plan: string;
     registration_date: string;
     status: string;
     avatar: string;
     total_invoiced: number;
     our_profit: number;
+    product_count: number;
+    order_count: number;
+    avg_ticket: number;
 }
 
 export default function SuperAdminClients() {
@@ -23,7 +24,6 @@ export default function SuperAdminClients() {
     const [companies, setCompanies] = useState<CompanyClient[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedNiche, setSelectedNiche] = useState('Todos');
     const [selectedCompany, setSelectedCompany] = useState<CompanyClient | null>(null);
 
     useEffect(() => {
@@ -55,8 +55,7 @@ export default function SuperAdminClients() {
         const matchesSearch = c.company_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                              c.owner_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                              c.email.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesNiche = selectedNiche === 'Todos' || c.niche === selectedNiche;
-        return matchesSearch && matchesNiche;
+        return matchesSearch;
     });
 
     if (loading) return (
@@ -68,95 +67,196 @@ export default function SuperAdminClients() {
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-20 relative animate-in fade-in duration-700">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-4">
                 <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tight italic">Directorio de Empresas</h1>
-                    <p className="text-gray-500 mt-1 font-medium">Gestión y monitoreo de las {companies.length} empresas activas en producción.</p>
+                    <h1 className="text-4xl font-black text-[#001A1A] tracking-tighter italic uppercase">Comercios <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-cyan">Activos</span></h1>
+                    <p className="text-gray-500 mt-1 font-medium italic">Gestión integral de las {companies.length} empresas en la red Bayup.</p>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 items-center w-full md:w-auto">
-                    <div className="relative w-full sm:w-64">
-                        <input type="text" placeholder="Buscar por nombre, dueño o email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#004d4d] shadow-sm transition-all" />
-                        <Search className="w-4 h-4 absolute left-4 top-3.5 text-gray-400" />
-                    </div>
+                <div className="relative w-full sm:w-96">
+                    <input type="text" placeholder="Buscar por nombre, dueño o email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-3xl text-sm outline-none focus:ring-2 focus:ring-[#004d4d]/20 shadow-xl transition-all font-bold" />
+                    <Search className="w-5 h-5 absolute left-4 top-4 text-gray-300" />
                 </div>
             </div>
 
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-[3rem] border border-gray-100 shadow-2xl overflow-hidden mx-4">
                 <table className="min-w-full divide-y divide-gray-100">
                     <thead className="bg-gray-50/50">
                         <tr>
-                            <th className="px-8 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Empresa / Email</th>
-                            <th className="px-8 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Dueño</th>
-                            <th className="px-8 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan</th>
-                            <th className="px-8 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Facturación</th>
-                            <th className="px-8 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Estado</th>
-                            <th className="relative px-8 py-4"></th>
+                            <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Empresa / Identidad</th>
+                            <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Plan</th>
+                            <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Ventas Totales</th>
+                            <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Estado</th>
+                            <th className="relative px-8 py-6"></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                         {filteredCompanies.map((company) => (
-                            <tr key={company.id} onClick={() => setSelectedCompany(company)} className="hover:bg-[#f0f9f9] transition-colors cursor-pointer group">
-                                <td className="px-8 py-5">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-12 w-12 rounded-2xl bg-gray-900 flex items-center justify-center font-black text-cyan shadow-lg group-hover:scale-110 transition-transform uppercase">{company.avatar}</div>
+                            <tr key={company.id} onClick={() => setSelectedCompany(company)} className="hover:bg-[#f0f9f9]/50 transition-colors cursor-pointer group">
+                                <td className="px-8 py-6">
+                                    <div className="flex items-center gap-5">
+                                        <div className="h-14 w-14 rounded-[1.5rem] bg-gray-900 flex items-center justify-center font-black text-cyan shadow-xl group-hover:scale-110 transition-transform uppercase border-2 border-white/10">{company.avatar}</div>
                                         <div>
-                                            <p className="text-sm font-black text-gray-900">{company.company_name}</p>
-                                            <p className="text-[10px] font-bold text-gray-400 truncate max-w-[150px]">{company.email}</p>
+                                            <p className="text-sm font-black text-gray-900 tracking-tight">{company.company_name}</p>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{company.owner_name}</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-8 py-5"><p className="text-sm font-medium text-gray-700">{company.owner_name}</p></td>
-                                <td className="px-8 py-5"><span className="text-[10px] font-black uppercase px-3 py-1 rounded-lg bg-gray-100 text-gray-600">{company.plan}</span></td>
-                                <td className="px-8 py-5 text-sm text-emerald-600 font-black">{formatCurrency(company.total_invoiced)}</td>
-                                <td className="px-8 py-5">
-                                    <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg ${company.status === 'Activo' ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'}`}>
-                                        {company.status}
-                                    </span>
+                                <td className="px-8 py-6">
+                                    <span className={`text-[9px] font-black uppercase px-4 py-1.5 rounded-full border ${
+                                        company.plan === 'Gold' ? 'bg-amber-50 text-amber-600 border-amber-100' : 
+                                        company.plan === 'Pro' ? 'bg-cyan-50 text-cyan-600 border-cyan-100' : 
+                                        'bg-gray-50 text-gray-500 border-gray-100'
+                                    }`}>{company.plan}</span>
                                 </td>
-                                <td className="px-8 py-5 text-right"><span className="text-[#004d4d] opacity-0 group-hover:opacity-100 transition-opacity font-black text-xs uppercase tracking-widest">Detalles →</span></td>
+                                <td className="px-8 py-6 text-sm text-emerald-600 font-black tracking-tight">{formatCurrency(company.total_invoiced)}</td>
+                                <td className="px-8 py-6">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`h-2 w-2 rounded-full ${company.status === 'Activo' ? 'bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`} />
+                                        <span className="text-[10px] font-black uppercase text-gray-600 tracking-widest">{company.status}</span>
+                                    </div>
+                                </td>
+                                <td className="px-8 py-6 text-right">
+                                    <div className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-[#004d4d] group-hover:text-white transition-all shadow-inner">
+                                        <ArrowUpRight size={18} />
+                                    </div>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
-                {filteredCompanies.length === 0 && (
-                    <div className="py-20 text-center">
-                        <p className="text-gray-400 font-bold uppercase tracking-widest text-xs italic">No se encontraron empresas con esos criterios.</p>
-                    </div>
-                )}
             </div>
 
-            {/* MODAL DETALLE */}
+            {/* MODAL DE DETALLE PLATINUM PLUS */}
             {selectedCompany && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl border border-gray-100 overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 max-h-[90vh]">
-                        <div className="p-10 border-b border-gray-50 relative bg-gradient-to-br from-gray-900 to-[#001a1a] text-white">
-                            <button onClick={() => setSelectedCompany(null)} className="absolute top-8 right-8 text-gray-400 hover:text-white transition-colors text-xl">✕</button>
-                            <div className="flex items-center gap-6">
-                                <div className="h-24 w-24 rounded-[2rem] bg-white/10 backdrop-blur-xl shadow-xl flex items-center justify-center text-3xl font-black text-cyan border border-white/20 uppercase">{selectedCompany.avatar}</div>
-                                <div><h3 className="text-3xl font-black text-white tracking-tighter">{selectedCompany.company_name}</h3><p className="text-sm font-bold text-cyan/60 uppercase tracking-[0.2em] mt-1">{selectedCompany.plan} • {selectedCompany.status}</p></div>
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-gray-900/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-5xl rounded-[4rem] shadow-3xl border border-white overflow-hidden flex flex-col md:flex-row animate-in zoom-in-95 duration-500 max-h-[95vh]">
+                        
+                        {/* Sidebar Izquierdo: Identidad y Contacto */}
+                        <div className="w-full md:w-[380px] bg-gray-50 border-r border-gray-100 p-12 flex flex-col justify-between">
+                            <div className="space-y-10">
+                                <div className="text-center space-y-4">
+                                    <div className="h-32 w-32 rounded-[2.5rem] bg-gray-900 flex items-center justify-center text-5xl font-black text-cyan shadow-2xl mx-auto border-4 border-white uppercase">
+                                        {selectedCompany.avatar}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-3xl font-black text-gray-900 tracking-tighter leading-tight">{selectedCompany.company_name}</h3>
+                                        <p className="text-[10px] font-black text-cyan bg-cyan/10 px-3 py-1 rounded-full uppercase tracking-[0.2em] inline-block mt-2">Plan {selectedCompany.plan}</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-4 group cursor-pointer">
+                                        <div className="h-10 w-10 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-[#004d4d] transition-colors"><Mail size={18}/></div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Correo Principal</p>
+                                            <p className="text-sm font-bold text-gray-700 truncate">{selectedCompany.email}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4 group cursor-pointer">
+                                        <div className="h-10 w-10 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-[#004d4d] transition-colors"><Phone size={18}/></div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">WhatsApp / Tel</p>
+                                            <p className="text-sm font-bold text-gray-700">{selectedCompany.phone}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4 group cursor-pointer">
+                                        <div className="h-10 w-10 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-[#004d4d] transition-colors"><Calendar size={18}/></div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Fecha Registro</p>
+                                            <p className="text-sm font-bold text-gray-700">{selectedCompany.registration_date}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+
+                            <button className="w-full py-5 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl flex items-center justify-center gap-3 group mt-10">
+                                <Zap size={16} className="text-cyan group-hover:animate-pulse" /> Impersonar Tienda
+                            </button>
                         </div>
-                        <div className="p-10 overflow-y-auto custom-scrollbar space-y-8">
-                            <div className="grid grid-cols-2 gap-6">
-                                <div className="bg-gray-50 p-8 rounded-[2.5rem] border border-gray-100 text-center group hover:bg-white hover:shadow-xl transition-all">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Facturación Total</p>
-                                    <p className="text-3xl font-black text-gray-900">{formatCurrency(selectedCompany.total_invoiced)}</p>
+
+                        {/* Contenido Principal: Métricas y Análisis */}
+                        <div className="flex-1 bg-white p-12 overflow-y-auto custom-scrollbar relative">
+                            <button onClick={() => setSelectedCompany(null)} className="absolute top-10 right-10 h-12 w-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all z-50 group">
+                                <Filter size={24} className="group-hover:rotate-90 transition-transform rotate-45" />
+                            </button>
+
+                            <div className="space-y-12">
+                                {/* Sección de Métricas */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="bg-[#f0f9f9] p-8 rounded-[3rem] border border-[#004d4d]/10 flex flex-col justify-between group hover:shadow-xl transition-all">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-[#004d4d]"><ShoppingBag size={24}/></div>
+                                            <span className="text-[10px] font-black text-[#004d4d]/40 uppercase tracking-widest">Facturación</span>
+                                        </div>
+                                        <div>
+                                            <p className="text-4xl font-black text-[#004d4d] tracking-tighter">{formatCurrency(selectedCompany.total_invoiced)}</p>
+                                            <p className="text-[10px] font-bold text-[#004d4d]/60 uppercase tracking-widest mt-1">Ventas brutas totales</p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-gray-900 p-8 rounded-[3rem] border border-white/5 flex flex-col justify-between group hover:shadow-xl transition-all shadow-2xl">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center text-cyan"><Zap size={24}/></div>
+                                            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Bayup Profit</span>
+                                        </div>
+                                        <div>
+                                            <p className="text-4xl font-black text-white tracking-tighter">{formatCurrency(selectedCompany.our_profit)}</p>
+                                            <p className="text-[10px] font-bold text-cyan uppercase tracking-widest mt-1">Comisión plataforma (5%)</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="bg-[#f0f9f9] p-8 rounded-[2.5rem] border border-[#004d4d]/10 text-center group hover:shadow-xl transition-all">
-                                    <p className="text-[10px] font-black text-[#004d4d] uppercase tracking-widest mb-3">Comisión Bayup</p>
-                                    <p className="text-3xl font-black text-[#004d4d]">{formatCurrency(selectedCompany.our_profit)}</p>
+
+                                {/* Grid de Operación */}
+                                <div className="grid grid-cols-3 gap-6">
+                                    <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100 text-center">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Productos</p>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <Package size={16} className="text-gray-400" />
+                                            <p className="text-xl font-black text-gray-900">{selectedCompany.product_count}</p>
+                                        </div>
+                                    </div>
+                                    <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100 text-center">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pedidos</p>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <ShoppingBag size={16} className="text-gray-400" />
+                                            <p className="text-xl font-black text-gray-900">{selectedCompany.order_count}</p>
+                                        </div>
+                                    </div>
+                                    <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100 text-center">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Ticket Prom.</p>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <Sparkles size={16} className="text-[#004d4d]" />
+                                            <p className="text-xl font-black text-gray-900">{formatCurrency(selectedCompany.avg_ticket)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Análisis Bayt AI */}
+                                <div className="p-10 bg-gradient-to-br from-[#001a1a] to-gray-900 rounded-[3.5rem] relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-110 transition-transform duration-1000"><Bot size={200}/></div>
+                                    <div className="relative z-10 flex flex-col items-center text-center space-y-6">
+                                        <div className="flex items-center gap-3">
+                                            <Bot size={24} className="text-cyan animate-pulse" />
+                                            <h4 className="text-sm font-black text-white uppercase tracking-[0.3em] italic">Análisis Estratégico Bayt</h4>
+                                        </div>
+                                        <p className="text-lg font-medium text-gray-300 italic leading-relaxed px-4">
+                                            &quot;Este comercio presenta un índice de crecimiento del <span className="text-cyan">14.2%</span>. Sugerimos recomendar el ajuste de comisiones para escalar su rentabilidad.&quot;
+                                        </p>
+                                        <div className="flex gap-4">
+                                            <div className="px-5 py-2 bg-white/5 rounded-full border border-white/10 text-[9px] font-black text-gray-400 uppercase tracking-widest">Riesgo: Bajo</div>
+                                            <div className="px-5 py-2 bg-cyan/10 rounded-full border border-cyan/20 text-[9px] font-black text-cyan uppercase tracking-widest text-white/80">Estado: Escalando</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="p-8 bg-gray-50 rounded-[2.5rem] space-y-4">
-                                <div className="flex justify-between items-center"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Dueño de cuenta</p><p className="text-sm font-bold text-gray-900">{selectedCompany.owner_name}</p></div>
-                                <div className="flex justify-between items-center"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Email Principal</p><p className="text-sm font-bold text-[#004d4d]">{selectedCompany.email}</p></div>
-                                <div className="flex justify-between items-center"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Fecha Registro</p><p className="text-sm font-bold text-gray-900">{selectedCompany.registration_date}</p></div>
-                            </div>
-                            <button className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl">Impersonar Usuario (Entrar a Tienda)</button>
                         </div>
                     </div>
                 </div>
             )}
+
+            <style jsx global>{`
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 30px; }
+            `}</style>
         </div>
     );
 }

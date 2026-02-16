@@ -808,14 +808,20 @@ def get_all_stores(db: Session = Depends(get_db), current_user: models.User = De
     
     result = []
     for store in stores:
-        # Calcular facturación total del tenant (usando sum de SQLAlchemy)
+        # 1. Facturación Total
         total_invoiced = db.query(func.sum(models.Order.total_price)).filter(models.Order.tenant_id == store.id).scalar() or 0.0
         
-        # Calcular ganancia estimada (comisión del plan o 5%)
+        # 2. Conteo de Productos y Pedidos
+        product_count = db.query(models.Product).filter(models.Product.owner_id == store.id).count()
+        order_count = db.query(models.Order).filter(models.Order.tenant_id == store.id).count()
+        
+        # 3. Ticket Promedio
+        avg_ticket = total_invoiced / order_count if order_count > 0 else 0.0
+        
+        # 4. Ganancia Bayup (Comisión)
         commission = 0.05
         if store.plan:
             commission = store.plan.commission_rate / 100
-        
         profit = total_invoiced * commission
         
         result.append({
@@ -823,10 +829,14 @@ def get_all_stores(db: Session = Depends(get_db), current_user: models.User = De
             "owner_name": store.full_name or store.email,
             "company_name": store.nickname or store.full_name or "Tienda Bayup",
             "email": store.email,
+            "phone": store.phone or "No registrado",
             "plan": store.plan.name if store.plan else "Básico",
             "status": store.status or "Activo",
             "total_invoiced": total_invoiced,
             "our_profit": profit,
+            "product_count": product_count,
+            "order_count": order_count,
+            "avg_ticket": avg_ticket,
             "registration_date": "2026-02-16", # Placeholder
             "avatar": (store.nickname or store.full_name or "U")[:2].upper()
         })
