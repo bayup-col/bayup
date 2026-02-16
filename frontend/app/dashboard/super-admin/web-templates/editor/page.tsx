@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/context/toast-context";
 import { useAuth } from "@/context/auth-context";
 import { motion, AnimatePresence } from "framer-motion";
+import { Suspense } from "react";
 
 const MasterEditorInterface = () => {
   const searchParams = useSearchParams();
@@ -190,8 +191,10 @@ const MasterEditorInterface = () => {
 
 export default function MasterTemplateEditor() {
   return (
-    <StudioProvider>
-      <MasterEditorInterface />
-    </StudioProvider>
+    <Suspense fallback={<div className="h-screen w-full bg-gray-900" />}>
+      <StudioProvider>
+        <MasterEditorInterface />
+      </StudioProvider>
+    </Suspense>
   );
 }
