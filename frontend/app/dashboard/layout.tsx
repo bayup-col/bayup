@@ -554,7 +554,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <div className="relative z-10 flex items-center gap-8">
                         <div className="relative group">
                             <div className="h-24 w-24 rounded-[2rem] bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-4xl font-black shadow-2xl border-4 border-white/10">
-                                {userEmail?.charAt(0).to()}
+                                {userEmail?.charAt(0).toUpperCase()}
                             </div>
                             <button className="absolute -bottom-2 -right-2 h-10 w-10 bg-white text-gray-900 rounded-2xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform active:scale-95">
                                 <Camera size={18} />
