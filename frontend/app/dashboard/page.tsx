@@ -449,8 +449,8 @@ function AccessCard({ label, sub, href, icon }: AccessCardProps) {
                         {React.cloneElement(icon, { className: "text-white group-hover:text-cyan transition-colors" } as any)}
                     </div>
                     <div>
-                        <h4 className="text-xl font-black text-gray-900 uppercase italic tracking-tighter">{label}</h4>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{sub}</p>
+                        <h4 className="text-xl font-black text-gray-900 italic tracking-tighter">{label}</h4>
+                        <p className="text-[10px] font-bold text-gray-400 tracking-widest mt-1">{sub}</p>
                     </div>
                 </div>
                 <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 translate-x-4 transition-all">

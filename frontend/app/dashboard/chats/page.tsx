@@ -113,10 +113,10 @@ export default function MensajesPage() {
   const chats: any[] = []; 
 
   const kpis = [
-    { label: "Chats Activos", value: 0, icon: <Activity size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Live" },
-    { label: "Tiempo Respuesta", value: 0, icon: <Clock size={24}/>, color: "text-amber-600", bg: "bg-amber-50", trend: "Óptimo", isTime: true },
+    { label: "Chats activos", value: 0, icon: <Activity size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Live" },
+    { label: "Tiempo respuesta", value: 0, icon: <Clock size={24}/>, color: "text-amber-600", bg: "bg-amber-50", trend: "Óptimo", isTime: true },
     { label: "Conversión CRM", value: 0, icon: <Target size={24}/>, color: "text-emerald-600", bg: "bg-emerald-50", trend: "+0%", isPercentage: true },
-    { label: "Tickets Abiertos", value: 0, icon: <Zap size={24}/>, color: "text-[#00f2ff]", bg: "bg-cyan-50", trend: "N/A" },
+    { label: "Tickets abiertos", value: 0, icon: <Zap size={24}/>, color: "text-[#00f2ff]", bg: "bg-cyan-50", trend: "N/A" },
   ];
 
   const handleExportReport = () => {
@@ -201,21 +201,21 @@ export default function MensajesPage() {
         <div>
             <div className="flex items-center gap-3 mb-2">
                 <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Omnichannel CRM v2.0</span>
+                <span className="text-[10px] font-black tracking-[0.3em] text-[#004d4d]/60 italic">Omnichannel CRM v2.0</span>
             </div>
-            <h1 className="text-5xl md:text-6xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">MENSAJES</span>
+            <h1 className="text-5xl md:text-6xl font-black italic tracking-tighter leading-none text-[#001A1A]">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">Mensajes</span>
             </h1>
             <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">¡Contéstales a tus clientes desde múltiples plataformas! 💬</p>
         </div>
         <div className="flex items-center gap-4">
-            <button onClick={() => setIsLinkModalOpen(true)} className="h-12 px-8 bg-[#004d4d] text-white rounded-full font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-black transition-all flex items-center gap-2">
-                <Plus size={16} /> Vincular Canales
+            <button onClick={() => setIsLinkModalOpen(true)} className="h-12 px-8 bg-[#004d4d] text-white rounded-full font-black text-[10px] tracking-[0.3em] shadow-xl hover:bg-black transition-all flex items-center gap-2">
+                <Plus size={16} /> Vincular canales
             </button>
-            <button onClick={handleExportReport} className="h-12 px-8 bg-white/60 backdrop-blur-xl border border-white text-[#004d4d] rounded-full font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-[#004d4d] hover:text-white transition-all">Reporte Omnicanal</button>
+            <button onClick={handleExportReport} className="h-12 px-8 bg-white/60 backdrop-blur-xl border border-white text-[#004d4d] rounded-full font-black text-[10px] tracking-[0.3em] shadow-xl hover:bg-[#004d4d] hover:text-white transition-all">Reporte omnicanal</button>
             <div className="flex -space-x-3">
                 {Object.values(CHANNEL_CONFIG).map((c: any, i) => (
-                    <div key={i} className="h-10 w-10 rounded-xl border-2 border-white shadow-lg overflow-hidden hover:scale-110 transition-transform cursor-help" title="Canal Disponible">
+                    <div key={i} className="h-10 w-10 rounded-xl border-2 border-white shadow-lg overflow-hidden hover:scale-110 transition-transform cursor-help" title="Canal disponible">
                         <img src={c.logo} className="h-full w-full object-cover" alt="" />
                     </div>
                 ))}
@@ -232,12 +232,12 @@ export default function MensajesPage() {
                           <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg group-hover:scale-110 border border-white/50 ${kpi.bg} ${kpi.color}`}>
                               {kpi.icon}
                           </div>
-                          <div className="px-3 py-1 bg-gray-100 rounded-full text-[9px] font-black uppercase tracking-wider text-gray-400">
+                          <div className="px-3 py-1 bg-gray-100 rounded-full text-[9px] font-black tracking-wider text-gray-400">
                               {kpi.trend}
                           </div>
                       </div>
                       <div>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5">{kpi.label}</p>
+                          <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] mb-1.5">{kpi.label}</p>
                           <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">
                               <AnimatedNumber value={kpi.value} type={kpi.isPercentage ? 'percentage' : kpi.isTime ? 'time' : 'simple'} />
                           </h3>
@@ -277,7 +277,7 @@ export default function MensajesPage() {
                       {chats.length === 0 ? (
                           <div className="py-20 text-center space-y-4 px-10">
                               <div className="h-20 w-20 bg-[#F0F2F5] rounded-full flex items-center justify-center mx-auto text-gray-300"><Bot size={40}/></div>
-                              <h5 className="text-sm font-black text-gray-900">Tu Terminal está lista</h5>
+                              <h5 className="text-sm font-black text-gray-900">Tu terminal está lista</h5>
                               <p className="text-xs text-gray-400 font-medium leading-relaxed italic">Víncula tus cuentas para recibir transmisiones en tiempo real.</p>
                           </div>
                       ) : (
@@ -332,7 +332,7 @@ export default function MensajesPage() {
                               <Bot size={120} className="text-[#004d4d]/40 group-hover:scale-110 transition-transform duration-700" />
                           </div>
                           <div className="mt-12 space-y-4">
-                              <h3 className="text-3xl font-black text-gray-900 italic tracking-tighter uppercase">Bayup Terminal CRM</h3>
+                              <h3 className="text-3xl font-black text-gray-900 italic tracking-tighter">Bayup terminal CRM</h3>
                               <p className="text-gray-500 text-sm font-medium max-w-sm mx-auto italic leading-relaxed">Centraliza todas tus comunicaciones. Víncula canales para empezar.</p>
                           </div>
                       </div>
@@ -352,9 +352,9 @@ export default function MensajesPage() {
                           <div className="relative z-10">
                               <div className="flex items-center gap-3 mb-4">
                                   <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan/60">Conexiones Seguras</span>
+                                  <span className="text-[10px] font-black tracking-[0.3em] text-cyan/60">Conexiones seguras</span>
                               </div>
-                              <h3 className="text-4xl font-black italic tracking-tighter uppercase">Centro de <span className="text-cyan">Vinculación</span></h3>
+                              <h3 className="text-4xl font-black italic tracking-tighter">Centro de <span className="text-cyan">vinculación</span></h3>
                               <p className="text-white/60 text-sm font-medium mt-4 max-w-md">Activa la sincronización de tus canales oficiales para recibir transmisiones en tiempo real en tu terminal Bayup.</p>
                           </div>
                           <button onClick={() => setIsLinkModalOpen(false)} className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all group relative z-10">
@@ -379,11 +379,11 @@ export default function MensajesPage() {
                                               <img src={config.logo} className="h-full w-full object-contain" alt="" />
                                           </div>
                                           <div>
-                                              <h5 className="text-sm font-black text-gray-900 uppercase tracking-widest">{config.label}</h5>
-                                              <p className={`text-[10px] font-bold uppercase mt-1 italic ${isLinked ? 'text-emerald-500' : 'text-gray-400'}`}>{isLinked ? 'Cuenta Conectada' : 'Vincular Cuenta'}</p>
+                                              <h5 className="text-sm font-black text-gray-900 tracking-widest">{config.label}</h5>
+                                              <p className={`text-[10px] font-bold mt-1 italic ${isLinked ? 'text-emerald-500' : 'text-gray-400'}`}>{isLinked ? 'Cuenta conectada' : 'Vincular cuenta'}</p>
                                           </div>
-                                          <div className={`mt-2 h-10 w-full rounded-2xl flex items-center justify-center font-black text-[9px] uppercase tracking-widest transition-colors ${isLinked ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-900 text-white group-hover:bg-[#004d4d]'}`}>
-                                              {isLinked ? 'Actualizar Token' : 'Conectar API'}
+                                          <div className={`mt-2 h-10 w-full rounded-2xl flex items-center justify-center font-black text-[9px] tracking-widest transition-colors ${isLinked ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-900 text-white group-hover:bg-[#004d4d]'}`}>
+                                              {isLinked ? 'Actualizar token' : 'Conectar API'}
                                           </div>
                                       </button>
                                   );
@@ -399,8 +399,8 @@ export default function MensajesPage() {
                                       </button>
                                   </div>
                                   <div>
-                                      <h5 className="text-sm font-black text-gray-900 uppercase tracking-widest">Chat de mi Web</h5>
-                                      <p className="text-[9px] text-gray-400 font-bold uppercase mt-1 italic">{webChannelActive ? 'Canal Activo' : 'Canal Desactivado'}</p>
+                                      <h5 className="text-sm font-black text-gray-900 tracking-widest">Chat de mi web</h5>
+                                      <p className="text-[9px] text-gray-400 font-bold mt-1 italic">{webChannelActive ? 'Canal activo' : 'Canal desactivado'}</p>
                                   </div>
                                   <p className="text-[10px] text-gray-400 leading-relaxed italic">Activa el widget de chat automático en tu tienda online.</p>
                               </div>
@@ -410,13 +410,13 @@ export default function MensajesPage() {
                       <div className="p-10 bg-white border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6 shrink-0">
                           <div className="flex items-center gap-4">
                               <ShieldCheck size={20} className="text-emerald-500" />
-                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Cifrado de grado militar AES-256 activo</p>
+                              <p className="text-[10px] font-black text-gray-400 tracking-[0.2em]">Cifrado de grado militar AES-256 activo</p>
                           </div>
                           <button 
                             onClick={() => { showToast("Sincronizando conexiones...", "info"); setTimeout(() => { setIsLinkModalOpen(false); showToast("Configuración guardada", "success"); }, 1000); }}
-                            className="h-14 px-12 bg-gray-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center gap-3"
+                            className="h-14 px-12 bg-gray-900 text-white rounded-2xl font-black text-[11px] tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center gap-3"
                           >
-                              <Save size={18} className="text-cyan" /> Guardar y Sincronizar
+                              <Save size={18} className="text-cyan" /> Guardar y sincronizar
                           </button>
                       </div>
                   </motion.div>

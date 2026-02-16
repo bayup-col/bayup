@@ -150,10 +150,10 @@ export default function CustomersPage() {
   }), [customers]);
 
   const kpis = [
-    { label: "Total Clientes", value: stats.total, icon: <Users size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Live" },
-    { label: "Valor de Cartera", value: stats.ltv, icon: <DollarSign size={24}/>, color: "text-emerald-600", bg: "bg-emerald-50", trend: "+0%", isCurrency: true },
-    { label: "Tasa Retención", value: stats.activeRate, icon: <Heart size={24}/>, color: "text-rose-600", bg: "bg-rose-50", trend: "94% ok", isPercentage: true },
-    { label: "Nuevos Hoy", value: stats.newToday, icon: <UserPlus size={24}/>, color: "text-purple-600", bg: "bg-purple-50", trend: "Iniciando" },
+    { label: "Total clientes", value: stats.total, icon: <Users size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Live" },
+    { label: "Valor de cartera", value: stats.ltv, icon: <DollarSign size={24}/>, color: "text-emerald-600", bg: "bg-emerald-50", trend: "+0%", isCurrency: true },
+    { label: "Tasa retención", value: stats.activeRate, icon: <Heart size={24}/>, color: "text-rose-600", bg: "bg-rose-50", trend: "94% ok", isPercentage: true },
+    { label: "Nuevos hoy", value: stats.newToday, icon: <UserPlus size={24}/>, color: "text-purple-600", bg: "bg-purple-50", trend: "Iniciando" },
   ];
 
   const handleCreateCustomer = async () => {
@@ -228,19 +228,19 @@ export default function CustomersPage() {
         <div>
             <div className="flex items-center gap-3 mb-2">
                 <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Customer Intelligence v2.0</span>
+                <span className="text-[10px] font-black tracking-[0.3em] text-[#004d4d]/60 italic">Customer intelligence v2.0</span>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">CLIENTES</span>
+            <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-none text-[#001A1A]">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">Clientes</span>
             </h1>
             <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">¡Toda tu base de datos en un solo lugar! 👥</p>
         </div>
         <div className="flex items-center gap-4">
-            <button onClick={() => setIsModalOpen(true)} className="h-12 px-8 bg-[#004d4d] text-white rounded-full font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center gap-3 group">
-                <Plus size={16} className="group-hover:rotate-90 transition-transform"/> Nuevo Cliente
+            <button onClick={() => setIsModalOpen(true)} className="h-12 px-8 bg-[#004d4d] text-white rounded-full font-black text-[10px] tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center gap-3 group">
+                <Plus size={16} className="group-hover:rotate-90 transition-transform"/> Nuevo cliente
             </button>
-            <button onClick={handleExport} className="h-12 px-8 bg-white border border-gray-100 text-[#004d4d] rounded-full font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-gray-50 transition-all flex items-center gap-2">
-                <Download size={16} /> Exportar Base
+            <button onClick={handleExport} className="h-12 px-8 bg-white border border-gray-100 text-[#004d4d] rounded-full font-black text-[10px] tracking-[0.3em] shadow-xl hover:bg-gray-50 transition-all flex items-center gap-2">
+                <Download size={16} /> Exportar base
             </button>
         </div>
       </div>
@@ -254,12 +254,12 @@ export default function CustomersPage() {
                           <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg group-hover:scale-110 border border-white/50 ${kpi.bg} ${kpi.color}`}>
                               {kpi.icon}
                           </div>
-                          <div className="px-3 py-1 bg-gray-100 rounded-full text-[9px] font-black uppercase tracking-wider text-gray-400">
+                          <div className="px-3 py-1 bg-gray-100 rounded-full text-[9px] font-black tracking-wider text-gray-400">
                               {kpi.trend}
                           </div>
                       </div>
                       <div>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5">{kpi.label}</p>
+                          <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] mb-1.5">{kpi.label}</p>
                           <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">
                               <AnimatedNumber value={kpi.value} type={kpi.isCurrency ? 'currency' : kpi.isPercentage ? 'percentage' : 'simple'} />
                           </h3>
@@ -274,12 +274,12 @@ export default function CustomersPage() {
           <div className="flex items-center justify-between border-b border-gray-100 pb-6">
               <div className="flex items-center gap-3">
                   <Activity size={20} className="text-[#004d4d]"/>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-gray-900">Directorio de Cuentas</h4>
+                  <h4 className="text-xs font-black tracking-widest text-gray-900">Directorio de cuentas</h4>
               </div>
               <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm w-full max-w-md transition-all focus-within:shadow-xl focus-within:border-cyan/30">
                   <Search size={18} className="text-gray-300 ml-2" />
                   <input 
-                    placeholder="Buscar por nombre, email o ID..." 
+                    placeholder="Buscar por nombre, email o id..." 
                     value={searchTerm} 
                     onChange={e => setSearchTerm(e.target.value)} 
                     className="flex-1 bg-transparent outline-none text-sm font-bold" 
@@ -291,8 +291,8 @@ export default function CustomersPage() {
               <table className="w-full text-center">
                   <thead>
                       <tr className="bg-gray-50/50">
-                          {['Cliente', 'Contacto', 'Ubicación', 'Estado', 'Tipo', 'Inversión Total'].map((h, i) => (
-                              <th key={i} className="px-8 py-6 text-center text-[10px] font-black text-[#004D4D] uppercase tracking-[0.2em]">{h}</th>
+                          {['Cliente', 'Contacto', 'Ubicación', 'Estado', 'Tipo', 'Inversión total'].map((h, i) => (
+                              <th key={i} className="px-8 py-6 text-center text-[10px] font-black text-[#004D4D] tracking-[0.2em]">{h}</th>
                           ))}
                       </tr>
                   </thead>
@@ -300,7 +300,7 @@ export default function CustomersPage() {
                       {loading ? (
                           <tr><td colSpan={6} className="py-20 text-center"><div className="h-12 w-12 border-4 border-[#004d4d] border-t-cyan rounded-full animate-spin mx-auto" /></td></tr>
                       ) : filteredCustomers.length === 0 ? (
-                          <tr><td colSpan={6} className="py-20 text-center text-gray-300 font-black uppercase text-[10px]">Sin clientes registrados</td></tr>
+                          <tr><td colSpan={6} className="py-20 text-center text-gray-300 font-black text-[10px]">Sin clientes registrados</td></tr>
                       ) : filteredCustomers.map((c) => (
                           <tr key={c.id} className="hover:bg-white/60 transition-all cursor-pointer group">
                               <td className="px-8 py-8">
@@ -310,7 +310,7 @@ export default function CustomersPage() {
                                       </div>
                                       <div className="text-left">
                                           <p className="text-sm font-black text-gray-900">{c.full_name}</p>
-                                          <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">ID: {c.id.slice(0,8)}</p>
+                                          <p className="text-[9px] text-gray-400 font-bold tracking-tighter">id: {c.id.slice(0,8)}</p>
                                       </div>
                                   </div>
                               </td>
@@ -323,15 +323,15 @@ export default function CustomersPage() {
                               <td className="px-8 py-8">
                                   <div className="flex items-center justify-center gap-2 text-gray-500 italic">
                                       <MapPin size={12} className="text-cyan" />
-                                      <span className="text-[10px] font-black uppercase tracking-widest">{c.city || 'No Registrada'}</span>
+                                      <span className="text-[10px] font-black tracking-widest">{c.city || 'No registrada'}</span>
                                   </div>
                               </td>
                               <td className="px-8 py-8">
-                                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${c.status === 'active' || c.status === 'Activo' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest ${c.status === 'active' || c.status === 'Activo' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                                       {c.status === 'active' || c.status === 'Activo' ? 'Activo' : 'Bloqueado'}
                                   </span>
                               </td>
-                              <td className="px-8 py-8 uppercase text-[9px] font-black text-gray-400 italic">{c.customer_type === 'mayorista' ? 'Mayorista' : 'Final'}</td>
+                              <td className="px-8 py-8 text-[9px] font-black text-gray-400 italic">{c.customer_type === 'mayorista' ? 'Mayorista' : 'Final'}</td>
                               <td className="px-8 py-8 font-black text-[#004D4D] text-base">
                                   <AnimatedNumber value={c.total_spent || 0} type="currency" />
                               </td>
@@ -363,40 +363,40 @@ export default function CustomersPage() {
                           <div className="relative z-10">
                               <div className="flex items-center gap-3 mb-8">
                                   <span className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan/60">Vista Previa Elite</span>
+                                  <span className="text-[10px] font-black tracking-[0.3em] text-cyan/60">Vista previa elite</span>
                               </div>
                               <PremiumCard dark className="p-8 aspect-[4/5] flex flex-col justify-between border-white/10">
                                   <div className="flex justify-between items-start">
                                       <div className="h-20 w-20 rounded-[2rem] bg-gradient-to-tr from-cyan to-blue-600 flex items-center justify-center text-4xl font-black italic shadow-2xl">
                                           {formData.full_name ? formData.full_name.charAt(0).toUpperCase() : '?'}
                                       </div>
-                                      <div className="px-4 py-1 bg-white/10 rounded-full border border-white/10 text-[9px] font-black uppercase tracking-widest text-cyan">
-                                          {formData.customer_type === 'final' ? 'Usuario Final' : 'Mayorista'}
+                                      <div className="px-4 py-1 bg-white/10 rounded-full border border-white/10 text-[9px] font-black tracking-widest text-cyan">
+                                          {formData.customer_type === 'final' ? 'Usuario final' : 'Mayorista'}
                                       </div>
                                   </div>
                                   <div className="space-y-4">
                                       <div>
                                           <div className="flex items-center gap-2 mb-1">
                                               <Navigation size={10} className="text-cyan" />
-                                              <span className="text-[8px] font-black uppercase tracking-[0.3em] text-cyan/60">{formData.city || 'Ubicación'}</span>
+                                              <span className="text-[8px] font-black tracking-[0.3em] text-cyan/60">{formData.city || 'Ubicación'}</span>
                                           </div>
-                                          <h4 className="text-3xl font-black tracking-tight leading-none truncate">{formData.full_name || 'Nombre del Cliente'}</h4>
-                                          <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-2">{formData.email || 'correo@ejemplo.com'}</p>
+                                          <h4 className="text-3xl font-black tracking-tight leading-none truncate">{formData.full_name || 'Nombre del cliente'}</h4>
+                                          <p className="text-[10px] text-white/40 font-bold tracking-widest mt-2">{formData.email || 'correo@ejemplo.com'}</p>
                                       </div>
                                       <div className="grid grid-cols-2 gap-4">
                                           <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                              <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">Canal</p>
-                                              <p className="text-lg font-black text-[#00f2ff] capitalize">{formData.acquisition_channel}</p>
+                                              <p className="text-[8px] font-black text-white/30 tracking-widest">Canal</p>
+                                              <p className="text-lg font-black text-[#00f2ff]">{formData.acquisition_channel}</p>
                                           </div>
                                           <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                              <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">Estado</p>
+                                              <p className="text-[8px] font-black text-white/30 tracking-widest">Estado</p>
                                               <p className="text-lg font-black text-white">Activo</p>
                                           </div>
                                       </div>
                                   </div>
                                   <div className="pt-4 border-t border-white/5 flex items-center gap-3">
                                       <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/60">Cuenta Verificada</span>
+                                      <span className="text-[9px] font-black tracking-[0.2em] text-white/60">Cuenta verificada</span>
                                   </div>
                               </PremiumCard>
                           </div>
@@ -409,8 +409,8 @@ export default function CustomersPage() {
                       <div className="flex-1 p-12 overflow-y-auto custom-scrollbar bg-gray-50/50">
                           <div className="flex justify-between items-start mb-12">
                               <div>
-                                  <h3 className="text-3xl font-black text-gray-900 italic tracking-tighter uppercase">Registro de Cuenta</h3>
-                                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-2">Diligencia la información oficial del cliente</p>
+                                  <h3 className="text-3xl font-black text-gray-900 italic tracking-tighter">Registro de cuenta</h3>
+                                  <p className="text-xs font-bold text-gray-400 tracking-widest mt-2">Diligencia la información oficial del cliente</p>
                               </div>
                               <button onClick={() => setIsModalOpen(false)} className="h-12 w-12 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-600 transition-all shadow-sm">
                                   <X size={20}/>
@@ -419,7 +419,7 @@ export default function CustomersPage() {
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                               <div className="space-y-2">
-                                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label>
+                                  <label className="text-[10px] font-black text-gray-400 tracking-widest ml-1">Nombre completo</label>
                                   <input 
                                     type="text" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})}
                                     placeholder="Ej: Sebas Betancourt"
@@ -427,7 +427,7 @@ export default function CustomersPage() {
                                   />
                               </div>
                               <div className="space-y-2">
-                                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Correo Electrónico</label>
+                                  <label className="text-[10px] font-black text-gray-400 tracking-widest ml-1">Correo electrónico</label>
                                   <input 
                                     type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})}
                                     placeholder="cliente@bayup.com"
@@ -435,7 +435,7 @@ export default function CustomersPage() {
                                   />
                               </div>
                               <div className="space-y-2">
-                                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">WhatsApp / Celular</label>
+                                  <label className="text-[10px] font-black text-gray-400 tracking-widest ml-1">WhatsApp / celular</label>
                                   <input 
                                     type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})}
                                     placeholder="+57 300 000 0000"
@@ -443,7 +443,7 @@ export default function CustomersPage() {
                                   />
                               </div>
                               <div className="space-y-2">
-                                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Ciudad de Origen</label>
+                                  <label className="text-[10px] font-black text-gray-400 tracking-widest ml-1">Ciudad de origen</label>
                                   <input 
                                     type="text" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})}
                                     placeholder="Ej: Bogotá, Medellín..."
@@ -453,10 +453,10 @@ export default function CustomersPage() {
                               
                               {/* SELECTOR PREMIUM DE TIPO DE CLIENTE */}
                               <div className="space-y-2">
-                                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Tipo de Cliente</label>
+                                  <label className="text-[10px] font-black text-gray-400 tracking-widest ml-1">Tipo de cliente</label>
                                   <div className="grid grid-cols-2 gap-3">
                                       {[
-                                          { id: 'final', label: 'Usuario Final', icon: <UserCheck size={14}/> },
+                                          { id: 'final', label: 'Usuario final', icon: <UserCheck size={14}/> },
                                           { id: 'mayorista', label: 'Mayorista', icon: <ShoppingBag size={14}/> }
                                       ].map((type) => (
                                           <button
@@ -465,7 +465,7 @@ export default function CustomersPage() {
                                             className={`p-4 rounded-3xl border-2 flex flex-col items-center gap-2 transition-all ${formData.customer_type === type.id ? 'bg-[#004d4d] border-[#004d4d] text-white shadow-xl scale-105' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
                                           >
                                               {type.icon}
-                                              <span className="text-[9px] font-black uppercase tracking-widest">{type.label}</span>
+                                              <span className="text-[9px] font-black tracking-widest">{type.label}</span>
                                           </button>
                                       ))}
                                   </div>
@@ -473,12 +473,12 @@ export default function CustomersPage() {
 
                               {/* SELECTOR PREMIUM DE CANAL DE ADQUISICIÓN */}
                               <div className="md:col-span-2 space-y-4">
-                                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Canal de Adquisición (¿De donde llegó?)</label>
+                                  <label className="text-[10px] font-black text-gray-400 tracking-widest ml-1">Canal de adquisición (¿De donde llegó?)</label>
                                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                       {[
-                                          { id: 'web', label: 'Página Web', icon: <Globe size={16}/> },
-                                          { id: 'redes', label: 'Redes Sociales', icon: <Share2 size={16}/> },
-                                          { id: 'tienda', label: 'Tienda Física', icon: <Store size={16}/> },
+                                          { id: 'web', label: 'Página web', icon: <Globe size={16}/> },
+                                          { id: 'redes', label: 'Redes sociales', icon: <Share2 size={16}/> },
+                                          { id: 'tienda', label: 'Tienda física', icon: <Store size={16}/> },
                                           { id: 'whatsapp', label: 'WhatsApp', icon: <MessageCircle size={16}/> }
                                       ].map((channel) => (
                                           <button
@@ -489,7 +489,7 @@ export default function CustomersPage() {
                                               <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${formData.acquisition_channel === channel.id ? 'bg-black/10' : 'bg-gray-50'}`}>
                                                   {channel.icon}
                                               </div>
-                                              <span className="text-[10px] font-black uppercase tracking-widest">{channel.label}</span>
+                                              <span className="text-[10px] font-black tracking-widest">{channel.label}</span>
                                           </button>
                                       ))}
                                   </div>
@@ -500,17 +500,17 @@ export default function CustomersPage() {
                               <div className="flex items-center gap-4">
                                   <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-[#004d4d] shadow-sm"><Sparkles size={20}/></div>
                                   <div>
-                                      <p className="text-[10px] font-black text-[#004d4d] uppercase tracking-widest">Base de Datos Railway</p>
-                                      <p className="text-[9px] text-gray-500 font-bold uppercase mt-1 italic">El registro será almacenado y sincronizado globalmente</p>
+                                      <p className="text-[10px] font-black text-[#004d4d] tracking-widest">Base de datos railway</p>
+                                      <p className="text-[9px] text-gray-500 font-bold mt-1 italic">El registro será almacenado y sincronizado globalmente</p>
                                   </div>
                               </div>
                               <button 
                                 onClick={handleCreateCustomer}
                                 disabled={isSaving}
-                                className="h-14 px-12 bg-gray-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl hover:bg-black disabled:opacity-50 transition-all flex items-center gap-3"
+                                className="h-14 px-12 bg-gray-900 text-white rounded-2xl font-black text-[11px] tracking-[0.3em] shadow-2xl hover:bg-black disabled:opacity-50 transition-all flex items-center gap-3"
                               >
                                   {isSaving ? <Loader2 size={18} className="animate-spin"/> : <Save size={18} className="text-[#00f2ff]"/>}
-                                  {isSaving ? 'Sincronizando...' : 'Finalizar Registro'}
+                                  {isSaving ? 'Sincronizando...' : 'Finalizar registro'}
                               </button>
                           </div>
                       </div>

@@ -38,15 +38,15 @@ export default function MyStoreHub() {
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <span className="h-2 w-2 rounded-full bg-purple-500 animate-pulse shadow-[0_0_10px_#A855F7]"></span>
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Storefront Customizer</span>
+                        <span className="text-[10px] font-black tracking-[0.3em] text-gray-400">Storefront customizer</span>
                     </div>
-                    <h1 className="text-6xl font-black italic text-gray-900 tracking-tighter uppercase leading-none">Mi <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-purple-600 to-purple-400">Tienda Online</span></h1>
+                    <h1 className="text-6xl font-black italic text-gray-900 tracking-tighter leading-none">Mi <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-purple-600 to-purple-400">tienda online</span></h1>
                     <p className="text-gray-500 mt-4 font-medium text-lg italic max-w-2xl">Diseña una experiencia de compra <span className="text-gray-900 font-bold italic underline decoration-purple-500/30">legendaria</span> con el motor visual de Bayup.</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="bg-emerald-50 px-8 py-4 rounded-full border border-emerald-100 flex items-center gap-3 shadow-sm">
                         <div className="h-2 w-2 rounded-full bg-emerald-500 animate-ping"></div>
-                        <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Servidor Activo</span>
+                        <span className="text-[10px] font-black text-emerald-700 tracking-widest">Servidor activo</span>
                     </div>
                 </div>
             </div>
@@ -54,7 +54,7 @@ export default function MyStoreHub() {
             {/* --- EDITOR BANNER (HERO) --- */}
             <section className="px-4">
                 <div className="bg-white/80 backdrop-blur-3xl rounded-[4rem] border border-white/60 shadow-2xl overflow-hidden relative group">
-                    <div className="absolute top-0 right-0 p-20 opacity-5 rotate-12 pointer-events-none italic font-black text-[20rem]">WEB</div>
+                    <div className="absolute top-0 right-0 p-20 opacity-5 rotate-12 pointer-events-none italic font-black text-[20rem]">Web</div>
                     
                     <div className="grid grid-cols-1 xl:grid-cols-5 min-h-[550px]">
                         {/* Live Preview Mockup */}
@@ -81,7 +81,7 @@ export default function MyStoreHub() {
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-10">
                                     <div className="bg-white/90 backdrop-blur-md px-6 py-2 rounded-full flex items-center gap-2">
                                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                        <p className="text-[9px] font-black text-gray-900 uppercase tracking-widest">Sincronizado con Bayt AI</p>
+                                        <p className="text-[9px] font-black text-gray-900 tracking-widest">Sincronizado con Bayt AI</p>
                                     </div>
                                 </div>
                             </motion.div>
@@ -90,7 +90,7 @@ export default function MyStoreHub() {
                         {/* Actions & Control */}
                         <div className="xl:col-span-2 p-12 lg:p-20 flex flex-col justify-center space-y-10">
                             <div className="space-y-4">
-                                <h3 className="text-4xl font-black text-gray-900 italic uppercase tracking-tighter leading-tight">Editor Visual <span className="text-purple-600">Premium</span></h3>
+                                <h3 className="text-4xl font-black text-gray-900 italic tracking-tighter leading-tight">Editor visual <span className="text-purple-600">premium</span></h3>
                                 <p className="text-gray-500 font-medium leading-relaxed italic text-lg">
                                     "Redefine la identidad de tu marca. Cada cambio se publica en <span className="text-gray-900 font-black underline decoration-purple-500/30">tiempo real</span>."
                                 </p>
@@ -98,13 +98,13 @@ export default function MyStoreHub() {
 
                             <div className="space-y-4">
                                 <Link href="/dashboard/pages">
-                                    <button className="w-full h-20 bg-purple-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-purple-200 hover:bg-black hover:shadow-none transition-all flex items-center justify-center gap-4 group active:scale-95">
+                                    <button className="w-full h-20 bg-purple-600 text-white rounded-[2rem] font-black text-xs tracking-[0.3em] shadow-2xl shadow-purple-200 hover:bg-black hover:shadow-none transition-all flex items-center justify-center gap-4 group active:scale-95">
                                         <Paintbrush2 size={20} className="group-hover:rotate-12 transition-transform" />
-                                        Lanzar Studio de Diseño
+                                        Lanzar studio de diseño
                                     </button>
                                 </Link>
-                                <button className="w-full h-16 bg-white border border-gray-100 text-gray-900 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-3 active:scale-95">
-                                    <Globe size={16} className="text-purple-500" /> Ver Tienda Online
+                                <button className="w-full h-16 bg-white border border-gray-100 text-gray-900 rounded-[1.8rem] font-black text-[10px] tracking-[0.2em] shadow-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-3 active:scale-95">
+                                    <Globe size={16} className="text-purple-500" /> Ver tienda online
                                 </button>
                             </div>
 
@@ -113,7 +113,7 @@ export default function MyStoreHub() {
                                     <div className="h-10 w-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400"><Monitor size={18}/></div>
                                     <div className="h-10 w-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400"><Smartphone size={18}/></div>
                                 </div>
-                                <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest italic">Responsivo Nativo</p>
+                                <p className="text-[10px] font-black text-gray-300 tracking-widest italic">Responsivo nativo</p>
                             </div>
                         </div>
                     </div>
@@ -124,10 +124,10 @@ export default function MyStoreHub() {
             <section className="px-4 space-y-10">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h2 className="text-3xl font-black text-gray-900 tracking-tight italic uppercase">Galería de Temas</h2>
-                        <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mt-1">Evoluciona tu estética con un clic</p>
+                        <h2 className="text-3xl font-black text-gray-900 tracking-tight italic">Galería de temas</h2>
+                        <p className="text-gray-400 text-[10px] font-black tracking-widest mt-1">Evoluciona tu estética con un clic</p>
                     </div>
-                    <button className="h-12 px-8 bg-gray-50 text-gray-400 rounded-full font-black text-[9px] uppercase tracking-widest border border-gray-100 hover:text-purple-600 hover:border-purple-200 transition-all">Ver Catálogo Completo</button>
+                    <button className="h-12 px-8 bg-gray-50 text-gray-400 rounded-full font-black text-[9px] tracking-widest border border-gray-100 hover:text-purple-600 hover:border-purple-200 transition-all">Ver catálogo completo</button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
@@ -140,16 +140,16 @@ export default function MyStoreHub() {
                             <div className="h-64 overflow-hidden relative">
                                 <img src={theme.image} alt={theme.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8">
-                                    <button className="w-full py-4 bg-white text-gray-900 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">Vista Previa 360</button>
+                                    <button className="w-full py-4 bg-white text-gray-900 rounded-2xl font-black text-[10px] tracking-widest shadow-2xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">Vista previa 360</button>
                                 </div>
                             </div>
                             <div className="p-10 space-y-4">
                                 <div className="flex justify-between items-start">
-                                    <h4 className="text-xl font-black text-gray-900 italic uppercase">{theme.name}</h4>
+                                    <h4 className="text-xl font-black text-gray-900 italic">{theme.name}</h4>
                                     <div className={`h-2 w-2 rounded-full ${theme.color} shadow-lg`} />
                                 </div>
                                 <p className="text-gray-500 text-xs leading-relaxed font-medium italic">"{theme.desc}"</p>
-                                <button className="w-full mt-6 py-4 border-2 border-gray-50 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 group-hover:border-purple-600 group-hover:text-purple-600 transition-all">Activar Estilo</button>
+                                <button className="w-full mt-6 py-4 border-2 border-gray-50 rounded-2xl text-[9px] font-black tracking-[0.2em] text-gray-400 group-hover:border-purple-600 group-hover:text-purple-600 transition-all">Activar estilo</button>
                             </div>
                         </motion.div>
                     ))}
@@ -165,8 +165,8 @@ export default function MyStoreHub() {
                             <Sparkles size={64} className="text-purple-400" />
                         </div>
                         <div className="flex-1 space-y-6 text-center md:text-left">
-                            <span className="px-4 py-1.5 bg-purple-500/10 text-purple-400 rounded-full text-[10px] font-black uppercase tracking-[0.4em] border border-purple-500/20">Bayt UI Intelligence</span>
-                            <h3 className="text-4xl font-black uppercase italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-purple-400">Optimización Cognitiva</h3>
+                            <span className="px-4 py-1.5 bg-purple-500/10 text-purple-400 rounded-full text-[10px] font-black tracking-[0.4em] border border-purple-500/20">Bayt UI intelligence</span>
+                            <h3 className="text-4xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-purple-400">Optimización cognitiva</h3>
                             <p className="text-gray-400 text-lg font-medium leading-relaxed italic max-w-3xl">
                                 "Tus páginas ahora son inteligentes. Bayt analiza el comportamiento del usuario en tiempo real y <span className="text-purple-400 font-black">reordena automáticamente</span> tus productos para maximizar la conversión."
                             </p>

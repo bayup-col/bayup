@@ -211,7 +211,7 @@ export default function GeneralSettings() {
         const [isOpen, setIsOpen] = useState(false);
         return (
             <div className="space-y-2 relative">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">{label}</label>
+                <label className="text-[10px] font-black text-gray-400  tracking-widest ml-2">{label}</label>
                 <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full pl-14 p-5 bg-gray-50 rounded-2xl border-2 border-transparent hover:border-[#004d4d]/20 text-left flex items-center justify-between group transition-all">
                     <Icon className="absolute left-5 text-gray-300 group-hover:text-[#004d4d]" size={18}/>
                     <span className="text-sm font-bold text-slate-700">{options.find((o:any) => o.id === value)?.label || 'Seleccionar...'}</span>
@@ -222,7 +222,7 @@ export default function GeneralSettings() {
                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-gray-100 z-50 overflow-hidden p-2">
                             {options.map((opt: any) => (
                                 <button key={opt.id} onClick={() => { onChange(opt.id); setIsOpen(false); }} className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all ${value === opt.id ? 'bg-[#004d4d] text-white' : 'hover:bg-gray-50 text-slate-600'}`}>
-                                    {opt.icon} <span className="text-xs font-bold uppercase">{opt.label}</span>
+                                    {opt.icon} <span className="text-xs font-bold ">{opt.label}</span>
                                 </button>
                             ))}
                         </motion.div>
@@ -240,28 +240,28 @@ export default function GeneralSettings() {
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Identidad Corporativa v2.0</span>
+                        <span className="text-[10px] font-black  tracking-[0.3em] text-[#004d4d]/60 italic">Identidad corporativa v2.0</span>
                     </div>
-                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
-                        INFO <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">GENERAL</span>
+                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter  leading-none text-[#001A1A]">
+                        Info <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">general</span>
                     </h1>
                     <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">¡Toda la información de tu empresa en un solo lugar! 🏢</p>
                 </div>
-                <button onClick={handleSaveMain} disabled={isSaving} className="h-14 px-10 bg-gray-900 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4">
+                <button onClick={handleSaveMain} disabled={isSaving} className="h-14 px-10 bg-gray-900 text-white rounded-full font-black text-[10px]  tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4">
                     {isSaving ? <Loader2 className="animate-spin" size={18}/> : <ShieldCheck size={18} className="text-[#00f2ff]" />}
-                    {isSaving ? 'Sincronizando...' : 'Guardar y Publicar Cambios'}
+                    {isSaving ? 'Sincronizando...' : 'Guardar y publicar cambios'}
                 </button>
             </div>
 
             <div className="flex items-center justify-center gap-6 relative z-20">
                 <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl flex items-center overflow-x-auto relative">
-                    {[ { id: 'identidad', label: 'Identidad', icon: <Store size={14}/> }, { id: 'contacto', label: 'Contacto & Web', icon: <MapPin size={14}/> }, { id: 'finanzas', label: 'Finanzas & Topes', icon: <CreditCard size={14}/> }, { id: 'canales', label: 'Canales & Social', icon: <Globe size={14}/> } ].map((tab) => {
+                    {[ { id: 'identidad', label: 'Identidad', icon: <Store size={14}/> }, { id: 'contacto', label: 'Contacto & web', icon: <MapPin size={14}/> }, { id: 'finanzas', label: 'Finanzas & topes', icon: <CreditCard size={14}/> }, { id: 'canales', label: 'Canales & social', icon: <Globe size={14}/> } ].map((tab) => {
                         const isActive = activeTab === tab.id;
                         return (
                             <button 
                                 key={tab.id} 
                                 onClick={() => setActiveTab(tab.id as any)} 
-                                className={`relative px-8 py-3.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all z-10 whitespace-nowrap flex items-center gap-2 ${isActive ? 'text-white' : 'text-gray-400 hover:text-gray-900'}`}
+                                className={`relative px-8 py-3.5 rounded-full text-[9px] font-black  tracking-widest transition-all z-10 whitespace-nowrap flex items-center gap-2 ${isActive ? 'text-white' : 'text-gray-400 hover:text-gray-900'}`}
                             >
                                 {isActive && (
                                     <motion.div layoutId="generalTabGlow" className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
@@ -292,14 +292,14 @@ export default function GeneralSettings() {
                                     }}/>
                                 </div>
                                 <div className="text-center">
-                                    <h3 className="text-xl font-black text-gray-900 uppercase italic tracking-tight">{identity.name}</h3>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase mt-1 tracking-widest">{identity.category}</p>
+                                    <h3 className="text-xl font-black text-gray-900  italic tracking-tight">{identity.name}</h3>
+                                    <p className="text-[10px] font-black text-gray-400  mt-1 tracking-widest">{identity.category}</p>
                                 </div>
                             </div>
                             <div className="lg:col-span-8 bg-white p-12 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Nombre de la Empresa</label>
+                                        <label className="text-[10px] font-black text-gray-400  tracking-widest ml-2">Nombre de la empresa</label>
                                         <input 
                                             type="text" 
                                             value={identity.name} 
@@ -311,10 +311,10 @@ export default function GeneralSettings() {
                                             className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" 
                                         />
                                     </div>
-                                    <PremiumSelect label="Nicho de Mercado" value={identity.category} onChange={(v:any) => setIdentity({...identity, category: v})} options={categoriesOptions} icon={LayoutGrid} />
+                                    <PremiumSelect label="Nicho de mercado" value={identity.category} onChange={(v:any) => setIdentity({...identity, category: v})} options={categoriesOptions} icon={LayoutGrid} />
                                 </div>
                                 <div className="space-y-2 pt-4">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Historia / Biografía</label>
+                                    <label className="text-[10px] font-black text-gray-400  tracking-widest ml-2">Historia / biografía</label>
                                     <textarea rows={4} value={identity.story} onChange={(e) => setIdentity({...identity, story: e.target.value})} className="w-full p-6 bg-gray-50 rounded-[2.5rem] border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-medium shadow-inner resize-none" />
                                 </div>
                             </div>
@@ -324,21 +324,21 @@ export default function GeneralSettings() {
                     {activeTab === 'contacto' && (
                         <motion.div key="contact" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
-                                <div className="flex items-center gap-3 mb-4"><div className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><Mail size={20}/></div><h4 className="text-sm font-black uppercase tracking-widest">Atención al Cliente</h4></div>
+                                <div className="flex items-center gap-3 mb-4"><div className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><Mail size={20}/></div><h4 className="text-sm font-black  tracking-widest">Atención al cliente</h4></div>
                                 <div className="space-y-6">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Email de Soporte</label>
+                                        <label className="text-[10px] font-black text-gray-400  tracking-widest ml-2">Email de soporte</label>
                                         <input value={contact.email} onChange={e => setContact({...contact, email: e.target.value})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validateEmail(contact.email) ? 'border-transparent' : 'border-rose-200'}`} />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Teléfono Público</label>
+                                        <label className="text-[10px] font-black text-gray-400  tracking-widest ml-2">Teléfono público</label>
                                         <input maxLength={10} value={contact.phone} onChange={e => setContact({...contact, phone: e.target.value.replace(/\D/g, '')})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validatePhone(contact.phone) ? 'border-transparent' : 'border-rose-200'}`} />
                                     </div>
                                     
                                     <div className="space-y-4 pt-4 border-t border-gray-100">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-[#004d4d] uppercase tracking-widest ml-2 flex items-center gap-2">
-                                                <Zap size={12} /> Link de Tienda Único (Slug)
+                                            <label className="text-[10px] font-black text-[#004d4d]  tracking-widest ml-2 flex items-center gap-2">
+                                                <Zap size={12} /> Link de tienda único (slug)
                                             </label>
                                             <div className="relative group">
                                                 <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 text-xs font-bold">bayup.com.co/shop/</span>
@@ -358,7 +358,7 @@ export default function GeneralSettings() {
                                                 disabled={!contact.shop_slug}
                                                 className="flex items-center justify-between p-5 bg-gray-900 text-white rounded-2xl group hover:bg-black transition-all disabled:opacity-50"
                                             >
-                                                <span className="text-[10px] font-black uppercase tracking-widest">Ver mi tienda ahora</span>
+                                                <span className="text-[10px] font-black  tracking-widest">Ver mi tienda ahora</span>
                                                 <ExternalLink size={16} className="text-[#00f2ff]"/>
                                             </button>
                                         </div>
@@ -368,7 +368,7 @@ export default function GeneralSettings() {
                             <div className="bg-[#001a1a] p-12 rounded-[4rem] text-white relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12"><MapPin size={250} /></div>
                                 <div className="relative z-10 space-y-8">
-                                    <div className="flex items-center gap-3"><div className="h-10 w-10 bg-white/10 text-[#00f2ff] rounded-xl flex items-center justify-center"><MapPin size={20}/></div><h4 className="text-sm font-black uppercase tracking-widest">Ubicación</h4></div>
+                                    <div className="flex items-center gap-3"><div className="h-10 w-10 bg-white/10 text-[#00f2ff] rounded-xl flex items-center justify-center"><MapPin size={20}/></div><h4 className="text-sm font-black  tracking-widest">Ubicación</h4></div>
                                     <div className="space-y-6">
                                         <input value={contact.address} onChange={e => setContact({...contact, address: e.target.value})} className="w-full p-5 bg-white/5 border-2 border-white/10 rounded-2xl outline-none text-sm font-bold" />
                                         <div className="grid grid-cols-2 gap-6">
@@ -384,25 +384,25 @@ export default function GeneralSettings() {
                     {activeTab === 'finanzas' && (
                         <motion.div key="fin" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-8">
                             <div className="bg-white/40 p-8 rounded-[3rem] border border-white/60 flex flex-col md:flex-row justify-between items-center gap-6">
-                                <div><h3 className="text-2xl font-black text-[#004d4d] uppercase italic">Cuentas de Recaudo</h3></div>
-                                <button onClick={() => { setEditingAccount(null); setAccountFormData({ bank_name: '', account_type: 'Ahorros', number: '', billing_limit: '5000000' }); setIsAccountModalOpen(true); }} className="h-14 px-8 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl flex items-center gap-3"><Plus size={18} className="text-[#00f2ff]"/> Añadir Cuenta</button>
+                                <div><h3 className="text-2xl font-black text-[#004d4d]  italic">Cuentas de recaudo</h3></div>
+                                <button onClick={() => { setEditingAccount(null); setAccountFormData({ bank_name: '', account_type: 'Ahorros', number: '', billing_limit: '5000000' }); setIsAccountModalOpen(true); }} className="h-14 px-8 bg-gray-900 text-white rounded-2xl font-black text-[10px]  shadow-xl flex items-center gap-3"><Plus size={18} className="text-[#00f2ff]"/> Añadir cuenta</button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {accounts.map((acc) => (
                                     <motion.div key={acc.id} whileHover={{ y: -5 }} className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-xl space-y-8 relative overflow-hidden group">
                                         <div className="flex justify-between items-start">
                                             <div className={`h-16 w-16 rounded-2xl flex items-center justify-center ${acc.is_primary ? 'bg-[#004d4d] text-[#00f2ff]' : 'bg-gray-100 text-gray-400'}`}><CreditCard size={32} /></div>
-                                            {acc.is_primary && <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase rounded-lg border border-emerald-100">Principal</span>}
+                                            {acc.is_primary && <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[8px] font-black  rounded-lg border border-emerald-100">Principal</span>}
                                         </div>
-                                        <div><h4 className="text-2xl font-black text-gray-900 uppercase italic">{acc.bank_name}</h4><p className="text-sm font-black text-[#004d4d] mt-1">{acc.number}</p></div>
+                                        <div><h4 className="text-2xl font-black text-gray-900  italic">{acc.bank_name}</h4><p className="text-sm font-black text-[#004d4d] mt-1">{acc.number}</p></div>
                                         <div className="space-y-4">
-                                            <div className="flex justify-between"><p className="text-[10px] font-black text-gray-400 uppercase">Tope Mensual</p><p className="text-sm font-black text-gray-900">{formatCurrency(acc.billing_limit)}</p></div>
+                                            <div className="flex justify-between"><p className="text-[10px] font-black text-gray-400 ">Tope mensual</p><p className="text-sm font-black text-gray-900">{formatCurrency(acc.billing_limit)}</p></div>
                                             <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: `${(acc.current_billed / acc.billing_limit) * 100}%` }} className="h-full rounded-full bg-[#004d4d]"></motion.div></div>
                                         </div>
                                         <div className="pt-6 border-t border-gray-50 flex gap-4">
                                             <button onClick={() => { setEditingAccount(acc); setAccountFormData({ bank_name: acc.bank_name, account_type: acc.account_type, number: acc.number, billing_limit: acc.billing_limit.toString() }); setIsAccountModalOpen(true); }} className="h-10 w-10 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center hover:bg-[#004d4d] hover:text-white transition-all"><Settings2 size={16}/></button>
                                             <button onClick={() => setAccounts(accounts.filter(a => a.id !== acc.id))} className="h-10 w-10 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"><Trash2 size={16}/></button>
-                                            {!acc.is_primary && <button onClick={() => setAccounts(accounts.map(a => ({...a, is_primary: a.id === acc.id})))} className="flex-1 py-3 bg-[#004d4d]/5 hover:bg-[#004d4d] text-[#004d4d] hover:text-white rounded-2xl text-[9px] font-black uppercase transition-all">Activar Recaudo</button>}
+                                            {!acc.is_primary && <button onClick={() => setAccounts(accounts.map(a => ({...a, is_primary: a.id === acc.id})))} className="flex-1 py-3 bg-[#004d4d]/5 hover:bg-[#004d4d] text-[#004d4d] hover:text-white rounded-2xl text-[9px] font-black  transition-all">Activar recaudo</button>}
                                         </div>
                                     </motion.div>
                                 ))}
@@ -413,23 +413,23 @@ export default function GeneralSettings() {
                     {activeTab === 'canales' && (
                         <motion.div key="chan" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                             <div className="lg:col-span-7 bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
-                                <div className="flex justify-between items-center"><h3 className="text-xl font-black text-gray-900 uppercase italic">Líneas WhatsApp</h3><button onClick={() => setIsWhatsappModalOpen(true)} className="h-10 w-10 bg-[#004d4d] text-white rounded-xl flex items-center justify-center shadow-lg"><Plus size={20}/></button></div>
+                                <div className="flex justify-between items-center"><h3 className="text-xl font-black text-gray-900  italic">Líneas WhatsApp</h3><button onClick={() => setIsWhatsappModalOpen(true)} className="h-10 w-10 bg-[#004d4d] text-white rounded-xl flex items-center justify-center shadow-lg"><Plus size={20}/></button></div>
                                 <div className="space-y-4">
                                     {whatsappLines.map((line) => (
                                         <div key={line.id} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2.5rem] border border-transparent hover:border-emerald-100 transition-all">
-                                            <div className="flex items-center gap-6"><div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center font-black text-[#004d4d] shadow-sm italic">WA</div><div><p className="text-sm font-black text-gray-900">{line.name}</p><p className="text-[10px] font-bold text-gray-400 uppercase">{line.number}</p></div></div>
+                                            <div className="flex items-center gap-6"><div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center font-black text-[#004d4d] shadow-sm italic">WA</div><div><p className="text-sm font-black text-gray-900">{line.name}</p><p className="text-[10px] font-bold text-gray-400 ">{line.number}</p></div></div>
                                             <button onClick={() => setWhatsappLines(whatsappLines.filter(w => w.id !== line.id))} className="h-10 w-10 bg-white text-gray-300 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={16}/></button>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                             <div className="lg:col-span-5 bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
-                                <h3 className="text-xl font-black text-gray-900 uppercase italic">Ecosistema Social</h3>
+                                <h3 className="text-xl font-black text-gray-900  italic">Ecosistema social</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     {[ { id: 'instagram', label: 'Instagram', icon: <Instagram size={24}/>, color: 'text-pink-500', link: socialLinks.instagram }, { id: 'facebook', label: 'Facebook', icon: <Facebook size={24}/>, color: 'text-blue-600', link: socialLinks.facebook }, { id: 'tiktok', label: 'TikTok', icon: <TikTokIcon size={24}/>, color: 'text-gray-900', link: socialLinks.tiktok }, { id: 'telegram', label: 'Telegram', icon: <Send size={24}/>, color: 'text-sky-500', link: socialLinks.telegram } ].map((social) => (
                                         <a key={social.id} href={social.link} target="_blank" rel="noopener noreferrer" className="p-8 rounded-[3rem] bg-gray-50 border border-transparent hover:border-[#004d4d]/20 hover:bg-white hover:shadow-2xl transition-all flex flex-col items-center gap-4 group relative overflow-hidden">
                                             <div className={`h-14 w-14 bg-white ${social.color} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all`}>{social.icon}</div>
-                                            <span className="text-[10px] font-black uppercase text-gray-900 tracking-widest">{social.label}</span>
+                                            <span className="text-[10px] font-black  text-gray-900 tracking-widest">{social.label}</span>
                                         </a>
                                     ))}
                                 </div>
@@ -444,19 +444,19 @@ export default function GeneralSettings() {
                     <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAccountModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
                         <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-md rounded-[3.5rem] shadow-3xl p-10 relative z-10 border border-white">
-                            <form onSubmit={handleAccountAction} className="space-y-8">
-                                <h3 className="text-2xl font-black text-gray-900 uppercase italic">Configurar Cuenta</h3>
-                                <div className="space-y-6">
-                                    <input required placeholder="Banco / Entidad" value={accountFormData.bank_name} onChange={e => setAccountFormData({...accountFormData, bank_name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                    <input required placeholder="Nro de Cuenta" value={accountFormData.number} onChange={e => setAccountFormData({...accountFormData, number: e.target.value.replace(/\D/g,'')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Tope Mensual (COP)</label>
-                                        <input required value={formatDots(accountFormData.billing_limit)} onChange={e => setAccountFormData({...accountFormData, billing_limit: e.target.value.replace(/\D/g, '')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-black shadow-inner" />
-                                        <p className="text-[9px] font-black text-[#004d4d] ml-2">Total: {formatCurrency(accountFormData.billing_limit)}</p>
-                                    </div>
-                                </div>
-                                <button type="submit" className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl hover:bg-black transition-all">Confirmar Configuración</button>
-                            </form>
+                                                        <form onSubmit={handleAccountAction} className="space-y-8">
+                                                            <h3 className="text-2xl font-black text-gray-900  italic">Configurar cuenta</h3>
+                                                            <div className="space-y-6">
+                                                                <input required placeholder="Banco / entidad" value={accountFormData.bank_name} onChange={e => setAccountFormData({...accountFormData, bank_name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                                                                <input required placeholder="Nro de cuenta" value={accountFormData.number} onChange={e => setAccountFormData({...accountFormData, number: e.target.value.replace(/\D/g,'')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                                                                <div className="space-y-2">
+                                                                    <label className="text-[10px] font-black text-gray-400   tracking-widest ml-2">Tope mensual (COP)</label>
+                                                                    <input required value={formatDots(accountFormData.billing_limit)} onChange={e => setAccountFormData({...accountFormData, billing_limit: e.target.value.replace(/\D/g, '')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-black shadow-inner" />
+                                                                    <p className="text-[9px] font-black text-[#004d4d] ml-2">Total: {formatCurrency(accountFormData.billing_limit)}</p>
+                                                                </div>
+                                                            </div>
+                                                            <button type="submit" className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px]   shadow-xl hover:bg-black transition-all">Confirmar configuración</button>
+                                                        </form>
                         </motion.div>
                     </div>
                 )}
@@ -464,14 +464,14 @@ export default function GeneralSettings() {
                     <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsWhatsappModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-3xl p-10 relative z-10 border border-white">
-                            <form onSubmit={handleWhatsAppAction} className="space-y-8">
-                                <h3 className="text-xl font-black text-gray-900 uppercase italic">Vincular WhatsApp</h3>
-                                <div className="space-y-6">
-                                    <input required placeholder="Canal (Ej: Ventas)" value={whatsappFormData.name} onChange={e => setWhatsappFormData({...whatsappFormData, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-emerald-500 outline-none text-sm font-bold shadow-inner" />
-                                    <input required placeholder="Número (10 dígitos)" maxLength={10} value={whatsappFormData.number} onChange={e => setWhatsappFormData({...whatsappFormData, number: e.target.value.replace(/\D/g,'')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-emerald-500 outline-none text-sm font-bold shadow-inner" />
-                                </div>
-                                <button type="submit" className="w-full py-5 bg-[#004d4d] text-white rounded-2xl font-black text-[10px] uppercase shadow-xl">Activar Línea</button>
-                            </form>
+                                                        <form onSubmit={handleWhatsAppAction} className="space-y-8">
+                                                            <h3 className="text-xl font-black text-gray-900  italic">Vincular WhatsApp</h3>
+                                                            <div className="space-y-6">
+                                                                <input required placeholder="Canal (ej: ventas)" value={whatsappFormData.name} onChange={e => setWhatsappFormData({...whatsappFormData, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-emerald-500 outline-none text-sm font-bold shadow-inner" />
+                                                                <input required placeholder="Número (10 dígitos)" maxLength={10} value={whatsappFormData.number} onChange={e => setWhatsappFormData({...whatsappFormData, number: e.target.value.replace(/\D/g,'')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-emerald-500 outline-none text-sm font-bold shadow-inner" />
+                                                            </div>
+                                                            <button type="submit" className="w-full py-5 bg-[#004d4d] text-white rounded-2xl font-black text-[10px]   shadow-xl">Activar línea</button>
+                                                        </form>
                         </motion.div>
                     </div>
                 )}
