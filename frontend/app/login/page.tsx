@@ -30,8 +30,20 @@ export default function LoginPage() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   
-  const router = useRouter();
-  const { login } = useAuth();
+  useEffect(() => {
+    // Cleanup de WebGL y GSAP para evitar "Context Lost" e "Invalid scope"
+    return () => {
+      if (typeof window !== 'undefined') {
+        const canvases = document.querySelectorAll('canvas');
+        canvases.forEach(canvas => {
+          const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+          if (gl && (gl as WebGLRenderingContext).getExtension('WEBGL_lose_context')) {
+            (gl as WebGLRenderingContext).getExtension('WEBGL_lose_context')?.loseContext();
+          }
+        });
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

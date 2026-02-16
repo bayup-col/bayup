@@ -279,9 +279,14 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
                 
                 # Crear Usuario
                 new_user = models.User(
-                    id=uuid.uuid4(), email=sebas_email, full_name="Sebastián Bayup",
-                    hashed_password=security.get_password_hash("123"), role="admin_tienda",
-                    status="Activo", plan_id=default_plan.id, shop_slug="sebas-store"
+                    id=uuid.uuid4(), 
+                    email="sebas@sebas.com", 
+                    full_name="Sebastián Bayup",
+                    hashed_password=security.get_password_hash("123"), 
+                    role="admin_tienda",
+                    status="Activo", 
+                    plan_id=default_plan.id, 
+                    shop_slug="sebas-store"
                 )
                 db.add(new_user)
                 db.commit()
@@ -290,6 +295,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
                 print("EMERGENCY: User sebas@sebas.com created and logged in.")
             except Exception as init_err:
                 print(f"EMERGENCY CREATE FAILED: {init_err}")
+                db.rollback()
 
         if not user:
             # En producción, damos una pista si es el administrador
