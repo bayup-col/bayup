@@ -55,7 +55,6 @@ def log_activity(db: Session, user_id: uuid.UUID, tenant_id: uuid.UUID, action: 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Starting Bayup API...")
-    # Startup: Initialize tables and default plan
     try:
         models.Base.metadata.create_all(bind=engine)
         print("Database tables synchronized.")
@@ -64,32 +63,11 @@ async def lifespan(app: FastAPI):
 
     db = SessionLocal()
     try:
-        # Automigrate: Check for missing columns in 'users' table
-        inspector = inspect(engine)
-        tables = inspector.get_table_names()
-        
-        if 'users' in tables:
-            columns = [c['name'] for c in inspector.get_columns('users')]
-            with engine.begin() as conn:
-                # Mapeo de columnas necesarias
-                required_columns = [
-                    ('owner_id', "VARCHAR(36)"),
-                    ('loyalty_points', "INTEGER DEFAULT 0"),
-                    ('total_spent', "FLOAT DEFAULT 0.0"),
-                    ('city', "VARCHAR"),
-                    ('customer_type', "VARCHAR DEFAULT 'final'"),
-                ]
-                for col_name, col_type in required_columns:
-                    if col_name not in columns:
-                        conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
-                        print(f"Migrated: Column '{col_name}' added to 'users'.")
-
-        # --- AUTO-INITIALIZATION FOR PRODUCTION (Railway Fix) ---
         # 1. Asegurar Plan por Defecto
         default_plan = db.query(models.Plan).filter(models.Plan.is_default == True).first()
         if not default_plan:
             print("AUTO-INIT: Creating default 'Básico' plan...")
-            new_plan = models.Plan(
+            default_plan = models.Plan(
                 id=uuid.uuid4(),
                 name="Básico",
                 description="Gestión esencial para emprendedores.",
@@ -98,10 +76,9 @@ async def lifespan(app: FastAPI):
                 modules=["inventory", "orders", "customers", "invoicing"],
                 is_default=True
             )
-            db.add(new_plan)
+            db.add(default_plan)
             db.commit()
-            db.refresh(new_plan)
-            default_plan = new_plan
+            db.refresh(default_plan)
 
         # 2. Asegurar Usuario de Emergencia (Evita 401 en Railway)
         sebas_email = "sebas@sebas.com"
@@ -133,31 +110,6 @@ async def lifespan(app: FastAPI):
     
     yield
     print("Shutting down Bayup API...")
-                    ('acquisition_channel', "VARCHAR"),
-                    ('is_global_staff', "BOOLEAN DEFAULT FALSE"),
-                    ('shop_slug', "VARCHAR")
-                ]
-
-                for col_name, col_type in required_columns:
-                    if col_name not in columns:
-                        try:
-                            print(f"Migrating: Adding {col_name} to users table...")
-                            conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
-                            print(f"[OK] {col_name} added.")
-                        except Exception as e:
-                            print(f"Migration Error ({col_name}): {e}")
-            
-            print("User table migration check completed.")
-
-        if not crud.get_default_plan(db):
-            crud.create_plan(db=db, plan=schemas.PlanCreate(name="Free", description="Default", commission_rate=0.1, monthly_fee=0, is_default=True))
-            db.commit()
-
-    except Exception as e:
-        print(f"General Startup Error: {e}")
-    finally:
-        db.close()
-    yield
 
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
