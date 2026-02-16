@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/context/auth-context";
 import { Loader2, Search, Filter, Package, ShoppingBag, Zap, Mail, Phone, Calendar, User, Bot, Sparkles, ShieldCheck, ExternalLink, ArrowUpRight } from "lucide-react";
