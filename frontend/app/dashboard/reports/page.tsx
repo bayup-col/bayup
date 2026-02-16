@@ -39,8 +39,8 @@ import {
     Pencil,
     FileText
   } from 'lucide-react';
-import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useMemo, useCallback, Suspense, memo } from 'react';
+import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
 import { apiRequest } from '@/lib/api';
