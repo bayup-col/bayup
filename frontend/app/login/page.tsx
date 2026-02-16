@@ -30,6 +30,9 @@ export default function LoginPage() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   
+  const router = useRouter();
+  const { login } = useAuth();
+
   useEffect(() => {
     // Cleanup de WebGL y GSAP para evitar "Context Lost" e "Invalid scope"
     return () => {
