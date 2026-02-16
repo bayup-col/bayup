@@ -112,21 +112,18 @@ if not os.path.exists("uploads"):
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # --- CONFIGURACIÓN DE CONEXIÓN GLOBAL (CORS) ---
-# Configuración profesional: No se puede usar "*" con allow_credentials=True
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "https://www.bayup.com.co",
         "https://bayup.com.co",
-        "https://www.bayup.com",
+        "https://www.bayup.com.co",
         "https://bayup.com",
-        "https://bayup-frontend.vercel.app"
+        "https://www.bayup.com",
     ],
-    allow_origin_regex=r"https://bayup-.*\.vercel\.app", # Para despliegues de Vercel
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
 )
@@ -855,6 +852,92 @@ async def create_public_order(data: dict, db: Session = Depends(get_db)):
         print(f"Error creando notificación: {e}")
     
     return {"id": str(new_order.id), "status": "success"}
+
+# --- SHOP PAGES (STUDIO) ---
+
+@app.post("/shop-pages", response_model=schemas.ShopPage)
+def save_shop_page(
+    page_data: schemas.ShopPageCreate, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(security.get_current_user)
+):
+    target_tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    db_page = db.query(models.ShopPage).filter(
+        models.ShopPage.tenant_id == target_tenant_id,
+        models.ShopPage.page_key == page_data.page_key
+    ).first()
+    
+    if db_page:
+        db_page.schema_data = page_data.schema_data
+    else:
+        db_page = models.ShopPage(
+            id=uuid.uuid4(),
+            tenant_id=target_tenant_id,
+            page_key=page_data.page_key,
+            schema_data=page_data.schema_data
+        )
+        db.add(db_page)
+    db.commit()
+    db.refresh(db_page)
+    return db_page
+
+@app.get("/shop-pages/{page_key}", response_model=schemas.ShopPage)
+def get_shop_page(
+    page_key: str, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(security.get_current_user)
+):
+    target_tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    db_page = db.query(models.ShopPage).filter(
+        models.ShopPage.tenant_id == target_tenant_id,
+        models.ShopPage.page_key == page_key
+    ).first()
+    if not db_page:
+        raise HTTPException(status_code=404, detail="Página no encontrada")
+    return db_page
+
+# --- WEB TEMPLATES (SUPER ADMIN) ---
+
+@app.post("/super-admin/web-templates", response_model=schemas.WebTemplate)
+def create_web_template(
+    template: schemas.WebTemplateCreate, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(security.get_current_user)
+):
+    if not current_user.is_global_staff:
+        raise HTTPException(status_code=403, detail="Acceso restringido a Familia Bayup")
+    db_template = models.WebTemplate(id=uuid.uuid4(), **template.model_dump())
+    db.add(db_template)
+    db.commit()
+    db.refresh(db_template)
+    return db_template
+
+@app.get("/super-admin/web-templates", response_model=List[schemas.WebTemplate])
+def list_web_templates(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    print(f"DEBUG TEMPLATES: Petición de {current_user.email}, Staff: {current_user.is_global_staff}")
+    if not current_user.is_global_staff:
+        raise HTTPException(status_code=403, detail="Acceso restringido a Familia Bayup")
+    return db.query(models.WebTemplate).all()
+
+@app.delete("/super-admin/web-templates/{template_id}")
+def delete_web_template(template_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    if not current_user.is_global_staff:
+        raise HTTPException(status_code=403, detail="Acceso restringido a Familia Bayup")
+    db_template = db.query(models.WebTemplate).filter(models.WebTemplate.id == template_id).first()
+    if not db_template: raise HTTPException(status_code=404, detail="Plantilla no encontrada")
+    db.delete(db_template)
+    db.commit()
+    return {"message": "Plantilla eliminada"}
+
+@app.get("/public/products")
+def get_public_products(db: Session = Depends(get_db)):
+    # Retorna todos los productos disponibles en la plataforma para previsualización
+    return db.query(models.Product).all()
+
+@app.get("/public/shop/products")
+def get_public_shop_products(db: Session = Depends(get_db)):
+    # Alias para compatibilidad con rutas de tienda
+    return db.query(models.Product).all()
 
 if __name__ == "__main__":
     import uvicorn

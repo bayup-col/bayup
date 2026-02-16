@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { AuthProvider } from "@/context/auth-context";
 import { ToastProvider } from "@/context/toast-context";
 import { ThemeProvider } from "@/context/theme-context";
+import { CartProvider } from "@/context/cart-context";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -22,7 +23,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <AuthProvider>
       <ThemeProvider>
         <ToastProvider>
-          {children}
+          <CartProvider>
+            {children}
+          </CartProvider>
         </ToastProvider>
       </ThemeProvider>
     </AuthProvider>

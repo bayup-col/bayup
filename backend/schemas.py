@@ -453,3 +453,39 @@ class SuperAdminStats(BaseModel):
     active_affiliates: int
     top_companies: List[Dict[str, Any]]
     recent_alerts: List[Dict[str, Any]]
+
+# --- Shop Page Schemas ---
+class ShopPageBase(BaseModel):
+    page_key: str
+    schema_data: Dict[str, Any]
+
+class ShopPageCreate(ShopPageBase):
+    pass
+
+class ShopPage(ShopPageBase):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    updated_at: datetime
+    class Config:
+        from_attributes = True
+        orm_mode = True
+
+# --- Web Template Schemas ---
+class WebTemplateBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    preview_url: Optional[str] = None
+    schema_data: Dict[str, Any]
+    active_plans: List[str] = []
+    is_active: bool = True
+
+class WebTemplateCreate(WebTemplateBase):
+    pass
+
+class WebTemplate(WebTemplateBase):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+    class Config:
+        from_attributes = True
+        orm_mode = True

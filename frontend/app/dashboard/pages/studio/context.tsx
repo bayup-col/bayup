@@ -171,28 +171,34 @@ const ALL_PRODUCTS_SCHEMA: PageSchema = {
   body: {
     elements: [
       { 
-        id: "products-banner", 
+        id: "products-banner-master", 
         type: "hero-banner", 
         props: { 
-          title: "NUESTRO CATÁLOGO", 
-          subtitle: "Explora nuestra selección exclusiva de productos premium.", 
-          height: 300, 
-          bgColor: "#004d4d",
-          titleSize: 42,
+          title: "CATÁLOGO EXCLUSIVO", 
+          subtitle: "Explora nuestra curaduría de piezas premium seleccionadas para ti.", 
+          height: 450, 
+          bgType: "image",
+          imageUrl: "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?q=80&w=2070&auto=format&fit=crop",
+          overlayOpacity: 50,
+          overlayColor: "#000000",
+          titleSize: 56,
           titleFont: "font-black"
         } 
       },
       { 
-        id: "products-grid-main", 
+        id: "products-grid-master", 
         type: "product-grid", 
         props: { 
           columns: 4, 
-          itemsCount: 12, 
+          itemsCount: 16, 
           showFilters: true,
           filterPlacement: "left",
           filterStyle: "list",
-          layout: "grid",
-          cardStyle: "premium"
+          filterBg: "#ffffff",
+          filterRadius: 24,
+          cardStyle: "premium",
+          cardBorderRadius: 32,
+          gridGap: 32
         } 
       }
     ],
@@ -239,23 +245,49 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   const [pagesData, setPagesData] = useState<Record<string, PageSchema>>({
     home: DEFAULT_SCHEMA,
     colecciones: PRODUCT_SCHEMA,
-    "todos los productos": ALL_PRODUCTS_SCHEMA
+    productos: ALL_PRODUCTS_SCHEMA,
+    detalles: PRODUCT_SCHEMA,
+    nosotros: DEFAULT_SCHEMA,
+    privacidad: DEFAULT_SCHEMA
   });
 
   useEffect(() => {
     const fetchSavedPage = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const templateId = searchParams.get("id");
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
       try {
+        // MODO EDITOR MAESTRO: Cargamos desde la tabla de arquitecturas globales
+        if (templateId && window.location.pathname.includes('super-admin')) {
+          const res = await fetch(`${apiBase}/super-admin/web-templates`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const all = await res.json();
+            const tpl = all.find((t: any) => t.id === templateId);
+            if (tpl && tpl.schema_data) {
+              // Si la plantilla es multi-página, cargamos la página específica
+              const schema = tpl.schema_data[pageKey] || tpl.schema_data.home || tpl.schema_data;
+              setPagesData(prev => ({ ...prev, [pageKey]: schema }));
+            }
+          }
+          return;
+        }
+
+        // MODO USUARIO NORMAL: Cargamos sus propias páginas
+        if (window.location.pathname.includes('studio-preview')) return;
         const { shopPageService } = await import("@/lib/api");
-        const token = localStorage.getItem("token");
-        if (!token) return;
         const response = await shopPageService.get(token, pageKey);
         if (response && response.schema_data) {
           setPagesData(prev => ({ ...prev, [pageKey]: response.schema_data }));
         }
-      } catch (e) { /* Usar default si falla */ }
+      } catch (e) { console.error("Studio data load error:", e); }
     };
     fetchSavedPage();
-  }, [pageKey]);
+  }, [pageKey, searchParams]);
 
   const [headerLocked, setHeaderLocked] = useState(true);
   const [footerLocked, setFooterLocked] = useState(true);

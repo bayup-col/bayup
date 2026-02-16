@@ -338,3 +338,15 @@ class ChannelConnection(Base):
     account_id = Column(String, nullable=True) 
     access_token = Column(String, nullable=True) 
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class WebTemplate(Base):
+    __tablename__ = "web_templates"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    name = Column(String, index=True)
+    description = Column(String)
+    preview_url = Column(String, nullable=True)
+    schema_data = Column(JSON) 
+    active_plans = Column(JSON, default=[]) 
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

@@ -112,11 +112,24 @@ export const Canvas = ({ overrideData = null, isPreview = false }: { overrideDat
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) return;
         const { categoryService, productService } = await import('@/lib/api');
-        const [categories, products] = await Promise.all([categoryService.getAll(token), productService.getAll(token)]);
-        setRealCategories(categories || []);
-        setRealProducts(products || []);
+        
+        if (token) {
+          const [categories, products] = await Promise.all([
+            categoryService.getAll(token), 
+            productService.getAll(token)
+          ]);
+          setRealCategories(categories || []);
+          setRealProducts(products || []);
+        } else {
+          // Si no hay token, intentamos carga pública para la previsualización
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          const res = await fetch(`${apiBase}/public/products`);
+          if (res.ok) {
+            const products = await res.json();
+            setRealProducts(products || []);
+          }
+        }
       } catch (err) { console.error("Canvas data error:", err); }
     };
     fetchData();

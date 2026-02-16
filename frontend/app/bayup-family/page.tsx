@@ -74,9 +74,9 @@ export default function BayupFamilyLogin() {
                             <ShieldCheck size={40} />
                         </div>
                     </div>
-                    <div className="text-3xl font-black italic text-white tracking-tighter uppercase">
-                        <span>BAY</span><InteractiveUP />
-                        <span className="block text-[10px] font-black tracking-[0.5em] text-[#00f2ff] mt-2">FAMILY ACCESS</span>
+                    <div className="text-3xl font-black italic text-white tracking-tighter capitalize">
+                        <span>Bay</span><InteractiveUP />
+                        <span className="block text-[10px] font-black tracking-[0.5em] text-[#00f2ff] mt-2">Family access</span>
                     </div>
                 </div>
 
@@ -86,7 +86,7 @@ export default function BayupFamilyLogin() {
                             <User className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-[#00f2ff] transition-colors" size={18} />
                             <input 
                                 type="email" 
-                                placeholder="ID Global"
+                                placeholder="Id global"
                                 className="w-full pl-14 pr-6 py-5 bg-white/5 border border-white/5 focus:border-[#00f2ff]/30 rounded-2xl outline-none text-white font-bold transition-all text-sm"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -97,7 +97,7 @@ export default function BayupFamilyLogin() {
                             <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-[#00f2ff] transition-colors" size={18} />
                             <input 
                                 type="password" 
-                                placeholder="Clave de Seguridad"
+                                placeholder="Clave de seguridad"
                                 className="w-full pl-14 pr-6 py-5 bg-white/5 border border-white/5 focus:border-[#00f2ff]/30 rounded-2xl outline-none text-white font-bold transition-all text-sm"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -109,14 +109,14 @@ export default function BayupFamilyLogin() {
                     <button 
                         type="submit" 
                         disabled={isLoading}
-                        className="w-full py-6 bg-white text-[#001A1A] rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-[#00f2ff] hover:scale-105 transition-all flex items-center justify-center gap-4 disabled:opacity-50"
+                        className="w-full py-6 bg-white text-[#001A1A] rounded-[2rem] font-black text-xs capitalize tracking-[0.2em] shadow-2xl hover:bg-[#00f2ff] hover:scale-105 transition-all flex items-center justify-center gap-4 disabled:opacity-50"
                     >
-                        {isLoading ? <Loader2 className="animate-spin" /> : <>Acceder a la Red <ArrowRight size={18} /></>}
+                        {isLoading ? <Loader2 className="animate-spin" /> : <>Acceder a la red <ArrowRight size={18} /></>}
                     </button>
                 </form>
 
-                <p className="text-center text-[8px] font-black uppercase text-white/20 tracking-widest">
-                    Protocolo de Seguridad Bayup v2.0 - Acceso Restringido
+                <p className="text-center text-[8px] font-black capitalize text-white/20 tracking-widest">
+                    Protocolo de seguridad bayup v2.0 - Acceso restringido
                 </p>
             </motion.div>
         </div>

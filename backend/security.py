@@ -60,13 +60,16 @@ def get_current_user(
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str | None = payload.get("sub")
+        print(f"DEBUG SECURITY: Token decodificado para email: {email}")
         if email is None:
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        print(f"DEBUG SECURITY: Error de JWT: {str(e)}")
         raise credentials_exception
     
     user = crud.get_user_by_email(db, email=email)
     if user is None:
+        print(f"DEBUG SECURITY: Usuario no encontrado en DB: {email}")
         raise credentials_exception
     return user
 

@@ -213,6 +213,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <div className="my-2 border-t border-gray-100/10"></div>
                 
                 <MenuItem href="/dashboard/super-admin/web-analytics" label={<><BarChart3 size={16} /> Estadísticas Web</>} id="m_web_analytics" />
+                <MenuItem href="/dashboard/super-admin/web-templates" label={<><Globe size={16} /> Plantillas Web</>} id="m_web_templates" />
                 <MenuItem href="/dashboard/super-admin/marketing" label={<><TrendingUp size={16} /> Marketing</>} id="m_marketing" />
                 <MenuItem href="/dashboard/super-admin/soporte" label={<><MessageSquare size={16} /> Soporte</>} id="m_soporte" />
                 
