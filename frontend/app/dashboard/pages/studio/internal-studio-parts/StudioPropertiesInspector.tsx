@@ -622,6 +622,14 @@ export const DesignerInspector = () => {
                               <div className="flex items-center gap-2 p-1 border rounded-lg bg-white h-[38px]"><input type="color" value={element.props.offerBadgeBg || "#ef4444"} onChange={(e) => handleChange("offerBadgeBg", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase">Fondo</span></div>
                               <div className="flex items-center gap-2 p-1 border rounded-lg bg-white h-[38px]"><input type="color" value={element.props.offerBadgeColor || "#ffffff"} onChange={(e) => handleChange("offerBadgeColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase">Texto</span></div>
                             </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <FluidSlider label="Posición X" value={element.props.offerBadgePosX || 0} min={-100} max={100} onChange={(v:number) => handleChange("offerBadgePosX", v)} />
+                              <FluidSlider label="Posición Y" value={element.props.offerBadgePosY || 0} min={-100} max={100} onChange={(v:number) => handleChange("offerBadgePosY", v)} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <FluidSlider label="Tamaño" value={element.props.offerBadgeSize || 10} min={8} max={20} onChange={(v:number) => handleChange("offerBadgeSize", v)} />
+                              <FluidSlider label="Redondeo" value={element.props.offerBadgeRadius || 30} min={0} max={40} onChange={(v:number) => handleChange("offerBadgeRadius", v)} />
+                            </div>
                             <button onClick={() => handleChange("offerBadgePulse", !element.props.offerBadgePulse)} className={cn("w-full py-1.5 border rounded-lg text-[8px] font-black uppercase transition-all", element.props.offerBadgePulse !== false ? "bg-amber-50 text-amber-600 border-amber-200" : "bg-white text-gray-400")}>Pulso {element.props.offerBadgePulse !== false ? "ON" : "OFF"}</button>
                           </div>
                         )}
@@ -637,8 +645,18 @@ export const DesignerInspector = () => {
                             <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-lg">
                               {["solid", "outline", "glass", "aurora"].map(v => (<button key={v} onClick={() => handleChange("addToCartVariant", v)} className={cn("py-1 text-[7px] font-black uppercase rounded-md transition-all", (element.props.addToCartVariant === v || (!element.props.addToCartVariant && v === "solid")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v}</button>))}
                             </div>
-                            <FluidSlider label="Tamaño" value={element.props.addToCartSize || 10} min={8} max={20} onChange={(v:number) => handleChange("addToCartSize", v)} />
-                            <FluidSlider label="Redondeo" value={element.props.addToCartBorderRadius || 12} min={0} max={30} onChange={(v:number) => handleChange("addToCartBorderRadius", v)} />
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="flex items-center gap-2 p-1 border rounded-lg bg-white h-[38px]"><input type="color" value={element.props.addToCartBgColor || "#000000"} onChange={(e) => handleChange("addToCartBgColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase">Fondo</span></div>
+                              <div className="flex items-center gap-2 p-1 border rounded-lg bg-white h-[38px]"><input type="color" value={element.props.addToCartTextColor || "#ffffff"} onChange={(e) => handleChange("addToCartTextColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase">Texto</span></div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <FluidSlider label="Tamaño" value={element.props.addToCartSize || 10} min={8} max={20} onChange={(v:number) => handleChange("addToCartSize", v)} />
+                              <FluidSlider label="Redondeo" value={element.props.addToCartBorderRadius || 12} min={0} max={30} onChange={(v:number) => handleChange("addToCartBorderRadius", v)} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <FluidSlider label="Posición X" value={element.props.addToCartPosX || 0} min={-100} max={100} onChange={(v:number) => handleChange("addToCartPosX", v)} />
+                              <FluidSlider label="Posición Y" value={element.props.addToCartPosY || 0} min={-100} max={100} onChange={(v:number) => handleChange("addToCartPosY", v)} />
+                            </div>
                           </div>
                         )}
                       </div>

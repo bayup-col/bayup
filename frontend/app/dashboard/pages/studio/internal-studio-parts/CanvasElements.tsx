@@ -504,8 +504,17 @@ export const DraggableCanvasElement = ({
                                   <motion.div 
                                     animate={elProps.offerBadgePulse !== false ? { scale: [1, 1.05, 1] } : {}}
                                     transition={{ duration: 2, repeat: Infinity }}
-                                    className="absolute top-4 right-4 px-4 py-1.5 rounded-full text-[10px] font-black uppercase z-10 shadow-lg"
-                                    style={{ backgroundColor: elProps.offerBadgeBg || "#ef4444", color: elProps.offerBadgeColor || "#ffffff" }}
+                                    className="absolute z-10 shadow-lg flex items-center justify-center font-black uppercase"
+                                    style={{ 
+                                      backgroundColor: elProps.offerBadgeBg || "#ef4444", 
+                                      color: elProps.offerBadgeColor || "#ffffff",
+                                      top: 16,
+                                      right: 16,
+                                      transform: `translate(${elProps.offerBadgePosX || 0}px, ${elProps.offerBadgePosY || 0}px)`,
+                                      fontSize: `${elProps.offerBadgeSize || 10}px`,
+                                      borderRadius: `${elProps.offerBadgeRadius || 30}px`,
+                                      padding: `${(elProps.offerBadgeSize || 10) * 0.6}px ${(elProps.offerBadgeSize || 10) * 1.5}px`
+                                    }}
                                   >
                                     {elProps.offerBadgeText || "OFERTA"}
                                   </motion.div>
