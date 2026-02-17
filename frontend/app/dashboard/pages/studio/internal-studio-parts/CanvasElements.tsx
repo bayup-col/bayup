@@ -359,7 +359,7 @@ export const DraggableCanvasElement = ({
               
               {/* --- RENDERIZADO CONDICIONAL POR TIPO --- */}
               
-              {(el.type === "hero-banner" || el.type === "text") && (
+              {(el.type === "hero-banner" || el.type === "text" || el.type === "product-grid") && (
                 <>
                   <div className="space-y-4 w-full">
                     {elProps.title && <div className="w-full">{renderTextWithTheme(elProps.title, elProps, "title")}</div>}
