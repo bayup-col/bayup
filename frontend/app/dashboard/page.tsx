@@ -20,7 +20,57 @@ import { useToast } from "@/context/toast-context";
 import { apiRequest } from '@/lib/api';
 import { generateDailyReport } from '@/lib/report-generator';
 
-// ... (componentes AnimatedNumber y PremiumCard se mantienen iguales)
+// --- COMPONENTE DE NÚMEROS ANIMADOS ---
+const AnimatedNumber = memo(({ value, type = 'currency', className }: { value: number, className?: string, type?: 'currency' | 'percentage' | 'simple' }) => {
+    const spring = useSpring(0, { mass: 0.8, stiffness: 75, damping: 15 });
+    const display = useTransform(spring, (current: number) => {
+        if (type === 'percentage') return `${current.toFixed(1)}%`;
+        if (type === 'simple') return Math.round(current).toLocaleString();
+        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(current);
+    });
+
+    useEffect(() => { spring.set(value); }, [value, spring]);
+    return <motion.span className={className}>{display}</motion.span>;
+});
+AnimatedNumber.displayName = 'AnimatedNumber';
+
+// --- TILT CARD PREMIUM ---
+interface PremiumCardProps {
+    children: React.ReactNode;
+    className?: string;
+    dark?: boolean;
+}
+
+const PremiumCard = ({ children, className = "", dark = false }: PremiumCardProps) => {
+    const [rotateX, setRotateX] = useState(0);
+    const [rotateY, setRotateY] = useState(0);
+    const [glare, setGlare] = useState({ x: 50, y: 50, op: 0 });
+
+    const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const box = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - box.left;
+        const y = e.clientY - box.top;
+        setRotateX((y - box.height/2) / 20);
+        setRotateY((box.width/2 - x) / 20);
+        setGlare({ x: (x/box.width)*100, y: (y/box.height)*100, op: dark ? 0.15 : 0.1 });
+    };
+
+    return (
+        <motion.div
+            onMouseMove={handleMove}
+            onMouseLeave={() => { setRotateX(0); setRotateY(0); setGlare(g => ({...g, op: 0})); }}
+            animate={{ rotateX, rotateY, scale: rotateX !== 0 ? 1.02 : 1 }}
+            transition={{ type: "spring", stiffness: 250, damping: 25 }}
+            className={`rounded-[3rem] border transition-all duration-500 relative overflow-hidden isolate ${dark ? 'bg-[#001A1A] border-white/5 shadow-2xl' : 'bg-white/40 backdrop-blur-xl border-white/80 shadow-xl'} ${className}`}
+            style={{ transformStyle: "preserve-3d", perspective: "1000px" }}
+        >
+            <div className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+                 style={{ opacity: glare.op, background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, ${dark ? 'rgba(0,242,255,0.2)' : 'white'} 0%, transparent 60%)`, zIndex: 1 }} />
+            <div style={{ transform: "translateZ(30px)", position: "relative", zIndex: 2 }} className="h-full">{children}</div>
+            <div className={`absolute -bottom-20 -right-20 h-40 w-40 blur-[80px] rounded-full pointer-events-none ${dark ? 'bg-[#00f2ff]/10' : 'bg-[#004d4d]/5'}`} />
+        </motion.div>
+    );
+};
 
 // --- DASHBOARD PRINCIPAL ---
 export default function DashboardPage() {
