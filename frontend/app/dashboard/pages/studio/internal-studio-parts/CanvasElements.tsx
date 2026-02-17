@@ -44,7 +44,19 @@ export const AnnouncementSlides = ({ messages, animationType = "slide", speed = 
   );
 };
 
-export const DraggableCanvasElement = ({ el, section, selectedElementId, selectElement, setActiveSection, removeElement, realCategories, realProducts, isPreview = false }: any) => {
+export const DraggableCanvasElement = ({ 
+  el, 
+  section, 
+  selectedElementId, 
+  selectElement, 
+  setActiveSection, 
+  removeElement, 
+  realCategories, 
+  realProducts, 
+  isPreview = false,
+  onOpenCart = null,
+  onOpenLogin = null
+}: any) => {
   const { viewport, pageKey } = useStudio();
   const [scrollProgress, setScrollProgress] = React.useState(0);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
@@ -204,6 +216,9 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                       };
                       return renderTextWithTheme(content, utilProps, "none", id);
                     };
+
+                    const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
+
                     return (
                       <>
                         {elProps.showSearch && (
@@ -212,12 +227,56 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                           </div>
                         )}
                         {elProps.showUser && (
-                          <div className="cursor-pointer" onClick={() => isPreview && router.push("/login")}>
-                            {renderUtil(<User size={elProps.utilitySize || 18} />, "Cuenta", "nav-user")}
+                          <div className="relative">
+                            <div 
+                              className="cursor-pointer" 
+                              onClick={() => {
+                                if (isPreview) setIsUserMenuOpen(!isUserMenuOpen);
+                              }}
+                            >
+                              {renderUtil(<User size={elProps.utilitySize || 18} />, "Cuenta", "nav-user")}
+                            </div>
+                            
+                            <AnimatePresence>
+                              {isUserMenuOpen && (
+                                <motion.div 
+                                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                  className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-[600] overflow-hidden"
+                                >
+                                  <button 
+                                    onClick={() => {
+                                      setIsUserMenuOpen(false);
+                                      if (onOpenLogin) onOpenLogin();
+                                      else router.push("/login");
+                                    }} 
+                                    className="w-full text-left p-3 hover:bg-gray-50 rounded-xl text-[10px] font-black uppercase text-gray-600 transition-colors flex items-center gap-3"
+                                  >
+                                    <User size={14} /> Iniciar Sesión
+                                  </button>
+                                  <button 
+                                    onClick={() => {
+                                      setIsUserMenuOpen(false);
+                                      if (onOpenLogin) onOpenLogin();
+                                      else router.push("/register");
+                                    }} 
+                                    className="w-full text-left p-3 hover:bg-gray-50 rounded-xl text-[10px] font-black uppercase text-[#004D4D] transition-colors flex items-center gap-3"
+                                  >
+                                    <PlusIcon size={14} /> Registrarse
+                                  </button>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         )}
                         {elProps.showCart && (
-                          <div className="cursor-pointer relative" onClick={() => isPreview && router.push("/checkout")}>
+                          <div className="cursor-pointer relative" onClick={() => {
+                            if (isPreview) {
+                              if (onOpenCart) onOpenCart();
+                              else router.push("/checkout");
+                            }
+                          }}>
                             {renderUtil(<ShoppingCart size={elProps.utilitySize || 18} />, "Carrito", "nav-cart")}
                           </div>
                         )}

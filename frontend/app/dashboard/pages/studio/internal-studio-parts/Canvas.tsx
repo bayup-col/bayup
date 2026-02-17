@@ -89,7 +89,21 @@ const InsertionPoint = ({ section, index }: any) => {
   );
 };
 
-export const Canvas = ({ overrideData = null, isPreview = false, initialProducts = null, initialCategories = null }: { overrideData?: any, isPreview?: boolean, initialProducts?: any[] | null, initialCategories?: any[] | null }) => {
+export const Canvas = ({ 
+  overrideData = null, 
+  isPreview = false, 
+  initialProducts = null, 
+  initialCategories = null,
+  onOpenCart = null,
+  onOpenLogin = null
+}: { 
+  overrideData?: any, 
+  isPreview?: boolean, 
+  initialProducts?: any[] | null, 
+  initialCategories?: any[] | null,
+  onOpenCart?: (() => void) | null,
+  onOpenLogin?: (() => void) | null
+}) => {
   const studio = useStudio();
   const pageData = overrideData || studio.pageData;
   const { activeSection, setActiveSection, selectElement, selectedElementId, removeElement, viewport, pageKey } = studio;
@@ -144,7 +158,19 @@ export const Canvas = ({ overrideData = null, isPreview = false, initialProducts
         {data.elements.map((el: any, idx: number) => (
           <React.Fragment key={el.id}>
             {!isPreview && <InsertionPoint section={section} index={idx} />}
-            <DraggableCanvasElement el={el} section={section} selectedElementId={selectedElementId} selectElement={selectElement} setActiveSection={setActiveSection} removeElement={removeElement} realCategories={realCategories} realProducts={realProducts} isPreview={isPreview} />
+            <DraggableCanvasElement 
+              el={el} 
+              section={section} 
+              selectedElementId={selectedElementId} 
+              selectElement={selectElement} 
+              setActiveSection={setActiveSection} 
+              removeElement={removeElement} 
+              realCategories={realCategories} 
+              realProducts={realProducts} 
+              isPreview={isPreview} 
+              onOpenCart={onOpenCart}
+              onOpenLogin={onOpenLogin}
+            />
           </React.Fragment>
         ))}
         {!isPreview && <InsertionPoint section={section} index={data.elements.length} />}

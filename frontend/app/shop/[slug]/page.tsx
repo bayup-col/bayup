@@ -30,24 +30,26 @@ import {
 import { InteractiveUP } from '@/components/landing/InteractiveUP';
 import { StudioProvider } from '../../dashboard/pages/studio/context';
 import { Canvas } from '../../dashboard/pages/studio/internal-studio-parts/Canvas';
+import { useCart } from '@/context/cart-context';
 
 export default function PublicShopPage() {
     const { slug } = useParams();
+    const { items: cart, addItem, removeItem, clearCart, total: cartTotal, isCartOpen, setIsCartOpen } = useCart();
+    
     const [shopData, setShopData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false); // Nuevo para dropdown
     
-    // --- LÓGICA DE CARRITO ---
-    const [cart, setCart] = useState<any[]>([]);
-    const [isCartOpen, setIsCartOpen] = useState(false);
+    // --- LÓGICA DE INTERFAZ ---
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-    const [isClientLoginOpen, setIsClientLoginOpen] = useState(false); // Nuevo Modal Cliente
+    const [isClientLoginOpen, setIsClientLoginOpen] = useState(false); 
     const [customerData, setCustomerData] = useState({
         name: "",
         phone: "",
-        email: "", // Nuevo campo
+        email: "",
         address: "",
         city: "",
         notes: ""
@@ -55,30 +57,20 @@ export default function PublicShopPage() {
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
     const addToCart = (product: any) => {
-        // Validación visual de stock
         const totalStock = product.variants?.reduce((a: any, b: any) => a + (b.stock || 0), 0) || 0;
-        if (totalStock <= 0) {
+        if (totalStock <= 0 && product.id !== 'd1') { // Ignorar stock para items de prueba
             alert("Lo sentimos, este producto está agotado.");
             return;
         }
 
-        setCart(prev => {
-            const exists = prev.find(item => item.id === product.id);
-            if (exists) {
-                return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
-            }
-            return [...prev, { ...product, quantity: 1 }];
+        addItem({
+            id: product.id,
+            title: product.name,
+            price: product.price,
+            image: product.image_url || '',
+            quantity: 1
         });
-        setIsCartOpen(true);
     };
-
-    const removeFromCart = (productId: string) => {
-        setCart(prev => prev.filter(item => item.id !== productId));
-    };
-
-    const cartTotal = useMemo(() => {
-        return cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    }, [cart]);
 
     const handlePlaceOrder = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -108,7 +100,7 @@ export default function PublicShopPage() {
             if (res.ok) {
                 const order = await res.json();
                 
-                setCart([]);
+                clearCart();
                 setIsCheckoutOpen(false);
                 setIsCartOpen(false);
                 setCustomerData({ name: "", phone: "", email: "", address: "", city: "", notes: "" });
@@ -199,6 +191,8 @@ export default function PublicShopPage() {
                         isPreview={true} 
                         initialProducts={shopData.products}
                         initialCategories={shopData.categories}
+                        onOpenCart={() => setIsCartOpen(true)}
+                        onOpenLogin={() => setIsClientLoginOpen(true)}
                     />
                 </StudioProvider>
                 
@@ -315,12 +309,44 @@ export default function PublicShopPage() {
                             <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Soporte Vital</span>
                             <span className="text-[10px] font-bold text-gray-900">{shopData.store_email}</span>
                         </div>
-                        <button 
-                            onClick={() => setIsClientLoginOpen(true)}
-                            className="h-14 w-14 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-[#004d4d] hover:text-white transition-all shadow-sm"
-                        >
-                            <User size={24} />
-                        </button>
+                        <div className="relative">
+                            <button 
+                                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                                className="h-14 w-14 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-[#004d4d] hover:text-white transition-all shadow-sm"
+                            >
+                                <User size={24} />
+                            </button>
+                            
+                            <AnimatePresence>
+                                {isUserMenuOpen && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-[600] overflow-hidden"
+                                    >
+                                        <button 
+                                            onClick={() => {
+                                                setIsUserMenuOpen(false);
+                                                setIsClientLoginOpen(true);
+                                            }} 
+                                            className="w-full text-left p-3 hover:bg-gray-50 rounded-xl text-[10px] font-black uppercase text-gray-600 transition-colors flex items-center gap-3"
+                                        >
+                                            <User size={14} /> Iniciar Sesión
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                setIsUserMenuOpen(false);
+                                                setIsClientLoginOpen(true);
+                                            }} 
+                                            className="w-full text-left p-3 hover:bg-gray-50 rounded-xl text-[10px] font-black uppercase text-[#004D4D] transition-colors flex items-center gap-3"
+                                        >
+                                            <Plus size={14} /> Registrarse
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                         <button 
                             onClick={() => setIsCartOpen(true)}
                             className="h-14 w-14 rounded-2xl bg-[#004d4d] text-[#00f2ff] flex items-center justify-center shadow-2xl relative group hover:scale-105 transition-all"
@@ -657,27 +683,37 @@ export default function PublicShopPage() {
                 )}
             </AnimatePresence>
 
-            {/* --- MODAL LOGIN CLIENTE --- */}
+            {/* --- MODAL LOGIN CLIENTE (PARA COMPRADORES) --- */}
             <AnimatePresence>
                 {isClientLoginOpen && (
                     <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsClientLoginOpen(false)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-xl" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative bg-white w-full max-w-md rounded-[3rem] shadow-2xl p-10 text-center border border-white/20">
-                            <div className="mb-8">
-                                <div className="h-20 w-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-[#004d4d] mb-4">
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative bg-white w-full max-w-md rounded-[3rem] shadow-2xl p-10 border border-white/20">
+                            <div className="text-center mb-8">
+                                <div className="h-20 w-20 bg-gray-50 rounded-[1.5rem] flex items-center justify-center mx-auto text-[#004d4d] mb-4 shadow-inner">
                                     <User size={40} />
                                 </div>
-                                <h3 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter">Mi Cuenta</h3>
-                                <p className="text-xs font-bold text-gray-400 mt-2">Accede para ver tus pedidos y beneficios.</p>
+                                <h3 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter">Área de Clientes</h3>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">Inicia sesión en {shopData?.store_name}</p>
                             </div>
+                            
                             <div className="space-y-4">
-                                <input placeholder="Tu Email" className="w-full p-4 bg-gray-50 rounded-xl border border-transparent focus:border-[#004d4d] outline-none text-sm font-bold" />
-                                <input placeholder="Tu Celular" className="w-full p-4 bg-gray-50 rounded-xl border border-transparent focus:border-[#004d4d] outline-none text-sm font-bold" />
-                                <button className="w-full py-4 bg-[#004d4d] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-black transition-all">
-                                    Ingresar
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase ml-2">Email</label>
+                                    <input placeholder="ejemplo@correo.com" className="w-full p-4 bg-gray-50 rounded-2xl border border-transparent focus:border-[#004d4d]/20 outline-none text-sm font-bold shadow-inner" />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase ml-2">Contraseña</label>
+                                    <input type="password" placeholder="••••••••" className="w-full p-4 bg-gray-50 rounded-2xl border border-transparent focus:border-[#004d4d]/20 outline-none text-sm font-bold shadow-inner" />
+                                </div>
+                                <button className="w-full py-5 bg-[#004d4d] text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all mt-4">
+                                    Acceder a mis pedidos
                                 </button>
+                                <p className="text-[9px] text-center text-gray-400 font-bold uppercase tracking-wider mt-4">
+                                    ¿Aún no tienes cuenta? <span className="text-[#004d4d] cursor-pointer hover:underline">Regístrate gratis</span>
+                                </p>
                             </div>
-                            <button onClick={() => setIsClientLoginOpen(false)} className="mt-6 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-rose-500">Cerrar</button>
+                            <button onClick={() => setIsClientLoginOpen(false)} className="absolute top-6 right-6 text-gray-300 hover:text-rose-500 transition-colors"><X size={20}/></button>
                         </motion.div>
                     </div>
                 )}

@@ -25,6 +25,16 @@ const MOCK_PAGES = [
 ];
 
 export default function PagesDashboard() {
+    const handleViewPage = (pageUrl: string) => {
+        const savedSettings = localStorage.getItem('bayup_general_settings');
+        let slug = "preview";
+        if (savedSettings) {
+            const parsed = JSON.parse(savedSettings);
+            slug = parsed.contact?.shop_slug || "preview";
+        }
+        window.open(`/shop/${slug}${pageUrl === '/' ? '' : pageUrl}`, '_blank');
+    };
+
     return (
         <div className="max-w-[1200px] mx-auto pb-32 space-y-12 animate-in fade-in duration-1000">
             
@@ -86,7 +96,10 @@ export default function PagesDashboard() {
                                         <Edit3 size={14} className="text-[#00f2ff] group-hover/btn:rotate-12 transition-transform"/>
                                     </button>
                                 </Link>
-                                <button className="h-14 w-14 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-[#00f2ff] hover:border-[#00f2ff] transition-all shadow-sm">
+                                <button 
+                                    onClick={() => handleViewPage(page.url)}
+                                    className="h-14 w-14 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-[#00f2ff] hover:border-[#00f2ff] transition-all shadow-sm"
+                                >
                                     <ExternalLink size={20} />
                                 </button>
                                 <button className="h-14 w-14 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all shadow-sm">
