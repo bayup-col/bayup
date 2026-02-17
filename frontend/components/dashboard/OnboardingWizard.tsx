@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Rocket, 
@@ -13,9 +13,12 @@ import {
     ShieldCheck,
     Bot,
     ChevronRight,
-    Loader2
+    Loader2,
+    X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { io } from 'socket.io-client';
+import { useToast } from "@/context/toast-context";
 
 interface OnboardingWizardProps {
     isOpen: boolean;
@@ -25,7 +28,53 @@ interface OnboardingWizardProps {
 export default function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) {
     const [step, setStep] = useState(1);
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
+    const { showToast } = useToast();
+    
+    // Estados WhatsApp Real
+    const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+    const [isPairing, setIsPairing] = useState(false);
+    const [paired, setPaired] = useState(false);
+    const socketRef = useRef<any>(null);
+
+    // Cargar progreso guardado
+    useEffect(() => {
+        const savedStep = localStorage.getItem('bayup_onboarding_step');
+        if (savedStep) setStep(parseInt(savedStep));
+    }, []);
+
+    // Guardar progreso al cambiar
+    useEffect(() => {
+        localStorage.setItem('bayup_onboarding_step', step.toString());
+    }, [step]);
+
+    // Conexión real con el puente solo en el paso de WhatsApp
+    useEffect(() => {
+        if (step !== 2 || !isOpen) return;
+
+        const bridgeUrl = process.env.NEXT_PUBLIC_WHATSAPP_BRIDGE_URL || 'http://localhost:8001';
+        const socket = io(bridgeUrl);
+        socketRef.current = socket;
+
+        socket.on('status', (status: string) => {
+            if (status === 'ready') {
+                setPaired(true);
+                setTimeout(() => setStep(3), 2000);
+            }
+        });
+
+        socket.on('qr', (url: string) => {
+            setQrCodeUrl(url);
+            setIsPairing(false);
+        });
+
+        socket.on('ready', () => {
+            setPaired(true);
+            showToast("¡WhatsApp vinculado! Avanzando al siguiente paso...", "success");
+            setTimeout(() => setStep(3), 2000);
+        });
+
+        return () => socket.disconnect();
+    }, [step, isOpen, showToast]);
 
     const steps = [
         {
@@ -33,7 +82,10 @@ export default function OnboardingWizard({ isOpen, onComplete }: OnboardingWizar
             title: "Identidad de Marca",
             desc: "Dinos el nombre de tu empresa y sube tu logo para personalizar tu tienda.",
             icon: <Store className="text-cyan" size={32} />,
-            action: () => router.push('/dashboard/settings/general'),
+            action: () => {
+                router.push('/dashboard/settings/general');
+                // No avanzamos el paso aquí, dejamos que el usuario lo haga al volver o tras configurar
+            },
             btnText: "Configurar Identidad"
         },
         {
@@ -41,7 +93,7 @@ export default function OnboardingWizard({ isOpen, onComplete }: OnboardingWizar
             title: "Conexión Vital",
             desc: "Vincula tu WhatsApp para automatizar tus ventas y pedidos reales.",
             icon: <MessageCircle className="text-emerald-400" size={32} />,
-            action: () => router.push('/dashboard/chats'),
+            action: null, // Acción controlada por el QR
             btnText: "Vincular WhatsApp"
         },
         {
@@ -110,7 +162,9 @@ export default function OnboardingWizard({ isOpen, onComplete }: OnboardingWizar
                 </div>
 
                 {/* LADO DERECHO: ACCIÓN DINÁMICA */}
-                <div className="flex-1 p-12 md:p-20 bg-white relative flex flex-col justify-center">
+                <div className="flex-1 p-12 md:p-20 bg-white relative flex flex-col justify-center overflow-y-auto custom-scrollbar">
+                    <button onClick={onComplete} className="absolute top-10 right-10 text-gray-300 hover:text-gray-900 transition-colors"><X size={24}/></button>
+
                     <AnimatePresence mode="wait">
                         <motion.div 
                             key={step}
@@ -131,31 +185,71 @@ export default function OnboardingWizard({ isOpen, onComplete }: OnboardingWizar
                                 </p>
                             </div>
 
+                            {/* CONTENIDO ESPECIAL PARA WHATSAPP (PASO 2) */}
+                            {step === 2 && (
+                                <div className="flex flex-col items-center sm:items-start gap-8 animate-in zoom-in duration-500">
+                                    <div className="bg-white p-4 rounded-3xl shadow-2xl border border-gray-100 inline-block relative overflow-hidden group">
+                                        {paired ? (
+                                            <div className="h-48 w-48 flex flex-col items-center justify-center gap-4 text-emerald-500">
+                                                <CheckCircle2 size={64} />
+                                                <p className="text-[10px] font-black uppercase">¡Conectado!</p>
+                                            </div>
+                                        ) : !qrCodeUrl ? (
+                                            <div className="h-48 w-48 flex flex-col items-center justify-center gap-4">
+                                                <Loader2 className="animate-spin text-[#004D4D]" size={32} />
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Solicitando QR...</p>
+                                            </div>
+                                        ) : (
+                                            <img src={qrCodeUrl} className="h-48 w-48 opacity-90" alt="WhatsApp QR" />
+                                        )}
+                                    </div>
+                                    <div className="space-y-2 text-left">
+                                        <p className="text-[10px] text-gray-500 font-medium leading-relaxed flex gap-2">
+                                            <span className="h-4 w-4 bg-gray-900 text-white rounded-full flex items-center justify-center text-[8px] shrink-0">1</span>
+                                            Escanea este código desde WhatsApp {'>'} Dispositivos vinculados.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                                <button 
-                                    onClick={() => {
-                                        steps[step-1].action();
-                                        if (step < 3) setStep(step + 1);
-                                        else onComplete();
-                                    }}
-                                    className="flex-1 py-6 bg-gray-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-4 group"
-                                >
-                                    {steps[step-1].btnText} <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform text-cyan" />
-                                </button>
-                                <button 
-                                    onClick={() => {
-                                        if (step < 3) setStep(step + 1);
-                                        else onComplete();
-                                    }}
-                                    className="px-10 py-6 bg-gray-50 text-gray-400 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-gray-100 transition-all"
-                                >
-                                    Omitir por ahora
-                                </button>
+                                {steps[step-1].action && (
+                                    <button 
+                                        onClick={() => {
+                                            steps[step-1].action?.();
+                                            if (step === 1) setStep(2); // Avanzar manualmente solo en el 1
+                                        }}
+                                        className="flex-1 py-6 bg-gray-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-4 group"
+                                    >
+                                        {steps[step-1].btnText} <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform text-cyan" />
+                                    </button>
+                                )}
+                                
+                                {step !== 2 && (
+                                    <button 
+                                        onClick={() => {
+                                            if (step < 3) setStep(step + 1);
+                                            else onComplete();
+                                        }}
+                                        className="px-10 py-6 bg-gray-50 text-gray-400 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-gray-100 transition-all"
+                                    >
+                                        {step === 3 ? "Finalizar Guía" : "Siguiente paso"}
+                                    </button>
+                                )}
+
+                                {step === 2 && paired && (
+                                    <button 
+                                        onClick={() => setStep(3)}
+                                        className="flex-1 py-6 bg-emerald-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-2xl transition-all flex items-center justify-center gap-4"
+                                    >
+                                        Continuar al Paso 3 <ArrowRight size={20} />
+                                    </button>
+                                )}
                             </div>
                         </motion.div>
                     </AnimatePresence>
 
-                    <div className="absolute bottom-12 left-12 right-12 flex justify-between items-center opacity-40">
+                    <div className="mt-12 flex justify-between items-center opacity-40">
                         <div className="flex items-center gap-3">
                             <ShieldCheck size={16} className="text-[#004D4D]" />
                             <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Protocolo Bayup Start v2.0</span>
