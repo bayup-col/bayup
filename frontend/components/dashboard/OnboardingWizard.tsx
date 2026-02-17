@@ -73,7 +73,9 @@ export default function OnboardingWizard({ isOpen, onComplete }: OnboardingWizar
             setTimeout(() => setStep(3), 2000);
         });
 
-        return () => socket.disconnect();
+        return () => {
+            if (socket) socket.disconnect();
+        };
     }, [step, isOpen, showToast]);
 
     const steps = [
