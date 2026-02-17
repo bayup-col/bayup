@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useDroppable } from "@dnd-kit/core";
 import { DraggableCanvasElement } from "./CanvasElements";
 import { Lock, Unlock } from "lucide-react";
+import { CheckoutStudio } from "./CheckoutStudio";
 
 const DroppableSection = ({ section, headerRef, children, activeSection, setActiveSection, isPreview = false }: any) => {
   const { setNodeRef, isOver } = useDroppable({ id: section, disabled: isPreview });
@@ -153,6 +154,19 @@ export const Canvas = ({
 
   const renderElements = (section: SectionType) => {
     const data = pageData[section];
+    
+    // CASO ESPECIAL: CHECKOUT
+    if (pageKey === "checkout" && section === "body") {
+        const checkoutElement = data.elements.find((el: any) => el.type === "custom-block");
+        return (
+            <CheckoutStudio 
+                props={checkoutElement?.props || {}} 
+                updateProps={(newProps: any) => studio.updateElement("body", checkoutElement.id, newProps)}
+                isPreview={isPreview}
+            />
+        );
+    }
+
     return (
       <>
         {data.elements.map((el: any, idx: number) => (

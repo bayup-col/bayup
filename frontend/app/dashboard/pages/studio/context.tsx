@@ -207,6 +207,30 @@ const ALL_PRODUCTS_SCHEMA: PageSchema = {
   footer: { elements: [], styles: {} },
 };
 
+const CHECKOUT_SCHEMA: PageSchema = {
+    header: { elements: [], styles: {} },
+    body: {
+      elements: [
+        { 
+          id: "checkout-main", 
+          type: "custom-block", // Usaremos un bloque personalizado para el checkout
+          props: { 
+            showIdentification: true,
+            showShipping: true,
+            showPayment: true,
+            showSummary: true,
+            themeColor: "#000000",
+            accentColor: "#00f2ff",
+            borderRadius: 32,
+            fontFamily: "font-black"
+          } 
+        },
+      ],
+      styles: { backgroundColor: "#f8fafc" },
+    },
+    footer: { elements: [], styles: {} },
+  };
+
 export type ViewportType = "desktop" | "tablet" | "mobile";
 export type EditMode = "all" | "individual";
 
@@ -250,6 +274,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     home: DEFAULT_SCHEMA,
     colecciones: PRODUCT_SCHEMA,
     productos: ALL_PRODUCTS_SCHEMA,
+    checkout: CHECKOUT_SCHEMA,
     detalles: PRODUCT_SCHEMA,
     nosotros: DEFAULT_SCHEMA,
     privacidad: DEFAULT_SCHEMA
