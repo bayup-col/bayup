@@ -192,7 +192,13 @@ export const DesignerInspector = () => {
   };
 
   const addExtraElement = (type: "text" | "button" | "image") => {
-    const newEl = { id: uuidv4(), type, props: { content: "Nuevo", size: 24, posX: 0, posY: 0 } };
+    const newEl = { 
+      id: uuidv4(), 
+      type, 
+      props: type === "text" 
+        ? { content: "NUEVO TEXTO EXTRA", title: "NUEVO TEXTO EXTRA", size: 24, posX: 0, posY: 0, color: "#ffffff", font: "font-black", variant: "solid" }
+        : { content: "Nuevo", text: "Haz clic", size: 24, posX: 0, posY: 0 } 
+    };
     handleChange("extraElements", [...(element.props.extraElements || []), newEl]);
     setShowAddMenu(false);
   };
