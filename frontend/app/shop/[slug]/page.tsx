@@ -151,8 +151,21 @@ export default function PublicShopPage() {
 
     if (loading) {
         return (
-            <div className="h-screen flex flex-col items-center justify-center bg-[#001A1A]">
-                <motion.div animate={{ scale: [1, 1.1, 1], opacity: [0.3, 1, 0.3] }} transition={{ duration: 2, repeat: Infinity }} className="text-6xl font-black italic text-white tracking-tighter">BAYUP</motion.div>
+            <div className="h-screen flex flex-col items-center justify-center bg-white">
+                <div className="relative">
+                    <motion.div 
+                        animate={{ 
+                            scale: [1, 1.2, 1],
+                            rotate: [0, 180, 360]
+                        }} 
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }} 
+                        className="h-16 w-16 border-4 border-gray-100 border-t-[#004d4d] rounded-full"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="h-2 w-2 bg-[#004d4d] rounded-full animate-pulse" />
+                    </div>
+                </div>
+                <p className="mt-8 text-[10px] font-black uppercase tracking-[0.5em] text-gray-300 animate-pulse">Cargando Experiencia</p>
             </div>
         );
     }

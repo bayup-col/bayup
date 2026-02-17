@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { renderButton, renderTextWithTheme } from "./VisualEngine";
 import { useStudio } from "../context";
 import { useCart } from "@/context/cart-context";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 // --- HELPERS ---
 export const AnnouncementSlides = ({ messages, animationType = "slide", speed = 20 }: any) => {
@@ -58,13 +58,31 @@ export const DraggableCanvasElement = ({
   onOpenLogin = null
 }: any) => {
   const { viewport, pageKey } = useStudio();
+  const { slug } = useParams();
   const [scrollProgress, setScrollProgress] = React.useState(0);
-  const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false); // Movido aquí
+  const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false); 
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   
   // Hooks de Comercio
   const { addItem } = useCart();
   const router = useRouter();
+
+  const handleNavClick = (url: string) => {
+    if (!isPreview) return;
+    if (url.startsWith('http')) {
+        window.open(url, '_blank');
+        return;
+    }
+    
+    // Mapeo inteligente de rutas internas de la tienda
+    let target = `/shop/${slug}`;
+    const lowUrl = url.toLowerCase();
+    if (lowUrl.includes('tienda') || lowUrl.includes('productos')) target += '?page=productos';
+    else if (lowUrl.includes('nosotros') || lowUrl.includes('contacto')) target += '?page=nosotros';
+    
+    router.push(target);
+  };
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ 
     id: el.id, data: { type: el.type, id: el.id, section: section }, disabled: isPreview 
@@ -191,7 +209,7 @@ export const DraggableCanvasElement = ({
                       font: elProps.menuFont || "font-black"
                     };
                     return (
-                      <div key={i} className="cursor-pointer" onClick={() => { if (isPreview && m.url) router.push(m.url); }}>
+                      <div key={i} className="cursor-pointer" onClick={() => handleNavClick(m.url)}>
                         {renderTextWithTheme(labelToShow, menuProps, "none", `nav-item-${i}`)}
                       </div>
                     );
@@ -221,8 +239,27 @@ export const DraggableCanvasElement = ({
                     return (
                       <>
                         {elProps.showSearch && (
-                          <div className="cursor-pointer" onClick={() => isPreview && alert("Abriendo buscador inteligente...")}>
-                            {renderUtil(<Search size={elProps.utilitySize || 18} />, "Buscar", "nav-search")}
+                          <div className="relative flex items-center">
+                            <AnimatePresence>
+                              {isSearchOpen && (
+                                <motion.div 
+                                  initial={{ width: 0, opacity: 0 }}
+                                  animate={{ width: 200, opacity: 1 }}
+                                  exit={{ width: 0, opacity: 0 }}
+                                  className="absolute right-full mr-4 overflow-hidden"
+                                >
+                                  <input 
+                                    autoFocus
+                                    placeholder="Buscar..." 
+                                    className="w-full px-4 py-2 bg-gray-50 border rounded-full text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/20"
+                                    onBlur={() => setIsSearchOpen(false)}
+                                  />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                            <div className="cursor-pointer" onClick={() => isPreview && setIsSearchOpen(!isSearchOpen)}>
+                              {renderUtil(<Search size={elProps.utilitySize || 18} />, "Buscar", "nav-search")}
+                            </div>
                           </div>
                         )}
                         {elProps.showUser && (
