@@ -236,6 +236,13 @@ export const DesignerInspector = () => {
               item.id === uploadTarget.id ? { ...item, [keyToUpdate]: url, url: url, type: isVideo ? 'video' : 'image' } : item
             );
             handleChange("extraElements", newList);
+          } else if (keyToUpdate.startsWith("cat-img-")) {
+            const idx = parseInt(keyToUpdate.split("-")[2]);
+            const newItems = [...(element.props.items || [])];
+            if (newItems[idx]) {
+              newItems[idx].imageUrl = url;
+              handleChange("items", newItems);
+            }
           } else {
             if (keyToUpdate === "bgBackground") { 
               handleChange(isVideo ? "videoUrl" : "imageUrl", url); 
@@ -578,7 +585,70 @@ export const DesignerInspector = () => {
 
                 {element.type === "categories-grid" && (
                   <>
-                    <ControlGroup title="Configuración de Grilla" icon={Layout} defaultOpen={true}>
+                    <ControlGroup title="1. Selección de Categorías" icon={Layout} defaultOpen={true}>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-2">
+                          {(element.props.items || []).map((item: any, idx: number) => (
+                            <div key={item.id || idx} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3 relative group/cat">
+                              <button 
+                                onClick={() => {
+                                  const newItems = element.props.items.filter((_: any, i: number) => i !== idx);
+                                  handleChange("items", newItems);
+                                }} 
+                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover/cat:opacity-100 transition-opacity shadow-lg z-10"
+                              >
+                                <X size={10}/>
+                              </button>
+                              
+                              <div className="flex gap-3">
+                                <div 
+                                  onClick={() => triggerUpload(`cat-img-${idx}`, item.id)} 
+                                  className="w-16 h-16 shrink-0 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center cursor-pointer hover:border-blue-400 relative overflow-hidden"
+                                >
+                                  {item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" /> : <ImageIcon size={16} className="text-gray-300" />}
+                                </div>
+                                <div className="flex-1 space-y-2">
+                                  <input 
+                                    type="text" 
+                                    value={item.title || ""} 
+                                    onChange={(e) => {
+                                      const newItems = [...element.props.items];
+                                      newItems[idx].title = e.target.value;
+                                      handleChange("items", newItems);
+                                    }} 
+                                    className="w-full p-2 border rounded-lg text-[10px] font-bold" 
+                                    placeholder="Nombre de Categoría" 
+                                  />
+                                  <select 
+                                    value={item.realId || ""} 
+                                    onChange={(e) => {
+                                      const newItems = [...element.props.items];
+                                      newItems[idx].realId = e.target.value;
+                                      handleChange("items", newItems);
+                                    }}
+                                    className="w-full p-1.5 border rounded-lg text-[9px] bg-white outline-none"
+                                  >
+                                    <option value="">Vincular a Real...</option>
+                                    {realCategories.map(rc => <option key={rc.id} value={rc.id}>{rc.title}</option>)}
+                                  </select>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <button 
+                          onClick={() => {
+                            const newItem = { id: uuidv4(), title: "Nueva Categoría", imageUrl: null, realId: null };
+                            handleChange("items", [...(element.props.items || []), newItem]);
+                          }}
+                          className="w-full py-3 border-2 border-dashed rounded-2xl text-[9px] font-black text-gray-400 uppercase hover:text-blue-500 hover:border-blue-200 transition-all"
+                        >
+                          + Añadir Tarjeta de Categoría
+                        </button>
+                      </div>
+                    </ControlGroup>
+
+                    <ControlGroup title="2. Diseño de Tarjetas" icon={Palette}>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-3">
                           <FluidSlider label="Columnas" value={element.props.columns || 3} min={1} max={6} onChange={(v:number) => handleChange("columns", v)} />
@@ -586,10 +656,6 @@ export const DesignerInspector = () => {
                         </div>
                         <FluidSlider label="Altura Tarjeta" value={element.props.cardHeight || 300} min={150} max={600} onChange={(v:number) => handleChange("cardHeight", v)} />
                         <FluidSlider label="Redondeo" value={element.props.cardBorderRadius || 32} min={0} max={60} onChange={(v:number) => handleChange("cardBorderRadius", v)} />
-                      </div>
-                    </ControlGroup>
-                    <ControlGroup title="Estilo Visual" icon={Palette}>
-                      <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-lg">
                           {[{id:"premium", l:"Premium"}, {id:"glass", l:"Glass"}].map(s => (
                             <button key={s.id} onClick={() => handleChange("cardStyle", s.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", element.props.cardStyle === s.id ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{s.l}</button>
@@ -597,6 +663,31 @@ export const DesignerInspector = () => {
                         </div>
                       </div>
                     </ControlGroup>
+
+                    {renderModularTextDesigner(
+                      { 
+                        content: "Vista previa", 
+                        variant: element.props.catTitleVariant, 
+                        color: element.props.catTitleColor, 
+                        size: element.props.catTitleSize, 
+                        font: element.props.catTitleFont, 
+                        posX: element.props.catTitlePosX, 
+                        posY: element.props.catTitlePosY, 
+                        intensity: element.props.catTitleIntensity 
+                      }, 
+                      (p) => {
+                        const updates: any = {};
+                        if ('variant' in p) updates.catTitleVariant = p.variant;
+                        if ('color' in p) updates.catTitleColor = p.color;
+                        if ('size' in p) updates.catTitleSize = p.size;
+                        if ('font' in p) updates.catTitleFont = p.font;
+                        if ('posX' in p) updates.catTitlePosX = p.posX;
+                        if ('posY' in p) updates.catTitlePosY = p.posY;
+                        if ('intensity' in p) updates.catTitleIntensity = p.intensity;
+                        handleChange("", updates); // Usamos handleChange especial o updateElement directo
+                        Object.keys(updates).forEach(k => handleChange(k, updates[k]));
+                      }, "Diseño de Títulos"
+                    )}
                   </>
                 )}
 

@@ -638,7 +638,16 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                gridGap: 24,
                cardHeight: 300,
                cardStyle: "premium",
-               cardBorderRadius: 32
+               cardBorderRadius: 32,
+               items: [],
+               // Propiedades de Texto de Categoría
+               catTitleColor: "#ffffff",
+               catTitleSize: 20,
+               catTitleFont: "font-black",
+               catTitleVariant: "solid",
+               catTitlePosX: 0,
+               catTitlePosY: 0,
+               catTitleIntensity: 100
              } : { content: "Nuevo Elemento" },
     };
 

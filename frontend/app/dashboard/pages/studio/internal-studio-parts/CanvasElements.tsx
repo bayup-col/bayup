@@ -439,50 +439,59 @@ export const DraggableCanvasElement = ({
                     gap: `${elProps.gridGap || 24}px` 
                   }}
                 >
-                  {(realCategories && realCategories.length > 0 ? realCategories : [
-                    { id: 'cat-1', title: 'Colección Verano' },
-                    { id: 'cat-2', title: 'Accesorios Tech' },
-                    { id: 'cat-3', title: 'Edición Limitada' }
-                  ]).map((cat: any) => (
-                    <motion.div 
-                      key={cat.id} whileHover={{ scale: 1.05, y: -5 }}
-                      onClick={() => {
-                        if (isPreview) {
-                          router.push(`/shop/${slug}?page=productos&selectedCategory=${cat.id}`);
-                        }
-                      }}
-                      className={cn(
-                        "relative group flex items-center justify-center overflow-hidden cursor-pointer",
-                        elProps.cardStyle === "glass" ? "bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl" : "bg-white shadow-xl border border-gray-100"
-                      )}
-                      style={{ 
-                        height: elProps.cardHeight || 300, 
-                        borderRadius: `${elProps.cardBorderRadius || 32}px` 
-                      }}
-                    >
-                      {/* IMAGEN DE FONDO DE CATEGORÍA */}
-                      {cat.image_url && (
-                        <div className="absolute inset-0 z-0">
-                          <img src={cat.image_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={cat.title} />
-                          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-500" />
-                        </div>
-                      )}
+                  {((elProps.items && elProps.items.length > 0) ? elProps.items : [
+                    { id: 'cat-1', title: 'Colección Verano', imageUrl: null, realId: null },
+                    { id: 'cat-2', title: 'Accesorios Tech', imageUrl: null, realId: null },
+                    { id: 'cat-3', title: 'Edición Limitada', imageUrl: null, realId: null }
+                  ]).map((cat: any, idx: number) => {
+                    const targetUrl = cat.imageUrl || (realCategories?.find((rc:any) => rc.id === cat.realId)?.image_url);
+                    
+                    return (
+                      <motion.div 
+                        key={cat.id || idx} whileHover={{ scale: 1.05, y: -5 }}
+                        onClick={() => {
+                          if (isPreview) {
+                            const finalCatId = cat.realId || cat.id;
+                            router.push(`/shop/${slug}?page=productos&selectedCategory=${finalCatId}`);
+                          }
+                        }}
+                        className={cn(
+                          "relative group flex items-center justify-center overflow-hidden cursor-pointer",
+                          elProps.cardStyle === "glass" ? "bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl" : "bg-white shadow-xl border border-gray-100"
+                        )}
+                        style={{ 
+                          height: elProps.cardHeight || 300, 
+                          borderRadius: `${elProps.cardBorderRadius || 32}px` 
+                        }}
+                      >
+                        {/* IMAGEN DE FONDO DE CATEGORÍA */}
+                        {targetUrl && (
+                          <div className="absolute inset-0 z-0">
+                            <img src={targetUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={cat.title} />
+                            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-500" />
+                          </div>
+                        )}
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="relative z-20 text-center p-6">
-                        <h4 className={cn(
-                          "text-xl font-black uppercase italic tracking-tighter transition-colors",
-                          cat.image_url ? "text-white" : "text-gray-900 group-hover:text-blue-600"
-                        )}>
-                          {cat.title}
-                        </h4>
-                        <div className="mt-4 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
-                          <span className="text-[10px] font-black uppercase text-white tracking-widest">Ver Productos</span>
-                          <ArrowRight size={14} className="text-white" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="relative z-20 text-center p-6 w-full h-full flex flex-col items-center justify-center">
+                          {renderTextWithTheme(cat.title, {
+                            variant: elProps.catTitleVariant,
+                            color: elProps.catTitleColor || (targetUrl ? "#ffffff" : "#111827"),
+                            size: elProps.catTitleSize || 20,
+                            font: elProps.catTitleFont || "font-black",
+                            posX: elProps.catTitlePosX,
+                            posY: elProps.catTitlePosY,
+                            intensity: elProps.catTitleIntensity || 100
+                          }, "none", `cat-title-${cat.id || idx}`)}
+                          
+                          <div className="mt-4 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
+                            <span className="text-[10px] font-black uppercase text-white tracking-widest">Ver Productos</span>
+                            <ArrowRight size={14} className="text-white" />
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
                 </div>
               )}
 
