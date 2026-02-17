@@ -59,6 +59,7 @@ export const DraggableCanvasElement = ({
 }: any) => {
   const { viewport, pageKey } = useStudio();
   const [scrollProgress, setScrollProgress] = React.useState(0);
+  const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false); // Movido aquí
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   
   // Hooks de Comercio
@@ -216,8 +217,6 @@ export const DraggableCanvasElement = ({
                       };
                       return renderTextWithTheme(content, utilProps, "none", id);
                     };
-
-                    const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
 
                     return (
                       <>
