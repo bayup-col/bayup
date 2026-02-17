@@ -346,7 +346,7 @@ export const DraggableCanvasElement = ({
             className={cn(
               "w-full flex flex-col p-12 relative shadow-lg items-center text-center",
               (el.type === "product-grid" || el.type === "product-master-view") ? "justify-start" : "justify-center",
-              selectedElementId === el.id ? "overflow-visible" : "overflow-hidden"
+              // Removido: overflow-visible/hidden para no interferir con backdrop-filter
             )}
           >
             {elProps.bgType === "video" && (elProps.videoUrl || elProps.videoExternalUrl) && (

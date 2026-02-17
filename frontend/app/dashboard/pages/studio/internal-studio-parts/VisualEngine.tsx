@@ -81,8 +81,8 @@ export const renderTextWithTheme = (text: any, props: any, prefix: string = "", 
 
   // POTENCIADOR DE INTENSIDAD (Afecta brillo, escala y opacidad de forma equilibrada)
   const intensityFactor = intensity / 100;
-  const brightness = 100 + (intensity > 100 ? (intensity - 100) * 0.8 : 0);
-  const scale = 1 + (intensity > 100 ? (intensity - 100) * 0.0015 : 0);
+  const brightness = 100 + (intensity > 100 ? (intensity - 100) * 1.5 : 0); // Ajustado de 0.8 a 1.5 para mayor brillo
+  const scale = 1 + (intensity > 100 ? (intensity - 100) * 0.0025 : 0); // Ajustado de 0.0015 a 0.0025 para una escala más notable
 
   let themeStyles: any = { 
     color, 
