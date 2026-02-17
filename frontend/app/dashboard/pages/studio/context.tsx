@@ -198,7 +198,8 @@ const ALL_PRODUCTS_SCHEMA: PageSchema = {
           filterRadius: 24,
           cardStyle: "premium",
           cardBorderRadius: 32,
-          gridGap: 32
+          gridGap: 32,
+          height: 812
         } 
       }
     ],
@@ -446,6 +447,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                cardStyle: "premium", 
                cardBorderRadius: 20,
                cardHeight: 450,
+               height: 812,
                showDescription: false,
                descriptionColor: "#9ca3af",
                descriptionFont: "font-sans",
