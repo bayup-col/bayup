@@ -338,15 +338,13 @@ export const DraggableCanvasElement = ({
           <motion.div 
             layout initial={false} 
             animate={{ 
-              minHeight: elProps.height || 400, 
-              height: "auto",
+              height: elProps.height || 400,
               backgroundColor: elProps.bgColor || (pageKey === "colecciones" ? "#ffffff" : "#111827") 
             }} 
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className={cn(
               "w-full flex flex-col p-12 relative shadow-lg items-center text-center",
               (el.type === "product-grid" || el.type === "product-master-view") ? "justify-start" : "justify-center",
-              // Removido: overflow-visible/hidden para no interferir con backdrop-filter
             )}
           >
             {elProps.bgType === "video" && (elProps.videoUrl || elProps.videoExternalUrl) && (
