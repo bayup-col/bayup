@@ -597,6 +597,15 @@ export const DesignerInspector = () => {
                           if ('intensity' in p) updates.cardTitleIntensity = p.intensity;
                           updateElement(sectionKey, selectedElementId, updates);
                         }, "Personalización Nombre")}
+                        {element.props.showDescription && renderModularTextDesigner({ variant: element.props.descriptionVariant, color: element.props.descriptionColor, size: element.props.descriptionSize, font: element.props.descriptionFont, intensity: element.props.descriptionIntensity || 100 }, (p) => {
+                          const updates: any = {};
+                          if ('variant' in p) updates.descriptionVariant = p.variant;
+                          if ('color' in p) updates.descriptionColor = p.color;
+                          if ('size' in p) updates.descriptionSize = p.size;
+                          if ('font' in p) updates.descriptionFont = p.font;
+                          if ('intensity' in p) updates.descriptionIntensity = p.intensity;
+                          updateElement(sectionKey, selectedElementId, updates);
+                        }, "Personalización Descripción")}
                         {element.props.showPrice && renderModularTextDesigner({ variant: element.props.priceVariant, color: element.props.priceColor, size: element.props.priceSize, font: element.props.priceFont, intensity: element.props.priceIntensity || 100 }, (p) => {
                           const updates: any = {};
                           if ('variant' in p) updates.priceVariant = p.variant;

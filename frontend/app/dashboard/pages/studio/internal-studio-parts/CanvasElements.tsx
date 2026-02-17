@@ -525,7 +525,7 @@ export const DraggableCanvasElement = ({
                                 "p-8 flex flex-col justify-between flex-1",
                                 cardAlign === "left" ? "text-left items-start" : cardAlign === "right" ? "text-right items-end" : "text-center items-center"
                               )}>
-                                <div className="space-y-2 w-full">
+                                <div className="flex flex-col gap-2 w-full">
                                   {renderTextWithTheme(p.name || p.title, {
                                     variant: elProps.cardTitleVariant,
                                     color: elProps.cardTitleColor || (cardStyle === "glass" ? "#ffffff" : "#111827"),
@@ -534,6 +534,14 @@ export const DraggableCanvasElement = ({
                                     intensity: elProps.cardTitleIntensity || 100
                                   }, "none", `prod-title-${p.id}`)}
                                   
+                                  {elProps.showDescription && renderTextWithTheme(p.description || "Breve descripción...", {
+                                    variant: elProps.descriptionVariant,
+                                    color: elProps.descriptionColor || "#9ca3af",
+                                    size: elProps.descriptionSize || 9,
+                                    font: elProps.descriptionFont || "font-sans",
+                                    intensity: elProps.descriptionIntensity || 100
+                                  }, "none", `prod-desc-${p.id}`)}
+
                                   {elProps.showPrice && renderTextWithTheme(`$${Number(p.price).toLocaleString()}`, {
                                     variant: elProps.priceVariant,
                                     color: elProps.priceColor || "#2563eb",
