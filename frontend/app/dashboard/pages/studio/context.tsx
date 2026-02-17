@@ -658,6 +658,19 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
         schema_data: pageData
       });
       showToast("¡Página publicada con éxito! 🚀", "success");
+
+      // ABRIR TIENDA PÚBLICA AUTOMÁTICAMENTE
+      const savedSettings = localStorage.getItem('bayup_general_settings');
+      let slug = "preview";
+      if (savedSettings) {
+          const parsed = JSON.parse(savedSettings);
+          slug = parsed.contact?.shop_slug || "preview";
+      }
+      
+      setTimeout(() => {
+          window.open(`/shop/${slug}`, '_blank');
+      }, 1000);
+
     } catch (e: any) {
       console.error("Publish error:", e);
       showToast(e.message || "Error al publicar la página", "error");

@@ -93,6 +93,10 @@ const renderModularTextDesigner = (props: any, onUpdate: (p: any) => void, title
           <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={props.color || "#ffffff"} onChange={(e) => onUpdate({ color: e.target.value })} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase">Color</span></div>
         </div>
         <FluidSlider label="Tamaño" value={props.size || 24} min={10} max={120} onChange={(val:number) => onUpdate({ size: val })} />
+        <div className="grid grid-cols-2 gap-3">
+          <FluidSlider label="Posición X" value={props.posX || 0} min={-500} max={500} onChange={(val:number) => onUpdate({ posX: val })} />
+          <FluidSlider label="Posición Y" value={props.posY || 0} min={-500} max={500} onChange={(val:number) => onUpdate({ posY: val })} />
+        </div>
         <FluidSlider label="Intensidad Visual" value={props.intensity || 100} min={0} max={200} onChange={(val:number) => onUpdate({ intensity: val })} />
       </div>
     </ControlGroup>
@@ -115,10 +119,13 @@ const renderModularButtonDesigner = (props: any, onUpdate: (p: any) => void, tit
         <div className="space-y-2">
           <span className="text-[9px] font-black text-gray-400 uppercase">Tema de Botón</span>
           <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-lg">
-            {["solid", "outline", "glass", "aurora"].map(v => (<button key={v} onClick={() => onUpdate({ variant: v })} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (variant === v) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v}</button>))}
+            {["solid", "outline", "glass", "aurora", "neon"].map(v => (<button key={v} onClick={() => onUpdate({ variant: v })} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (variant === v) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v}</button>))}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3"><FluidSlider label="Posición X" value={props.posX || 0} min={-500} max={500} onChange={(val:number) => onUpdate({ posX: val })} /><FluidSlider label="Posición Y" value={props.posY || 0} min={-200} max={200} onChange={(val:number) => onUpdate({ posY: val })} /></div>
+        <div className="grid grid-cols-2 gap-3">
+          <FluidSlider label="Posición X" value={props.posX || 0} min={-500} max={500} onChange={(val:number) => onUpdate({ posX: val })} />
+          <FluidSlider label="Posición Y" value={props.posY || 0} min={-200} max={200} onChange={(val:number) => onUpdate({ posY: val })} />
+        </div>
       </div>
     </ControlGroup>
   );
@@ -435,16 +442,34 @@ export const DesignerInspector = () => {
                         updateElement(sectionKey, selectedElementId, updates);
                       }, "Descripción"
                     )}
-                    {renderModularButtonDesigner({ ...element.props, text: element.props.primaryBtnText, url: element.props.primaryBtnUrl, variant: element.props.primaryBtnVariant, bgColor: element.props.primaryBtnBgColor, size: element.props.primaryBtnSize }, (p) => {
+                    {renderModularButtonDesigner({ ...element.props, text: element.props.primaryBtnText, url: element.props.primaryBtnUrl, variant: element.props.primaryBtnVariant, bgColor: element.props.primaryBtnBgColor, size: element.props.primaryBtnSize, posX: element.props.primaryBtnPosX, posY: element.props.primaryBtnPosY }, (p) => {
                       const updates: any = {};
                       if ('text' in p) updates.primaryBtnText = p.text;
                       if ('url' in p) updates.primaryBtnUrl = p.url;
                       if ('variant' in p) updates.primaryBtnVariant = p.variant;
                       if ('bgColor' in p) updates.primaryBtnBgColor = p.bgColor;
                       if ('size' in p) updates.primaryBtnSize = p.size;
+                      if ('posX' in p) updates.primaryBtnPosX = p.posX;
+                      if ('posY' in p) updates.primaryBtnPosY = p.posY;
                       updateElement(sectionKey, selectedElementId, updates);
                     }, "Botón Primario")}
-                    {renderModularMultimediaDesigner({ ...element.props, floatUrl: element.props.floatUrl, floatSize: element.props.floatSize, floatRadius: element.props.floatRadius, floatPosX: element.props.floatPosX, floatPosY: element.props.floatPosY }, (p) => { const mapping: any = { floatType: 'floatType', url: 'floatUrl', floatUrl: 'floatUrl', floatAnim: 'floatAnim', size: 'floatSize', floatSize: 'floatSize', radius: 'floatRadius', floatRadius: 'floatRadius', posX: 'floatPosX', floatPosX: 'floatPosX', posY: 'floatPosY', floatPosY: 'floatPosY' }; const updates: Record<string, any> = {}; Object.keys(p).forEach(k => { if (mapping[k]) updates[mapping[k]] = p[k]; }); updateElement(sectionKey, selectedElementId, updates); }, "Imagen Complemento", triggerUpload, false, undefined, "floatUrl")}
+                    {renderModularButtonDesigner({ ...element.props, text: element.props.secondaryBtnText, url: element.props.secondaryBtnUrl, variant: element.props.secondaryBtnVariant, bgColor: element.props.secondaryBtnBgColor, size: element.props.secondaryBtnSize, posX: element.props.secondaryBtnPosX, posY: element.props.secondaryBtnPosY }, (p) => {
+                      const updates: any = {};
+                      if ('text' in p) updates.secondaryBtnText = p.text;
+                      if ('url' in p) updates.secondaryBtnUrl = p.url;
+                      if ('variant' in p) updates.secondaryBtnVariant = p.variant;
+                      if ('bgColor' in p) updates.secondaryBtnBgColor = p.bgColor;
+                      if ('size' in p) updates.secondaryBtnSize = p.size;
+                      if ('posX' in p) updates.secondaryBtnPosX = p.posX;
+                      if ('posY' in p) updates.secondaryBtnPosY = p.posY;
+                      updateElement(sectionKey, selectedElementId, updates);
+                    }, "Botón Secundario")}
+                    {renderModularMultimediaDesigner({ ...element.props, floatUrl: element.props.floatUrl, floatSize: element.props.floatSize, floatRadius: element.props.floatRadius, floatPosX: element.props.floatPosX, floatPosY: element.props.floatPosY }, (p) => { 
+                      const mapping: any = { floatType: 'floatType', url: 'floatUrl', floatUrl: 'floatUrl', floatAnim: 'floatAnim', size: 'floatSize', floatSize: 'floatSize', radius: 'floatRadius', floatRadius: 'floatRadius', posX: 'floatPosX', floatPosX: 'floatPosX', posY: 'floatPosY', floatPosY: 'floatPosY' }; 
+                      const updates: Record<string, any> = {}; 
+                      Object.keys(p).forEach(k => { if (mapping[k]) updates[mapping[k]] = p[k]; }); 
+                      updateElement(sectionKey, selectedElementId, updates); 
+                    }, "Imagen Complemento", triggerUpload, false, undefined, "floatUrl")}
                   </>
                 )}
 
