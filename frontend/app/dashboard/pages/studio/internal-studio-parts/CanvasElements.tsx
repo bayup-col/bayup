@@ -114,8 +114,7 @@ export const DraggableCanvasElement = ({
       onClick={(e) => { if (isPreview) return; e.stopPropagation(); selectElement(el.id); setActiveSection(section); }} 
       className={cn(
         "relative group transition-all", 
-        !isPreview && (selectedElementId === el.id ? "ring-2 ring-blue-500 rounded-lg shadow-xl z-[400]" : "hover:ring-1 hover:ring-blue-300 rounded-lg"),
-        selectedElementId === el.id ? "overflow-visible" : "overflow-hidden"
+        !isPreview && (selectedElementId === el.id ? "ring-2 ring-blue-500 rounded-lg shadow-xl z-[400]" : "hover:ring-1 hover:ring-blue-300 rounded-lg")
       )}
     >
       
