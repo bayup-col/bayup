@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { renderButton, renderTextWithTheme } from "./VisualEngine";
 import { useStudio } from "../context";
 import { useCart } from "@/context/cart-context";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 
 // --- HELPERS ---
 export const AnnouncementSlides = ({ messages, animationType = "slide", speed = 20 }: any) => {
@@ -59,6 +59,8 @@ export const DraggableCanvasElement = ({
 }: any) => {
   const { viewport, pageKey } = useStudio();
   const { slug } = useParams();
+  const searchParams = useSearchParams();
+  const productId = searchParams.get("productId");
   const [scrollProgress, setScrollProgress] = React.useState(0);
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false); 
@@ -487,7 +489,11 @@ export const DraggableCanvasElement = ({
                           return (
                             <motion.div 
                               key={p.id} whileHover={{ y: -10, scale: 1.02 }}
-                              onClick={() => isPreview && router.push(`/shop/${pageKey}/product/${p.id}`)}
+                              onClick={() => {
+                                if (isPreview) {
+                                  router.push(`/shop/${slug}?page=colecciones&productId=${p.id}`);
+                                }
+                              }}
                               className={cn(
                                 "relative group flex flex-col overflow-hidden transition-all duration-500 cursor-pointer",
                                 cardStyle === "premium" ? "bg-white shadow-xl hover:shadow-2xl" : 
@@ -612,29 +618,45 @@ export const DraggableCanvasElement = ({
               )}
 
               {el.type === "product-master-view" && (
-                <div className="w-full grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-24 py-20 px-8 text-left animate-in fade-in duration-1000">
-                  <div className="flex flex-col gap-8">
-                    <div className="w-full aspect-[4/5] bg-gray-50 overflow-hidden shadow-2xl relative rounded-[3rem] border border-gray-100">
-                      <img src={elProps.mainImage} className="w-full h-full object-cover" />
+                (() => {
+                  // LÓGICA DINÁMICA PARA VISTA DE PRODUCTO REAL
+                  let displayProps = { ...elProps };
+                  if (isPreview && productId && realProducts) {
+                    const foundProd = realProducts.find((rp: any) => rp.id === productId || rp.sku === productId);
+                    if (foundProd) {
+                      displayProps.mainImage = Array.isArray(foundProd.image_url) ? foundProd.image_url[0] : (foundProd.image_url || foundProd.main_image);
+                      displayProps.title = foundProd.name || foundProd.title;
+                      displayProps.price = foundProd.price;
+                      displayProps.description = foundProd.description || foundProd.desc || displayProps.description;
+                    }
+                  }
+
+                  return (
+                    <div className="w-full grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-24 py-20 px-8 text-left animate-in fade-in duration-1000">
+                      <div className="flex flex-col gap-8">
+                        <div className="w-full aspect-[4/5] bg-gray-50 overflow-hidden shadow-2xl relative rounded-[3rem] border border-gray-100">
+                          <img src={displayProps.mainImage} className="w-full h-full object-cover" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-12 py-6">
+                        <div className="space-y-8">
+                          <h2 className="text-5xl font-black uppercase italic tracking-tighter">{displayProps.title}</h2>
+                          <p className="text-2xl font-black text-blue-600">${Number(displayProps.price || 0).toLocaleString()}</p>
+                          <p className="text-gray-500 leading-relaxed italic">{displayProps.description}</p>
+                        </div>
+                        <div className="flex gap-4">
+                          <button 
+                            onClick={() => isPreview && addItem({id: productId || 'p1', title: displayProps.title, price: Number(displayProps.price), image: displayProps.mainImage, quantity: 1})}
+                            className="flex-1 py-5 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl"
+                          >
+                            Añadir al Carrito
+                          </button>
+                          <button onClick={() => isPreview && handleNavClick('checkout')} className="flex-1 py-5 border-2 border-black rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-xl">Comprar Ahora</button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex flex-col gap-12 py-6">
-                    <div className="space-y-8">
-                      <h2 className="text-5xl font-black uppercase italic tracking-tighter">{elProps.title}</h2>
-                      <p className="text-2xl font-black text-blue-600">${Number(elProps.price || 0).toLocaleString()}</p>
-                      <p className="text-gray-500 leading-relaxed italic">{elProps.description}</p>
-                    </div>
-                    <div className="flex gap-4">
-                      <button 
-                        onClick={() => isPreview && addItem({id: 'p1', title: elProps.title, price: Number(elProps.price), image: elProps.mainImage, quantity: 1})}
-                        className="flex-1 py-5 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl"
-                      >
-                        Añadir al Carrito
-                      </button>
-                      <button onClick={() => isPreview && router.push("/checkout")} className="flex-1 py-5 border-2 border-black rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-xl">Comprar Ahora</button>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()
               )}
 
             </div>
