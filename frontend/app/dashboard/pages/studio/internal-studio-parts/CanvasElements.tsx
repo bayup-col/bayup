@@ -372,7 +372,7 @@ export const DraggableCanvasElement = ({
               
               {/* --- RENDERIZADO CONDICIONAL POR TIPO --- */}
               
-              {(el.type === "hero-banner" || el.type === "text" || el.type === "product-grid") && (
+              {(el.type === "hero-banner" || el.type === "text" || el.type === "product-grid" || el.type === "categories-grid") && (
                 <>
                   <div className="space-y-4 w-full">
                     {elProps.title && <div className="w-full">{renderTextWithTheme(elProps.title, elProps, "title")}</div>}
@@ -429,6 +429,50 @@ export const DraggableCanvasElement = ({
                     </div>
                   ))}
                 </>
+              )}
+
+              {el.type === "categories-grid" && (
+                <div 
+                  className="grid w-full mt-8" 
+                  style={{ 
+                    gridTemplateColumns: `repeat(${elProps.columns || 3}, minmax(0, 1fr))`, 
+                    gap: `${elProps.gridGap || 24}px` 
+                  }}
+                >
+                  {(realCategories && realCategories.length > 0 ? realCategories : [
+                    { id: 'cat-1', title: 'Colección Verano' },
+                    { id: 'cat-2', title: 'Accesorios Tech' },
+                    { id: 'cat-3', title: 'Edición Limitada' }
+                  ]).map((cat: any) => (
+                    <motion.div 
+                      key={cat.id} whileHover={{ scale: 1.05, y: -5 }}
+                      onClick={() => {
+                        if (isPreview) {
+                          router.push(`/shop/${slug}?page=productos&selectedCategory=${cat.id}`);
+                        }
+                      }}
+                      className={cn(
+                        "relative group flex items-center justify-center overflow-hidden cursor-pointer",
+                        elProps.cardStyle === "glass" ? "bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl" : "bg-white shadow-xl border border-gray-100"
+                      )}
+                      style={{ 
+                        height: elProps.cardHeight || 300, 
+                        borderRadius: `${elProps.cardBorderRadius || 32}px` 
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="relative z-20 text-center p-6">
+                        <h4 className="text-xl font-black uppercase italic tracking-tighter text-gray-900 group-hover:text-white transition-colors">
+                          {cat.title}
+                        </h4>
+                        <div className="mt-4 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
+                          <span className="text-[10px] font-black uppercase text-white tracking-widest">Ver Productos</span>
+                          <ArrowRight size={14} className="text-white" />
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
               )}
 
               {el.type === "product-grid" && (

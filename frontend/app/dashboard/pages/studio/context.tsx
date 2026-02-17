@@ -9,7 +9,7 @@ import { useSearchParams } from "next/navigation";
 
 export type SectionType = "header" | "body" | "footer";
 
-export type ComponentType = "text" | "button" | "image" | "product-grid" | "hero-banner" | "video" | "announcement-bar" | "navbar" | "custom-block" | "cards" | "product-master-view" | "footer-premium";
+export type ComponentType = "text" | "button" | "image" | "product-grid" | "hero-banner" | "video" | "announcement-bar" | "navbar" | "custom-block" | "cards" | "product-master-view" | "footer-premium" | "categories-grid";
 
 export interface StudioElement {
   id: string;
@@ -630,6 +630,15 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                 variants: ["S", "M", "L", "XL"],
                 colors: ["#000000", "#ffffff", "#2563eb"],
                 mainImage: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop"
+             } : 
+             type === "categories-grid" ? {
+               ...standardBodyProps,
+               title: "Explora Colecciones",
+               columns: 3,
+               gridGap: 24,
+               cardHeight: 300,
+               cardStyle: "premium",
+               cardBorderRadius: 32
              } : { content: "Nuevo Elemento" },
     };
 

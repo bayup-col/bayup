@@ -576,6 +576,30 @@ export const DesignerInspector = () => {
                   </>
                 )}
 
+                {element.type === "categories-grid" && (
+                  <>
+                    <ControlGroup title="Configuración de Grilla" icon={Layout} defaultOpen={true}>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <FluidSlider label="Columnas" value={element.props.columns || 3} min={1} max={6} onChange={(v:number) => handleChange("columns", v)} />
+                          <FluidSlider label="Separación" value={element.props.gridGap || 24} min={0} max={100} onChange={(v:number) => handleChange("gridGap", v)} />
+                        </div>
+                        <FluidSlider label="Altura Tarjeta" value={element.props.cardHeight || 300} min={150} max={600} onChange={(v:number) => handleChange("cardHeight", v)} />
+                        <FluidSlider label="Redondeo" value={element.props.cardBorderRadius || 32} min={0} max={60} onChange={(v:number) => handleChange("cardBorderRadius", v)} />
+                      </div>
+                    </ControlGroup>
+                    <ControlGroup title="Estilo Visual" icon={Palette}>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-lg">
+                          {[{id:"premium", l:"Premium"}, {id:"glass", l:"Glass"}].map(s => (
+                            <button key={s.id} onClick={() => handleChange("cardStyle", s.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", element.props.cardStyle === s.id ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{s.l}</button>
+                          ))}
+                        </div>
+                      </div>
+                    </ControlGroup>
+                  </>
+                )}
+
                 {element.type === "product-grid" && (
                   <>
                     <ControlGroup title="Filtros y Grilla" icon={Layout} defaultOpen={true}>

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useStudio, ComponentType } from "../context";
-import { LayoutTemplate, Monitor, ArrowDownToLine, Type, Image as ImageIcon, MousePointerClick, ShoppingBag, Video } from "lucide-react";
+import { LayoutTemplate, Monitor, ArrowDownToLine, Type, Image as ImageIcon, MousePointerClick, ShoppingBag, Video, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDraggable } from "@dnd-kit/core";
 
@@ -14,6 +14,7 @@ const AVAILABLE_COMPONENTS = {
   ],
   body: [
     { type: "hero-banner" as ComponentType, label: "Hero Banner", icon: Monitor },
+    { type: "categories-grid" as ComponentType, label: "Categorías", icon: LayoutGrid },
     { type: "product-grid" as ComponentType, label: "Grilla Productos", icon: ShoppingBag },
     { type: "cards" as ComponentType, label: "Cards", icon: LayoutTemplate },
     { type: "video" as ComponentType, label: "Video Promocional", icon: Video },
