@@ -293,13 +293,12 @@ export const DesignerInspector = () => {
                         </div>
                       </div>
                     )}
-                    <div className="space-y-2">
-                      <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Visual</span>
-                      <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
-                        {["none", "glass", "neon", "aurora"].map(e => (<button key={e.id} onClick={() => handleChange("menuEffect", e.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.menuEffect === e.id || (!element.props.menuEffect && e.id === "none")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{e.l}</button>))}
-                      </div>
-                    </div>
-                    {element.props.menuEffect === "aurora" && (
+                                          <div className="space-y-2">
+                                          <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Visual</span>
+                                          <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                                            {[{id:"none", l:"Sólido"}, {id:"glass", l:"Glass"}, {id:"neon", l:"Neón"}, {id:"aurora", l:"Aurora"}].map(e => (<button key={e.id} onClick={() => handleChange("menuEffect", e.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.menuEffect === e.id || (!element.props.menuEffect && e.id === "none")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{e.l}</button>))}
+                                          </div>
+                                        </div>                    {element.props.menuEffect === "aurora" && (
                       <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-2">
                         <div className="grid grid-cols-2 gap-2">
                           <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-blue-100"><input type="color" value={element.props.menuAurora1 || "#00f2ff"} onChange={(e) => handleChange("menuAurora1", e.target.value)} className="w-6 h-6 rounded-md p-0 cursor-pointer bg-transparent" /><span className="text-[8px] text-gray-400">Color 1</span></div>
@@ -345,7 +344,7 @@ export const DesignerInspector = () => {
                       <div className="space-y-2">
                         <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Visual</span>
                         <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
-                          {["none", "glass", "neon", "aurora"].map(e => (<button key={e.id} onClick={() => handleChange("utilityEffect", e.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.utilityEffect === e.id || (!element.props.utilityEffect && e.id === "none")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{e.l}</button>))}
+                          {[{id:"none", l:"Sólido"}, {id:"glass", l:"Glass"}, {id:"neon", l:"Neón"}, {id:"aurora", l:"Aurora"}].map(e => (<button key={e.id} onClick={() => handleChange("utilityEffect", e.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.utilityEffect === e.id || (!element.props.utilityEffect && e.id === "none")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{e.l}</button>))}
                         </div>
                       </div>
                       {element.props.utilityEffect === "aurora" && (
