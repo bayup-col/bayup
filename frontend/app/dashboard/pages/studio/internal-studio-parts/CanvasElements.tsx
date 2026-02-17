@@ -460,9 +460,20 @@ export const DraggableCanvasElement = ({
                         borderRadius: `${elProps.cardBorderRadius || 32}px` 
                       }}
                     >
+                      {/* IMAGEN DE FONDO DE CATEGORÍA */}
+                      {cat.image_url && (
+                        <div className="absolute inset-0 z-0">
+                          <img src={cat.image_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={cat.title} />
+                          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-500" />
+                        </div>
+                      )}
+
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div className="relative z-20 text-center p-6">
-                        <h4 className="text-xl font-black uppercase italic tracking-tighter text-gray-900 group-hover:text-white transition-colors">
+                        <h4 className={cn(
+                          "text-xl font-black uppercase italic tracking-tighter transition-colors",
+                          cat.image_url ? "text-white" : "text-gray-900 group-hover:text-blue-600"
+                        )}>
                           {cat.title}
                         </h4>
                         <div className="mt-4 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
