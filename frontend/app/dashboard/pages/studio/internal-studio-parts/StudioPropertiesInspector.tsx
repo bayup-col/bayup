@@ -480,7 +480,7 @@ export const DesignerInspector = () => {
                 {element.type !== "product-master-view" && (
                   <>
                     {renderModularTextDesigner(
-                      { ...element.props, content: element.props.title, variant: element.props.titleVariant, color: element.props.titleColor, size: element.props.titleSize, font: element.props.titleFont, aurora1: element.props.titleAurora1, aurora2: element.props.titleAurora2, intensity: element.props.titleIntensity || 100 }, 
+                      { ...element.props, content: element.props.title, variant: element.props.titleVariant, color: element.props.titleColor, size: element.props.titleSize, font: element.props.titleFont, aurora1: element.props.titleAurora1, aurora2: element.props.titleAurora2, intensity: element.props.titleIntensity || 100, posX: element.props.titlePosX, posY: element.props.titlePosY }, 
                       (p) => {
                         const updates: any = {};
                         if ('content' in p) updates.title = p.content;
@@ -491,6 +491,8 @@ export const DesignerInspector = () => {
                         if ('aurora1' in p) updates.titleAurora1 = p.aurora1;
                         if ('aurora2' in p) updates.titleAurora2 = p.aurora2;
                         if ('intensity' in p) updates.titleIntensity = p.intensity;
+                        if ('posX' in p) updates.titlePosX = p.posX; // Añadido
+                        if ('posY' in p) updates.titlePosY = p.posY; // Añadido
                         updateElement(sectionKey, selectedElementId, updates);
                       }, "Título de Impacto"
                     )}
