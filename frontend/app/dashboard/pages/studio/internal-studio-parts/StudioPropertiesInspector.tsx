@@ -695,6 +695,11 @@ export const DesignerInspector = () => {
                   <>
                     <ControlGroup title="Filtros y Grilla" icon={Layout} defaultOpen={true}>
                       <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-lg">
+                          {[{id:"grid", l:"Grilla"}, {id:"carousel", l:"Carrusel"}].map(l => (
+                            <button key={l.id} onClick={() => handleChange("layout", l.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.layout === l.id || (!element.props.layout && l.id === "grid")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{l.l}</button>
+                          ))}
+                        </div>
                         <select value={element.props.selectedCategory || "all"} onChange={(e) => handleChange("selectedCategory", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white">
                           <option value="all">Todas las Categorías</option>
                           {realCategories.map(cat => (<option key={cat.id} value={cat.id}>{cat.title}</option>))}
@@ -704,6 +709,20 @@ export const DesignerInspector = () => {
                           <FluidSlider label="Productos" value={element.props.itemsCount || 4} min={1} max={20} onChange={(v:number) => handleChange("itemsCount", v)} />
                         </div>
                         <FluidSlider label="Separación Cards" value={element.props.gridGap || 24} min={0} max={100} onChange={(v:number) => handleChange("gridGap", v)} />
+                      </div>
+                    </ControlGroup>
+
+                    <ControlGroup title="Efectos y Multimedia" icon={Sparkles}>
+                      <div className="space-y-4">
+                        <FluidSlider label="Altura Foto (%)" value={element.props.imageHeight || 60} min={30} max={90} suffix="%" onChange={(v:number) => handleChange("imageHeight", v)} />
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Hover</span>
+                          <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-lg">
+                            {[{id:"zoom", l:"Zoom"}, {id:"lift", l:"Elevación"}, {id:"glow", l:"Brillo"}, {id:"image-swap", l:"Cambio Foto"}].map(e => (
+                              <button key={e.id} onClick={() => handleChange("hoverEffect", e.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", element.props.hoverEffect === e.id ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{e.l}</button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </ControlGroup>
 

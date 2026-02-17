@@ -554,10 +554,22 @@ export const DraggableCanvasElement = ({
                         return displayItems.map((p: any, i: number) => {
                           const cardStyle = elProps.cardStyle || "premium";
                           const cardAlign = elProps.cardAlign || "center";
+                          const hoverEffect = elProps.hoverEffect || "zoom";
+                          const imgH = elProps.imageHeight || 60;
                           
+                          // Lógica de imágenes para el efecto Image-Swap
+                          const images = Array.isArray(p.image_url) ? p.image_url : [p.image_url || p.main_image || MOCK_IMAGES[0]];
+                          const mainImg = images[0];
+                          const hoverImg = images[1] || mainImg;
+
                           return (
                             <motion.div 
-                              key={p.id} whileHover={{ y: -10, scale: 1.02 }}
+                              key={p.id} 
+                              whileHover={{ 
+                                y: hoverEffect === "lift" ? -15 : -5, 
+                                scale: hoverEffect === "zoom" ? 1.03 : 1,
+                                boxShadow: hoverEffect === "glow" ? "0 0 30px rgba(59,130,246,0.4)" : undefined
+                              }}
                               onClick={() => {
                                 if (isPreview) {
                                   router.push(`/shop/${slug}?page=colecciones&productId=${p.id}`);
@@ -575,11 +587,27 @@ export const DraggableCanvasElement = ({
                                 borderRadius: `${elProps.cardBorderRadius || 40}px` 
                               }}
                             >
-                              <div className={cn(
-                                "h-[60%] overflow-hidden",
-                                cardStyle === "minimal" ? "bg-gray-50 rounded-[2rem]" : "bg-gray-50"
-                              )}>
-                                <img src={Array.isArray(p.image_url) ? p.image_url[0] : (p.image_url || p.main_image || MOCK_IMAGES[0])} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                              <div 
+                                className={cn(
+                                  "overflow-hidden relative",
+                                  cardStyle === "minimal" ? "bg-gray-50 rounded-[2rem] m-2" : "bg-gray-50"
+                                )}
+                                style={{ height: `${imgH}%` }}
+                              >
+                                <img 
+                                  src={mainImg} 
+                                  className={cn(
+                                    "w-full h-full object-cover transition-all duration-700",
+                                    hoverEffect === "zoom" && "group-hover:scale-110",
+                                    hoverEffect === "image-swap" && images.length > 1 && "group-hover:opacity-0"
+                                  )} 
+                                />
+                                {hoverEffect === "image-swap" && images.length > 1 && (
+                                  <img 
+                                    src={hoverImg} 
+                                    className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700" 
+                                  />
+                                )}
                                 
                                 {elProps.showOfferBadge && (
                                   <motion.div 
