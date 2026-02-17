@@ -279,7 +279,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     checkout: CHECKOUT_SCHEMA,
     detalles: PRODUCT_SCHEMA,
     nosotros: DEFAULT_SCHEMA,
-    privacidad: DEFAULT_SCHEMA
+    legal: DEFAULT_SCHEMA
   });
 
   useEffect(() => {
@@ -687,11 +687,27 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     setIsPublishing(true);
     try {
       const { shopPageService } = await import("@/lib/api");
-      await shopPageService.save(token, {
-        page_key: pageKey,
-        schema_data: pageData
+      
+      // PUBLICACIÓN MASIVA: Guardar todas las páginas simultáneamente
+      const keys = Object.keys(pagesData);
+      const publishPromises = keys.map(key => {
+          let schemaToSave = pagesData[key];
+          // Sincronizar Header/Footer si están bloqueados
+          if (key !== "home") {
+              schemaToSave = {
+                  ...schemaToSave,
+                  header: headerLocked ? pagesData.home.header : schemaToSave.header,
+                  footer: footerLocked ? pagesData.home.footer : schemaToSave.footer,
+              };
+          }
+          return shopPageService.save(token, {
+            page_key: key,
+            schema_data: schemaToSave
+          });
       });
-      showToast("¡Página publicada con éxito! 🚀", "success");
+
+      await Promise.all(publishPromises);
+      showToast("¡Toda tu tienda ha sido publicada con éxito! 🚀", "success");
 
       // ABRIR TIENDA PÚBLICA AUTOMÁTICAMENTE
       const slug = shopSlug || "preview";
