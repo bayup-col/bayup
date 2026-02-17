@@ -463,6 +463,19 @@ def read_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_u
 @app.post("/products", response_model=schemas.Product)
 def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = get_tenant_id(current_user)
+    
+    # --- RESTRICCIÓN DE PLAN BÁSICO ---
+    # Obtenemos el dueño real para ver su plan
+    tenant_owner = db.query(models.User).filter(models.User.id == tenant_id).first()
+    
+    if tenant_owner and tenant_owner.plan and tenant_owner.plan.name == "Básico":
+        product_count = db.query(models.Product).filter(models.Product.owner_id == tenant_id).count()
+        if product_count >= 50:
+            raise HTTPException(
+                status_code=403, 
+                detail="LÍMITE ALCANZADO: Tu plan Básico solo permite 50 productos. ¡Actualiza a PRO para vender sin límites! 🚀"
+            )
+            
     return crud.create_product(db=db, product=product, owner_id=tenant_id)
 
 @app.delete("/products/{product_id}")
@@ -903,11 +916,57 @@ def get_public_shop(slug: str, db: Session = Depends(get_db)):
 
 @app.post("/public/orders")
 async def create_public_order(data: dict, db: Session = Depends(get_db)):
-    # 1. Validar que vengan items
-    items = data.get("items", [])
-    if not items:
-        raise HTTPException(status_code=400, detail="El carrito está vacío")
-    
+    try:
+        # 1. Validar datos básicos
+        tenant_id = data.get("tenant_id")
+        if not tenant_id:
+            raise HTTPException(status_code=400, detail="Falta identificación del comercio")
+            
+        items_data = data.get("items", [])
+        if not items_data:
+            raise HTTPException(status_code=400, detail="El carrito está vacío")
+
+        # 2. Crear la orden base
+        total_price = sum(item.get("price", 0) * item.get("quantity", 1) for item in items_data)
+        
+        new_order = models.Order(
+            id=uuid.uuid4(),
+            tenant_id=uuid.UUID(tenant_id),
+            customer_name=data.get("customer_name"),
+            customer_phone=data.get("customer_phone"),
+            total_price=total_price,
+            status="pending",
+            source="web", # Identificamos que vino de la tienda online
+            created_at=datetime.datetime.utcnow(),
+            payment_method="pending_confirmation"
+        )
+        
+        db.add(new_order)
+        
+        # 3. Crear los items de la orden
+        for item in items_data:
+            order_item = models.OrderItem(
+                id=uuid.uuid4(),
+                order_id=new_order.id,
+                product_variant_id=uuid.UUID(item["product_id"]) if "product_id" in item else None,
+                quantity=item.get("quantity", 1),
+                price_at_purchase=item.get("price", 0)
+            )
+            db.add(order_item)
+            
+        db.commit()
+        db.refresh(new_order)
+        
+        # 4. Registrar actividad para el dueño
+        log_activity(db, new_order.tenant_id, new_order.tenant_id, "NEW_PUBLIC_ORDER", f"Nuevo pedido online de {new_order.customer_name}", str(new_order.id))
+        
+        return {"status": "success", "id": str(new_order.id), "total": total_price}
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error creando pedido público: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
     tenant_id = uuid.UUID(data.get("tenant_id"))
     
     # 2. Crear el objeto de pedido

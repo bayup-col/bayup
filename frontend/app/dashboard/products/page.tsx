@@ -85,7 +85,7 @@ const PremiumCard = ({ children, onClick, className = "" }: { children: React.Re
 };
 
 export default function ProductsPage() {
-    const { token, userEmail } = useAuth();
+    const { token, userEmail, userPlan } = useAuth();
     const { showToast } = useToast();
     const router = useRouter();
     
@@ -97,6 +97,30 @@ export default function ProductsPage() {
     const [selectedMetric, setSelectedMetric] = useState<any>(null);
     
     // UI States
+    const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
+    const [limitType, setLimitType] = useState<'warning' | 'blocked'>('warning');
+    const isBasicPlan = userPlan?.name === "Básico" || !userPlan;
+
+    const handleNewProductClick = () => {
+        if (isBasicPlan) {
+            if (products.length >= 50) {
+                setLimitType('blocked');
+                setIsLimitModalOpen(true);
+                return;
+            }
+            if (products.length >= 40) {
+                // Solo mostrar advertencia si no se ha mostrado en esta sesión
+                const warned = sessionStorage.getItem('bayup_limit_warned');
+                if (!warned) {
+                    setLimitType('warning');
+                    setIsLimitModalOpen(true);
+                    sessionStorage.setItem('bayup_limit_warned', 'true');
+                    return;
+                }
+            }
+        }
+        router.push('/dashboard/products/new');
+    };
     const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
     const [newCategoryData, setNewCategoryData] = useState({ name: '', description: '' });
     const [isCreatingCategory, setIsCreatingCategory] = useState(false);
@@ -235,7 +259,7 @@ export default function ProductsPage() {
                     </h1>
                     <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">¡Crea y edita todos los productos de tu tienda! 🛍️</p>
                 </div>
-                <button onClick={() => router.push('/dashboard/products/new')} className="h-12 px-8 bg-[#004d4d] text-white rounded-full font-black text-[10px] tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center gap-3 group">
+                <button onClick={handleNewProductClick} className="h-12 px-8 bg-[#004d4d] text-white rounded-full font-black text-[10px] tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center gap-3 group">
                     <Plus size={16} className="group-hover:rotate-90 transition-transform"/> Nuevo producto
                 </button>
             </header>
@@ -335,7 +359,83 @@ export default function ProductsPage() {
 
             <MetricDetailModal isOpen={!!selectedMetric} onClose={() => setSelectedMetric(null)} metric={selectedMetric} />
             
-            {/* DASHBOARD INTELIGENCIA DE CATEGORÍA (PLATINUM PLUS) */}
+            {/* MODAL DE LÍMITE DE PLAN (PREMIUM) */}
+            <AnimatePresence>
+                {isLimitModalOpen && (
+                    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsLimitModalOpen(false)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-2xl" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="relative bg-white w-full max-w-4xl rounded-[4rem] shadow-3xl border border-white overflow-hidden flex flex-col md:flex-row">
+                            
+                            {/* Lado Izquierdo: Estado AI */}
+                            <div className="w-full md:w-80 bg-[#004D4D] p-12 text-white flex flex-col justify-between shrink-0 relative">
+                                <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none"><div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-[#00f2ff] rounded-full blur-[80px]" /></div>
+                                <div className="relative z-10 space-y-10">
+                                    <div className="h-20 w-20 rounded-3xl bg-white/10 flex items-center justify-center border border-white/10 text-cyan shadow-xl"><Bot size={40} /></div>
+                                    <div className="space-y-4">
+                                        <h3 className="text-3xl font-black italic tracking-tighter leading-none">Análisis <br/><span className="text-cyan text-4xl">Bayt AI</span></h3>
+                                        <p className="text-[10px] font-black tracking-widest text-cyan/60 uppercase">Capacidad del sistema</p>
+                                    </div>
+                                    <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10">
+                                        <p className="text-[10px] font-black text-white/40 tracking-widest mb-2">Uso actual</p>
+                                        <p className="text-4xl font-black italic">{products.length}<span className="text-lg text-cyan/50">/50</span></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Lado Derecho: Contenido y Acciones */}
+                            <div className="flex-1 p-12 bg-white relative">
+                                <button onClick={() => setIsLimitModalOpen(false)} className="absolute top-8 right-8 text-gray-300 hover:text-rose-500 transition-colors"><X size={24}/></button>
+                                
+                                <div className="h-full flex flex-col justify-center space-y-8">
+                                    <div className="space-y-4">
+                                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${limitType === 'blocked' ? 'bg-rose-50 text-rose-500' : 'bg-amber-50 text-amber-500'}`}>
+                                            {limitType === 'blocked' ? <ShieldCheck size={24}/> : <AlertCircle size={24}/>}
+                                        </div>
+                                        <h2 className="text-4xl font-black text-[#001A1A] tracking-tighter italic uppercase leading-none">
+                                            {limitType === 'blocked' ? 'Límite de plan alcanzado' : '¡Casi llegas al límite!'}
+                                        </h2>
+                                        <p className="text-lg font-medium text-gray-500 italic leading-relaxed">
+                                            {limitType === 'blocked' 
+                                                ? 'Has aprovechado al máximo tu Plan Básico. Para seguir inyectando nuevos activos a tu flujo de caja, es momento de subir de nivel.' 
+                                                : 'Tu catálogo está creciendo rápido. Estás a solo 10 productos de alcanzar el tope de tu plan actual.'}
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="p-6 rounded-[2rem] bg-gray-50 border border-gray-100 space-y-2">
+                                            <p className="text-[10px] font-black text-[#004D4D] tracking-widest uppercase">Beneficio Pro</p>
+                                            <p className="text-sm font-bold text-gray-900">Catálogo Ilimitado</p>
+                                            <p className="text-[10px] text-gray-400 font-medium italic">Vende cientos de productos sin restricciones.</p>
+                                        </div>
+                                        <div className="p-6 rounded-[2rem] bg-gray-50 border border-gray-100 space-y-2">
+                                            <p className="text-[10px] font-black text-[#004D4D] tracking-widest uppercase">Extra Power</p>
+                                            <p className="text-sm font-bold text-gray-900">Más imágenes y SEO</p>
+                                            <p className="text-[10px] text-gray-400 font-medium italic">Optimización total para buscadores.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                                        <button 
+                                            onClick={() => router.push('/planes')}
+                                            className="flex-1 py-6 bg-gray-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3 group"
+                                        >
+                                            <Sparkles size={18} className="text-cyan group-hover:animate-pulse" /> Ver planes y subir
+                                        </button>
+                                        {limitType === 'warning' && (
+                                            <button 
+                                                onClick={() => setIsLimitModalOpen(false)}
+                                                className="px-8 py-6 bg-gray-100 text-gray-400 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-gray-200 transition-all"
+                                            >
+                                                Seguir vendiendo
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
             <AnimatePresence>
                 {selectedCategory && (
                     <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 md:p-8">
