@@ -263,7 +263,7 @@ export const DesignerInspector = () => {
                   </div>
                 </ControlGroup>
 
-                <ControlGroup title="2. Diseño de Enlaces" icon={Layout} defaultOpen={false}>
+                <ControlGroup title="2. Menú Principal" icon={Layout} defaultOpen={false}>
                   <div className="space-y-4">
                     <div className="flex bg-gray-100 p-1 rounded-lg border mb-4">
                       {["left", "center", "right"].map((pos) => (
@@ -279,41 +279,52 @@ export const DesignerInspector = () => {
                     ))}
                     <button onClick={() => handleChange("menuItems", [...(element.props.menuItems || []), { label: "NUEVO", url: "/" }])} className="w-full py-2 border-2 border-dashed rounded-lg text-[9px] font-black text-gray-400 uppercase">+ Añadir Enlace</button>
                     
-                    <div className="space-y-2">
-                      <span className="text-[9px] font-black text-gray-400 uppercase">Estilo de Enlace</span>
-                      <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
-                        {["solid", "aurora", "neon"].map(v => (<button key={v} onClick={() => handleChange("menuVariant", v)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.menuVariant === v) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v}</button>))}
+                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
+                      <span className="text-[9px] font-black text-gray-400 uppercase">Estética del Menú</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={element.props.menuColor || "#4b5563"} onChange={(e) => handleChange("menuColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 font-black uppercase">Color</span></div>
+                        <select value={element.props.menuFont || "font-black"} onChange={(e) => handleChange("menuFont", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white">
+                          <option value="font-sans">Modern</option>
+                          <option value="font-black">Heavy</option>
+                        </select>
                       </div>
-                    </div>
-                    {element.props.menuVariant === "aurora" && (
-                      <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-blue-100"><input type="color" value={element.props.menuAurora1 || "#00f2ff"} onChange={(e) => handleChange("menuAurora1", e.target.value)} className="w-6 h-6 rounded-md p-0 cursor-pointer bg-transparent" /><span className="text-[8px] text-gray-400">Color 1</span></div>
-                          <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-blue-100"><input type="color" value={element.props.menuAurora2 || "#7000ff"} onChange={(e) => handleChange("menuAurora2", e.target.value)} className="w-6 h-6 rounded-md p-0 cursor-pointer bg-transparent" /><span className="text-[8px] text-gray-400">Color 2</span></div>
+                      <div className="space-y-2">
+                        <span className="text-[9px] font-black text-gray-400 uppercase">Estilo de Enlace</span>
+                        <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                          {[{id:"solid", l:"Sólido"}, {id:"aurora", l:"Aurora"}, {id:"neon", l:"Neón"}].map(v => (<button key={v.id} onClick={() => handleChange("menuVariant", v.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.menuVariant === v.id) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{v.l}</button>))}
                         </div>
                       </div>
-                    )}
-                                          <div className="space-y-2">
-                                          <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Visual</span>
-                                          <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
-                                            {[{id:"none", l:"Sólido"}, {id:"glass", l:"Glass"}, {id:"neon", l:"Neón"}, {id:"aurora", l:"Aurora"}].map(e => (<button key={e.id} onClick={() => handleChange("menuEffect", e.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.menuEffect === e.id || (!element.props.menuEffect && e.id === "none")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{e.l}</button>))}
-                                          </div>
-                                        </div>                    {element.props.menuEffect === "aurora" && (
-                      <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-blue-100"><input type="color" value={element.props.menuAurora1 || "#00f2ff"} onChange={(e) => handleChange("menuAurora1", e.target.value)} className="w-6 h-6 rounded-md p-0 cursor-pointer bg-transparent" /><span className="text-[8px] text-gray-400">Color 1</span></div>
-                          <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-blue-100"><input type="color" value={element.props.menuAurora2 || "#7000ff"} onChange={(e) => handleChange("menuAurora2", e.target.value)} className="w-6 h-6 rounded-md p-0 cursor-pointer bg-transparent" /><span className="text-[8px] text-gray-400">Color 2</span></div>
+                      {element.props.menuVariant === "aurora" && (
+                        <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-blue-100"><input type="color" value={element.props.menuAurora1 || "#00f2ff"} onChange={(e) => handleChange("menuAurora1", e.target.value)} className="w-6 h-6 rounded-md p-0 cursor-pointer bg-transparent" /><span className="text-[8px] text-gray-400">Color 1</span></div>
+                            <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-blue-100"><input type="color" value={element.props.menuAurora2 || "#7000ff"} onChange={(e) => handleChange("menuAurora2", e.target.value)} className="w-6 h-6 rounded-md p-0 cursor-pointer bg-transparent" /><span className="text-[8px] text-gray-400">Color 2</span></div>
+                          </div>
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Visual</span>
+                        <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                          {[{id:"none", l:"Sólido"}, {id:"glass", l:"Glass"}, {id:"neon", l:"Neón"}, {id:"aurora", l:"Aurora"}].map(e => (<button key={e.id} onClick={() => handleChange("menuEffect", e.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.menuEffect === e.id || (!element.props.menuEffect && e.id === "none")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{e.l}</button>))}
                         </div>
                       </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <FluidSlider label="Tamaño Letra" value={element.props.menuSize || 10} min={8} max={16} onChange={(v:number) => handleChange("menuSize", v)} />
-                      <FluidSlider label="Separación" value={element.props.menuGap || 32} min={10} max={64} onChange={(v:number) => handleChange("menuGap", v)} />
+                      {element.props.menuEffect === "aurora" && (
+                        <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-blue-100"><input type="color" value={element.props.menuAurora1 || "#00f2ff"} onChange={(e) => handleChange("menuAurora1", e.target.value)} className="w-6 h-6 rounded-md p-0 cursor-pointer bg-transparent" /><span className="text-[8px] text-gray-400">Color 1</span></div>
+                            <div className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-blue-100"><input type="color" value={element.props.menuAurora2 || "#7000ff"} onChange={(e) => handleChange("menuAurora2", e.target.value)} className="w-6 h-6 rounded-md p-0 cursor-pointer bg-transparent" /><span className="text-[8px] text-gray-400">Color 2</span></div>
+                          </div>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 gap-3">
+                        <FluidSlider label="Tamaño Letra" value={element.props.menuSize || 10} min={8} max={16} onChange={(v:number) => handleChange("menuSize", v)} />
+                        <FluidSlider label="Separación" value={element.props.menuGap || 32} min={10} max={64} onChange={(v:number) => handleChange("menuGap", v)} />
+                      </div>
                     </div>
                     <FluidSlider label="Posición X Menú" value={element.props.menuPosX || 0} min={-300} max={300} onChange={(v:number) => handleChange("menuPosX", v)} />
                   </div>
                 </ControlGroup>
+
 
                 <ControlGroup title="3. Botones de Utilidad" icon={Zap} defaultOpen={false}>
                   <div className="space-y-4">
