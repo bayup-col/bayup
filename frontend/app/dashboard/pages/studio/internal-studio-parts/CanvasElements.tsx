@@ -164,7 +164,7 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
             )}
             <div className={cn("flex items-center w-full z-10", elProps.barEffect === "glass" ? "drop-shadow-[0_4px_10px_rgba(0,0,0,0.15)]" : "")}>
               <div className="shrink-0 flex items-center" style={{ transform: `translateX(${elProps.logoPosX || 0}px)` }}>
-                {elProps.logoUrl ? <img src={elProps.logoUrl} style={{ height: `${elProps.logoSize || 24}px` }} className="object-contain" /> : renderTextWithTheme(elProps.logoText || "LOGO", elProps, "logo")}
+                {elProps.logoUrl ? <img src={elProps.logoUrl} style={{ height: `${elProps.logoSize || 24}px` }} className="object-contain" /> : renderTextWithTheme(elProps.logoText || "LOGO", { ...elProps, variant: elProps.logoVariant || "solid", color: elProps.logoColor, size: elProps.logoSize, font: elProps.logoFont }, "none", "logo")}
               </div>
               <nav className={cn("hidden md:flex flex-1 items-center gap-8 transition-all px-8", elProps.align === "left" ? "justify-start ml-8" : elProps.align === "right" ? "justify-end mr-8" : "justify-center")} style={{ transform: `translateX(${elProps.menuPosX || 0}px)` }}>
                 <div className="flex items-center" style={{ gap: `${elProps.menuGap || 32}px` }}>
