@@ -85,7 +85,7 @@ export const DraggableCanvasElement = ({
     else if (lowUrl.includes('colecciones')) target += '?page=colecciones';
     else if (lowUrl.includes('nosotros') || lowUrl.includes('sobre')) target += '?page=nosotros';
     else if (lowUrl.includes('legal') || lowUrl.includes('politicas') || lowUrl.includes('terminos')) target += '?page=legal';
-    else if (lowUrl.includes('contacto')) target += '?page=nosotros'; // O una sección de contacto
+    else if (lowUrl.includes('contacto')) target += '?page=contacto';
     else if (lowUrl.includes('checkout') || lowUrl.includes('finalizar')) target += '?page=checkout';
     else target += '?page=home';
     

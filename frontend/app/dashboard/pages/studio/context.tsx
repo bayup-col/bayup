@@ -279,7 +279,8 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     checkout: CHECKOUT_SCHEMA,
     detalles: PRODUCT_SCHEMA,
     nosotros: DEFAULT_SCHEMA,
-    legal: DEFAULT_SCHEMA
+    legal: DEFAULT_SCHEMA,
+    contacto: DEFAULT_SCHEMA
   });
 
   useEffect(() => {
