@@ -24,7 +24,8 @@ import {
     Menu,
     X,
     Heart,
-    Eye
+    Eye,
+    User
 } from 'lucide-react';
 import { InteractiveUP } from '@/components/landing/InteractiveUP';
 import { StudioProvider } from '../../dashboard/pages/studio/context';
