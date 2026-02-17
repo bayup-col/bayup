@@ -5,7 +5,7 @@ import { StudioProvider, useStudio, ComponentType } from "./context";
 import { ToolboxSidebar } from "./internal-studio-parts/ToolboxSidebar";
 import { Canvas } from "./internal-studio-parts/Canvas";
 import { DesignerInspector } from "./internal-studio-parts/StudioPropertiesInspector";
-import { ChevronLeft, Save, Eye, Smartphone, Monitor, Tablet, MousePointer2 } from "lucide-react";
+import { ChevronLeft, Save, Eye, Smartphone, Monitor, Tablet, MousePointer2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCenter } from "@dnd-kit/core";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
