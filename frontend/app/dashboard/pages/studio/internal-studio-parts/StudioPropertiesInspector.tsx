@@ -497,7 +497,7 @@ export const DesignerInspector = () => {
                       }, "Título de Impacto"
                     )}
                     {renderModularTextDesigner(
-                      { ...element.props, content: element.props.subtitle, variant: element.props.subtitleVariant, color: element.props.subtitleColor, size: element.props.subtitleSize, font: element.props.subtitleFont, intensity: element.props.subtitleIntensity || 100 }, 
+                      { ...element.props, content: element.props.subtitle, variant: element.props.subtitleVariant, color: element.props.subtitleColor, size: element.props.subtitleSize, font: element.props.subtitleFont, intensity: element.props.subtitleIntensity || 100, posX: element.props.subtitlePosX, posY: element.props.subtitlePosY }, 
                       (p) => {
                         const updates: any = {};
                         if ('content' in p) updates.subtitle = p.content;
@@ -506,6 +506,8 @@ export const DesignerInspector = () => {
                         if ('size' in p) updates.subtitleSize = p.size;
                         if ('font' in p) updates.subtitleFont = p.font;
                         if ('intensity' in p) updates.subtitleIntensity = p.intensity;
+                        if ('posX' in p) updates.subtitlePosX = p.posX; // Añadido
+                        if ('posY' in p) updates.subtitlePosY = p.posY; // Añadido
                         updateElement(sectionKey, selectedElementId, updates);
                       }, "Descripción"
                     )}
