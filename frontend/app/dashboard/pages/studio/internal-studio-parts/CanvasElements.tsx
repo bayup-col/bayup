@@ -201,20 +201,22 @@ export const DraggableCanvasElement = ({
                 <div className="flex items-center" style={{ gap: `${elProps.menuGap || 32}px` }}>
                   {(elProps.menuItems || []).map((m: any, i: number) => {
                     const labelToShow = typeof m === 'string' ? m : (m?.label || "Link");
-                    const menuProps = {
-                      ...elProps,
-                      variant: elProps.menuVariant || "solid",
-                      color: elProps.menuColor || "#4b5563",
-                      size: elProps.menuSize || 10,
-                      font: elProps.menuFont || "font-black"
-                    };
-                    return (
-                      <div key={i} className="cursor-pointer" onClick={() => handleNavClick(m.url)}>
-                        {renderTextWithTheme(labelToShow, menuProps, "none", `nav-item-${i}`)}
-                      </div>
-                    );
-                  })}
-                </div>
+                                          const menuProps = {
+                                            ...elProps,
+                                            variant: elProps.menuVariant || "solid",
+                                            color: elProps.menuColor || "#4b5563",
+                                            size: elProps.menuSize || 10,
+                                            font: elProps.menuFont || "font-black",
+                                            effect: elProps.menuEffect || "none", // Añadido
+                                            aurora1: elProps.menuAurora1, // Añadido
+                                            aurora2: elProps.menuAurora2  // Añadido
+                                          };
+                                          return (
+                                            <div key={i} className="cursor-pointer" onClick={() => handleNavClick(m.url)}>
+                                              {renderTextWithTheme(labelToShow, menuProps, "none", `nav-item-${i}`)}
+                                            </div>
+                                          );
+                                        })}                </div>
               </nav>
               <div className="flex items-center shrink-0 ml-auto" style={{ gap: `${elProps.utilityGap || 16}px`, transform: `translateX(${elProps.utilityPosX || 0}px)` }}>
                 <div className="flex items-center" style={{ gap: `${elProps.utilityGap || 16}px` }}>
@@ -231,7 +233,10 @@ export const DraggableCanvasElement = ({
                         ...elProps, 
                         variant: elProps.utilityVariant || "solid",
                         color: elProps.utilityColor || "#6b7280",
-                        size: elProps.utilitySize || 18
+                        size: elProps.utilitySize || 18,
+                        effect: elProps.utilityEffect || "none", // Añadido
+                        aurora1: elProps.utilityAurora1, // Añadido
+                        aurora2: elProps.utilityAurora2  // Añadido
                       };
                       return renderTextWithTheme(content, utilProps, "none", id);
                     };

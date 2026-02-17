@@ -353,6 +353,12 @@ export const DesignerInspector = () => {
                         </select>
                       </div>
                       <div className="space-y-2">
+                        <span className="text-[9px] font-black text-gray-400 uppercase">Mostrar como</span>
+                        <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
+                          {[{id:"icon", l:"Icono"}, {id:"text", l:"Texto"}, {id:"both", l:"Ambos"}].map(m => (<button key={m.id} onClick={() => handleChange("utilityDisplayMode", m.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.utilityDisplayMode === m.id || (!element.props.utilityDisplayMode && m.id === "icon")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{m.l}</button>))}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
                         <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Visual</span>
                         <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
                           {[{id:"none", l:"Sólido"}, {id:"glass", l:"Glass"}, {id:"neon", l:"Neón"}, {id:"aurora", l:"Aurora"}].map(e => (<button key={e.id} onClick={() => handleChange("utilityEffect", e.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.utilityEffect === e.id || (!element.props.utilityEffect && e.id === "none")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{e.l}</button>))}
@@ -368,6 +374,7 @@ export const DesignerInspector = () => {
                       )}
                       <div className="grid grid-cols-2 gap-3">
                         <FluidSlider label="Tamaño" value={element.props.utilitySize || 18} min={14} max={32} onChange={(v:number) => handleChange("utilitySize", v)} />
+                        <FluidSlider label="Separación" value={element.props.utilityGap || 16} min={0} max={64} onChange={(v:number) => handleChange("utilityGap", v)} />
                         <FluidSlider label="Ajuste X" value={element.props.utilityPosX || 0} min={-200} max={200} onChange={(v:number) => handleChange("utilityPosX", v)} />
                       </div>
                     </div>
