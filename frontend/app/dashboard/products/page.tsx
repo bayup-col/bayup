@@ -36,7 +36,8 @@ import {
   MousePointer2,
   Rocket,
   LayoutGrid,
-  Activity
+  Activity,
+  ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
