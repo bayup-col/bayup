@@ -103,12 +103,12 @@ export default function ProductsPage() {
 
     const handleNewProductClick = () => {
         if (isBasicPlan) {
-            if (products.length >= 50) {
+            if (products.length >= 30) {
                 setLimitType('blocked');
                 setIsLimitModalOpen(true);
                 return;
             }
-            if (products.length >= 40) {
+            if (products.length >= 20) {
                 // Solo mostrar advertencia si no se ha mostrado en esta sesión
                 const warned = sessionStorage.getItem('bayup_limit_warned');
                 if (!warned) {
@@ -377,7 +377,7 @@ export default function ProductsPage() {
                                     </div>
                                     <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10">
                                         <p className="text-[10px] font-black text-white/40 tracking-widest mb-2">Uso actual</p>
-                                        <p className="text-4xl font-black italic">{products.length}<span className="text-lg text-cyan/50">/50</span></p>
+                                        <p className="text-4xl font-black italic">{products.length}<span className="text-lg text-cyan/50">/30</span></p>
                                     </div>
                                 </div>
                             </div>

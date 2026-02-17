@@ -470,10 +470,10 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
     
     if tenant_owner and tenant_owner.plan and tenant_owner.plan.name == "Básico":
         product_count = db.query(models.Product).filter(models.Product.owner_id == tenant_id).count()
-        if product_count >= 50:
+        if product_count >= 30:
             raise HTTPException(
                 status_code=403, 
-                detail="LÍMITE ALCANZADO: Tu plan Básico solo permite 50 productos. ¡Actualiza a PRO para vender sin límites! 🚀"
+                detail="LÍMITE ALCANZADO: Tu plan Básico solo permite 30 productos. ¡Actualiza a PRO para vender sin límites! 🚀"
             )
             
     return crud.create_product(db=db, product=product, owner_id=tenant_id)
