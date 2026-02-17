@@ -369,7 +369,7 @@ export const DraggableCanvasElement = ({
                     {elProps.content && <div className="w-full">{renderTextWithTheme(elProps.content, elProps, "content")}</div>}
                   </div>
 
-                  {/* --- IMAGEN DE COMPLEMENTO (FLOAT IMAGE) --- */}
+                  {/* --- IMAGEN DE COMPLEMENTO (FLOAT IMAGE) - AHORA ABSOLUTA --- */}
                   {elProps.floatUrl && (
                     <motion.div
                       animate={{ 
@@ -378,11 +378,11 @@ export const DraggableCanvasElement = ({
                         width: elProps.floatSize || 200,
                       }}
                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                      className="relative z-20 pointer-events-none"
+                      className="absolute z-50 pointer-events-none"
                     >
                       <img 
                         src={elProps.floatUrl} 
-                        className="w-full h-auto object-contain shadow-2xl" 
+                        className="w-full h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]" 
                         style={{ borderRadius: `${elProps.floatRadius || 20}px` }}
                         alt="Complemento"
                       />
