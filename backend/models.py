@@ -340,13 +340,39 @@ class ChannelConnection(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 class WebTemplate(Base):
+
     __tablename__ = "web_templates"
+
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+
     name = Column(String, index=True)
+
     description = Column(String)
+
     preview_url = Column(String, nullable=True)
-    schema_data = Column(JSON) 
-    active_plans = Column(JSON, default=[]) 
+
+    schema_data = Column(JSON)
+
+    active_plans = Column(JSON, default=[])
+
     is_active = Column(Boolean, default=True)
+
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+
+class ShopPage(Base):
+
+    __tablename__ = "shop_pages"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+
+    tenant_id = Column(GUID(), ForeignKey("users.id"))
+
+    page_key = Column(String, index=True) # e.g., 'home', 'about'
+
+    schema_data = Column(JSON)
+
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

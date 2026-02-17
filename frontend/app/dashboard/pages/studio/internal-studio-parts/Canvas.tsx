@@ -89,13 +89,13 @@ const InsertionPoint = ({ section, index }: any) => {
   );
 };
 
-export const Canvas = ({ overrideData = null, isPreview = false }: { overrideData?: any, isPreview?: boolean }) => {
+export const Canvas = ({ overrideData = null, isPreview = false, initialProducts = null, initialCategories = null }: { overrideData?: any, isPreview?: boolean, initialProducts?: any[] | null, initialCategories?: any[] | null }) => {
   const studio = useStudio();
   const pageData = overrideData || studio.pageData;
   const { activeSection, setActiveSection, selectElement, selectedElementId, removeElement, viewport, pageKey } = studio;
   
-  const [realCategories, setRealCategories] = React.useState<any[]>([]);
-  const [realProducts, setRealProducts] = React.useState<any[]>([]);
+  const [realCategories, setRealCategories] = React.useState<any[]>(initialCategories || []);
+  const [realProducts, setRealProducts] = React.useState<any[]>(initialProducts || []);
   const headerRef = useRef(null);
   const bodyRef = useRef(null);
   const footerRef = useRef(null);
@@ -109,6 +109,8 @@ export const Canvas = ({ overrideData = null, isPreview = false }: { overrideDat
   };
 
   useEffect(() => {
+    if (initialProducts && initialCategories) return;
+
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');

@@ -231,6 +231,8 @@ interface StudioContextType {
   setHeaderLocked: (locked: boolean) => void;
   footerLocked: boolean;
   setFooterLocked: (locked: boolean) => void;
+  publishPage: () => Promise<void>;
+  isPublishing: boolean;
 }
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
@@ -238,9 +240,11 @@ const StudioContext = createContext<StudioContextType | undefined>(undefined);
 export const StudioProvider = ({ children }: { children: ReactNode }) => {
   const searchParams = useSearchParams();
   const pageKey = searchParams.get("page") || "home";
+  const { showToast } = (require("@/context/toast-context")).useToast();
 
   const [activeSection, setActiveSection] = useState<SectionType>("body");
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
   
   const [pagesData, setPagesData] = useState<Record<string, PageSchema>>({
     home: DEFAULT_SCHEMA,
@@ -639,11 +643,34 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     if (selectedElementId === id) selectElement(null);
   };
 
+  const publishPage = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      showToast("No se encontró sesión activa", "error");
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      const { shopPageService } = await import("@/lib/api");
+      await shopPageService.save(token, {
+        page_key: pageKey,
+        schema_data: pageData
+      });
+      showToast("¡Página publicada con éxito! 🚀", "success");
+    } catch (e: any) {
+      console.error("Publish error:", e);
+      showToast(e.message || "Error al publicar la página", "error");
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   return (
     <StudioContext.Provider value={{ 
       activeSection, setActiveSection, selectedElementId, selectElement, pageData, addElement, updateElement, removeElement, 
       sidebarView, toggleSidebar: setSidebarView, handleDragEnd, viewport, setViewport, editMode, setEditMode, 
-      pageKey, headerLocked, setHeaderLocked, footerLocked, setFooterLocked 
+      pageKey, headerLocked, setHeaderLocked, footerLocked, setFooterLocked, publishPage, isPublishing 
     }}>
       {children}
     </StudioContext.Provider>

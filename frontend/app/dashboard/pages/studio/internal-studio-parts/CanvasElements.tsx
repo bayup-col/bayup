@@ -317,28 +317,39 @@ export const DraggableCanvasElement = ({ el, section, selectedElementId, selectE
                           "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2070&auto=format&fit=crop",
                           "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?q=80&w=2070&auto=format&fit=crop"
                         ];
-                        const displayItems = Array.from({ length: elProps.itemsCount || 4 }).map((_, i) => ({
-                          id: `prod-${i}`, title: `Producto Platinum v${i + 1}`, price: 150000 + (i * 20000), main_image: MOCK_IMAGES[i % 3]
-                        }));
+
+                        // PRIORIZAR PRODUCTOS REALES
+                        let displayItems = [];
+                        if (realProducts && realProducts.length > 0) {
+                          displayItems = realProducts;
+                          if (elProps.selectedCategory && elProps.selectedCategory !== "all") {
+                            displayItems = displayItems.filter((p: any) => p.collection_id === elProps.selectedCategory || p.category === elProps.selectedCategory);
+                          }
+                          displayItems = displayItems.slice(0, elProps.itemsCount || 12);
+                        } else {
+                          displayItems = Array.from({ length: elProps.itemsCount || 4 }).map((_, i) => ({
+                            id: `prod-${i}`, name: `Producto Platinum v${i + 1}`, price: 150000 + (i * 20000), image_url: MOCK_IMAGES[i % 3]
+                          }));
+                        }
 
                         return displayItems.map((p: any, i: number) => (
                           <motion.div 
                             key={p.id} whileHover={{ y: -10, scale: 1.02 }}
-                            onClick={() => isPreview && router.push(`/shop/product/${p.id}`)}
+                            onClick={() => isPreview && router.push(`/shop/${pageKey}/product/${p.id}`)}
                             className="relative group flex flex-col bg-white rounded-[2.5rem] overflow-hidden shadow-lg cursor-pointer"
                             style={{ minWidth: elProps.layout === "carousel" ? "300px" : "auto", height: elProps.cardHeight || 450, borderRadius: `${elProps.cardBorderRadius || 40}px` }}
                           >
                             <div className="h-[60%] overflow-hidden bg-gray-50">
-                              <img src={p.main_image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                              <img src={Array.isArray(p.image_url) ? p.image_url[0] : (p.image_url || p.main_image || MOCK_IMAGES[0])} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                             </div>
-                            <div className="p-8 flex flex-col justify-between flex-1">
+                            <div className="p-8 flex flex-col justify-between flex-1 text-center">
                               <div>
-                                <h4 className="font-black uppercase text-sm">{p.title}</h4>
-                                <p className="text-blue-600 font-black mt-2">${p.price.toLocaleString()}</p>
+                                <h4 className="font-black uppercase text-sm text-gray-900 truncate">{p.name || p.title}</h4>
+                                <p className="text-[#004D4D] font-black mt-2">${Number(p.price).toLocaleString()}</p>
                               </div>
                               <button 
-                                onClick={(e) => { e.stopPropagation(); if(isPreview) addItem({id: p.id, title: p.title, price: p.price, image: p.main_image, quantity: 1}); }}
-                                className="w-full py-3 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all"
+                                onClick={(e) => { e.stopPropagation(); if(isPreview) addItem({id: p.id, title: p.name || p.title, price: Number(p.price), image: Array.isArray(p.image_url) ? p.image_url[0] : p.image_url, quantity: 1}); }}
+                                className="w-full py-3 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#004D4D] transition-all"
                               >
                                 Añadir al Carrito
                               </button>

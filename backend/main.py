@@ -886,6 +886,12 @@ def get_public_shop(slug: str, db: Session = Depends(get_db)):
     # 3. Obtener sus categorías
     collections_db = db.query(models.Collection).filter(models.Collection.owner_id == store_owner.id).all()
     
+    # 4. Obtener diseño personalizado (Studio) si existe
+    custom_schema = db.query(models.ShopPage).filter(
+        models.ShopPage.tenant_id == store_owner.id,
+        models.ShopPage.page_key == "home"
+    ).first()
+
     # Convertir a formato JSON simple para evitar error 500
     products = []
     for p in products_db:
@@ -911,7 +917,8 @@ def get_public_shop(slug: str, db: Session = Depends(get_db)):
         "store_email": store_owner.email,
         "store_phone": store_owner.phone,
         "products": products,
-        "categories": categories
+        "categories": categories,
+        "custom_schema": custom_schema.schema_data if custom_schema else None
     }
 
 @app.post("/public/orders")
@@ -960,6 +967,24 @@ async def create_public_order(data: dict, db: Session = Depends(get_db)):
         # 4. Registrar actividad para el dueño
         log_activity(db, new_order.tenant_id, new_order.tenant_id, "NEW_PUBLIC_ORDER", f"Nuevo pedido online de {new_order.customer_name}", str(new_order.id))
         
+        # --- AUTOMATIZACIÓN WHATSAPP (Fase 3) ---
+        try:
+            bridge_url = "http://localhost:8001/send"
+            # Mensaje para el Cliente
+            customer_msg = f"¡Hola {new_order.customer_name}! 👋\n\nTu pedido en *{tenant_owner.full_name if tenant_owner else 'la tienda'}* ha sido recibido con éxito. ✅\n\n*ID Pedido:* #{str(new_order.id)[:8]}\n*Total:* ${total_price:,.0f}\n\nEstamos preparando todo. ¡Gracias por confiar en nosotros!"
+            
+            # Limpiar número del cliente (asegurar prefijo 57 si es Colombia y tiene 10 dígitos)
+            c_phone = str(new_order.customer_phone).replace(" ", "").replace("+", "")
+            if len(c_phone) == 10: c_phone = "57" + c_phone
+            if not c_phone.endswith("@c.us"): c_phone += "@c.us"
+
+            import requests
+            requests.post(bridge_url, json={"to": c_phone, "body": customer_msg}, timeout=5)
+            print(f"WhatsApp auto-msg sent to customer: {c_phone}")
+
+        except Exception as wa_err:
+            print(f"WhatsApp Automation Error: {wa_err}")
+
         return {"status": "success", "id": str(new_order.id), "total": total_price}
         
     except Exception as e:

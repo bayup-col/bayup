@@ -27,166 +27,106 @@ import {
     Eye
 } from 'lucide-react';
 import { InteractiveUP } from '@/components/landing/InteractiveUP';
+import { StudioProvider } from '../../dashboard/pages/studio/context';
+import { Canvas } from '../../dashboard/pages/studio/internal-studio-parts/Canvas';
 
 export default function PublicShopPage() {
     const { slug } = useParams();
     const [shopData, setShopData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-        const [selectedCategory, setSelectedCategory] = useState("all");
-        const [isMenuOpen, setIsMenuOpen] = useState(false);
-        
-        // --- LÓGICA DE CARRITO ---
-        const [cart, setCart] = useState<any[]>([]);
-        const [isCartOpen, setIsCartOpen] = useState(false);
-        const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-        const [customerData, setCustomerData] = useState({
-            name: "",
-            phone: "",
-            address: "",
-            city: "",
-            notes: ""
-        });
-        const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState("all");
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
     
-        const addToCart = (product: any) => {
-            setCart(prev => {
-                const exists = prev.find(item => item.id === product.id);
-                if (exists) {
-                    return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
-                }
-                return [...prev, { ...product, quantity: 1 }];
-            });
-            setIsCartOpen(true);
-        };
-    
-        const removeFromCart = (productId: string) => {
-            setCart(prev => prev.filter(item => item.id !== productId));
-        };
-    
-        const cartTotal = useMemo(() => {
-            return cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-        }, [cart]);
-    
-        const handlePlaceOrder = async (e: React.FormEvent) => {
-            e.preventDefault();
-            if (cart.length === 0) return;
-            setIsPlacingOrder(true);
-    
-            try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
-                const payload = {
-                    customer_name: customerData.name,
-                    customer_phone: customerData.phone,
-                    shipping_address: `${customerData.address}, ${customerData.city}`,
-                    notes: customerData.notes,
-                    tenant_id: shopData.owner_id, // El backend necesitará esto
-                    items: cart.map(item => ({
-                        product_id: item.id,
-                        quantity: item.quantity,
-                        price: item.price
-                    }))
-                };
-    
-                const res = await fetch(`${apiUrl}/public/orders`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-    
-                if (res.ok) {
-                    const order = await res.json();
-                    // Redirigir a WhatsApp con el resumen del pedido
-                    const message = `¡Hola! Acabo de realizar un pedido en tu tienda ${shopData.store_name}.\n\n*Pedido #* : ${order.id.slice(0,8)}\n*Cliente*: ${customerData.name}\n*Total*: $${cartTotal.toLocaleString()}\n\n¿Me confirmas la recepción?`;
-                    window.open(`https://wa.me/${shopData.store_phone || '573000000000'}?text=${encodeURIComponent(message)}`, '_blank');
-                    
-                    setCart([]);
-                    setIsCheckoutOpen(false);
-                    alert("¡Pedido realizado con éxito! Te hemos redirigido a WhatsApp para confirmar.");
-                }
-            } catch (error) {
-                alert("Error al procesar el pedido. Intenta de nuevo.");
-            } finally {
-                setIsPlacingOrder(false);
+    // --- LÓGICA DE CARRITO ---
+    const [cart, setCart] = useState<any[]>([]);
+    const [isCartOpen, setIsCartOpen] = useState(false);
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+    const [customerData, setCustomerData] = useState({
+        name: "",
+        phone: "",
+        address: "",
+        city: "",
+        notes: ""
+    });
+    const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+
+    const addToCart = (product: any) => {
+        setCart(prev => {
+            const exists = prev.find(item => item.id === product.id);
+            if (exists) {
+                return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
             }
-        };
-    
-        const { scrollY } = useScroll();    const navBg = useTransform(scrollY, [0, 100], ["rgba(255,255,255,0)", "rgba(255,255,255,0.9)"]);
-    const navShadow = useTransform(scrollY, [0, 100], ["none", "0 10px 30px rgba(0,0,0,0.05)"]);
+            return [...prev, { ...product, quantity: 1 }];
+        });
+        setIsCartOpen(true);
+    };
 
-    // --- DATOS DE PLANTILLA MAESTRA (Si la tienda está vacía) ---
-    const DEFAULT_CATEGORIES = [
-        { id: 'cat1', title: 'Essential Series' },
-        { id: 'cat2', title: 'Urban Tech' },
-        { id: 'cat3', title: 'Luxe Accesorios' }
-    ];
+    const removeFromCart = (productId: string) => {
+        setCart(prev => prev.filter(item => item.id !== productId));
+    };
 
-    const DEFAULT_PRODUCTS = [
-        {
-            id: 'd1',
-            name: 'Minimalist Overcoat Black',
-            price: 450000,
-            image_url: 'https://images.unsplash.com/photo-1539533330585-b33b401d29d7?auto=format&fit=crop&q=80&w=1000',
-            collection_id: 'cat1',
-            sku: 'ESS-001'
-        },
-        {
-            id: 'd2',
-            name: 'Cyber-Punk Joggers 2.0',
-            price: 285000,
-            image_url: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&q=80&w=1000',
-            collection_id: 'cat2',
-            sku: 'URB-99'
-        },
-        {
-            id: 'd3',
-            name: 'Titanium Edge Watch',
-            price: 890000,
-            image_url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1000',
-            collection_id: 'cat3',
-            sku: 'LUX-07'
-        },
-        {
-            id: 'd4',
-            name: 'Cloud-Step Sneakers',
-            price: 320000,
-            image_url: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=1000',
-            collection_id: 'cat2',
-            sku: 'SHO-44'
-        },
-        {
-            id: 'd5',
-            name: 'Raw Denim Jacket',
-            price: 195000,
-            image_url: 'https://images.unsplash.com/photo-1576905341939-4ef20c371f7a?auto=format&fit=crop&q=80&w=1000',
-            collection_id: 'cat1',
-            sku: 'ESS-056'
-        },
-        {
-            id: 'd6',
-            name: 'Sahara Desert Boots',
-            price: 540000,
-            image_url: 'https://images.unsplash.com/photo-1520639889313-7519f0365d77?auto=format&fit=crop&q=80&w=1000',
-            collection_id: 'cat3',
-            sku: 'LUX-90'
+    const cartTotal = useMemo(() => {
+        return cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    }, [cart]);
+
+    const handlePlaceOrder = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (cart.length === 0) return;
+        setIsPlacingOrder(true);
+
+        try {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+            const payload = {
+                customer_name: customerData.name,
+                customer_phone: customerData.phone,
+                tenant_id: shopData.owner_id,
+                items: cart.map(item => ({
+                    product_id: item.id,
+                    quantity: item.quantity,
+                    price: item.price
+                }))
+            };
+
+            const res = await fetch(`${apiBase}/public/orders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                const order = await res.json();
+                
+                setCart([]);
+                setIsCheckoutOpen(false);
+                setIsCartOpen(false);
+                setCustomerData({ name: "", phone: "", address: "", city: "", notes: "" });
+                
+                alert("¡Pedido recibido! ✅ Te hemos enviado una confirmación automática a tu WhatsApp.");
+            } else {
+                const err = await res.json();
+                alert(`Error: ${err.detail || 'No se pudo crear el pedido'}`);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Error de conexión. Verifica tu internet e intenta de nuevo.");
+        } finally {
+            setIsPlacingOrder(false);
         }
-    ];
+    };
+
+    const { scrollY } = useScroll();
+    const navBg = useTransform(scrollY, [0, 100], ["rgba(255,255,255,0)", "rgba(255,255,255,0.9)"]);
+    const navShadow = useTransform(scrollY, [0, 100], ["none", "0 10px 30px rgba(0,0,0,0.05)"]);
 
     useEffect(() => {
         const fetchShop = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
-                const res = await fetch(`${apiUrl}/public/shop/${slug}`);
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+                const res = await fetch(`${apiBase}/public/shop/${slug}`);
                 if (res.ok) {
                     const data = await res.json();
-                    
-                    // Si el usuario no tiene datos reales, le inyectamos la plantilla de lujo
-                    const finalData = {
-                        ...data,
-                        products: data.products && data.products.length > 0 ? data.products : DEFAULT_PRODUCTS,
-                        categories: data.categories && data.categories.length > 0 ? data.categories : DEFAULT_CATEGORIES
-                    };
-                    setShopData(finalData);
+                    setShopData(data);
                 }
             } catch (error) {
                 console.error("Failed to fetch shop", error);
@@ -199,7 +139,7 @@ export default function PublicShopPage() {
 
     const filteredProducts = useMemo(() => {
         if (!shopData) return [];
-        return shopData.products.filter((p: any) => {
+        return (shopData.products || []).filter((p: any) => {
             const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesCategory = selectedCategory === "all" || p.collection_id === selectedCategory;
             return matchesSearch && matchesCategory;
@@ -234,6 +174,96 @@ export default function PublicShopPage() {
                 <h1 className="text-9xl font-black text-gray-100 uppercase mb-4 italic">404</h1>
                 <h2 className="text-3xl font-black text-gray-900 uppercase italic">Ecosistema No Sincronizado</h2>
                 <button onClick={() => window.location.href = '/'} className="mt-8 px-12 py-5 bg-[#004d4d] text-white rounded-full font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl">Volver al Portal</button>
+            </div>
+        );
+    }
+
+    // SI HAY UN DISEÑO PERSONALIZADO PUBLICADO, LO USAMOS
+    if (shopData.custom_schema) {
+        return (
+            <div className="min-h-screen bg-white">
+                <StudioProvider>
+                    <Canvas 
+                        overrideData={shopData.custom_schema} 
+                        isPreview={true} 
+                        initialProducts={shopData.products}
+                        initialCategories={shopData.categories}
+                    />
+                </StudioProvider>
+                
+                {/* BOTÓN FLOTANTE DE CARRITO SIEMPRE VISIBLE EN DISEÑOS PERSONALIZADOS */}
+                <button 
+                    onClick={() => setIsCartOpen(true)}
+                    className="fixed bottom-8 right-8 h-20 w-20 rounded-full bg-[#004d4d] text-[#00f2ff] flex items-center justify-center shadow-3xl z-[2000] hover:scale-110 transition-transform"
+                >
+                    <ShoppingBag size={32} />
+                    {cart.length > 0 && (
+                        <span className="absolute top-0 right-0 h-8 w-8 bg-[#00f2ff] text-[#004d4d] text-xs font-black rounded-full flex items-center justify-center border-4 border-white shadow-lg">
+                            {cart.reduce((acc, i) => acc + i.quantity, 0)}
+                        </span>
+                    )}
+                </button>
+
+                {/* MODALES REUTILIZADOS */}
+                <AnimatePresence>
+                    {isCartOpen && (
+                        <div className="fixed inset-0 z-[3000] flex justify-end">
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCartOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="relative w-full max-w-md bg-white h-screen shadow-2xl flex flex-col">
+                                <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-[#001A1A] text-white">
+                                    <h3 className="text-xl font-black uppercase italic tracking-widest">Tu Selección</h3>
+                                    <button onClick={() => setIsCartOpen(false)} className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"><X size={20}/></button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                                    {cart.map((item) => (
+                                        <div key={item.id} className="flex gap-4 p-4 bg-gray-50 rounded-[2rem] border border-gray-100 group">
+                                            <div className="h-20 w-20 rounded-2xl overflow-hidden bg-white border border-gray-100 shrink-0">
+                                                <img src={item.image_url || 'https://via.placeholder.com/100'} className="h-full w-full object-cover" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-black text-gray-900 line-clamp-1">{item.name}</p>
+                                                <p className="text-xs font-bold text-[#004d4d] mt-1">${item.price.toLocaleString()}</p>
+                                                <div className="flex items-center gap-3 mt-2">
+                                                    <span className="text-[10px] font-black text-gray-400 uppercase">Cantidad: {item.quantity}</span>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-rose-500 transition-colors self-center"><Trash2 size={18}/></button>
+                                        </div>
+                                    ))}
+                                </div>
+                                {cart.length > 0 && (
+                                    <div className="p-8 border-t border-gray-100 space-y-6 bg-gray-50/50">
+                                        <div className="flex justify-between items-end">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Estimado</p>
+                                            <p className="text-3xl font-black text-gray-900 tracking-tighter">${cartTotal.toLocaleString()}</p>
+                                        </div>
+                                        <button onClick={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }} className="w-full py-6 bg-gray-900 text-[#00f2ff] rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Finalizar Compra</button>
+                                    </div>
+                                )}
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {isCheckoutOpen && (
+                        <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4">
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCheckoutOpen(false)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-xl" />
+                            <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="relative bg-white w-full max-w-xl rounded-[4rem] shadow-3xl p-12 overflow-hidden border border-white/20">
+                                <h3 className="text-3xl font-black italic uppercase tracking-tighter text-[#001A1A] mb-8">Información de <span className="text-[#004d4d]">Envío</span></h3>
+                                <form onSubmit={handlePlaceOrder} className="space-y-6">
+                                    <input required placeholder="Nombre Completo" value={customerData.name} onChange={e => setCustomerData({...customerData, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                                    <input required placeholder="WhatsApp (10 dígitos)" maxLength={10} value={customerData.phone} onChange={e => setCustomerData({...customerData, phone: e.target.value.replace(/\D/g,'')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <input required placeholder="Dirección" value={customerData.address} onChange={e => setCustomerData({...customerData, address: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                                        <input required placeholder="Ciudad" value={customerData.city} onChange={e => setCustomerData({...customerData, city: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                                    </div>
+                                    <button type="submit" disabled={isPlacingOrder} className="w-full py-6 bg-[#004d4d] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-4">{isPlacingOrder ? "Procesando..." : <>Confirmar Pedido <ArrowRight size={18}/></>}</button>
+                                </form>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
             </div>
         );
     }

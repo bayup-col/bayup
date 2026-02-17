@@ -16,7 +16,8 @@ const StudioInterface = () => {
     sidebarView, toggleSidebar, handleDragEnd, 
     viewport, setViewport, 
     editMode, setEditMode,
-    activeSection, pageData 
+    activeSection, pageData,
+    publishPage, isPublishing
   } = useStudio();
   const [activeDragItem, setActiveDragItem] = useState<ComponentType | null>(null);
 
@@ -100,9 +101,22 @@ const StudioInterface = () => {
             <Eye size={18} />
             <span>Previsualizar</span>
           </button>
-          <button className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-blue-600 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95">
-            <Save size={18} />
-            <span>Publicar Web</span>
+          <button 
+            onClick={publishPage}
+            disabled={isPublishing}
+            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-blue-600 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isPublishing ? (
+              <>
+                <Loader2 className="animate-spin" size={18} />
+                <span>Publicando...</span>
+              </>
+            ) : (
+              <>
+                <Save size={18} />
+                <span>Publicar Web</span>
+              </>
+            )}
           </button>
         </div>
       </header>
