@@ -260,6 +260,54 @@ export const DesignerInspector = () => {
                     <button onClick={() => handleChange("menuItems", [...(element.props.menuItems || []), { label: "NUEVO", url: "/" }])} className="w-full py-2 border-2 border-dashed rounded-lg text-[9px] font-black text-gray-400 uppercase">+ Añadir Enlace</button>
                   </div>
                 </ControlGroup>
+
+                <ControlGroup title="3. Botones de Utilidad" icon={Zap} defaultOpen={false}>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-2">
+                      {[
+                        { id: 'showSearch', l: 'Buscador Inteligente', i: Search },
+                        { id: 'showCart', l: 'Carrito de Compras', i: ShoppingCart },
+                        { id: 'showUser', l: 'Acceso a Cuenta', i: User }
+                      ].map(opt => (
+                        <button key={opt.id} onClick={() => handleChange(opt.id, !element.props[opt.id])} className={cn("flex items-center justify-between p-3 rounded-xl border transition-all", element.props[opt.id] ? "bg-blue-50 border-blue-200 text-blue-600 shadow-sm" : "bg-white border-gray-100 text-gray-400")}>
+                          <div className="flex items-center gap-3"><opt.i size={14}/><span className="text-[10px] font-black uppercase">{opt.l}</span></div>
+                          <div className={cn("w-8 h-4 rounded-full p-0.5 transition-all", element.props[opt.id] ? "bg-blue-500" : "bg-gray-200")}>
+                            <div className={cn("w-3 h-3 bg-white rounded-full transition-all", element.props[opt.id] ? "translate-x-4" : "translate-x-0")} />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    {element.props.showCart && (
+                      <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
+                        <span className="text-[9px] font-black text-gray-400 uppercase">Personalización Carrito</span>
+                        <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={element.props.utilityColor || "#6b7280"} onChange={(e) => handleChange("utilityColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 font-black uppercase">Color Iconos</span></div>
+                        <FluidSlider label="Tamaño Iconos" value={element.props.utilitySize || 18} min={14} max={32} onChange={(v:number) => handleChange("utilitySize", v)} />
+                      </div>
+                    )}
+                  </div>
+                </ControlGroup>
+
+                <ControlGroup title="4. Iconos de Acción Extra" icon={PlusIcon} defaultOpen={false}>
+                  <div className="space-y-4">
+                    {(element.props.extraUtilities || []).map((util: any, idx: number) => (
+                      <div key={util.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3 relative group/util">
+                        <button onClick={() => handleChange("extraUtilities", element.props.extraUtilities.filter((_:any, i:number) => i !== idx))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover/util:opacity-100 transition-opacity shadow-lg"><X size={10}/></button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input type="text" value={util.label} onChange={(e) => { const newU = [...element.props.extraUtilities]; newU[idx].label = e.target.value; handleChange("extraUtilities", newU); }} className="w-full p-2 border rounded-lg text-[10px] font-bold" placeholder="Etiqueta" />
+                          <select value={util.icon} onChange={(e) => { const newU = [...element.props.extraUtilities]; newU[idx].icon = e.target.value; handleChange("extraUtilities", newU); }} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white">
+                            <option value="Heart">Favoritos</option>
+                            <option value="Phone">WhatsApp</option>
+                            <option value="MessageSquare">Chat</option>
+                            <option value="Bell">Campana</option>
+                            <option value="Star">Estrella</option>
+                          </select>
+                        </div>
+                        <input type="text" value={util.url} onChange={(e) => { const newU = [...element.props.extraUtilities]; newU[idx].url = e.target.value; handleChange("extraUtilities", newU); }} className="w-full p-2 border rounded-lg text-[9px] font-mono text-blue-600" placeholder="https://wa.me/..." />
+                      </div>
+                    ))}
+                    <button onClick={() => handleChange("extraUtilities", [...(element.props.extraUtilities || []), { id: uuidv4(), label: "WhatsApp", icon: "Phone", url: "" }])} className="w-full py-2 border-2 border-dashed rounded-lg text-[9px] font-black text-gray-400 uppercase">+ Vincular Canal Directo</button>
+                  </div>
+                </ControlGroup>
               </>
             )}
             
@@ -418,6 +466,43 @@ export const DesignerInspector = () => {
         )}
         {activeTab === "style" && (
           <div className="space-y-4">
+            {sectionKey === "header" && element.type === "navbar" && (
+              <>
+                <ControlGroup title="1. Estética de Barra" icon={Palette} defaultOpen={true}>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Visual</span>
+                      <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-lg">
+                        {[{id:"none", l:"Sólido"}, {id:"glass", l:"Glass"}, {id:"neon", l:"Neón"}, {id:"aurora", l:"Aurora"}].map(e => (
+                          <button key={e.id} onClick={() => handleChange("barEffect", e.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.barEffect === e.id || (!element.props.barEffect && e.id === "none")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{e.l}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={element.props.bgColor || "#ffffff"} onChange={(e) => handleChange("bgColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 font-black uppercase">Fondo</span></div>
+                      <FluidSlider label="Altura" value={element.props.navHeight || 80} min={60} max={140} onChange={(v:number) => handleChange("navHeight", v)} />
+                    </div>
+                  </div>
+                </ControlGroup>
+                
+                <ControlGroup title="2. Diseño de Enlaces" icon={Type} defaultOpen={false}>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white"><input type="color" value={element.props.menuColor || "#4b5563"} onChange={(e) => handleChange("menuColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 font-black uppercase">Color</span></div>
+                      <select value={element.props.menuFont || "font-black"} onChange={(e) => handleChange("menuFont", e.target.value)} className="w-full p-2 border rounded-lg text-[10px] font-bold bg-white">
+                        <option value="font-sans">Modern</option>
+                        <option value="font-black">Heavy</option>
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <FluidSlider label="Tamaño Letra" value={element.props.menuSize || 10} min={8} max={16} onChange={(v:number) => handleChange("menuSize", v)} />
+                      <FluidSlider label="Separación" value={element.props.menuGap || 32} min={10} max={64} onChange={(v:number) => handleChange("menuGap", v)} />
+                    </div>
+                  </div>
+                </ControlGroup>
+              </>
+            )}
+            
             {sectionKey === "body" && (
               <>
                 {element.type === "product-grid" && (
