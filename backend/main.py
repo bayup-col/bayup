@@ -950,16 +950,73 @@ async def create_public_order(data: dict, db: Session = Depends(get_db)):
         
         db.add(new_order)
         
-        # 3. Crear los items de la orden
+        # 3. Crear los items de la orden y DESCONTAR INVENTARIO
         for item in items_data:
+            # Buscar variante para validar stock
+            variant_id = uuid.UUID(item["product_id"]) if "product_id" in item else None
+            if not variant_id: continue
+
+            variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == variant_id).first()
+            
+            # Validación de Stock
+            qty = item.get("quantity", 1)
+            if variant:
+                if variant.stock < qty:
+                    raise HTTPException(status_code=400, detail=f"Stock insuficiente para {variant.name or 'producto'}")
+                # Descuento de Inventario
+                variant.stock -= qty
+            
             order_item = models.OrderItem(
                 id=uuid.uuid4(),
                 order_id=new_order.id,
-                product_variant_id=uuid.UUID(item["product_id"]) if "product_id" in item else None,
-                quantity=item.get("quantity", 1),
+                product_variant_id=variant_id,
+                quantity=qty,
                 price_at_purchase=item.get("price", 0)
             )
             db.add(order_item)
+
+        # 4. CRM: Crear o Vincular Cliente Automáticamente
+        client_phone = data.get("customer_phone", "").replace(" ", "")
+        client_email = data.get("customer_email", f"{client_phone}@cliente.bayup.com")
+        
+        existing_client = db.query(models.User).filter(
+            (models.User.email == client_email) | (models.User.phone == client_phone),
+            models.User.role == 'cliente'
+        ).first()
+
+        if not existing_client:
+            # Crear nuevo cliente
+            existing_client = models.User(
+                id=uuid.uuid4(),
+                email=client_email,
+                phone=client_phone,
+                full_name=data.get("customer_name", "Cliente Web"),
+                role="cliente",
+                status="Activo",
+                owner_id=new_order.tenant_id, # Vinculado a esta tienda
+                customer_type="final",
+                acquisition_channel="web",
+                total_spent=0,
+                hashed_password=security.get_password_hash("123456") # Password temporal
+            )
+            db.add(existing_client)
+            db.flush() # Para obtener ID
+        
+        # Actualizar métricas del cliente
+        existing_client.total_spent += total_price
+        existing_client.last_purchase_date = datetime.datetime.utcnow()
+        new_order.customer_id = existing_client.id
+
+        # 5. Finanzas: Registrar Ingreso (Pendiente)
+        new_income = models.Income(
+            id=uuid.uuid4(),
+            description=f"Venta Web #{str(new_order.id)[:8]}",
+            amount=total_price,
+            category="ventas_web",
+            tenant_id=new_order.tenant_id,
+            created_at=datetime.datetime.utcnow()
+        )
+        db.add(new_income)
             
         db.commit()
         db.refresh(new_order)

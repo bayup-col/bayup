@@ -42,9 +42,11 @@ export default function PublicShopPage() {
     const [cart, setCart] = useState<any[]>([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+    const [isClientLoginOpen, setIsClientLoginOpen] = useState(false); // Nuevo Modal Cliente
     const [customerData, setCustomerData] = useState({
         name: "",
         phone: "",
+        email: "", // Nuevo campo
         address: "",
         city: "",
         notes: ""
@@ -52,6 +54,13 @@ export default function PublicShopPage() {
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
     const addToCart = (product: any) => {
+        // Validación visual de stock
+        const totalStock = product.variants?.reduce((a: any, b: any) => a + (b.stock || 0), 0) || 0;
+        if (totalStock <= 0) {
+            alert("Lo sentimos, este producto está agotado.");
+            return;
+        }
+
         setCart(prev => {
             const exists = prev.find(item => item.id === product.id);
             if (exists) {
@@ -80,6 +89,7 @@ export default function PublicShopPage() {
             const payload = {
                 customer_name: customerData.name,
                 customer_phone: customerData.phone,
+                customer_email: customerData.email, // Enviamos email
                 tenant_id: shopData.owner_id,
                 items: cart.map(item => ({
                     product_id: item.id,
@@ -100,12 +110,12 @@ export default function PublicShopPage() {
                 setCart([]);
                 setIsCheckoutOpen(false);
                 setIsCartOpen(false);
-                setCustomerData({ name: "", phone: "", address: "", city: "", notes: "" });
+                setCustomerData({ name: "", phone: "", email: "", address: "", city: "", notes: "" });
                 
                 alert("¡Pedido recibido! ✅ Te hemos enviado una confirmación automática a tu WhatsApp.");
             } else {
                 const err = await res.json();
-                alert(`Error: ${err.detail || 'No se pudo crear el pedido'}`);
+                alert(`Error: ${err.detail || 'No se pudo crear el pedido. Verifica el stock.'}`);
             }
         } catch (error) {
             console.error(error);
@@ -304,6 +314,12 @@ export default function PublicShopPage() {
                             <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Soporte Vital</span>
                             <span className="text-[10px] font-bold text-gray-900">{shopData.store_email}</span>
                         </div>
+                        <button 
+                            onClick={() => setIsClientLoginOpen(true)}
+                            className="h-14 w-14 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-[#004d4d] hover:text-white transition-all shadow-sm"
+                        >
+                            <User size={24} />
+                        </button>
                         <button 
                             onClick={() => setIsCartOpen(true)}
                             className="h-14 w-14 rounded-2xl bg-[#004d4d] text-[#00f2ff] flex items-center justify-center shadow-2xl relative group hover:scale-105 transition-all"
@@ -602,11 +618,23 @@ export default function PublicShopPage() {
                             <div className="absolute top-0 left-0 w-full h-2 bg-[#00f2ff]" />
                             <h3 className="text-3xl font-black italic uppercase tracking-tighter text-[#001A1A] mb-8">Información de <span className="text-[#004d4d]">Envío</span></h3>
                             
-                            <form onSubmit={handlePlaceOrder} className="space-y-6">
-                                <div className="space-y-4">
-                                    <input required placeholder="Nombre Completo" value={customerData.name} onChange={e => setCustomerData({...customerData, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                    <input required placeholder="WhatsApp (10 dígitos)" maxLength={10} value={customerData.phone} onChange={e => setCustomerData({...customerData, phone: e.target.value.replace(/\D/g,'')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                    <div className="grid grid-cols-2 gap-4">
+                                                            <form onSubmit={handlePlaceOrder} className="space-y-6">
+                            
+                                                                <div className="space-y-4">
+                            
+                                                                    <input required placeholder="Nombre Completo" value={customerData.name} onChange={e => setCustomerData({...customerData, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                            
+                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            
+                                                                        <input required placeholder="WhatsApp" maxLength={10} value={customerData.phone} onChange={e => setCustomerData({...customerData, phone: e.target.value.replace(/\D/g,'')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                            
+                                                                        <input required type="email" placeholder="Email (para seguimiento)" value={customerData.email} onChange={e => setCustomerData({...customerData, email: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                            
+                                                                    </div>
+                            
+                                                                    <div className="grid grid-cols-2 gap-4">
+                            
+                            
                                         <input required placeholder="Dirección" value={customerData.address} onChange={e => setCustomerData({...customerData, address: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
                                         <input required placeholder="Ciudad" value={customerData.city} onChange={e => setCustomerData({...customerData, city: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
                                     </div>
@@ -623,6 +651,32 @@ export default function PublicShopPage() {
                                     </button>
                                 </div>
                             </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* --- MODAL LOGIN CLIENTE --- */}
+            <AnimatePresence>
+                {isClientLoginOpen && (
+                    <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsClientLoginOpen(false)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-xl" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative bg-white w-full max-w-md rounded-[3rem] shadow-2xl p-10 text-center border border-white/20">
+                            <div className="mb-8">
+                                <div className="h-20 w-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-[#004d4d] mb-4">
+                                    <User size={40} />
+                                </div>
+                                <h3 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter">Mi Cuenta</h3>
+                                <p className="text-xs font-bold text-gray-400 mt-2">Accede para ver tus pedidos y beneficios.</p>
+                            </div>
+                            <div className="space-y-4">
+                                <input placeholder="Tu Email" className="w-full p-4 bg-gray-50 rounded-xl border border-transparent focus:border-[#004d4d] outline-none text-sm font-bold" />
+                                <input placeholder="Tu Celular" className="w-full p-4 bg-gray-50 rounded-xl border border-transparent focus:border-[#004d4d] outline-none text-sm font-bold" />
+                                <button className="w-full py-4 bg-[#004d4d] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-black transition-all">
+                                    Ingresar
+                                </button>
+                            </div>
+                            <button onClick={() => setIsClientLoginOpen(false)} className="mt-6 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-rose-500">Cerrar</button>
                         </motion.div>
                     </div>
                 )}
