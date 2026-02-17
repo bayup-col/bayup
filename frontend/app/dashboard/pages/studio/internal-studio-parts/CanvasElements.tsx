@@ -67,7 +67,7 @@ export const DraggableCanvasElement = ({
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   
   // Hooks de Comercio
-  const { addItem } = useCart();
+  const { addItem, items: cart } = useCart();
   const router = useRouter();
 
   const handleNavClick = (url: string) => {
