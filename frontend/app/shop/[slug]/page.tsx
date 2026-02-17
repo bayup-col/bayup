@@ -223,10 +223,10 @@ export default function PublicShopPage() {
                                     {cart.map((item) => (
                                         <div key={item.id} className="flex gap-4 p-4 bg-gray-50 rounded-[2rem] border border-gray-100 group">
                                             <div className="h-20 w-20 rounded-2xl overflow-hidden bg-white border border-gray-100 shrink-0">
-                                                <img src={item.image_url || 'https://via.placeholder.com/100'} className="h-full w-full object-cover" />
+                                                <img src={item.image || 'https://via.placeholder.com/100'} className="h-full w-full object-cover" />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-black text-gray-900 line-clamp-1">{item.name}</p>
+                                                <p className="text-sm font-black text-gray-900 line-clamp-1">{item.title}</p>
                                                 <p className="text-xs font-bold text-[#004d4d] mt-1">${item.price.toLocaleString()}</p>
                                                 <div className="flex items-center gap-3 mt-2">
                                                     <span className="text-[10px] font-black text-gray-400 uppercase">Cantidad: {item.quantity}</span>
