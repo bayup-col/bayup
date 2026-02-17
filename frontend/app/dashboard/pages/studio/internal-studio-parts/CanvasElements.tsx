@@ -326,6 +326,11 @@ export const DraggableCanvasElement = ({
                             }
                           }}>
                             {renderUtil(<ShoppingCart size={elProps.utilitySize || 18} />, "Carrito", "nav-cart")}
+                            {isPreview && cart.length > 0 && (
+                              <span className="absolute -top-2 -right-2 h-5 w-5 bg-blue-600 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                                {cart.reduce((acc: number, i: any) => acc + i.quantity, 0)}
+                              </span>
+                            )}
                           </div>
                         )}
                         {(elProps.extraUtilities || []).map((util: any) => {

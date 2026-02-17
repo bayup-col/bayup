@@ -267,14 +267,6 @@ function ShopContent() {
 
             {/* --- COMPONENTES GLOBALES (SIEMPRE DISPONIBLES) --- */}
             
-            {/* BOTÓN FLOTANTE CARRITO (Si hay custom schema) */}
-            {shopData.custom_schema && (
-                <button onClick={() => setIsCartOpen(true)} className="fixed bottom-8 right-8 h-20 w-20 rounded-full bg-[#004d4d] text-[#00f2ff] flex items-center justify-center shadow-3xl z-[2000] hover:scale-110 transition-transform">
-                    <ShoppingBag size={32} />
-                    {cart.length > 0 && <span className="absolute top-0 right-0 h-8 w-8 bg-[#00f2ff] text-[#004d4d] text-xs font-black rounded-full flex items-center justify-center border-4 border-white">{cart.reduce((acc, i) => acc + i.quantity, 0)}</span>}
-                </button>
-            )}
-
             {/* SIDEBAR CARRITO */}
             <AnimatePresence>
                 {isCartOpen && (
