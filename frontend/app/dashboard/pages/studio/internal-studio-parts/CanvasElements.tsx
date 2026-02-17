@@ -393,6 +393,30 @@ export const DraggableCanvasElement = ({
                     {elProps.primaryBtnText && renderButton(elProps, "primaryBtn")}
                     {elProps.secondaryBtnText && renderButton(elProps, "secondaryBtn")}
                   </div>
+
+                  {/* --- RENDERIZADO DE ELEMENTOS EXTRA PERSONALIZADOS --- */}
+                  {(elProps.extraElements || []).map((extra: any) => (
+                    <div key={extra.id} className="absolute z-40 pointer-events-none">
+                      {extra.type === "text" && renderTextWithTheme(extra.content || extra.title || "Texto", extra, "extra", extra.id)}
+                      {extra.type === "button" && renderButton(extra, "extra", extra.id)}
+                      {(extra.type === "image" || extra.type === "video") && extra.url && (
+                        <motion.div
+                          animate={{ 
+                            x: extra.posX || 0, 
+                            y: extra.posY || 0,
+                            width: extra.size || 200,
+                          }}
+                          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        >
+                          {extra.type === "video" ? (
+                            <video src={extra.url} autoPlay muted loop className="w-full h-auto" style={{ borderRadius: `${extra.radius || 0}px` }} />
+                          ) : (
+                            <img src={extra.url} className="w-full h-auto object-contain drop-shadow-xl" style={{ borderRadius: `${extra.radius || 0}px` }} />
+                          )}
+                        </motion.div>
+                      )}
+                    </div>
+                  ))}
                 </>
               )}
 
