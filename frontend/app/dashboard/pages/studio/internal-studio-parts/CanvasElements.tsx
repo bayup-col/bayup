@@ -78,8 +78,14 @@ export const DraggableCanvasElement = ({
     // Mapeo inteligente de rutas internas de la tienda
     let target = `/shop/${slug}`;
     const lowUrl = url.toLowerCase();
+    
     if (lowUrl.includes('tienda') || lowUrl.includes('productos')) target += '?page=productos';
-    else if (lowUrl.includes('nosotros') || lowUrl.includes('contacto')) target += '?page=nosotros';
+    else if (lowUrl.includes('colecciones')) target += '?page=colecciones';
+    else if (lowUrl.includes('nosotros') || lowUrl.includes('sobre')) target += '?page=nosotros';
+    else if (lowUrl.includes('legal') || lowUrl.includes('politicas') || lowUrl.includes('terminos')) target += '?page=legal';
+    else if (lowUrl.includes('contacto')) target += '?page=nosotros'; // O una sección de contacto
+    else if (lowUrl.includes('checkout') || lowUrl.includes('finalizar')) target += '?page=checkout';
+    else target += '?page=home';
     
     router.push(target);
   };

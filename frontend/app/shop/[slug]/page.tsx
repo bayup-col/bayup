@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { 
     ShoppingBag, 
@@ -36,7 +36,21 @@ import { Canvas } from '../../dashboard/pages/studio/internal-studio-parts/Canva
 import { useCart } from '@/context/cart-context';
 
 export default function PublicShopPage() {
+    return (
+        <Suspense fallback={
+            <div className="h-screen flex flex-col items-center justify-center bg-white">
+                <Loader2 className="w-10 h-10 animate-spin text-[#004d4d]" />
+            </div>
+        }>
+            <ShopContent />
+        </Suspense>
+    );
+}
+
+function ShopContent() {
     const { slug } = useParams();
+    const searchParams = useSearchParams();
+    const pageKey = searchParams.get("page") || "home";
     const router = useRouter();
     const { items: cart, addItem, removeItem, clearCart, total: cartTotal, isCartOpen, setIsCartOpen } = useCart();
     
@@ -122,7 +136,7 @@ export default function PublicShopPage() {
         const fetchShop = async () => {
             try {
                 const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://bayup-interactive-production.up.railway.app';
-                const res = await fetch(`${apiBase}/public/shop/${slug}`);
+                const res = await fetch(`${apiBase}/public/shop/${slug}?page=${pageKey}`);
                 if (res.ok) {
                     const data = await res.json();
                     setShopData(data);
@@ -134,7 +148,7 @@ export default function PublicShopPage() {
             }
         };
         if (slug) fetchShop();
-    }, [slug]);
+    }, [slug, pageKey]);
 
     const filteredProducts = useMemo(() => {
         if (!shopData) return [];

@@ -872,7 +872,7 @@ def read_root(): return {"message": "Welcome to Bayup API"}
 # --- Public Shop Endpoints ---
 
 @app.get("/public/shop/{slug}")
-def get_public_shop(slug: str, db: Session = Depends(get_db)):
+def get_public_shop(slug: str, page: str = "home", db: Session = Depends(get_db)):
     # 1. Buscar al dueño de la tienda por su slug
     store_owner = db.query(models.User).filter(models.User.shop_slug == slug).first()
     if not store_owner:
@@ -887,11 +887,16 @@ def get_public_shop(slug: str, db: Session = Depends(get_db)):
     # 3. Obtener sus categorías
     collections_db = db.query(models.Collection).filter(models.Collection.owner_id == store_owner.id).all()
     
-    # 4. Obtener diseño personalizado (Studio) si existe
+    # 4. Obtener diseño personalizado (Studio) para la página específica
     custom_schema = db.query(models.ShopPage).filter(
         models.ShopPage.tenant_id == store_owner.id,
-        models.ShopPage.page_key == "home"
+        models.ShopPage.page_key == page
     ).first()
+
+    # Si no hay diseño para esa página específica, intentamos cargar el home como fallback o el esquema por defecto
+    if not custom_schema and page != "home":
+        # Podríamos decidir si mostrar un diseño genérico o el home
+        pass
 
     # Convertir a formato JSON simple para evitar error 500
     products = []
