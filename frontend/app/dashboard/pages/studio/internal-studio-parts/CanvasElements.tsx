@@ -175,13 +175,13 @@ export const DraggableCanvasElement = ({
             className={cn(
               "flex items-center w-full px-10 relative transition-all duration-500 z-[500]",
               (!elProps.barEffect || elProps.barEffect === "none") ? "border-b border-gray-100 shadow-sm" : "",
-              elProps.barEffect === "glass" ? "backdrop-blur-xl backdrop-saturate-150 border border-white/20 shadow-2xl rounded-b-2xl" : "",
+              elProps.barEffect === "glass" ? "backdrop-blur-xl backdrop-saturate-150 border border-white/20 shadow-2xl rounded-b-2xl bg-white/20" : "", // Añadido bg-white/20
               elProps.barEffect === "shadow" ? "shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-none" : "",
               elProps.barEffect === "neon" ? "border-b-2 border-blue-500 shadow-[0_8px_20px_rgba(59,130,246,0.6)]" : ""
             )} 
             style={{ 
               height: `${elProps.navHeight || 80}px`, 
-              backgroundColor: elProps.barEffect === "transparent" ? "transparent" : (elProps.barEffect === "glass" ? "rgba(255,255,255,0.8)" : elProps.bgColor || "#ffffff")
+              backgroundColor: elProps.barEffect === "transparent" ? "transparent" : (elProps.barEffect === "glass" ? "rgba(255,255,255,0.2)" : elProps.bgColor || "#ffffff") // Cambiado de 0.8 a 0.2
             }}
           >
             {elProps.barEffect === "glass" && (
