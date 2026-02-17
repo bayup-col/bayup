@@ -68,7 +68,7 @@ const renderModularTextDesigner = (props: any, onUpdate: (p: any) => void, title
     <ControlGroup title={title} icon={Type} onRemove={canRemove ? onRemove : null} defaultOpen={true}>
       <div className="space-y-4">
         {props.content !== undefined && (
-          <textarea value={props.content ?? props.title ?? ""} onChange={(e) => onUpdate({ content: e.target.value, title: e.target.value })} className="w-full p-3 border rounded-xl text-sm font-black bg-gray-50/30 uppercase italic" />
+          <textarea value={props.content ?? props.title ?? ""} onChange={(e) => onUpdate({ content: e.target.value, title: e.target.value })} className="w-full p-3 border rounded-xl text-sm font-black bg-gray-50/30 italic" />
         )}
         <div className="space-y-2">
           <span className="text-[9px] font-black text-gray-400 uppercase">Temas de Diseño</span>
@@ -192,13 +192,10 @@ export const DesignerInspector = () => {
   };
 
   const addExtraElement = (type: "text" | "button" | "image") => {
-    const newEl = { 
-      id: uuidv4(), 
-      type, 
-      props: type === "text" 
-        ? { content: "NUEVO TEXTO EXTRA", title: "NUEVO TEXTO EXTRA", size: 24, posX: 0, posY: 0, color: "#ffffff", font: "font-black", variant: "solid" }
-        : { content: "Nuevo", text: "Haz clic", size: 24, posX: 0, posY: 0 } 
-    };
+    const newEl = type === "text" 
+      ? { id: uuidv4(), type, content: "NUEVO TEXTO EXTRA", title: "NUEVO TEXTO EXTRA", size: 24, posX: 0, posY: 0, color: "#ffffff", font: "font-black", variant: "solid" }
+      : { id: uuidv4(), type, content: "Nuevo", text: "Haz clic", url: "/", size: 14, posX: 0, posY: 0, variant: "solid", bgColor: "#2563eb" };
+    
     handleChange("extraElements", [...(element.props.extraElements || []), newEl]);
     setShowAddMenu(false);
   };
