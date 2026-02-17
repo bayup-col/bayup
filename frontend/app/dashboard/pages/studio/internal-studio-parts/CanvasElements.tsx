@@ -474,30 +474,92 @@ export const DraggableCanvasElement = ({
                           }));
                         }
 
-                        return displayItems.map((p: any, i: number) => (
-                          <motion.div 
-                            key={p.id} whileHover={{ y: -10, scale: 1.02 }}
-                            onClick={() => isPreview && router.push(`/shop/${pageKey}/product/${p.id}`)}
-                            className="relative group flex flex-col bg-white rounded-[2.5rem] overflow-hidden shadow-lg cursor-pointer"
-                            style={{ minWidth: elProps.layout === "carousel" ? "300px" : "auto", height: elProps.cardHeight || 450, borderRadius: `${elProps.cardBorderRadius || 40}px` }}
-                          >
-                            <div className="h-[60%] overflow-hidden bg-gray-50">
-                              <img src={Array.isArray(p.image_url) ? p.image_url[0] : (p.image_url || p.main_image || MOCK_IMAGES[0])} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                            </div>
-                            <div className="p-8 flex flex-col justify-between flex-1 text-center">
-                              <div>
-                                <h4 className="font-black uppercase text-sm text-gray-900 truncate">{p.name || p.title}</h4>
-                                <p className="text-[#004D4D] font-black mt-2">${Number(p.price).toLocaleString()}</p>
+                        return displayItems.map((p: any, i: number) => {
+                          const cardStyle = elProps.cardStyle || "premium";
+                          const cardAlign = elProps.cardAlign || "center";
+                          
+                          return (
+                            <motion.div 
+                              key={p.id} whileHover={{ y: -10, scale: 1.02 }}
+                              onClick={() => isPreview && router.push(`/shop/${pageKey}/product/${p.id}`)}
+                              className={cn(
+                                "relative group flex flex-col overflow-hidden transition-all duration-500 cursor-pointer",
+                                cardStyle === "premium" ? "bg-white shadow-xl hover:shadow-2xl" : 
+                                cardStyle === "glass" ? "bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl" : 
+                                "bg-transparent border-none shadow-none"
+                              )}
+                              style={{ 
+                                minWidth: elProps.layout === "carousel" ? "300px" : "auto", 
+                                height: elProps.cardHeight || 450, 
+                                borderRadius: `${elProps.cardBorderRadius || 40}px` 
+                              }}
+                            >
+                              <div className={cn(
+                                "h-[60%] overflow-hidden",
+                                cardStyle === "minimal" ? "bg-gray-50 rounded-[2rem]" : "bg-gray-50"
+                              )}>
+                                <img src={Array.isArray(p.image_url) ? p.image_url[0] : (p.image_url || p.main_image || MOCK_IMAGES[0])} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                
+                                {elProps.showOfferBadge && (
+                                  <motion.div 
+                                    animate={elProps.offerBadgePulse !== false ? { scale: [1, 1.05, 1] } : {}}
+                                    transition={{ duration: 2, repeat: Infinity }}
+                                    className="absolute top-4 right-4 px-4 py-1.5 rounded-full text-[10px] font-black uppercase z-10 shadow-lg"
+                                    style={{ backgroundColor: elProps.offerBadgeBg || "#ef4444", color: elProps.offerBadgeColor || "#ffffff" }}
+                                  >
+                                    {elProps.offerBadgeText || "OFERTA"}
+                                  </motion.div>
+                                )}
                               </div>
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); if(isPreview) addItem({id: p.id, title: p.name || p.title, price: Number(p.price), image: Array.isArray(p.image_url) ? p.image_url[0] : p.image_url, quantity: 1}); }}
-                                className="w-full py-3 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#004D4D] transition-all"
-                              >
-                                Añadir al Carrito
-                              </button>
-                            </div>
-                          </motion.div>
-                        ));
+
+                              <div className={cn(
+                                "p-8 flex flex-col justify-between flex-1",
+                                cardAlign === "left" ? "text-left items-start" : cardAlign === "right" ? "text-right items-end" : "text-center items-center"
+                              )}>
+                                <div className="space-y-2 w-full">
+                                  {renderTextWithTheme(p.name || p.title, {
+                                    variant: elProps.cardTitleVariant,
+                                    color: elProps.cardTitleColor || (cardStyle === "glass" ? "#ffffff" : "#111827"),
+                                    size: elProps.cardTitleSize || 14,
+                                    font: elProps.cardTitleFont || "font-black",
+                                    intensity: elProps.cardTitleIntensity || 100
+                                  }, "none", `prod-title-${p.id}`)}
+                                  
+                                  {elProps.showPrice && renderTextWithTheme(`$${Number(p.price).toLocaleString()}`, {
+                                    variant: elProps.priceVariant,
+                                    color: elProps.priceColor || "#2563eb",
+                                    size: elProps.priceSize || 16,
+                                    font: elProps.priceFont || "font-black",
+                                    intensity: elProps.priceIntensity || 100
+                                  }, "none", `prod-price-${p.id}`)}
+                                </div>
+
+                                {elProps.showAddToCart && (
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); if(isPreview) addItem({id: p.id, title: p.name || p.title, price: Number(p.price), image: Array.isArray(p.image_url) ? p.image_url[0] : p.image_url, quantity: 1}); }}
+                                    className={cn(
+                                      "w-full py-3 font-black text-[10px] uppercase tracking-widest transition-all",
+                                      elProps.addToCartVariant === "outline" ? "border-2 bg-transparent" :
+                                      elProps.addToCartVariant === "glass" ? "bg-white/10 backdrop-blur-md border border-white/20" :
+                                      elProps.addToCartVariant === "aurora" ? "bg-gradient-to-r from-blue-500 to-purple-600 border-none text-white" :
+                                      "bg-black text-white hover:bg-gray-800"
+                                    )}
+                                    style={{ 
+                                      borderRadius: `${elProps.addToCartBorderRadius || 12}px`,
+                                      fontSize: `${elProps.addToCartSize || 10}px`,
+                                      borderColor: elProps.addToCartVariant === "outline" ? (elProps.addToCartBgColor || "#000000") : "transparent",
+                                      color: elProps.addToCartVariant === "outline" ? (elProps.addToCartBgColor || "#000000") : (elProps.addToCartTextColor || "#ffffff"),
+                                      backgroundColor: elProps.addToCartVariant === "solid" ? (elProps.addToCartBgColor || "#000000") : undefined,
+                                      transform: `translate(${elProps.addToCartPosX || 0}px, ${elProps.addToCartPosY || 0}px)`
+                                    }}
+                                  >
+                                    {elProps.addToCartText || "Añadir al Carrito"}
+                                  </button>
+                                )}
+                              </div>
+                            </motion.div>
+                          );
+                        });
                       })()}
                     </div>
                   </div>
