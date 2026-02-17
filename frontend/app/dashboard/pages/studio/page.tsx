@@ -17,7 +17,8 @@ const StudioInterface = () => {
     viewport, setViewport, 
     editMode, setEditMode,
     activeSection, pageData,
-    publishPage, isPublishing
+    publishPage, isPublishing,
+    saveDraft, isSaving
   } = useStudio();
   const [activeDragItem, setActiveDragItem] = useState<ComponentType | null>(null);
 
@@ -50,9 +51,23 @@ const StudioInterface = () => {
           >
             <ChevronLeft size={20} />
           </Link>
-          <div>
-            <h1 className="font-bold text-gray-800 leading-tight text-base">Bayup Studio</h1>
-            <p className="text-[10px] text-blue-500 font-bold uppercase tracking-tighter text-nowrap">Editor Visual Pro v4.0</p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="font-bold text-gray-800 leading-tight text-base">Bayup Studio</h1>
+              <p className="text-[10px] text-blue-500 font-bold uppercase tracking-tighter text-nowrap">Editor Visual Pro v4.0</p>
+            </div>
+            <button 
+              onClick={saveDraft}
+              disabled={isSaving}
+              className="ml-2 flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-blue-50 text-gray-600 hover:text-blue-600 rounded-lg text-[10px] font-black uppercase transition-all active:scale-95 border border-transparent hover:border-blue-100 group"
+            >
+              {isSaving ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <Save size={12} className="group-hover:scale-110 transition-transform" />
+              )}
+              <span>{isSaving ? "Guardando..." : "Guardar Proceso"}</span>
+            </button>
           </div>
         </div>
 

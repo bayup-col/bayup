@@ -257,7 +257,9 @@ interface StudioContextType {
   footerLocked: boolean;
   setFooterLocked: (locked: boolean) => void;
   publishPage: () => Promise<void>;
+  saveDraft: () => Promise<void>;
   isPublishing: boolean;
+  isSaving: boolean;
 }
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
@@ -271,6 +273,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   const [activeSection, setActiveSection] = useState<SectionType>("body");
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   const [pagesData, setPagesData] = useState<Record<string, PageSchema>>({
     home: DEFAULT_SCHEMA,
@@ -725,11 +728,30 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const saveDraft = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setIsSaving(true);
+    try {
+      const { shopPageService } = await import("@/lib/api");
+      await shopPageService.save(token, {
+        page_key: pageKey,
+        schema_data: pageData
+      });
+      showToast("¡Progreso guardado como borrador! 💾", "success");
+    } catch (e: any) {
+      showToast("Error al guardar borrador", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <StudioContext.Provider value={{ 
       activeSection, setActiveSection, selectedElementId, selectElement, pageData, addElement, updateElement, removeElement, 
       sidebarView, toggleSidebar: setSidebarView, handleDragEnd, viewport, setViewport, editMode, setEditMode, 
-      pageKey, headerLocked, setHeaderLocked, footerLocked, setFooterLocked, publishPage, isPublishing 
+      pageKey, headerLocked, setHeaderLocked, footerLocked, setFooterLocked, publishPage, saveDraft, isPublishing, isSaving 
     }}>
       {children}
     </StudioContext.Provider>
