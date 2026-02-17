@@ -208,15 +208,26 @@ export const DesignerInspector = () => {
       const url = URL.createObjectURL(file);
       const isVideo = file.type.startsWith('video/');
       const keyToUpdate = uploadTarget.key;
-      if (uploadTarget.id) {
+      
+      // Solo actualizar extraElements si el ID realmente existe en esa lista
+      const isExtraElement = uploadTarget.id && (element.props.extraElements || []).some((item: any) => item.id === uploadTarget.id);
+      
+      if (isExtraElement) {
         const newList = (element.props.extraElements || []).map((item: any) => 
           item.id === uploadTarget.id ? { ...item, [keyToUpdate]: url, url: url, type: isVideo ? 'video' : 'image' } : item
         );
         handleChange("extraElements", newList);
       } else {
-        if (keyToUpdate === "bgBackground") { handleChange(isVideo ? "videoUrl" : "imageUrl", url); handleChange("bgType", isVideo ? "video" : "image"); }
-        else if (keyToUpdate === "floatUrl" || keyToUpdate === "mainImage") { handleChange(keyToUpdate, url); }
-        else { handleChange(keyToUpdate, url); }
+        if (keyToUpdate === "bgBackground") { 
+          handleChange(isVideo ? "videoUrl" : "imageUrl", url); 
+          handleChange("bgType", isVideo ? "video" : "image"); 
+        }
+        else if (keyToUpdate === "floatUrl" || keyToUpdate === "mainImage") { 
+          handleChange(keyToUpdate, url); 
+        }
+        else { 
+          handleChange(keyToUpdate, url); 
+        }
       }
       setUploadTarget(null);
     }
@@ -533,7 +544,7 @@ export const DesignerInspector = () => {
                       if ('posY' in p) updates.secondaryBtnPosY = p.posY;
                       updateElement(sectionKey, selectedElementId, updates);
                     }, "Botón Secundario")}
-                    {renderModularMultimediaDesigner({ ...element.props, floatUrl: element.props.floatUrl, floatSize: element.props.floatSize, floatRadius: element.props.floatRadius, floatPosX: element.props.floatPosX, floatPosY: element.props.floatPosY }, (p) => { 
+                    {renderModularMultimediaDesigner({ ...element.props, id: null, floatUrl: element.props.floatUrl, floatSize: element.props.floatSize, floatRadius: element.props.floatRadius, floatPosX: element.props.floatPosX, floatPosY: element.props.floatPosY }, (p) => { 
                       const mapping: any = { floatType: 'floatType', url: 'floatUrl', floatUrl: 'floatUrl', floatAnim: 'floatAnim', size: 'floatSize', floatSize: 'floatSize', radius: 'floatRadius', floatRadius: 'floatRadius', posX: 'floatPosX', floatPosX: 'floatPosX', posY: 'floatPosY', floatPosY: 'floatPosY' }; 
                       const updates: Record<string, any> = {}; 
                       Object.keys(p).forEach(k => { if (mapping[k]) updates[mapping[k]] = p[k]; }); 

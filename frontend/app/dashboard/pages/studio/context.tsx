@@ -420,6 +420,12 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
       bgColor: "#111827",
       overlayOpacity: 40,
       overlayColor: "#000000",
+      // Propiedades de Imagen Complemento
+      floatUrl: null,
+      floatSize: 200,
+      floatPosX: 0,
+      floatPosY: 0,
+      floatRadius: 20,
     };
 
     const newElement: StudioElement = {

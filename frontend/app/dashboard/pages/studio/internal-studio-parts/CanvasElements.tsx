@@ -368,6 +368,27 @@ export const DraggableCanvasElement = ({
                     {elProps.subtitle && <div className="w-full">{renderTextWithTheme(elProps.subtitle, elProps, "subtitle")}</div>}
                     {elProps.content && <div className="w-full">{renderTextWithTheme(elProps.content, elProps, "content")}</div>}
                   </div>
+
+                  {/* --- IMAGEN DE COMPLEMENTO (FLOAT IMAGE) --- */}
+                  {elProps.floatUrl && (
+                    <motion.div
+                      animate={{ 
+                        x: elProps.floatPosX || 0, 
+                        y: elProps.floatPosY || 0,
+                        width: elProps.floatSize || 200,
+                      }}
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      className="relative z-20 pointer-events-none"
+                    >
+                      <img 
+                        src={elProps.floatUrl} 
+                        className="w-full h-auto object-contain shadow-2xl" 
+                        style={{ borderRadius: `${elProps.floatRadius || 20}px` }}
+                        alt="Complemento"
+                      />
+                    </motion.div>
+                  )}
+
                   <div className="flex flex-wrap justify-center items-center gap-6 w-full">
                     {elProps.primaryBtnText && renderButton(elProps, "primaryBtn")}
                     {elProps.secondaryBtnText && renderButton(elProps, "secondaryBtn")}
