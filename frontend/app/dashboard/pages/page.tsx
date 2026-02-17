@@ -22,6 +22,7 @@ const MOCK_PAGES = [
     { id: 'p5', title: 'Todos los Productos', url: '/productos', status: 'published', is_home: false },
     { id: 'p3', title: 'Sobre la Marca', url: '/nosotros', status: 'published', is_home: false },
     { id: 'p4', title: 'Políticas & Legal', url: '/legal', status: 'published', is_home: false },
+    { id: 'p6', title: 'Finalización de Compra', url: '/checkout', status: 'published', is_home: false },
 ];
 
 export default function PagesDashboard() {
