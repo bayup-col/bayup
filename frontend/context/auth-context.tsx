@@ -9,8 +9,9 @@ interface AuthContextType {
   userRole: string | null;
   userPermissions: Record<string, boolean> | null;
   userPlan: any | null;
+  shopSlug: string | null;
   isGlobalStaff: boolean;
-  login: (token: string, email: string, role: string, permissions?: any, plan?: any, isGlobal?: boolean) => void;
+  login: (token: string, email: string, role: string, permissions?: any, plan?: any, isGlobal?: boolean, shopSlug?: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -23,6 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userPermissions, setUserPermissions] = useState<Record<string, boolean> | null>(null);
   const [userPlan, setUserPlan] = useState<any | null>(null);
+  const [shopSlug, setShopSlug] = useState<string | null>(null);
   const [isGlobalStaff, setIsGlobalStaff] = useState<boolean>(false);
   const router = useRouter();
 
@@ -33,31 +35,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedRole = localStorage.getItem('userRole');
     const storedPerms = localStorage.getItem('userPermissions');
     const storedPlan = localStorage.getItem('userPlan');
+    const storedSlug = localStorage.getItem('shopSlug');
     const storedIsGlobal = localStorage.getItem('isGlobalStaff');
 
     if (storedToken && storedEmail) {
       setToken(storedToken);
       setUserEmail(storedEmail);
       setUserRole(storedRole);
+      setShopSlug(storedSlug);
       if (storedPerms) setUserPermissions(JSON.parse(storedPerms));
       if (storedPlan) setUserPlan(JSON.parse(storedPlan));
       if (storedIsGlobal) setIsGlobalStaff(storedIsGlobal === 'true');
     }
   }, []);
 
-  const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false) => {
+  const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "") => {
     setToken(newToken);
     setUserEmail(email);
     setUserRole(role);
     setUserPermissions(permissions);
     setUserPlan(plan);
     setIsGlobalStaff(isGlobal);
+    setShopSlug(slug);
 
     localStorage.setItem('token', newToken);
     localStorage.setItem('userEmail', email);
     localStorage.setItem('userRole', role);
     localStorage.setItem('userPermissions', JSON.stringify(permissions));
     localStorage.setItem('isGlobalStaff', isGlobal ? 'true' : 'false');
+    localStorage.setItem('shopSlug', slug);
     if (plan) localStorage.setItem('userPlan', JSON.stringify(plan));
   }, []);
 
@@ -67,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserRole(null);
     setUserPermissions(null);
     setUserPlan(null);
+    setShopSlug(null);
     setIsGlobalStaff(false);
     localStorage.clear();
     router.push('/login');
@@ -80,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userRole,
     userPermissions,
     userPlan,
+    shopSlug,
     isGlobalStaff,
     login,
     logout,

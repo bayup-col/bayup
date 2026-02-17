@@ -86,9 +86,10 @@ export default function LoginPage() {
       const userRole = userData.role || 'admin_tienda';
       const userPermissions = userData.permissions || {};
       const userPlan = userData.plan || null;
+      const shopSlug = userData.shop_slug || "";
       
       // Guardamos TODO en el contexto de Auth
-      login(data.access_token, email, userRole, userPermissions, userPlan, isGlobalStaff);
+      login(data.access_token, email, userRole, userPermissions, userPlan, isGlobalStaff, shopSlug);
       
       console.log("LOGIN EXITOSO - ROL:", userRole, "ES GLOBAL:", isGlobalStaff);
 

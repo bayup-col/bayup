@@ -205,32 +205,52 @@ export const DesignerInspector = () => {
     fileInputRef.current?.click();
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && uploadTarget) {
-      const url = URL.createObjectURL(file);
-      const isVideo = file.type.startsWith('video/');
-      const keyToUpdate = uploadTarget.key;
-      
-      // Solo actualizar extraElements si el ID realmente existe en esa lista
-      const isExtraElement = uploadTarget.id && (element.props.extraElements || []).some((item: any) => item.id === uploadTarget.id);
-      
-      if (isExtraElement) {
-        const newList = (element.props.extraElements || []).map((item: any) => 
-          item.id === uploadTarget.id ? { ...item, [keyToUpdate]: url, url: url, type: isVideo ? 'video' : 'image' } : item
-        );
-        handleChange("extraElements", newList);
-      } else {
-        if (keyToUpdate === "bgBackground") { 
-          handleChange(isVideo ? "videoUrl" : "imageUrl", url); 
-          handleChange("bgType", isVideo ? "video" : "image"); 
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const response = await fetch(`${apiBase}/admin/upload-image`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const url = data.url;
+          const isVideo = file.type.startsWith('video/');
+          const keyToUpdate = uploadTarget.key;
+          
+          // Solo actualizar extraElements si el ID realmente existe en esa lista
+          const isExtraElement = uploadTarget.id && (element.props.extraElements || []).some((item: any) => item.id === uploadTarget.id);
+          
+          if (isExtraElement) {
+            const newList = (element.props.extraElements || []).map((item: any) => 
+              item.id === uploadTarget.id ? { ...item, [keyToUpdate]: url, url: url, type: isVideo ? 'video' : 'image' } : item
+            );
+            handleChange("extraElements", newList);
+          } else {
+            if (keyToUpdate === "bgBackground") { 
+              handleChange(isVideo ? "videoUrl" : "imageUrl", url); 
+              handleChange("bgType", isVideo ? "video" : "image"); 
+            }
+            else if (keyToUpdate === "floatUrl" || keyToUpdate === "mainImage") { 
+              handleChange(keyToUpdate, url); 
+            }
+            else { 
+              handleChange(keyToUpdate, url); 
+            }
+          }
         }
-        else if (keyToUpdate === "floatUrl" || keyToUpdate === "mainImage") { 
-          handleChange(keyToUpdate, url); 
-        }
-        else { 
-          handleChange(keyToUpdate, url); 
-        }
+      } catch (err) {
+        console.error("Error uploading image:", err);
       }
       setUploadTarget(null);
     }

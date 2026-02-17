@@ -82,7 +82,7 @@ export default function PublicShopPage() {
         setIsPlacingOrder(true);
 
         try {
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://bayup-interactive-production.up.railway.app';
             const payload = {
                 customer_name: customerData.name,
                 customer_phone: customerData.phone,
@@ -121,7 +121,7 @@ export default function PublicShopPage() {
     useEffect(() => {
         const fetchShop = async () => {
             try {
-                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gallant-education-production-8b4a.up.railway.app';
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://bayup-interactive-production.up.railway.app';
                 const res = await fetch(`${apiBase}/public/shop/${slug}`);
                 if (res.ok) {
                     const data = await res.json();

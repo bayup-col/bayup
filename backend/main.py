@@ -262,6 +262,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
                 "email": user.email,
                 "full_name": user.full_name,
                 "role": user.role,
+                "shop_slug": user.shop_slug,
                 "is_global_staff": bool(user.is_global_staff),
                 "permissions": user_perms,
                 "plan": {

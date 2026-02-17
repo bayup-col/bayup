@@ -266,6 +266,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   const searchParams = useSearchParams();
   const pageKey = searchParams.get("page") || "home";
   const { showToast } = (require("@/context/toast-context")).useToast();
+  const { shopSlug } = (require("@/context/auth-context")).useAuth();
 
   const [activeSection, setActiveSection] = useState<SectionType>("body");
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
@@ -693,12 +694,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
       showToast("¡Página publicada con éxito! 🚀", "success");
 
       // ABRIR TIENDA PÚBLICA AUTOMÁTICAMENTE
-      const savedSettings = localStorage.getItem('bayup_general_settings');
-      let slug = "preview";
-      if (savedSettings) {
-          const parsed = JSON.parse(savedSettings);
-          slug = parsed.contact?.shop_slug || "preview";
-      }
+      const slug = shopSlug || "preview";
       
       setTimeout(() => {
           window.open(`/shop/${slug}`, '_blank');
