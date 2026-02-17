@@ -9,7 +9,7 @@ import {
   Settings2, Sparkles, Layout, ChevronDown, Check, Upload,
   ShoppingBag, MousePointer2, Play, Link as LinkIcon, Plus as PlusIcon, Trash2,
   Zap, Star, Flame, Wind, Wand2, MonitorPlay, Maximize, RotateCw,
-  User, ShoppingCart, Search, Edit3, Heart, Bell, MessageSquare, Phone, Info, Globe, Eye, EyeOff, Tag, Store, Share2
+  User, ShoppingCart, Search, Edit3, Heart, Bell, MessageSquare, Phone, Info, Globe, Eye, EyeOff, Tag, Store, Share2, ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { v4 as uuidv4 } from "uuid";
