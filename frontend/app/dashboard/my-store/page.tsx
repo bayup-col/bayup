@@ -30,6 +30,16 @@ const FEATURED_THEMES = [
 ];
 
 export default function MyStoreHub() {
+    const handleViewStore = () => {
+        const savedSettings = localStorage.getItem('bayup_general_settings');
+        let slug = "preview";
+        if (savedSettings) {
+            const parsed = JSON.parse(savedSettings);
+            slug = parsed.contact?.shop_slug || "preview";
+        }
+        window.open(`/shop/${slug}`, '_blank');
+    };
+
     return (
         <div className="max-w-[1600px] mx-auto pb-32 space-y-16 animate-in fade-in duration-1000">
             
@@ -100,11 +110,14 @@ export default function MyStoreHub() {
                                 <Link href="/dashboard/pages">
                                     <button className="w-full h-20 bg-purple-600 text-white rounded-[2rem] font-black text-xs tracking-[0.3em] shadow-2xl shadow-purple-200 hover:bg-black hover:shadow-none transition-all flex items-center justify-center gap-4 group active:scale-95">
                                         <Paintbrush2 size={20} className="group-hover:rotate-12 transition-transform" />
-                                        Lanzar studio de diseño
+                                        Personalizar página web
                                     </button>
                                 </Link>
-                                <button className="w-full h-16 bg-white border border-gray-100 text-gray-900 rounded-[1.8rem] font-black text-[10px] tracking-[0.2em] shadow-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-3 active:scale-95">
-                                    <ExternalLink size={16} className="text-purple-500" /> Ver tienda online
+                                <button 
+                                    onClick={handleViewStore}
+                                    className="w-full h-16 bg-white border border-gray-100 text-gray-900 rounded-[1.8rem] font-black text-[10px] tracking-[0.2em] shadow-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-3 active:scale-95"
+                                >
+                                    <Eye size={16} className="text-purple-500" /> Ver tienda online
                                 </button>
                             </div>
 
