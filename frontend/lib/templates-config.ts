@@ -1,45 +1,60 @@
 import { v4 as uuidv4 } from "uuid";
-import { PageSchema, ComponentType, StudioElement } from "@/app/dashboard/pages/studio/context";
+import { PageSchema, ComponentType } from "@/app/dashboard/pages/studio/context";
 
 type PageType = 'home' | 'colecciones' | 'productos' | 'nosotros' | 'legal' | 'checkout';
 
+interface ThemeConfig {
+  id: string;
+  name: string;
+  font: string;
+  bg: string;
+  text: string;
+  accent: string;
+  radius: number;
+  navType: "minimal" | "centered" | "glass" | "solid" | "mega" | "floating";
+  heroHeight: number;
+  gridCols: number;
+  isDark: boolean;
+  images: { hero: string };
+}
+
 // --- ARQUITECTURA DE DISEÑO DE ALTO IMPACTO ---
-const THEMES = {
+const THEMES: Record<string, ThemeConfig> = {
   t1: { // URBAN RAW (Inspirado en Mattelsa / Nude Project)
     id: "t1", name: "Urban Raw", font: "font-black", bg: "#ffffff", text: "#000000", accent: "#000000", radius: 0,
-    navType: "minimal", heroHeight: 800, gridCols: 2, 
+    navType: "minimal", heroHeight: 800, gridCols: 2, isDark: false,
     images: { hero: "https://images.unsplash.com/photo-1529139513055-07f9127e6111?q=80&w=2000" }
   },
   t2: { // EDITORIAL LUXE (Inspirado en Studio F)
     id: "t2", name: "Editorial Luxe", font: "font-serif", bg: "#fcfcfc", text: "#1a1a1a", accent: "#be123c", radius: 4,
-    navType: "centered", heroHeight: 700, gridCols: 3,
+    navType: "centered", heroHeight: 700, gridCols: 3, isDark: false,
     images: { hero: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2000" }
   },
   t3: { // CYBER GADGET (Inspirado en Tech Brands)
     id: "t3", name: "Cyber Gadget", font: "font-mono", bg: "#020617", text: "#f8fafc", accent: "#00f2ff", radius: 24,
-    navType: "glass", heroHeight: 850, gridCols: 4,
+    navType: "glass", heroHeight: 850, gridCols: 4, isDark: true,
     images: { hero: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=2000" }
   },
   t4: { // INDUSTRIAL MASTER (Inspirado en Mechanic/Arturo Calle)
     id: "t4", name: "Industrial Master", font: "font-black", bg: "#0c0a09", text: "#e7e5e4", accent: "#f59e0b", radius: 4,
-    navType: "solid", heroHeight: 650, gridCols: 3,
+    navType: "solid", heroHeight: 650, gridCols: 3, isDark: true,
     images: { hero: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?q=80&w=2000" }
   },
   t5: { // HYPER RETAIL (Inspirado en El Éxito / Amazon)
     id: "t5", name: "Hyper Retail", font: "font-sans", bg: "#ffffff", text: "#1e293b", accent: "#2563eb", radius: 12,
-    navType: "mega", heroHeight: 500, gridCols: 5,
+    navType: "mega", heroHeight: 500, gridCols: 5, isDark: false,
     images: { hero: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2000" }
   },
   t6: { // COLLECTOR DREAM (Inspirado en Funko / Concept Stores)
     id: "t6", name: "Collector Dream", font: "font-sans", bg: "#1e1b4b", text: "#ffffff", accent: "#22d3ee", radius: 40,
-    navType: "floating", heroHeight: 750, gridCols: 3,
+    navType: "floating", heroHeight: 750, gridCols: 3, isDark: true,
     images: { hero: "https://images.unsplash.com/photo-1566576661368-2410a519808a?q=80&w=2000" }
   }
 };
 
 export const generateTemplateSchema = (templateId: string): Record<PageType, PageSchema> => {
-  const theme = THEMES[templateId as keyof typeof THEMES] || THEMES.t1;
-  const isDark = ['t3', 't4', 't6'].includes(templateId);
+  const theme = THEMES[templateId] || THEMES.t1;
+  const isDark = theme.isDark;
 
   const createNav = () => ({
     elements: [{
@@ -174,7 +189,7 @@ export const generateTemplateSchema = (templateId: string): Record<PageType, Pag
         {
           id: uuidv4(),
           type: "hero-banner",
-          props: { title: "CATÁLOGO ELITE", height: 350, bgType: "color", bgColor: theme.isDark ? "#111" : "#f1f5f9", titleColor: theme.text, titleSize: 50, titleFont: theme.font }
+          props: { title: "CATÁLOGO ELITE", height: 350, bgType: "color", bgColor: isDark ? "#111" : "#f1f5f9", titleColor: theme.text, titleSize: 50, titleFont: theme.font }
         },
         {
           id: uuidv4(),
