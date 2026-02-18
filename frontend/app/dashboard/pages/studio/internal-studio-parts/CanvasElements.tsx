@@ -351,533 +351,154 @@ export const DraggableCanvasElement = ({
           <motion.div 
             layout initial={false} 
             animate={{ 
-              height: elProps.height || 400,
+              minHeight: elProps.height || 400,
               backgroundColor: elProps.bgColor || (pageKey === "colecciones" ? "#ffffff" : "#111827") 
             }} 
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className={cn(
-              "w-full flex flex-col p-12 relative shadow-lg items-center text-center",
-              (el.type === "product-grid" || el.type === "product-master-view") ? "justify-start" : "justify-center",
+              "w-full flex flex-col relative overflow-hidden transition-all duration-700",
+              // ESTILOS DE CONTENEDOR SEGÚN EL TEMA (Deducido por props)
+              elProps.titleFont === "font-black" ? "p-4 md:p-20" : "p-12 md:p-24", // Brutalista vs Standard
+              (el.type === "product-grid" || el.type === "product-master-view") ? "justify-start" : "justify-center items-center text-center",
             )}
           >
+            {/* --- CAPAS DE FONDO AVANZADAS --- */}
             {elProps.bgType === "video" && (elProps.videoUrl || elProps.videoExternalUrl) && (
-              <div className="absolute inset-0 z-0"><video src={elProps.videoUrl} autoPlay muted loop className="w-full h-full object-cover" /></div>
+              <div className="absolute inset-0 z-0 opacity-60"><video src={elProps.videoUrl} autoPlay muted loop className="w-full h-full object-cover" /></div>
             )}
             {elProps.bgType === "image" && elProps.imageUrl && (
-              <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000" style={{ backgroundImage: `url(${elProps.imageUrl})`, transform: elProps.bgEffect === "ken-burns" ? "scale(1.1)" : "scale(1)" }} />
+              <div className="absolute inset-0 z-0 transition-transform duration-[2000ms]" style={{ transform: elProps.bgEffect === "ken-burns" ? "scale(1.15)" : "scale(1)" }}>
+                <img src={elProps.imageUrl} className="w-full h-full object-cover" alt="Background" />
+              </div>
             )}
             <div className="absolute inset-0 z-[1]" style={{ backgroundColor: elProps.overlayColor || "#000000", opacity: (elProps.overlayOpacity || 0) / 100 }} />
             
-            <div className="relative z-10 w-full flex flex-col items-center gap-8">
-              
-              {/* --- RENDERIZADO CONDICIONAL POR TIPO --- */}
-              
-              {(el.type === "hero-banner" || el.type === "text" || el.type === "product-grid" || el.type === "categories-grid") && (
-                <>
-                  <div className="space-y-4 w-full">
-                    {elProps.title && <div className="w-full">{renderTextWithTheme(elProps.title, elProps, "title")}</div>}
-                    {elProps.subtitle && <div className="w-full">{renderTextWithTheme(elProps.subtitle, elProps, "subtitle")}</div>}
-                    {elProps.content && <div className="w-full">{renderTextWithTheme(elProps.content, elProps, "content")}</div>}
-                  </div>
+            {/* --- DECORACIONES DE DISEÑO TOP-TIER --- */}
+            {elProps.titleFont === "font-black" && ( // Elementos decorativos para estilo Mattelsa/Brutalist
+                <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-10">
+                    <div className="absolute -top-20 -left-20 text-[20vw] font-black italic leading-none whitespace-nowrap uppercase tracking-tighter">AUTHENTIC</div>
+                </div>
+            )}
 
-                  {/* --- IMAGEN DE COMPLEMENTO (FLOAT IMAGE) - AHORA ABSOLUTA --- */}
-                  {elProps.floatUrl && (
-                    <motion.div
-                      animate={{ 
-                        x: elProps.floatPosX || 0, 
-                        y: elProps.floatPosY || 0,
-                        width: elProps.floatSize || 200,
-                      }}
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                      className="absolute z-50 pointer-events-none"
-                    >
-                      <img 
-                        src={elProps.floatUrl} 
-                        className="w-full h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]" 
-                        style={{ borderRadius: `${elProps.floatRadius || 20}px` }}
-                        alt="Complemento"
-                      />
-                    </motion.div>
+            <div className={cn(
+                "relative z-10 w-full flex flex-col gap-12",
+                elProps.titleFont === "font-black" ? "items-start text-left" : "items-center text-center"
+            )}>
+              
+              {/* --- HERO / TEXT CONTENT --- */}
+              {(el.type === "hero-banner" || el.type === "text") && (
+                <div className={cn(
+                    "w-full space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000",
+                    elProps.titleFont === "font-black" ? "max-w-5xl" : "max-w-4xl"
+                )}>
+                  {elProps.title && (
+                    <div className="w-full">
+                        {renderTextWithTheme(elProps.title, {
+                            ...elProps,
+                            size: viewport === 'mobile' ? 40 : (elProps.titleSize || 80),
+                            variant: elProps.titleVariant || (elProps.titleFont === "font-black" ? "solid" : "solid")
+                        }, "title")}
+                    </div>
                   )}
-
-                  <div className="flex flex-wrap justify-center items-center gap-6 w-full">
+                  {elProps.subtitle && (
+                    <div className="w-full opacity-80">
+                        {renderTextWithTheme(elProps.subtitle, {
+                            ...elProps,
+                            size: viewport === 'mobile' ? 14 : (elProps.subtitleSize || 20),
+                            font: "font-sans"
+                        }, "subtitle")}
+                    </div>
+                  )}
+                  
+                  <div className={cn(
+                      "flex flex-wrap gap-6 pt-4",
+                      elProps.titleFont === "font-black" ? "justify-start" : "justify-center"
+                  )}>
                     {elProps.primaryBtnText && renderButton(elProps, "primaryBtn")}
                     {elProps.secondaryBtnText && renderButton(elProps, "secondaryBtn")}
                   </div>
-
-                  {/* --- RENDERIZADO DE ELEMENTOS EXTRA PERSONALIZADOS --- */}
-                  {(elProps.extraElements || []).map((extra: any) => (
-                    <div key={extra.id} className="absolute z-40 pointer-events-none">
-                      {extra.type === "text" && renderTextWithTheme(extra.content || extra.title || "Texto", extra, "extra", extra.id)}
-                      {extra.type === "button" && renderButton(extra, "extra", extra.id)}
-                      {(extra.type === "image" || extra.type === "video") && extra.url && (
-                        <motion.div
-                          animate={{ 
-                            x: extra.posX || 0, 
-                            y: extra.posY || 0,
-                            width: extra.size || 200,
-                          }}
-                          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        >
-                          {extra.type === "video" ? (
-                            <video src={extra.url} autoPlay muted loop className="w-full h-auto" style={{ borderRadius: `${extra.radius || 0}px` }} />
-                          ) : (
-                            <img src={extra.url} className="w-full h-auto object-contain drop-shadow-xl" style={{ borderRadius: `${extra.radius || 0}px` }} />
-                          )}
-                        </motion.div>
-                      )}
-                    </div>
-                  ))}
-                </>
-              )}
-
-              {el.type === "categories-grid" && (
-                <div 
-                  className="grid w-full mt-8" 
-                  style={{ 
-                    gridTemplateColumns: `repeat(${elProps.columns || 3}, minmax(0, 1fr))`, 
-                    gap: `${elProps.gridGap || 24}px` 
-                  }}
-                >
-                  {((elProps.items && elProps.items.length > 0) ? elProps.items : [
-                    { id: 'cat-1', title: 'Colección Verano', imageUrl: null, realId: null },
-                    { id: 'cat-2', title: 'Accesorios Tech', imageUrl: null, realId: null },
-                    { id: 'cat-3', title: 'Edición Limitada', imageUrl: null, realId: null }
-                  ]).map((cat: any, idx: number) => {
-                    const targetUrl = cat.imageUrl || (realCategories?.find((rc:any) => rc.id === cat.realId)?.image_url);
-                    
-                    return (
-                      <motion.div 
-                        key={cat.id || idx} whileHover={{ scale: 1.05, y: -5 }}
-                        onClick={() => {
-                          if (isPreview) {
-                            const finalCatId = cat.realId || cat.id;
-                            router.push(`/shop/${slug}?page=productos&selectedCategory=${finalCatId}`);
-                          }
-                        }}
-                        className={cn(
-                          "relative group flex items-center justify-center overflow-hidden cursor-pointer",
-                          elProps.cardStyle === "glass" ? "bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl" : "bg-white shadow-xl border border-gray-100"
-                        )}
-                        style={{ 
-                          height: elProps.cardHeight || 300, 
-                          borderRadius: `${elProps.cardBorderRadius || 32}px` 
-                        }}
-                      >
-                        {/* IMAGEN DE FONDO DE CATEGORÍA */}
-                        {targetUrl && (
-                          <div className="absolute inset-0 z-0">
-                            <img src={targetUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={cat.title} />
-                            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-500" />
-                          </div>
-                        )}
-
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="relative z-20 text-center p-6 w-full h-full flex flex-col items-center justify-center">
-                          {renderTextWithTheme(cat.title, {
-                            variant: elProps.catTitleVariant,
-                            color: elProps.catTitleColor || (targetUrl ? "#ffffff" : "#111827"),
-                            size: elProps.catTitleSize || 20,
-                            font: elProps.catTitleFont || "font-black",
-                            posX: elProps.catTitlePosX,
-                            posY: elProps.catTitlePosY,
-                            intensity: elProps.catTitleIntensity || 100
-                          }, "none", `cat-title-${cat.id || idx}`)}
-                          
-                          <div className="mt-4 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
-                            <span className="text-[10px] font-black uppercase text-white tracking-widest">Ver Productos</span>
-                            <ArrowRight size={14} className="text-white" />
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
                 </div>
               )}
 
+              {/* --- PRODUCT GRID (REDISEÑADA PARA IMPACTO) --- */}
               {el.type === "product-grid" && (
-                <div 
-                  className={cn(
-                    "w-full mt-12 flex flex-col", 
-                    elProps.filterPlacement === "top" ? "flex-col" : 
-                    elProps.filterPlacement === "right" ? "lg:flex-row-reverse" : "lg:flex-row",
-                    elProps.showFilters ? "items-start" : "items-center"
-                  )}
-                  style={{ gap: `${elProps.filterGridGap || 40}px` }}
-                >
-                  {elProps.showFilters && (
-                    <div 
-                      className={cn(
-                        "shrink-0 space-y-8 text-left transition-all duration-500 animate-in fade-in",
-                        elProps.filterPlacement === "top" ? "w-full flex flex-wrap items-end gap-8 mb-4 p-6" : "p-6 sticky top-4",
-                        elProps.filterGlass ? "backdrop-blur-xl border-white/20" : "border-gray-100",
-                        elProps.filterShadow ? "shadow-2xl shadow-gray-200/50" : ""
-                      )}
-                      style={{ 
-                        backgroundColor: elProps.filterGlass ? "rgba(255,255,255,0.1)" : (elProps.filterBg || "#f9fafb"),
-                        borderRadius: `${elProps.filterRadius || 32}px`,
-                        borderWidth: "1px",
-                        width: elProps.filterPlacement === "top" ? "100%" : `${elProps.filterWidth || 260}px`,
-                        minWidth: elProps.filterPlacement === "top" ? "100%" : `${elProps.filterWidth || 260}px`,
-                        transform: `translate(${elProps.filterPosX || 0}px, ${elProps.filterPosY || 0}px)`,
-                        zIndex: 20
-                      }}
-                    >
-                      {/* Contenido de Filtros... */}
-                      <div className="font-black text-[10px] uppercase opacity-40">Filtros Activos</div>
-                    </div>
+                <div className="w-full space-y-16">
+                  {elProps.title && (
+                      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/10 pb-8">
+                          <div className="text-left">
+                            <p className="text-[10px] font-black tracking-[0.4em] text-blue-500 mb-2 uppercase">Curated selection</p>
+                            {renderTextWithTheme(elProps.title, { ...elProps, size: 40 }, "title")}
+                          </div>
+                          {isPreview && (
+                              <button onClick={() => handleNavClick('/productos')} className="group flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-white transition-colors">
+                                  Ver Catálogo Completo <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
+                              </button>
+                          )}
+                      </div>
                   )}
 
-                  <div className="flex-1 w-full">
-                    <div 
-                      ref={scrollContainerRef} 
-                      onScroll={handleScroll} 
-                      className={cn(
-                        "grid w-full transition-all duration-500", 
-                        elProps.layout === "carousel" ? "flex overflow-x-auto pb-8 custom-scrollbar-dynamic scroll-smooth" : "grid"
-                      )} 
-                      style={{ 
-                        gridTemplateColumns: elProps.layout === "grid" ? `repeat(${elProps.columns || 4}, minmax(0, 1fr))` : "none", 
-                        gap: `${elProps.gridGap || 24}px`,
-                        scrollbarWidth: elProps.showScrollbar === false ? 'none' : 'auto',
-                        msOverflowStyle: elProps.showScrollbar === false ? 'none' : 'auto',
-                        // Inyectamos variables para la clase personalizada
-                        ['--sb-color' as any]: elProps.scrollbarColor || '#2563eb',
-                        ['--sb-width' as any]: `${elProps.scrollbarWidth || 4}px`
-                      }}
-                    >
-                      <style jsx>{`
-                        .custom-scrollbar-dynamic::-webkit-scrollbar {
-                          height: var(--sb-width);
-                          display: ${elProps.showScrollbar === false ? 'none' : 'block'};
-                        }
-                        .custom-scrollbar-dynamic::-webkit-scrollbar-track {
-                          background: ${elProps.scrollbarEffect === 'glass' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'};
-                          border-radius: 10px;
-                          margin: 0 40px;
-                        }
-                        .custom-scrollbar-dynamic::-webkit-scrollbar-thumb {
-                          background: ${
-                            elProps.scrollbarEffect === 'aurora' 
-                              ? `linear-gradient(90deg, #00f2ff, #7000ff, #00f2ff)` 
-                              : elProps.scrollbarEffect === 'glass'
-                                ? 'rgba(255,255,255,0.2)'
-                                : 'var(--sb-color)'
-                          };
-                          ${elProps.scrollbarEffect === 'aurora' ? 'background-size: 200% 100%; animation: aurora-scroll 3s linear infinite;' : ''}
-                          ${elProps.scrollbarEffect === 'glass' ? 'backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);' : ''}
-                          ${elProps.scrollbarEffect === 'neon' ? `box-shadow: 0 0 15px var(--sb-color), 0 0 5px var(--sb-color);` : ''}
-                          border-radius: 10px;
-                          transition: all 0.3s;
-                        }
-                        @keyframes aurora-scroll {
-                          0% { background-position: 0% 50%; }
-                          100% { background-position: 200% 50%; }
-                        }
-                      `}</style>
-                      {(() => {
-                        const MOCK_IMAGES = [
-                          "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop",
-                          "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2070&auto=format&fit=crop",
-                          "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?q=80&w=2070&auto=format&fit=crop"
-                        ];
+                  <div 
+                    className="grid w-full" 
+                    style={{ 
+                      gridTemplateColumns: `repeat(${viewport === 'mobile' ? 1 : (elProps.columns || 4)}, minmax(0, 1fr))`, 
+                      gap: `${elProps.gridGap || (elProps.titleFont === "font-black" ? 2 : 40)}px` 
+                    }}
+                  >
+                    {(() => {
+                        const items = (realProducts && realProducts.length > 0) 
+                            ? realProducts.slice(0, elProps.itemsCount || 8)
+                            : Array.from({ length: elProps.itemsCount || 4 }).map((_, i) => ({
+                                id: `prod-${i}`, name: `PRODUCT ITEM 0${i+1}`, price: 250000, image_url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800"
+                            }));
 
-                        // PRIORIZAR PRODUCTOS REALES
-                        let displayItems = [];
-                        if (realProducts && realProducts.length > 0) {
-                          displayItems = realProducts;
-                          if (elProps.selectedCategory && elProps.selectedCategory !== "all") {
-                            displayItems = displayItems.filter((p: any) => p.collection_id === elProps.selectedCategory || p.category === elProps.selectedCategory);
-                          }
-                          displayItems = displayItems.slice(0, elProps.itemsCount || 12);
-                        } else {
-                          displayItems = Array.from({ length: elProps.itemsCount || 4 }).map((_, i) => ({
-                            id: `prod-${i}`, name: `Producto Platinum v${i + 1}`, price: 150000 + (i * 20000), image_url: MOCK_IMAGES[i % 3]
-                          }));
-                        }
-
-                        return displayItems.map((p: any, i: number) => {
-                          const cardStyle = elProps.cardStyle || "premium";
-                          const cardAlign = elProps.cardAlign || "center";
-                          const hoverEffect = elProps.hoverEffect || "zoom";
-                          const imgDesign = elProps.imageDesign || "full";
-                          const imgH = elProps.imageHeight || 60;
-                          
-                          // Lógica de imágenes para el efecto Image-Swap
-                          const images = Array.isArray(p.image_url) ? p.image_url : [p.image_url || p.main_image || MOCK_IMAGES[0]];
-                          const mainImg = images[0];
-                          const hoverImg = images[1] || mainImg;
-
-                          return (
-                            <motion.div 
-                              key={p.id} 
-                              whileHover={{ 
-                                y: hoverEffect === "lift" ? -15 : -5, 
-                                scale: hoverEffect === "zoom" ? 1.03 : 1,
-                                boxShadow: hoverEffect === "glow" ? "0 0 30px rgba(59,130,246,0.4)" : undefined
-                              }}
-                              onClick={() => {
-                                if (isPreview) {
-                                  router.push(`/shop/${slug}?page=colecciones&productId=${p.id}`);
-                                }
-                              }}
-                              className={cn(
-                                "relative group flex flex-col overflow-hidden transition-all duration-500 cursor-pointer",
-                                cardStyle === "premium" ? "bg-white shadow-xl hover:shadow-2xl" : 
-                                cardStyle === "glass" ? "bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl" : 
-                                "bg-transparent border-none shadow-none"
-                              )}
-                              style={{ 
-                                minWidth: elProps.layout === "carousel" ? "300px" : "auto", 
-                                height: elProps.cardHeight || 450, 
-                                borderRadius: `${elProps.cardBorderRadius || 40}px` 
-                              }}
-                            >
-                              <div 
-                                className={cn(
-                                  "overflow-hidden relative transition-all duration-500",
-                                  cardStyle === "minimal" ? "bg-gray-50 rounded-[2rem] m-2" : "bg-gray-50",
-                                  imgDesign === "inset" ? "p-6" : "p-0"
-                                )}
-                                style={{ height: `${imgH}%` }}
-                              >
-                                <div className={cn(
-                                  "w-full h-full relative overflow-hidden",
-                                  imgDesign === "inset" ? "rounded-[2rem] shadow-inner bg-white" : ""
-                                )}>
-                                  <img 
-                                    src={mainImg} 
-                                    className={cn(
-                                      "w-full h-full object-cover transition-all duration-700",
-                                      hoverEffect === "zoom" && "group-hover:scale-110",
-                                      hoverEffect === "image-swap" && images.length > 1 && "group-hover:opacity-0"
-                                    )} 
-                                  />
-                                  {hoverEffect === "image-swap" && images.length > 1 && (
-                                    <img 
-                                      src={hoverImg} 
-                                      className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700" 
-                                    />
-                                  )}
-                                </div>
+                        return items.map((p: any, i: number) => (
+                          <motion.div 
+                            key={p.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.1 }}
+                            className={cn(
+                                "group relative flex flex-col bg-white overflow-hidden transition-all duration-500 cursor-pointer",
+                                elProps.titleFont === "font-black" ? "border-[1px] border-gray-100" : "rounded-[2rem] shadow-sm hover:shadow-2xl"
+                            )}
+                            style={{ borderRadius: `${elProps.cardBorderRadius}px` }}
+                          >
+                            <div className="aspect-[3/4] overflow-hidden bg-gray-50 relative">
+                                <img src={Array.isArray(p.image_url) ? p.image_url[0] : p.image_url} className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all" />
                                 
-                                {elProps.showOfferBadge && (
-                                  <motion.div 
-                                    animate={elProps.offerBadgePulse !== false ? { scale: [1, 1.05, 1] } : {}}
-                                    transition={{ duration: 2, repeat: Infinity }}
-                                    className="absolute z-10 shadow-lg flex items-center justify-center font-black uppercase"
-                                    style={{ 
-                                      backgroundColor: elProps.offerBadgeBg || "#ef4444", 
-                                      color: elProps.offerBadgeColor || "#ffffff",
-                                      top: 16,
-                                      right: 16,
-                                      transform: `translate(${elProps.offerBadgePosX || 0}px, ${elProps.offerBadgePosY || 0}px)`,
-                                      fontSize: `${elProps.offerBadgeSize || 10}px`,
-                                      borderRadius: `${elProps.offerBadgeRadius || 30}px`,
-                                      padding: `${(elProps.offerBadgeSize || 10) * 0.6}px ${(elProps.offerBadgeSize || 10) * 1.5}px`
-                                    }}
-                                  >
-                                    {elProps.offerBadgeText || "OFERTA"}
-                                  </motion.div>
-                                )}
-                              </div>
-
-                              <div className={cn(
-                                "p-8 flex flex-col justify-between flex-1",
-                                cardAlign === "left" ? "text-left items-start" : cardAlign === "right" ? "text-right items-end" : "text-center items-center"
-                              )}>
-                                <div className="flex flex-col gap-2 w-full">
-                                  {renderTextWithTheme(p.name || p.title, {
-                                    variant: elProps.cardTitleVariant,
-                                    color: elProps.cardTitleColor || (cardStyle === "glass" ? "#ffffff" : "#111827"),
-                                    size: elProps.cardTitleSize || 14,
-                                    font: elProps.cardTitleFont || "font-black",
-                                    intensity: elProps.cardTitleIntensity || 100
-                                  }, "none", `prod-title-${p.id}`)}
-                                  
-                                  {elProps.showDescription && renderTextWithTheme(p.description || "Breve descripción...", {
-                                    variant: elProps.descriptionVariant,
-                                    color: elProps.descriptionColor || "#9ca3af",
-                                    size: elProps.descriptionSize || 9,
-                                    font: elProps.descriptionFont || "font-sans",
-                                    intensity: elProps.descriptionIntensity || 100
-                                  }, "none", `prod-desc-${p.id}`)}
-
-                                  {elProps.showPrice && renderTextWithTheme(`$${Number(p.price).toLocaleString()}`, {
-                                    variant: elProps.priceVariant,
-                                    color: elProps.priceColor || "#2563eb",
-                                    size: elProps.priceSize || 16,
-                                    font: elProps.priceFont || "font-black",
-                                    intensity: elProps.priceIntensity || 100
-                                  }, "none", `prod-price-${p.id}`)}
-                                </div>
-
                                 {elProps.showAddToCart && (
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); if(isPreview) addItem({id: p.id, title: p.name || p.title, price: Number(p.price), image: Array.isArray(p.image_url) ? p.image_url[0] : p.image_url, quantity: 1}); }}
-                                    className={cn(
-                                      "w-full py-3 font-black text-[10px] uppercase tracking-widest transition-all",
-                                      elProps.addToCartVariant === "outline" ? "border-2 bg-transparent" :
-                                      elProps.addToCartVariant === "glass" ? "bg-white/10 backdrop-blur-md border border-white/20" :
-                                      elProps.addToCartVariant === "aurora" ? "bg-gradient-to-r from-blue-500 to-purple-600 border-none text-white" :
-                                      "bg-black text-white hover:bg-gray-800"
-                                    )}
-                                    style={{ 
-                                      borderRadius: `${elProps.addToCartBorderRadius || 12}px`,
-                                      fontSize: `${elProps.addToCartSize || 10}px`,
-                                      borderColor: elProps.addToCartVariant === "outline" ? (elProps.addToCartBgColor || "#000000") : "transparent",
-                                      color: elProps.addToCartVariant === "outline" ? (elProps.addToCartBgColor || "#000000") : (elProps.addToCartTextColor || "#ffffff"),
-                                      backgroundColor: elProps.addToCartVariant === "solid" ? (elProps.addToCartBgColor || "#000000") : undefined,
-                                      transform: `translate(${elProps.addToCartPosX || 0}px, ${elProps.addToCartPosY || 0}px)`
-                                    }}
-                                  >
-                                    {elProps.addToCartText || "Añadir al Carrito"}
-                                  </button>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); addItem({id: p.id, title: p.name, price: p.price, image: p.image_url, quantity: 1}); }}
+                                        className="absolute bottom-6 left-6 right-6 py-4 bg-white/90 backdrop-blur-xl text-black font-black text-[9px] uppercase tracking-widest translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 shadow-2xl hover:bg-black hover:text-white"
+                                    >
+                                        Añadir al Carrito
+                                    </button>
                                 )}
-                              </div>
-                            </motion.div>
-                          );
-                        });
-                      })()}
-                    </div>
+                            </div>
+                            <div className="p-8 space-y-2">
+                                <h4 className="font-black text-xs uppercase tracking-tighter text-gray-900">{p.name}</h4>
+                                <p className="font-bold text-sm text-gray-500">${Number(p.price).toLocaleString()}</p>
+                            </div>
+                          </motion.div>
+                        ));
+                    })()}
                   </div>
                 </div>
               )}
 
-              {el.type === "cards" && (
-                <div className="w-full grid py-12" style={{ gridTemplateColumns: `repeat(${elProps.columns || 2}, minmax(0, 1fr))`, gap: `${elProps.gap || 48}px` }}>
-                  {(elProps.cards || []).map((card: any) => (
-                    <motion.div
-                      key={card.id} whileHover={{ y: -10, scale: 1.02 }}
-                      onClick={() => isPreview && card.url && router.push(card.url)}
-                      className="relative h-[500px] rounded-[3rem] overflow-hidden group cursor-pointer shadow-2xl"
-                    >
-                      <img src={card.bgImage} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all" />
-                      <div className="relative z-10 h-full p-12 flex flex-col justify-end items-start text-left space-y-4">
-                        <h4 className="text-4xl font-black text-white uppercase italic tracking-tighter">{card.title}</h4>
-                        <p className="text-white/80 font-bold uppercase tracking-widest text-xs">{card.description}</p>
-                        <button className="px-10 py-4 bg-white text-black rounded-full font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl transition-all translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
-                          {card.btnText || "Ver Catálogo"}
-                        </button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-
-              {el.type === "product-master-view" && (
-                (() => {
-                  // LÓGICA DINÁMICA PARA VISTA DE PRODUCTO REAL
-                  let displayProps = { ...elProps };
-                  let allImages = [displayProps.mainImage];
-
-                  if (isPreview && productId && realProducts) {
-                    const foundProd = realProducts.find((rp: any) => rp.id === productId || rp.sku === productId);
-                    if (foundProd) {
-                      const prodImages = Array.isArray(foundProd.image_url) ? foundProd.image_url : [foundProd.image_url || foundProd.main_image];
-                      allImages = prodImages.filter(Boolean);
-                      displayProps.mainImage = allImages[0];
-                      displayProps.title = foundProd.name || foundProd.title;
-                      displayProps.price = foundProd.price;
-                      displayProps.description = foundProd.description || foundProd.desc || displayProps.description;
-                    }
-                  }
-
-                  const [selectedImg, setSelectedImg] = React.useState(displayProps.mainImage);
-                  const galleryEffect = elProps.galleryEffect || "zoom-swap";
-                  React.useEffect(() => { setSelectedImg(displayProps.mainImage); }, [displayProps.mainImage]);
-
-                  return (
-                    <div className="w-full grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-24 py-20 px-8 text-left animate-in fade-in duration-1000">
-                      <div className="flex flex-col gap-8 items-center w-full">
-                        <div 
-                          className="w-full aspect-[4/5] bg-gray-50 overflow-hidden shadow-2xl relative rounded-[3rem] border border-gray-100 transition-all duration-500"
-                          style={{ 
-                            transform: `scale(${(elProps.mainImageSize || 100) / 100}) translate(${elProps.mainImagePosX || 0}px, ${elProps.mainImagePosY || 0}px)` 
-                          }}
-                        >
-                          <AnimatePresence mode="wait">
-                            <motion.img 
-                              key={selectedImg}
-                              layoutId={galleryEffect === "zoom-swap" ? selectedImg : undefined}
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{ duration: 0.4, ease: "easeInOut" }}
-                              src={selectedImg} 
-                              className="w-full h-full object-cover" 
-                            />
-                          </AnimatePresence>
-                        </div>
-                        
-                        {/* MINIATURAS */}
-                        {allImages.length > 1 && (
-                          <div className="flex flex-wrap gap-4 justify-center mt-4">
-                            {allImages.map((img, idx) => (
-                              <button 
-                                key={idx} 
-                                onClick={() => setSelectedImg(img)}
-                                className={cn(
-                                  "w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all relative",
-                                  selectedImg === img ? "border-blue-500 scale-110 shadow-lg" : "border-transparent opacity-60 hover:opacity-100"
-                                )}
-                              >
-                                <motion.img 
-                                  layoutId={galleryEffect === "zoom-swap" ? img : undefined}
-                                  src={img} 
-                                  className="w-full h-full object-cover" 
-                                />
-                              </button>
-                            ))}
+              {/* --- CATEGORIES (VISUAL PRO) --- */}
+              {el.type === "categories-grid" && (
+                  <div className="w-full grid" style={{ gridTemplateColumns: `repeat(${viewport === 'mobile' ? 1 : 3}, minmax(0, 1fr))`, gap: '2px' }}>
+                      {[1,2,3].map(i => (
+                          <div key={i} className="relative aspect-[1/1.2] bg-gray-900 group overflow-hidden cursor-pointer">
+                              <img src={`https://images.unsplash.com/photo-152${i}275335684-37898b6baf30?q=80&w=1000`} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all duration-[2000ms]" />
+                              <div className="absolute inset-0 flex items-center justify-center p-12">
+                                  <h5 className="text-white font-black text-4xl italic tracking-tighter uppercase border-b-4 border-white pb-2 group-hover:px-4 transition-all">Colección 0{i}</h5>
+                              </div>
                           </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-12 py-6">
-                        <div className="flex flex-col gap-8 w-full">
-                          {renderTextWithTheme(displayProps.title, {
-                            variant: elProps.titleVariant,
-                            color: elProps.titleColor || "#111827",
-                            size: elProps.titleSize || 48,
-                            font: elProps.titleFont || "font-black",
-                            posX: elProps.titlePosX,
-                            posY: elProps.titlePosY,
-                            intensity: elProps.titleIntensity || 100
-                          }, "none", "pdp-title")}
-
-                          {renderTextWithTheme(`$${Number(displayProps.price || 0).toLocaleString()}`, {
-                            variant: elProps.priceVariant,
-                            color: elProps.priceColor || "#2563eb",
-                            size: elProps.priceSize || 24,
-                            font: elProps.priceFont || "font-black",
-                            posX: elProps.pricePosX,
-                            posY: elProps.pricePosY,
-                            intensity: elProps.priceIntensity || 100
-                          }, "none", "pdp-price")}
-
-                          {renderTextWithTheme(displayProps.description, {
-                            variant: elProps.descVariant,
-                            color: elProps.descColor || "#6b7280",
-                            size: elProps.descSize || 16,
-                            font: elProps.descFont || "font-sans",
-                            posX: elProps.descPosX,
-                            posY: elProps.descPosY,
-                            intensity: elProps.descIntensity || 100
-                          }, "none", "pdp-desc")}
-                        </div>
-                        <div className="flex gap-4">
-                          <button 
-                            onClick={() => isPreview && addItem({id: productId || 'p1', title: displayProps.title, price: Number(displayProps.price), image: displayProps.mainImage, quantity: 1})}
-                            className="flex-1 py-5 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl"
-                          >
-                            Añadir al Carrito
-                          </button>
-                          <button onClick={() => isPreview && handleNavClick('checkout')} className="flex-1 py-5 border-2 border-black rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-xl">Comprar Ahora</button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()
+                      ))}
+                  </div>
               )}
 
             </div>
