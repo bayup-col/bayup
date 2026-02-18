@@ -529,7 +529,37 @@ export const DraggableCanvasElement = ({
                   )}
 
                   <div className="flex-1 w-full">
-                    <div ref={scrollContainerRef} onScroll={handleScroll} className={cn("grid w-full transition-all duration-500", elProps.layout === "carousel" ? "flex overflow-x-auto pb-8 custom-scrollbar scroll-smooth" : "grid")} style={{ gridTemplateColumns: elProps.layout === "grid" ? `repeat(${elProps.columns || 4}, minmax(0, 1fr))` : "none", gap: `${elProps.gridGap || 24}px` }}>
+                    <div 
+                      ref={scrollContainerRef} 
+                      onScroll={handleScroll} 
+                      className={cn(
+                        "grid w-full transition-all duration-500", 
+                        elProps.layout === "carousel" ? "flex overflow-x-auto pb-8 custom-scrollbar-dynamic scroll-smooth" : "grid"
+                      )} 
+                      style={{ 
+                        gridTemplateColumns: elProps.layout === "grid" ? `repeat(${elProps.columns || 4}, minmax(0, 1fr))` : "none", 
+                        gap: `${elProps.gridGap || 24}px`,
+                        scrollbarWidth: elProps.showScrollbar === false ? 'none' : 'auto',
+                        msOverflowStyle: elProps.showScrollbar === false ? 'none' : 'auto',
+                        // Inyectamos variables para la clase personalizada
+                        ['--sb-color' as any]: elProps.scrollbarColor || '#2563eb',
+                        ['--sb-width' as any]: `${elProps.scrollbarWidth || 4}px`
+                      }}
+                    >
+                      <style jsx>{`
+                        .custom-scrollbar-dynamic::-webkit-scrollbar {
+                          height: var(--sb-width);
+                          display: ${elProps.showScrollbar === false ? 'none' : 'block'};
+                        }
+                        .custom-scrollbar-dynamic::-webkit-scrollbar-track {
+                          background: rgba(0,0,0,0.05);
+                          border-radius: 10px;
+                        }
+                        .custom-scrollbar-dynamic::-webkit-scrollbar-thumb {
+                          background: var(--sb-color);
+                          border-radius: 10px;
+                        }
+                      `}</style>
                       {(() => {
                         const MOCK_IMAGES = [
                           "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop",

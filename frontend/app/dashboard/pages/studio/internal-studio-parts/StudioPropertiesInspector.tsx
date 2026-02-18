@@ -712,6 +712,20 @@ export const DesignerInspector = () => {
                       </div>
                     </ControlGroup>
 
+                    {element.props.layout === "carousel" && (
+                      <ControlGroup title="Navegación (Scroll)" icon={Sliders}>
+                        <div className="space-y-4">
+                          <button onClick={() => handleChange("showScrollbar", !element.props.showScrollbar)} className={cn("w-full py-2 border rounded-xl text-[9px] font-black uppercase transition-all", element.props.showScrollbar !== false ? "bg-blue-50 text-blue-600 border-blue-200" : "bg-white text-gray-400")}>Barra de Scroll {element.props.showScrollbar !== false ? "ON" : "OFF"}</button>
+                          {element.props.showScrollbar !== false && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                              <div className="flex items-center gap-2 p-1.5 border rounded-xl bg-white h-[38px]"><input type="color" value={element.props.scrollbarColor || "#2563eb"} onChange={(e) => handleChange("scrollbarColor", e.target.value)} className="w-6 h-6 rounded-lg p-0 cursor-pointer" /><span className="text-[9px] text-gray-400 uppercase">Color Scroll</span></div>
+                              <FluidSlider label="Grosor Barra" value={element.props.scrollbarWidth || 4} min={2} max={12} onChange={(v:number) => handleChange("scrollbarWidth", v)} />
+                            </div>
+                          )}
+                        </div>
+                      </ControlGroup>
+                    )}
+
                     <ControlGroup title="Efectos y Multimedia" icon={Sparkles}>
                       <div className="space-y-4">
                         <FluidSlider label="Altura Foto (%)" value={element.props.imageHeight || 60} min={30} max={90} suffix="%" onChange={(v:number) => handleChange("imageHeight", v)} />
