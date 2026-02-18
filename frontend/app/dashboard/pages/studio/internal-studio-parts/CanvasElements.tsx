@@ -792,7 +792,9 @@ export const DraggableCanvasElement = ({
                       <div className="flex flex-col gap-8 items-center">
                         <div 
                           className="w-full aspect-[4/5] bg-gray-50 overflow-hidden shadow-2xl relative rounded-[3rem] border border-gray-100 transition-all duration-500"
-                          style={{ transform: `scale(${(elProps.mainImageSize || 100) / 100})` }}
+                          style={{ 
+                            transform: `scale(${(elProps.mainImageSize || 100) / 100}) translate(${elProps.mainImagePosX || 0}px, ${elProps.mainImagePosY || 0}px)` 
+                          }}
                         >
                           <img src={selectedImg} className="w-full h-full object-cover" />
                         </div>

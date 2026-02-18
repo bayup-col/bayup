@@ -638,6 +638,8 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                 colors: ["#000000", "#ffffff", "#2563eb"],
                 mainImage: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop",
                 mainImageSize: 100,
+                mainImagePosX: 0,
+                mainImagePosY: 0,
                 // Diseño del Nombre
                 titleFont: "font-black",
                 titleSize: 48,
