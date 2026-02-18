@@ -34,28 +34,29 @@ import { InteractiveUP } from '@/components/landing/InteractiveUP';
 import { StudioProvider } from '../../dashboard/pages/studio/context';
 import { Canvas } from '../../dashboard/pages/studio/internal-studio-parts/Canvas';
 import { useCart } from '@/context/cart-context';
+import { generateTemplateSchema } from '@/lib/templates-config';
 
 const PREVIEW_DATA = {
-    store_name: "Mi Tienda Bayup",
+    store_name: "Silicon Pro",
     owner_id: "preview_owner",
     categories: [
-        { id: "c1", title: "Novedades" },
-        { id: "c2", title: "Más Vendidos" }
+        { id: "c1", title: "iPhone", imageUrl: "https://images.unsplash.com/photo-1510557880182-3d4d3cba3f21?q=80&w=800" },
+        { id: "c2", title: "MacBook", imageUrl: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800" }
     ],
     products: [
         { 
             id: "p1", 
-            name: "Producto de Ejemplo Pro", 
-            price: 45000, 
-            image_url: ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800"],
+            name: "iPhone 15 Pro", 
+            price: 4500000, 
+            image_url: ["https://images.unsplash.com/photo-1696446701796-da61225697cc?q=80&w=800"],
             collection_id: "c1",
             variants: [{ stock: 10 }]
         },
         { 
             id: "p2", 
-            name: "Edición Limitada", 
-            price: 89000, 
-            image_url: ["https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800"],
+            name: "MacBook Air M3", 
+            price: 6800000, 
+            image_url: ["https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800"],
             collection_id: "c2",
             variants: [{ stock: 5 }]
         }
@@ -79,6 +80,7 @@ function ShopContent() {
     const { slug } = useParams();
     const searchParams = useSearchParams();
     const pageKey = searchParams.get("page") || "home";
+    const templateId = searchParams.get("tpl"); // Capturar ID de plantilla para vista previa
     const router = useRouter();
     const { items: cart, addItem, removeItem, clearCart, total: cartTotal, isCartOpen, setIsCartOpen } = useCart();
     
@@ -166,7 +168,19 @@ function ShopContent() {
             try {
                 const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://bayup-interactive-production.up.railway.app';
                 
-                // 1. Intentar cargar desde el servidor (Ruta normal)
+                // 1. Si hay un ID de plantilla en la URL, generar vista previa dinámica
+                if (slug === "preview" && templateId) {
+                    const generatedSchema = generateTemplateSchema(templateId);
+                    setShopData({
+                        ...PREVIEW_DATA,
+                        store_name: templateId === 't1' ? "Silicon Pro" : "Vista Previa",
+                        custom_schema: generatedSchema[pageKey as keyof typeof generatedSchema] || generatedSchema.home
+                    });
+                    setLoading(false);
+                    return;
+                }
+
+                // 2. Intentar cargar desde el servidor (Ruta normal)
                 const res = await fetch(`${apiBase}/public/shop/${slug}?page=${pageKey}`);
                 
                 if (res.ok) {
@@ -186,7 +200,7 @@ function ShopContent() {
                     }
                     setShopData(data);
                 } else if (slug === "preview") {
-                    // 2. Si es preview y falla el servidor, intentar cargar desde LocalStorage (Lo que acaba de hacer el usuario en el Studio)
+                    // 3. Cargar desde LocalStorage si el usuario viene del editor
                     const localPreview = localStorage.getItem("bayup-studio-preview");
                     if (localPreview) {
                         const parsedSchema = JSON.parse(localPreview);
@@ -195,7 +209,6 @@ function ShopContent() {
                             custom_schema: parsedSchema
                         });
                     } else {
-                        // 3. Fallback final: Mock data básica
                         setShopData(PREVIEW_DATA);
                     }
                 }
@@ -207,7 +220,7 @@ function ShopContent() {
             }
         };
         if (slug) fetchShop();
-    }, [slug, pageKey]);
+    }, [slug, pageKey, templateId]);
 
     const filteredProducts = useMemo(() => {
         if (!shopData) return [];
