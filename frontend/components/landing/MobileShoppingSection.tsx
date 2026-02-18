@@ -58,8 +58,7 @@ export const MobileShoppingSection = () => {
         
         <div className="space-y-8 md:space-y-12 w-full">
           <div className="space-y-4">
-            <h2 className="text-4xl md:text-7xl lg:text-8xl font-black text-black tracking-tighter italic leading-[1] uppercase text-center flex flex-col items-center">
-              <span>¿POR QUÉ</span>
+            <h2 className="text-4xl md:text-7xl lg:text-8xl font-black text-black tracking-tighter italic leading-[1] uppercase text-center flex items-center justify-center gap-4">
               <span 
                 ref={textRef}
                 onMouseMove={handleMouseMove}
@@ -72,7 +71,7 @@ export const MobileShoppingSection = () => {
                   backgroundClip: 'text',
                 } as React.CSSProperties}
               >
-                BAYUP?
+                ¿POR QUÉ BAYUP?
               </span>
             </h2>
           </div>
