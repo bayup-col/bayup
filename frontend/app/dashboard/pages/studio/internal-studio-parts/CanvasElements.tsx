@@ -585,6 +585,7 @@ export const DraggableCanvasElement = ({
                           const cardStyle = elProps.cardStyle || "premium";
                           const cardAlign = elProps.cardAlign || "center";
                           const hoverEffect = elProps.hoverEffect || "zoom";
+                          const imgDesign = elProps.imageDesign || "full";
                           const imgH = elProps.imageHeight || 60;
                           
                           // Lógica de imágenes para el efecto Image-Swap
@@ -619,25 +620,31 @@ export const DraggableCanvasElement = ({
                             >
                               <div 
                                 className={cn(
-                                  "overflow-hidden relative",
-                                  cardStyle === "minimal" ? "bg-gray-50 rounded-[2rem] m-2" : "bg-gray-50"
+                                  "overflow-hidden relative transition-all duration-500",
+                                  cardStyle === "minimal" ? "bg-gray-50 rounded-[2rem] m-2" : "bg-gray-50",
+                                  imgDesign === "inset" ? "p-6" : "p-0"
                                 )}
                                 style={{ height: `${imgH}%` }}
                               >
-                                <img 
-                                  src={mainImg} 
-                                  className={cn(
-                                    "w-full h-full object-cover transition-all duration-700",
-                                    hoverEffect === "zoom" && "group-hover:scale-110",
-                                    hoverEffect === "image-swap" && images.length > 1 && "group-hover:opacity-0"
-                                  )} 
-                                />
-                                {hoverEffect === "image-swap" && images.length > 1 && (
+                                <div className={cn(
+                                  "w-full h-full relative overflow-hidden",
+                                  imgDesign === "inset" ? "rounded-[2rem] shadow-inner bg-white" : ""
+                                )}>
                                   <img 
-                                    src={hoverImg} 
-                                    className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700" 
+                                    src={mainImg} 
+                                    className={cn(
+                                      "w-full h-full object-cover transition-all duration-700",
+                                      hoverEffect === "zoom" && "group-hover:scale-110",
+                                      hoverEffect === "image-swap" && images.length > 1 && "group-hover:opacity-0"
+                                    )} 
                                   />
-                                )}
+                                  {hoverEffect === "image-swap" && images.length > 1 && (
+                                    <img 
+                                      src={hoverImg} 
+                                      className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700" 
+                                    />
+                                  )}
+                                </div>
                                 
                                 {elProps.showOfferBadge && (
                                   <motion.div 

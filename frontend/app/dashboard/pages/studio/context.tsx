@@ -453,6 +453,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                cardBorderRadius: 20,
                cardHeight: 450,
                imageHeight: 60,
+               imageDesign: "full",
                hoverEffect: "zoom",
                height: 812,
                showDescription: false,

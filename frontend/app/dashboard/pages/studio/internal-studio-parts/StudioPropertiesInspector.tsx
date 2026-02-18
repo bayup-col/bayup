@@ -728,6 +728,14 @@ export const DesignerInspector = () => {
 
                     <ControlGroup title="Efectos y Multimedia" icon={Sparkles}>
                       <div className="space-y-4">
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-black text-gray-400 uppercase">Ajuste de Imagen</span>
+                          <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-lg">
+                            {[{id:"full", l:"Expandido"}, {id:"inset", l:"Recuadro"}].map(d => (
+                              <button key={d.id} onClick={() => handleChange("imageDesign", d.id)} className={cn("py-1.5 text-[7px] font-black uppercase rounded-md transition-all", (element.props.imageDesign === d.id || (!element.props.imageDesign && d.id === "full")) ? "bg-white text-blue-600 shadow-sm" : "text-gray-400")}>{d.l}</button>
+                            ))}
+                          </div>
+                        </div>
                         <FluidSlider label="Altura Foto (%)" value={element.props.imageHeight || 60} min={30} max={90} suffix="%" onChange={(v:number) => handleChange("imageHeight", v)} />
                         <div className="space-y-2">
                           <span className="text-[9px] font-black text-gray-400 uppercase">Efecto Hover</span>
