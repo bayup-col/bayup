@@ -162,24 +162,17 @@ function ShopContent() {
 
     useEffect(() => {
         const fetchShop = async () => {
-            if (slug === "preview") {
-                setShopData(PREVIEW_DATA);
-                setLoading(false);
-                return;
-            }
-
+            setLoading(true);
             try {
                 const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://bayup-interactive-production.up.railway.app';
                 
-                // Intentar obtener los datos de la tienda y el diseño personalizado
-                // Primero obtenemos la info base de la tienda (productos, nombre, etc.)
+                // 1. Intentar cargar desde el servidor (Ruta normal)
                 const res = await fetch(`${apiBase}/public/shop/${slug}?page=${pageKey}`);
                 
                 if (res.ok) {
                     const data = await res.json();
                     
-                    // Si la API no devuelve custom_schema directamente, intentamos buscarlo 
-                    // en el endpoint específico de páginas del studio
+                    // Si no tiene esquema, intentar buscar el esquema específico de la página
                     if (!data.custom_schema) {
                         try {
                             const pageRes = await fetch(`${apiBase}/public/shop-pages/${data.owner_id}/${pageKey}`);
@@ -189,12 +182,22 @@ function ShopContent() {
                                     data.custom_schema = pageData.schema_data;
                                 }
                             }
-                        } catch (e) {
-                            console.warn("No custom schema found for this page, using default layout.");
-                        }
+                        } catch (e) {}
                     }
-
                     setShopData(data);
+                } else if (slug === "preview") {
+                    // 2. Si es preview y falla el servidor, intentar cargar desde LocalStorage (Lo que acaba de hacer el usuario en el Studio)
+                    const localPreview = localStorage.getItem("bayup-studio-preview");
+                    if (localPreview) {
+                        const parsedSchema = JSON.parse(localPreview);
+                        setShopData({
+                            ...PREVIEW_DATA,
+                            custom_schema: parsedSchema
+                        });
+                    } else {
+                        // 3. Fallback final: Mock data básica
+                        setShopData(PREVIEW_DATA);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to fetch shop", error);
