@@ -552,12 +552,27 @@ export const DraggableCanvasElement = ({
                           display: ${elProps.showScrollbar === false ? 'none' : 'block'};
                         }
                         .custom-scrollbar-dynamic::-webkit-scrollbar-track {
-                          background: rgba(0,0,0,0.05);
+                          background: ${elProps.scrollbarEffect === 'glass' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'};
                           border-radius: 10px;
+                          margin: 0 40px;
                         }
                         .custom-scrollbar-dynamic::-webkit-scrollbar-thumb {
-                          background: var(--sb-color);
+                          background: ${
+                            elProps.scrollbarEffect === 'aurora' 
+                              ? `linear-gradient(90deg, #00f2ff, #7000ff, #00f2ff)` 
+                              : elProps.scrollbarEffect === 'glass'
+                                ? 'rgba(255,255,255,0.2)'
+                                : 'var(--sb-color)'
+                          };
+                          ${elProps.scrollbarEffect === 'aurora' ? 'background-size: 200% 100%; animation: aurora-scroll 3s linear infinite;' : ''}
+                          ${elProps.scrollbarEffect === 'glass' ? 'backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);' : ''}
+                          ${elProps.scrollbarEffect === 'neon' ? `box-shadow: 0 0 15px var(--sb-color), 0 0 5px var(--sb-color);` : ''}
                           border-radius: 10px;
+                          transition: all 0.3s;
+                        }
+                        @keyframes aurora-scroll {
+                          0% { background-position: 0% 50%; }
+                          100% { background-position: 200% 50%; }
                         }
                       `}</style>
                       {(() => {

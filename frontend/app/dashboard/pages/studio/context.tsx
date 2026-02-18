@@ -483,9 +483,13 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                addToCartIntensity: 100,
                addToCartPosX: 0,
                addToCartPosY: 0,
-               showScrollbar: true,
-               scrollbarStyle: "default",
-               imageAspectRatio: "square",
+                                         showScrollbar: true,
+                              scrollbarColor: "#2563eb",
+                              scrollbarWidth: 4,
+                              scrollbarEffect: "solid",
+                              scrollbarRadius: 10,
+                              imageAspectRatio: "square",
+               
                gridGap: 24
              } : 
              type === "video" ? {
