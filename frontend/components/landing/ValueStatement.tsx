@@ -1,13 +1,19 @@
 "use client";
 
-import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import { Layout, PlusCircle, Rocket, Globe, Zap, Cpu } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { TextCarousel } from "./TextCarousel";
 import { GlassButton } from "./GlassButton";
 
 export const ValueStatement = () => {
   const [hasDragged, setHasDragged] = useState(false);
+  const buttonRef = useRef(null);
+  const isButtonInView = useInView(buttonRef, { 
+    amount: 0.2, // Se activa cuando el 20% del botón es visible
+    once: false 
+  });
+
   const pillars = [
     // ... (mismos pilares)
     { 
@@ -112,7 +118,7 @@ export const ValueStatement = () => {
               >
                 {pillars.map((p, i) => (
                   <div key={i} className="min-w-[85vw] md:min-w-0 scale-90 md:scale-100 origin-center">
-                    <Card3D pillar={p} index={i} />
+                    <Card3D pillar={p} index={i} isButtonVisible={isButtonInView} />
                   </div>
                 ))}
               </motion.div>
@@ -126,6 +132,7 @@ export const ValueStatement = () => {
 
             {/* Botón de acción debajo de las cards */}
             <motion.div
+              ref={buttonRef}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
@@ -147,33 +154,8 @@ export const ValueStatement = () => {
   );
 };
 
-const Card3D = ({ pillar, index }: { pillar: any, index: number }) => {
+const Card3D = ({ pillar, index, isButtonVisible }: { pillar: any, index: number, isButtonVisible: boolean }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [autoFlipped, setAutoFlipped] = useState(false);
-  const { scrollY } = useScroll();
-
-  // Lógica de Auto-flip secuencial para todas las tarjetas
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    // Definimos rangos de scroll específicos para cada tarjeta (ajustados para PC y móvil)
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-    
-    const ranges = isMobile ? [
-      { min: 1100, max: 1900 }, // Card 01 Móvil
-      { min: 1400, max: 2200 }, // Card 02 Móvil
-      { min: 1700, max: 2500 }, // Card 03 Móvil
-    ] : [
-      { min: 1500, max: 2300 }, // Card 01 Desktop (Punto equilibrado)
-      { min: 1500, max: 2300 }, // Card 02 Desktop
-      { min: 1500, max: 2300 }, // Card 03 Desktop
-    ];
-
-    const currentRange = ranges[index];
-    if (currentRange && latest > currentRange.min && latest < currentRange.max) {
-      setAutoFlipped(true);
-    } else {
-      setAutoFlipped(false);
-    }
-  });
 
   return (
     <motion.div
@@ -188,15 +170,19 @@ const Card3D = ({ pillar, index }: { pillar: any, index: number }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className="relative h-[450px] w-full cursor-pointer group"
-      style={{ zIndex: isHovered || autoFlipped ? 50 : 1 }}
+      style={{ zIndex: isHovered || isButtonVisible ? 50 : 1 }}
     >
       <motion.div
         animate={{ 
-          rotateY: (isHovered || autoFlipped) ? 180 : 0,
-          scale: (isHovered || autoFlipped) ? 1.12 : 1,
-          y: (isHovered || autoFlipped) ? -15 : 0
+          rotateY: (isHovered || isButtonVisible) ? 180 : 0,
+          scale: (isHovered || isButtonVisible) ? 1.12 : 1,
+          y: (isHovered || isButtonVisible) ? -15 : 0
         }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ 
+          duration: 0.8, 
+          delay: isButtonVisible && !isHovered ? index * 0.1 : 0, // Secuencia sutil al voltearse por el botón
+          ease: [0.16, 1, 0.3, 1] 
+        }}
         className="relative w-full h-full preserve-3d"
       >
         {/* LADO FRONTAL */}
@@ -264,7 +250,7 @@ const Card3D = ({ pillar, index }: { pillar: any, index: number }) => {
             {/* Imagen Pop-out con animación premium */}
             {pillar.asset && (
               <AnimatePresence>
-                {(isHovered || autoFlipped) && (
+                {(isHovered || isButtonVisible) && (
                   <motion.div
                     initial={{ y: 80, opacity: 0, scale: 0.5 }}
                     animate={{ y: -40, opacity: 1, scale: 1 }}
