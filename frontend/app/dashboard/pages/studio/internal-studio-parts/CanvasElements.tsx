@@ -785,18 +785,30 @@ export const DraggableCanvasElement = ({
                   }
 
                   const [selectedImg, setSelectedImg] = React.useState(displayProps.mainImage);
+                  const galleryEffect = elProps.galleryEffect || "zoom-swap";
                   React.useEffect(() => { setSelectedImg(displayProps.mainImage); }, [displayProps.mainImage]);
 
                   return (
                     <div className="w-full grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-24 py-20 px-8 text-left animate-in fade-in duration-1000">
-                      <div className="flex flex-col gap-8 items-center">
+                      <div className="flex flex-col gap-8 items-center w-full">
                         <div 
                           className="w-full aspect-[4/5] bg-gray-50 overflow-hidden shadow-2xl relative rounded-[3rem] border border-gray-100 transition-all duration-500"
                           style={{ 
                             transform: `scale(${(elProps.mainImageSize || 100) / 100}) translate(${elProps.mainImagePosX || 0}px, ${elProps.mainImagePosY || 0}px)` 
                           }}
                         >
-                          <img src={selectedImg} className="w-full h-full object-cover" />
+                          <AnimatePresence mode="wait">
+                            <motion.img 
+                              key={selectedImg}
+                              layoutId={galleryEffect === "zoom-swap" ? selectedImg : undefined}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.4, ease: "easeInOut" }}
+                              src={selectedImg} 
+                              className="w-full h-full object-cover" 
+                            />
+                          </AnimatePresence>
                         </div>
                         
                         {/* MINIATURAS */}
@@ -807,11 +819,15 @@ export const DraggableCanvasElement = ({
                                 key={idx} 
                                 onClick={() => setSelectedImg(img)}
                                 className={cn(
-                                  "w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all",
+                                  "w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all relative",
                                   selectedImg === img ? "border-blue-500 scale-110 shadow-lg" : "border-transparent opacity-60 hover:opacity-100"
                                 )}
                               >
-                                <img src={img} className="w-full h-full object-cover" />
+                                <motion.img 
+                                  layoutId={galleryEffect === "zoom-swap" ? img : undefined}
+                                  src={img} 
+                                  className="w-full h-full object-cover" 
+                                />
                               </button>
                             ))}
                           </div>

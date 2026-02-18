@@ -640,6 +640,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                 mainImageSize: 100,
                 mainImagePosX: 0,
                 mainImagePosY: 0,
+                galleryEffect: "zoom-swap",
                 // Diseño del Nombre
                 titleFont: "font-black",
                 titleSize: 48,
