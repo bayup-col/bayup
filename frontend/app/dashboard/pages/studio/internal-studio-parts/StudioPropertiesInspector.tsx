@@ -518,7 +518,7 @@ export const DesignerInspector = () => {
             
             {sectionKey === "body" && (
               <>
-                {element.type !== "product-master-view" && (
+                {(element.type === "hero-banner" || element.type === "text" || element.type === "product-master-view") && (
                   <>
                     {renderModularTextDesigner(
                       { ...element.props, content: element.props.title, variant: element.props.titleVariant, color: element.props.titleColor, size: element.props.titleSize, font: element.props.titleFont, aurora1: element.props.titleAurora1, aurora2: element.props.titleAurora2, intensity: element.props.titleIntensity || 100, posX: element.props.titlePosX, posY: element.props.titlePosY }, 
@@ -581,6 +581,17 @@ export const DesignerInspector = () => {
                       updateElement(sectionKey, selectedElementId, updates); 
                     }, "Imagen Complemento", triggerUpload, false, undefined, "floatUrl")}
                   </>
+                )}
+
+                {element.type === "product-master-view" && (
+                  <ControlGroup title="Configuración de Vista" icon={Layout} defaultOpen={true}>
+                    <div className="space-y-4">
+                      <div onClick={() => triggerUpload("mainImage")} className="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center cursor-pointer hover:border-blue-400 relative">
+                        {element.props.mainImage ? <div className="relative h-20 mx-auto"><img src={element.props.mainImage} className="h-full object-contain" /><button onClick={(e) => { e.stopPropagation(); handleChange("mainImage", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md border-2 border-white"><X size={10}/></button></div> : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR IMAGEN PRINCIPAL</p>}
+                      </div>
+                      <FluidSlider label="Altura del Bloque" value={element.props.height || 1000} min={400} max={1500} onChange={(v:number) => handleChange("height", v)} />
+                    </div>
+                  </ControlGroup>
                 )}
 
                 {element.type === "categories-grid" && (
