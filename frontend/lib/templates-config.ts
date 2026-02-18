@@ -16,9 +16,9 @@ interface ThemeConfig {
 }
 
 const THEMES: Record<string, ThemeConfig> = {
-  t1: { // URBAN RAW (Mattelsa / Nude Project)
-    id: "t1", name: "Urban Raw", font: "font-black", bg: "#ffffff", text: "#000000", accent: "#000000", radius: 0,
-    isDark: false, style: "brutalist"
+  t1: { // SILICON PRO (Inspirado en Apple / Minimalismo Tech)
+    id: "t1", name: "Silicon Pro", font: "font-sans", bg: "#ffffff", text: "#000000", accent: "#0071e3", radius: 16,
+    isDark: false, style: "technical"
   },
   t2: { // EDITORIAL LUXE (Studio F)
     id: "t2", name: "Editorial Luxe", font: "font-serif", bg: "#f8f8f8", text: "#1a1a1a", accent: "#be123c", radius: 2,
@@ -86,17 +86,18 @@ export const generateTemplateSchema = (templateId: string): Record<PageType, Pag
           id: uuidv4(),
           type: "hero-banner",
           props: {
-            title: theme.style === "brutalist" ? "NEW DROP" : theme.style === "editorial" ? "The Art of Fashion" : "NEXT GEN TECH",
-            subtitle: "Explora la selección exclusiva de esta temporada.",
-            height: theme.style === "cyber" ? 900 : 750,
+            title: theme.id === "t1" ? "PRO. MÁS ALLÁ." : theme.style === "brutalist" ? "NEW DROP" : theme.style === "editorial" ? "The Art of Fashion" : "NEXT GEN TECH",
+            subtitle: theme.id === "t1" ? "Lo último en potencia y diseño minimalista." : "Explora la selección exclusiva de esta temporada.",
+            height: theme.id === "t1" ? 850 : (theme.style === "cyber" ? 900 : 750),
             bgType: "image",
-            imageUrl: theme.style === "brutalist" ? "https://images.unsplash.com/photo-1529139513055-07f9127e6111?q=80&w=2000" : 
-                      theme.style === "editorial" ? "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2000" :
-                      "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=2000",
+            imageUrl: theme.id === "t1" ? "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=2000" : 
+                      (theme.style === "brutalist" ? "https://images.unsplash.com/photo-1529139513055-07f9127e6111?q=80&w=2000" : 
+                      (theme.style === "editorial" ? "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2000" :
+                      "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=2000")),
             titleVariant: theme.style === "cyber" ? "aurora" : "solid",
-            titleSize: 100,
+            titleSize: theme.id === "t1" ? 72 : 100,
             titleFont: theme.font,
-            primaryBtnText: "VER TODO",
+            primaryBtnText: "VER MÁS",
             primaryBtnBgColor: theme.accent,
             primaryBtnBorderRadius: theme.radius
           }

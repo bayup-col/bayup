@@ -28,12 +28,12 @@ import { useToast } from '@/context/toast-context';
 const ALL_TEMPLATES = [
     { 
         id: 't1', 
-        name: 'Aura Minimal', 
-        category: 'Moda',
-        desc: 'Enfoque absoluto en el producto. Estética zen y limpia para marcas premium de ropa y accesorios.', 
-        image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&auto=format&fit=crop', 
-        color: 'bg-emerald-500',
-        stats: { conversion: '4.8%', difficulty: 'Baja' }
+        name: 'Silicon Pro', 
+        category: 'Tecnología',
+        desc: 'Inspirada en el minimalismo de Cupertino. Foco quirúrgico en el detalle, tipografías premium y una experiencia de usuario legendaria.', 
+        image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop', 
+        color: 'bg-gray-200',
+        stats: { conversion: '5.4%', difficulty: 'Baja' }
     },
     { 
         id: 't2', 
