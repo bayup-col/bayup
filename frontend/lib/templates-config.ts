@@ -263,11 +263,11 @@ export const generateTemplateSchema = (templateId: string): Record<PageType, Pag
             id: uuidv4(),
             type: "text",
             props: {
-              content: "1. Introducción
+              content: `1. Introducción
 Al acceder a este sitio web, asumimos que aceptas estos términos y condiciones en su totalidad.
 
 2. Licencia
-A menos que se indique lo contrario, nosotros y/o nuestros licenciantes poseemos los derechos de propiedad intelectual...",
+A menos que se indique lo contrario, nosotros y/o nuestros licenciantes poseemos los derechos de propiedad intelectual...`,
               fontSize: 14,
               color: isDark ? "#9ca3af" : "#4b5563",
               align: "left"
