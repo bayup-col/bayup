@@ -788,10 +788,36 @@ export const DraggableCanvasElement = ({
                         </div>
                       </div>
                       <div className="flex flex-col gap-12 py-6">
-                        <div className="space-y-8">
-                          <h2 className="text-5xl font-black uppercase italic tracking-tighter">{displayProps.title}</h2>
-                          <p className="text-2xl font-black text-blue-600">${Number(displayProps.price || 0).toLocaleString()}</p>
-                          <p className="text-gray-500 leading-relaxed italic">{displayProps.description}</p>
+                        <div className="flex flex-col gap-8 w-full">
+                          {renderTextWithTheme(displayProps.title, {
+                            variant: elProps.titleVariant,
+                            color: elProps.titleColor || "#111827",
+                            size: elProps.titleSize || 48,
+                            font: elProps.titleFont || "font-black",
+                            posX: elProps.titlePosX,
+                            posY: elProps.titlePosY,
+                            intensity: elProps.titleIntensity || 100
+                          }, "none", "pdp-title")}
+
+                          {renderTextWithTheme(`$${Number(displayProps.price || 0).toLocaleString()}`, {
+                            variant: elProps.priceVariant,
+                            color: elProps.priceColor || "#2563eb",
+                            size: elProps.priceSize || 24,
+                            font: elProps.priceFont || "font-black",
+                            posX: elProps.pricePosX,
+                            posY: elProps.pricePosY,
+                            intensity: elProps.priceIntensity || 100
+                          }, "none", "pdp-price")}
+
+                          {renderTextWithTheme(displayProps.description, {
+                            variant: elProps.descVariant,
+                            color: elProps.descColor || "#6b7280",
+                            size: elProps.descSize || 16,
+                            font: elProps.descFont || "font-sans",
+                            posX: elProps.descPosX,
+                            posY: elProps.descPosY,
+                            intensity: elProps.descIntensity || 100
+                          }, "none", "pdp-desc")}
                         </div>
                         <div className="flex gap-4">
                           <button 

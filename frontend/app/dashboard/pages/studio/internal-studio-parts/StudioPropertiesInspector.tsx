@@ -518,7 +518,7 @@ export const DesignerInspector = () => {
             
             {sectionKey === "body" && (
               <>
-                {(element.type === "hero-banner" || element.type === "text" || element.type === "product-master-view") && (
+                {(element.type === "hero-banner" || element.type === "text" || (element.type === "product-master-view" && false)) && (
                   <>
                     {renderModularTextDesigner(
                       { ...element.props, content: element.props.title, variant: element.props.titleVariant, color: element.props.titleColor, size: element.props.titleSize, font: element.props.titleFont, aurora1: element.props.titleAurora1, aurora2: element.props.titleAurora2, intensity: element.props.titleIntensity || 100, posX: element.props.titlePosX, posY: element.props.titlePosY }, 
@@ -584,14 +584,107 @@ export const DesignerInspector = () => {
                 )}
 
                 {element.type === "product-master-view" && (
-                  <ControlGroup title="Configuración de Vista" icon={Layout} defaultOpen={true}>
-                    <div className="space-y-4">
-                      <div onClick={() => triggerUpload("mainImage")} className="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center cursor-pointer hover:border-blue-400 relative">
-                        {element.props.mainImage ? <div className="relative h-20 mx-auto"><img src={element.props.mainImage} className="h-full object-contain" /><button onClick={(e) => { e.stopPropagation(); handleChange("mainImage", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md border-2 border-white"><X size={10}/></button></div> : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR IMAGEN PRINCIPAL</p>}
+                  <>
+                    <ControlGroup title="Configuración de Vista" icon={Layout} defaultOpen={true}>
+                      <div className="space-y-4">
+                        <div onClick={() => triggerUpload("mainImage")} className="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center cursor-pointer hover:border-blue-400 relative">
+                          {element.props.mainImage ? <div className="relative h-20 mx-auto"><img src={element.props.mainImage} className="h-full object-contain" /><button onClick={(e) => { e.stopPropagation(); handleChange("mainImage", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md border-2 border-white"><X size={10}/></button></div> : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR IMAGEN PRINCIPAL</p>}
+                        </div>
+                        <FluidSlider label="Altura del Bloque" value={element.props.height || 1000} min={400} max={1500} onChange={(v:number) => handleChange("height", v)} />
                       </div>
-                      <FluidSlider label="Altura del Bloque" value={element.props.height || 1000} min={400} max={1500} onChange={(v:number) => handleChange("height", v)} />
-                    </div>
-                  </ControlGroup>
+                    </ControlGroup>
+
+                    {/* DISEÑO DE NOMBRE (DINÁMICO) */}
+                    {renderModularTextDesigner(
+                      { 
+                        variant: element.props.titleVariant, 
+                        color: element.props.titleColor, 
+                        size: element.props.titleSize || 48, 
+                        font: element.props.titleFont || "font-black", 
+                        posX: element.props.titlePosX, 
+                        posY: element.props.titlePosY,
+                        intensity: element.props.titleIntensity || 100 
+                      }, 
+                      (p) => {
+                        const updates: any = {};
+                        if ('variant' in p) updates.titleVariant = p.variant;
+                        if ('color' in p) updates.titleColor = p.color;
+                        if ('size' in p) updates.titleSize = p.size;
+                        if ('font' in p) updates.titleFont = p.font;
+                        if ('posX' in p) updates.titlePosX = p.posX;
+                        if ('posY' in p) updates.titlePosY = p.posY;
+                        if ('intensity' in p) updates.titleIntensity = p.intensity;
+                        updateElement(sectionKey, selectedElementId, updates);
+                      }, "Diseño del Nombre"
+                    )}
+
+                    {/* DISEÑO DE DESCRIPCIÓN (DINÁMICA) */}
+                    {renderModularTextDesigner(
+                      { 
+                        variant: element.props.descVariant, 
+                        color: element.props.descColor || "#6b7280", 
+                        size: element.props.descSize || 16, 
+                        font: element.props.descFont || "font-sans", 
+                        posX: element.props.descPosX, 
+                        posY: element.props.descPosY,
+                        intensity: element.props.descIntensity || 100 
+                      }, 
+                      (p) => {
+                        const updates: any = {};
+                        if ('variant' in p) updates.descVariant = p.variant;
+                        if ('color' in p) updates.descColor = p.color;
+                        if ('size' in p) updates.descSize = p.size;
+                        if ('font' in p) updates.descFont = p.font;
+                        if ('posX' in p) updates.descPosX = p.posX;
+                        if ('posY' in p) updates.descPosY = p.posY;
+                        if ('intensity' in p) updates.descIntensity = p.intensity;
+                        updateElement(sectionKey, selectedElementId, updates);
+                      }, "Diseño de la Descripción"
+                    )}
+
+                    {/* DISEÑO DE PRECIO (DINÁMICO) */}
+                    {renderModularTextDesigner(
+                      { 
+                        variant: element.props.priceVariant, 
+                        color: element.props.priceColor || "#2563eb", 
+                        size: element.props.priceSize || 24, 
+                        font: element.props.priceFont || "font-black", 
+                        posX: element.props.pricePosX, 
+                        posY: element.props.pricePosY,
+                        intensity: element.props.priceIntensity || 100 
+                      }, 
+                      (p) => {
+                        const updates: any = {};
+                        if ('variant' in p) updates.priceVariant = p.variant;
+                        if ('color' in p) updates.priceColor = p.color;
+                        if ('size' in p) updates.priceSize = p.size;
+                        if ('font' in p) updates.priceFont = p.font;
+                        if ('posX' in p) updates.pricePosX = p.posX;
+                        if ('posY' in p) updates.pricePosY = p.posY;
+                        if ('intensity' in p) updates.priceIntensity = p.intensity;
+                        updateElement(sectionKey, selectedElementId, updates);
+                      }, "Diseño del Precio"
+                    )}
+
+                    {/* BOTONES */}
+                    {renderModularButtonDesigner({ ...element.props, text: element.props.primaryBtnText, url: element.props.primaryBtnUrl, variant: element.props.primaryBtnVariant, bgColor: element.props.primaryBtnBgColor, size: element.props.primaryBtnSize, posX: element.props.primaryBtnPosX, posY: element.props.primaryBtnPosY }, (p) => {
+                      const updates: any = {};
+                      if ('text' in p) updates.primaryBtnText = p.text;
+                      if ('url' in p) updates.primaryBtnUrl = p.url;
+                      if ('variant' in p) updates.primaryBtnVariant = p.variant;
+                      if ('bgColor' in p) updates.primaryBtnBgColor = p.bgColor;
+                      if ('size' in p) updates.primaryBtnSize = p.size;
+                      if ('posX' in p) updates.primaryBtnPosX = p.posX;
+                      if ('posY' in p) updates.primaryBtnPosY = p.posY;
+                      updateElement(sectionKey, selectedElementId, updates);
+                    }, "Botón Primario")}
+                    {renderModularMultimediaDesigner({ ...element.props, id: null, floatUrl: element.props.floatUrl, floatSize: element.props.floatSize, floatRadius: element.props.floatRadius, floatPosX: element.props.floatPosX, floatPosY: element.props.floatPosY }, (p) => { 
+                      const mapping: any = { floatType: 'floatType', url: 'floatUrl', floatUrl: 'floatUrl', floatAnim: 'floatAnim', size: 'floatSize', floatSize: 'floatSize', radius: 'floatRadius', floatRadius: 'floatRadius', posX: 'floatPosX', floatPosX: 'floatPosX', posY: 'floatPosY', floatPosY: 'floatPosY' }; 
+                      const updates: Record<string, any> = {}; 
+                      Object.keys(p).forEach(k => { if (mapping[k]) updates[mapping[k]] = p[k]; }); 
+                      updateElement(sectionKey, selectedElementId, updates); 
+                    }, "Imagen Complemento", triggerUpload, false, undefined, "floatUrl")}
+                  </>
                 )}
 
                 {element.type === "categories-grid" && (

@@ -636,7 +636,28 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
                 price: "1500000",
                 variants: ["S", "M", "L", "XL"],
                 colors: ["#000000", "#ffffff", "#2563eb"],
-                mainImage: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop"
+                mainImage: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop",
+                // Diseño del Nombre
+                titleFont: "font-black",
+                titleSize: 48,
+                titleColor: "#111827",
+                titleVariant: "solid",
+                titlePosX: 0,
+                titlePosY: 0,
+                // Diseño de la Descripción
+                descFont: "font-sans",
+                descSize: 16,
+                descColor: "#6b7280",
+                descVariant: "solid",
+                descPosX: 0,
+                descPosY: 0,
+                // Diseño del Precio
+                priceFont: "font-black",
+                priceSize: 24,
+                priceColor: "#2563eb",
+                priceVariant: "solid",
+                pricePosX: 0,
+                pricePosY: 0,
              } : 
              type === "categories-grid" ? {
                ...standardBodyProps,
