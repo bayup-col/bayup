@@ -2,12 +2,21 @@
 
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { Layout, PlusCircle, Rocket, Globe, Zap, Cpu } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { TextCarousel } from "./TextCarousel";
 import { GlassButton } from "./GlassButton";
 
 export const ValueStatement = () => {
   const [hasDragged, setHasDragged] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const buttonRef = useRef(null);
   const isButtonInView = useInView(buttonRef, { 
     amount: 0.2, // Se activa cuando el 20% del botón es visible
@@ -20,7 +29,7 @@ export const ValueStatement = () => {
       step: "01",
       title: "PERSONALIZA TU TIENDA", 
       desc: "", 
-      details: "Diseña cada rincón de tu web con herramientas intuitivas.",
+      details: "Diseña cada rincón de tu web sin límites creativos.",
       highlight: "Tu marca, tu estilo, sin límites técnicos.",
       asset: "/assets/pincel.webp"
     },
@@ -36,7 +45,7 @@ export const ValueStatement = () => {
       step: "03",
       title: "COMIENZA A VENDER", 
       desc: "", 
-      details: "Activa tu página web y empieza a recibir órdenes de inmediato.",
+      details: "Activa tu página web y empieza a recibir órdenes de compra inmediatas.",
       highlight: "Tus clientes te esperan",
       asset: "/assets/cohetedinero.webp"
     },
@@ -109,12 +118,12 @@ export const ValueStatement = () => {
 
               <motion.div 
                 className="flex md:grid md:grid-cols-3 gap-8 md:gap-20 perspective-2000 w-full"
-                drag="x"
+                drag={isMobile ? "x" : false}
                 dragConstraints={{ right: 0, left: -600 }}
                 onDragStart={() => setHasDragged(true)}
                 dragElastic={0.2}
-                style={{ cursor: "grab" }}
-                whileTap={{ cursor: "grabbing" }}
+                style={{ cursor: isMobile ? "grab" : "default" }}
+                whileTap={{ cursor: isMobile ? "grabbing" : "default" }}
               >
                 {pillars.map((p, i) => (
                   <div key={i} className="min-w-[85vw] md:min-w-0 scale-90 md:scale-100 origin-center">
