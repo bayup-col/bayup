@@ -140,7 +140,9 @@ export default function MyStoreHub() {
                         <h2 className="text-3xl font-black text-gray-900 tracking-tight italic">Galería de temas</h2>
                         <p className="text-gray-400 text-[10px] font-black tracking-widest mt-1">Evoluciona tu estética con un clic</p>
                     </div>
-                    <button className="h-12 px-8 bg-gray-50 text-gray-400 rounded-full font-black text-[9px] tracking-widest border border-gray-100 hover:text-purple-600 hover:border-purple-200 transition-all">Ver catálogo completo</button>
+                    <Link href="/dashboard/my-store/templates">
+                        <button className="h-12 px-8 bg-gray-50 text-gray-400 rounded-full font-black text-[9px] tracking-widest border border-gray-100 hover:text-purple-600 hover:border-purple-200 transition-all">Ver catálogo completo</button>
+                    </Link>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
