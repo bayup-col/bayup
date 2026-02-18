@@ -25,60 +25,60 @@ const ALL_TEMPLATES = [
     { 
         id: 't1', 
         name: 'Aura Minimal', 
-        category: 'Minimalista',
-        desc: 'Enfoque absoluto en el producto. Estética zen y limpia para marcas premium.', 
+        category: 'Moda',
+        desc: 'Enfoque absoluto en el producto. Estética zen y limpia para marcas premium de ropa y accesorios.', 
         image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&auto=format&fit=crop', 
         color: 'bg-emerald-500',
         stats: { conversion: '4.8%', difficulty: 'Baja' }
     },
     { 
         id: 't2', 
-        name: 'Cyber Tech', 
-        category: 'Futurista',
-        desc: 'Interfaz oscura con neones vibrantes. Ideal para gadgets y tecnología.', 
+        name: 'Pixel Tech', 
+        category: 'Tecnología',
+        desc: 'Interfaz optimizada para la venta de celulares, computadores y gadgets de última generación.', 
         image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800&auto=format&fit=crop', 
-        color: 'bg-blue-500',
+        color: 'bg-blue-600',
         stats: { conversion: '5.2%', difficulty: 'Media' }
     },
     { 
         id: 't3', 
         name: 'Vogue Pro', 
-        category: 'Editorial',
-        desc: 'Diseño tipo revista de alta costura. Tipografías elegantes y espacios amplios.', 
+        category: 'Moda',
+        desc: 'Diseño tipo revista de alta costura. Tipografías elegantes para vestidos y calzado de lujo.', 
         image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=800&auto=format&fit=crop', 
         color: 'bg-purple-500',
         stats: { conversion: '3.9%', difficulty: 'Alta' }
     },
     { 
         id: 't4', 
-        name: 'Organic Roots', 
-        category: 'Ecológico',
-        desc: 'Tonos tierra y texturas naturales. Perfecto para productos artesanales.', 
-        image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=800&auto=format&fit=crop', 
-        color: 'bg-orange-400',
-        stats: { conversion: '4.1%', difficulty: 'Baja' }
+        name: 'Mechanic Pro', 
+        category: 'Industrial',
+        desc: 'Estructura robusta y técnica. Ideal para catálogos de repuestos mecánicos y herramientas.', 
+        image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?q=80&w=800&auto=format&fit=crop', 
+        color: 'bg-gray-800',
+        stats: { conversion: '4.5%', difficulty: 'Media' }
     },
     { 
         id: 't5', 
         name: 'Hyper Speed', 
         category: 'Deportivo',
-        desc: 'Líneas agresivas y gran dinamismo. Diseñada para calzado y fitness.', 
+        desc: 'Dinamismo total. Diseñada específicamente para la venta de calzado deportivo y equipo fitness.', 
         image: 'https://images.unsplash.com/photo-1556906781-9a412961c28c?q=80&w=800&auto=format&fit=crop', 
         color: 'bg-rose-500',
         stats: { conversion: '5.5%', difficulty: 'Alta' }
     },
     { 
         id: 't6', 
-        name: 'Gourmet Gold', 
-        category: 'Gastronomía',
-        desc: 'Elegancia culinaria. Resalta el detalle de alimentos y bebidas gourmet.', 
-        image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=800&auto=format&fit=crop', 
-        color: 'bg-amber-600',
-        stats: { conversion: '4.3%', difficulty: 'Media' }
+        name: 'Collector Edition', 
+        category: 'Coleccionables',
+        desc: 'Diseño tipo vitrina con alta fidelidad visual. Ideal para Funko Pops y artículos de colección.', 
+        image: 'https://images.unsplash.com/photo-1566576661368-2410a519808a?q=80&w=800&auto=format&fit=crop', 
+        color: 'bg-indigo-600',
+        stats: { conversion: '4.7%', difficulty: 'Baja' }
     },
 ];
 
-const CATEGORIES = ['Todas', 'Minimalista', 'Futurista', 'Editorial', 'Ecológico', 'Deportivo', 'Gastronomía'];
+const CATEGORIES = ['Todas', 'Moda', 'Tecnología', 'Industrial', 'Deportivo', 'Coleccionables'];
 
 export default function TemplatesCatalog() {
     const router = useRouter();
