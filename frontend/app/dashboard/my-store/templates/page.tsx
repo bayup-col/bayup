@@ -15,10 +15,14 @@ import {
   Zap,
   Smartphone,
   Monitor,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { generateTemplateSchema } from '@/lib/templates-config';
+import { shopPageService } from '@/lib/api';
+import { useToast } from '@/context/toast-context';
 
 // --- MOCK DATA DE TODAS LAS PLANTILLAS ---
 const ALL_TEMPLATES = [
@@ -82,15 +86,55 @@ const CATEGORIES = ['Todas', 'Moda', 'Tecnología', 'Industrial', 'Deportivo', '
 
 export default function TemplatesCatalog() {
     const router = useRouter();
+    const { showToast } = useToast();
     const [selectedCat, setSelectedCat] = useState('Todas');
     const [searchTerm, setSearchTerm] = useState('');
     const [hoveredId, setHoveredId] = useState<string | null>(null);
+    const [activatingId, setActivatingId] = useState<string | null>(null);
 
     const filtered = ALL_TEMPLATES.filter(t => {
         const matchesCat = selectedCat === 'Todas' || t.category === selectedCat;
         const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase());
         return matchesCat && matchesSearch;
     });
+
+    const handleActivateTemplate = async (templateId: string) => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            showToast("No se encontró sesión activa", "error");
+            return;
+        }
+
+        setActivatingId(templateId);
+        try {
+            // 1. Generar los esquemas para las 6 páginas (Home, Colecciones, Productos, Nosotros, Legal, Checkout)
+            const fullStoreSchema = generateTemplateSchema(templateId);
+            const pageKeys = Object.keys(fullStoreSchema);
+
+            // 2. Guardar cada página en la base de datos
+            const savePromises = pageKeys.map(key => {
+                return shopPageService.save(token, {
+                    page_key: key,
+                    schema_data: fullStoreSchema[key as keyof typeof fullStoreSchema]
+                });
+            });
+
+            await Promise.all(savePromises);
+            
+            showToast("¡Plantilla activada con éxito! Tu tienda ha sido rediseñada completamente.", "success");
+            
+            // 3. Redirigir a 'Mis Páginas' para que vean el resultado y puedan editar en Visual Pro v4.0
+            setTimeout(() => {
+                router.push('/dashboard/pages');
+            }, 1500);
+
+        } catch (e: any) {
+            console.error("Template activation error:", e);
+            showToast("Error al activar la plantilla. Inténtalo de nuevo.", "error");
+        } finally {
+            setActivatingId(null);
+        }
+    };
 
     return (
         <div className="max-w-[1600px] mx-auto pb-32 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -207,9 +251,19 @@ export default function TemplatesCatalog() {
                                 </div>
 
                                 <button 
-                                    className="w-full py-5 bg-gray-50 text-gray-400 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] transition-all hover:bg-purple-600 hover:text-white hover:shadow-2xl hover:shadow-purple-200 active:scale-95 flex items-center justify-center gap-3"
+                                    onClick={() => handleActivateTemplate(tpl.id)}
+                                    disabled={activatingId !== null}
+                                    className={`w-full py-5 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 active:scale-95 ${
+                                        activatingId === tpl.id 
+                                        ? 'bg-gray-100 text-gray-400 cursor-wait' 
+                                        : 'bg-gray-900 text-white hover:bg-purple-600 hover:shadow-2xl hover:shadow-purple-200'
+                                    }`}
                                 >
-                                    Activar Plantilla <ArrowRight size={16} />
+                                    {activatingId === tpl.id ? (
+                                        <> <Loader2 className="animate-spin" size={16}/> Activando Motor Visual... </>
+                                    ) : (
+                                        <> Activar Plantilla <ArrowRight size={16} /> </>
+                                    )}
                                 </button>
                             </div>
                         </motion.div>
