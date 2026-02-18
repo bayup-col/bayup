@@ -3,125 +3,142 @@ import { PageSchema, ComponentType, StudioElement } from "@/app/dashboard/pages/
 
 type PageType = 'home' | 'colecciones' | 'productos' | 'nosotros' | 'legal' | 'checkout';
 
-// --- CONFIGURACIÓN DE IDENTIDADES VISUALES ---
+// --- ARQUITECTURA DE DISEÑO DE ALTO IMPACTO ---
 const THEMES = {
-  t1: { // Aura Minimal (Moda Premium)
-    bg: "#ffffff", text: "#000000", accent: "#000000", font: "font-sans", radius: 0,
-    isDark: false, cardStyle: "minimal" as any, navAlign: "center" as any
+  t1: { // URBAN RAW (Inspirado en Mattelsa / Nude Project)
+    id: "t1", name: "Urban Raw", font: "font-black", bg: "#ffffff", text: "#000000", accent: "#000000", radius: 0,
+    navType: "minimal", heroHeight: 800, gridCols: 2, 
+    images: { hero: "https://images.unsplash.com/photo-1529139513055-07f9127e6111?q=80&w=2000" }
   },
-  t2: { // Pixel Tech (Tecnología / Celulares)
-    bg: "#020617", text: "#f8fafc", accent: "#00f2ff", font: "font-mono", radius: 24,
-    isDark: true, cardStyle: "premium" as any, navAlign: "left" as any
+  t2: { // EDITORIAL LUXE (Inspirado en Studio F)
+    id: "t2", name: "Editorial Luxe", font: "font-serif", bg: "#fcfcfc", text: "#1a1a1a", accent: "#be123c", radius: 4,
+    navType: "centered", heroHeight: 700, gridCols: 3,
+    images: { hero: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2000" }
   },
-  t3: { // Vogue Pro (Editorial / Vestidos)
-    bg: "#fafafa", text: "#1a1a1a", accent: "#be123c", font: "font-serif", radius: 0,
-    isDark: false, cardStyle: "premium" as any, navAlign: "center" as any
+  t3: { // CYBER GADGET (Inspirado en Tech Brands)
+    id: "t3", name: "Cyber Gadget", font: "font-mono", bg: "#020617", text: "#f8fafc", accent: "#00f2ff", radius: 24,
+    navType: "glass", heroHeight: 850, gridCols: 4,
+    images: { hero: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=2000" }
   },
-  t4: { // Mechanic Pro (Repuestos / Herramientas)
-    bg: "#0c0a09", text: "#e7e5e4", accent: "#f59e0b", font: "font-black", radius: 8,
-    isDark: true, cardStyle: "solid" as any, navAlign: "left" as any
+  t4: { // INDUSTRIAL MASTER (Inspirado en Mechanic/Arturo Calle)
+    id: "t4", name: "Industrial Master", font: "font-black", bg: "#0c0a09", text: "#e7e5e4", accent: "#f59e0b", radius: 4,
+    navType: "solid", heroHeight: 650, gridCols: 3,
+    images: { hero: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?q=80&w=2000" }
   },
-  t5: { // Hyper Speed (Zapatillas / Deporte)
-    bg: "#ffffff", text: "#000000", accent: "#ef4444", font: "font-black", radius: 40,
-    isDark: false, cardStyle: "premium" as any, navAlign: "center" as any
+  t5: { // HYPER RETAIL (Inspirado en El Éxito / Amazon)
+    id: "t5", name: "Hyper Retail", font: "font-sans", bg: "#ffffff", text: "#1e293b", accent: "#2563eb", radius: 12,
+    navType: "mega", heroHeight: 500, gridCols: 5,
+    images: { hero: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2000" }
   },
-  t6: { // Collector Edition (Funko Pops / Juguetes)
-    bg: "#1e1b4b", text: "#ffffff", accent: "#22d3ee", font: "font-sans", radius: 32,
-    isDark: true, cardStyle: "premium" as any, navAlign: "left" as any
+  t6: { // COLLECTOR DREAM (Inspirado en Funko / Concept Stores)
+    id: "t6", name: "Collector Dream", font: "font-sans", bg: "#1e1b4b", text: "#ffffff", accent: "#22d3ee", radius: 40,
+    navType: "floating", heroHeight: 750, gridCols: 3,
+    images: { hero: "https://images.unsplash.com/photo-1566576661368-2410a519808a?q=80&w=2000" }
   }
 };
 
 export const generateTemplateSchema = (templateId: string): Record<PageType, PageSchema> => {
   const theme = THEMES[templateId as keyof typeof THEMES] || THEMES.t1;
-  
-  // --- HELPER PARA CREAR NAVBAR SEGÚN ESTILO ---
-  const createHeader = (): any => ({
+  const isDark = ['t3', 't4', 't6'].includes(templateId);
+
+  const createNav = () => ({
     elements: [{
       id: uuidv4(),
-      type: "navbar",
+      type: "navbar" as ComponentType,
       props: {
-        logoText: "STORE NAME",
-        bgColor: theme.isDark ? theme.bg : "#ffffff",
+        logoText: "STORE LOGO",
+        bgColor: theme.bg,
         menuColor: theme.text,
         logoColor: theme.accent,
-        menuFont: theme.font,
         logoFont: theme.font,
-        navHeight: templateId === 't1' ? 100 : 80,
-        align: theme.navAlign,
+        menuFont: theme.font,
+        align: theme.navType === "centered" ? "center" : "left",
+        navHeight: theme.navType === "minimal" ? 100 : 80,
         showCart: true, showUser: true, showSearch: true,
-        menuItems: [
-          { label: "INICIO", url: "/" },
-          { label: "PRODUCTOS", url: "/productos" },
-          { label: "NOSOTROS", url: "/nosotros" }
-        ]
+        menuItems: [{ label: "INICIO", url: "/" }, { label: "TIENDA", url: "/productos" }, { label: "INFO", url: "/nosotros" }]
       }
     }],
     styles: { backgroundColor: theme.bg }
   });
 
-  // --- HELPER PARA CREAR FOOTER SEGÚN ESTILO ---
-  const createFooter = (): any => ({
+  const createFooter = () => ({
     elements: [{
       id: uuidv4(),
-      type: "footer-premium",
+      type: "footer-premium" as ComponentType,
       props: {
-        bgColor: theme.isDark ? "#000000" : "#f9fafb",
+        bgColor: isDark ? "#000000" : "#f8fafc",
         textColor: theme.text,
         accentColor: theme.accent,
         footerLogoFont: theme.font,
-        description: "Calidad y confianza en cada entrega.",
-        copyright: `© ${new Date().getFullYear()} Bayup Commerce.`
+        description: "Líderes en comercio electrónico de alto rendimiento.",
+        copyright: `© ${new Date().getFullYear()} BAYUP ELITE STORE.`
       }
     }],
-    styles: { backgroundColor: theme.isDark ? "#000000" : "#f9fafb" }
+    styles: { backgroundColor: isDark ? "#000000" : "#f8fafc" }
   });
 
-  // --- CONSTRUCCIÓN DE LAS 6 PÁGINAS ---
   const schemas: any = {};
 
-  // 1. HOME (Diferente estructura por tema)
+  // --- 1. HOME (PÁGINA PRINCIPAL) ---
   schemas.home = {
-    header: createHeader(),
+    header: createNav(),
     footer: createFooter(),
     body: {
       elements: [
         {
           id: uuidv4(),
+          type: "announcement-bar",
+          props: { content: "ENVIOS GRATIS POR TIEMPO LIMITADO", bgColor: theme.accent, textColor: isDark ? "#000" : "#fff", behavior: "marquee" }
+        },
+        {
+          id: uuidv4(),
           type: "hero-banner",
           props: {
-            title: templateId === 't4' ? "EQUIPO PROFESIONAL" : "ESTILO SIN LÍMITES",
-            subtitle: "La mejor selección de productos comerciales en un solo lugar.",
-            height: templateId === 't2' ? 800 : 600,
+            title: theme.name.toUpperCase(),
+            subtitle: "La nueva era del comercio digital comienza aquí.",
+            height: theme.heroHeight,
             bgType: "image",
-            imageUrl: templateId === 't4' ? "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?q=80&w=2000" : "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2000",
-            titleVariant: theme.isDark ? "aurora" : "solid",
-            titleAurora1: theme.accent,
+            imageUrl: theme.images.hero,
+            titleVariant: isDark ? "aurora" : "solid",
+            titleSize: 80,
+            titleFont: theme.font,
             primaryBtnBgColor: theme.accent,
+            primaryBtnText: "COMPRAR AHORA",
             primaryBtnBorderRadius: theme.radius
           }
         },
-        templateId === 't2' || templateId === 't4' ? {
-          id: uuidv4(),
-          type: "video",
-          props: { height: 500, title: "Ingeniería en Movimiento" }
-        } : {
+        {
           id: uuidv4(),
           type: "categories-grid",
-          props: { title: "Colecciones", cardStyle: theme.cardStyle, gridGap: 32 }
+          props: { title: "SELECCIÓN ESTRATÉGICA", columns: 3, gridGap: 40, cardStyle: "premium" }
         },
         {
           id: uuidv4(),
           type: "product-grid",
-          props: { title: "Destacados", itemsCount: 4, columns: 4, cardStyle: theme.cardStyle, cardBorderRadius: theme.radius, priceColor: theme.accent }
+          props: { title: "RECIÉN LLEGADOS", itemsCount: 4, columns: theme.gridCols, cardBorderRadius: theme.radius, priceColor: theme.accent, showAddToCart: true }
+        },
+        {
+          id: uuidv4(),
+          type: "video",
+          props: { height: 600, title: "Detrás de Cámaras", videoExternalUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }
+        },
+        {
+            id: uuidv4(),
+            type: "cards",
+            props: { title: "POR QUÉ NOS ELIGEN", columns: 3, cards: [
+                { id: "1", title: "CALIDAD", description: "Materiales premium certificados.", icon: "Shield", iconColor: theme.accent },
+                { id: "2", title: "RAPIDEZ", description: "Entrega en 24h garantizada.", icon: "Zap", iconColor: theme.accent },
+                { id: "3", title: "SOPORTE", description: "Asesoría experta real.", icon: "Bot", iconColor: theme.accent }
+            ]}
         }
-      ].filter(Boolean),
+      ],
       styles: { backgroundColor: theme.bg }
     }
   };
 
-  // 2. COLECCIONES (PDP - Ficha de Producto)
+  // --- 2. COLECCIONES (PDP - PRODUCT DETAIL) ---
   schemas.colecciones = {
-    header: createHeader(),
+    header: createNav(),
     footer: createFooter(),
     body: {
       elements: [
@@ -130,100 +147,47 @@ export const generateTemplateSchema = (templateId: string): Record<PageType, Pag
           type: "product-master-view",
           props: {
             titleFont: theme.font,
-            titleColor: theme.text,
+            titleSize: 48,
             priceColor: theme.accent,
             priceFont: theme.font,
-            galleryEffect: templateId === 't2' ? "grid-reveal" : "zoom-swap",
-            mainImageSize: 100
+            galleryEffect: templateId === "t1" ? "minimal-fade" : "zoom-swap",
+            mainImageSize: 100,
+            badgeText: "LIMITED EDITION"
           }
         },
         {
           id: uuidv4(),
           type: "product-grid",
-          props: { title: "Completa tu estilo", itemsCount: 4, columns: 4, priceColor: theme.accent }
+          props: { title: "COMPLETA TU LOOK", itemsCount: 4, columns: 4, priceColor: theme.accent, cardStyle: "minimal" }
         }
       ],
       styles: { backgroundColor: theme.bg }
     }
   };
 
-  // 3. PRODUCTOS (Catálogo total con filtros)
+  // --- 3. TODOS LOS PRODUCTOS (CATÁLOGO) ---
   schemas.productos = {
-    header: createHeader(),
-    footer: createFooter(),
-    body: {
-      elements: [
-        {
-          id: uuidv4(),
-          type: "announcement-bar",
-          props: { content: "Envíos gratis en compras mayores a $200.000", bgColor: theme.accent, textColor: theme.isDark ? "#000" : "#fff" }
-        },
-        {
-          id: uuidv4(),
-          type: "product-grid",
-          props: { 
-            itemsCount: 16, 
-            columns: templateId === 't1' ? 3 : 4, 
-            showFilters: true, 
-            filterStyle: "premium",
-            cardStyle: theme.cardStyle,
-            priceColor: theme.accent
-          }
-        }
-      ],
-      styles: { backgroundColor: theme.bg }
-    }
-  };
-
-  // 4. NOSOTROS (Página de Marca / Blog)
-  schemas.nosotros = {
-    header: createHeader(),
+    header: createNav(),
     footer: createFooter(),
     body: {
       elements: [
         {
           id: uuidv4(),
           type: "hero-banner",
-          props: { title: "Sobre Nosotros", subtitle: "Nuestra pasión por la excelencia.", height: 400, bgType: "color", bgColor: theme.isDark ? "#111" : "#f3f4f6" }
+          props: { title: "CATÁLOGO ELITE", height: 350, bgType: "color", bgColor: theme.isDark ? "#111" : "#f1f5f9", titleColor: theme.text, titleSize: 50, titleFont: theme.font }
         },
         {
           id: uuidv4(),
-          type: "text",
-          props: { content: "Llevamos años liderando el mercado de productos comerciales con un enfoque en la calidad...", align: "center", color: theme.text, fontSize: 20 }
-        },
-        {
-          id: uuidv4(),
-          type: "cards",
-          props: { columns: 3, cards: [
-            { id: uuidv4(), title: "Garantía", icon: "Shield", iconColor: theme.accent },
-            { id: uuidv4(), title: "Soporte", icon: "MessageCircle", iconColor: theme.accent },
-            { id: uuidv4(), title: "Rapidez", icon: "Zap", iconColor: theme.accent }
-          ]}
-        }
-      ],
-      styles: { backgroundColor: theme.bg }
-    }
-  };
-
-  // 5. LEGAL (Términos y Condiciones)
-  schemas.legal = {
-    header: createHeader(),
-    footer: createFooter(),
-    body: {
-      elements: [
-        {
-          id: uuidv4(),
-          type: "text",
-          props: { content: "AVISO LEGAL Y POLÍTICAS", align: "center", color: theme.text, fontSize: 32, fontFamily: theme.font }
-        },
-        {
-          id: uuidv4(),
-          type: "text",
+          type: "product-grid",
           props: { 
-            content: `1. Datos Identificativos: En cumplimiento con el deber de información...
-            2. Usuarios: El acceso y/o uso de este portal atribuye la condición de USUARIO...
-            3. Uso del Portal: El sitio web proporciona acceso a multitud de informaciones, servicios, programas o datos...`,
-            align: "left", color: theme.isDark ? "#9ca3af" : "#4b5563", fontSize: 14 
+            itemsCount: 16, 
+            columns: theme.gridCols, 
+            showFilters: true, 
+            filterStyle: "premium",
+            filterPlacement: "left",
+            cardBorderRadius: theme.radius,
+            priceColor: theme.accent,
+            showPrice: true
           }
         }
       ],
@@ -231,9 +195,76 @@ export const generateTemplateSchema = (templateId: string): Record<PageType, Pag
     }
   };
 
-  // 6. CHECKOUT (Pasarela de Pago Final)
+  // --- 4. NOSOTROS (BRAND STORY) ---
+  schemas.nosotros = {
+    header: createNav(),
+    footer: createFooter(),
+    body: {
+      elements: [
+        {
+          id: uuidv4(),
+          type: "hero-banner",
+          props: { title: "NUESTRA VISIÓN", subtitle: "Definiendo el futuro de la industria.", height: 500, bgType: "image", imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2000" }
+        },
+        {
+          id: uuidv4(),
+          type: "text",
+          props: { 
+            content: "Nacimos de la necesidad de elevar el estándar. No solo vendemos productos, creamos legados. Cada pieza en nuestro catálogo ha pasado por un filtro riguroso de excelencia.",
+            fontSize: 24, align: "center", color: theme.text, fontFamily: theme.font
+          }
+        },
+        {
+            id: uuidv4(),
+            type: "custom-block",
+            props: { title: "CONTACTO DIRECTO", showSummary: true, themeColor: theme.accent }
+        }
+      ],
+      styles: { backgroundColor: theme.bg }
+    }
+  };
+
+  // --- 5. LEGAL (COMPLIANCE) ---
+  schemas.legal = {
+    header: createNav(),
+    footer: createFooter(),
+    body: {
+      elements: [
+        {
+          id: uuidv4(),
+          type: "text",
+          props: { content: "TÉRMINOS DE SERVICIO Y PRIVACIDAD", fontSize: 40, fontFamily: theme.font, color: theme.text, align: "center" }
+        },
+        {
+          id: uuidv4(),
+          type: "text",
+          props: { 
+            content: `1. ACEPTACIÓN DE TÉRMINOS
+            Al utilizar este sitio web, usted acepta cumplir con estos términos. El acceso a nuestra tienda implica la aceptación de nuestra política de privacidad y protección de datos conforme a la ley vigente.
+
+            2. PROPIEDAD INTELECTUAL
+            Todo el contenido, diseños, logos y fotografías son propiedad exclusiva de la marca. Queda prohibida su reproducción total o parcial sin autorización expresa.
+
+            3. GARANTÍAS Y DEVOLUCIONES
+            Ofrecemos garantía extendida en todos nuestros productos físicos comerciales. Para devoluciones, el producto debe estar en su empaque original...`,
+            fontSize: 14, color: isDark ? "#94a3b8" : "#64748b", align: "left"
+          }
+        }
+      ],
+      styles: { backgroundColor: theme.bg }
+    }
+  };
+
+  // --- 6. CHECKOUT (CONVERSIÓN FINAL) ---
   schemas.checkout = {
-    header: createHeader(),
+    header: {
+      elements: [{
+        id: uuidv4(),
+        type: "navbar",
+        props: { logoText: "CHECKOUT SEGURO", bgColor: theme.bg, menuColor: theme.text, logoColor: theme.accent, showCart: false, showUser: false, showSearch: false, menuItems: [] }
+      }],
+      styles: { backgroundColor: theme.bg }
+    },
     footer: { elements: [], styles: {} },
     body: {
       elements: [
@@ -241,16 +272,17 @@ export const generateTemplateSchema = (templateId: string): Record<PageType, Pag
           id: uuidv4(),
           type: "custom-block",
           props: { 
-            title: "Finalizar mi Compra", 
+            title: "FINALIZAR PEDIDO", 
             themeColor: theme.bg, 
             accentColor: theme.accent, 
             borderRadius: theme.radius,
             showSummary: true,
-            showShipping: true
+            showShipping: true,
+            showPayment: true
           }
         }
       ],
-      styles: { backgroundColor: theme.isDark ? "#000" : "#f8fafc" }
+      styles: { backgroundColor: isDark ? "#000" : "#f8fafc" }
     }
   };
 
