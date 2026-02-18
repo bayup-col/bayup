@@ -35,6 +35,34 @@ import { StudioProvider } from '../../dashboard/pages/studio/context';
 import { Canvas } from '../../dashboard/pages/studio/internal-studio-parts/Canvas';
 import { useCart } from '@/context/cart-context';
 
+const PREVIEW_DATA = {
+    store_name: "Mi Tienda Bayup",
+    owner_id: "preview_owner",
+    categories: [
+        { id: "c1", title: "Novedades" },
+        { id: "c2", title: "Más Vendidos" }
+    ],
+    products: [
+        { 
+            id: "p1", 
+            name: "Producto de Ejemplo Pro", 
+            price: 45000, 
+            image_url: ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800"],
+            collection_id: "c1",
+            variants: [{ stock: 10 }]
+        },
+        { 
+            id: "p2", 
+            name: "Edición Limitada", 
+            price: 89000, 
+            image_url: ["https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800"],
+            collection_id: "c2",
+            variants: [{ stock: 5 }]
+        }
+    ],
+    custom_schema: null
+};
+
 export default function PublicShopPage() {
     return (
         <Suspense fallback={
@@ -134,6 +162,12 @@ function ShopContent() {
 
     useEffect(() => {
         const fetchShop = async () => {
+            if (slug === "preview") {
+                setShopData(PREVIEW_DATA);
+                setLoading(false);
+                return;
+            }
+
             try {
                 const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://bayup-interactive-production.up.railway.app';
                 const res = await fetch(`${apiBase}/public/shop/${slug}?page=${pageKey}`);
