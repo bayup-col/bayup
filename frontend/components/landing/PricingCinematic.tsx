@@ -140,10 +140,20 @@ export const PricingCinematic = () => {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-petroleum/5 rounded-full blur-[180px] -z-10" />
       <div className="container mx-auto px-6 md:px-12 text-center">
         <div className="max-w-4xl mx-auto mb-16 md:mb-24 space-y-6">
-          <h2 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-black italic tracking-tighter uppercase leading-none flex flex-col md:block items-center">
-            <span>ESCALA TU</span>{" "}
-            <span ref={textRef} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} className="dynamic-gradient-text inline-block transition-all duration-[2500ms] ease-[0.16,1,0.3,1] cursor-default" style={{ backgroundImage: `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, #00f2ff 0%, #004d4d 70%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' } as any}>
-              NEGOCIO.
+          <h2 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-black italic tracking-tighter uppercase leading-none flex items-center justify-center gap-4 whitespace-nowrap">
+            <span 
+              ref={textRef} 
+              onMouseMove={handleMouseMove} 
+              onMouseLeave={handleMouseLeave} 
+              className="dynamic-gradient-text inline-block transition-all duration-[2500ms] ease-[0.16,1,0.3,1] cursor-default" 
+              style={{ 
+                backgroundImage: `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, #00f2ff 0%, #004d4d 70%)`, 
+                WebkitBackgroundClip: 'text', 
+                WebkitTextFillColor: 'transparent', 
+                backgroundClip: 'text' 
+              } as any}
+            >
+              ESCALA TU NEGOCIO.
             </span>
           </h2>
           <h3 className="text-sm md:text-3xl font-medium text-gray-500 tracking-tight max-w-3xl mx-auto leading-relaxed px-4">
