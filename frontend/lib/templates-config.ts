@@ -11,44 +11,34 @@ interface ThemeConfig {
   text: string;
   accent: string;
   radius: number;
-  navType: "minimal" | "centered" | "glass" | "solid" | "mega" | "floating";
-  heroHeight: number;
-  gridCols: number;
   isDark: boolean;
-  images: { hero: string };
+  style: "brutalist" | "editorial" | "hype" | "technical" | "retail" | "cyber";
 }
 
-// --- ARQUITECTURA DE DISEÑO DE ALTO IMPACTO ---
 const THEMES: Record<string, ThemeConfig> = {
-  t1: { // URBAN RAW (Inspirado en Mattelsa / Nude Project)
+  t1: { // URBAN RAW (Mattelsa / Nude Project)
     id: "t1", name: "Urban Raw", font: "font-black", bg: "#ffffff", text: "#000000", accent: "#000000", radius: 0,
-    navType: "minimal", heroHeight: 800, gridCols: 2, isDark: false,
-    images: { hero: "https://images.unsplash.com/photo-1529139513055-07f9127e6111?q=80&w=2000" }
+    isDark: false, style: "brutalist"
   },
-  t2: { // EDITORIAL LUXE (Inspirado en Studio F)
-    id: "t2", name: "Editorial Luxe", font: "font-serif", bg: "#fcfcfc", text: "#1a1a1a", accent: "#be123c", radius: 4,
-    navType: "centered", heroHeight: 700, gridCols: 3, isDark: false,
-    images: { hero: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2000" }
+  t2: { // EDITORIAL LUXE (Studio F)
+    id: "t2", name: "Editorial Luxe", font: "font-serif", bg: "#f8f8f8", text: "#1a1a1a", accent: "#be123c", radius: 2,
+    isDark: false, style: "editorial"
   },
-  t3: { // CYBER GADGET (Inspirado en Tech Brands)
-    id: "t3", name: "Cyber Gadget", font: "font-mono", bg: "#020617", text: "#f8fafc", accent: "#00f2ff", radius: 24,
-    navType: "glass", heroHeight: 850, gridCols: 4, isDark: true,
-    images: { hero: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=2000" }
+  t3: { // CYBER GADGET (Tech Pro)
+    id: "t3", name: "Cyber Gadget", font: "font-mono", bg: "#020617", text: "#f8fafc", accent: "#00f2ff", radius: 12,
+    isDark: true, style: "cyber"
   },
-  t4: { // INDUSTRIAL MASTER (Inspirado en Mechanic/Arturo Calle)
+  t4: { // INDUSTRIAL MASTER (Arturo Calle / Mechanic)
     id: "t4", name: "Industrial Master", font: "font-black", bg: "#0c0a09", text: "#e7e5e4", accent: "#f59e0b", radius: 4,
-    navType: "solid", heroHeight: 650, gridCols: 3, isDark: true,
-    images: { hero: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?q=80&w=2000" }
+    isDark: true, style: "technical"
   },
-  t5: { // HYPER RETAIL (Inspirado en El Éxito / Amazon)
-    id: "t5", name: "Hyper Retail", font: "font-sans", bg: "#ffffff", text: "#1e293b", accent: "#2563eb", radius: 12,
-    navType: "mega", heroHeight: 500, gridCols: 5, isDark: false,
-    images: { hero: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2000" }
+  t5: { // HYPER RETAIL (Éxito / Amazon)
+    id: "t5", name: "Hyper Retail", font: "font-sans", bg: "#ffffff", text: "#1e293b", accent: "#2563eb", radius: 8,
+    isDark: false, style: "retail"
   },
-  t6: { // COLLECTOR DREAM (Inspirado en Funko / Concept Stores)
-    id: "t6", name: "Collector Dream", font: "font-sans", bg: "#1e1b4b", text: "#ffffff", accent: "#22d3ee", radius: 40,
-    navType: "floating", heroHeight: 750, gridCols: 3, isDark: true,
-    images: { hero: "https://images.unsplash.com/photo-1566576661368-2410a519808a?q=80&w=2000" }
+  t6: { // HYPE DROP (Nude Project Style)
+    id: "t6", name: "Hype Drop", font: "font-black", bg: "#fafaf9", text: "#1c1917", accent: "#ef4444", radius: 40,
+    isDark: false, style: "hype"
   }
 };
 
@@ -56,105 +46,102 @@ export const generateTemplateSchema = (templateId: string): Record<PageType, Pag
   const theme = THEMES[templateId] || THEMES.t1;
   const isDark = theme.isDark;
 
-  const createNav = () => ({
+  // --- COMPONENTES DE ALTA FIDELIDAD POR ESTILO ---
+  
+  const createNavbar = () => ({
     elements: [{
       id: uuidv4(),
       type: "navbar" as ComponentType,
       props: {
-        logoText: "STORE LOGO",
+        logoText: theme.name.toUpperCase(),
         bgColor: theme.bg,
         menuColor: theme.text,
         logoColor: theme.accent,
         logoFont: theme.font,
         menuFont: theme.font,
-        align: theme.navType === "centered" ? "center" : "left",
-        navHeight: theme.navType === "minimal" ? 100 : 80,
+        navHeight: theme.style === "brutalist" ? 120 : 80,
+        align: theme.style === "editorial" ? "center" : "left",
+        barEffect: theme.style === "cyber" ? "glass" : "none",
         showCart: true, showUser: true, showSearch: true,
-        menuItems: [{ label: "INICIO", url: "/" }, { label: "TIENDA", url: "/productos" }, { label: "INFO", url: "/nosotros" }]
+        menuItems: [
+          { label: "COLECCIONES", url: "/productos" },
+          { label: "NUEVO", url: "/productos" },
+          { label: "MARCA", url: "/nosotros" }
+        ]
       }
     }],
     styles: { backgroundColor: theme.bg }
   });
 
-  const createFooter = () => ({
-    elements: [{
-      id: uuidv4(),
-      type: "footer-premium" as ComponentType,
-      props: {
-        bgColor: isDark ? "#000000" : "#f8fafc",
-        textColor: theme.text,
-        accentColor: theme.accent,
-        footerLogoFont: theme.font,
-        description: "Líderes en comercio electrónico de alto rendimiento.",
-        copyright: `© ${new Date().getFullYear()} BAYUP ELITE STORE.`
-      }
-    }],
-    styles: { backgroundColor: isDark ? "#000000" : "#f8fafc" }
-  });
-
   const schemas: any = {};
 
-  // --- 1. HOME (PÁGINA PRINCIPAL) ---
+  // 1. HOME (DISEÑO DIFERENCIADO SEGÚN MARCA)
   schemas.home = {
-    header: createNav(),
-    footer: createFooter(),
+    header: createNavbar(),
+    footer: { elements: [{ id: uuidv4(), type: "footer-premium", props: { bgColor: isDark ? "#000" : "#f1f1f1", textColor: theme.text, accentColor: theme.accent } }], styles: {} },
     body: {
       elements: [
-        {
-          id: uuidv4(),
-          type: "announcement-bar",
-          props: { content: "ENVIOS GRATIS POR TIEMPO LIMITADO", bgColor: theme.accent, textColor: isDark ? "#000" : "#fff", behavior: "marquee" }
-        },
+        // Hero de Impacto Directo
         {
           id: uuidv4(),
           type: "hero-banner",
           props: {
-            title: theme.name.toUpperCase(),
-            subtitle: "La nueva era del comercio digital comienza aquí.",
-            height: theme.heroHeight,
+            title: theme.style === "brutalist" ? "NEW DROP" : theme.style === "editorial" ? "The Art of Fashion" : "NEXT GEN TECH",
+            subtitle: "Explora la selección exclusiva de esta temporada.",
+            height: theme.style === "cyber" ? 900 : 750,
             bgType: "image",
-            imageUrl: theme.images.hero,
-            titleVariant: isDark ? "aurora" : "solid",
-            titleSize: 80,
+            imageUrl: theme.style === "brutalist" ? "https://images.unsplash.com/photo-1529139513055-07f9127e6111?q=80&w=2000" : 
+                      theme.style === "editorial" ? "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2000" :
+                      "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=2000",
+            titleVariant: theme.style === "cyber" ? "aurora" : "solid",
+            titleSize: 100,
             titleFont: theme.font,
+            primaryBtnText: "VER TODO",
             primaryBtnBgColor: theme.accent,
-            primaryBtnText: "COMPRAR AHORA",
             primaryBtnBorderRadius: theme.radius
           }
         },
+        // Bloque de Categorías con Estilo
         {
           id: uuidv4(),
           type: "categories-grid",
-          props: { title: "SELECCIÓN ESTRATÉGICA", columns: 3, gridGap: 40, cardStyle: "premium" }
+          props: {
+            title: "CATEGORÍAS",
+            columns: theme.style === "retail" ? 4 : 3,
+            cardHeight: theme.style === "brutalist" ? 500 : 350,
+            cardBorderRadius: theme.radius,
+            cardStyle: theme.style === "cyber" ? "glass" : "premium"
+          }
         },
+        // Rejilla de Productos con Identidad
         {
           id: uuidv4(),
           type: "product-grid",
-          props: { title: "RECIÉN LLEGADOS", itemsCount: 4, columns: theme.gridCols, cardBorderRadius: theme.radius, priceColor: theme.accent, showAddToCart: true }
+          props: {
+            title: "BEST SELLERS",
+            columns: theme.style === "retail" ? 5 : theme.style === "brutalist" ? 2 : 4,
+            itemsCount: 8,
+            cardStyle: theme.style === "editorial" ? "minimal" : "premium",
+            cardBorderRadius: theme.radius,
+            priceColor: theme.accent,
+            showAddToCart: theme.style !== "editorial"
+          }
         },
+        // Bloque de Video (Solo en marcas top)
         {
           id: uuidv4(),
           type: "video",
-          props: { height: 600, title: "Detrás de Cámaras", videoExternalUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }
-        },
-        {
-            id: uuidv4(),
-            type: "cards",
-            props: { title: "POR QUÉ NOS ELIGEN", columns: 3, cards: [
-                { id: "1", title: "CALIDAD", description: "Materiales premium certificados.", icon: "Shield", iconColor: theme.accent },
-                { id: "2", title: "RAPIDEZ", description: "Entrega en 24h garantizada.", icon: "Zap", iconColor: theme.accent },
-                { id: "3", title: "SOPORTE", description: "Asesoría experta real.", icon: "Bot", iconColor: theme.accent }
-            ]}
+          props: { height: 600, title: "BRAND MOVIE", videoExternalUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }
         }
       ],
       styles: { backgroundColor: theme.bg }
     }
   };
 
-  // --- 2. COLECCIONES (PDP - PRODUCT DETAIL) ---
+  // 2. COLECCIONES (PDP PROFESIONAL)
   schemas.colecciones = {
-    header: createNav(),
-    footer: createFooter(),
+    header: createNavbar(),
+    footer: schemas.home.footer,
     body: {
       elements: [
         {
@@ -162,47 +149,38 @@ export const generateTemplateSchema = (templateId: string): Record<PageType, Pag
           type: "product-master-view",
           props: {
             titleFont: theme.font,
-            titleSize: 48,
+            titleSize: theme.style === "brutalist" ? 64 : 40,
             priceColor: theme.accent,
-            priceFont: theme.font,
-            galleryEffect: templateId === "t1" ? "minimal-fade" : "zoom-swap",
-            mainImageSize: 100,
-            badgeText: "LIMITED EDITION"
+            galleryEffect: theme.style === "cyber" ? "grid-reveal" : "zoom-swap",
+            badgeText: "EXCLUSIVE",
+            mainImageSize: 100
           }
-        },
-        {
-          id: uuidv4(),
-          type: "product-grid",
-          props: { title: "COMPLETA TU LOOK", itemsCount: 4, columns: 4, priceColor: theme.accent, cardStyle: "minimal" }
         }
       ],
       styles: { backgroundColor: theme.bg }
     }
   };
 
-  // --- 3. TODOS LOS PRODUCTOS (CATÁLOGO) ---
+  // 3. PRODUCTOS (CATÁLOGO ALTA DENSIDAD)
   schemas.productos = {
-    header: createNav(),
-    footer: createFooter(),
+    header: createNavbar(),
+    footer: schemas.home.footer,
     body: {
       elements: [
         {
           id: uuidv4(),
           type: "hero-banner",
-          props: { title: "CATÁLOGO ELITE", height: 350, bgType: "color", bgColor: isDark ? "#111" : "#f1f5f9", titleColor: theme.text, titleSize: 50, titleFont: theme.font }
+          props: { title: "CATÁLOGO", height: 250, bgType: "color", bgColor: theme.accent, titleColor: isDark ? "#000" : "#fff", titleSize: 40 }
         },
         {
           id: uuidv4(),
           type: "product-grid",
           props: { 
-            itemsCount: 16, 
-            columns: theme.gridCols, 
+            columns: theme.style === "retail" ? 5 : 4, 
             showFilters: true, 
             filterStyle: "premium",
-            filterPlacement: "left",
             cardBorderRadius: theme.radius,
-            priceColor: theme.accent,
-            showPrice: true
+            priceColor: theme.accent
           }
         }
       ],
@@ -210,58 +188,48 @@ export const generateTemplateSchema = (templateId: string): Record<PageType, Pag
     }
   };
 
-  // --- 4. NOSOTROS (BRAND STORY) ---
+  // 4. NOSOTROS (BRAND STORY)
   schemas.nosotros = {
-    header: createNav(),
-    footer: createFooter(),
+    header: createNavbar(),
+    footer: schemas.home.footer,
     body: {
       elements: [
         {
           id: uuidv4(),
           type: "hero-banner",
-          props: { title: "NUESTRA VISIÓN", subtitle: "Definiendo el futuro de la industria.", height: 500, bgType: "image", imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2000" }
+          props: { title: "NUESTRA HISTORIA", height: 500, bgType: "image", imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2000" }
         },
         {
           id: uuidv4(),
           type: "text",
           props: { 
-            content: "Nacimos de la necesidad de elevar el estándar. No solo vendemos productos, creamos legados. Cada pieza en nuestro catálogo ha pasado por un filtro riguroso de excelencia.",
+            content: "Somos la definición de excelencia en el mercado comercial. Cada producto es seleccionado por expertos.",
             fontSize: 24, align: "center", color: theme.text, fontFamily: theme.font
           }
-        },
-        {
-            id: uuidv4(),
-            type: "custom-block",
-            props: { title: "CONTACTO DIRECTO", showSummary: true, themeColor: theme.accent }
         }
       ],
       styles: { backgroundColor: theme.bg }
     }
   };
 
-  // --- 5. LEGAL (COMPLIANCE) ---
+  // 5. LEGAL (CORPORATE STYLE)
   schemas.legal = {
-    header: createNav(),
-    footer: createFooter(),
+    header: createNavbar(),
+    footer: schemas.home.footer,
     body: {
       elements: [
         {
           id: uuidv4(),
           type: "text",
-          props: { content: "TÉRMINOS DE SERVICIO Y PRIVACIDAD", fontSize: 40, fontFamily: theme.font, color: theme.text, align: "center" }
+          props: { content: "TÉRMINOS Y CONDICIONES", fontSize: 32, fontFamily: theme.font, color: theme.text, align: "center" }
         },
         {
           id: uuidv4(),
           type: "text",
           props: { 
-            content: `1. ACEPTACIÓN DE TÉRMINOS
-            Al utilizar este sitio web, usted acepta cumplir con estos términos. El acceso a nuestra tienda implica la aceptación de nuestra política de privacidad y protección de datos conforme a la ley vigente.
-
-            2. PROPIEDAD INTELECTUAL
-            Todo el contenido, diseños, logos y fotografías son propiedad exclusiva de la marca. Queda prohibida su reproducción total o parcial sin autorización expresa.
-
-            3. GARANTÍAS Y DEVOLUCIONES
-            Ofrecemos garantía extendida en todos nuestros productos físicos comerciales. Para devoluciones, el producto debe estar en su empaque original...`,
+            content: `1. ACEPTACIÓN: El uso de esta web implica el cumplimiento de las normas.
+            2. CALIDAD: Garantizamos el estado óptimo de todos los repuestos y productos.
+            3. PRIVACIDAD: Sus datos están protegidos bajo protocolos de seguridad Bayup.`,
             fontSize: 14, color: isDark ? "#94a3b8" : "#64748b", align: "left"
           }
         }
@@ -270,16 +238,9 @@ export const generateTemplateSchema = (templateId: string): Record<PageType, Pag
     }
   };
 
-  // --- 6. CHECKOUT (CONVERSIÓN FINAL) ---
+  // 6. CHECKOUT (CONVERSIÓN PURA)
   schemas.checkout = {
-    header: {
-      elements: [{
-        id: uuidv4(),
-        type: "navbar",
-        props: { logoText: "CHECKOUT SEGURO", bgColor: theme.bg, menuColor: theme.text, logoColor: theme.accent, showCart: false, showUser: false, showSearch: false, menuItems: [] }
-      }],
-      styles: { backgroundColor: theme.bg }
-    },
+    header: { elements: [{ id: uuidv4(), type: "navbar", props: { logoText: "PAGO SEGURO", bgColor: theme.bg, showCart: false, showUser: false, showSearch: false, menuItems: [] } }], styles: {} },
     footer: { elements: [], styles: {} },
     body: {
       elements: [
