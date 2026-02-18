@@ -590,6 +590,7 @@ export const DesignerInspector = () => {
                         <div onClick={() => triggerUpload("mainImage")} className="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center cursor-pointer hover:border-blue-400 relative">
                           {element.props.mainImage ? <div className="relative h-20 mx-auto"><img src={element.props.mainImage} className="h-full object-contain" /><button onClick={(e) => { e.stopPropagation(); handleChange("mainImage", null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md border-2 border-white"><X size={10}/></button></div> : <p className="text-[10px] font-bold text-gray-400 uppercase">SUBIR IMAGEN PRINCIPAL</p>}
                         </div>
+                        <FluidSlider label="Escala de Imagen" value={element.props.mainImageSize || 100} min={50} max={150} suffix="%" onChange={(v:number) => handleChange("mainImageSize", v)} />
                         <FluidSlider label="Altura del Bloque" value={element.props.height || 1000} min={400} max={1500} onChange={(v:number) => handleChange("height", v)} />
                       </div>
                     </ControlGroup>

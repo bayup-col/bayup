@@ -770,22 +770,50 @@ export const DraggableCanvasElement = ({
                 (() => {
                   // LÓGICA DINÁMICA PARA VISTA DE PRODUCTO REAL
                   let displayProps = { ...elProps };
+                  let allImages = [displayProps.mainImage];
+
                   if (isPreview && productId && realProducts) {
                     const foundProd = realProducts.find((rp: any) => rp.id === productId || rp.sku === productId);
                     if (foundProd) {
-                      displayProps.mainImage = Array.isArray(foundProd.image_url) ? foundProd.image_url[0] : (foundProd.image_url || foundProd.main_image);
+                      const prodImages = Array.isArray(foundProd.image_url) ? foundProd.image_url : [foundProd.image_url || foundProd.main_image];
+                      allImages = prodImages.filter(Boolean);
+                      displayProps.mainImage = allImages[0];
                       displayProps.title = foundProd.name || foundProd.title;
                       displayProps.price = foundProd.price;
                       displayProps.description = foundProd.description || foundProd.desc || displayProps.description;
                     }
                   }
 
+                  const [selectedImg, setSelectedImg] = React.useState(displayProps.mainImage);
+                  React.useEffect(() => { setSelectedImg(displayProps.mainImage); }, [displayProps.mainImage]);
+
                   return (
                     <div className="w-full grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-24 py-20 px-8 text-left animate-in fade-in duration-1000">
-                      <div className="flex flex-col gap-8">
-                        <div className="w-full aspect-[4/5] bg-gray-50 overflow-hidden shadow-2xl relative rounded-[3rem] border border-gray-100">
-                          <img src={displayProps.mainImage} className="w-full h-full object-cover" />
+                      <div className="flex flex-col gap-8 items-center">
+                        <div 
+                          className="w-full aspect-[4/5] bg-gray-50 overflow-hidden shadow-2xl relative rounded-[3rem] border border-gray-100 transition-all duration-500"
+                          style={{ transform: `scale(${(elProps.mainImageSize || 100) / 100})` }}
+                        >
+                          <img src={selectedImg} className="w-full h-full object-cover" />
                         </div>
+                        
+                        {/* MINIATURAS */}
+                        {allImages.length > 1 && (
+                          <div className="flex flex-wrap gap-4 justify-center mt-4">
+                            {allImages.map((img, idx) => (
+                              <button 
+                                key={idx} 
+                                onClick={() => setSelectedImg(img)}
+                                className={cn(
+                                  "w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all",
+                                  selectedImg === img ? "border-blue-500 scale-110 shadow-lg" : "border-transparent opacity-60 hover:opacity-100"
+                                )}
+                              >
+                                <img src={img} className="w-full h-full object-cover" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="flex flex-col gap-12 py-6">
                         <div className="flex flex-col gap-8 w-full">
