@@ -14,8 +14,16 @@ export const PageLoader = ({ onComplete }: { onComplete: () => void }) => {
       setShowBar(true);
     }, 1000);
 
-    return () => clearTimeout(barTimer);
-  }, []);
+    // SEGURIDAD: Timeout de emergencia para no quedar colgado (5 segundos)
+    const safetyTimer = setTimeout(() => {
+        onComplete();
+    }, 5000);
+
+    return () => {
+        clearTimeout(barTimer);
+        clearTimeout(safetyTimer);
+    };
+  }, [onComplete]);
 
   useEffect(() => {
     if (!showBar) return;

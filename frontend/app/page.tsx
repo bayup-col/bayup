@@ -35,15 +35,15 @@ export default function HomePage() {
   const { scrollY } = useScroll();
   const [hidden, setHidden] = useState(false);
   const [isAtTop, setIsAtTop] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Cambiado a false por defecto para evitar bloqueos
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
 
   useEffect(() => {
-    // Verificar en el cliente si ya se cargó en esta sesión
+    // Solo mostrar el loader si no se ha inicializado en esta sesión
     const isInitialized = sessionStorage.getItem("bayup_initialized");
-    if (isInitialized) {
-      setIsLoading(false);
+    if (!isInitialized) {
+      setIsLoading(true);
     }
   }, []);
 
