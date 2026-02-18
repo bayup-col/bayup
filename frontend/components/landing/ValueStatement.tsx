@@ -47,7 +47,7 @@ export const ValueStatement = () => {
         
         <div className="max-w-6xl mx-auto space-y-12 md:space-y-32 text-center">
           <div className="flex flex-col items-center gap-6">
-            <h2 className="text-3xl md:text-7xl font-black text-black tracking-tighter leading-[0.9] italic uppercase drop-shadow-xl flex flex-col items-center px-4">
+            <h2 className="text-3xl md:text-7xl font-black text-black tracking-tighter leading-[0.9] italic drop-shadow-xl flex flex-col items-center px-4">
               <span>La nueva forma</span>
               <span>
                 de vender por <span className="text-transparent bg-clip-text bg-gradient-to-r from-petroleum via-cyan to-petroleum drop-shadow-[0_0_10px_rgba(0,242,255,0.3)]">internet</span>
