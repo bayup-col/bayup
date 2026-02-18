@@ -170,13 +170,35 @@ function ShopContent() {
 
             try {
                 const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://bayup-interactive-production.up.railway.app';
+                
+                // Intentar obtener los datos de la tienda y el diseño personalizado
+                // Primero obtenemos la info base de la tienda (productos, nombre, etc.)
                 const res = await fetch(`${apiBase}/public/shop/${slug}?page=${pageKey}`);
+                
                 if (res.ok) {
                     const data = await res.json();
+                    
+                    // Si la API no devuelve custom_schema directamente, intentamos buscarlo 
+                    // en el endpoint específico de páginas del studio
+                    if (!data.custom_schema) {
+                        try {
+                            const pageRes = await fetch(`${apiBase}/public/shop-pages/${data.owner_id}/${pageKey}`);
+                            if (pageRes.ok) {
+                                const pageData = await pageRes.json();
+                                if (pageData && pageData.schema_data) {
+                                    data.custom_schema = pageData.schema_data;
+                                }
+                            }
+                        } catch (e) {
+                            console.warn("No custom schema found for this page, using default layout.");
+                        }
+                    }
+
                     setShopData(data);
                 }
             } catch (error) {
                 console.error("Failed to fetch shop", error);
+                if (slug === "preview") setShopData(PREVIEW_DATA);
             } finally {
                 setLoading(false);
             }
