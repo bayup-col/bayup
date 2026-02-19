@@ -288,35 +288,39 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const fetchSavedPage = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
       const templateId = searchParams.get("id");
+      const token = localStorage.getItem("token");
       const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-      try {
-        // --- CARGA DE PLANTILLAS LOCALES PARA TODOS (CLIENTES Y ADMINS) ---
-        if (templateId && templateId.startsWith('tpl-')) {
-          console.log("Cargando Plantilla Local:", templateId);
-          const idToFolder: Record<string, string> = {
-            'tpl-comp': 'computadora', 'tpl-hogar': 'Hogar', 'tpl-joyeria': 'Joyeria',
-            'tpl-jugueteria': 'Jugueteria', 'tpl-lenceria': 'lenceria', 'tpl-maquillaje': 'Maquillaje',
-            'tpl-papeleria': 'Papeleria', 'tpl-pocket': 'pocket', 'tpl-ropa-elegante': 'Ropa elegante',
-            'tpl-tecno': 'Tecnologia', 'tpl-tenis': 'Tenis', 'tpl-zapatos': 'Zapatos'
-          };
-          
-          const folder = idToFolder[templateId];
-          if (folder) {
+      // 1. PRIORIDAD MÁXIMA: Si elegimos una plantilla de la galería, FORZAMOS su carga
+      if (templateId && templateId.startsWith('tpl-')) {
+        console.log("🚀 STUDIO: Forzando carga de plantilla maestra:", templateId);
+        const idToFolder: Record<string, string> = {
+          'tpl-comp': 'computadora', 'tpl-hogar': 'Hogar', 'tpl-joyeria': 'Joyeria',
+          'tpl-jugueteria': 'Jugueteria', 'tpl-lenceria': 'lenceria', 'tpl-maquillaje': 'Maquillaje',
+          'tpl-papeleria': 'Papeleria', 'tpl-pocket': 'pocket', 'tpl-ropa-elegante': 'Ropa elegante',
+          'tpl-tecno': 'Tecnologia', 'tpl-tenis': 'Tenis', 'tpl-zapatos': 'Zapatos'
+        };
+        
+        const folder = idToFolder[templateId];
+        if (folder) {
+          try {
             const res = await fetch(`/templates/custom-html/${folder}/architecture.json`);
             if (res.ok) {
               const schema = await res.json();
-              setPagesData(prev => ({ ...prev, [pageKey]: schema }));
+              // Limpiamos todo y ponemos la plantilla
+              setPagesData({ [pageKey]: schema });
+              console.log("✅ STUDIO: Plantilla inyectada correctamente.");
               return; 
             }
-          }
+          } catch (e) { console.error("❌ Error cargando JSON local:", e); }
         }
+      }
 
-        // MODO EDITOR MAESTRO: Solo si es super-admin y no es una tpl local
+      if (!token) return;
+
+      try {
+        // MODO EDITOR MAESTRO (Super Admin Cloud)
         if (templateId && window.location.pathname.includes('super-admin')) {
           const res = await fetch(`${apiBase}/super-admin/web-templates`, {
             headers: { 'Authorization': `Bearer ${token}` }

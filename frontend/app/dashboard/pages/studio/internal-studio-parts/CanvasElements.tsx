@@ -119,10 +119,17 @@ export const DraggableCanvasElement = ({
       ref={setNodeRef} 
       style={style} 
       {...(isPreview ? {} : { ...listeners, ...attributes })} 
-      onClick={(e) => { if (isPreview) return; e.stopPropagation(); selectElement(el.id); setActiveSection(section); }} 
+      onClick={(e) => { 
+        if (isPreview) return; 
+        e.preventDefault();
+        e.stopPropagation(); 
+        console.log("Seleccionando elemento:", el.id);
+        selectElement(el.id); 
+        setActiveSection(section); 
+      }} 
       className={cn(
-        "relative group transition-all", 
-        !isPreview && (selectedElementId === el.id ? "ring-2 ring-blue-500 rounded-lg shadow-xl z-[400]" : "hover:ring-1 hover:ring-blue-300 rounded-lg")
+        "relative group transition-all duration-300", 
+        !isPreview && (selectedElementId === el.id ? "ring-4 ring-blue-500 rounded-2xl shadow-2xl z-[400] scale-[1.01]" : "hover:ring-2 hover:ring-blue-300 rounded-xl")
       )}
     >
       
@@ -143,7 +150,26 @@ export const DraggableCanvasElement = ({
         </div>
       )}
 
-      <div className={cn(!isPreview && "p-2", (el.type === "announcement-bar" || el.type === "navbar") && "p-0")}>
+      <div className={cn(!isPreview && "p-2", (el.type === "announcement-bar") && "p-0")}>
+        {/* SOPORTE PARA BLOQUES DE ALTA FIDELIDAD DE PLANTILLAS */}
+        {el.type === "navbar" && (
+          <div className="pointer-events-none">
+            <SmartNavbar props={elProps} />
+          </div>
+        )}
+
+        {el.type === "hero-banner" && (
+          <div className="pointer-events-none">
+            <SmartHero props={elProps} />
+          </div>
+        )}
+
+        {el.type === "product-grid" && (
+          <div className="pointer-events-none">
+            <SmartProductGrid props={elProps} />
+          </div>
+        )}
+
         {el.type === "announcement-bar" && (
           <div className="w-full overflow-hidden flex items-center" style={{ height: `${elProps.height || 40}px`, backgroundColor: elProps.bgColor || "#004d4d" }}>
             <div className="w-full h-full flex items-center font-black uppercase" style={{ color: elProps.textColor || "#ffffff", fontSize: `${elProps.fontSize || 11}px` }}>
