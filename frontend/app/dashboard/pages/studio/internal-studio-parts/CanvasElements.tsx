@@ -9,6 +9,7 @@ import { renderButton, renderTextWithTheme } from "./VisualEngine";
 import { useStudio } from "../context";
 import { useCart } from "@/context/cart-context";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { SmartNavbar, SmartHero, SmartProductGrid } from "@/components/dashboard/studio/HighFidelityBlocks";
 
 // --- HELPERS ---
 export const AnnouncementSlides = ({ messages, animationType = "slide", speed = 20 }: any) => {
