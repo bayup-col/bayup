@@ -118,6 +118,13 @@ function ReportsContent() {
     const [orders, setOrders] = useState<any[]>([]);
     const [expenses, setExpenses] = useState<any[]>([]);
 
+    const [selectedMetric, setSelectedMetric] = useState<any>(null);
+    const [showInfoModal, setShowInfoModal] = useState(false);
+    const [isMapOpen, setIsMapOpen] = useState(false);
+    const [isGoalsModalOpen, setIsGoalsModalOpen] = useState(false);
+    const [selectedAdvisor, setSelectedAdvisor] = useState<any>(null);
+    const [searchTerm, setSearchTerm] = useState("");
+
     const fetchData = useCallback(async () => {
         if (!token) return;
         setLoading(true);
