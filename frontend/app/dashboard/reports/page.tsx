@@ -137,6 +137,10 @@ function ReportsContent() {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
+    };
+
     const stats = useMemo(() => {
         const totalRevenue = orders.reduce((acc, o) => acc + (o.total_price || 0), 0);
         const totalExpenses = expenses.reduce((acc, e) => acc + (e.amount || 0), 0);
