@@ -3,7 +3,7 @@
 import React from 'react';
 import { 
   ShoppingBag, User, Search, Terminal, Grid, ArrowRight, PlayCircle, 
-  ChevronLeft, ChevronRight, ShoppingCart, Verified, Truck, SupportAgent,
+  ChevronLeft, ChevronRight, ShoppingCart, Verified, Truck, Headset,
   Facebook, Instagram, Twitter, Languages, Mail, Share2, ShieldCheck
 } from 'lucide-react';
 
@@ -159,7 +159,7 @@ export const SmartTrustBanner = () => {
           <p className="text-slate-500 text-sm leading-relaxed">Entrega asegurada en 24-48 horas con embalaje reforzado.</p>
         </div>
         <div className="flex flex-col items-center group">
-          <div className="bg-blue-50 p-6 rounded-[2rem] text-blue-600 mb-6 group-hover:scale-110 transition-transform"><User size={40}/></div>
+          <div className="bg-blue-50 p-6 rounded-[2rem] text-blue-600 mb-6 group-hover:scale-110 transition-transform"><Headset size={40}/></div>
           <h5 className="text-xl font-black italic tracking-tight mb-2 uppercase">Soporte Experto</h5>
           <p className="text-slate-500 text-sm leading-relaxed">Asesoramiento técnico personalizado por especialistas en hardware.</p>
         </div>
