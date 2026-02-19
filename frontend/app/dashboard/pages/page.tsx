@@ -11,20 +11,6 @@ import {
   Home,
   Layout,
   ChevronRight,
-  Settings2
-} from 'lucide-react';
-import Link from 'next/link';
-
-import { 
-  FileText, 
-  Plus, 
-  ExternalLink, 
-  Edit3, 
-  Trash2, 
-  Globe, 
-  Home,
-  Layout,
-  ChevronRight,
   Settings2,
   Sparkles,
   ArrowRight,
@@ -172,22 +158,9 @@ export default function PagesDashboard() {
                                 </div>
                             </div>
                         </motion.div>
-                    )
-                ))}
+                    ))
+                )}
             </div>
-
-            <style jsx global>{`
-                @keyframes aurora-border {
-                    from { transform: translate(-50%, -50%) rotate(0deg); }
-                    to { transform: translate(-50%, -50%) rotate(360deg); }
-                }
-                .animate-aurora {
-                    animation: aurora-border 4s linear infinite;
-                }
-            `}</style>
-        </div>
-    );
-}
 
             <style jsx global>{`
                 @keyframes aurora-border {
