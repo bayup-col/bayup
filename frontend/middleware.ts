@@ -14,11 +14,11 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
-  const isProdKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.startsWith('pk_live_');
-  
-  // Si no estamos en producción real con llaves reales, dejamos pasar todo
-  // Esto evita que Clerk bloquee la web por errores de configuración
-  if (!isProdKey) return;
+  // Ignorar Clerk durante el build o si no hay llaves reales
+  const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  if (!pk || pk.includes('dummy') || !pk.startsWith('pk_live_')) {
+    return;
+  }
 
   if (isPublicRoute(request)) return;
 

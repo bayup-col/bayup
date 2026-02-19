@@ -22,32 +22,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  
-  // VALIDACIÓN CRÍTICA: Solo activar Clerk si tenemos una llave de producción real.
-  // Si la llave empieza por 'pk_test', la ignoramos en la web real para evitar bloqueos de CORS/Rate Limit.
-  const isProdKey = publishableKey?.startsWith('pk_live_');
-  const shouldLoadClerk = publishableKey && isProdKey;
-
-  const content = (
-    <AuthProvider>
-      <ThemeProvider>
-        <ToastProvider>
-          <CartProvider>
-            {children}
-          </CartProvider>
-        </ToastProvider>
-      </ThemeProvider>
-    </AuthProvider>
-  );
-
-  if (!shouldLoadClerk) {
-    return content;
-  }
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "pk_test_YnVpbGRfdGltZV9rZXlfZm9yX2JheXVwX3ByZXZlbnRfZXJyb3IK";
 
   return (
     <ClerkProvider localization={esES} publishableKey={publishableKey}>
-      {content}
+      <AuthProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <CartProvider>
+              {children}
+            </CartProvider>
+          </ToastProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </ClerkProvider>
   );
 }
