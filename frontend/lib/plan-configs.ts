@@ -22,7 +22,9 @@ export const BASICO_MODULES: ModuleId[] = [
     'settings_general', 
     'settings_plan', 
     'reports', 
-    'reports_gen'
+    'reports_gen',
+    'templates',
+    'pages'
 ];
 
 export const PRO_MODULES: ModuleId[] = [
