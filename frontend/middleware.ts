@@ -14,9 +14,12 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)) {
-    await auth.protect();
-  }
+  // 1. Si es una ruta pública, no hacer nada
+  if (isPublicRoute(request)) return;
+
+  // 2. Proteger la ruta (esto manejará la redirección al login automáticamente)
+  // En Clerk v6, protect() es el estándar para asegurar rutas privadas
+  await auth.protect();
 });
 
 export const config = {
