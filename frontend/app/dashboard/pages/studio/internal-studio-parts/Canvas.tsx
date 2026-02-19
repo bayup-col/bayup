@@ -106,8 +106,17 @@ export const Canvas = ({
   onOpenLogin?: (() => void) | null
 }) => {
   const studio = useStudio();
+  const { isLoading, activeSection, setActiveSection, selectElement, selectedElementId, removeElement, viewport, pageKey } = studio;
   const pageData = overrideData || studio.pageData;
-  const { activeSection, setActiveSection, selectElement, selectedElementId, removeElement, viewport, pageKey } = studio;
+
+  if (isLoading && !isPreview) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-gray-100 space-y-6">
+        <div className="h-12 w-12 border-4 border-[#00f2ff] border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.3em]">Materializando Diseño Smart...</p>
+      </div>
+    );
+  }
   
   const [realCategories, setRealCategories] = React.useState<any[]>(initialCategories || []);
   const [realProducts, setRealProducts] = React.useState<any[]>(initialProducts || []);
