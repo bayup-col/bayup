@@ -150,15 +150,26 @@ export const DashboardHeader = ({
 
                         <div className="h-6 w-px bg-[#004d4d]/10"></div>
 
-                        <UserButton 
-                            afterSignOutUrl="/login"
-                            appearance={{
-                                elements: {
-                                    userButtonAvatarBox: "h-10 w-10 rounded-2xl border border-white/10 shadow-lg",
-                                    userButtonTrigger: "focus:shadow-none focus:outline-none"
-                                }
-                            }}
-                        />
+                        <div className="flex items-center gap-2">
+                            <UserButton 
+                                afterSignOutUrl="/login"
+                                appearance={{
+                                    elements: {
+                                        userButtonAvatarBox: "h-10 w-10 rounded-2xl border border-white/10 shadow-lg hover:scale-105 transition-transform",
+                                        userButtonTrigger: "focus:shadow-none focus:outline-none"
+                                    }
+                                }}
+                            />
+                            
+                            {/* Botón de Logout de respaldo si Clerk no muestra el avatar */}
+                            <button 
+                                onClick={logout}
+                                className="p-2 text-[#004d4d]/40 hover:text-rose-500 transition-colors lg:hidden" 
+                                title="Cerrar Sesión"
+                            >
+                                <LogOut size={18} />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
