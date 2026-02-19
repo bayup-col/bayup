@@ -1,7 +1,35 @@
 {
   "id": "tpl-tenis",
   "name": "Urban Sneakers",
-  "header": { "elements": [{"type": "navbar", "props": {"logoText": "URBAN SNEAKERS", "logoColor": "#000000"}}], "styles": {} },
-  "body": { "elements": [{"type": "hero-banner", "props": {"title": "Urban Culture", "primaryBtnBgColor": "#000000"}}] },
-  "footer": { "elements": [{"type": "footer-premium", "props": {"bgColor": "#000000"}}], "styles": {} }
+  "header": {
+    "elements": [{ "id": "t-nav", "type": "navbar", "props": { "logoText": "Urban Sneakers", "logoColor": "#000000" } }],
+    "styles": {}
+  },
+  "body": {
+    "elements": [
+      {
+        "id": "t-hero",
+        "type": "hero-banner",
+        "props": {
+          "badge": "Streetwear Culture",
+          "title": "Domina la Calle",
+          "subtitle": "La mejor selección de sneakers y ediciones limitadas.",
+          "imageUrl": "https://images.unsplash.com/photo-1552346154-21d32810aba3?q=80&w=2000",
+          "primaryBtnText": "Ver Drops"
+        }
+      },
+      { "id": "t-cats", "type": "categories-grid", "props": { "title": "Marcas Top", "items": [
+        { "label": "Basketball", "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800" },
+        { "label": "Running", "image": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?q=80&w=800" },
+        { "label": "Lifestyle", "image": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=800" },
+        { "label": "Ediciones", "image": "https://images.unsplash.com/photo-1584735175315-9d5df23860e6?q=80&w=800" }
+      ]}},
+      { "id": "t-products", "type": "product-grid", "props": { "title": "Últimos Lanzamientos" } }
+    ],
+    "styles": {}
+  },
+  "footer": {
+    "elements": [{ "id": "t-footer", "type": "footer-premium", "props": { "logoText": "Urban Sneakers", "description": "Tu destino número uno para la cultura sneaker y moda urbana." } }],
+    "styles": {}
+  }
 }

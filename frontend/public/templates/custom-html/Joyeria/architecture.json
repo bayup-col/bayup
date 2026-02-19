@@ -1,7 +1,35 @@
 {
   "id": "tpl-joyeria",
   "name": "Jewelry Luxe",
-  "header": { "elements": [{"type": "navbar", "props": {"logoText": "JEWELRY LUXE", "logoColor": "#b45309"}}], "styles": {} },
-  "body": { "elements": [{"type": "hero-banner", "props": {"title": "Brillo Eterno", "primaryBtnBgColor": "#b45309"}}] },
-  "footer": { "elements": [{"type": "footer-premium", "props": {"bgColor": "#451a03"}}], "styles": {} }
+  "header": {
+    "elements": [{ "id": "j-nav", "type": "navbar", "props": { "logoText": "Jewelry Luxe", "logoColor": "#b45309" } }],
+    "styles": {}
+  },
+  "body": {
+    "elements": [
+      {
+        "id": "j-hero",
+        "type": "hero-banner",
+        "props": {
+          "badge": "Elegancia Atemporal",
+          "title": "Brillo que Cautiva",
+          "subtitle": "Descubre nuestra colección de alta joyería artesanal.",
+          "imageUrl": "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=2000",
+          "primaryBtnText": "Ver Catálogo"
+        }
+      },
+      { "id": "j-cats", "type": "categories-grid", "props": { "title": "Nuestras Colecciones", "items": [
+        { "label": "Anillos", "image": "https://images.unsplash.com/photo-1605100804763-247f67b3f41e?q=80&w=800" },
+        { "label": "Collares", "image": "https://images.unsplash.com/photo-1599643478123-242f153782a1?q=80&w=800" },
+        { "label": "Relojes", "image": "https://images.unsplash.com/photo-1524592094714-0f0654e20314?q=80&w=800" },
+        { "label": "Pendientes", "image": "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=800" }
+      ]}},
+      { "id": "j-trust", "type": "trust-banner", "props": {} }
+    ],
+    "styles": {}
+  },
+  "footer": {
+    "elements": [{ "id": "j-footer", "type": "footer-premium", "props": { "logoText": "Jewelry Luxe", "description": "Joyas exclusivas diseñadas para momentos inolvidables." } }],
+    "styles": {}
+  }
 }

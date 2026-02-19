@@ -1,7 +1,61 @@
 {
   "id": "tpl-hogar",
   "name": "Home & Comfort",
-  "header": { "elements": [{"type": "navbar", "props": {"logoText": "HOGAR & ESTILO", "logoColor": "#1754cf"}}], "styles": {} },
-  "body": { "elements": [{"type": "hero-banner", "props": {"title": "Transforma tu Hogar", "primaryBtnBgColor": "#1754cf"}}, {"type": "categories-grid", "props": {"title": "Inspiración"}}] },
-  "footer": { "elements": [{"type": "footer-premium", "props": {"bgColor": "#1e293b"}}], "styles": {} }
+  "header": {
+    "elements": [
+      {
+        "id": "hogar-nav",
+        "type": "navbar",
+        "props": {
+          "logoText": "Hogar & Estilo",
+          "logoColor": "#1754cf"
+        }
+      }
+    ],
+    "styles": {}
+  },
+  "body": {
+    "elements": [
+      {
+        "id": "hogar-hero",
+        "type": "hero-banner",
+        "props": {
+          "badge": "Colección Exclusive 2024",
+          "title": "Transforma tu Hogar",
+          "subtitle": "Descubre la elegancia en cada detalle de nuestra colección exclusiva. Mobiliario de alta gama diseñado para espacios sofisticados.",
+          "imageUrl": "https://lh3.googleusercontent.com/aida-public/AB6AXuBw-qbP2KVdjRQfYly2rR2Xxp0D8kClN5CKQMitTNBzER81-_KejIqph8fM6DGCXeoGgFvojHPUIXasBBsPE6v1sUDlo8nJ4Ysl5k1llvwTOmCfXqynlJPWF3LIldo1P8flRFWN19Mwx_5B7KZyoePu4eQ8TMIFm77CJa39EQicEQWTcYHzZEAKH_9wjQbM_I_8X5n8o-ijuJCTNYHuQ4D3FaanrmMFxR9mY5xd0Q7YDXuKn-W4I4lh0Xc6Do9Uiq-RBdfIn0Q5rs4",
+          "primaryBtnText": "Ver Colección"
+        }
+      },
+      {
+        "id": "hogar-cats",
+        "type": "categories-grid",
+        "props": {
+          "title": "Categorías Principales",
+          "items": [
+            { "label": "Muebles", "sub": "Descubre piezas únicas", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuDbfrCm7kxKytNXQx-bQEnj9C04ZvPSlxmlVdwLQUDbhrXFXbLqUB0rWnxbb-W2GFklWwDzSYw9p9wW-yQKL1xFA0-m7Cm7RSjam5DSRQQA3YOJ-vUtZNcNdHYa5Qw7qFUTOJzVYyXEzH8s6vAx6STxhliYgKOZdSCJ5s8He8Y1fNPAwatfz3lZMgxYDvSiQNHex4NWcZm97hf_byCcZHkr1UtNqLM3Wn2Qq2y_BIB-N2sDf0n_YXo6wFPr_lVcm25qRiXTSwO9YUA" },
+            { "label": "Dormitorios", "sub": "El descanso perfecto", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuAoQEU80MhljgwTg-Je8ZcS4M7ToyJPygsSoXAPnfBEsWtdtDRQJHVaToU7lptUiZYwGFwNiYjOqO8duXWXqEzwSWPt1oWp4brc2SM7N4yvBvCI8958tRxApvY7dyi6eJyxJrRrHBTIpWe7b1GxCcWbaurUNgwVJfF5stZI-mHgcsr6sef_Jq4uz36Nlcrtvk-TTfnyim2OUxn79ovlx8qMa_YoA2w3UIpp_gZQ_I3JCfF6S5ehTIMhl1noNa5FaAO19qE7a9YATQo" },
+            { "label": "Alfombras", "sub": "Texturas que inspiran", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuA9EQX74faFdZ9pZfpDR81cyoQqNcKsCr172PuHoNINt826u7PQLdiUCLw9W-Dwm4R6KpHyD5FhIw5ysHTIzXVVkmwFUMTvFgq_yIUa_FaI7mVWMIq6ledxDWknVymbcX2Ijt84qhF_cwlxcbucGUZIbijVr9-JmIK7Tki817KJ4hVfEG0jzECdSjK5sOfxkgmaVCHc1qF3kTxkHrn18EovCF9A1SGN1CRtSUcGTs5b9utkO-zxwERGndSnnm0zqAjypcTlbMkA7NY" },
+            { "label": "Decoración", "sub": "Detalles con estilo", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuA7URXChWIoFf3hHMscHhfwmHoHbSBt3qetS-sc9Ns8jOnsvZndvXivnKG_8vwf6LQuBJHbY-KeJyzMrHJvIf38r-Y8Wke_azi-B-eqsmW6yFn83n7qQ64bKd3wtUvRf24XtLF9ZX7hGz58YJ08cdaT3JxXePAcsA9bhyyM2Lzg8DI0jImAmpRWFDYnPQlkjId136uI9dxvJXKIiOgoUNUo2-nuov_yp5TyNj4FC-Ml_y4TKoAWhAq3pXD7Oa2_ZgZKtCcxj9glW7I" }
+          ]
+        }
+      },
+      { "id": "hogar-products", "type": "product-grid", "props": { "title": "Productos Destacados" } },
+      { "id": "hogar-trust", "type": "trust-banner", "props": {} }
+    ],
+    "styles": {}
+  },
+  "footer": {
+    "elements": [
+      {
+        "id": "hogar-footer",
+        "type": "footer-premium",
+        "props": {
+          "logoText": "Hogar & Estilo",
+          "description": "Líderes en diseño de interiores y mobiliario premium. Calidad, estilo y durabilidad para tu hogar desde 1995."
+        }
+      }
+    ],
+    "styles": {}
+  }
 }
