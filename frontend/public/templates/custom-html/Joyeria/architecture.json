@@ -2,7 +2,17 @@
   "id": "tpl-joyeria",
   "name": "Jewelry Luxe",
   "header": {
-    "elements": [{ "id": "j-nav", "type": "navbar", "props": { "logoText": "Jewelry Luxe", "logoColor": "#b45309" } }],
+    "elements": [
+      {
+        "id": "j-nav",
+        "type": "navbar",
+        "props": {
+          "logoText": "Joyas de Lujo",
+          "logoColor": "#b45309",
+          "menuItems": ["Tienda", "Colecciones", "Herencia", "Contacto"]
+        }
+      }
+    ],
     "styles": {}
   },
   "body": {
@@ -11,25 +21,61 @@
         "id": "j-hero",
         "type": "hero-banner",
         "props": {
-          "badge": "Elegancia Atemporal",
-          "title": "Brillo que Cautiva",
-          "subtitle": "Descubre nuestra colección de alta joyería artesanal.",
+          "badge": "Exclusividad",
+          "title": "Elegancia Eterna",
+          "subtitle": "Descubra la perfección en cada detalle con nuestra colección exclusiva de alta joyería.",
           "imageUrl": "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=2000",
-          "primaryBtnText": "Ver Catálogo"
+          "primaryBtnText": "Ver Colección"
         }
       },
-      { "id": "j-cats", "type": "categories-grid", "props": { "title": "Nuestras Colecciones", "items": [
-        { "label": "Anillos", "image": "https://images.unsplash.com/photo-1605100804763-247f67b3f41e?q=80&w=800" },
-        { "label": "Collares", "image": "https://images.unsplash.com/photo-1599643478123-242f153782a1?q=80&w=800" },
-        { "label": "Relojes", "image": "https://images.unsplash.com/photo-1524592094714-0f0654e20314?q=80&w=800" },
-        { "label": "Pendientes", "image": "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=800" }
-      ]}},
-      { "id": "j-trust", "type": "trust-banner", "props": {} }
+      {
+        "id": "j-heritage",
+        "type": "text-block-premium",
+        "props": {
+          "title": "Nuestra Herencia",
+          "subtitle": "Maestros artesanos desde 1924",
+          "content": "Cada pieza de Joyas de Lujo es el resultado de un legado centenario de excelencia. Fusionamos técnicas tradicionales con un diseño contemporáneo para crear obras de arte que trascienden el tiempo."
+        }
+      },
+      {
+        "id": "j-novedades",
+        "type": "product-grid",
+        "props": {
+          "title": "Novedades",
+          "products": [
+            { "name": "Anillo de Diamantes 'Solitaire'", "category": "Oro de 18k · 1.5 Quilates", "price": "4.500", "image": "https://images.unsplash.com/photo-1605100804763-247f67b3f41e?q=80&w=800" },
+            { "name": "Brazalete de Oro Blanco 18k", "category": "Edición Limitada · Colección Lumière", "price": "3.200", "image": "https://images.unsplash.com/photo-1599643478123-242f153782a1?q=80&w=800" },
+            { "name": "Pendientes de Zafiro Real", "category": "Alta Joyería · Zafiros de Ceilán", "price": "5.800", "image": "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=800" }
+          ]
+        }
+      },
+      {
+        "id": "j-collections",
+        "type": "categories-grid",
+        "props": {
+          "title": "Descubra Nuestras Colecciones",
+          "items": [
+            { "label": "Anillos de Compromiso", "image": "https://images.unsplash.com/photo-1586822330090-c3828d44dc3e?q=80&w=800" },
+            { "label": "Alta Joyería", "image": "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?q=80&w=800" },
+            { "label": "Relojes de Lujo", "image": "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?q=80&w=800" }
+          ]
+        }
+      }
     ],
     "styles": {}
   },
   "footer": {
-    "elements": [{ "id": "j-footer", "type": "footer-premium", "props": { "logoText": "Jewelry Luxe", "description": "Joyas exclusivas diseñadas para momentos inolvidables." } }],
+    "elements": [
+      {
+        "id": "j-footer",
+        "type": "footer-premium",
+        "props": {
+          "logoText": "Joyas de Lujo",
+          "description": "Redefiniendo el lujo y la elegancia a través de piezas excepcionales y artesanía de clase mundial.",
+          "location": "Calle Serrano 145, 28006, Madrid, España"
+        }
+      }
+    ],
     "styles": {}
   }
 }

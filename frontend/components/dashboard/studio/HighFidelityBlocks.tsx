@@ -229,6 +229,24 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
   );
 };
 
+// 9. HERITAGE / TEXT BLOCK PREMIUM
+export const SmartHeritageBlock = ({ props }: { props: any }) => {
+  return (
+    <section className="py-32 bg-white text-center px-6">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="space-y-2">
+          <h4 className="text-blue-600 font-bold uppercase tracking-[0.3em] text-[10px]">{props.title || 'NUESTRA HERENCIA'}</h4>
+          <h3 className="text-4xl md:text-5xl font-black text-slate-900 italic tracking-tighter">{props.subtitle}</h3>
+        </div>
+        <p className="text-xl text-slate-500 font-light leading-relaxed max-w-2xl mx-auto italic">
+          "{props.content}"
+        </p>
+        <div className="h-px w-24 bg-slate-200 mx-auto mt-12"></div>
+      </div>
+    </section>
+  );
+};
+
 // 8. FOOTER
 export const SmartFooter = ({ props }: { props: any }) => {
   return (
