@@ -24,17 +24,26 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
+  const content = (
+    <AuthProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <CartProvider>
+            {children}
+          </CartProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </AuthProvider>
+  );
+
+  // Si no hay llave de Clerk, renderizamos sin Clerk para no romper la web visualmente
+  if (!publishableKey) {
+    return content;
+  }
+
   return (
     <ClerkProvider localization={esES} publishableKey={publishableKey}>
-      <AuthProvider>
-        <ThemeProvider>
-          <ToastProvider>
-            <CartProvider>
-              {children}
-            </CartProvider>
-          </ToastProvider>
-        </ThemeProvider>
-      </AuthProvider>
+      {content}
     </ClerkProvider>
   );
 }
