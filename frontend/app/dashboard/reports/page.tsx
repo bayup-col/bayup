@@ -131,6 +131,16 @@ function ReportsContent() {
     const [isSyncing, setIsSyncing] = useState(false);
     const [memberToLiquidate, setMemberToLiquidate] = useState<any>(null);
 
+    const PERIOD_OPTIONS = [
+        "Hoy",
+        "Ayer",
+        "Esta semana",
+        "Este mes",
+        "Mes pasado",
+        "Últimos 3 meses",
+        "Este año"
+    ];
+
     useEffect(() => {
         const saved = localStorage.getItem('bayup_payroll_data');
         if (saved) setPayrollStaff(JSON.parse(saved));
