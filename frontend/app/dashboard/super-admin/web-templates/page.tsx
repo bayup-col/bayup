@@ -216,16 +216,20 @@ export default function WebTemplatesManager() {
                                     <img src={tpl.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                                     <div className="absolute inset-0 bg-[#004d4d]/0 group-hover:bg-[#004d4d]/10 transition-colors duration-500" />
                                     
-                                    <a 
-                                        href={`/templates/custom-html/${tpl.folderPath}/index.html`} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                                    >
-                                        <button className="px-8 py-3 bg-[#00f2ff] text-[#004d4d] rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl flex items-center gap-2 hover:scale-105 transition-all pointer-events-none">
-                                            <Eye size={14} /> Ver Plantilla Real
-                                        </button>
-                                    </a>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                                        <a 
+                                            href={`/templates/custom-html/${tpl.folderPath}/code.html`} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="w-48 py-3 bg-white text-[#004d4d] rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl flex items-center justify-center gap-2 hover:scale-105 transition-all"
+                                        >
+                                            <Eye size={14} /> Ver HTML Puro
+                                        </a>
+                                        
+                                        <Link href={`/dashboard/super-admin/web-templates/editor?id=${tpl.id}&source=smart`} className="w-48 py-3 bg-[#00f2ff] text-[#004d4d] rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl flex items-center justify-center gap-2 hover:scale-105 transition-all">
+                                            <Sparkles size={14} /> Smart Studio
+                                        </Link>
+                                    </div>
                                 </div>
 
                                 <div className="p-8 space-y-4">
@@ -235,8 +239,20 @@ export default function WebTemplatesManager() {
                                     </div>
                                     <p className="text-xs font-medium text-gray-400 line-clamp-2">{tpl.description}</p>
                                     
-                                    <div className="pt-4 flex items-center gap-2 text-[9px] font-black text-gray-300 uppercase tracking-widest">
-                                        <Layout size={12} /> Carpeta: {tpl.folderPath}
+                                    <div className="pt-6 border-t border-gray-50 grid grid-cols-2 gap-3">
+                                        <Link 
+                                            href={`/dashboard/super-admin/web-templates/editor?id=${tpl.id}&source=smart`}
+                                            className="py-3 bg-gray-900 text-white rounded-xl font-black text-[8px] uppercase tracking-widest hover:bg-[#004d4d] transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Edit3 size={12} /> Editar Smart
+                                        </Link>
+                                        <a 
+                                            href={`/templates/custom-html/${tpl.folderPath}/code.html`} 
+                                            target="_blank" 
+                                            className="py-3 bg-gray-100 text-gray-600 rounded-xl font-black text-[8px] uppercase tracking-widest hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Monitor size={12} /> Ver HTML
+                                        </a>
                                     </div>
                                 </div>
                             </motion.div>
