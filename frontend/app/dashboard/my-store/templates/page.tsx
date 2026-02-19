@@ -68,7 +68,7 @@ export default function ClientTemplatesGallery() {
 
             if (res.ok) {
                 showToast(`¡Diseño "${template.name}" instalado con éxito!`, "success");
-                window.location.href = "/dashboard/pages/editor?page=home";
+                window.location.href = "/dashboard/pages/studio?page=home";
             } else {
                 throw new Error("Error al clonar plantilla");
             }
