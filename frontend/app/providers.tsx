@@ -22,11 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "";
-
-  if (!publishableKey && process.env.NODE_ENV === 'production') {
-    console.warn("ADVERTENCIA: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY no está definida.");
-  }
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
   return (
     <ClerkProvider localization={esES} publishableKey={publishableKey}>
