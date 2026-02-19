@@ -295,10 +295,9 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
       try {
-        // --- NUEVA LÓGICA: CARGA DE PLANTILLAS LOCALES (CUSTOM-HTML) ---
+        // --- CARGA DE PLANTILLAS LOCALES PARA TODOS (CLIENTES Y ADMINS) ---
         if (templateId && templateId.startsWith('tpl-')) {
           console.log("Cargando Plantilla Local:", templateId);
-          // Mapeamos ID a carpeta
           const idToFolder: Record<string, string> = {
             'tpl-comp': 'computadora', 'tpl-hogar': 'Hogar', 'tpl-joyeria': 'Joyeria',
             'tpl-jugueteria': 'Jugueteria', 'tpl-lenceria': 'lenceria', 'tpl-maquillaje': 'Maquillaje',
@@ -312,12 +311,12 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
             if (res.ok) {
               const schema = await res.json();
               setPagesData(prev => ({ ...prev, [pageKey]: schema }));
-              return; // Salimos para no cargar nada más
+              return; 
             }
           }
         }
 
-        // MODO EDITOR MAESTRO: Cargamos desde la tabla de arquitecturas globales
+        // MODO EDITOR MAESTRO: Solo si es super-admin y no es una tpl local
         if (templateId && window.location.pathname.includes('super-admin')) {
           const res = await fetch(`${apiBase}/super-admin/web-templates`, {
             headers: { 'Authorization': `Bearer ${token}` }
