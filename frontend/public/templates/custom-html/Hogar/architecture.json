@@ -8,7 +8,8 @@
         "type": "navbar",
         "props": {
           "logoText": "Hogar & Estilo",
-          "logoColor": "#1754cf"
+          "logoColor": "#1754cf",
+          "menuItems": ["Muebles", "Camas y Colchones", "Alfombras", "Decoración", "Ofertas"]
         }
       }
     ],
@@ -22,9 +23,8 @@
         "props": {
           "badge": "Colección Exclusive 2024",
           "title": "Transforma tu Hogar",
-          "subtitle": "Descubre la elegancia en cada detalle de nuestra colección exclusiva. Mobiliario de alta gama diseñado para espacios sofisticados.",
-          "imageUrl": "https://lh3.googleusercontent.com/aida-public/AB6AXuBw-qbP2KVdjRQfYly2rR2Xxp0D8kClN5CKQMitTNBzER81-_KejIqph8fM6DGCXeoGgFvojHPUIXasBBsPE6v1sUDlo8nJ4Ysl5k1llvwTOmCfXqynlJPWF3LIldo1P8flRFWN19Mwx_5B7KZyoePu4eQ8TMIFm77CJa39EQicEQWTcYHzZEAKH_9wjQbM_I_8X5n8o-ijuJCTNYHuQ4D3FaanrmMFxR9mY5xd0Q7YDXuKn-W4I4lh0Xc6Do9Uiq-RBdfIn0Q5rs4",
-          "primaryBtnText": "Ver Colección"
+          "subtitle": "Descubre la elegancia en cada detalle de nuestra colección exclusiva. Mobiliario de alta gama diseñado para espacios sofisticados y memorables.",
+          "imageUrl": "https://lh3.googleusercontent.com/aida-public/AB6AXuBw-qbP2KVdjRQfYly2rR2Xxp0D8kClN5CKQMitTNBzER81-_KejIqph8fM6DGCXeoGgFvojHPUIXasBBsPE6v1sUDlo8nJ4Ysl5k1llvwTOmCfXqynlJPWF3LIldo1P8flRFWN19Mwx_5B7KZyoePu4eQ8TMIFm77CJa39EQicEQWTcYHzZEAKH_9wjQbM_I_8X5n8o-ijuJCTNYHuQ4D3FaanrmMFxR9mY5xd0Q7YDXuKn-W4I4lh0Xc6Do9Uiq-RBdfIn0Q5rs4"
         }
       },
       {
@@ -34,14 +34,35 @@
           "title": "Categorías Principales",
           "items": [
             { "label": "Muebles", "sub": "Descubre piezas únicas", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuDbfrCm7kxKytNXQx-bQEnj9C04ZvPSlxmlVdwLQUDbhrXFXbLqUB0rWnxbb-W2GFklWwDzSYw9p9wW-yQKL1xFA0-m7Cm7RSjam5DSRQQA3YOJ-vUtZNcNdHYa5Qw7qFUTOJzVYyXEzH8s6vAx6STxhliYgKOZdSCJ5s8He8Y1fNPAwatfz3lZMgxYDvSiQNHex4NWcZm97hf_byCcZHkr1UtNqLM3Wn2Qq2y_BIB-N2sDf0n_YXo6wFPr_lVcm25qRiXTSwO9YUA" },
-            { "label": "Dormitorios", "sub": "El descanso perfecto", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuAoQEU80MhljgwTg-Je8ZcS4M7ToyJPygsSoXAPnfBEsWtdtDRQJHVaToU7lptUiZYwGFwNiYjOqO8duXWXqEzwSWPt1oWp4brc2SM7N4yvBvCI8958tRxApvY7dyi6eJyxJrRrHBTIpWe7b1GxCcWbaurUNgwVJfF5stZI-mHgcsr6sef_Jq4uz36Nlcrtvk-TTfnyim2OUxn79ovlx8qMa_YoA2w3UIpp_gZQ_I3JCfF6S5ehTIMhl1noNa5FaAO19qE7a9YATQo" },
+            { "label": "Camas y Colchones", "sub": "El descanso perfecto", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuAoQEU80MhljgwTg-Je8ZcS4M7ToyJPygsSoXAPnfBEsWtdtDRQJHVaToU7lptUiZYwGFwNiYjOqO8duXWXqEzwSWPt1oWp4brc2SM7N4yvBvCI8958tRxApvY7dyi6eJyxJrRrHBTIpWe7b1GxCcWbaurUNgwVJfF5stZI-mHgcsr6sef_Jq4uz36Nlcrtvk-TTfnyim2OUxn79ovlx8qMa_YoA2w3UIpp_gZQ_I3JCfF6S5ehTIMhl1noNa5FaAO19qE7a9YATQo" },
             { "label": "Alfombras", "sub": "Texturas que inspiran", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuA9EQX74faFdZ9pZfpDR81cyoQqNcKsCr172PuHoNINt826u7PQLdiUCLw9W-Dwm4R6KpHyD5FhIw5ysHTIzXVVkmwFUMTvFgq_yIUa_FaI7mVWMIq6ledxDWknVymbcX2Ijt84qhF_cwlxcbucGUZIbijVr9-JmIK7Tki817KJ4hVfEG0jzECdSjK5sOfxkgmaVCHc1qF3kTxkHrn18EovCF9A1SGN1CRtSUcGTs5b9utkO-zxwERGndSnnm0zqAjypcTlbMkA7NY" },
             { "label": "Decoración", "sub": "Detalles con estilo", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuA7URXChWIoFf3hHMscHhfwmHoHbSBt3qetS-sc9Ns8jOnsvZndvXivnKG_8vwf6LQuBJHbY-KeJyzMrHJvIf38r-Y8Wke_azi-B-eqsmW6yFn83n7qQ64bKd3wtUvRf24XtLF9ZX7hGz58YJ08cdaT3JxXePAcsA9bhyyM2Lzg8DI0jImAmpRWFDYnPQlkjId136uI9dxvJXKIiOgoUNUo2-nuov_yp5TyNj4FC-Ml_y4TKoAWhAq3pXD7Oa2_ZgZKtCcxj9glW7I" }
           ]
         }
       },
-      { "id": "hogar-products", "type": "product-grid", "props": { "title": "Productos Destacados" } },
-      { "id": "hogar-trust", "type": "trust-banner", "props": {} }
+      {
+        "id": "hogar-bento",
+        "type": "bento-grid",
+        "props": { "title": "Inspiración por Espacios" }
+      },
+      {
+        "id": "hogar-products",
+        "type": "product-grid",
+        "props": { 
+          "title": "Productos Destacados",
+          "products": [
+            { "name": "Poltrona Velvet Verde", "category": "Muebles de Sala", "price": "1.240.000", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuBpw1MNOZq1HSE-XVqhMHBG_bmOxriCdUW4njGRCzWtgvywwxlfxDedzUnDyS63FaglMidHBLgg0Ltk8-y2jbdCK1EXTPjuoL0jpFt8umKVySo1Zz1VV3DB-a1i189ou-ucx1e8jxYJP1P2nBU3UwmJV9Y8Q1mpdj5fVoqLyQEL9bq50Ix34Lf9uaMZk5hSbSV75xsYvnfEW8oh5BKP2pdQBX8U_O6qHnhgL_wCHemN7tUpn56ogFyrUD-aDR5toRcWCtmuxMpe7Us" },
+            { "name": "Mesa Nórdica Roble", "category": "Comedor", "price": "2.850.000", "isNew": true, "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuCjid4-KID3IA2BknBUhqd3s7PbUn-0KMSQBeT1N_BV4ycJ0tj1dwc8oE9Ma-S7qNhnGl2_iXM9WegE0xcclTftvQuZWlS_8FB-NE41GpxynI3FJ-t-1DiFKf3TvMBKfa2bK-oT8acoIVXVxAdg_A6BRNc7womCYTKFrT2Wia1LQkRnEwt9bfG7VgrBOPwNojqywmi8D8PdX4o7698vieImgkbL6iFE-KsqOGOtXwHE62o5pbKs6F-o-f0OeBIlIWKD9NYjib3KF2o" },
+            { "name": "Lámpara Industrial Black", "category": "Iluminación", "price": "450.000", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuBOrNn3tZUcF4Fjx6wQCBJ_36vsSFxxKJWoq_SrVWlkTlnyiQQY0cDR9b5OxQE_D5_RxsqXGvQy4H1M2bs9ALa3XLWTbyKeNnp38CdzGnPuA7ByiAIeBq8tZCX3vERHkfKxSbGsIIkHTBCkvsRYGb62m_Vq47XJr6NBZbfr0714H5v3t0Z0zeYa58CVT5s88c9ld5v8RpAi6rXfYGn56DrUyEO4u-jf-EkGTWx8Fu9NMq0f9qt1tPWEeaX9WE4v0OGzR7X1ng_1XuI" },
+            { "name": "Alfombra Natural Jute", "category": "Alfombras", "price": "890.000", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuAJY8BmE4Khd6msfaOYNADO2tMzceKxqCbPPfI7x224aUtUMkPh62155RqSl_YrDv8vUxGfGKVd9if0FxX0DCAWcFP8okd2KRbhfkyr6YePpsKqKQe2HTeqRwzi7OxccibF_T4jq3cZlADmyQKjJXkzvyENljU4yHwPCLF9qnmQnaUDjhpu8MmtcknZ0F9dg2R72dDbW711I3jU1pGZSC3PcW-YoyjnFl9fCupMN5YdQDzy6wtZMmhVP2F2nhEgn5ueERjz5XaTjjw" }
+          ]
+        }
+      },
+      {
+        "id": "hogar-services",
+        "type": "services-block",
+        "props": {}
+      }
     ],
     "styles": {}
   },
