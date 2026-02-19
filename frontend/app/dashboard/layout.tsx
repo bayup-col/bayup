@@ -360,6 +360,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 )}
 
                 <div>
+                    <p className="px-4 text-[11px] font-black text-gray-400  tracking-tight mb-3">Diseño & Tienda</p>
+                    <div className="space-y-1">
+                        <MenuItem href="/dashboard/my-store/templates" label={<><Layout size={16} className="mr-2" /> Galería de Plantillas</>} id="m_templates" />
+                        <MenuItem href="/dashboard/pages" label={<><Pencil size={16} className="mr-2" /> Editor de Páginas</>} id="m_pages" />
+                    </div>
+                </div>
+
+                <div>
                     <p className="px-4 text-[11px] font-black text-gray-400  tracking-tight mb-3">Gestión</p>
                     <div className="space-y-1">
                         

@@ -25,6 +25,46 @@ export default function WebTemplatesManager() {
     const [newPageName, setNewPageName] = useState("");
     const [isAddingPage, setIsAddingPage] = useState(false);
 
+    const [isPublishing, setIsPublishing] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    const handleCloudSync = async () => {
+        if (!confirm("¿Deseas subir todas las plantillas locales a la base de datos de producción?")) return;
+        setIsSyncing(true);
+        try {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            
+            for (const tpl of customHtmlTemplates) {
+                // 1. Obtener el JSON local
+                const resJson = await fetch(`/templates/custom-html/${tpl.folderPath}/architecture.json`);
+                if (!resJson.ok) continue;
+                const schema = await resJson.json();
+
+                // 2. Enviar al Backend
+                await fetch(`${apiBase}/super-admin/web-templates`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: tpl.name,
+                        description: tpl.description,
+                        preview_url: tpl.thumbnail,
+                        schema_data: schema,
+                        active_plans: ["Básico", "Pro", "Empresa"]
+                    })
+                });
+            }
+            showToast("¡Sincronización masiva completada! 🚀", "success");
+            fetchTemplates();
+        } catch (e) {
+            showToast("Error en la sincronización", "error");
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     const masterPages = [
         { id: 'home', label: 'Página Principal', icon: Layout, desc: 'Estructura de inicio.' },
         { id: 'colecciones', label: 'Colecciones', icon: Store, desc: 'Listado de categorías.' },
@@ -117,12 +157,22 @@ export default function WebTemplatesManager() {
                     <h1 className="text-5xl font-black text-[#004d4d] tracking-tight uppercase italic">Arquitectura Web</h1>
                     <p className="text-gray-500 mt-2 font-medium text-lg italic">Crea y despliega plantillas maestras para todo el ecosistema Bayup.</p>
                 </div>
-                <Link href="/dashboard/super-admin/web-templates/editor">
-                    <button className="h-14 px-10 bg-[#004d4d] text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4">
-                        <Plus size={18} className="text-[#00f2ff]" />
-                        Diseñar Nueva Plantilla
+                <div className="flex gap-4">
+                    <button 
+                        onClick={handleCloudSync}
+                        disabled={isSyncing}
+                        className="h-14 px-8 bg-[#00f2ff]/10 text-[#00f2ff] border border-[#00f2ff]/20 rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-[#00f2ff]/20 transition-all flex items-center gap-4"
+                    >
+                        {isSyncing ? <Loader2 className="animate-spin" /> : <Globe size={18} />}
+                        Sincronizar Nube
                     </button>
-                </Link>
+                    <Link href="/dashboard/super-admin/web-templates/editor">
+                        <button className="h-14 px-10 bg-[#004d4d] text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4">
+                            <Plus size={18} className="text-[#00f2ff]" />
+                            Diseñar Nueva Plantilla
+                        </button>
+                    </Link>
+                </div>
             </div>
 
             {/* --- GRID DE PLANTILLAS --- */}
