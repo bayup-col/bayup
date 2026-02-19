@@ -5,19 +5,26 @@ import { motion } from 'framer-motion';
 import { Layout, CheckCircle2, Eye, Loader2, Sparkles, Monitor } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
+import { CUSTOM_HTML_TEMPLATES } from '@/lib/custom-templates';
 
 export default function ClientTemplatesGallery() {
     const { token } = useAuth();
     const { showToast } = useToast();
-    const [templates, setTemplates] = useState<any[]>([]);
+    const [dbTemplates, setTemplates] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSelecting, setIsSelecting] = useState<string | null>(null);
+
+    // Combinamos las plantillas locales con las de la base de datos
+    // Usamos un Map para evitar duplicados si ya se sincronizaron
+    const allTemplates = [
+        ...CUSTOM_HTML_TEMPLATES.map(t => ({ ...t, isLocal: true })),
+        ...dbTemplates.filter(dt => !CUSTOM_HTML_TEMPLATES.some(lt => lt.name === dt.name))
+    ];
 
     useEffect(() => {
         const fetchTemplates = async () => {
             try {
                 const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-                // Los clientes pueden ver las plantillas públicas
                 const res = await fetch(`${apiBase}/super-admin/web-templates`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -39,7 +46,14 @@ export default function ClientTemplatesGallery() {
         try {
             const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
             
-            // CLONACIÓN: Guardamos el schema de la plantilla maestra en las páginas del cliente
+            // Si es local, primero debemos obtener su architecture.json
+            let schema = template.schema_data;
+            if (template.isLocal) {
+                const resJson = await fetch(`/templates/custom-html/${template.folderPath}/architecture.json`);
+                if (resJson.ok) schema = await resJson.json();
+            }
+
+            // CLONACIÓN: Guardamos el schema en las páginas del cliente
             const res = await fetch(`${apiBase}/shop-pages`, {
                 method: 'POST',
                 headers: { 
@@ -48,13 +62,12 @@ export default function ClientTemplatesGallery() {
                 },
                 body: JSON.stringify({
                     page_key: 'home',
-                    schema_data: template.schema_data
+                    schema_data: schema
                 })
             });
 
             if (res.ok) {
-                showToast(`¡Plantilla "${template.name}" instalada con éxito!`, "success");
-                // Redirigir al editor personal del cliente
+                showToast(`¡Diseño "${template.name}" instalado con éxito!`, "success");
                 window.location.href = "/dashboard/pages/editor?page=home";
             } else {
                 throw new Error("Error al clonar plantilla");
@@ -83,7 +96,7 @@ export default function ClientTemplatesGallery() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {templates.map((tpl, i) => (
+                {allTemplates.map((tpl, i) => (
                     <motion.div 
                         key={tpl.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -92,13 +105,16 @@ export default function ClientTemplatesGallery() {
                         className="group bg-white rounded-[3rem] border border-gray-100 overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500"
                     >
                         <div className="aspect-video relative overflow-hidden bg-gray-50">
-                            <img src={tpl.preview_url || 'https://via.placeholder.com/800x450'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                            <img src={tpl.preview_url || tpl.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
                         </div>
 
                         <div className="p-10 space-y-6">
                             <div>
-                                <h3 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter">{tpl.name}</h3>
+                                <div className="flex justify-between items-start">
+                                    <h3 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter">{tpl.name}</h3>
+                                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[8px] font-black uppercase border border-emerald-100">{tpl.category}</span>
+                                </div>
                                 <p className="text-sm text-gray-400 mt-2 line-clamp-2">{tpl.description}</p>
                             </div>
 
@@ -111,9 +127,13 @@ export default function ClientTemplatesGallery() {
                                     {isSelecting === tpl.id ? <Loader2 className="animate-spin" /> : <><Sparkles size={16} /> Personalizar esta Plantilla</>}
                                 </button>
                                 
-                                <button className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-gray-100 transition-all">
+                                <a 
+                                    href={tpl.isLocal ? `/templates/custom-html/${tpl.folderPath}/code.html` : '#'} 
+                                    target="_blank"
+                                    className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-gray-100 transition-all text-center"
+                                >
                                     <Monitor size={16} /> Vista Previa
-                                </button>
+                                </a>
                             </div>
                         </div>
                     </motion.div>
