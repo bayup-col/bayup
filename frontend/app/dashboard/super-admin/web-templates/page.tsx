@@ -66,7 +66,11 @@ export default function WebTemplatesManager() {
             } else {
                 const errorText = await res.text();
                 console.error("Error API Arquitectura:", res.status, errorText);
-                showToast(`Error del servidor (${res.status})`, "error");
+                // No mostramos toast de error 403 para no molestar al usuario, 
+                // simplemente dejamos las plantillas locales disponibles.
+                if (res.status !== 403) {
+                    showToast(`Error del servidor (${res.status})`, "error");
+                }
             }
         } catch (err) {
             console.error("Fallo de conexión:", err);
@@ -212,11 +216,16 @@ export default function WebTemplatesManager() {
                                     <img src={tpl.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                                     <div className="absolute inset-0 bg-[#004d4d]/0 group-hover:bg-[#004d4d]/10 transition-colors duration-500" />
                                     
-                                    <Link href={`/templates/custom-html/${tpl.folderPath}/index.html`} target="_blank" className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                                        <button className="px-8 py-3 bg-[#00f2ff] text-[#004d4d] rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl flex items-center gap-2 hover:scale-105 transition-all">
+                                    <a 
+                                        href={`/templates/custom-html/${tpl.folderPath}/index.html`} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                                    >
+                                        <button className="px-8 py-3 bg-[#00f2ff] text-[#004d4d] rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl flex items-center gap-2 hover:scale-105 transition-all pointer-events-none">
                                             <Eye size={14} /> Ver Plantilla Real
                                         </button>
-                                    </Link>
+                                    </a>
                                 </div>
 
                                 <div className="p-8 space-y-4">
