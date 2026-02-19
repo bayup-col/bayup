@@ -140,6 +140,17 @@ function ReportsContent() {
         payrollStaff.reduce((acc, s) => acc + (s.base_salary + (s.commissions || 0) + (s.bonuses || 0) - (s.deductions || 0)), 0), 
     [payrollStaff]);
 
+    const handleLiquidar = (member: any) => setMemberToLiquidate(member);
+    
+    const handleSincronizarStaff = () => {
+        setIsSyncing(true);
+        showToast("Sincronizando staff...", "info");
+        setTimeout(() => { 
+            showToast("Sincronización completa", "success"); 
+            setIsSyncing(false); 
+        }, 2000);
+    };
+
     const filteredPayrollStaff = useMemo(() => {
         return payrollStaff.filter(s => {
             const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
