@@ -1235,9 +1235,8 @@ def create_web_template(
 
 @app.get("/super-admin/web-templates", response_model=List[schemas.WebTemplate])
 def list_web_templates(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    print(f"DEBUG TEMPLATES: Petición de {current_user.email}, Staff: {current_user.is_global_staff}")
-    if not current_user.is_global_staff:
-        raise HTTPException(status_code=403, detail="Acceso restringido a Familia Bayup")
+    # Eliminamos la restricción estricta de is_global_staff solo para LISTAR
+    # Esto permite que los clientes elijan plantillas para sus tiendas
     return db.query(models.WebTemplate).all()
 
 @app.delete("/super-admin/web-templates/{template_id}")

@@ -22,14 +22,29 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-// --- TEMAS MOCK ---
-const FEATURED_THEMES = [
-    { id: 't1', name: 'Aura Minimal', desc: 'Foco absoluto en producto. Estética zen.', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&auto=format&fit=crop', color: 'bg-emerald-500' },
-    { id: 't2', name: 'Cyber Tech', desc: 'Oscuro, vibrante y futurista.', image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800&auto=format&fit=crop', color: 'bg-blue-500' },
-    { id: 't3', name: 'Vogue Pro', desc: 'Moda editorial de alta costura.', image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=800&auto=format&fit=crop', color: 'bg-purple-500' },
-];
+import { useAuth } from '@/context/auth-context';
+import { useEffect, useState } from 'react';
 
 export default function MyStoreHub() {
+    const { token } = useAuth();
+    const [featuredTemplates, setFeaturedTemplates] = useState<any[]>([]);
+    
+    useEffect(() => {
+        const fetchTopTemplates = async () => {
+            try {
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+                const res = await fetch(`${apiBase}/super-admin/web-templates`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setFeaturedTemplates(data.slice(0, 3)); // Mostramos solo las 3 más nuevas como destacadas
+                }
+            } catch (err) { console.error(err); }
+        };
+        if (token) fetchTopTemplates();
+    }, [token]);
+
     const handleViewStore = () => {
         const savedSettings = localStorage.getItem('bayup_general_settings');
         let slug = "preview";
@@ -146,25 +161,29 @@ export default function MyStoreHub() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                    {FEATURED_THEMES.map((theme) => (
+                    {featuredTemplates.map((theme) => (
                         <motion.div 
                             key={theme.id}
                             whileHover={{ y: -10 }}
                             className="group bg-white rounded-[3.5rem] border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden"
                         >
                             <div className="h-64 overflow-hidden relative">
-                                <img src={theme.image} alt={theme.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                <img src={theme.preview_url} alt={theme.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8">
-                                    <button className="w-full py-4 bg-white text-gray-900 rounded-2xl font-black text-[10px] tracking-widest shadow-2xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">Vista previa 360</button>
+                                    <Link href="/dashboard/my-store/templates" className="w-full">
+                                        <button className="w-full py-4 bg-white text-gray-900 rounded-2xl font-black text-[10px] tracking-widest shadow-2xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">Vista previa & Activar</button>
+                                    </Link>
                                 </div>
                             </div>
                             <div className="p-10 space-y-4">
                                 <div className="flex justify-between items-start">
                                     <h4 className="text-xl font-black text-gray-900 italic">{theme.name}</h4>
-                                    <div className={`h-2 w-2 rounded-full ${theme.color} shadow-lg`} />
+                                    <div className={`h-2 w-2 rounded-full bg-cyan shadow-lg`} />
                                 </div>
-                                <p className="text-gray-500 text-xs leading-relaxed font-medium italic">"{theme.desc}"</p>
-                                <button className="w-full mt-6 py-4 border-2 border-gray-50 rounded-2xl text-[9px] font-black tracking-[0.2em] text-gray-400 group-hover:border-purple-600 group-hover:text-purple-600 transition-all">Activar estilo</button>
+                                <p className="text-gray-500 text-xs leading-relaxed font-medium italic">"{theme.description}"</p>
+                                <Link href="/dashboard/my-store/templates">
+                                    <button className="w-full mt-6 py-4 border-2 border-gray-50 rounded-2xl text-[9px] font-black tracking-[0.2em] text-gray-400 group-hover:border-[#004d4d] group-hover:text-[#004d4d] transition-all uppercase">Personalizar este diseño</button>
+                                </Link>
                             </div>
                         </motion.div>
                     ))}
