@@ -12,7 +12,7 @@ import {
  * COMPONENTES DE ALTA FIDELIDAD - BAYUP STUDIO
  */
 
-// 1. NAVBAR (Soporta icono dinámico y contador)
+// 1. NAVBAR
 export const SmartNavbar = ({ props }: { props: any }) => {
   return (
     <header className="w-full border-b border-slate-200 bg-white/90 backdrop-blur-md sticky top-0 z-50">
@@ -50,7 +50,7 @@ export const SmartNavbar = ({ props }: { props: any }) => {
   );
 };
 
-// 2. HERO (Soporta alineación y doble botón)
+// 2. HERO
 export const SmartHero = ({ props }: { props: any }) => {
   return (
     <section className="relative w-full h-[85vh] overflow-hidden flex items-center bg-slate-900">
@@ -79,7 +79,7 @@ export const SmartHero = ({ props }: { props: any }) => {
   );
 };
 
-// 3. BENTO GRID (Inspiración por Espacios)
+// 3. BENTO GRID
 export const SmartBentoGrid = ({ props }: { props: any }) => {
   return (
     <section className="py-24 bg-slate-50">
@@ -115,7 +115,7 @@ export const SmartBentoGrid = ({ props }: { props: any }) => {
   );
 };
 
-// 4. SERVICIOS (Asesoría y Envío)
+// 4. SERVICIOS
 export const SmartServices = () => {
   return (
     <section className="py-24 bg-white border-y border-slate-100">
@@ -141,49 +141,32 @@ export const SmartServices = () => {
   );
 };
 
-// 5. FOOTER INTEGRAL
-export const SmartFooter = ({ props }: { props: any }) => {
+// 5. TRUST BANNER
+export const SmartTrustBanner = () => {
   return (
-    <footer className="bg-[#0f172a] text-slate-400 py-24 px-10">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16">
-        <div className="space-y-8">
-          <div className="flex items-center gap-3 text-white">
-            <LayoutGrid size={24} className="text-blue-500" />
-            <span className="text-2xl font-black uppercase italic tracking-tighter">{props.logoText || 'Hogar & Estilo'}</span>
-          </div>
-          <p className="text-sm leading-relaxed max-w-xs italic font-medium">"Líderes en diseño de interiores y mobiliario premium. Calidad, estilo y durabilidad para tu hogar desde 1995."</p>
-          <div className="flex gap-6 text-white/30"><Share2 size={20} className="hover:text-white cursor-pointer"/><Camera size={20} className="hover:text-white cursor-pointer"/></div>
+    <section className="py-24 bg-white border-y border-slate-100">
+      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-16 text-center">
+        <div className="flex flex-col items-center group">
+          <div className="bg-blue-50 p-6 rounded-[2rem] text-blue-600 mb-6 group-hover:scale-110 transition-transform"><Verified size={40}/></div>
+          <h5 className="text-xl font-black italic tracking-tight mb-2 uppercase">Calidad Garantizada</h5>
+          <p className="text-slate-500 text-sm leading-relaxed">Componentes probados bajo los estándares más exigentes.</p>
         </div>
-        <div>
-          <h6 className="text-white font-black text-[10px] uppercase tracking-[0.3em] mb-8">Categorías</h6>
-          <ul className="space-y-4 text-xs font-bold uppercase tracking-widest">
-            {["Muebles de Sala", "Comedores", "Dormitorios", "Decoración & Arte"].map(l => <li key={l} className="hover:text-white cursor-pointer">{l}</li>)}
-          </ul>
+        <div className="flex flex-col items-center group">
+          <div className="bg-blue-50 p-6 rounded-[2rem] text-blue-600 mb-6 group-hover:scale-110 transition-transform"><Truck size={40}/></div>
+          <h5 className="text-xl font-black italic tracking-tight mb-2 uppercase">Envío Premium</h5>
+          <p className="text-slate-500 text-sm leading-relaxed">Entrega asegurada en 24-48 horas con embalaje reforzado.</p>
         </div>
-        <div>
-          <h6 className="text-white font-black text-[10px] uppercase tracking-[0.3em] mb-8">Compañía</h6>
-          <ul className="space-y-4 text-xs font-bold uppercase tracking-widest">
-            {["Sobre Nosotros", "Showrooms", "Trabaja con Nosotros", "Sostenibilidad"].map(l => <li key={l} className="hover:text-white cursor-pointer">{l}</li>)}
-          </ul>
-        </div>
-        <div className="space-y-8">
-          <h6 className="text-white font-black text-[10px] uppercase tracking-[0.3em] mb-8">Suscríbete</h6>
-          <p className="text-xs font-medium italic">Recibe noticias sobre nuevas colecciones y ofertas.</p>
-          <div className="flex bg-white/5 p-1.5 rounded-xl border border-white/10">
-            <input className="bg-transparent border-none text-xs flex-1 px-4 text-white outline-none" placeholder="Tu email" />
-            <button className="bg-blue-600 text-white p-3 rounded-lg"><Send size={16} /></button>
-          </div>
+        <div className="flex flex-col items-center group">
+          <div className="bg-blue-50 p-6 rounded-[2rem] text-blue-600 mb-6 group-hover:scale-110 transition-transform"><Headset size={40}/></div>
+          <h5 className="text-xl font-black italic tracking-tight mb-2 uppercase">Soporte Experto</h5>
+          <p className="text-slate-500 text-sm leading-relaxed">Asesoramiento técnico personalizado por especialistas.</p>
         </div>
       </div>
-      <div className="max-w-7xl mx-auto mt-24 pt-10 border-t border-white/5 text-[9px] font-black uppercase flex flex-col md:flex-row justify-between gap-6 opacity-40">
-        <p>© 2024 {props.logoText || 'Hogar & Estilo'}. Todos los derechos reservados.</p>
-        <div className="flex gap-8"><span>Privacidad</span><span>Términos</span><span>Tratamiento de Datos</span></div>
-      </div>
-    </footer>
+    </section>
   );
 };
 
-// BLOQUES RESTANTES (Mantener del paso anterior)
+// 6. CATEGORIES GRID
 export const SmartCategoriesGrid = ({ props }: { props: any }) => {
   return (
     <section className="max-w-7xl mx-auto px-6 py-24">
@@ -212,6 +195,7 @@ export const SmartCategoriesGrid = ({ props }: { props: any }) => {
   );
 };
 
+// 7. PRODUCT GRID
 export const SmartProductGrid = ({ props }: { props: any }) => {
   return (
     <section className="py-24 bg-white">
@@ -242,5 +226,42 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
         </div>
       </div>
     </section>
+  );
+};
+
+// 8. FOOTER
+export const SmartFooter = ({ props }: { props: any }) => {
+  return (
+    <footer className="bg-[#0f172a] text-slate-400 py-24 px-10">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16">
+        <div className="space-y-8">
+          <div className="flex items-center gap-3 text-white">
+            <LayoutGrid size={24} className="text-blue-500" />
+            <span className="text-2xl font-black uppercase italic tracking-tighter">{props.logoText || 'Hogar & Estilo'}</span>
+          </div>
+          <p className="text-sm leading-relaxed max-w-xs italic font-medium">"Líderes en diseño de interiores y mobiliario premium."</p>
+          <div className="flex gap-6 text-white/30"><Share2 size={20}/><Camera size={20}/></div>
+        </div>
+        <div>
+          <h6 className="text-white font-black text-[10px] uppercase tracking-[0.3em] mb-8">Categorías</h6>
+          <ul className="space-y-4 text-xs font-bold uppercase tracking-widest">
+            <li>Muebles de Sala</li><li>Comedores</li><li>Dormitorios</li>
+          </ul>
+        </div>
+        <div>
+          <h6 className="text-white font-black text-[10px] uppercase tracking-[0.3em] mb-8">Compañía</h6>
+          <ul className="space-y-4 text-xs font-bold uppercase tracking-widest">
+            <li>Sobre Nosotros</li><li>Showrooms</li><li>Sostenibilidad</li>
+          </ul>
+        </div>
+        <div className="space-y-8">
+          <h6 className="text-white font-black text-[10px] uppercase tracking-[0.3em] mb-8">Suscríbete</h6>
+          <div className="flex bg-white/5 p-1.5 rounded-xl border border-white/10">
+            <input className="bg-transparent border-none text-xs flex-1 px-4 text-white outline-none" placeholder="Tu email" />
+            <button className="bg-blue-600 text-white p-3 rounded-lg"><Send size={16} /></button>
+          </div>
+        </div>
+      </div>
+    </footer>
   );
 };
