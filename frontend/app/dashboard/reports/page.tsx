@@ -125,6 +125,29 @@ function ReportsContent() {
     const [selectedAdvisor, setSelectedAdvisor] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
+    // --- ESTADOS NÓMINA ---
+    const [payrollStaff, setPayrollStaff] = useState<any[]>([]);
+    const [filterRole, setFilterRole] = useState("all");
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [memberToLiquidate, setMemberToLiquidate] = useState<any>(null);
+
+    useEffect(() => {
+        const saved = localStorage.getItem('bayup_payroll_data');
+        if (saved) setPayrollStaff(JSON.parse(saved));
+    }, []);
+
+    const totalPayroll = useMemo(() => 
+        payrollStaff.reduce((acc, s) => acc + (s.base_salary + (s.commissions || 0) + (s.bonuses || 0) - (s.deductions || 0)), 0), 
+    [payrollStaff]);
+
+    const filteredPayrollStaff = useMemo(() => {
+        return payrollStaff.filter(s => {
+            const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesRole = filterRole === 'all' || s.role === filterRole;
+            return matchesSearch && matchesRole;
+        });
+    }, [payrollStaff, searchTerm, filterRole]);
+
     const fetchData = useCallback(async () => {
         if (!token) return;
         setLoading(true);
