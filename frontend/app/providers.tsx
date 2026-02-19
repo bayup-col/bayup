@@ -23,6 +23,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  
+  // VALIDACIÓN CRÍTICA: Solo activar Clerk si tenemos una llave de producción real.
+  // Si la llave empieza por 'pk_test', la ignoramos en la web real para evitar bloqueos de CORS/Rate Limit.
+  const isProdKey = publishableKey?.startsWith('pk_live_');
+  const shouldLoadClerk = publishableKey && isProdKey;
 
   const content = (
     <AuthProvider>
@@ -36,8 +41,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     </AuthProvider>
   );
 
-  // Si no hay llave de Clerk, renderizamos sin Clerk para no romper la web visualmente
-  if (!publishableKey) {
+  if (!shouldLoadClerk) {
     return content;
   }
 
