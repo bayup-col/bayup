@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect, memo } from 'react';
+import { useState, useMemo, useRef, useEffect, memo, useCallback } from 'react';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
 import { 
