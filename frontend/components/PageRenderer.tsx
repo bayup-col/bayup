@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
+import { SmartNavbar, SmartHero, SmartProductGrid } from './dashboard/studio/HighFidelityBlocks';
 
-export type ComponentType = 'text' | 'image' | 'button' | 'section' | 'grid' | 'catalog' | 'whatsapp' | 'countdown';
+export type ComponentType = 'text' | 'image' | 'button' | 'section' | 'grid' | 'catalog' | 'whatsapp' | 'countdown' | 'navbar' | 'hero-banner' | 'product-grid' | 'categories-grid' | 'footer-premium';
 
 export interface PageComponent {
     id: string;
@@ -35,17 +35,9 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
     const renderComponent = (comp: PageComponent) => {
         const isSelected = selectedId === comp.id;
         
-        const freeStyle: React.CSSProperties = isEditor && comp.position ? {
-            position: 'absolute',
-            left: `${comp.position.x}px`,
-            top: `${comp.position.y}px`,
-            zIndex: isSelected ? 100 : 10,
-            ...comp.styles
-        } : comp.styles;
-
         const editorClasses = isEditor ? `
-            cursor-grab active:cursor-grabbing transition-shadow
-            ${isSelected ? 'ring-2 ring-[#00f2ff] ring-offset-4 ring-offset-white shadow-2xl scale-[1.01]' : 'hover:ring-1 hover:ring-gray-300'}
+            cursor-pointer transition-all duration-300 relative
+            ${isSelected ? 'ring-4 ring-[#00f2ff] ring-inset z-20 shadow-2xl' : 'hover:ring-2 hover:ring-gray-300'}
         ` : '';
 
         const handleClick = (e: React.MouseEvent) => {
@@ -55,50 +47,46 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
             }
         };
 
-        const commonProps = isEditor ? {
-            drag: true,
-            dragMomentum: false,
-            dragConstraints: constraintsRef, // BLOQUEO DE BORDES
-            onDragEnd: (e: any, info: any) => {
-                if (onComponentDrag && comp.position) {
-                    onComponentDrag(comp.id, comp.position.x + info.offset.x, comp.position.y + info.offset.y);
-                }
+        const renderContent = () => {
+            switch (comp.type) {
+                case 'navbar':
+                    return <SmartNavbar props={comp.props} />;
+                case 'hero-banner':
+                    return <SmartHero props={comp.props} />;
+                case 'product-grid':
+                    return <SmartProductGrid props={comp.props} />;
+                case 'text':
+                    return <div style={comp.styles}>{comp.props.text || 'Escribe aquí...'}</div>;
+                case 'button':
+                    return <button className="font-black uppercase tracking-widest" style={comp.styles}>{comp.props.label || 'Botón'}</button>;
+                case 'image':
+                    return <img src={comp.props.src} alt="Visual" className="w-full h-full object-cover" />;
+                default:
+                    return <div className="p-10 border border-dashed border-gray-200 text-center text-gray-400 text-xs">Bloque: {comp.type}</div>;
             }
-        } : {};
+        };
 
-        switch (comp.type) {
-            case 'text':
-                return (
-                    <motion.div {...commonProps} key={comp.id} onClick={handleClick} className={editorClasses} style={freeStyle}>
-                        {comp.props.text || 'Escribe aquí...'}
-                    </motion.div>
-                );
-
-            case 'button':
-                return (
-                    <motion.button {...commonProps} key={comp.id} onClick={handleClick} className={`${editorClasses} font-black uppercase tracking-widest`} style={freeStyle}>
-                        {comp.props.label || 'Botón'}
-                    </motion.button>
-                );
-
-            case 'image':
-                return (
-                    <motion.div {...commonProps} key={comp.id} onClick={handleClick} className={editorClasses} style={freeStyle}>
-                        <img 
-                            src={comp.props.src || 'https://via.placeholder.com/400x300'} 
-                            alt="Visual"
-                            className="w-full h-full object-cover rounded-[inherit] pointer-events-none"
-                        />
-                    </motion.div>
-                );
-
-            default:
-                return null;
-        }
+        return (
+            <div 
+                key={comp.id} 
+                onClick={handleClick} 
+                className={editorClasses}
+                style={!isEditor && comp.position ? { position: 'absolute', left: comp.position.x, top: comp.position.y, ...comp.styles } : comp.styles}
+            >
+                {renderContent()}
+                
+                {/* Etiqueta flotante solo en editor */}
+                {isEditor && isSelected && (
+                    <div className="absolute top-0 left-0 bg-[#00f2ff] text-[#004d4d] text-[8px] font-black px-2 py-1 uppercase tracking-widest z-30">
+                        {comp.type}
+                    </div>
+                )}
+            </div>
+        );
     };
 
     return (
-        <div className="relative w-full h-full min-h-[800px]">
+        <div className="relative w-full h-full min-h-screen font-display">
             {components.map(renderComponent)}
         </div>
     );

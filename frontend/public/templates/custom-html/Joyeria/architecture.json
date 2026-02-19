@@ -1,0 +1,7 @@
+{
+  "id": "tpl-joyeria",
+  "name": "Jewelry Luxe",
+  "header": { "elements": [{"type": "navbar", "props": {"logoText": "JEWELRY LUXE", "logoColor": "#b45309"}}], "styles": {} },
+  "body": { "elements": [{"type": "hero-banner", "props": {"title": "Brillo Eterno", "primaryBtnBgColor": "#b45309"}}] },
+  "footer": { "elements": [{"type": "footer-premium", "props": {"bgColor": "#451a03"}}], "styles": {} }
+}

@@ -1,0 +1,7 @@
+{
+  "id": "tpl-lenceria",
+  "name": "Intimate Elegance",
+  "header": { "elements": [{"type": "navbar", "props": {"logoText": "INTIMATE", "logoColor": "#4c1d95"}}], "styles": {} },
+  "body": { "elements": [{"type": "hero-banner", "props": {"title": "Elegancia Íntima", "primaryBtnBgColor": "#4c1d95"}}] },
+  "footer": { "elements": [{"type": "footer-premium", "props": {"bgColor": "#2e1065"}}], "styles": {} }
+}

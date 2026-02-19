@@ -1,0 +1,7 @@
+{
+  "id": "tpl-maquillaje",
+  "name": "Beauty & Glow",
+  "header": { "elements": [{"type": "navbar", "props": {"logoText": "BEAUTY & GLOW", "logoColor": "#be123c"}}], "styles": {} },
+  "body": { "elements": [{"type": "hero-banner", "props": {"title": "Resalta tu Belleza", "primaryBtnBgColor": "#be123c"}}] },
+  "footer": { "elements": [{"type": "footer-premium", "props": {"bgColor": "#881337"}}], "styles": {} }
+}

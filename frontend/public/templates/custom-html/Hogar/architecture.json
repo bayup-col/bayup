@@ -1,0 +1,7 @@
+{
+  "id": "tpl-hogar",
+  "name": "Home & Comfort",
+  "header": { "elements": [{"type": "navbar", "props": {"logoText": "HOGAR & ESTILO", "logoColor": "#1754cf"}}], "styles": {} },
+  "body": { "elements": [{"type": "hero-banner", "props": {"title": "Transforma tu Hogar", "primaryBtnBgColor": "#1754cf"}}, {"type": "categories-grid", "props": {"title": "Inspiración"}}] },
+  "footer": { "elements": [{"type": "footer-premium", "props": {"bgColor": "#1e293b"}}], "styles": {} }
+}

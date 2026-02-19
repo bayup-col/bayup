@@ -1,0 +1,7 @@
+{
+  "id": "tpl-ropa-elegante",
+  "name": "Classic Couture",
+  "header": { "elements": [{"type": "navbar", "props": {"logoText": "COUTURE", "logoColor": "#1e1b4b"}}], "styles": {} },
+  "body": { "elements": [{"type": "hero-banner", "props": {"title": "Classic Couture", "primaryBtnBgColor": "#1e1b4b"}}] },
+  "footer": { "elements": [{"type": "footer-premium", "props": {"bgColor": "#1e1b4b"}}], "styles": {} }
+}

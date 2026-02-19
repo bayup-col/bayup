@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Globe, Edit3, Trash2, Layout, Monitor, ShieldCheck, CheckCircle2, X, Loader2, Store, ShoppingBag, Eye } from 'lucide-react';
+import { Plus, Globe, Edit3, Trash2, Layout, Monitor, ShieldCheck, CheckCircle2, X, Loader2, Store, ShoppingBag, Eye, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
