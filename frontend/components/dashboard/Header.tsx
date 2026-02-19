@@ -150,29 +150,77 @@ export const DashboardHeader = ({
 
                         <div className="h-6 w-px bg-[#004d4d]/10"></div>
 
-                        <div className="flex items-center gap-2">
-                            <UserButton 
-                                afterSignOutUrl="/login"
-                                appearance={{
-                                    elements: {
-                                        userButtonAvatarBox: "h-10 w-10 rounded-2xl border border-white/10 shadow-lg hover:scale-105 transition-transform",
-                                        userButtonTrigger: "focus:shadow-none focus:outline-none"
-                                    }
-                                }}
-                            />
-                            
-                            {/* Botón de Logout de respaldo si Clerk no muestra el avatar */}
+                        <div className="flex items-center gap-3">
+                            {/* Botón de Usuario Manual (Bayup Style) */}
                             <button 
-                                onClick={logout}
-                                className="p-2 text-[#004d4d]/40 hover:text-rose-500 transition-colors lg:hidden" 
-                                title="Cerrar Sesión"
+                                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                                className="h-10 w-10 rounded-2xl bg-gradient-to-br from-white to-gray-100 shadow-lg border border-[#004d4d]/5 flex items-center justify-center text-[#004d4d] hover:scale-105 transition-all relative group"
                             >
-                                <LogOut size={18} />
+                                <UserIcon size={18} />
+                                <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-emerald-500 border-2 border-white rounded-full"></div>
                             </button>
+
+                            {/* Clerk UserButton (Oculto si no carga, pero presente para el futuro) */}
+                            <div className="hidden">
+                                <UserButton 
+                                    afterSignOutUrl="/login"
+                                    appearance={{
+                                        elements: {
+                                            userButtonAvatarBox: "h-10 w-10 rounded-2xl border border-white/10 shadow-lg",
+                                            userButtonTrigger: "focus:shadow-none focus:outline-none"
+                                        }
+                                    }}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Menú Desplegable de Usuario (Glassmorphism) */}
+            <AnimatePresence>
+                {userMenuOpen && (
+                    <>
+                        <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)}></div>
+                        <motion.div 
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            className="absolute right-10 top-24 w-64 bg-white/90 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-white overflow-hidden z-[110]"
+                        >
+                            <div className="p-6 bg-gradient-to-br from-[#004d4d]/5 to-transparent">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cuenta</p>
+                                <p className="text-xs font-black text-[#004d4d] mt-1 truncate">{userEmail || 'Usuario Bayup'}</p>
+                                <div className="mt-2 inline-block px-2 py-0.5 bg-[#00F2FF]/10 rounded-full">
+                                    <p className="text-[8px] font-black text-[#004d4d] uppercase">{userRole || 'Admin'}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="p-2">
+                                <button 
+                                    onClick={() => { setIsUserSettingsOpen(true); setUserMenuOpen(false); }}
+                                    className="w-full flex items-center gap-3 p-4 hover:bg-[#004d4d]/5 rounded-2xl transition-colors group"
+                                >
+                                    <div className="h-8 w-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-[#00F2FF]">
+                                        <Sparkles size={14} />
+                                    </div>
+                                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-tight">Mi Perfil</span>
+                                </button>
+
+                                <button 
+                                    onClick={logout}
+                                    className="w-full flex items-center gap-3 p-4 hover:bg-rose-50 rounded-2xl transition-colors group"
+                                >
+                                    <div className="h-8 w-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-rose-500">
+                                        <LogOut size={14} />
+                                    </div>
+                                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-tight group-hover:text-rose-600">Cerrar Sesión</span>
+                                </button>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </header>
     );
 };
