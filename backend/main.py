@@ -176,7 +176,14 @@ def register_user(user: schemas.UserCreate, background_tasks: BackgroundTasks, d
     
     # FORZADO DE INDEPENDENCIA: Un registro público SIEMPRE crea un nuevo dueño de tienda independiente
     hashed_password = security.get_password_hash(user.password)
-    default_plan = crud.get_default_plan(db)
+    
+    # Priorizar plan_id del input, si no, usar el por defecto
+    if user.plan_id:
+        target_plan = db.query(models.Plan).filter(models.Plan.id == user.plan_id).first()
+        if not target_plan:
+            target_plan = crud.get_default_plan(db)
+    else:
+        target_plan = crud.get_default_plan(db)
     
     # Generar shop_slug automático
     base_slug = user.email.split('@')[0].replace('.', '-').lower()
@@ -194,7 +201,7 @@ def register_user(user: schemas.UserCreate, background_tasks: BackgroundTasks, d
         role="admin_tienda", # Rol base de cliente
         status="Activo",
         is_global_staff=False, # PROHIBIDO ser global para clientes
-        plan_id=default_plan.id if default_plan else None,
+        plan_id=target_plan.id if target_plan else None,
         permissions={}, # Tienda vacía sin permisos heredados
         shop_slug=shop_slug # Slug automático
     )
@@ -214,24 +221,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         # Normalizar email
         normalized_email = form_data.username.lower().strip()
         
-        # --- PUENTE MAESTRO DE EMERGENCIA (Bypass de DB) ---
-        # Si la base de datos falla o el usuario no existe, esto permite entrada directa
-        if normalized_email == "sebas@sebas.com" and form_data.password == "123":
-            print("EMERGENCY: Super-Admin bridge activated for sebas@sebas.com")
-            # Generamos el token directamente para saltar errores de conexión a DB
-            access_token = security.create_access_token(data={"sub": "sebas@sebas.com"})
-            return {
-                "access_token": access_token, 
-                "token_type": "bearer",
-                "user": {
-                    "email": "sebas@sebas.com",
-                    "full_name": "Sebastián Bayup (Admin)",
-                    "role": "admin_tienda",
-                    "is_global_staff": False,
-                    "permissions": {}
-                }
-            }
-
         user = crud.get_user_by_email(db, email=normalized_email)
         
         if not user:
@@ -276,6 +265,67 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     except Exception as e:
         print(f"CRITICAL LOGIN ERROR: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
+
+@app.post("/auth/clerk-login")
+async def clerk_login(request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)):
+    """
+    Endpoint para que el frontend envíe el token de Clerk.
+    Si el usuario no existe, se crea con el plan por defecto.
+    """
+    try:
+        # Verificar el token con Clerk
+        clerk_data = await clerk_auth_service.verify_clerk_token(request.clerk_token)
+        email = clerk_data.get("email").lower().strip()
+        full_name = clerk_data.get("full_name") or email.split('@')[0]
+        
+        # Buscar usuario en nuestra DB
+        user = crud.get_user_by_email(db, email=email)
+        
+        if not user:
+            # Autocreación de usuario si es la primera vez que entra con Clerk
+            default_plan = crud.get_default_plan(db)
+            
+            # Generar shop_slug automático
+            base_slug = email.split('@')[0].replace('.', '-').lower()
+            shop_slug = base_slug
+            counter = 1
+            while crud.get_user_by_slug(db, shop_slug):
+                shop_slug = f"{base_slug}-{counter}"
+                counter += 1
+
+            user = models.User(
+                id=uuid.uuid4(),
+                email=email,
+                full_name=full_name,
+                hashed_password="CLERK_AUTH_EXTERNAL", # No se usa para Clerk
+                role="admin_tienda",
+                status="Activo",
+                plan_id=default_plan.id if default_plan else None,
+                shop_slug=shop_slug,
+                permissions={}
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+        # Generar un token local de sesión de Bayup basado en la identidad de Clerk
+        access_token = security.create_access_token(data={"sub": user.email})
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "email": user.email,
+                "full_name": user.full_name,
+                "role": user.role,
+                "shop_slug": user.shop_slug,
+                "plan": {
+                    "name": user.plan.name if user.plan else "Básico"
+                }
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Clerk authentication failed: {str(e)}")
 
 @app.post("/auth/forgot-password")
 def forgot_password(data: dict, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
@@ -519,6 +569,26 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db), curr
     tenant_id = get_tenant_id(current_user)
     print(f"DEBUG: Creando orden para tenant_id: {tenant_id}")
     return crud.create_order(db=db, order=order, customer_id=current_user.id, tenant_id=tenant_id)
+
+# --- Shipments ---
+
+@app.get("/admin/shipments", response_model=List[schemas.Shipment])
+def read_shipments(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = get_tenant_id(current_user)
+    return crud.get_shipments_by_owner(db, owner_id=tenant_id)
+
+@app.patch("/admin/shipments/{shipment_id}/status", response_model=schemas.Shipment)
+def update_shipment_status(shipment_id: uuid.UUID, data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = get_tenant_id(current_user)
+    db_shipment = crud.get_shipment(db, shipment_id=shipment_id, tenant_id=tenant_id)
+    if not db_shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+    
+    new_status = data.get("status")
+    if not new_status:
+        raise HTTPException(status_code=400, detail="Status is required")
+        
+    return crud.update_shipment_status(db, db_shipment=db_shipment, status=new_status)
 
 # --- Admin / Staff ---
 

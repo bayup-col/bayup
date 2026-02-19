@@ -12,6 +12,7 @@ interface AuthContextType {
   shopSlug: string | null;
   isGlobalStaff: boolean;
   login: (token: string, email: string, role: string, permissions?: any, plan?: any, isGlobal?: boolean, shopSlug?: string) => void;
+  clerkLogin: (clerkToken: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -67,6 +68,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (plan) localStorage.setItem('userPlan', JSON.stringify(plan));
   }, []);
 
+  const clerkLogin = useCallback(async (clerkToken: string) => {
+    try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${apiUrl}/auth/clerk-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clerk_token: clerkToken }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Clerk login failed on backend');
+        }
+
+        const data = await response.json();
+        // Usar la función login existente para guardar todo
+        login(
+            data.access_token, 
+            data.user.email, 
+            data.user.role, 
+            data.user.permissions || {}, 
+            data.user.plan,
+            false,
+            data.user.shop_slug
+        );
+        router.push('/dashboard');
+    } catch (error) {
+        console.error("Clerk Login Sync Error:", error);
+        throw error;
+    }
+  }, [login, router]);
+
   const logout = useCallback(() => {
     setToken(null);
     setUserEmail(null);
@@ -90,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     shopSlug,
     isGlobalStaff,
     login,
+    clerkLogin,
     logout,
     isAuthenticated,
   };

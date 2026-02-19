@@ -6,6 +6,9 @@ import { ToastProvider } from "@/context/toast-context";
 import { ThemeProvider } from "@/context/theme-context";
 import { CartProvider } from "@/context/cart-context";
 
+import { ClerkProvider } from "@clerk/nextjs";
+import { esES } from "@clerk/localizations";
+
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Limpieza de URLs temporales colgadas
@@ -20,14 +23,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <ToastProvider>
-          <CartProvider>
-            {children}
-          </CartProvider>
-        </ToastProvider>
-      </ThemeProvider>
-    </AuthProvider>
+    <ClerkProvider localization={esES}>
+      <AuthProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <CartProvider>
+              {children}
+            </CartProvider>
+          </ToastProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </ClerkProvider>
   );
 }

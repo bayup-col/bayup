@@ -51,6 +51,7 @@ import {
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
 import { exportShipmentsToExcel } from '@/lib/shipping-export';
+import { apiRequest } from '@/lib/api';
 
 // --- COMPONENTES ATÓMICOS PREMIUM ---
 const AnimatedNumber = memo(({ value, type = 'simple', className }: { value: number, className?: string, type?: 'currency' | 'percentage' | 'simple' }) => {
@@ -115,22 +116,65 @@ interface Shipment {
 export default function ShippingPage() {
   const { token, userEmail } = useAuth();
   const { showToast } = useToast();
-  const [shipments, setShipments] = useState<Shipment[]>([
-    {
-      id: 'ENV-2026-001',
-      tracking_number: '9876543210',
-      order_id: 'FAC-8245',
-      carrier: 'Servientrega',
-      status: 'in_transit',
-      customer: { name: 'Sebas Betancourt', city: 'Medellín', phone: '3001234567' },
-      last_update: '2026-02-09T10:30:00'
-    }
-  ]);
-  const [loading, setLoading] = useState(false);
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<'all' | ShippingStatus>('all');
+
+  const fetchShipments = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+        const data = await apiRequest<any[]>('/admin/shipments', { token });
+        if (data) {
+            const mapped = data.map(s => ({
+                id: s.id,
+                tracking_number: s.tracking_number || 'S/N',
+                order_id: s.order_id,
+                carrier: s.carrier || 'Por asignar',
+                status: s.status as ShippingStatus,
+                customer: { 
+                    name: s.recipient_name || 'Cliente', 
+                    city: s.destination_address || 'Sin dirección',
+                    phone: '' // Podríamos traerlo del pedido si fuera necesario
+                },
+                last_update: s.updated_at
+            }));
+            setShipments(mapped);
+        }
+    } catch (e) {
+        showToast("Error al cargar envíos", "error");
+    } finally {
+        setLoading(false);
+    }
+  }, [token, showToast]);
+
+  const handleUpdateStatus = async (shipmentId: string, newStatus: ShippingStatus) => {
+    try {
+        await apiRequest(`/admin/shipments/${shipmentId}/status`, {
+            method: 'PATCH',
+            token,
+            body: JSON.stringify({ status: newStatus })
+        });
+        showToast("Estado actualizado ✨", "success");
+        fetchShipments();
+        // Si hay uno seleccionado, actualizarlo también
+        if (selectedShipment?.id === shipmentId) {
+            setSelectedShipment(prev => prev ? { ...prev, status: newStatus } : null);
+        }
+    } catch (e) {
+        showToast("Error al actualizar", "error");
+    }
+  };
+
+  useEffect(() => {
+    fetchShipments();
+    const handleFocus = () => fetchShipments();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchShipments]);
   
   // UI & Filters
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
@@ -359,7 +403,19 @@ export default function ShippingPage() {
                                 <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${getStatusInfo(selectedShipment.status)?.color}`}>{getStatusInfo(selectedShipment.status)?.icon}</div>
                                 <div><p className="text-[10px] font-black text-gray-400 tracking-widest">Estado actual</p><h4 className="text-lg font-black text-gray-900 italic">{getStatusInfo(selectedShipment.status)?.label}</h4></div>
                             </div>
-                            <button onClick={() => { showToast("Sincronizando...", "info"); setTimeout(() => showToast("Estado actualizado ✨", "success"), 1500); }} className="h-10 px-4 bg-[#004D4D] text-white rounded-xl text-[10px] font-black tracking-widest shadow-lg hover:bg-black transition-all">Actualizar</button>
+                            
+                            <select 
+                                value={selectedShipment.status} 
+                                onChange={(e) => handleUpdateStatus(selectedShipment.id, e.target.value as ShippingStatus)}
+                                className="h-10 px-4 bg-[#004D4D] text-white rounded-xl text-[10px] font-black tracking-widest shadow-lg outline-none cursor-pointer"
+                            >
+                                <option value="label_generated">Guía generada</option>
+                                <option value="in_transit">En tránsito</option>
+                                <option value="out_for_delivery">En reparto</option>
+                                <option value="delivered">Entregado</option>
+                                <option value="incident">Incidencia</option>
+                                <option value="returned">Devuelto</option>
+                            </select>
                         </div>
                         <div className="space-y-4 text-slate-900">
                             <h5 className="text-[10px] font-black text-gray-400 tracking-[0.3em] ml-2">Destinatario</h5>

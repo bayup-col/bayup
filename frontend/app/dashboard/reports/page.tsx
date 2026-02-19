@@ -112,79 +112,72 @@ function ReportsContent() {
     const [activeTab, setActiveTab] = useState<'general' | 'sucursales' | 'asesores' | 'nomina' | 'bayt'>(initialTab);
     const [selectedPeriod, setSelectedPeriod] = useState('Este mes');
     const [isPeriodOpen, setIsPeriodOpen] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const tab = searchParams.get('tab');
-        if (tab && (tab === 'nomina' || tab === 'general')) {
-            setActiveTab(tab as any);
+    // --- DATOS REALES ---
+    const [orders, setOrders] = useState<any[]>([]);
+    const [expenses, setExpenses] = useState<any[]>([]);
+
+    const fetchData = useCallback(async () => {
+        if (!token) return;
+        setLoading(true);
+        try {
+            const [oData, eData] = await Promise.all([
+                apiRequest<any[]>('/orders', { token }),
+                apiRequest<any[]>('/expenses', { token }).catch(() => [])
+            ]);
+            if (oData) setOrders(oData);
+            if (eData) setExpenses(eData);
+        } catch (e) {
+            console.error("Error cargando inteligencia:", e);
+        } finally {
+            setLoading(false);
         }
-    }, [searchParams]);
+    }, [token]);
 
-    const [showInfoModal, setShowInfoModal] = useState(false);
-    const [isMapOpen, setIsMapOpen] = useState(false);
-    const [isGoalsModalOpen, setIsGoalsModalOpen] = useState(false);
-    const [selectedAdvisor, setSelectedAdvisor] = useState<any>(null);
-    const [searchTerm, setSearchTerm] = useState("");
+    useEffect(() => { fetchData(); }, [fetchData]);
 
-    // --- ESTADOS NÓMINA ---
-    const [payrollStaff, setPayrollStaff] = useState<any[]>([]);
-    const [filterRole, setFilterRole] = useState("all");
-    const [isSyncing, setIsSyncing] = useState(false);
-    const [memberToLiquidate, setMemberToLiquidate] = useState<any>(null);
+    const stats = useMemo(() => {
+        const totalRevenue = orders.reduce((acc, o) => acc + (o.total_price || 0), 0);
+        const totalExpenses = expenses.reduce((acc, e) => acc + (e.amount || 0), 0);
+        const netProfit = totalRevenue - totalExpenses;
+        const avgTicket = orders.length > 0 ? totalRevenue / orders.length : 0;
 
-    const BASE_MOCK_STAFF: any[] = [];
-
-    useEffect(() => {
-        const saved = localStorage.getItem('bayup_payroll_data');
-        setPayrollStaff(saved ? JSON.parse(saved) : BASE_MOCK_STAFF);
-    }, []);
-
-    const savePayroll = (data: any[]) => {
-        setPayrollStaff(data);
-        localStorage.setItem('bayup_payroll_data', JSON.stringify(data));
-    };
-
-    const handleLiquidar = (member: any) => setMemberToLiquidate(member);
-    
-    const handleSincronizarStaff = () => {
-        setIsSyncing(true);
-        showToast("Sincronizando staff...", "info");
-        setTimeout(() => { showToast("Sincronización completa", "success"); setIsSyncing(false); }, 2000);
-    };
-
-    const filteredPayrollStaff = useMemo(() => {
-        return payrollStaff.filter(s => {
-            const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesRole = filterRole === 'all' || s.role === filterRole;
-            return matchesSearch && matchesRole;
+        // Tendencia Semanal (Últimos 7 días)
+        const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const trend = Array.from({length: 7}, (_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            const dayName = days[d.getDay()];
+            const dateStr = d.toISOString().split('T')[0];
+            const daySales = orders
+                .filter(o => o.created_at.startsWith(dateStr))
+                .reduce((acc, o) => acc + (o.total_price || 0), 0);
+            return { name: dayName, actual: daySales, anterior: daySales * 0.8 }; // Simulación de periodo anterior para comparativa
         });
-    }, [payrollStaff, searchTerm, filterRole]);
 
-    const totalPayroll = useMemo(() => payrollStaff.reduce((acc, s) => acc + (s.base_salary + s.commissions + s.bonuses - s.deductions), 0), [payrollStaff]);
+        // Ventas por Canal
+        const channels = [
+            { name: 'WhatsApp', key: 'WhatsApp', color: '#10b981' },
+            { name: 'Tienda Física (POS)', key: 'pos', color: '#004d4d' },
+            { name: 'Página Web', key: 'web', color: '#00f2ff' }
+        ];
+        const byChannel = channels.map(c => ({
+            name: c.name,
+            value: orders.filter(o => (o.source || '').toLowerCase() === c.key.toLowerCase()).reduce((acc, o) => acc + (o.total_price || 0), 0),
+            color: c.color
+        }));
 
-    const [selectedMetric, setSelectedMetric] = useState<any>(null);
-
-    const PERIOD_OPTIONS = [
-        "Hoy",
-        "Ayer",
-        "Esta semana",
-        "Este mes",
-        "Mes pasado",
-        "Últimos 3 meses",
-        "Este año"
-    ];
-
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
-    };
+        return { totalRevenue, totalExpenses, netProfit, avgTicket, trend, byChannel };
+    }, [orders, expenses]);
 
     const KPIS = [
-        { label: 'Ventas brutas', value: '$ 0', sub: 'Total ingresos', icon: <DollarSign size={18}/>, color: 'text-[#004d4d]', trend: 'Live' },
-        { label: 'Utilidad neta', value: '$ 0', sub: 'Margen real', icon: <TrendingUp size={18}/>, color: 'text-emerald-600', trend: 'Live' },
-        { label: 'Gastos operativos', value: '$ 0', sub: 'Fijos y variables', icon: <CreditCard size={18}/>, color: 'text-rose-600', trend: 'Live' },
-        { label: 'Ticket promedio', value: '$ 0', sub: 'Valor por venta', icon: <ShoppingBag size={18}/>, color: 'text-amber-600', trend: 'OK' },
+        { label: 'Ventas brutas', value: formatCurrency(stats.totalRevenue), sub: 'Total ingresos', icon: <DollarSign size={18}/>, color: 'text-[#004d4d]', trend: 'Live' },
+        { label: 'Utilidad neta', value: formatCurrency(stats.netProfit), sub: 'Margen real', icon: <TrendingUp size={18}/>, color: 'text-emerald-600', trend: 'Live' },
+        { label: 'Gastos operativos', value: formatCurrency(stats.totalExpenses), sub: 'Fijos y variables', icon: <CreditCard size={18}/>, color: 'text-rose-600', trend: 'Live' },
+        { label: 'Ticket promedio', value: formatCurrency(stats.avgTicket), sub: 'Valor por venta', icon: <ShoppingBag size={18}/>, color: 'text-amber-600', trend: 'OK' },
+        { label: 'Pedidos totales', value: orders.length.toString(), sub: 'Volumen físico/web', icon: <Briefcase size={18}/>, color: 'text-blue-600', trend: 'OK', isSimple: true },
         { label: 'Conversión', value: '0%', sub: 'Efectividad web', icon: <Activity size={18}/>, color: 'text-[#00f2ff]', trend: 'N/A' },
-        { label: 'Staff ROI', value: '0x', sub: 'Retorno personal', icon: <Briefcase size={18}/>, color: 'text-blue-600', trend: 'OK' },
     ];
 
     const [activeHistoryTab, setActiveHistoryTab] = useState<'maestro' | 'riesgos' | 'hitos'>('maestro');
@@ -251,7 +244,7 @@ function ReportsContent() {
                     </div>
                     <div className="flex-1 min-h-0">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={SALES_TREND}>
+                            <AreaChart data={stats.trend}>
                                 <defs>
                                     <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#004d4d" stopOpacity={0.1}/>
@@ -261,7 +254,10 @@ function ReportsContent() {
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                                <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} />
+                                <Tooltip 
+                                    contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
+                                    formatter={(value: number) => formatCurrency(value)}
+                                />
                                 <Area type="monotone" dataKey="actual" stroke="#004d4d" strokeWidth={4} fillOpacity={1} fill="url(#colorActual)" />
                                 <Area type="monotone" dataKey="anterior" stroke="#d1d5db" strokeWidth={2} strokeDasharray="5 5" fill="transparent" />
                             </AreaChart>
@@ -277,7 +273,7 @@ function ReportsContent() {
                     </div>
                     <div className="flex-1 min-h-0 relative z-10 flex flex-col justify-center">
                         <div className="space-y-6">
-                            {REVENUE_BY_CHANNEL.map((channel, i) => (
+                            {stats.byChannel.map((channel, i) => (
                                 <div key={i} className="space-y-2">
                                     <div className="flex justify-between items-end">
                                         <span className="text-xs font-black text-white/80 tracking-widest">{channel.name}</span>
@@ -286,7 +282,7 @@ function ReportsContent() {
                                     <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
                                         <motion.div 
                                             initial={{ width: 0 }} 
-                                            animate={{ width: `${(channel.value / 4500000) * 100}%` }} 
+                                            animate={{ width: `${stats.totalRevenue > 0 ? (channel.value / stats.totalRevenue) * 100 : 0}%` }} 
                                             className="h-full rounded-full"
                                             style={{ backgroundColor: channel.color }}
                                         ></motion.div>

@@ -54,7 +54,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return encoded_jwt
 
 # --- Current User Dependency ---
-def get_current_user(
+async def get_current_user(
     token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ) -> models.User:
     credentials_exception = HTTPException(
@@ -62,14 +62,23 @@ def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    email: str | None = None
+    
+    # 1. Intentar como Token Local (HS256)
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str | None = payload.get("sub")
-        print(f"DEBUG SECURITY: Token decodificado para email: {email}")
-        if email is None:
+        email = payload.get("sub")
+    except JWTError:
+        # 2. Si falla el local, intentar como Token de Clerk (RS256)
+        from clerk_auth_service import verify_clerk_token
+        try:
+            clerk_user = await verify_clerk_token(token)
+            email = clerk_user.get("email")
+        except Exception:
             raise credentials_exception
-    except JWTError as e:
-        print(f"DEBUG SECURITY: Error de JWT: {str(e)}")
+    
+    if email is None:
         raise credentials_exception
     
     user = crud.get_user_by_email(db, email=email)

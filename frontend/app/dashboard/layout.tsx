@@ -537,7 +537,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
         </main>
         
-        <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />
+        {(planName === 'Empresa' || isGlobalStaff) && (
+          <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />
+        )}
       </div>
 
       {isUserSettingsOpen && (

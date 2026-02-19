@@ -18,6 +18,8 @@ const FloatingParticlesBackground = dynamic(
   }
 );
 
+import { SignInButton, useSession } from "@clerk/nextjs";
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,7 +33,29 @@ export default function LoginPage() {
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, clerkLogin } = useAuth();
+  const { session } = useSession();
+
+  // Sincronización automática si el usuario inicia sesión con Clerk
+  useEffect(() => {
+    const syncClerk = async () => {
+      if (session) {
+        setIsLoading(true);
+        try {
+          const token = await session.getToken();
+          if (token) {
+            await clerkLogin(token);
+            setIsSuccess(true);
+          }
+        } catch (err: any) {
+          setError(err.message || "Error al sincronizar con Clerk");
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    syncClerk();
+  }, [session, clerkLogin]);
 
   useEffect(() => {
     // Cleanup de WebGL y GSAP para evitar "Context Lost" e "Invalid scope"
@@ -325,6 +349,22 @@ export default function LoginPage() {
                     </div>
                   </motion.div>
                 </button>
+
+                <div className="w-full flex items-center gap-4 py-2">
+                  <div className="flex-1 h-px bg-gray-100" />
+                  <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">O accede con</span>
+                  <div className="flex-1 h-px bg-gray-100" />
+                </div>
+
+                <SignInButton mode="modal">
+                   <button 
+                    type="button"
+                    className="w-full py-5 rounded-[2rem] border-2 border-gray-50 flex items-center justify-center gap-3 hover:bg-gray-50 transition-all group/clerk"
+                   >
+                     <img src="https://clerk.com/favicon.ico" className="w-4 h-4 grayscale group-hover/clerk:grayscale-0 transition-all" alt="Clerk" />
+                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover/clerk:text-black">Google / Otros</span>
+                   </button>
+                </SignInButton>
 
                 <div className="flex flex-col items-center gap-2 mt-4">
                   <p className="text-gray-400 text-[9px] font-bold uppercase tracking-wider text-center">

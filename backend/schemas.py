@@ -36,6 +36,7 @@ class UserCreate(UserBase):
     password: str
     role: str | None = "admin_tienda"
     permissions: Optional[Dict[str, bool]] = {}
+    plan_id: Optional[uuid.UUID] = None
 
 class User(UserBase):
     id: uuid.UUID

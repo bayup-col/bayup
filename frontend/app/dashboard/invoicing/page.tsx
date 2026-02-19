@@ -199,14 +199,30 @@ export default function InvoicingPage() {
     };
 
     const addToCart = (product: Product, variantsMap?: Record<string, any>, customPrice?: number) => {
-        const selections = variantsMap ? Object.values(variantsMap) : (product.variants?.slice(0, 1) || []);
-        if (selections.length === 0) { showToast("Selecciona una variante", "error"); return; }
+        // 1. Si el producto no tiene variantes configuradas, usamos el ID del producto como fallback 
+        // pero lo ideal es que el backend maneje el caso de producto base.
+        // Por ahora, forzamos que si no hay variantes, se use una estructura compatible.
+        const selections = variantsMap && Object.keys(variantsMap).length > 0 
+            ? Object.values(variantsMap) 
+            : (product.variants?.length ? [product.variants[0]] : [{ id: product.id, name: 'Base', sku: product.sku, price_adjustment: 0 }]);
+
         selections.forEach((variant: any) => {
-            let finalPrice = customPrice !== undefined ? customPrice / selections.length : (customerInfo.type === 'mayorista' ? (product.wholesale_price || product.price) : product.price) + (variant.price_adjustment || 0);
-            const mainImg = Array.isArray(product.image_url) && product.image_url.length > 0 ? product.image_url[0] : (typeof product.image_url === 'string' ? product.image_url : null);
+            let finalPrice = customPrice !== undefined 
+                ? customPrice / selections.length 
+                : (customerInfo.type === 'mayorista' ? (product.wholesale_price || product.price) : product.price) + (variant.price_adjustment || 0);
+            
+            const mainImg = Array.isArray(product.image_url) && product.image_url.length > 0 
+                ? product.image_url[0] 
+                : (typeof product.image_url === 'string' ? product.image_url : null);
+
             setInvoiceItems(prev => [...prev, {
-                id: product.id, variant_id: variant.id, name: `${product.name} (${variant.name}: ${variant.sku})`,
-                price: finalPrice, quantity: 1, sku: variant.sku || product.sku, image: variant.image_url || mainImg
+                id: product.id, 
+                variant_id: variant.id, // Este es el product_variant_id que espera el backend
+                name: variant.name === 'Base' ? product.name : `${product.name} (${variant.name}: ${variant.sku})`,
+                price: finalPrice, 
+                quantity: 1, 
+                sku: variant.sku || product.sku, 
+                image: variant.image_url || mainImg
             }]);
         });
         setSelectedProductForVariant(null);

@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
 
+import { UserButton } from "@clerk/nextjs";
+
 interface HeaderProps {
     pathname: string;
     userEmail: string | null;
@@ -30,11 +32,13 @@ export const DashboardHeader = ({
     setIsBaytOpen
 }: HeaderProps) => {
     const { theme, toggleTheme } = useTheme();
-    const { token } = useAuth();
+    const { token, userPlan, isGlobalStaff } = useAuth();
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [isHoveringUser, setIsHoveringUser] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
     const lastCountRef = useRef(0);
+
+    const isEmpresaPlan = userPlan?.name === 'Empresa' || isGlobalStaff;
 
     // Polling de Notificaciones Reales
     useEffect(() => {
@@ -97,8 +101,14 @@ export const DashboardHeader = ({
 
                     <div className="px-4 py-1.5 flex items-center gap-4">
                         <button onClick={toggleTheme} className="p-2 rounded-full text-[#004d4d]/60 hover:text-[#00F2FF]">{theme === 'light' ? <Moon size={20} /> : <Sun size={20} className="text-[#00F2FF]" />}</button>
-                        <div className="h-6 w-px bg-[#004d4d]/10"></div>
-                        <button onClick={() => setIsBaytOpen(!isBaytOpen)} className={`p-2 rounded-full ${isBaytOpen ? 'text-[#00F2FF]' : 'text-[#004d4d]/60'}`}><Bot size={20} /></button>
+                        
+                        {isEmpresaPlan && (
+                            <>
+                                <div className="h-6 w-px bg-[#004d4d]/10"></div>
+                                <button onClick={() => setIsBaytOpen(!isBaytOpen)} className={`p-2 rounded-full ${isBaytOpen ? 'text-[#00F2FF]' : 'text-[#004d4d]/60'}`}><Bot size={20} /></button>
+                            </>
+                        )}
+
                         <div className="h-6 w-px bg-[#004d4d]/10"></div>
                         
                         <div className="relative">
@@ -140,9 +150,15 @@ export const DashboardHeader = ({
 
                         <div className="h-6 w-px bg-[#004d4d]/10"></div>
 
-                        <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="h-10 w-10 rounded-2xl bg-[#001A1A] flex items-center justify-center text-[#00F2FF] text-xs font-black border border-white/10 shadow-lg">
-                            {userEmail?.charAt(0).toUpperCase()}
-                        </button>
+                        <UserButton 
+                            afterSignOutUrl="/login"
+                            appearance={{
+                                elements: {
+                                    userButtonAvatarBox: "h-10 w-10 rounded-2xl border border-white/10 shadow-lg",
+                                    userButtonTrigger: "focus:shadow-none focus:outline-none"
+                                }
+                            }}
+                        />
                     </div>
                 </div>
             </div>
