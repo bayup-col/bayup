@@ -8,13 +8,7 @@
         "type": "navbar",
         "props": {
           "logoText": "Tech Hub",
-          "logoColor": "#1152d4",
-          "menuItems": [
-            { "label": "Portátiles", "url": "#" },
-            { "label": "Equipos de Mesa", "url": "#" },
-            { "label": "Monitores", "url": "#" },
-            { "label": "Periféricos", "url": "#" }
-          ]
+          "logoColor": "#1152d4"
         }
       }
     ],
@@ -30,8 +24,7 @@
           "title": "Potencia Sin Límites",
           "subtitle": "Descubre la colección más sofisticada de equipos de alto rendimiento para creadores y entusiastas.",
           "imageUrl": "https://lh3.googleusercontent.com/aida-public/AB6AXuA17Rpe-FtCEq4NwuVPneKunE2pp-SpNa0AQhop6nLhgUSmNDl6bZIi-AL2jKeNaSOGQf7zM3cDdkv474laRk4vzbZjw-FDeikod-tNcClrPjww19vA4otbCjSkqlM_AlHcxlg2lSA_UOSEijPRqD0PhZ_4Ojo7C2H1PfI425cgXSPXHZyMTLAp9wnpwV00kRv72KqUM_PbQesXN5_Nr3C9xysdgvX0NYewwOIrGtMoz6DkqVODUMxQ9x7BBUCXyiYbtE1Pc4508vY",
-          "primaryBtnText": "Explorar Colección",
-          "primaryBtnBgColor": "#1152d4"
+          "primaryBtnText": "Explorar Colección"
         }
       },
       {
@@ -40,17 +33,22 @@
         "props": {
           "title": "Categorías Principales",
           "items": [
-            { "label": "Portátiles", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuAGQIMRa97NJip31wpGAHIjRsYQVDketlkgveChd_P6hqX1OY-fLk_1fk1DRWc81ZztjnTv_a3xgSAUe4tbJ0oNWk2yIo92K0oGNnrfOhi2BsHJgUpA0FURwHtku92V9kpSLcySlDYLqLCz0p9PutvN_OWy1VzVux61GRQEwjbcAnf2vpCU2-qXWF0N8pcE5Z2gHxr9qdcfh5_klfDmXpnXa6g15Y5xrf3qyBQC77yMf_IviYX82yD81FVSxdGZjcgRk7cMvE2_uko" },
-            { "label": "Equipos de Mesa", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuA6p84fY7jo7KFvw8a3TXEffaOPR-rpRU8J3cvNjVUwhn6MhOjqZR0jWd6wNQdTQrUwliTNg_8xViotlzLLqHBTKwmv6GHzlx_ZYJyAljgYOLNOxX4klCzt3VEEafmNkqGmN8Cdq90Vc_LCjTpM1NexZwQ7flAiDyoBeb4Y-2xlXOiLN5WvFLhMKtxO3_-rd75HoQnaxPRmfMoSnM1WD2XoI5h0l7HvNOJv6hXf3AoQ5zoE6mz05yGO5Bd2rdRo4d5FYSFURI4PBBw" },
-            { "label": "Monitores", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuAJ9RQwuvmxqohhyKUb5B2t2EriONvRso4gqMTBpT-7ZQpVXFzERsVucdhD0VNdgPIi5fqv4_zCihQqQVRN_DjxYwABvHt-oG4hkhQWUJ0l3y6Y7TSqdLGwbClerk7Y7ykoR8TerDr4qVSPu8vzTpORXBynAKE3S_fcz83JcawlnU7Np_c2nJB6MInl8HKsXaqnYCGs1ZrargZbwZmgaToZxm9obD0q-ZPuJ9PDMot3jhxULozBXskS9Y0C9Wntq1H0aQxEnXWcaoI" },
-            { "label": "Periféricos", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuAFwpJxKljcx4IMeP33pq5pZ5fiwDG1FvFOy2_6bQdfbDtc-ZHdJEvhia2d4TULAJeT0-j2kq3viix9y912L04rj3yo2BQbXidxTGrGtrE5MuDBk_5iHt0FgtXj8z-a-ng1Vpvll4zp72F5-qU_pHKtSUmuKCv2kFM6hGKbHSewXn8IIPi8wA6ISH-sZDMmZ9kpu_r1NvtaqInmSxRAdB1DHlBv3HmKMmw77L0hXnNirzP367S9Z0ZrvfBoxslneqx_sWz-wbTJRHI" }
+            { "label": "Portátiles", "sub": "Explorar series Pro", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuAGQIMRa97NJip31wpGAHIjRsYQVDketlkgveChd_P6hqX1OY-fLk_1fk1DRWc81ZztjnTv_a3xgSAUe4tbJ0oNWk2yIo92K0oGNnrfOhi2BsHJgUpA0FURwHtku92V9kpSLcySlDYLqLCz0p9PutvN_OWy1VzVux61GRQEwjbcAnf2vpCU2-qXWF0N8pcE5Z2gHxr9qdcfh5_klfDmXpnXa6g15Y5xrf3qyBQC77yMf_IviYX82yD81FVSxdGZjcgRk7cMvE2_uko" },
+            { "label": "Equipos de Mesa", "sub": "Workstations de alto nivel", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuA6p84fY7jo7KFvw8a3TXEffaOPR-rpRU8J3cvNjVUwhn6MhOjqZR0jWd6wNQdTQrUwliTNg_8xViotlzLLqHBTKwmv6GHzlx_ZYJyAljgYOLNOxX4klCzt3VEEafmNkqGmN8Cdq90Vc_LCjTpM1NexZwQ7flAiDyoBeb4Y-2xlXOiLN5WvFLhMKtxO3_-rd75HoQnaxPRmfMoSnM1WD2XoI5h0l7HvNOJv6hXf3AoQ5zoE6mz05yGO5Bd2rdRo4d5FYSFURI4PBBw" },
+            { "label": "Monitores", "sub": "Paneles 4K & 8K", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuAJ9RQwuvmxqohhyKUb5B2t2EriONvRso4gqMTBpT-7ZQpVXFzERsVucdhD0VNdgPIi5fqv4_zCihQqQVRN_DjxYwABvHt-oG4hkhQWUJ0l3y6Y7TSqdLGwbClerk7Y7ykoR8TerDr4qVSPu8vzTpORXBynAKE3S_fcz83JcawlnU7Np_c2nJB6MInl8HKsXaqnYCGs1ZrargZbwZmgaToZxm9obD0q-ZPuJ9PDMot3jhxULozBXskS9Y0C9Wntq1H0aQxEnXWcaoI" },
+            { "label": "Periféricos", "sub": "Accesorios premium", "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuAFwpJxKljcx4IMeP33pq5pZ5fiwDG1FvFOy2_6bQdfbDtc-ZHdJEvhia2d4TULAJeT0-j2kq3viix9y912L04rj3yo2BQbXidxTGrGtrE5MuDBk_5iHt0FgtXj8z-a-ng1Vpvll4zp72F5-qU_pHKtSUmuKCv2kFM6hGKbHSewXn8IIPi8wA6ISH-sZDMmZ9kpu_r1NvtaqInmSxRAdB1DHlBv3HmKMmw77L0hXnNirzP367S9Z0ZrvfBoxslneqx_sWz-wbTJRHI" }
           ]
         }
       },
       {
-        "id": "comp-products",
+        "id": "comp-novedades",
         "type": "product-grid",
         "props": { "title": "Novedades" }
+      },
+      {
+        "id": "comp-trust",
+        "type": "trust-banner",
+        "props": {}
       }
     ],
     "styles": {}
