@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { ShoppingBag, User, Search, Terminal, Grid, ArrowForward } from 'lucide-react';
+import { ShoppingBag, User, Search, Terminal, Grid, ArrowRight } from 'lucide-react';
 
 /**
  * Estos componentes son una copia exacta del diseño HTML del usuario.
