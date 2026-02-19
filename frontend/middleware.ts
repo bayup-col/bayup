@@ -20,7 +20,10 @@ export default clerkMiddleware(async (auth, request) => {
     return;
   }
 
-  if (isPublicRoute(request)) return;
+  // 1. Si es una ruta pública o una plantilla estática, no hacer nada
+  if (isPublicRoute(request) || request.nextUrl.pathname.startsWith('/templates')) {
+    return;
+  }
 
   await auth.protect();
 });
