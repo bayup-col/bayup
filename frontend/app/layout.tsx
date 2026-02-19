@@ -32,7 +32,12 @@ export default function RootLayout({
                 
                 console.warn = function() {
                   const msg = arguments[0];
-                  if (msg && typeof msg === 'string' && (msg.includes('feature_collector') || msg.includes('deprecated parameters'))) {
+                  if (msg && typeof msg === 'string' && (
+                    msg.includes('feature_collector') || 
+                    msg.includes('deprecated parameters') ||
+                    msg.includes('Invalid scope') ||
+                    msg.includes('THREE')
+                  )) {
                     return;
                   }
                   originalWarn.apply(console, arguments);
@@ -40,7 +45,11 @@ export default function RootLayout({
 
                 console.error = function() {
                   const msg = arguments[0];
-                  if (msg && typeof msg === 'string' && msg.includes('feature_collector')) {
+                  if (msg && typeof msg === 'string' && (
+                    msg.includes('feature_collector') ||
+                    msg.includes('THREE.WebGLRenderer') ||
+                    msg.includes('WebGL context')
+                  )) {
                     return;
                   }
                   originalError.apply(console, arguments);

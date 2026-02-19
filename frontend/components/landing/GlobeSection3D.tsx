@@ -202,7 +202,12 @@ function GlowHeading({ children, mousePos }: { children: React.ReactNode, mouseP
 
 export const GlobeSection3D = () => {
   const [headingMousePos, setHeadingMousePos] = useState({ x: 50, y: 50 });
+  const [isMounted, setIsMounted] = useState(false);
   const headingRef = useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleHeadingMouseMove = (e: React.MouseEvent) => {
     if (!headingRef.current) return;
@@ -217,24 +222,28 @@ export const GlobeSection3D = () => {
       
       {/* BACKGROUND CANVAS (Starfield + Particles) */}
       <div className="absolute inset-0 z-0">
-        <Canvas camera={{ position: [0, 0, 15] }}>
-          <MouseLight />
-          <FloatingParticlesLayer />
-          <InteractiveStars />
-          <CometSystem />
-          <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-        </Canvas>
+        {isMounted && (
+          <Canvas camera={{ position: [0, 0, 15] }}>
+            <MouseLight />
+            <FloatingParticlesLayer />
+            <InteractiveStars />
+            <CometSystem />
+            <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+          </Canvas>
+        )}
       </div>
 
       {/* MOBILE GLOBE BACKGROUND */}
       <div className="absolute inset-0 z-1 lg:hidden">
-        <Canvas>
-          <PerspectiveCamera makeDefault position={[0, 0, 8]} />
-          <OrbitControls enableZoom={false} enablePan={false} makeDefault rotateSpeed={0.5} />
-          <ambientLight intensity={0.5} />
-          <pointLight position={[10, 10, 10]} color="#00f2ff" intensity={1} />
-          <Suspense fallback={null}><GlobeMesh /></Suspense>
-        </Canvas>
+        {isMounted && (
+          <Canvas>
+            <PerspectiveCamera makeDefault position={[0, 0, 8]} />
+            <OrbitControls enableZoom={false} enablePan={false} makeDefault rotateSpeed={0.5} />
+            <ambientLight intensity={0.5} />
+            <pointLight position={[10, 10, 10]} color="#00f2ff" intensity={1} />
+            <Suspense fallback={null}><GlobeMesh /></Suspense>
+          </Canvas>
+        )}
       </div>
 
       <div className="container mx-auto px-6 md:px-12 relative z-10 flex flex-col lg:grid lg:grid-cols-2 gap-10 md:gap-20 items-center justify-center h-full">
@@ -279,13 +288,15 @@ export const GlobeSection3D = () => {
 
         {/* DESKTOP GLOBE (HIDDEN ON MOBILE) */}
         <div className="hidden lg:flex relative h-[600px] items-center justify-center cursor-grab active:cursor-grabbing">
-          <Canvas>
-            <PerspectiveCamera makeDefault position={[0, 0, 6]} />
-            <OrbitControls enableZoom={false} enablePan={false} makeDefault rotateSpeed={0.5} enableDamping={true} dampingFactor={0.05} />
-            <ambientLight intensity={0.5} />
-            <pointLight position={[10, 10, 10]} color="#00f2ff" intensity={1} />
-            <Suspense fallback={null}><GlobeMesh /></Suspense>
-          </Canvas>
+          {isMounted && (
+            <Canvas>
+              <PerspectiveCamera makeDefault position={[0, 0, 6]} />
+              <OrbitControls enableZoom={false} enablePan={false} makeDefault rotateSpeed={0.5} enableDamping={true} dampingFactor={0.05} />
+              <ambientLight intensity={0.5} />
+              <pointLight position={[10, 10, 10]} color="#00f2ff" intensity={1} />
+              <Suspense fallback={null}><GlobeMesh /></Suspense>
+            </Canvas>
+          )}
           
           <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute top-1/4 right-1/4 bg-white/[0.02] backdrop-blur-[100px] border-2 border-white/40 p-8 rounded-[3rem] space-y-2 pointer-events-none shadow-[0_40px_80px_-15px_rgba(0,77,77,0.4)] border-b-cyan/30 isolate">
             <div className="absolute inset-0 bg-petroleum/10 rounded-[3rem] -z-10" />

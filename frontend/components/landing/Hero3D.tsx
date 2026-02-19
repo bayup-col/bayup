@@ -63,9 +63,11 @@ function ProductModel({ index, mouse }: { index: number, mouse: React.MutableRef
 
 export const Hero3D = () => {
   const [index, setIndex] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
   const mouse = useRef<[number, number]>([0, 0]);
 
   useEffect(() => {
+    setIsMounted(true);
     const handleMouseMove = (e: MouseEvent) => {
       mouse.current = [
         (e.clientX / window.innerWidth) * 2 - 1,
@@ -155,18 +157,20 @@ export const Hero3D = () => {
 
       {/* 3. El Escaparate 3D Interactivo */}
       <div className="absolute inset-0 z-10 cursor-grab active:cursor-grabbing">
-        <Canvas dpr={[1, 2]} gl={{ antialias: true }}>
-          <PerspectiveCamera makeDefault position={[0, 0, 5]} fov={50} />
-          <ambientLight intensity={0.5} />
-          <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={2} />
-          <pointLight position={[-10, -10, -10]} color={products[index].color} intensity={1} />
-          
-          <Suspense fallback={null}>
-            <ProductModel index={index} mouse={mouse} />
-            <ContactShadows position={[0, -2.5, 0]} opacity={0.4} scale={10} blur={2} far={4.5} />
-            <Environment preset="city" />
-          </Suspense>
-        </Canvas>
+        {isMounted && (
+          <Canvas dpr={[1, 2]} gl={{ antialias: true }}>
+            <PerspectiveCamera makeDefault position={[0, 0, 5]} fov={50} />
+            <ambientLight intensity={0.5} />
+            <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={2} />
+            <pointLight position={[-10, -10, -10]} color={products[index].color} intensity={1} />
+            
+            <Suspense fallback={null}>
+              <ProductModel index={index} mouse={mouse} />
+              <ContactShadows position={[0, -2.5, 0]} opacity={0.4} scale={10} blur={2} far={4.5} />
+              <Environment preset="city" />
+            </Suspense>
+          </Canvas>
+        )}
       </div>
 
     </section>
