@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tech Hub | Home de Computación Premium</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1152d4",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                        "slate-custom": "#1e293b",
+                        "silver-custom": "#e2e8f0"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display transition-colors duration-300">
+<!-- Navigation Bar -->
+<header class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-8">
+<!-- Logo -->
+<div class="flex items-center gap-3 shrink-0">
+<div class="bg-primary text-white p-2 rounded-lg">
+<span class="material-symbols-outlined block">terminal</span>
+</div>
+<h1 class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white uppercase">Tech Hub</h1>
+</div>
+<!-- Main Nav -->
+<nav class="hidden lg:flex items-center gap-8">
+<a class="text-sm font-semibold hover:text-primary transition-colors" href="#">Portátiles</a>
+<a class="text-sm font-semibold hover:text-primary transition-colors" href="#">Equipos de Mesa</a>
+<a class="text-sm font-semibold hover:text-primary transition-colors" href="#">Monitores</a>
+<a class="text-sm font-semibold hover:text-primary transition-colors" href="#">Periféricos</a>
+</nav>
+<!-- Search & Actions -->
+<div class="flex items-center gap-6 flex-1 justify-end">
+<div class="relative max-w-xs w-full hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-full text-sm focus:ring-2 focus:ring-primary/50 placeholder:text-slate-400" placeholder="Buscar productos..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="relative p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+<span class="material-symbols-outlined">shopping_bag</span>
+<span class="absolute top-1 right-1 bg-primary text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">3</span>
+</button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+<span class="material-symbols-outlined">person</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<!-- Hero Video Section -->
+<section class="relative w-full aspect-[21/9] min-h-[500px] overflow-hidden flex items-center justify-center">
+<!-- Background Video Placeholder -->
+<div class="absolute inset-0 bg-slate-900">
+<img class="w-full h-full object-cover opacity-60 grayscale-[20%]" data-alt="Cinematic shot of a high-performance silver laptop opening" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA17Rpe-FtCEq4NwuVPneKunE2pp-SpNa0AQhop6nLhgUSmNDl6bZIi-AL2jKeNaSOGQf7zM3cDdkv474laRk4vzbZjw-FDeikod-tNcClrPjww19vA4otbCjSkqlM_AlHcxlg2lSA_UOSEijPRqD0PhZ_4Ojo7C2H1PfI425cgXSPXHZyMTLAp9wnpwV00kRv72KqUM_PbQesXN5_Nr3C9xysdgvX0NYewwOIrGtMoz6DkqVODUMxQ9x7BBUCXyiYbtE1Pc4508vY"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark/80 to-transparent"></div>
+</div>
+<!-- Overlay Content -->
+<div class="relative z-10 text-center px-6 max-w-4xl mx-auto">
+<span class="inline-block py-1 px-3 bg-primary/20 text-primary text-xs font-bold tracking-widest uppercase rounded-full mb-6">Nueva Generación 2024</span>
+<h2 class="text-5xl md:text-7xl font-black text-white mb-6 leading-[1.1] tracking-tighter">Potencia Sin Límites</h2>
+<p class="text-lg md:text-xl text-slate-200 mb-10 max-w-2xl mx-auto font-light leading-relaxed">
+                Descubre la colección más sofisticada de equipos de alto rendimiento para creadores y entusiastas.
+            </p>
+<div class="flex flex-wrap items-center justify-center gap-4">
+<button class="px-8 py-4 bg-primary text-white rounded-lg font-bold text-base hover:bg-primary/90 transition-all flex items-center gap-2 group">
+                    Explorar Colección
+                    <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+<button class="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 rounded-lg font-bold text-base transition-all flex items-center gap-2">
+<span class="material-symbols-outlined">play_circle</span>
+                    Ver Tráiler
+                </button>
+</div>
+</div>
+</section>
+<!-- Categories Grid -->
+<section class="max-w-7xl mx-auto px-6 py-20">
+<div class="flex items-end justify-between mb-12">
+<div>
+<h3 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Categorías Principales</h3>
+<div class="h-1 w-20 bg-primary mt-4"></div>
+</div>
+<a class="text-primary font-bold text-sm flex items-center gap-1 hover:underline underline-offset-4" href="#">Ver todas <span class="material-symbols-outlined text-sm">chevron_right</span></a>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Category Card 1 -->
+<div class="group relative aspect-square rounded-xl overflow-hidden cursor-pointer bg-slate-100 dark:bg-slate-800">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-90" data-alt="Minimalist laptop on white surface" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGQIMRa97NJip31wpGAHIjRsYQVDketlkgveChd_P6hqX1OY-fLk_1fk1DRWc81ZztjnTv_a3xgSAUe4tbJ0oNWk2yIo92K0oGNnrfOhi2BsHJgUpA0FURwHtku92V9kpSLcySlDYLqLCz0p9PutvN_OWy1VzVux61GRQEwjbcAnf2vpCU2-qXWF0N8pcE5Z2gHxr9qdcfh5_klfDmXpnXa6g15Y5xrf3qyBQC77yMf_IviYX82yD81FVSxdGZjcgRk7cMvE2_uko"/>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"></div>
+<div class="absolute bottom-6 left-6">
+<p class="text-white text-xl font-bold">Portátiles</p>
+<p class="text-slate-300 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">Explorar series Pro</p>
+</div>
+</div>
+<!-- Category Card 2 -->
+<div class="group relative aspect-square rounded-xl overflow-hidden cursor-pointer bg-slate-100 dark:bg-slate-800">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-90" data-alt="Powerful desktop gaming PC case" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6p84fY7jo7KFvw8a3TXEffaOPR-rpRU8J3cvNjVUwhn6MhOjqZR0jWd6wNQdTQrUwliTNg_8xViotlzLLqHBTKwmv6GHzlx_ZYJyAljgYOLNOxX4klCzt3VEEafmNkqGmN8Cdq90Vc_LCjTpM1NexZwQ7flAiDyoBeb4Y-2xlXOiLN5WvFLhMKtxO3_-rd75HoQnaxPRmfMoSnM1WD2XoI5h0l7HvNOJv6hXf3AoQ5zoE6mz05yGO5Bd2rdRo4d5FYSFURI4PBBw"/>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"></div>
+<div class="absolute bottom-6 left-6">
+<p class="text-white text-xl font-bold">Equipos de Mesa</p>
+<p class="text-slate-300 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">Workstations de alto nivel</p>
+</div>
+</div>
+<!-- Category Card 3 -->
+<div class="group relative aspect-square rounded-xl overflow-hidden cursor-pointer bg-slate-100 dark:bg-slate-800">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-90" data-alt="UltraWide curved computer monitor" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJ9RQwuvmxqohhyKUb5B2t2EriONvRso4gqMTBpT-7ZQpVXFzERsVucdhD0VNdgPIi5fqv4_zCihQqQVRN_DjxYwABvHt-oG4hkhQWUJ0l3y6Y7TSqdLGwbClerk7Y7ykoR8TerDr4qVSPu8vzTpORXBynAKE3S_fcz83JcawlnU7Np_c2nJB6MInl8HKsXaqnYCGs1ZrargZbwZmgaToZxm9obD0q-ZPuJ9PDMot3jhxULozBXskS9Y0C9Wntq1H0aQxEnXWcaoI"/>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"></div>
+<div class="absolute bottom-6 left-6">
+<p class="text-white text-xl font-bold">Monitores</p>
+<p class="text-slate-300 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">Paneles 4K &amp; 8K</p>
+</div>
+</div>
+<!-- Category Card 4 -->
+<div class="group relative aspect-square rounded-xl overflow-hidden cursor-pointer bg-slate-100 dark:bg-slate-800">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-90" data-alt="Mechanical keyboard with metallic keys" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFwpJxKljcx4IMeP33pq5pZ5fiwDG1FvFOy2_6bQdfbDtc-ZHdJEvhia2d4TULAJeT0-j2kq3viix9y912L04rj3yo2BQbXidxTGrGtrE5MuDBk_5iHt0FgtXj8z-a-ng1Vpvll4zp72F5-qU_pHKtSUmuKCv2kFM6hGKbHSewXn8IIPi8wA6ISH-sZDMmZ9kpu_r1NvtaqInmSxRAdB1DHlBv3HmKMmw77L0hXnNirzP367S9Z0ZrvfBoxslneqx_sWz-wbTJRHI"/>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"></div>
+<div class="absolute bottom-6 left-6">
+<p class="text-white text-xl font-bold">Periféricos</p>
+<p class="text-slate-300 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">Accesorios premium</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Featured Novedades Section -->
+<section class="bg-white dark:bg-background-dark/50 py-24">
+<div class="max-w-7xl mx-auto px-6">
+<div class="flex items-center justify-between mb-12">
+<div>
+<h3 class="text-3xl font-bold tracking-tight">Novedades</h3>
+<p class="text-slate-500 mt-2">Los lanzamientos más recientes del ecosistema Tech Hub.</p>
+</div>
+<div class="flex gap-2">
+<button class="w-10 h-10 flex items-center justify-center border border-slate-200 dark:border-slate-800 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center border border-slate-200 dark:border-slate-800 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Carousel -->
+<div class="flex gap-6 overflow-x-auto hide-scrollbar pb-8 scroll-smooth">
+<!-- Product Card 1 -->
+<div class="min-w-[320px] max-w-[320px] flex flex-col group">
+<div class="relative aspect-[4/5] bg-background-light dark:bg-slate-900 rounded-2xl overflow-hidden mb-6 border border-slate-100 dark:border-slate-800 transition-shadow hover:shadow-xl hover:shadow-primary/5">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Silver ultra-thin luxury laptop" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAV3LPkxLSkquL7RjfMUjxZ1tEH4IX6mq0j_O60wV-pM_KPmWIuO0-Moj1HVN-puia2HROgBcDhQBbJy5KS9-peOCOn1OEuP1NoaO4d_c5GsdrthBTNw7myDqJmVokSVtFTQ_Mmuw1HtjsJWFt5Nsu8P8IWBxO7AitG0d9zevpob6mhl012iuc5mDzmovhcbhxXbZEOQn738weVE71_70_TMGQj90W-4kahKmw62GhEBZoencAuSa0s1DtWY7cREnwCRzldSylKZEE"/>
+<button class="absolute bottom-4 right-4 bg-primary text-white w-12 h-12 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all">
+<span class="material-symbols-outlined">add_shopping_cart</span>
+</button>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Zenith Series</p>
+<h4 class="text-lg font-bold group-hover:text-primary transition-colors">Zenith Pro 16" Platinum</h4>
+<p class="text-xl font-light text-slate-900 dark:text-white mt-2">$2,499.00</p>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="min-w-[320px] max-w-[320px] flex flex-col group">
+<div class="relative aspect-[4/5] bg-background-light dark:bg-slate-900 rounded-2xl overflow-hidden mb-6 border border-slate-100 dark:border-slate-800 transition-shadow hover:shadow-xl hover:shadow-primary/5">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Large curved gaming monitor 5K resolution" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvINETcwP19hl3-pMcb4XfI_xRg3Bt8fuCmSulHiSbdpwBHD6Rg93jz-4TxYkgqFh2x5Gcd4Uq6n-Tq03O5LAMy32McnBl6JMH1-ps5PQzdZ41QgOirNpMwOsYcbmmrAGJKEGwXymRY0x0u-iULn-C1DhnyB1iDZEtsXda4hJMHYbQTuVLM2ryO0t6H9_2DaijG2hdIXre3Rn5AGyaQVMCRtxLflXQlAV2AKtDMDEwN-eBhGaf7T5wpfyAJvJNwQdlHDE9Cbm12X8"/>
+<button class="absolute bottom-4 right-4 bg-primary text-white w-12 h-12 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all">
+<span class="material-symbols-outlined">add_shopping_cart</span>
+</button>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Displays</p>
+<h4 class="text-lg font-bold group-hover:text-primary transition-colors">UltraWide 5K Curve Horizon</h4>
+<p class="text-xl font-light text-slate-900 dark:text-white mt-2">$1,299.00</p>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="min-w-[320px] max-w-[320px] flex flex-col group">
+<div class="relative aspect-[4/5] bg-background-light dark:bg-slate-900 rounded-2xl overflow-hidden mb-6 border border-slate-100 dark:border-slate-800 transition-shadow hover:shadow-xl hover:shadow-primary/5">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Minimalist mechanical keyboard wireless" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHDAlccvz6rlhJFoZO0xcOsu5mAdrGwRe_1XThEdtAFLwNYiZAqnHUj1yBu1zPOtoPGQrtzrjmr5_oHlEDXp9Ab5-Zjv-jHgabQTT0JglmUfBb2wqhb-_oifRkNxp9xXPhIkIZWyvg5olSZVA1bkrixsyrUZmtu-G307XX4dWYVqRMfyhcGLaPZJSi6WEeJZO0a8eDMbyX4ADhG12ZjQ8IBpWANnbBSHfaAgAJ7ipJLP6fsR8oodjYKi-Of2dURQfSUkMDe7SPGwU"/>
+<button class="absolute bottom-4 right-4 bg-primary text-white w-12 h-12 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all">
+<span class="material-symbols-outlined">add_shopping_cart</span>
+</button>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Accessories</p>
+<h4 class="text-lg font-bold group-hover:text-primary transition-colors">Tactile Mechanical K9 Elite</h4>
+<p class="text-xl font-light text-slate-900 dark:text-white mt-2">$189.00</p>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="min-w-[320px] max-w-[320px] flex flex-col group">
+<div class="relative aspect-[4/5] bg-background-light dark:bg-slate-900 rounded-2xl overflow-hidden mb-6 border border-slate-100 dark:border-slate-800 transition-shadow hover:shadow-xl hover:shadow-primary/5">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Wireless ergonomic mouse silver metallic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9Kw6fK_FfuyjaBCIMvtQlur25iZoWSGsSDcJrcZnTKSZtFM8nNsG2YRqd-rmZKtOdRdf-xt6TQzTaBQHAgO45hnE9d2etOS1o81Rzq8xvTjuWwT-0o6JuYFZPNdun8nfRS7gTkWm8AEKs5OhyspRAmm-hWT5bs1_4u5hboPRqN5-Ft_EzEcGKQQ0UcdmO0qQ662-2Sd0iYaO3ocbYpkchS77OpN4bwM-XUL-IhBRW16_Djk0FeGgRbbL7T-tVUzfsR4FahmIef4k"/>
+<button class="absolute bottom-4 right-4 bg-primary text-white w-12 h-12 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all">
+<span class="material-symbols-outlined">add_shopping_cart</span>
+</button>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Control</p>
+<h4 class="text-lg font-bold group-hover:text-primary transition-colors">Precision Wireless Mouse M2</h4>
+<p class="text-xl font-light text-slate-900 dark:text-white mt-2">$89.00</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Brand Values / Banner -->
+<section class="py-20 bg-background-light dark:bg-background-dark">
+<div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
+<div class="flex flex-col items-center">
+<span class="material-symbols-outlined text-4xl text-primary mb-4">verified_user</span>
+<h5 class="text-lg font-bold mb-2">Calidad Garantizada</h5>
+<p class="text-slate-500 text-sm">Componentes de grado militar probados bajo los estándares más exigentes.</p>
+</div>
+<div class="flex flex-col items-center">
+<span class="material-symbols-outlined text-4xl text-primary mb-4">local_shipping</span>
+<h5 class="text-lg font-bold mb-2">Envío Premium</h5>
+<p class="text-slate-500 text-sm">Entrega asegurada en 24-48 horas con embalaje reforzado.</p>
+</div>
+<div class="flex flex-col items-center">
+<span class="material-symbols-outlined text-4xl text-primary mb-4">support_agent</span>
+<h5 class="text-lg font-bold mb-2">Soporte Experto</h5>
+<p class="text-slate-500 text-sm">Asesoramiento técnico personalizado por especialistas en hardware.</p>
+</div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="bg-slate-900 text-slate-400 py-16 border-t border-slate-800">
+<div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+<!-- Brand Section -->
+<div class="flex flex-col gap-6">
+<div class="flex items-center gap-3 text-white">
+<span class="material-symbols-outlined">terminal</span>
+<span class="text-xl font-bold tracking-tight uppercase">Tech Hub</span>
+</div>
+<p class="text-sm leading-relaxed max-w-xs">
+                    Elevamos tu flujo de trabajo con tecnología de vanguardia y un diseño minimalista excepcional.
+                </p>
+<div class="flex gap-4">
+<a class="hover:text-white transition-colors" href="#"><span class="material-symbols-outlined">language</span></a>
+<a class="hover:text-white transition-colors" href="#"><span class="material-symbols-outlined">alternate_email</span></a>
+<a class="hover:text-white transition-colors" href="#"><span class="material-symbols-outlined">share</span></a>
+</div>
+</div>
+<!-- Links -->
+<div class="flex flex-col gap-4">
+<h6 class="text-white font-bold text-sm uppercase tracking-widest">Tienda</h6>
+<a class="text-sm hover:text-white transition-colors" href="#">Laptops Pro</a>
+<a class="text-sm hover:text-white transition-colors" href="#">Sistemas Custom</a>
+<a class="text-sm hover:text-white transition-colors" href="#">Workstations</a>
+<a class="text-sm hover:text-white transition-colors" href="#">Componentes</a>
+</div>
+<!-- Links -->
+<div class="flex flex-col gap-4">
+<h6 class="text-white font-bold text-sm uppercase tracking-widest">Empresa</h6>
+<a class="text-sm hover:text-white transition-colors" href="#">Sobre Nosotros</a>
+<a class="text-sm hover:text-white transition-colors" href="#">Sostenibilidad</a>
+<a class="text-sm hover:text-white transition-colors" href="#">Soporte Técnico</a>
+<a class="text-sm hover:text-white transition-colors" href="#">Contacto</a>
+</div>
+<!-- Newsletter -->
+<div class="flex flex-col gap-6">
+<h6 class="text-white font-bold text-sm uppercase tracking-widest">Newsletter</h6>
+<p class="text-sm">Suscríbete para recibir lanzamientos exclusivos y ofertas especiales.</p>
+<form class="flex flex-col gap-2">
+<div class="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
+<input class="bg-transparent border-none text-sm text-white focus:ring-0 flex-1 px-3" placeholder="Email" type="email"/>
+<button class="bg-primary text-white px-4 py-2 rounded-md text-xs font-bold hover:bg-primary/90 transition-colors uppercase">Unirse</button>
+</div>
+</form>
+</div>
+</div>
+<div class="max-w-7xl mx-auto px-6 mt-16 pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between gap-4 text-xs tracking-wide">
+<p>© 2024 Tech Hub. Todos los derechos reservados.</p>
+<div class="flex gap-6">
+<a class="hover:text-white transition-colors" href="#">Privacidad</a>
+<a class="hover:text-white transition-colors" href="#">Términos</a>
+<a class="hover:text-white transition-colors" href="#">Cookies</a>
+</div>
+</div>
+</footer>
+</body></html>

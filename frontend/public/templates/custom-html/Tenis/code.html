@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Saduma Style: Calzado de Vanguardia</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1754cf",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111621",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .product-card:hover .quick-view {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .category-card:hover img {
+            transform: scale(1.05);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 transition-colors duration-300">
+<!-- Header / Navigation -->
+<header class="sticky top-0 z-50 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+<div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+<div class="flex items-center gap-12">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-3xl">diamond</span>
+<h1 class="text-xl font-extrabold tracking-tighter uppercase">Saduma Style</h1>
+</div>
+<nav class="hidden lg:flex items-center gap-8">
+<a class="text-sm font-semibold hover:text-primary transition-colors" href="#">Zapatillas Urbanas</a>
+<a class="text-sm font-semibold hover:text-primary transition-colors" href="#">Botas y Botines</a>
+<a class="text-sm font-semibold hover:text-primary transition-colors" href="#">Colección Casual</a>
+<a class="text-sm font-semibold hover:text-primary transition-colors text-primary" href="#">Novedades</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex items-center bg-slate-100 dark:bg-slate-800 rounded-full px-4 py-1.5 border border-transparent focus-within:border-primary transition-all">
+<span class="material-symbols-outlined text-slate-400 text-xl">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-48 placeholder:text-slate-400" placeholder="Buscar calzado..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="relative p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+<button class="relative p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+<span class="material-symbols-outlined">shopping_bag</span>
+<span class="absolute top-1 right-1 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">2</span>
+</button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+<span class="material-symbols-outlined">person</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<main>
+<!-- 1. Hero Section -->
+<section class="relative h-[85vh] w-full overflow-hidden">
+<div class="absolute inset-0">
+<img alt="Hombre caminando con zapatillas urbanas de estilo minimalista" class="w-full h-full object-cover" data-alt="Modern stylish sneakers on feet walking in urban setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXk8_TZEYfXuILPs6UEWWbAKFavaIYPjhqi8hCJ6R33wg1x8OeglctH_xzw7NzEhJmM1I4cryQC6JjWBA_myyYxP4QgdN_FhOA_6eDfbbniNtdzBUbiHUXkQqjFOp_tfZG6Xie8STcrMoXcC7FpLNvp22Ir9QcRhZgPb8g6dz7sqTo9ArGx0GD2bG6oq8i5a-G6yZrpyQCmBalEW-TUCSY9JGxcWUK5aDuXS9MM3p6oleCZbspPaxECvDE74xwG-WDPSrGElwYONM"/>
+<div class="absolute inset-0 bg-black/30 flex items-center justify-center">
+<div class="text-center px-6 max-w-4xl">
+<h2 class="text-5xl md:text-8xl font-extrabold text-white mb-6 tracking-tight uppercase">Camina con Estilo</h2>
+<p class="text-xl md:text-2xl text-white/90 font-light mb-10 max-w-2xl mx-auto">Descubre la vanguardia en calzado urbano y sofisticado para el día a día.</p>
+<div class="flex flex-col sm:flex-row gap-4 justify-center">
+<button class="bg-primary hover:bg-blue-700 text-white px-10 py-4 rounded-lg font-bold text-lg transition-all transform hover:scale-105">
+                                Ver Colección
+                            </button>
+<button class="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 px-10 py-4 rounded-lg font-bold text-lg transition-all">
+                                Novedades
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 2. Categorías de Impacto -->
+<section class="max-w-7xl mx-auto px-6 py-24">
+<div class="flex items-end justify-between mb-12">
+<div>
+<span class="text-primary font-bold uppercase tracking-widest text-sm">Explora</span>
+<h3 class="text-4xl font-extrabold mt-2">Categorías de Impacto</h3>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Category 1 -->
+<div class="group relative aspect-[3/4] rounded-xl overflow-hidden cursor-pointer category-card">
+<img alt="Zapatillas urbanas de colores vibrantes" class="w-full h-full object-cover transition-transform duration-700" data-alt="Vibrant colorful urban sneakers on white background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnLvONDFtx1VpdGHogsekyTslrDdOUMfUd3FANeFpLKPzPxOYZNyhctBLtJxVERWuDzMS8OerGOl7muixPkXPq9j4TcnMC__ba5DFcT3bs4FjzIcKICcsUv_Dje4sSyfEWFpgdAeIkXKHzqhLnKApxPWbpGd0bD1QY6JjtKCz9YEcdxVWWleWsaaTgZ79QZU_c4KYd1uyebXsVs-hkr9HvbgRG1Vd1vh6C5b6_0grV9Jtvi5-qsmsAr-TAV10D7Qm2fWw1VlhPF3o"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-8">
+<h4 class="text-white text-2xl font-bold mb-2">Zapatillas Urbanas</h4>
+<p class="text-white/70 text-sm mb-4">Estilo y comodidad sin límites.</p>
+<span class="text-white font-bold flex items-center gap-2 group-hover:gap-4 transition-all">
+                            Comprar <span class="material-symbols-outlined">trending_flat</span>
+</span>
+</div>
+</div>
+<!-- Category 2 -->
+<div class="group relative aspect-[3/4] rounded-xl overflow-hidden cursor-pointer category-card">
+<img alt="Botas de cuero de alta gama" class="w-full h-full object-cover transition-transform duration-700" data-alt="Premium leather boots in moody lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAncKAX0jh6DAH4BfagIvYV2pkfJoszQ8kwszITDX2CGq1It61JwftfZI3ipnIoOAWibUUGK55Pc4d16EHr4Pj8PMY02j-4Jg_pnappr4Xf83sk402uJIddoMvrVO4mglIZjXUMG8sxfTT_GHL9mnQ4jSKoD4T6hnY6pHh0f9tbt0_VexbgVbVv8G7KBUMbuWS1mDQuuOY4ewG5svNnS7OD_3fEuDBOedyoJ60Xjn1oNfECfNe2-I-MDDyCodJn89CXplt9mLbz33M"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-8">
+<h4 class="text-white text-2xl font-bold mb-2">Botas y Botines</h4>
+<p class="text-white/70 text-sm mb-4">Sofisticación en cada paso.</p>
+<span class="text-white font-bold flex items-center gap-2 group-hover:gap-4 transition-all">
+                            Comprar <span class="material-symbols-outlined">trending_flat</span>
+</span>
+</div>
+</div>
+<!-- Category 3 -->
+<div class="group relative aspect-[3/4] rounded-xl overflow-hidden cursor-pointer category-card">
+<img alt="Zapatos de estilo casual y elegante" class="w-full h-full object-cover transition-transform duration-700" data-alt="Elegant casual shoes on minimal background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1KSx5jg97HM48xZokuWwEM1-exLGSR7in6gu0VqX93tzA9mdu2oCFIpKJOAypHhSlVyUhFoNZaRoYN5LNKCKH2EYbOa8VspBg4fI7faLa4zhcobAYaKuVUyCvV9xTsQBymR6ghrAJDInug1RUpY3S43oRJy__lgIipFj1nAloYofp06aeenUK6Hg7H0IHG9xs8LG8InVfFBgMSVQd_gmfo-GfjRUqzMQbpUxeIxJrxVBcfMDLtq41PkD9s80sgYRETDwAu52DuM8"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-8">
+<h4 class="text-white text-2xl font-bold mb-2">Colección Casual</h4>
+<p class="text-white/70 text-sm mb-4">Versatilidad para tu día a día.</p>
+<span class="text-white font-bold flex items-center gap-2 group-hover:gap-4 transition-all">
+                            Comprar <span class="material-symbols-outlined">trending_flat</span>
+</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. Nuestros Más Vendidos -->
+<section class="bg-white dark:bg-slate-900/50 py-24">
+<div class="max-w-7xl mx-auto px-6">
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+<div>
+<span class="text-primary font-bold uppercase tracking-widest text-sm">Favoritos</span>
+<h3 class="text-4xl font-extrabold mt-2">Nuestros Más Vendidos</h3>
+</div>
+<a class="text-sm font-bold border-b-2 border-primary pb-1 hover:text-primary transition-colors" href="#">Ver todo el catálogo</a>
+</div>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
+<!-- Product 1 -->
+<div class="group product-card">
+<div class="relative aspect-square rounded-xl overflow-hidden bg-background-light dark:bg-slate-800 mb-4">
+<img alt="Sneaker urbano blanco minimalista" class="w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal" data-alt="Minimalist white urban sneaker on clean background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCaKor-qyoSPVXwpnga5UgYuuxjQotstTYKJL08QknWeVEw0gVmHjDqFoJ-dSQ-Sv8VQCOg5nXlYaU9u9ujePCEMCtwi3Av4Lpp950A4MTL4lNG2W6O0uAm-syk0s7_CaW0ILXs2dpDc4wgNG_vdepl2Gn5DH8Yn_KaPUYZlliAC68PyohoH8XS8Ql3M1xIGcz6nTxSmSkNF8PwTCHV3fYsy6NWIY-AsxDbBO2bBJL0DNWGbU6qdrQ2xQmqtrQOn91IC80-e_48XBg"/>
+<div class="absolute top-4 right-4 flex flex-col gap-2">
+<button class="size-10 bg-white dark:bg-slate-900 rounded-full shadow-lg flex items-center justify-center hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">favorite</span>
+</button>
+</div>
+<div class="quick-view absolute inset-x-4 bottom-4 opacity-0 transform translate-y-4 transition-all duration-300">
+<button class="w-full bg-primary text-white font-bold py-3 rounded-lg shadow-xl flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-xl">visibility</span>
+                                    Vista Rápida
+                                </button>
+</div>
+</div>
+<h5 class="font-bold text-lg mb-1 group-hover:text-primary transition-colors">Nova Urban Pro</h5>
+<p class="text-slate-500 dark:text-slate-400 text-sm mb-2 font-medium uppercase tracking-tight">Blanco / Gris</p>
+<p class="font-extrabold text-xl">$129.90</p>
+</div>
+<!-- Product 2 -->
+<div class="group product-card">
+<div class="relative aspect-square rounded-xl overflow-hidden bg-background-light dark:bg-slate-800 mb-4">
+<img alt="Zapatilla deportiva roja" class="w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal" data-alt="Sleek red athletic shoe on white base" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBswWqF8fb98gsCYhSoj4NwNcJXvFDOjbL6-symjFD17qlz51mGfE2BKGYxt6PapmrdGuxXYyagAsBP56H8dH8l2geslIAjQ3ePl5BfT8XsCppXnJe2-WHMqjLTOiB4EI64l-sL6wA-eJEjXjHlO6wKXl5cSntGfja5sjhg_nd5mhQHgPhMTrYdiCpNkP88AonnDaaHsP9BxFFVADrZZstAh-RE5-YS7cCoPPokVLE0MBGBwVeK8u73dlMRVsMAU9EyRN4vMWM7mCA"/>
+<div class="absolute top-4 left-4 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-sm uppercase">Nuevo</div>
+<div class="quick-view absolute inset-x-4 bottom-4 opacity-0 transform translate-y-4 transition-all duration-300">
+<button class="w-full bg-primary text-white font-bold py-3 rounded-lg shadow-xl flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-xl">visibility</span>
+                                    Vista Rápida
+                                </button>
+</div>
+</div>
+<h5 class="font-bold text-lg mb-1 group-hover:text-primary transition-colors">Striker Elite Red</h5>
+<p class="text-slate-500 dark:text-slate-400 text-sm mb-2 font-medium uppercase tracking-tight">Rojo Fuego</p>
+<p class="font-extrabold text-xl">$145.00</p>
+</div>
+<!-- Product 3 -->
+<div class="group product-card">
+<div class="relative aspect-square rounded-xl overflow-hidden bg-background-light dark:bg-slate-800 mb-4">
+<img alt="Zapatillas clásicas amarillas y blancas" class="w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal" data-alt="Classic yellow and white skate shoes" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzD5okweVbu28zxgj62e_oTw0MRrsO3AGTbLzqkth7NNC6eC5FdBWRWEwFTtZhwVa-T3I2lIkj5ebjNdRUsJPdWhL5EHgZuSCy08AAa4yfdkeK3_xKbiTQmF0SZ8WsZUqi4NyL1EsLNg4Io6RbqbC5A8Jqw0u4th2z4s5psgqW_BN8wiTPiOUGD68H-iGt5bFcb6-F4FFQaXMDeWIdQnYDqyFDHVazRJ1pRzVilmVh4BCXNzgYy1JsGUTAj2x2Andc4WQlAtOmvHw"/>
+<div class="quick-view absolute inset-x-4 bottom-4 opacity-0 transform translate-y-4 transition-all duration-300">
+<button class="w-full bg-primary text-white font-bold py-3 rounded-lg shadow-xl flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-xl">visibility</span>
+                                    Vista Rápida
+                                </button>
+</div>
+</div>
+<h5 class="font-bold text-lg mb-1 group-hover:text-primary transition-colors">Vantage Retro</h5>
+<p class="text-slate-500 dark:text-slate-400 text-sm mb-2 font-medium uppercase tracking-tight">Amarillo / Crema</p>
+<p class="font-extrabold text-xl text-primary">$89.00 <span class="text-slate-400 line-through text-sm ml-2 font-normal">$110.00</span></p>
+</div>
+<!-- Product 4 -->
+<div class="group product-card">
+<div class="relative aspect-square rounded-xl overflow-hidden bg-background-light dark:bg-slate-800 mb-4">
+<img alt="Zapatillas técnicas modernas de varios colores" class="w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal" data-alt="Modern technical multi-colored athletic sneakers" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB32IdeiUC2lqrKSOH1yZ_JpAVwNovUFw5-Nand1i57BFJbu2U2xfH4GsjFGaBTDeQKeezW6GBmVKqdUaPmc7ak_C8qKqhBZnJpzKji_fQRhOi6A3KS788Jh0Nivnv6h1Sbec78C72hY710RvCKOlkyxlafkIfWfmRh3DMPIAU5WGJY4_vZDvcbu7HISOyI4UDRChOnDQxIuPk-2KWL-hBofUDq5MJPdBhvhFkIHSZjLg_lB4OwpA1pG5bB05QtJtj6_BSZhzxJSRE"/>
+<div class="quick-view absolute inset-x-4 bottom-4 opacity-0 transform translate-y-4 transition-all duration-300">
+<button class="w-full bg-primary text-white font-bold py-3 rounded-lg shadow-xl flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-xl">visibility</span>
+                                    Vista Rápida
+                                </button>
+</div>
+</div>
+<h5 class="font-bold text-lg mb-1 group-hover:text-primary transition-colors">TechRunner Multi</h5>
+<p class="text-slate-500 dark:text-slate-400 text-sm mb-2 font-medium uppercase tracking-tight">Edición Limitada</p>
+<p class="font-extrabold text-xl">$165.00</p>
+</div>
+</div>
+</div>
+</section>
+<!-- 4. Tendencias de Temporada -->
+<section class="py-24 max-w-7xl mx-auto px-6">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+<div class="relative">
+<div class="aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl">
+<img alt="Fotografía editorial de calzado de moda" class="w-full h-full object-cover" data-alt="Editorial fashion photography of stylish footwear in a studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCeuCAQkrz8QLo2aLNlUwRMsVym99mgv_WFoICxj0J07JPQHTvN78ErBpRt7aq7HCWuY2wTscJiSU6x1iiYj1CF6PFKyB2w6PUjaQkhAysg16e2RUvYei0M8S6AfO6JNgtgaKGbH27SdpkvSEF9NifwJOwIc5gdrpQgPRCvbWKz2U_z3SZlv7D0kcWp6XMM55Rfdtp32-DAvFk8gcvrqGm3RvzQ3TUIDP47wRaRvJ1S9WQG3RC23vTatVYBWQhW3mnkmBhAJGwY2w"/>
+</div>
+<div class="absolute -bottom-8 -right-8 bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl hidden md:block max-w-xs">
+<p class="italic text-slate-600 dark:text-slate-300 mb-4 font-light">"La moda no es algo que solo existe en los vestidos. La moda está en el cielo, en la calle, la moda tiene que ver con ideas, la forma en que vivimos."</p>
+<p class="font-bold uppercase tracking-widest text-xs text-primary">— Tendencia Otoño/Invierno</p>
+</div>
+</div>
+<div class="space-y-8">
+<div>
+<span class="text-primary font-bold uppercase tracking-widest text-sm">Editorial</span>
+<h3 class="text-5xl font-extrabold mt-4 leading-tight">Tendencias de Temporada</h3>
+</div>
+<p class="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Este año, la comodidad técnica se encuentra con la estética minimalista. Nuestra selección curada se enfoca en siluetas robustas con materiales premium que resisten el paso del tiempo y las inclemencias de la ciudad. 
+                    </p>
+<ul class="space-y-4">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-1">check_circle</span>
+<div>
+<h6 class="font-bold">Suelas de Alto Impacto</h6>
+<p class="text-sm text-slate-500">Diseñadas para la absorción de impactos y un estilo imponente.</p>
+</div>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-1">check_circle</span>
+<div>
+<h6 class="font-bold">Materiales Sostenibles</h6>
+<p class="text-sm text-slate-500">Comprometidos con el medio ambiente sin comprometer el lujo.</p>
+</div>
+</li>
+</ul>
+<button class="bg-slate-900 dark:bg-primary text-white px-8 py-4 rounded-lg font-bold hover:opacity-90 transition-opacity">
+                        Leer nuestro Blog
+                    </button>
+</div>
+</div>
+</section>
+<!-- 5. Beneficios Saduma Style -->
+<section class="bg-slate-50 dark:bg-background-dark py-16 border-y border-slate-200 dark:border-slate-800">
+<div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12">
+<div class="flex flex-col items-center text-center group">
+<div class="size-16 bg-primary/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-primary text-3xl">local_shipping</span>
+</div>
+<h5 class="text-xl font-bold mb-2 uppercase tracking-tight">Envío Gratis</h5>
+<p class="text-slate-500 dark:text-slate-400">En todos los pedidos superiores a $100. Entrega rápida en 24/48h.</p>
+</div>
+<div class="flex flex-col items-center text-center group">
+<div class="size-16 bg-primary/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-primary text-3xl">restart_alt</span>
+</div>
+<h5 class="text-xl font-bold mb-2 uppercase tracking-tight">Cambios Fáciles</h5>
+<p class="text-slate-500 dark:text-slate-400">¿No es tu talla? Tienes 30 días para realizar cambios sin complicaciones.</p>
+</div>
+<div class="flex flex-col items-center text-center group">
+<div class="size-16 bg-primary/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-primary text-3xl">payments</span>
+</div>
+<h5 class="text-xl font-bold mb-2 uppercase tracking-tight">Pago Contra Entrega</h5>
+<p class="text-slate-500 dark:text-slate-400">Paga al recibir tus productos. Seguridad total en tu compra online.</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-white dark:bg-slate-950 pt-24 pb-12 border-t border-slate-200 dark:border-slate-800">
+<div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+<div class="col-span-1 md:col-span-2 lg:col-span-1">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">diamond</span>
+<h1 class="text-xl font-extrabold tracking-tighter uppercase">Saduma Style</h1>
+</div>
+<p class="text-slate-500 dark:text-slate-400 mb-8 max-w-xs leading-relaxed">
+                    Elevando el estándar del calzado urbano con diseños exclusivos y calidad artesanal para la vida moderna.
+                </p>
+<div class="flex items-center gap-4">
+<a class="size-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center hover:bg-primary hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined">social_leaderboard</span>
+</a>
+<a class="size-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center hover:bg-primary hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined">camera</span>
+</a>
+<a class="size-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center hover:bg-primary hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined">alternate_email</span>
+</a>
+</div>
+</div>
+<div>
+<h6 class="font-extrabold text-sm uppercase tracking-widest mb-6">Tienda Online</h6>
+<ul class="space-y-4 text-slate-500 dark:text-slate-400 text-sm">
+<li><a class="hover:text-primary transition-colors" href="#">Zapatillas Urbanas</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Botas y Botines</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Colección Casual</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Novedades</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Ofertas Especiales</a></li>
+</ul>
+</div>
+<div>
+<h6 class="font-extrabold text-sm uppercase tracking-widest mb-6">Ayuda y Soporte</h6>
+<ul class="space-y-4 text-slate-500 dark:text-slate-400 text-sm">
+<li><a class="hover:text-primary transition-colors" href="#">Seguir mi pedido</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Preguntas Frecuentes</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Políticas de Envío</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Términos y Condiciones</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Contacto</a></li>
+</ul>
+</div>
+<div>
+<h6 class="font-extrabold text-sm uppercase tracking-widest mb-6">Newsletter</h6>
+<p class="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">Suscríbete para recibir ofertas exclusivas y lanzamientos anticipados.</p>
+<form class="flex flex-col gap-3">
+<input class="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-sm p-3 focus:ring-primary focus:border-primary" placeholder="Tu email aquí" type="email"/>
+<button class="bg-primary text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity">Suscribirse</button>
+</form>
+</div>
+</div>
+<div class="max-w-7xl mx-auto px-6 pt-12 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
+<p class="text-xs text-slate-400">© 2024 Saduma Style Shop. Todos los derechos reservados.</p>
+<div class="flex items-center gap-6 opacity-40 grayscale">
+<span class="material-symbols-outlined text-4xl">credit_card</span>
+<span class="material-symbols-outlined text-4xl">account_balance_wallet</span>
+<span class="material-symbols-outlined text-4xl">local_mall</span>
+</div>
+</div>
+</footer>
+</body></html>

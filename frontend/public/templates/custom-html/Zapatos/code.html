@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VELOCITY | Tienda de Zapatillas Futurista</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0db9f2",
+                        "background-light": "#f5f8f8",
+                        "background-dark": "#0a0c0d",
+                        "surface-dark": "#161b1d",
+                        "border-dark": "#223f49",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .glass-card {
+            background: rgba(22, 27, 29, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(13, 185, 242, 0.1);
+        }
+        .glow-button:hover {
+            box-shadow: 0 0 20px rgba(13, 185, 242, 0.4);
+        }
+        .scanline-effect::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(13, 185, 242, 0) 50%, rgba(13, 185, 242, 0.05) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0), rgba(13, 185, 242, 0.02), rgba(0, 0, 255, 0));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display selection:bg-primary/30">
+<header class="sticky top-0 z-50 w-full border-b border-border-dark/50 bg-background-dark/80 backdrop-blur-md">
+<div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+<div class="flex items-center gap-12">
+<div class="flex items-center gap-2 group cursor-pointer">
+<div class="size-8 bg-primary flex items-center justify-center rounded-lg shadow-[0_0_15px_rgba(13,185,242,0.5)]">
+<span class="material-symbols-outlined text-background-dark font-bold">bolt</span>
+</div>
+<h1 class="text-2xl font-bold tracking-tighter text-slate-100">VELOCITY</h1>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Nuevos Drops</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Rendimiento</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">Estilo de Vida</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden lg:flex items-center bg-surface-dark/50 border border-border-dark rounded-lg px-3 py-1.5 focus-within:border-primary/50 transition-all">
+<span class="material-symbols-outlined text-slate-400 text-lg">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-48 placeholder:text-slate-500" placeholder="Buscar archivo..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-surface-dark rounded-lg transition-colors relative">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="absolute top-1 right-1 size-2 bg-primary rounded-full"></span>
+</button>
+<button class="p-2 hover:bg-surface-dark rounded-lg transition-colors">
+<span class="material-symbols-outlined">person</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<main class="w-full">
+<section class="relative w-full min-h-[85vh] flex items-center justify-center overflow-hidden px-6">
+<div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(13,185,242,0.1)_0%,_transparent_70%)]"></div>
+<div class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
+<div class="flex flex-col gap-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 w-fit">
+<span class="size-2 bg-primary rounded-full"></span>
+<span class="text-[10px] font-bold tracking-widest uppercase text-primary">Sistema Online: v1.0.4</span>
+</div>
+<h2 class="text-6xl md:text-8xl font-bold leading-none tracking-tight text-white">
+                        VELOCIDAD <br/>
+<span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-cyan-200">REDEFINIDA</span>
+</h2>
+<p class="text-lg text-slate-400 max-w-md leading-relaxed">
+                        El futuro del calzado de alto rendimiento está aquí. Experimenta ingeniería 3D de alta resolución y soporte de fibra de carbono de élite.
+                    </p>
+<div class="flex items-center gap-4 mt-4">
+<button class="glow-button bg-primary text-background-dark font-bold px-8 py-4 rounded-lg flex items-center gap-2 transition-all">
+                            EXPLORAR COLECCIÓN
+                            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+<button class="border border-border-dark bg-surface-dark/30 backdrop-blur-sm text-white font-bold px-8 py-4 rounded-lg hover:bg-surface-dark transition-all">
+                            VER ESPECIFICACIONES
+                        </button>
+</div>
+</div>
+<div class="relative flex justify-center items-center group">
+<div class="absolute size-[500px] bg-primary/5 rounded-full blur-[100px]"></div>
+<img alt="Render de zapatilla técnica futurista" class="relative z-10 drop-shadow-[0_20px_50px_rgba(13,185,242,0.3)] hover:-translate-y-4 transition-transform duration-700 ease-out" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAml1CbLbBHaNFkr5y9KIr8PSKDKjz5zZVhia84jkjOYU_sGS7-6W3939QJ0tIhkiZdbrmHEdNrE2FbeatwEqz-7myCBBDTR7uzOuvd7dzp4pMPwz9SUDKzDipR9N2kGRiuWVwB2Q5Dc1zzsCEzKz3uqBFxV0xixXTfI6Ts1a4NgfulRYvYw9eqLQtdXNGCWxyYeBSJFituJ_cxcNM0a1B3YjrTJvS4SQRQR1LBroIbmmH6dVhqco6tJyfa4pab12bBncd5ZsjDD2o"/>
+<div class="absolute -right-4 top-1/4 glass-card p-4 rounded-xl z-20 border border-primary/20 hidden xl:block">
+<p class="text-[10px] text-primary font-bold uppercase tracking-widest mb-1">Amortiguación</p>
+<p class="text-lg font-bold">ESPUMA REACTIVA</p>
+</div>
+<div class="absolute -left-12 bottom-1/4 glass-card p-4 rounded-xl z-20 border border-primary/20 hidden xl:block">
+<p class="text-[10px] text-primary font-bold uppercase tracking-widest mb-1">Estructura</p>
+<p class="text-lg font-bold">CHASIS DE CARBONO</p>
+</div>
+</div>
+</div>
+</section>
+<section class="bg-surface-dark/20 py-24 border-y border-border-dark/30">
+<div class="max-w-7xl mx-auto px-6">
+<div class="flex flex-col gap-4 mb-16 text-center">
+<div class="inline-flex items-center justify-center gap-2 mb-2">
+<span class="h-px w-8 bg-primary"></span>
+<span class="text-xs font-bold text-primary uppercase tracking-[0.3em]">Nuevos Datos Recibidos</span>
+<span class="h-px w-8 bg-primary"></span>
+</div>
+<h3 class="text-4xl md:text-5xl font-bold tracking-tight text-white uppercase">Nuevos Lanzamientos</h3>
+<p class="text-slate-400 max-w-lg mx-auto">Unidades recién diseñadas del laboratorio de Velocity. Precisión artesanal para el atleta moderno.</p>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-8">
+<div class="group flex flex-col gap-5 bg-background-dark/40 border border-border-dark/50 p-5 rounded-xl hover:border-primary/50 transition-all duration-500">
+<div class="relative aspect-square rounded-lg overflow-hidden bg-surface-dark/60 flex items-center justify-center p-6">
+<img alt="Zapatilla Apex Runner" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRiwOD1hWLB_IGGQrV6hTiGpcekGOyA-oHm2CQHw2IyZhMVNLPn6xU5qc7oCXiVK68gCr8re0uCl8Pyx7zs9aK7BN0vGUFEoBwcT3VGb1qEeQ-T14ZF_oXW4DoFu9F3h1mpIF4XuMR5uTLUpagBH3eHbUvuyTQrWMhBI4LmMwymfTKdVc0H6WgkXUdxKcP5kf_uPiatOJoYBT4zSdz74E3D1WZA4pEt-weZSLNXEENYnsEoeRD-g7SNKsrFTfKwj0wKuP1vQO6rWM"/>
+<div class="absolute top-3 left-3 px-2 py-1 bg-primary/20 text-primary text-[10px] font-bold rounded backdrop-blur-sm border border-primary/20 uppercase tracking-widest">Más Valoradas</div>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex justify-between items-end">
+<h5 class="font-bold text-lg text-white tracking-tight">Apex Runner X</h5>
+<span class="text-primary font-bold text-xl">$280</span>
+</div>
+<p class="text-xs text-slate-500 uppercase tracking-widest">Estabilidad / Alta Velocidad</p>
+</div>
+<button class="glow-button w-full py-4 bg-surface-dark hover:bg-primary hover:text-background-dark text-white font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                            COMPRAR AHORA <span class="material-symbols-outlined text-sm group-hover/btn:translate-x-1 transition-transform">shopping_bag</span>
+</button>
+</div>
+<div class="group flex flex-col gap-5 bg-background-dark/40 border border-border-dark/50 p-5 rounded-xl hover:border-primary/50 transition-all duration-500">
+<div class="relative aspect-square rounded-lg overflow-hidden bg-surface-dark/60 flex items-center justify-center p-6">
+<img alt="Zapatilla Neon Flux" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlr4OyoNjVI3BeCx0Wu7JVlkNkcI-VSje32qZBCWlP0u9_fdwlh_U9kCUWluxOlNcI6q7fdOYdYfwALoo2XzF5szsjTUtOR4MOThpb58VTOtWaRQlMsR69puK0S9LBm6TmsnMkE9eIUs1pe0Gh9sogVbws4qLetgvy77xJkroPgzU8YkkmE0o8zx3TQJfq3AI3UXdiMX3Zas0jL6ozIbs7pKcMgp_okOg-CrLyYqJ8u4Z1G3_7bontIBxrnRQPXstnOHkBth3Ppnc"/>
+<div class="absolute top-3 left-3 px-2 py-1 bg-white/10 text-white text-[10px] font-bold rounded backdrop-blur-sm border border-white/10 uppercase tracking-widest">Nuevo Lanzamiento</div>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex justify-between items-end">
+<h5 class="font-bold text-lg text-white tracking-tight">Neon Flux</h5>
+<span class="text-primary font-bold text-xl">$320</span>
+</div>
+<p class="text-xs text-slate-500 uppercase tracking-widest">Ligereza / Urban Tech</p>
+</div>
+<button class="glow-button w-full py-4 bg-surface-dark hover:bg-primary hover:text-background-dark text-white font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                            COMPRAR AHORA <span class="material-symbols-outlined text-sm group-hover/btn:translate-x-1 transition-transform">shopping_bag</span>
+</button>
+</div>
+<div class="group flex flex-col gap-5 bg-background-dark/40 border border-border-dark/50 p-5 rounded-xl hover:border-primary/50 transition-all duration-500">
+<div class="relative aspect-square rounded-lg overflow-hidden bg-surface-dark/60 flex items-center justify-center p-6">
+<img alt="Zapatilla Gravity Mid-Top" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4Mb_MDv39N0_Sn2YYXsZlA5E6T0x9AOvDzQ2dD-kI5q5ZOVo3Ssk46nXSSDVJSPfNX15wDSPBiflJug14E7GzOtacZvZmtCF0GMsBUA_RKE_771ScS2E7gRGd_3Q2fn3kmpZpuAPl5IdgUp-pPhTzGgf9TnfISkYLKuyplRp6CPKRDkpOoGduQNieInKyj75h_91Oc2cQlJky6uOdjmkg38HIab9hIOVJ4_MvTchGG7LuMn5Bh-jVp_cyx0NAMjVm6GbYIlio-yk"/>
+<div class="absolute top-3 left-3 px-2 py-1 bg-primary/20 text-primary text-[10px] font-bold rounded backdrop-blur-sm border border-primary/20 uppercase tracking-widest">Limitado</div>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex justify-between items-end">
+<h5 class="font-bold text-lg text-white tracking-tight">Gravity V1</h5>
+<span class="text-primary font-bold text-xl">$245</span>
+</div>
+<p class="text-xs text-slate-500 uppercase tracking-widest">Soporte / Pista Lista</p>
+</div>
+<button class="glow-button w-full py-4 bg-surface-dark hover:bg-primary hover:text-background-dark text-white font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                            COMPRAR AHORA <span class="material-symbols-outlined text-sm group-hover/btn:translate-x-1 transition-transform">shopping_bag</span>
+</button>
+</div>
+<div class="group flex flex-col gap-5 bg-background-dark/40 border border-border-dark/50 p-5 rounded-xl hover:border-primary/50 transition-all duration-500">
+<div class="relative aspect-square rounded-lg overflow-hidden bg-surface-dark/60 flex items-center justify-center p-6">
+<img alt="Zapatilla Void Low" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9xjb5UEaBNTj04Vg7-Wvru-Z4GWdc6ARSDYeuXWqHVRdgdHHWTjtJ3u2yKBxyr1Mj1gwXhlwWLD2lXY8V0tivqTChRpxDCgxKqq050yaOYc3sBzKJmI25lF6LWLQWQCsIyLnkaWo0nOcOpQgkywA7i8Pv8XIHrX1-Sqkjf_7JlXIc_ZzZCW2EvZMzkrBjF5GeqpHpOtzEo2gE_fSlg1GF1jgfwMDAytL54tUqSLAu2qPOJ4lMHWWQ51STMtpPMfmUMk6f6G6A3io"/>
+<div class="absolute top-3 left-3 px-2 py-1 bg-orange-500/20 text-orange-400 text-[10px] font-bold rounded backdrop-blur-sm border border-orange-500/20 uppercase tracking-widest">Archivo</div>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex justify-between items-end">
+<h5 class="font-bold text-lg text-white tracking-tight">Void Low</h5>
+<span class="text-primary font-bold text-xl">$410</span>
+</div>
+<p class="text-xs text-slate-500 uppercase tracking-widest">Aerodinámico / Estilo de Vida</p>
+</div>
+<button class="glow-button w-full py-4 bg-surface-dark hover:bg-primary hover:text-background-dark text-white font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                            COMPRAR AHORA <span class="material-symbols-outlined text-sm group-hover/btn:translate-x-1 transition-transform">shopping_bag</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<section class="max-w-7xl mx-auto px-6 py-24">
+<div class="flex items-end justify-between mb-12">
+<div>
+<p class="text-primary text-xs font-bold tracking-[0.4em] uppercase mb-2">Unidades de Navegación</p>
+<h3 class="text-4xl font-bold text-white uppercase tracking-tight">Categorías Destacadas</h3>
+</div>
+<a class="group text-primary text-sm font-bold flex items-center gap-2 hover:opacity-80 transition-all" href="#">
+                    VER TODOS LOS ARCHIVOS 
+                    <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">east</span>
+</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="group relative h-[500px] rounded-2xl overflow-hidden cursor-pointer border border-border-dark/50">
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/20 to-transparent z-10"></div>
+<img alt="Categoría rendimiento de élite" class="absolute inset-0 w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkVdD71vKAP2tNligO6QZBJrwczS6je4kfdEg3oft7CRKRCScTOItcunjhpnNFgVHyAdeqS7GvMnUbjsd1IYRbf4f5gGwkrpdS5O8BIdENyU_OvZSpLPFQd2Ir-3t4Np_-obGJk2RisG1ZU92cRcIEdDzj-XKP5YWawiawouMVcbmw7Cf_24Q0xgB8xFjVW-fLdKn7VuepRQu7Vh3vxmyPLlbnfXG_8gRfhPd4koAVO3tyJJSQfNvqT6kOEDwZ11UBjeM1RQv6VV8"/>
+<div class="absolute bottom-10 left-10 z-20">
+<div class="bg-primary/20 backdrop-blur-sm border border-primary/30 w-fit px-2 py-1 rounded mb-4">
+<p class="text-[10px] font-bold text-primary tracking-widest uppercase">Grado Profesional</p>
+</div>
+<h4 class="text-4xl font-bold text-white tracking-tight leading-none uppercase">Rendimiento<br/>Élite</h4>
+</div>
+<div class="absolute inset-0 border-[1px] border-primary/0 group-hover:border-primary/20 transition-all duration-500 rounded-2xl pointer-events-none"></div>
+</div>
+<div class="group relative h-[500px] rounded-2xl overflow-hidden cursor-pointer border border-border-dark/50">
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/20 to-transparent z-10"></div>
+<img alt="Categoría urban tech" class="absolute inset-0 w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgaaaIDpE_R2cU7eCgA__ZqW87_37uVbO3qVh8hEemOyqkULvRWwOS_lu7HQx-JxKaOWz59VaThDHryjhhSVMteXJlTBVH3C1URPZ4mANnJWRbuhTidViT5ZL9MlG7jtq4fEbp3pPc2wdF7uHwhdwr-of0LwYMAaWc8Qk6qPcjbi4ZSYFfSAnceUtyKv55tInWE7HmyYOtOV8-SIO_YzHwWJzbTD-u4W7lktaPUKZol8Xi5YM7KVjmOZdsXlJsr5IxOacgXRXtBPs"/>
+<div class="absolute bottom-10 left-10 z-20">
+<div class="bg-primary/20 backdrop-blur-sm border border-primary/30 w-fit px-2 py-1 rounded mb-4">
+<p class="text-[10px] font-bold text-primary tracking-widest uppercase">Estilo Cyberpunk</p>
+</div>
+<h4 class="text-4xl font-bold text-white tracking-tight leading-none uppercase">Estilo de<br/>Vida</h4>
+</div>
+<div class="absolute inset-0 border-[1px] border-primary/0 group-hover:border-primary/20 transition-all duration-500 rounded-2xl pointer-events-none"></div>
+</div>
+<div class="group relative h-[500px] rounded-2xl overflow-hidden cursor-pointer border border-border-dark/50">
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/20 to-transparent z-10"></div>
+<img alt="Categoría archivo limitado" class="absolute inset-0 w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmUmstQ77K21u8edMVRpvwILrB7u9Z9RMlBKOjvlqWf9mVTFzske79-SIwzaiXwx0hcPdrQPizcWQQs9m9wE_6Ld_LHztj4hrbFN7EpOvJSiXudM8E0mErp5JngM4yd2ApzKHpYaXtWONdzvbM9-uhvmqEx4XYImdj2DipdkyDKJMlmLV7dP3qihp2615k4L4m4362XkHsssMTa-zvXJw3x0F6aOKjWTC7PBGBHQXrZookJaOs54JUHAENgkD4LATLBHG5bjUEdLg"/>
+<div class="absolute bottom-10 left-10 z-20">
+<div class="bg-primary/20 backdrop-blur-sm border border-primary/30 w-fit px-2 py-1 rounded mb-4">
+<p class="text-[10px] font-bold text-primary tracking-widest uppercase">Colección Vault</p>
+</div>
+<h4 class="text-4xl font-bold text-white tracking-tight leading-none uppercase">Archivo<br/>Limitado</h4>
+</div>
+<div class="absolute inset-0 border-[1px] border-primary/0 group-hover:border-primary/20 transition-all duration-500 rounded-2xl pointer-events-none"></div>
+</div>
+</div>
+</section>
+<section class="max-w-7xl mx-auto px-6 py-12">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-surface-dark/30 border border-border-dark p-8 rounded-xl flex flex-col gap-2 glass-card">
+<span class="material-symbols-outlined text-primary mb-2">speed</span>
+<p class="text-slate-400 text-sm font-medium">Eficiencia de Soporte</p>
+<p class="text-3xl font-bold text-white">1200+ FPS</p>
+</div>
+<div class="bg-surface-dark/30 border border-border-dark p-8 rounded-xl flex flex-col gap-2 glass-card">
+<span class="material-symbols-outlined text-primary mb-2">architecture</span>
+<p class="text-slate-400 text-sm font-medium">Material del Chasis</p>
+<p class="text-3xl font-bold text-white">FIBRA DE CARBONO</p>
+</div>
+<div class="bg-surface-dark/30 border border-border-dark p-8 rounded-xl flex flex-col gap-2 glass-card">
+<span class="material-symbols-outlined text-primary mb-2">waves</span>
+<p class="text-slate-400 text-sm font-medium">Retorno de Energía</p>
+<p class="text-3xl font-bold text-white">98.4% RATING</p>
+</div>
+</div>
+</section>
+<section class="max-w-7xl mx-auto px-6 py-24">
+<div class="glass-card p-12 rounded-3xl relative overflow-hidden flex flex-col items-center text-center gap-6">
+<div class="absolute inset-0 scanline-effect opacity-20"></div>
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent"></div>
+<h3 class="text-4xl font-bold tracking-tight z-10 text-white uppercase">Únete a la primera línea</h3>
+<p class="text-slate-400 max-w-lg z-10">Recibe alertas instantáneas de coordenadas de nuevos drops y acceso al archivo técnico. Mantente a la vanguardia.</p>
+<div class="flex flex-col sm:flex-row w-full max-w-md gap-3 z-10">
+<input class="flex-1 bg-background-dark/80 border border-border-dark rounded-lg px-4 py-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary text-white" placeholder="CÓDIGO DE ACCESO (EMAIL)" type="email"/>
+<button class="bg-primary text-background-dark font-bold px-8 py-3 rounded-lg hover:brightness-110 transition-all uppercase tracking-wider">
+                        Suscribirse
+                    </button>
+</div>
+</div>
+</section>
+</main>
+<footer class="border-t border-border-dark bg-background-dark py-12 px-6">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-12">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-2">
+<div class="size-6 bg-primary flex items-center justify-center rounded">
+<span class="material-symbols-outlined text-[16px] text-background-dark font-bold">bolt</span>
+</div>
+<h2 class="text-xl font-bold tracking-tighter text-slate-100">VELOCITY</h2>
+</div>
+<p class="text-slate-500 text-sm max-w-xs leading-relaxed">
+                    Calzado técnico de alta gama para la próxima generación de buscadores de rendimiento. Diseñado para la velocidad.
+                </p>
+<div class="flex gap-4">
+<a class="text-slate-500 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">public</span></a>
+<a class="text-slate-500 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">alternate_email</span></a>
+<a class="text-slate-500 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">share</span></a>
+</div>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-12">
+<div class="flex flex-col gap-4">
+<h6 class="text-xs font-bold text-primary uppercase tracking-widest">Navegación</h6>
+<ul class="flex flex-col gap-2 text-sm text-slate-400">
+<li><a class="hover:text-white transition-colors" href="#">Archivo</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Rendimiento</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Estilo de Vida</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Drops</a></li>
+</ul>
+</div>
+<div class="flex flex-col gap-4">
+<h6 class="text-xs font-bold text-primary uppercase tracking-widest">Compañía</h6>
+<ul class="flex flex-col gap-2 text-sm text-slate-400">
+<li><a class="hover:text-white transition-colors" href="#">Sobre nosotros</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Sustentabilidad</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Carreras</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Labs</a></li>
+</ul>
+</div>
+<div class="flex flex-col gap-4">
+<h6 class="text-xs font-bold text-primary uppercase tracking-widest">Soporte</h6>
+<ul class="flex flex-col gap-2 text-sm text-slate-400">
+<li><a class="hover:text-white transition-colors" href="#">Guía de Tallas</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Envíos</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Devoluciones</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Contacto</a></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="max-w-7xl mx-auto mt-20 pt-8 border-t border-border-dark flex flex-col sm:flex-row justify-between items-center gap-4">
+<p class="text-[10px] text-slate-600 uppercase tracking-[0.2em]">© 2024 VELOCITY SYSTEM. TODOS LOS DERECHOS RESERVADOS.</p>
+<div class="flex items-center gap-2">
+<span class="size-2 bg-green-500 rounded-full"></span>
+<p class="text-[10px] text-slate-600 uppercase tracking-widest">Estado del Servidor: Óptimo</p>
+</div>
+</div>
+</footer>
+
+</body></html>

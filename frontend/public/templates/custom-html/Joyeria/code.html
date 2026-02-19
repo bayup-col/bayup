@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Joyas de Lujo | Elegancia Eterna</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#eebd2b",
+                        "background-light": "#f8f7f6",
+                        "background-dark": "#221d10",
+                        "charcoal": "#1b180d",
+                        "champagne": "#f3f0e7"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-charcoal dark:text-slate-100 antialiased">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 w-full border-b border-champagne/50 bg-background-light/80 backdrop-blur-md dark:bg-background-dark/80 dark:border-white/10">
+<div class="max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between h-20">
+<!-- Brand Identity -->
+<div class="flex items-center gap-12">
+<a class="flex items-center gap-3" href="#">
+<div class="text-primary">
+<svg class="size-8" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M42.4379 44C42.4379 44 36.0744 33.9038 41.1692 24C46.8624 12.9336 42.2078 4 42.2078 4L7.01134 4C7.01134 4 11.6577 12.932 5.96912 23.9969C0.876273 33.9029 7.27094 44 7.27094 44L42.4379 44Z" fill="currentColor"></path>
+</svg>
+</div>
+<span class="text-xl font-bold tracking-tight uppercase">Joyas de Lujo</span>
+</a>
+<!-- Desktop Navigation Links -->
+<nav class="hidden md:flex items-center gap-10">
+<a class="text-sm font-medium tracking-wide hover:text-primary transition-colors" href="#">Tienda</a>
+<a class="text-sm font-medium tracking-wide hover:text-primary transition-colors" href="#">Colecciones</a>
+<a class="text-sm font-medium tracking-wide hover:text-primary transition-colors" href="#">Herencia</a>
+<a class="text-sm font-medium tracking-wide hover:text-primary transition-colors" href="#">Contacto</a>
+</nav>
+</div>
+<!-- Utility Icons -->
+<div class="flex items-center gap-6">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/40 text-lg">search</span>
+<input class="bg-champagne/40 border-none rounded-full pl-10 pr-4 py-2 text-sm w-48 focus:ring-1 focus:ring-primary/50 transition-all" placeholder="Buscar..." type="text"/>
+</div>
+<button class="hover:text-primary transition-colors p-1">
+<span class="material-symbols-outlined text-2xl">favorite</span>
+</button>
+<button class="hover:text-primary transition-colors p-1">
+<span class="material-symbols-outlined text-2xl">shopping_bag</span>
+</button>
+<button class="md:hidden p-1">
+<span class="material-symbols-outlined text-2xl">menu</span>
+</button>
+</div>
+</div>
+</header>
+<main>
+<!-- Hero Section -->
+<section class="relative h-[85vh] w-full overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-1000 hover:scale-105" data-alt="Close-up of a luxury diamond necklace on a soft surface" style="background-image: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4)), url('https://lh3.googleusercontent.com/aida-public/AB6AXuCTZh9dYtoAS-K27O0ti_n3kcvLlWMadAtygkkg4Vzk8IB18aeRrpIcqCm5Ya_s_kZjXA6FDKeslzwHcAzhm_mkGcFItvuWA64jE0cDaEyB0zE5uscx6LYGdXJi6CnLZhtwylsboU29GTDZ6NH8KvajkndMMr4sBpa69DpfT1Ki1OqYp1_Da6JlKRBhrY3dZfrv74r00wl8NaBG7YV5hERUSJ-RRnFqSIBrMnLYdz3VjJudx2tw0n0w8Oe0n6xjLz4tNk-DLqPZrqY');">
+</div>
+<div class="relative h-full flex flex-col items-center justify-center text-center px-6">
+<h1 class="text-white text-5xl md:text-7xl font-light tracking-widest mb-6 uppercase">
+                    Elegancia Eterna
+                </h1>
+<p class="text-white/90 text-lg md:text-xl font-light tracking-wide mb-10 max-w-2xl">
+                    Descubra la perfección en cada detalle con nuestra colección exclusiva de alta joyería.
+                </p>
+<button class="bg-primary hover:bg-primary/90 text-charcoal font-bold py-4 px-10 rounded-full tracking-widest uppercase text-sm transition-all shadow-lg hover:shadow-primary/20">
+                    Ver Colección
+                </button>
+</div>
+</section>
+<!-- Brand Heritage Section -->
+<section class="py-24 px-6 bg-white dark:bg-background-dark/50">
+<div class="max-w-4xl mx-auto text-center">
+<span class="text-primary text-xs font-bold tracking-[0.3em] uppercase mb-4 block">Nuestra Herencia</span>
+<h2 class="text-3xl md:text-4xl font-light mb-8 italic">Maestros artesanos desde 1924</h2>
+<p class="text-charcoal/60 dark:text-slate-400 leading-relaxed text-lg font-light">
+                    Cada pieza de Joyas de Lujo es el resultado de un legado centenario de excelencia. Fusionamos técnicas tradicionales con un diseño contemporáneo para crear obras de arte que trascienden el tiempo.
+                </p>
+</div>
+</section>
+<!-- Novedades Section -->
+<section class="py-20 px-6 lg:px-12 max-w-7xl mx-auto">
+<div class="flex items-end justify-between mb-12">
+<div>
+<span class="text-primary text-xs font-bold tracking-[0.3em] uppercase mb-2 block">Exclusividad</span>
+<h2 class="text-4xl font-light tracking-tight">Novedades</h2>
+</div>
+<a class="text-charcoal/60 hover:text-primary text-sm font-medium border-b border-charcoal/20 pb-1 transition-all" href="#">Ver todos los productos</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+<!-- Product 1 -->
+<div class="group cursor-pointer">
+<div class="relative aspect-[3/4] overflow-hidden mb-6 bg-champagne">
+<img alt="Anillo Solitaire" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Exquisite solitaire diamond ring in gold setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXBePWrtWsrmAgtkbj-Wo1tFCr9JKY_pom0gYiEPqf6p3gC2s1WVa4e4elJVmqlchYvbwkucg3ekFMIy6ToKrjE8qIx11w35TsAaIZBzd4j2LE7Iz9VaR7vsotR1ccyP2Q1OHWebKK2uR78BI666sJWtmZOhxM6_mL7LBrIaa7BfyBmorDEfKm8RNGoHO0b0Mhod5YSGNRaeQ_fhJuHJ3XgiAm-YBQnt-aYXQ1Ii50JARckAir8skGZsbSE1aASv8-8-dBQCIjf_g"/>
+<button class="absolute bottom-4 right-4 bg-white/90 backdrop-blur rounded-full p-3 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+<span class="material-symbols-outlined text-charcoal">shopping_bag</span>
+</button>
+</div>
+<div class="space-y-1">
+<h3 class="text-lg font-medium group-hover:text-primary transition-colors">Anillo de Diamantes 'Solitaire'</h3>
+<p class="text-charcoal/50 dark:text-slate-400 text-sm">Oro de 18k · 1.5 Quilates</p>
+<p class="text-primary font-bold mt-2">€4.500</p>
+</div>
+</div>
+<!-- Product 2 -->
+<div class="group cursor-pointer">
+<div class="relative aspect-[3/4] overflow-hidden mb-6 bg-champagne">
+<img alt="Brazalete Oro Blanco" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Minimalist white gold bracelet with small diamonds" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4JlVKDJ9otXzesbyedhAXX-wUoUVq_stgdKpOuA91q0rQp9EUr3i62WYaVy7CDcUMdoSXtK5vXXsvrHYe1IRocCawKo2bnGfYyFaUDUSh3jZ4a_6aHjNRT7FGALAYdUHF-xgYv9hstRp7oSlxRzXPON7DE9sWiIU35RHLG5yiJzS6izdBDRA1skwJS8rzmmECZShkT4TVy2OxtSeXvlyuY6-RLnHxzLNV9GK3ziuJR5_9gBSEO3p4Yahq7YdaAsHwyZMfx1yetlA"/>
+<button class="absolute bottom-4 right-4 bg-white/90 backdrop-blur rounded-full p-3 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+<span class="material-symbols-outlined text-charcoal">shopping_bag</span>
+</button>
+</div>
+<div class="space-y-1">
+<h3 class="text-lg font-medium group-hover:text-primary transition-colors">Brazalete de Oro Blanco 18k</h3>
+<p class="text-charcoal/50 dark:text-slate-400 text-sm">Edición Limitada · Colección Lumière</p>
+<p class="text-primary font-bold mt-2">€3.200</p>
+</div>
+</div>
+<!-- Product 3 -->
+<div class="group cursor-pointer">
+<div class="relative aspect-[3/4] overflow-hidden mb-6 bg-champagne">
+<img alt="Pendientes Zafiro" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Sapphire and diamond drop earrings" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAExf7RO1pAGusAxeJRRO2BfEJFpzoyTR_XOHlox31Pkq7XOdpnMXHeuDnljhjimDydM5UYTje8cFPFSJ2TjL0c7MGkaCBKEkQjkhHex5paXYw6q--DXc3U_9krMo3B16wdJvP2g5nYDCs4rHeKAAYGiWLvL4mIoMJj6bV3x5-rgp2CYnqBoQWAetIFtt_sfn6ulbjxLwdOj19PLr43lw2F8RukmL2Jr_y-bZILkfaLmQN6KZHD6u3pOX1DmSiT1yVNYbgNiWZ9yhI"/>
+<button class="absolute bottom-4 right-4 bg-white/90 backdrop-blur rounded-full p-3 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+<span class="material-symbols-outlined text-charcoal">shopping_bag</span>
+</button>
+</div>
+<div class="space-y-1">
+<h3 class="text-lg font-medium group-hover:text-primary transition-colors">Pendientes de Zafiro Real</h3>
+<p class="text-charcoal/50 dark:text-slate-400 text-sm">Alta Joyería · Zafiros de Ceilán</p>
+<p class="text-primary font-bold mt-2">€5.800</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Colecciones Section -->
+<section class="py-24 bg-champagne/30 dark:bg-background-dark">
+<div class="max-w-7xl mx-auto px-6 lg:px-12">
+<div class="text-center mb-16">
+<span class="text-primary text-xs font-bold tracking-[0.3em] uppercase mb-2 block">Descubra</span>
+<h2 class="text-4xl font-light tracking-tight">Nuestras Colecciones</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<!-- Collection 1 -->
+<div class="relative h-[600px] overflow-hidden group">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-105" data-alt="Close-up of engagement rings in a luxury velvet box" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDx6aEDkuJcKb5tVnIoSWM4iCeVbYNQ9LV9MdRSencvzUsuOPx7eKavpzbz-YMhGy_lLpUm1ZuWLqcFIYZZoH9nWYLYFEI4yxEMrLVRUFcRwsIjsIy_QBWpjk1fGnCQTCD1CaIM8-c-RsAZDI5TN3kpDskUfnCsQTrLJqpXXHzCNxUtU2rtLd9kG-73Ihy4vrp9iW4On4FuzzX5uC4VTVjFtJacnydBz-buGmp4cEeQCNMfbecKwO9zu42ASHdCNE_g0LMf9wnD25E');">
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-charcoal/80 via-transparent to-transparent"></div>
+<div class="absolute bottom-10 left-10 right-10">
+<h3 class="text-white text-2xl font-light mb-4 uppercase tracking-widest">Anillos de Compromiso</h3>
+<a class="text-white text-xs font-bold tracking-widest uppercase border-b border-primary pb-1 inline-block hover:text-primary transition-colors" href="#">Ver Detalles</a>
+</div>
+</div>
+<!-- Collection 2 -->
+<div class="relative h-[600px] overflow-hidden group">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-105" data-alt="Stunning model wearing high jewelry necklace and earrings" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCk04ZeJNQDqAb4mFOaXQrpj92oLiC3erQAn8hs2bKf1e3So10FGmoE-wIRYjTERc77O1zJNELWwMKmmX5uADrgznyF3EDG8gWyPJ-9X9ckBoBFG_8BKk1_Xev2qG9zwaG91JgOtvqbdGsXPNwidreXIVw4CSThEOqk8I0LjKOKtUhQm80GLsYEXdwA0XqjJMuTzE37tf95OQTW-koTDRnViXWoNxbzYNuWI8zqqxCP9Q7lR455_wfiuPC53noqeSHNsVVTwhbW9HA');">
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-charcoal/80 via-transparent to-transparent"></div>
+<div class="absolute bottom-10 left-10 right-10">
+<h3 class="text-white text-2xl font-light mb-4 uppercase tracking-widest">Alta Joyería</h3>
+<a class="text-white text-xs font-bold tracking-widest uppercase border-b border-primary pb-1 inline-block hover:text-primary transition-colors" href="#">Ver Detalles</a>
+</div>
+</div>
+<!-- Collection 3 -->
+<div class="relative h-[600px] overflow-hidden group lg:col-span-1 md:col-span-2">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-105" data-alt="Luxury gold watch detailed close up" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDw-YSYvx--wFdSwaMdeyYA2KF4fWI9X1qgwUcBJFaDVHDk3R0uhK75ULwlzvvQI2qfecmNu5dTF9-D9xRLxwgmLdQKMxDj1Qs-rn-fdvY-gy19a4Af2qyjT9flw3CNU3VGXbCbGTnALoY5KbvnREyhQByQx2qUQndclnTEwQPah2mvXguMqvnkcruF2XettI6-afUmzVm1ZXXgfsDkHp2CLFX5CqauKggo9BZugDhcAAOafzrf2dDwJ8MI0S043oWuUBkGKpD_R_Y');">
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-charcoal/80 via-transparent to-transparent"></div>
+<div class="absolute bottom-10 left-10 right-10">
+<h3 class="text-white text-2xl font-light mb-4 uppercase tracking-widest">Relojes de Lujo</h3>
+<a class="text-white text-xs font-bold tracking-widest uppercase border-b border-primary pb-1 inline-block hover:text-primary transition-colors" href="#">Ver Detalles</a>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Newsletter Section -->
+<section class="py-24 bg-white dark:bg-background-dark border-y border-champagne">
+<div class="max-w-xl mx-auto text-center px-6">
+<h2 class="text-2xl font-light mb-4 tracking-tight">Reciba nuestras novedades</h2>
+<p class="text-charcoal/60 dark:text-slate-400 mb-8 font-light italic">Únase a nuestro círculo exclusivo para recibir invitaciones a eventos y colecciones privadas.</p>
+<form class="flex flex-col sm:flex-row gap-4">
+<input class="flex-1 bg-champagne/40 border-none rounded-full px-6 py-4 focus:ring-1 focus:ring-primary/50 text-sm" placeholder="Correo electrónico" type="email"/>
+<button class="bg-charcoal text-white dark:bg-primary dark:text-charcoal font-bold px-8 py-4 rounded-full text-xs uppercase tracking-widest hover:opacity-90 transition-opacity">
+                        Suscribirse
+                    </button>
+</form>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-background-light dark:bg-background-dark pt-20 pb-10 px-6 lg:px-12">
+<div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
+<div class="space-y-6">
+<div class="flex items-center gap-2 text-primary">
+<svg class="size-6" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M42.4379 44C42.4379 44 36.0744 33.9038 41.1692 24C46.8624 12.9336 42.2078 4 42.2078 4L7.01134 4C7.01134 4 11.6577 12.932 5.96912 23.9969C0.876273 33.9029 7.27094 44 7.27094 44L42.4379 44Z" fill="currentColor"></path>
+</svg>
+<span class="text-charcoal dark:text-white font-bold tracking-tight uppercase">Joyas de Lujo</span>
+</div>
+<p class="text-charcoal/60 dark:text-slate-400 text-sm leading-relaxed font-light">
+                    Redefiniendo el lujo y la elegancia a través de piezas excepcionales y artesanía de clase mundial.
+                </p>
+<div class="flex gap-4">
+<a class="hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">public</span></a>
+<a class="hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">camera</span></a>
+<a class="hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">mail</span></a>
+</div>
+</div>
+<div>
+<h4 class="text-xs font-bold tracking-[0.2em] uppercase mb-6">Empresa</h4>
+<ul class="space-y-4 text-sm text-charcoal/60 dark:text-slate-400 font-light">
+<li><a class="hover:text-primary transition-colors" href="#">Nuestra Historia</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Responsabilidad</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Carreras</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Prensa</a></li>
+</ul>
+</div>
+<div>
+<h4 class="text-xs font-bold tracking-[0.2em] uppercase mb-6">Servicio al Cliente</h4>
+<ul class="space-y-4 text-sm text-charcoal/60 dark:text-slate-400 font-light">
+<li><a class="hover:text-primary transition-colors" href="#">Contacto</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Envíos y Devoluciones</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Cuidado de Joyas</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">FAQ</a></li>
+</ul>
+</div>
+<div>
+<h4 class="text-xs font-bold tracking-[0.2em] uppercase mb-6">Ubicación</h4>
+<p class="text-sm text-charcoal/60 dark:text-slate-400 font-light leading-relaxed mb-4">
+                    Calle Serrano 145<br/>28006, Madrid, España
+                </p>
+<a class="text-primary text-xs font-bold tracking-widest uppercase border-b border-primary pb-1 inline-block" href="#">Ver en el mapa</a>
+</div>
+</div>
+<div class="max-w-7xl mx-auto pt-10 border-t border-champagne flex flex-col md:flex-row justify-between items-center gap-6">
+<p class="text-xs text-charcoal/40 dark:text-slate-500 font-light">
+                © 2024 Joyas de Lujo. Todos los derechos reservados.
+            </p>
+<div class="flex gap-8 text-[10px] text-charcoal/40 dark:text-slate-500 font-bold uppercase tracking-widest">
+<a class="hover:text-primary transition-colors" href="#">Privacidad</a>
+<a class="hover:text-primary transition-colors" href="#">Términos</a>
+<a class="hover:text-primary transition-colors" href="#">Cookies</a>
+</div>
+</div>
+</footer>
+</body></html>

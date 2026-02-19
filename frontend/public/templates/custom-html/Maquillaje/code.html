@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Atenea | Maquillaje de Lujo</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#eb4770",
+                        "accent-gold": "#d4af37",
+                        "soft-lavender": "#f3e8ff",
+                        "soft-blush": "#fff1f2",
+                        "warm-cream": "#faf7f2",
+                        "background-light": "#fcf8f9",
+                        "background-dark": "#211115",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .glass-effect { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(8px); }
+        .gold-border-hover:hover { border-color: #d4af37; }
+    </style>
+</head>
+<body class="bg-background-light text-slate-900 selection:bg-primary/20">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 glass-effect border-b border-primary/10">
+<div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+<div class="flex items-center gap-12">
+<div class="flex items-center gap-2 group cursor-pointer">
+<div class="text-primary group-hover:scale-110 transition-transform">
+<svg class="w-8 h-8" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M13.8261 17.4264C16.7203 18.1174 20.2244 18.5217 24 18.5217C27.7756 18.5217 31.2797 18.1174 34.1739 17.4264C36.9144 16.7722 39.9967 15.2331 41.3563 14.1648L24.8486 40.6391C24.4571 41.267 23.5429 41.267 23.1514 40.6391L6.64374 14.1648C8.00331 15.2331 11.0856 16.7722 13.8261 17.4264Z" fill="currentColor"></path>
+<path clip-rule="evenodd" d="M39.998 12.236C39.9944 12.2537 39.9875 12.2845 39.9748 12.3294C39.9436 12.4399 39.8949 12.5741 39.8346 12.7175C39.8168 12.7597 39.7989 12.8007 39.7813 12.8398C38.5103 13.7113 35.9788 14.9393 33.7095 15.4811C30.9875 16.131 27.6413 16.5217 24 16.5217C20.3587 16.5217 17.0125 16.131 14.2905 15.4811C12.0012 14.9346 9.44505 13.6897 8.18538 12.8168C8.17384 12.7925 8.16216 12.767 8.15052 12.7408C8.09919 12.6249 8.05721 12.5114 8.02977 12.411C8.00356 12.3152 8.00039 12.2667 8.00004 12.2612C8.00004 12.261 8 12.2607 8.00004 12.2612C8.00004 12.2359 8.0104 11.9233 8.68485 11.3686C9.34546 10.8254 10.4222 10.2469 11.9291 9.72276C14.9242 8.68098 19.1919 8 24 8C28.8081 8 33.0758 8.68098 36.0709 9.72276C37.5778 10.2469 38.6545 10.8254 39.3151 11.3686C39.9006 11.8501 39.9857 12.1489 39.998 12.236ZM4.95178 15.2312L21.4543 41.6973C22.6288 43.5809 25.3712 43.5809 26.5457 41.6973L43.0534 15.223C43.0709 15.1948 43.0878 15.1662 43.104 15.1371L41.3563 14.1648C43.104 15.1371 43.1038 15.1374 43.104 15.1371L43.1051 15.135L43.1065 15.1325L43.1101 15.1261L43.1199 15.1082C43.1276 15.094 43.1377 15.0754 43.1497 15.0527C43.1738 15.0075 43.2062 14.9455 43.244 14.8701C43.319 14.7208 43.4196 14.511 43.5217 14.2683C43.6901 13.8679 44 13.0689 44 12.2609C44 10.5573 43.003 9.22254 41.8558 8.2791C40.6947 7.32427 39.1354 6.55361 37.385 5.94477C33.8654 4.72057 29.133 4 24 4C18.867 4 14.1346 4.72057 10.615 5.94478C8.86463 6.55361 7.30529 7.32428 6.14419 8.27911C4.99695 9.22255 3.99999 10.5573 3.99999 12.2609C3.99999 13.1275 4.29264 13.9078 4.49321 14.3607C4.60375 14.6102 4.71348 14.8196 4.79687 14.9689C4.83898 15.0444 4.87547 15.1065 4.9035 15.1529C4.91754 15.1762 4.92954 15.1957 4.93916 15.2111L4.94662 15.223L4.95178 15.2312ZM35.9868 18.996L24 38.22L12.0131 18.996C12.4661 19.1391 12.9179 19.2658 13.3617 19.3718C16.4281 20.1039 20.0901 20.5217 24 20.5217C27.9099 20.5217 31.5719 20.1039 34.6383 19.3718C35.082 19.2658 35.5339 19.1391 35.9868 18.996Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<span class="text-2xl font-extrabold tracking-tighter text-slate-800">ATENEA</span>
+</div>
+<nav class="hidden lg:flex items-center gap-8">
+<a class="text-sm font-semibold text-slate-600 hover:text-primary transition-colors tracking-wide" href="#">TIENDA</a>
+<a class="text-sm font-semibold text-slate-600 hover:text-primary transition-colors tracking-wide" href="#">NOVEDADES</a>
+<a class="text-sm font-semibold text-slate-600 hover:text-primary transition-colors tracking-wide" href="#">SETS DE REGALO</a>
+<a class="text-sm font-semibold text-slate-600 hover:text-primary transition-colors tracking-wide" href="#">BLOG</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative group hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+<input class="bg-warm-cream/50 border-none focus:ring-1 focus:ring-primary rounded-full pl-10 pr-4 py-2 text-sm w-48 transition-all focus:w-64 outline-none" placeholder="Buscar productos..." type="text"/>
+</div>
+<button class="text-slate-600 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+<button class="text-slate-600 hover:text-primary transition-colors relative">
+<span class="material-symbols-outlined">shopping_bag</span>
+<span class="absolute -top-1 -right-1 bg-primary text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">2</span>
+</button>
+<button class="text-slate-600 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">person</span>
+</button>
+</div>
+</div>
+</header>
+<main>
+<!-- Hero Section -->
+<section class="relative h-[85vh] overflow-hidden flex items-center">
+<div class="absolute inset-0 z-0">
+<img alt="Close-up of luxury makeup brushes on soft pink silk" class="w-full h-full object-cover" data-alt="Luxury makeup palette on silk background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCaAFw33ZX9xVPt1PnyyLGl0RxOH5VhbpGFSKCmnpKn6_eTXXmAQ3DB7YxkIGBHb-zeJzisUeCV0Y1EMMgk7uRbKK5Hfy2VM3DOAKEacDFWNefS5D1G0PGCtFqpComATg_ISToFMFgPdRlrx4H-3l4u2hCDDPgT-LfCR0ss_LJejXNburMKwaXHX3gVVUqwg3AWDOchz4N5yQ7uEBwBhrVnYk-gEOacHUFKnjVNGcRPNwFl5wXdvlDAA-lwPUZj-lzYK-bcJtZ7eK0"/>
+<div class="absolute inset-0 bg-gradient-to-r from-background-light/80 via-transparent to-transparent"></div>
+</div>
+<div class="max-w-7xl mx-auto px-6 relative z-10 w-full">
+<div class="max-w-2xl space-y-8">
+<span class="text-primary font-bold tracking-[0.3em] text-xs uppercase block">Professional Cosmetics</span>
+<h1 class="text-6xl md:text-7xl font-extralight text-slate-900 leading-[1.1] tracking-tight">
+                        Realza tu <br/> <span class="font-black italic text-primary/80">Belleza Natural</span>
+</h1>
+<p class="text-lg text-slate-600 max-w-lg leading-relaxed font-light">
+                        Descubre el lujo del maquillaje profesional con acabados naturales, texturas de seda y pigmentación de alta fidelidad.
+                    </p>
+<div class="flex items-center gap-4">
+<button class="bg-primary hover:bg-primary/90 text-white px-10 py-4 rounded-lg font-bold tracking-wider transition-all transform hover:scale-105 shadow-lg shadow-primary/20">
+                            COMPRAR AHORA
+                        </button>
+<button class="border border-primary/30 text-primary hover:bg-primary/5 px-10 py-4 rounded-lg font-bold tracking-wider transition-all">
+                            VER COLECCIÓN
+                        </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Categories Section -->
+<section class="py-24 bg-white">
+<div class="max-w-7xl mx-auto px-6">
+<div class="text-center mb-16 space-y-4">
+<h2 class="text-3xl font-bold tracking-tight text-slate-800">Nuestras Categorías</h2>
+<div class="w-12 h-1 bg-primary/20 mx-auto rounded-full"></div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-12">
+<div class="flex flex-col items-center gap-6 group cursor-pointer">
+<div class="w-40 h-40 rounded-full overflow-hidden border-2 border-transparent group-hover:border-accent-gold transition-all p-2 bg-warm-cream">
+<img alt="Makeup foundation and face products" class="w-full h-full object-cover rounded-full" data-alt="High-end liquid foundation and powder" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA44Zg1JH-J5JXXBr2xAQnOKdDcCDJsvmCdGul_-HP1jRWG2UiuFa1919bQkyFZmqp3lVbjF_5xDiHYDp_YTPhndSkRg_L_wXiZmfMSkruo3TlmqGUjMHUDqitJZtwQkXakVLgoDGZrOFGtEIULNf6rr4BcNH7kBTGdoLg8sWbjeu32Msf_5rkQ7QjfwJrVqMYM9jFNdd9gyTWvRIUmR64dniGKlVzhmIcyIU8tJ56zPoy2QI8fIAtqcp5YmII3EAR6LiQ9ZRvSBb0"/>
+</div>
+<span class="font-semibold tracking-widest text-sm text-slate-600 group-hover:text-primary uppercase transition-colors">Rostro</span>
+</div>
+<div class="flex flex-col items-center gap-6 group cursor-pointer">
+<div class="w-40 h-40 rounded-full overflow-hidden border-2 border-transparent group-hover:border-accent-gold transition-all p-2 bg-warm-cream">
+<img alt="Eye shadow palette colors" class="w-full h-full object-cover rounded-full" data-alt="Shimmering eye shadow palette close-up" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAW1aStW4xPkEJqjVuvhpCF99XAQTouHpKfqbXR5m78wiO1WkQJVmVfznDP6PCE5hWyZoGkOmbTphwlEq2MH9_xdWTmMh2LD37upObmwCyld9j81SpqkxPLeZuCtNK-wpPfmCYoz6kbSYGQB9pXmqhD_mQ31jnqn_dXFiQCR0trkOpsyF-ZfOKAvTPxoIW5AcI4kjgxQYtdxWZLRz1P2DFuiiIAw-3rshpG6sfQ4Vmn27lFvCzdBRp-p4osVGx0t9EZvUzZbarVn5s"/>
+</div>
+<span class="font-semibold tracking-widest text-sm text-slate-600 group-hover:text-primary uppercase transition-colors">Ojos</span>
+</div>
+<div class="flex flex-col items-center gap-6 group cursor-pointer">
+<div class="w-40 h-40 rounded-full overflow-hidden border-2 border-transparent group-hover:border-accent-gold transition-all p-2 bg-warm-cream">
+<img alt="Lipstick and gloss collection" class="w-full h-full object-cover rounded-full" data-alt="Luxury matte lipsticks collection" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLMlDlUlu4Wp_htKeCKyAOjovUSTbE2F5-j2E1IQ15ae3LfuFTdFJ5qxobqfsetNRJKXsuJwpf0-aRnzLwJw1VF57sTwVDHonh_RInsiCkuA3id1deRPSNdK7lFT8qpFr03leP_sqpiJhnSm4kkXaa_c71ndgxaTKT7FjUfXjTcbIFC3AUn3hv3EOLGq6vDZLdJJjZptqKope47ioFYGttcqnwTY9E1yFIVHMVXMAbdiPgoUwxYE1qtw1XZWx-WIcr02j6yNn6Yuo"/>
+</div>
+<span class="font-semibold tracking-widest text-sm text-slate-600 group-hover:text-primary uppercase transition-colors">Labios</span>
+</div>
+<div class="flex flex-col items-center gap-6 group cursor-pointer">
+<div class="w-40 h-40 rounded-full overflow-hidden border-2 border-transparent group-hover:border-accent-gold transition-all p-2 bg-warm-cream">
+<img alt="Professional makeup brushes" class="w-full h-full object-cover rounded-full" data-alt="Set of professional makeup brushes" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLWJi6bSFV7DC9lq3YB7nKracBOfur7kbIdrXkifKAgo-5l1jkRIFJ_UinsKX3qqYn1eBLy3POLkPxJGKUsqnbXIzdVhoMGM6OeLMuuukO4S_H8sPKroChL8pEHE58Mz5-5FYE0EYkg1U2iU1sZgHu04LmA1MGRRtLPFqSHbO2Sw40AZRoKGpiyPADKuLdpZt6V6nYL9i9rcJs_lFV1Hvp9ABXAmiY-QFXEchaMUlsVF94oCvbBBeIa868hmcP3_kVg6jiI83VFSc"/>
+</div>
+<span class="font-semibold tracking-widest text-sm text-slate-600 group-hover:text-primary uppercase transition-colors">Herramientas</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Bestsellers Grid -->
+<section class="py-24 bg-background-light">
+<div class="max-w-7xl mx-auto px-6">
+<div class="flex items-end justify-between mb-16">
+<div class="space-y-4">
+<span class="text-primary font-bold tracking-[0.2em] text-[10px] uppercase">Curated Selection</span>
+<h2 class="text-4xl font-light text-slate-800 tracking-tight">Los Más Vendidos</h2>
+</div>
+<a class="text-sm font-bold border-b-2 border-primary/20 pb-1 text-slate-600 hover:text-primary hover:border-primary transition-all" href="#">VER TODO</a>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+<!-- Product Card 1 -->
+<div class="bg-white rounded-xl overflow-hidden group border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all">
+<div class="relative h-80 overflow-hidden bg-warm-cream p-4">
+<img alt="Luxury face powder" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" data-alt="Luxury face powder compact product" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0S54336TW3cC0NCfgmu_SNYDPDrFqwjlbaoSUiF15HS5xnIhCBoNCMh6OZR-T4qCatgjWbdmezB-nwnchdQY4DEhp7rxZrDLAZImEvFHmxOYxgoibXHdaP1_6mRMn1JmCE9CcAKGEeZ_wu6UJRCcHNIcuxtF-yQtp5a4FyloAHi1aaKSynVJpkhO6tPn9Gi6cKRFAyR_rvMCX7aJiZyBP66iY4EQmdgEUWnygucHA35WjJLqwu1pLsk8yrRPcVdgiJkTk8n2VFwk"/>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="bg-white text-slate-900 px-6 py-2 rounded-lg font-bold text-xs shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform">VISTA RÁPIDA</button>
+</div>
+<span class="absolute top-4 left-4 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded">HOT</span>
+</div>
+<div class="p-6 space-y-2">
+<p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase">ROSTRO</p>
+<h3 class="font-semibold text-slate-800 group-hover:text-primary transition-colors">Base 'Piel de Seda'</h3>
+<div class="flex justify-between items-center">
+<span class="text-lg font-light text-accent-gold">$45.00</span>
+<button class="material-symbols-outlined text-slate-400 hover:text-primary transition-colors text-xl">add_shopping_cart</button>
+</div>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="bg-white rounded-xl overflow-hidden group border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all">
+<div class="relative h-80 overflow-hidden bg-warm-cream p-4">
+<img alt="Eyeshadow palette" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" data-alt="Sunset eyeshadow palette colorful pigments" src="https://lh3.googleusercontent.com/aida-public/AB6AXuChtEs4OjzqG6_-YkCg842SEW2L9s0MUssqGuB8YoucqaVyeyIM_Z-b11xJQGkyzc9BY6X9MRkR9Wfz6zPibHtlt4DOgXpKxepRmXs5wyI6WxT64Vl2w9whk1NZYTEsc9akgiBp0TaxS0X2ZU8uXfkkhxuun9CSDoniI3E3dhIO7HrKY2opNXufDXYhLlqHA5NGkPweQb6xPAxYyXYUl45bhwKFLRq4fxN460a-zbON7tZ0vaU-L03xaOl5v0iMgKahR2QV_wDq8Rg"/>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="bg-white text-slate-900 px-6 py-2 rounded-lg font-bold text-xs shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform">VISTA RÁPIDA</button>
+</div>
+</div>
+<div class="p-6 space-y-2">
+<p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase">OJOS</p>
+<h3 class="font-semibold text-slate-800 group-hover:text-primary transition-colors">Paleta 'Diosa del Atardecer'</h3>
+<div class="flex justify-between items-center">
+<span class="text-lg font-light text-accent-gold">$58.00</span>
+<button class="material-symbols-outlined text-slate-400 hover:text-primary transition-colors text-xl">add_shopping_cart</button>
+</div>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="bg-white rounded-xl overflow-hidden group border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all">
+<div class="relative h-80 overflow-hidden bg-warm-cream p-4">
+<img alt="Matte lipstick" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" data-alt="Matte red lipstick luxury case" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDo0qAKx9UN67ntSpRgD9QhYHY6HfczlgbGEomL2RM5KB6iWQdqNCMc6Qf_7kMuyVpB8yVgQ5EcgSPzN1viTx2lbdLi4-bdKhmQBmuwyAR8tqvre54Q7kabBuzFMGdtJprzxYiDZXJP9nS0s0MtCLOY37-aDxJG1i-yAXD8KafWjM92coYUhnKGc1kbFurdJnwIlF41p7DN0U90llA5w1BZZsogndWEC1YFGaV929xhfXx8AWA7ans633krXxaJ0l-Zy1Hk4LiCiy4"/>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="bg-white text-slate-900 px-6 py-2 rounded-lg font-bold text-xs shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform">VISTA RÁPIDA</button>
+</div>
+</div>
+<div class="p-6 space-y-2">
+<p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase">LABIOS</p>
+<h3 class="font-semibold text-slate-800 group-hover:text-primary transition-colors">Labial Mate Infinito</h3>
+<div class="flex justify-between items-center">
+<span class="text-lg font-light text-accent-gold">$24.00</span>
+<button class="material-symbols-outlined text-slate-400 hover:text-primary transition-colors text-xl">add_shopping_cart</button>
+</div>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="bg-white rounded-xl overflow-hidden group border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all">
+<div class="relative h-80 overflow-hidden bg-warm-cream p-4">
+<img alt="Setting spray" class="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" data-alt="Professional makeup setting spray bottle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiJLz_ZAr67RuJjWS1j7q1b5nEjD-IDH4QbjyeQ1TEQn2VY7PB5dtan68Jyzix84zA37okRALrN61nBFKlekp9JBAvtGhilKxCBrhff6ZqzKx0nXmrrwClnjTMf7O8AXtnVxCJT9G9LzastrHBvw6OYK2BK9ANAxjNQlgbrzLqo_j1eiEzD9m3HlXecWD0g0sLYCurpIkgqsKQwELjCXxoyak8eYrg8N6qMFAxmSse9q4k131l7UMDrpn13IGJ_imT8hHIp4ftZUo"/>
+<div class="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="bg-white text-slate-900 px-6 py-2 rounded-lg font-bold text-xs shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform">VISTA RÁPIDA</button>
+</div>
+</div>
+<div class="p-6 space-y-2">
+<p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase">ROSTRO</p>
+<h3 class="font-semibold text-slate-800 group-hover:text-primary transition-colors">Fijador 'Rocío Eterno'</h3>
+<div class="flex justify-between items-center">
+<span class="text-lg font-light text-accent-gold">$32.00</span>
+<button class="material-symbols-outlined text-slate-400 hover:text-primary transition-colors text-xl">add_shopping_cart</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Inspiration & Tutorials -->
+<section class="py-24 bg-soft-blush/30 overflow-hidden">
+<div class="max-w-7xl mx-auto px-6">
+<div class="flex flex-col md:flex-row items-center gap-16 mb-20">
+<div class="flex-1 space-y-6">
+<span class="text-primary font-bold tracking-[0.2em] text-xs uppercase">The Art of Beauty</span>
+<h2 class="text-5xl font-extralight text-slate-800 leading-tight">Inspiración y <br/> <span class="font-black italic">Tutoriales</span></h2>
+<p class="text-lg text-slate-600 leading-relaxed font-light">
+                            Aprende técnicas profesionales de la mano de nuestros expertos. Domina el arte del contorno, el delineado perfecto y la iluminación de impacto.
+                        </p>
+<button class="flex items-center gap-2 group text-primary font-bold tracking-widest text-sm">
+                            EXPLORAR TODOS LOS LOOKS
+                            <span class="material-symbols-outlined group-hover:translate-x-2 transition-transform">arrow_forward</span>
+</button>
+</div>
+<div class="flex-1 grid grid-cols-2 gap-4">
+<div class="relative aspect-[3/4] rounded-2xl overflow-hidden group cursor-pointer">
+<img alt="Makeup tutorial close up" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="Editorial close up of eye makeup tutorial" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaDu-YMXd9bUbg-FNCuyn3UUQ16Iso0ufEkJ-nbCDW5og_y-vOxwB5HgyVaMXBLwGU_6tfGV4fAtylgZvvmMJFmEXv8ah_oe54rtjA8wSdgYLP_Sm494mWQeA7c2ECZSC9ze9M-lYNKH6CN2rE4ID2wbItgYM8J-_KbnmFY2PiLJz9Q5cRpxL4EgCsKUcznMDlovMbQ-gWPUUtKjDuy0zyoxznTQJSt56QgW537e9jmfkzzBlIAlXNtz8ga2Rv_GWVHFR5_VX46lY"/>
+<div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white text-5xl">play_circle</span>
+</div>
+</div>
+<div class="relative aspect-[3/4] rounded-2xl overflow-hidden group translate-y-12 cursor-pointer">
+<img alt="Beauty editorial photography" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="High-fashion editorial makeup look model" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCaQ6lTu-a49WWjciiZy7obgo1K3mOGx-1fDzJmKR2t6ocxuuP6FKzsXy7PufKwypUwz_U361wB_d95i7Rnjko8ULuShrRA3UbBo7Sjbq_AxksSXXF0ll0QBSc4BjE6OwWQBN1-TXi7YvlHDIdmTr1QPqUPs3zchN0-W_TxzYSndvrtet7c_CAZ2-zc7CKJUGeP-ZwXyQLh5C8Yn7QUgyW3irklRM5_9gvdhIjd5nvpf4Q4IOT21XxPYbqzvzMm2xfNJCyTyNnZC6U"/>
+<div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white text-5xl">visibility</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Newsletter -->
+<section class="py-20 border-t border-slate-100">
+<div class="max-w-4xl mx-auto px-6 text-center space-y-8">
+<h3 class="text-2xl font-bold text-slate-800 tracking-tight">Únete al Círculo Atenea</h3>
+<p class="text-slate-500">Recibe consejos exclusivos, preventas y ofertas especiales de lujo directamente en tu correo.</p>
+<form class="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
+<input class="flex-1 px-6 py-4 rounded-lg bg-warm-cream/30 border border-primary/10 focus:ring-1 focus:ring-primary outline-none text-slate-800" placeholder="Tu correo electrónico" type="email"/>
+<button class="bg-slate-900 text-white px-8 py-4 rounded-lg font-bold hover:bg-slate-800 transition-colors uppercase tracking-widest text-xs">Suscribirse</button>
+</form>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-white border-t border-slate-100 pt-20 pb-10">
+<div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
+<div class="space-y-6">
+<div class="flex items-center gap-2">
+<div class="text-primary">
+<svg class="w-6 h-6" fill="currentColor" viewbox="0 0 48 48">
+<path d="M13.8261 17.4264C16.7203 18.1174 20.2244 18.5217 24 18.5217C27.7756 18.5217 31.2797 18.1174 34.1739 17.4264C36.9144 16.7722 39.9967 15.2331 41.3563 14.1648L24.8486 40.6391C24.4571 41.267 23.5429 41.267 23.1514 40.6391L6.64374 14.1648C8.00331 15.2331 11.0856 16.7722 13.8261 17.4264Z"></path>
+</svg>
+</div>
+<span class="text-xl font-black tracking-tighter text-slate-800">ATENEA</span>
+</div>
+<p class="text-slate-400 text-sm leading-relaxed">Maquillaje profesional diseñado para realzar la esencia única de cada rostro con los más altos estándares de calidad.</p>
+<div class="flex gap-4">
+<a class="w-10 h-10 rounded-full bg-warm-cream flex items-center justify-center text-slate-600 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">share_location</span>
+</a>
+<a class="w-10 h-10 rounded-full bg-warm-cream flex items-center justify-center text-slate-600 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">groups</span>
+</a>
+</div>
+</div>
+<div>
+<h4 class="font-bold text-slate-800 mb-6 uppercase tracking-widest text-xs">Comprar</h4>
+<ul class="space-y-4 text-sm text-slate-500">
+<li><a class="hover:text-primary transition-colors" href="#">Rostro</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Ojos</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Labios</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Accesorios</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold text-slate-800 mb-6 uppercase tracking-widest text-xs">Ayuda</h4>
+<ul class="space-y-4 text-sm text-slate-500">
+<li><a class="hover:text-primary transition-colors" href="#">Envíos</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Devoluciones</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Seguimiento</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Contacto</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold text-slate-800 mb-6 uppercase tracking-widest text-xs">Contacto</h4>
+<ul class="space-y-4 text-sm text-slate-500">
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">mail</span>
+                        hola@atenea.com
+                    </li>
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">call</span>
+                        +34 900 123 456
+                    </li>
+<li class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">location_on</span>
+                        Madrid, España
+                    </li>
+</ul>
+</div>
+</div>
+<div class="max-w-7xl mx-auto px-6 border-t border-slate-50 pt-10 text-center">
+<p class="text-[10px] text-slate-400 font-bold tracking-[0.2em] uppercase">© 2024 Atenea Profesional. Todos los derechos reservados.</p>
+</div>
+</footer>
+</body></html>

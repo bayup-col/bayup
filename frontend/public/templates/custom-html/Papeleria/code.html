@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Papelería Pro: El Mundo del Papel</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1754cf",
+                        "accent-yellow": "#fbbf24",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111621",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased font-display">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 w-full bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex items-center justify-between h-20">
+<!-- Logo -->
+<div class="flex items-center gap-3">
+<div class="bg-primary p-2 rounded-lg">
+<span class="material-symbols-outlined text-white text-3xl">auto_stories</span>
+</div>
+<div>
+<h1 class="text-xl font-extrabold tracking-tight text-primary">Papelería Pro</h1>
+<p class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">El Mundo del Papel</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="hidden md:flex items-center gap-8 text-sm font-semibold">
+<a class="text-primary border-b-2 border-primary pb-1" href="#">Inicio</a>
+<a class="hover:text-primary transition-colors" href="#">Productos</a>
+<a class="hover:text-primary transition-colors" href="#">Mayoristas</a>
+<a class="hover:text-primary transition-colors" href="#">Servicios</a>
+</nav>
+<!-- Search & Actions -->
+<div class="flex items-center gap-6">
+<div class="hidden lg:flex items-center bg-slate-100 dark:bg-slate-800 rounded-full px-4 py-2 w-64">
+<span class="material-symbols-outlined text-slate-400 text-xl">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-slate-400" placeholder="Buscar productos..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="relative hover:text-primary transition-colors">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+<button class="relative hover:text-primary transition-colors">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="absolute -top-2 -right-2 bg-accent-yellow text-slate-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+</button>
+<button class="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all">
+<span class="material-symbols-outlined text-lg">person</span>
+<span>Mi Cuenta</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</header>
+<main>
+<!-- Hero Section -->
+<section class="relative h-[600px] w-full overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="Escritorio premium con plumas estilográficas y libretas coloridas" style="background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.3)), url('https://lh3.googleusercontent.com/aida-public/AB6AXuC2pd6XBuRbSTxr_e5aDTcOJP0DWAZr_sCG3aCo_Az0wq_52yN8KFsWjOYjzsNR1f7QVb8ZkAebONLPawrl9TEdpDkeCirhd5QvfGOyUF3thqTM_VnAl2nHCQFNJKUgXbDVOCFSs5pZ_mvNGHmyBKXw7a72aVnQbsI4ECayCGNrX846d_GXXx1O9X8e8fyBXecAWzJmS6DrbXiIA4X4-xnMIvBLCVchhpO7YW901zUENlqsd4ajrcKM6bv2Y4W_VzsqPCBYTeMCkSE');"></div>
+<div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center items-start">
+<div class="max-w-2xl bg-white/10 backdrop-blur-md p-10 rounded-2xl border border-white/20">
+<span class="inline-block bg-accent-yellow text-slate-900 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4">Nueva Colección 2024</span>
+<h2 class="text-5xl md:text-6xl font-extrabold text-white leading-tight mb-6">Todo para tu Creatividad y Oficina</h2>
+<p class="text-xl text-slate-100 mb-8 font-medium">Suministros premium para artistas, estudiantes y profesionales. Calidad que inspira cada trazo.</p>
+<div class="flex gap-4">
+<button class="bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:scale-105 transition-transform">Ver Catálogo</button>
+<button class="bg-white text-primary px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-50 transition-colors">Promociones</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Categories Section -->
+<section class="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="text-center mb-16">
+<h2 class="text-3xl font-extrabold text-slate-900 dark:text-white sm:text-4xl">Categorías Destacadas</h2>
+<div class="h-1.5 w-24 bg-primary mx-auto mt-4 rounded-full"></div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+<!-- Category Card 1 -->
+<div class="group cursor-pointer">
+<div class="relative overflow-hidden rounded-2xl aspect-square mb-4 bg-slate-200 shadow-xl">
+<img class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500" data-alt="Útiles escolares coloridos organizados" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6I7Pm3NTaJ-wPQdCWcm1NEnLFpRrwjnWedutWv5iAWnMTAXBTak-gupwjBUoOEOEJcKO53MbTcnRlfGyqaLXj8UcrWu8fF3XiNG-5-qX7qcFt0C85YivPjQ5b3xvFfnT9dQr2lcw4vXgM7bxa-yVccY8uPSE-_y-xhn6VBp4reFLeaBYLmhhIiLtuKGoifZirbAFR-dnSkvOp0M7DKd-UGIRmJFTtliW4yTiMMQRK-QO7hQcknJGtTq3VtGLbxsIPpjRsOj4yaSE"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+<span class="text-white font-bold flex items-center gap-2">Explorar <span class="material-symbols-outlined">arrow_forward</span></span>
+</div>
+</div>
+<h3 class="text-xl font-bold text-slate-800 dark:text-slate-200">Útiles Escolares</h3>
+<p class="text-slate-500 text-sm">Todo para el éxito académico</p>
+</div>
+<!-- Category Card 2 -->
+<div class="group cursor-pointer">
+<div class="relative overflow-hidden rounded-2xl aspect-square mb-4 bg-slate-200 shadow-xl">
+<img class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500" data-alt="Insumos de oficina profesionales y organizadores" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmj1MAxIS9TTaayP0eT7ATZCnvatIuBowbBco-R3osg44iXb6ll4Mny1KpLy9--OGohOoeOpViISFuWw36Pc7IyogOc0O2ocOxafYLSfjgII_MIpovznFThXTqDmLqcze8tOopGr_MFI9hI0dCHBkrH4dpELw7I-HAwQMDwY3y0aEeuRmPWWSkAOZdI3pV-KLXZR4w7LYH8AOikHEYQawzISllCplcdIbxp9Vi87kVaCxdAyRyd52xWLmurRZ96GJYIfxlvVna9jA"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+<span class="text-white font-bold flex items-center gap-2">Explorar <span class="material-symbols-outlined">arrow_forward</span></span>
+</div>
+</div>
+<h3 class="text-xl font-bold text-slate-800 dark:text-slate-200">Oficina y Papelería</h3>
+<p class="text-slate-500 text-sm">Eficiencia para tu espacio de trabajo</p>
+</div>
+<!-- Category Card 3 -->
+<div class="group cursor-pointer">
+<div class="relative overflow-hidden rounded-2xl aspect-square mb-4 bg-slate-200 shadow-xl">
+<img class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500" data-alt="Materiales de arte y diseño fino" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8cyqiqhu5prfhKRtzYOvxH7hQNXrm2LLoPJYoOyaujx3XSNPvnthoOJVnTHqJvXYFResAPn2vuxS_YG7ymmfL3wcul3H9VWsrwyRHtAoi4QLEi6XA6tprkQp0BdpPdCtFQ0AWWWEGGvG0vl7tu1j6gBK78jpA3tbtG28lPJLSv-QE8Kg4LX4T9m_qbBLsQ0CScbtANVdZgmwWDPMvkx4O6y4Iri7ppAR-YflWafDEqP4XEzUd3qTxTNjy_Ssdof2enSyHydxwKZY"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+<span class="text-white font-bold flex items-center gap-2">Explorar <span class="material-symbols-outlined">arrow_forward</span></span>
+</div>
+</div>
+<h3 class="text-xl font-bold text-slate-800 dark:text-slate-200">Arte y Diseño</h3>
+<p class="text-slate-500 text-sm">Creatividad sin límites</p>
+</div>
+<!-- Category Card 4 -->
+<div class="group cursor-pointer">
+<div class="relative overflow-hidden rounded-2xl aspect-square mb-4 bg-slate-200 shadow-xl">
+<img class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500" data-alt="Calculadoras y periféricos tecnológicos de oficina" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDX7FOmnYWvsp52uTVC9c4khyUhVjlRP45W9LIZ6W3dHzwg2WG0vSYykmGxLJYxrKFeWRWMskBC0-Hg8n9KycmKsGBAX4AHEHVVEacYWW9I5rgdOoKmPqm6kgY5AJGQgP1cMUNSEYMRFJT3vdI1iOn0b4ByMHZ8frr-Rxazl1B9Eg5LmmYtKamirrptfOZiQMuJoGj8KKYm20Icjo1MHuq-pxLTW1gQew4Zddi2K6xRgCOe5jE3Z61a-7uOAV7wupw6RPJ4Jcgjlws"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+<span class="text-white font-bold flex items-center gap-2">Explorar <span class="material-symbols-outlined">arrow_forward</span></span>
+</div>
+</div>
+<h3 class="text-xl font-bold text-slate-800 dark:text-slate-200">Tecnología</h3>
+<p class="text-slate-500 text-sm">Herramientas digitales modernas</p>
+</div>
+</div>
+</section>
+<!-- Offers Section -->
+<section class="py-20 bg-primary/5 dark:bg-primary/10">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex items-center justify-between mb-12">
+<h2 class="text-3xl font-extrabold text-slate-900 dark:text-white">Ofertas del Mes</h2>
+<a class="text-primary font-bold flex items-center gap-1 hover:underline" href="#">Ver todas <span class="material-symbols-outlined">chevron_right</span></a>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Product 1 -->
+<div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col hover:shadow-lg transition-shadow">
+<div class="relative mb-4">
+<span class="absolute top-2 left-2 bg-accent-yellow text-slate-900 text-xs font-black px-2 py-1 rounded">-20%</span>
+<img class="w-full aspect-square object-cover rounded-lg" data-alt="Marcadores artísticos profesionales en oferta" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOtAEelbbDtzvv69S6vlKqa_C7pPqTaDc7sVgV0HCOMg4RUhRVAV7iwUVuBD7KWDx7KQu2orv2OXgTT4CbVCFsdwI_nNro0iRAdohLzzhq5Q50cxKQqdIleZrcVkqB4jJnC7h5s1vfrQmWgfryhgksdo8budZBObv_eZ2fnQf7nsdhUwJlKNRenDBlNPMFHbHBYn0GYT_dzM3CPUGcoQNo5VeuMeyX1nV8DdLBCId-aRADNbR8lC0mb7B2imDF6ap8H6n-AOyLS4A"/>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-slate-200 mb-1">Set Marcadores Pro</h4>
+<p class="text-xs text-slate-400 mb-4">Marca Premium Art</p>
+<div class="mt-auto flex items-center justify-between">
+<div>
+<span class="text-slate-400 line-through text-sm">$45.000</span>
+<p class="text-lg font-black text-primary">$36.000</p>
+</div>
+<button class="bg-primary/10 text-primary p-2 rounded-lg hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined">add_shopping_cart</span>
+</button>
+</div>
+</div>
+<!-- Product 2 -->
+<div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col hover:shadow-lg transition-shadow">
+<div class="relative mb-4">
+<span class="absolute top-2 left-2 bg-accent-yellow text-slate-900 text-xs font-black px-2 py-1 rounded">-15%</span>
+<img class="w-full aspect-square object-cover rounded-lg" data-alt="Cuaderno de bocetos pasta dura profesional" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBP5cSC33AWJOhg_5QDmwigNJjFyQu1HpLRPrsA0oXCcPRaBXRtd0RQORk2J5RL7bRGLiO5U_vIMyscBGRonEPW2TqMPRXSWknx8EE7LcehJ24vrlDpQfLOuqYsmaApeCWN6btyd6HQFIeCHClzXQV1xcH4Vt0EG9n2o4SANRL1kEgDr-nN6uDSsIfbxwhDvreSc5RuSivrHa8HboMtpNEoTbE6RM6LuHO5hgdO58zkRHEs3AICObQzkZSsc32nKM_36hbrqwmFaBY"/>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-slate-200 mb-1">Sketchbook A4 Pro</h4>
+<p class="text-xs text-slate-400 mb-4">Hojas de 180g</p>
+<div class="mt-auto flex items-center justify-between">
+<div>
+<span class="text-slate-400 line-through text-sm">$28.000</span>
+<p class="text-lg font-black text-primary">$23.800</p>
+</div>
+<button class="bg-primary/10 text-primary p-2 rounded-lg hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined">add_shopping_cart</span>
+</button>
+</div>
+</div>
+<!-- Product 3 -->
+<div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col hover:shadow-lg transition-shadow">
+<div class="relative mb-4">
+<span class="absolute top-2 left-2 bg-accent-yellow text-slate-900 text-xs font-black px-2 py-1 rounded">Oferta</span>
+<img class="w-full aspect-square object-cover rounded-lg" data-alt="Pluma estilográfica de lujo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZFsMW9yYiVvvfL0aNOVa214cfOHnFtwNVStetvorpROa8b4HWkd-Zz-e86dKiUiVJLp_NarZHTorF1WhBc9Rk7ht3YtikUdx-1Ft-evlmoZ7Dv1C13F97UAFidqfp_BLDi7U-DkSqSeONWM0XCbKUZqcazoNqjcoNSMgGCQIeaxB69NPZLOap5cvSGtUr5pwaOMXlaqrWv9PTWUsiXThz8zWLREIYK3o3au5qwlrE74TDZvGDqCZhdPpBbwGjSdhOHSAzzJWLL_g"/>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-slate-200 mb-1">Pluma Executive Blue</h4>
+<p class="text-xs text-slate-400 mb-4">Punta de Iridio</p>
+<div class="mt-auto flex items-center justify-between">
+<div>
+<span class="text-slate-400 line-through text-sm">$120.000</span>
+<p class="text-lg font-black text-primary">$99.000</p>
+</div>
+<button class="bg-primary/10 text-primary p-2 rounded-lg hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined">add_shopping_cart</span>
+</button>
+</div>
+</div>
+<!-- Product 4 -->
+<div class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col hover:shadow-lg transition-shadow">
+<div class="relative mb-4">
+<span class="absolute top-2 left-2 bg-accent-yellow text-slate-900 text-xs font-black px-2 py-1 rounded">Stock Bajo</span>
+<img class="w-full aspect-square object-cover rounded-lg" data-alt="Calculadora científica profesional" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBvGjaIpZc4EwknptWYceImCHmjoxMV1qF2B6OslBIDFLjLFNvtcg8Fk6YVsYGnsBClwUiYQNmnpAGzZqJzSpgsaM1YrEM1RaHPP9f2NPU8O9xg21hrj30hwoxN9jWYYnSLlkTsuPjko2mrnmw7GkdBxFTfb2H5qtgV0gH45LUHq5PnAzGlHdaelY9OD9MlscmA_fLelHIvPbygztMd37Mf4QjTch0y8q8AOOWO6YHB2xya5nx_wB7N6iHCALFuX4Orqq4qYovvbzc"/>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-slate-200 mb-1">Calculadora Plus 300</h4>
+<p class="text-xs text-slate-400 mb-4">Solar &amp; Batería</p>
+<div class="mt-auto flex items-center justify-between">
+<div>
+<span class="text-slate-400 line-through text-sm">$85.000</span>
+<p class="text-lg font-black text-primary">$72.250</p>
+</div>
+<button class="bg-primary/10 text-primary p-2 rounded-lg hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined">add_shopping_cart</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Wholesale Banner -->
+<section class="py-16">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="relative rounded-3xl overflow-hidden bg-primary p-12 flex flex-col lg:flex-row items-center justify-between gap-8">
+<div class="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none">
+<span class="material-symbols-outlined text-[300px] text-white rotate-12">local_shipping</span>
+</div>
+<div class="relative z-10 max-w-xl text-white">
+<h2 class="text-4xl font-black mb-4">Venta al por Mayor</h2>
+<p class="text-lg text-primary-100 opacity-90 mb-6">Ofrecemos atención especializada y precios diferenciales para colegios, universidades y empresas. Surtimos tu negocio con la mejor calidad.</p>
+<button class="bg-accent-yellow text-slate-900 px-8 py-4 rounded-xl font-extrabold text-lg hover:bg-white transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined">request_quote</span>
+                            Solicitar Cotización
+                        </button>
+</div>
+<div class="relative z-10 flex flex-col gap-4 text-white">
+<div class="flex items-center gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/10">
+<span class="material-symbols-outlined text-accent-yellow">verified</span>
+<div>
+<p class="font-bold">Precios Preferenciales</p>
+<p class="text-sm opacity-80">Descuentos por volumen</p>
+</div>
+</div>
+<div class="flex items-center gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/10">
+<span class="material-symbols-outlined text-accent-yellow">local_shipping</span>
+<div>
+<p class="font-bold">Envío Express Corporativo</p>
+<p class="text-sm opacity-80">Prioridad nacional</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Allied Brands -->
+<section class="py-16 bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<p class="text-center text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mb-10">Marcas que Confían en Nosotros</p>
+<div class="flex flex-wrap justify-center items-center gap-12 opacity-50 grayscale hover:grayscale-0 transition-all">
+<div class="flex items-center gap-2 font-black text-2xl text-slate-800 dark:text-slate-200">FABER-CASTELL</div>
+<div class="flex items-center gap-2 font-black text-2xl text-slate-800 dark:text-slate-200">MOLESKINE</div>
+<div class="flex items-center gap-2 font-black text-2xl text-slate-800 dark:text-slate-200">PILOT</div>
+<div class="flex items-center gap-2 font-black text-2xl text-slate-800 dark:text-slate-200">STAEDTLER</div>
+<div class="flex items-center gap-2 font-black text-2xl text-slate-800 dark:text-slate-200">PELIKAN</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-slate-900 text-slate-400 pt-20 pb-10">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+<div>
+<div class="flex items-center gap-3 mb-6">
+<div class="bg-primary p-2 rounded-lg">
+<span class="material-symbols-outlined text-white text-2xl">auto_stories</span>
+</div>
+<h2 class="text-xl font-extrabold text-white">Papelería Pro</h2>
+</div>
+<p class="text-sm leading-relaxed mb-6">Expertos en suministros de papelería, arte y tecnología desde 1995. Calidad premium para cada necesidad.</p>
+<div class="flex gap-4">
+<a class="hover:text-white transition-colors" href="#"><span class="material-symbols-outlined">public</span></a>
+<a class="hover:text-white transition-colors" href="#"><span class="material-symbols-outlined">share</span></a>
+<a class="hover:text-white transition-colors" href="#"><span class="material-symbols-outlined">forum</span></a>
+</div>
+</div>
+<div>
+<h3 class="text-white font-bold mb-6">Empresa</h3>
+<ul class="space-y-4 text-sm">
+<li><a class="hover:text-primary" href="#">Sobre Nosotros</a></li>
+<li><a class="hover:text-primary" href="#">Sucursales</a></li>
+<li><a class="hover:text-primary" href="#">Trabaja con nosotros</a></li>
+<li><a class="hover:text-primary" href="#">Blog Creativo</a></li>
+</ul>
+</div>
+<div>
+<h3 class="text-white font-bold mb-6">Soporte</h3>
+<ul class="space-y-4 text-sm">
+<li><a class="hover:text-primary" href="#">Preguntas Frecuentes</a></li>
+<li><a class="hover:text-primary" href="#">Envíos y Entregas</a></li>
+<li><a class="hover:text-primary" href="#">Políticas de Devolución</a></li>
+<li><a class="hover:text-primary" href="#">Contacto</a></li>
+</ul>
+</div>
+<div>
+<h3 class="text-white font-bold mb-6">Newsletter</h3>
+<p class="text-sm mb-4">Recibe ofertas exclusivas y novedades.</p>
+<form class="flex flex-col gap-3">
+<input class="bg-slate-800 border-none rounded-lg text-sm focus:ring-primary" placeholder="Tu correo electrónico" type="email"/>
+<button class="bg-primary text-white py-2 rounded-lg font-bold hover:bg-primary/90 transition-colors">Suscribirse</button>
+</form>
+</div>
+</div>
+<div class="pt-8 border-t border-slate-800 text-xs flex flex-col md:flex-row justify-between items-center gap-4">
+<p>© 2024 Papelería Pro. Todos los derechos reservados.</p>
+<div class="flex gap-6">
+<a class="hover:text-white" href="#">Términos y Condiciones</a>
+<a class="hover:text-white" href="#">Privacidad</a>
+<a class="hover:text-white" href="#">Cookies</a>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

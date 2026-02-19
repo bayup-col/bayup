@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<title>Tech Minimalista | Periféricos Premium</title>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .frosted-glass {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<nav class="fixed top-0 w-full z-50 frosted-glass border-b border-slate-200/50 dark:border-slate-800/50">
+<div class="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between">
+<div class="flex items-center space-x-8">
+<a class="hover:opacity-70 transition-opacity" href="#">
+<span class="material-icons text-[20px]">apple</span>
+</a>
+<div class="hidden md:flex items-center space-x-8 text-xs font-medium tracking-tight text-slate-600 dark:text-slate-400">
+<a class="hover:text-primary transition-colors" href="#">Tienda</a>
+<a class="hover:text-primary transition-colors" href="#">Mac</a>
+<a class="hover:text-primary transition-colors" href="#">iPad</a>
+<a class="hover:text-primary transition-colors" href="#">iPhone</a>
+<a class="hover:text-primary transition-colors" href="#">Soporte</a>
+</div>
+</div>
+<div class="flex items-center space-x-6">
+<button class="hover:opacity-70 transition-opacity"><span class="material-icons text-[18px]">search</span></button>
+<button class="hover:opacity-70 transition-opacity"><span class="material-icons text-[18px]">shopping_bag</span></button>
+</div>
+</div>
+</nav>
+<section class="relative pt-32 pb-20 overflow-hidden bg-white dark:bg-background-dark">
+<div class="max-w-6xl mx-auto px-6 text-center">
+<h1 class="text-5xl md:text-7xl font-semibold tracking-tight mb-4">Innovación sin límites</h1>
+<p class="text-xl md:text-2xl font-light text-slate-500 mb-12">Diseño y potencia en perfecto equilibrio.</p>
+<div class="flex justify-center space-x-6 mb-16">
+<a class="text-primary hover:underline font-medium text-lg flex items-center" href="#">
+                Más información <span class="material-icons text-sm ml-1">chevron_right</span>
+</a>
+<a class="text-primary hover:underline font-medium text-lg flex items-center" href="#">
+                Comprar <span class="material-icons text-sm ml-1">chevron_right</span>
+</a>
+</div>
+<div class="relative w-full max-w-4xl mx-auto">
+<img alt="iPhone Flagship" class="w-full object-contain h-[500px] transform hover:scale-[1.02] transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZJv5tcYceqPENjeIehLdkNto_MhWe1IEjbUbtbPuActYA5diDVDs2GcblVBrkRHnC8C5kIPTLES3qiGbWSE93uKW9Hzkvx1YdNVQRv3d_VZ4SggJR3j4v3q8GWTt9IuW2ACgELy6UZFE8Wuk6MaekpvfuALzyT6tvA6EKPU7EaaG_WyOhix5AYSTZB4sL9qAypwvdq0X6AXFuvYFmpk7fExqzTWGEpVLMvb8OmGKrEY1BtB7m2J-3uRxFTreaQ38wJXxlHdZi51k"/>
+</div>
+</div>
+</section>
+<section class="bg-background-light dark:bg-background-dark py-4">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-4">
+<div class="group relative bg-white dark:bg-slate-900 h-[400px] flex flex-col items-center justify-between p-10 overflow-hidden">
+<div class="text-center z-10">
+<h2 class="text-3xl font-semibold mb-2">iPhone</h2>
+<p class="text-sm font-light text-slate-500">Pura potencia.</p>
+</div>
+<img alt="iPhone 15" class="w-48 h-auto object-contain transform group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUcYcGyEEU4QG4Wcz62-E7hhnmzm3midVkt5-axO_d7RxB8dC4GqQ-ovbXP8-sPrSS4rmjYys5M8B5r225oOEoQECOs5i7dJO-Iulk50hYNU_-HwChdxJAfnxU-7LhBm-HpQXKY4GiGkuSYuwJequH38KuU_Sfada5XprNKYjzhh48bw1uuB1-BT1ZTQJyhjAfnaH2EolrX1JOCWFBhsnXKmV4HY1KwfLR9K_ZCdHK0JzqoF2hbBbOG03GOb5PaZMbd5tiegQliFI"/>
+<a class="text-primary hover:underline text-sm font-medium z-10" href="#">Ver modelos</a>
+</div>
+<div class="group relative bg-white dark:bg-slate-900 h-[400px] flex flex-col items-center justify-between p-10 overflow-hidden">
+<div class="text-center z-10">
+<h2 class="text-3xl font-semibold mb-2">iPad</h2>
+<p class="text-sm font-light text-slate-500">Versatilidad total.</p>
+</div>
+<img alt="iPad Pro" class="w-56 h-auto object-contain transform group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB30nNdTzLXR56bnjnLImah5PLSBIydObW2ZbHC1ytkIlqARfT7d9xUgFYaBK9OgSZgJw0H4LJN4BvwOdyaWFohBtF-URBrfPNw5jqkR-TZ19qkg2yHkRmYQAeVBXwIrgNx_O0kZUTascm_q8FJkqzr06cRuN1LrThswdX8o9fDJR35RkGYEki0QQBZrGIpqZbCZtW_b6Ix9W0dY6XP0t-DXiWNY3-ClCMvL9eY8jwHkoxS5YSHL9qbjBCjwETPW9P4jydUF5MMFEk"/>
+<a class="text-primary hover:underline text-sm font-medium z-10" href="#">Ver modelos</a>
+</div>
+<div class="group relative bg-white dark:bg-slate-900 h-[400px] flex flex-col items-center justify-between p-10 overflow-hidden">
+<div class="text-center z-10">
+<h2 class="text-3xl font-semibold mb-2">Watch</h2>
+<p class="text-sm font-light text-slate-500">Tu salud en la muñeca.</p>
+</div>
+<img alt="Smartwatch" class="w-40 h-auto object-contain transform group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2u65isXDMD3L5a7zrKONjvj93_DmAK-ehWgsPwuvHUaZuK0nsSjyk2f4CtI4J4bOaEKda3FZT5Q5h-ZSVNuGqoY5QaHPWsQ5FDK_wuiFbkTv7YMrYAftcAspzBJO5wGcbgIPoWUuSMgxTfwH2RMSX5rdSN3PsC57P-9dEA5uo4xAwMlQ2H2Wet1AUtWCKT5TD34ejbnDK1OC7enf_faaC1ARk5F2eXRIopDI97nIrODd3tu4FP99RTwX_5dEYW03hLE_WiBO-F_o"/>
+<a class="text-primary hover:underline text-sm font-medium z-10" href="#">Ver modelos</a>
+</div>
+<div class="group relative bg-white dark:bg-slate-900 h-[400px] flex flex-col items-center justify-between p-10 overflow-hidden">
+<div class="text-center z-10">
+<h2 class="text-3xl font-semibold mb-2">Accesorios</h2>
+<p class="text-sm font-light text-slate-500">El complemento ideal.</p>
+</div>
+<img alt="Accessories" class="w-44 h-auto object-contain transform group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAalC9XAkplyvdTG5tJFmQF1oZomaIwxK4alJ5XU80GZ_zirwjdL57cgLrHTm3FbFwoTdj-bjH7xqWBPYp78kNMBNhyZD_wl7YljL1mWtupZHvOqT4TGOI7YKKTh_V4OQWarQl5xJ7oskxI_sbjWgojoGYZvRuWEQjKi_o9mVmeI3FRn_1YeVlwsfPX4jd05pWFlrEGdFpm3mIOdAT4iszw1OKth0dfLX4kKHu3xYJAa1Kjo_bmRI3rHqcv84Knr62gnbYuRayR5tE"/>
+<a class="text-primary hover:underline text-sm font-medium z-10" href="#">Ver todo</a>
+</div>
+</div>
+</section>
+<section class="py-24 bg-white dark:bg-background-dark">
+<div class="max-w-7xl mx-auto px-6 grid md:grid-cols-2 items-center gap-16">
+<div class="order-2 md:order-1">
+<h3 class="text-primary font-semibold text-lg mb-2">Novedades</h3>
+<h2 class="text-4xl md:text-5xl font-bold mb-6 tracking-tight leading-tight">MacBook Pro.<br/>Mente brillante. Corazón salvaje.</h2>
+<p class="text-lg text-slate-500 dark:text-slate-400 font-light mb-10 leading-relaxed">
+                Un rendimiento que desafía lo posible. La nueva arquitectura permite procesos nunca antes vistos en una portátil. Elegancia que se siente en cada tecla.
+            </p>
+<div class="flex items-center space-x-8">
+<button class="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-full font-medium transition-all shadow-lg shadow-primary/20">Comprar</button>
+<a class="text-primary hover:underline font-medium flex items-center" href="#">Más información <span class="material-icons text-sm ml-1">chevron_right</span></a>
+</div>
+</div>
+<div class="order-1 md:order-2 flex justify-center">
+<img alt="MacBook Pro" class="w-full max-w-lg object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuATmSH0F0i_YBsPoc2XF3ktNGONcjY8orIMn7Z0WS_YDvD7YqVBWaqWaOPBKIO7qYAM6en_ZMW1jiP4hxWOAVxKMQ1gpP5_tI43R-8-SELH0YA6MD8Zs9pZwF7211FRtpRQUNV5JcE9CUDjT8DDQkiRTXrDGIwy2bu-7A-3Tr3yC8P-JmSAboSyTicDWEFqoRvp1Xy70TX8XDPJhBay-AxKLWN6Ci1kHFDpse5A_LYCNPGypD34omJ_TSwhzbBBQQeJrs09A6COlBE"/>
+</div>
+</div>
+</section>
+<section class="py-24 bg-background-light dark:bg-background-dark/50">
+<div class="max-w-6xl mx-auto px-6">
+<h2 class="text-4xl font-semibold mb-16 text-center tracking-tight">Periféricos y Más</h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
+<div class="flex flex-col items-center text-center">
+<div class="w-full h-80 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center mb-6 overflow-hidden transition-all hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-none">
+<img alt="Studio Headphones Pro" class="w-52 h-auto object-contain transform hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8d0vAJtG--PjiCx340jiT7JSAl53wSPGPH8QL6gEE1fe87V0ieQ1URtfhO3cb_Rpzcd9D2sMp968tDYMLizNCcfw6uPgraow2B_ycxlUiCv-AvaKLXCL4fLydIVSSLadxWjURtWa2NTBeoqQWL3Snay6EQoedM3ByiVbtI9GEHJctL8het8qpdQBUmBxNnsa5TD2giIoc1_GpcY1A1DachGcFSRCyXPIALAMspv1AMwldxNkrWhegXEHT0LUDBabSCM0USOYMCH4"/>
+</div>
+<span class="text-primary text-[10px] font-bold tracking-widest uppercase mb-2">Novedad</span>
+<h3 class="text-lg font-semibold mb-1">Studio Headphones Max</h3>
+<p class="text-slate-500 text-sm mb-4">Desde 549€</p>
+<a class="text-primary text-sm font-medium hover:underline" href="#">Comprar</a>
+</div>
+<div class="flex flex-col items-center text-center">
+<div class="w-full h-80 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center mb-6 overflow-hidden transition-all hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-none">
+<img alt="Ultra Smartwatch" class="w-44 h-auto object-contain transform hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2u65isXDMD3L5a7zrKONjvj93_DmAK-ehWgsPwuvHUaZuK0nsSjyk2f4CtI4J4bOaEKda3FZT5Q5h-ZSVNuGqoY5QaHPWsQ5FDK_wuiFbkTv7YMrYAftcAspzBJO5wGcbgIPoWUuSMgxTfwH2RMSX5rdSN3PsC57P-9dEA5uo4xAwMlQ2H2Wet1AUtWCKT5TD34ejbnDK1OC7enf_faaC1ARk5F2eXRIopDI97nIrODd3tu4FP99RTwX_5dEYW03hLE_WiBO-F_o"/>
+</div>
+<span class="text-primary text-[10px] font-bold tracking-widest uppercase mb-2">Premium</span>
+<h3 class="text-lg font-semibold mb-1">Watch Ultra Series</h3>
+<p class="text-slate-500 text-sm mb-4">Desde 899€</p>
+<a class="text-primary text-sm font-medium hover:underline" href="#">Comprar</a>
+</div>
+<div class="flex flex-col items-center text-center">
+<div class="w-full h-80 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center mb-6 overflow-hidden transition-all hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-none">
+<img alt="Magic Keyboard" class="w-56 h-auto object-contain transform hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMuVwFsw5zCSIQ_6glSHSIOgfRnF5Jw5kUj3034cY1GmN0uxGmUmIXoHuZ7k5EhMOjdlwTw26DWY-5fE6XRobObgcOrW3yoS6nMViYZFUaDp_oBUG5-JkWwY_6i2Gdy8sy1rNa8j1JABR2uQ1_aeY23Mc1QksCu9AA2Rk3VnoGMLCIQXw62OYNlf6HQ_3NjhPkXVN14IeCxta1Pg4NkAEuoQvbJ5VoZhA4whv0_5mKlOnSg3b5po6PjXNDw3pf7o7LGuW4zORMf_8"/>
+</div>
+<span class="text-primary text-[10px] font-bold tracking-widest uppercase mb-2">Personalizable</span>
+<h3 class="text-lg font-semibold mb-1">Magic Keyboard Slim</h3>
+<p class="text-slate-500 text-sm mb-4">Desde 129€</p>
+<a class="text-primary text-sm font-medium hover:underline" href="#">Comprar</a>
+</div>
+</div>
+</div>
+</section>
+<footer class="bg-background-light dark:bg-background-dark py-16 border-t border-slate-200 dark:border-slate-800">
+<div class="max-w-6xl mx-auto px-6">
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
+<div class="space-y-4">
+<h4 class="text-xs font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider">Explorar</h4>
+<ul class="text-xs space-y-2 text-slate-500 dark:text-slate-400">
+<li><a class="hover:underline" href="#">Mac</a></li>
+<li><a class="hover:underline" href="#">iPad</a></li>
+<li><a class="hover:underline" href="#">iPhone</a></li>
+<li><a class="hover:underline" href="#">Watch</a></li>
+</ul>
+</div>
+<div class="space-y-4">
+<h4 class="text-xs font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider">Servicios</h4>
+<ul class="text-xs space-y-2 text-slate-500 dark:text-slate-400">
+<li><a class="hover:underline" href="#">Música</a></li>
+<li><a class="hover:underline" href="#">Streaming</a></li>
+<li><a class="hover:underline" href="#">iCloud</a></li>
+</ul>
+</div>
+<div class="space-y-4">
+<h4 class="text-xs font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider">Soporte</h4>
+<ul class="text-xs space-y-2 text-slate-500 dark:text-slate-400">
+<li><a class="hover:underline" href="#">Estado del pedido</a></li>
+<li><a class="hover:underline" href="#">Opciones de envío</a></li>
+<li><a class="hover:underline" href="#">Asistencia técnica</a></li>
+</ul>
+</div>
+<div class="space-y-4">
+<h4 class="text-xs font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider">Valores</h4>
+<ul class="text-xs space-y-2 text-slate-500 dark:text-slate-400">
+<li><a class="hover:underline" href="#">Accesibilidad</a></li>
+<li><a class="hover:underline" href="#">Medio ambiente</a></li>
+<li><a class="hover:underline" href="#">Privacidad</a></li>
+</ul>
+</div>
+<div class="space-y-4 hidden lg:block">
+<h4 class="text-xs font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider">Tienda</h4>
+<ul class="text-xs space-y-2 text-slate-500 dark:text-slate-400">
+<li><a class="hover:underline" href="#">Buscar tienda</a></li>
+<li><a class="hover:underline" href="#">Genius Bar</a></li>
+</ul>
+</div>
+</div>
+<div class="pt-8 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center text-[10px] text-slate-500 space-y-4 md:space-y-0">
+<p>Copyright © 2024 Tech Minimalista Inc. Todos los derechos reservados.</p>
+<div class="flex space-x-4">
+<a class="hover:underline" href="#">Política de privacidad</a>
+<a class="hover:underline" href="#">Aviso legal</a>
+<a class="hover:underline" href="#">Mapa del sitio</a>
+</div>
+</div>
+</div>
+</footer>
+
+</body></html>

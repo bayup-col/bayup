@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lencería de Lujo | Elegancia Editorial</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#bd0f83",
+                        "background-light": "#fcfaf9", // Alabaster/Pearl soft white
+                        "background-dark": "#1a0f16",
+                        "ivory": "#fffdf0",
+                    },
+                    fontFamily: {
+                        "display": ["Newsreader", "serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Newsreader', serif;
+            background-color: #fcfaf9;
+            color: #2d262a;
+        }
+        .editorial-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.5rem;
+        }
+        .staggered-item-1 { grid-column: 2 / span 4; }
+        .staggered-item-2 { grid-column: 7 / span 5; margin-top: 4rem; }
+        .staggered-item-3 { grid-column: 4 / span 6; margin-top: -2rem; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased selection:bg-primary/20">
+<!-- Navigation -->
+<nav class="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-primary/5">
+<div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+<div class="flex items-center gap-12">
+<div class="flex items-center gap-2 group cursor-pointer">
+<span class="material-symbols-outlined text-primary text-2xl">flare</span>
+<h1 class="text-xl font-bold tracking-tight uppercase tracking-[0.2em] text-slate-900 dark:text-slate-100">Atelier</h1>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-sm uppercase tracking-widest hover:text-primary transition-colors" href="#">Catálogo</a>
+<a class="text-sm uppercase tracking-widest hover:text-primary transition-colors" href="#">Colecciones</a>
+<a class="text-sm uppercase tracking-widest hover:text-primary transition-colors" href="#">Atelier</a>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<button class="flex items-center gap-2 text-sm uppercase tracking-widest hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</button>
+<button class="flex items-center gap-2 text-sm uppercase tracking-widest hover:text-primary transition-colors">
+<span>Mi Cuenta</span>
+</button>
+<button class="relative p-2 hover:bg-primary/5 rounded-full transition-colors">
+<span class="material-symbols-outlined text-[24px]">shopping_bag</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
+</button>
+</div>
+</div>
+</nav>
+<!-- Hero Section -->
+<header class="relative w-full h-[90vh] overflow-hidden flex items-center justify-center bg-ivory">
+<div class="absolute inset-0">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-[10s] hover:scale-105" data-alt="Artistic high fashion photography of silk lingerie on a pearl background" style="background-image: linear-gradient(rgba(252, 250, 249, 0.2), rgba(252, 250, 249, 0.4)), url('https://lh3.googleusercontent.com/aida-public/AB6AXuBtQpTNJjgmaitnWJ9EsigyrpUGdC-fvCWgdTO7DtMFgtK590O2huKvVg6JhU_mz89lALaQPPmPMQgNGDMp8lkJutbDzj8n_QVG6CA4A5zw8td180N9LmaKMkfh4qbowLLFlntBzOHiBFZzdzoa2r2TqK7NNWPseIXKlW76WyEiNNiiIwSGBsPe40M7xsXjyl3joZWGwPcgbTDB-Hx5JcqPf8-iOkFblo2YXGHwVa3jgaBK9ir8KKP8H-3kP-Dd0NoOiMgbKdjpKSo');">
+</div>
+</div>
+<div class="relative z-10 text-center px-4">
+<span class="block text-sm uppercase tracking-[0.4em] mb-6 opacity-70">Nueva Temporada</span>
+<h2 class="text-6xl md:text-8xl font-light italic mb-8 leading-tight max-w-4xl mx-auto">La Belleza del Detalle</h2>
+<p class="text-lg md:text-xl font-light opacity-80 mb-10 max-w-xl mx-auto tracking-wide">
+                Seda y encaje para el alma contemporánea. Piezas diseñadas para la intimidad y la elegancia diaria.
+            </p>
+<button class="group relative px-10 py-4 bg-primary text-white rounded-full overflow-hidden transition-all hover:bg-primary/90">
+<span class="relative z-10 text-sm font-medium uppercase tracking-widest">Ver Colección</span>
+<div class="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+</button>
+</div>
+<div class="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce">
+<span class="material-symbols-outlined opacity-30">expand_more</span>
+</div>
+</header>
+<!-- Featured Section / Nuevas Colecciones -->
+<section class="py-32 px-6 max-w-7xl mx-auto">
+<div class="flex items-end justify-between mb-20 border-b border-primary/10 pb-8">
+<div>
+<span class="text-primary text-sm uppercase tracking-widest block mb-2">Curaduría</span>
+<h3 class="text-4xl font-light italic">Nuevas Colecciones</h3>
+</div>
+<a class="text-sm uppercase tracking-widest border-b border-primary/40 hover:border-primary transition-all pb-1" href="#">Ver Todo</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+<!-- Product 1 -->
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] overflow-hidden rounded-xl bg-slate-100 mb-6">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-110" data-alt="Delicate silk bralette in champagne color" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuChWM-Px1cmU627tJK4zXZY3VDFSLqIJ7joRuY77GI1d7HQG7x393zaLb-ZamBTLrIIdOPYraicX7-9Vd4gbmqos5tvEKVhzmoVTZB5q6PQjr9_c-OdYGazjeecVK-TBaGs8tyOM5AInFU35dh8RsMjDve31NpjxvbFoYN7SsKemGUz4qqpY2hhv3ZJgpcTkMHPel0CMGMoLihFwgEFWdJV3RdKk7B-7H4EyA4StcE4UTH_DcDgVB_4hKrniESGYlZwk27ZZVZTrug');"></div>
+</div>
+<h4 class="text-xl font-light italic mb-1">Bralette de Seda</h4>
+<p class="text-xs uppercase tracking-widest text-slate-500 mb-2">Seda Natural &amp; Encaje</p>
+<p class="text-lg font-medium text-primary">$120</p>
+</div>
+<!-- Product 2 -->
+<div class="group cursor-pointer translate-y-12">
+<div class="aspect-[3/4] overflow-hidden rounded-xl bg-slate-100 mb-6">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-110" data-alt="Black french lace body suit on a studio background" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCPpUiPixr15G8C4nXmyUOX0ob7qZu712RpSXIK9-bzI7STVH4qWGqjKggahrfB0v0FG3XcQJq8K24dIZdY_pOs6ezCCffJKFbXhozXU5S7bu9mkA3-wc4XOErqfw6VTplDYA-4gMJHQk8ADVri3ldjsKuFg_8CI9Nzd0Jur0Pm_xVsbY6wgwSwe7VvS3bELtDqmn4NgNTlgk05JPsgutV2SyvWWE5R4kQnbNdoeQfT0EwcZOBYRBMzukXmunDXJM5yWQmCru79fMo');"></div>
+</div>
+<h4 class="text-xl font-light italic mb-1">Body de Encaje Francés</h4>
+<p class="text-xs uppercase tracking-widest text-slate-500 mb-2">Encaje de Calais</p>
+<p class="text-lg font-medium text-primary">$180</p>
+</div>
+<!-- Product 3 -->
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] overflow-hidden rounded-xl bg-slate-100 mb-6">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-110" data-alt="Luxury satin robe draped over a chair" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCKbuViuLWOnuSXeJxe097t9JrkXOJfnyEaLMweMQqBjCJ6l7U8bpdiTpfk0kdK0EbO1OTcmOl7no_jaXJFNlIMCQzmJGhsNODYzJt9pf6ycn7ifO5cRMGMyHrXaVhi3d7OUYGg_hHtbpMyXA_D7CXyjUL-GBPu305hs9e7VssDn-ulhtiOd3tQAnazvHkiYh-cyvWFPt9nk41DTsIWGOotwnZr5cFoCiW9e_tWEefGl_l31ZuitS9hYTjNCK5yVb59sLRH5fssvD8');"></div>
+</div>
+<h4 class="text-xl font-light italic mb-1">Bata de Satén</h4>
+<p class="text-xs uppercase tracking-widest text-slate-500 mb-2">Satén de Lujo</p>
+<p class="text-lg font-medium text-primary">$250</p>
+</div>
+</div>
+</section>
+<!-- Categories / Editorial Staggered Layout -->
+<section class="bg-ivory/50 py-32 overflow-hidden">
+<div class="max-w-7xl mx-auto px-6">
+<div class="text-center mb-24">
+<h3 class="text-5xl font-light italic tracking-tight">Categorías</h3>
+<div class="h-[1px] w-24 bg-primary/20 mx-auto mt-6"></div>
+</div>
+<div class="editorial-grid">
+<!-- Silk Category -->
+<div class="staggered-item-1 group relative">
+<div class="aspect-[4/5] overflow-hidden rounded-lg shadow-2xl shadow-primary/5">
+<div class="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-1000" data-alt="Flowing white silk fabric textures" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAYTzKyDPCfuj4jr47YkNN1VypW-FffNKyfaVT7a2f1sOTRtChAmOm-fSPLGP1IB-40tKvmv9LqdlLoE_aUmD_wKmoq8JQlmQHMxUmxyeRHGsk8REeqQg0uTPs10VIVmZUexrLV0aumyeOckQefSTG59Q7VDqXTASGmeihzUO7c3Q-juFgxdVAmLrt4rrOaO-eTx5Nk1oo-BLNZdJsGkA3738vfNp39BWDttExo_526olIg6FrC2WSgztWpT4OWyDeTaJM0-HjaYcY');"></div>
+</div>
+<div class="absolute -bottom-10 -right-10 z-20">
+<h4 class="text-[8rem] leading-none font-light italic text-primary/10 select-none group-hover:text-primary/20 transition-colors">Seda</h4>
+</div>
+<div class="mt-8">
+<p class="text-sm tracking-[0.2em] uppercase font-bold text-primary mb-2">01. Colección Natural</p>
+<p class="text-slate-600 dark:text-slate-400 font-light max-w-[200px]">Suavidad incomparable para momentos de serenidad.</p>
+</div>
+</div>
+<!-- Lace Category -->
+<div class="staggered-item-2 group relative">
+<div class="aspect-[4/6] overflow-hidden rounded-lg shadow-2xl shadow-primary/5">
+<div class="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-1000" data-alt="Close up of intricate floral lace patterns" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD-tvifUetIERf-P8q_XaEtW6MWUrfB1YEEUgX_fQFF8jvXsJToFXBelhvSRFBFQD3FQNbpXOo8DYADbkhovW5Q2H26npveohdEKGRp-WPv4Px0v79ZiCbnGXLcq0Dz1jEZ-ml7QWlSe6FsDnUj8Fap8r3-5_VkiPyJl4ppy03EDlxfb_r61qG7wIxYIJxAfUVdKoq0Jqq4hq8-3H-9OUuaw7rVKuPFwg7Mmi0GBPTt4upAqQ15lgPE3tv07O6rDgTYhH_9aMvttS8');"></div>
+</div>
+<div class="absolute -top-16 -left-16 z-20">
+<h4 class="text-[7rem] leading-none font-light italic text-primary/10 select-none group-hover:text-primary/20 transition-colors">Encaje</h4>
+</div>
+<div class="mt-8 pl-4 border-l border-primary/20">
+<p class="text-sm tracking-[0.2em] uppercase font-bold text-primary mb-2">02. Detalles de Calais</p>
+<p class="text-slate-600 dark:text-slate-400 font-light max-w-[240px]">La maestría artesana del encaje tradicional francés.</p>
+</div>
+</div>
+<!-- Essentials Category -->
+<div class="staggered-item-3 group relative">
+<div class="aspect-[16/9] overflow-hidden rounded-lg shadow-2xl shadow-primary/5 mt-20">
+<div class="w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-1000" data-alt="Minimalist closet with neutral tone essentials" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD3WtfBD5QLxjk_Cy9WS6JHFJH1j3cRbUY964h_sw6PlLxwmtvjqkYZfcovPAi4zQt2B_37Af8XlD5kNvXelIQLqntkfcNi5pGRDUVrUq-bXvLdKnwRs_t8caEnEOoyelGzOjO-o13avnmYRWFz66q6winzNbH351y3SYwEBR43SIhrgFtLM-2aQ8QDJyQ9Am24bB-LctIFpyM-E0nncBwg4ReuYV-qsrZ-0RHUu-rDDnVOEDR3q4rYwqtVm6YVDRmpcKObjpW9ihE');"></div>
+</div>
+<div class="absolute inset-0 flex items-center justify-center">
+<h4 class="text-6xl md:text-9xl font-light italic text-white/90 drop-shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500">Esenciales</h4>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Atelier Story Section -->
+<section class="py-40 px-6 max-w-5xl mx-auto text-center">
+<span class="material-symbols-outlined text-primary text-4xl mb-12">history_edu</span>
+<h3 class="text-4xl md:text-6xl font-light italic mb-12 leading-snug">
+            Cada pieza es un diálogo entre el artesano y la materia prima.
+        </h3>
+<p class="text-lg font-light leading-relaxed text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-16">
+            En nuestro Atelier, no solo fabricamos prendas íntimas; preservamos técnicas centenarias de costura a mano. Seleccionamos las sedas más finas y los encajes más delicados para asegurar que cada centímetro que toque tu piel sea sinónimo de confort absoluto.
+        </p>
+<div class="inline-flex items-center gap-4 group cursor-pointer">
+<span class="text-sm uppercase tracking-widest font-bold">Nuestra Historia</span>
+<div class="w-12 h-[1px] bg-primary group-hover:w-20 transition-all"></div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="bg-white dark:bg-background-dark pt-24 pb-12 px-6 border-t border-primary/10">
+<div class="max-w-7xl mx-auto">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-16 mb-24">
+<div class="col-span-1 md:col-span-1">
+<div class="flex items-center gap-2 mb-8">
+<span class="material-symbols-outlined text-primary">flare</span>
+<h2 class="text-xl font-bold tracking-[0.2em] uppercase">Atelier</h2>
+</div>
+<p class="text-sm font-light text-slate-500 leading-relaxed mb-6">
+                        Dedicados a la excelencia en lencería de lujo y el arte de vestir el interior.
+                    </p>
+</div>
+<div>
+<h5 class="text-xs uppercase tracking-widest font-bold mb-8 text-primary">Explorar</h5>
+<ul class="space-y-4 text-sm font-light">
+<li><a class="hover:text-primary transition-colors" href="#">Catálogo Completo</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Nuevas Llegadas</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Colección de Novias</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Sostenibilidad</a></li>
+</ul>
+</div>
+<div>
+<h5 class="text-xs uppercase tracking-widest font-bold mb-8 text-primary">Servicio</h5>
+<ul class="space-y-4 text-sm font-light">
+<li><a class="hover:text-primary transition-colors" href="#">Guía de Tallas</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Cuidado de Prendas</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Envíos &amp; Devoluciones</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Contacto</a></li>
+</ul>
+</div>
+<div>
+<h5 class="text-xs uppercase tracking-widest font-bold mb-8 text-primary">Le Journal</h5>
+<p class="text-sm font-light text-slate-500 mb-6">Suscríbete para recibir notas sobre colecciones y eventos privados.</p>
+<div class="relative flex items-center border-b border-primary/20 pb-2">
+<input class="bg-transparent border-none focus:ring-0 text-sm font-light w-full placeholder:text-slate-300" placeholder="Email" type="email"/>
+<button class="material-symbols-outlined text-primary text-xl">arrow_forward</button>
+</div>
+</div>
+</div>
+<div class="flex flex-col md:flex-row items-center justify-between pt-12 border-t border-primary/5 gap-8">
+<p class="text-[10px] uppercase tracking-widest text-slate-400">© 2024 Atelier de Lencería. Reservados todos los derechos.</p>
+<div class="flex items-center gap-8">
+<a class="text-[10px] uppercase tracking-widest text-slate-400 hover:text-primary" href="#">Instagram</a>
+<a class="text-[10px] uppercase tracking-widest text-slate-400 hover:text-primary" href="#">Pinterest</a>
+<a class="text-[10px] uppercase tracking-widest text-slate-400 hover:text-primary" href="#">Journal</a>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

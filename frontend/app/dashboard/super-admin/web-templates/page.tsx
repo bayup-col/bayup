@@ -6,6 +6,7 @@ import { Plus, Globe, Edit3, Trash2, Layout, Monitor, ShieldCheck, CheckCircle2,
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
+import { CUSTOM_HTML_TEMPLATES, CustomHtmlTemplate } from '@/lib/custom-templates';
 
 // Simulamos carga de API real
 const mockTemplates = [
@@ -17,6 +18,7 @@ export default function WebTemplatesManager() {
     const { token } = useAuth();
     const { showToast } = useToast();
     const [templates, setTemplates] = useState<any[]>([]);
+    const [customHtmlTemplates] = useState<CustomHtmlTemplate[]>(CUSTOM_HTML_TEMPLATES);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedTpl, setSelectedTpl] = useState<any | null>(null);
     const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
@@ -183,6 +185,54 @@ export default function WebTemplatesManager() {
                             </div>
                         </motion.div>
                     ))}
+                </div>
+            )}
+
+            {/* --- SECCIÓN PLANTILLAS HTML PERSONALIZADAS --- */}
+            {customHtmlTemplates.length > 0 && (
+                <div className="space-y-8 pt-12 border-t border-gray-100">
+                    <div className="px-4">
+                        <h2 className="text-3xl font-black text-[#004d4d] tracking-tight uppercase italic flex items-center gap-4">
+                            <Monitor className="text-[#00f2ff]" />
+                            Plantillas HTML Propias
+                        </h2>
+                        <p className="text-gray-400 font-medium text-sm">Diseños subidos manualmente a la carpeta del servidor.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
+                        {customHtmlTemplates.map((tpl, i) => (
+                            <motion.div 
+                                key={tpl.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.1 }}
+                                className="group relative bg-white rounded-[3rem] border border-gray-100 overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500"
+                            >
+                                <div className="aspect-video bg-gray-50 flex items-center justify-center relative overflow-hidden">
+                                    <img src={tpl.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                    <div className="absolute inset-0 bg-[#004d4d]/0 group-hover:bg-[#004d4d]/10 transition-colors duration-500" />
+                                    
+                                    <Link href={`/templates/custom-html/${tpl.folderPath}/index.html`} target="_blank" className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                                        <button className="px-8 py-3 bg-[#00f2ff] text-[#004d4d] rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl flex items-center gap-2 hover:scale-105 transition-all">
+                                            <Eye size={14} /> Ver Plantilla Real
+                                        </button>
+                                    </Link>
+                                </div>
+
+                                <div className="p-8 space-y-4">
+                                    <div className="flex justify-between items-start">
+                                        <h3 className="text-xl font-black text-gray-900 uppercase italic tracking-tighter">{tpl.name}</h3>
+                                        <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[8px] font-black uppercase border border-emerald-100">{tpl.category}</span>
+                                    </div>
+                                    <p className="text-xs font-medium text-gray-400 line-clamp-2">{tpl.description}</p>
+                                    
+                                    <div className="pt-4 flex items-center gap-2 text-[9px] font-black text-gray-300 uppercase tracking-widest">
+                                        <Layout size={12} /> Carpeta: {tpl.folderPath}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
                 </div>
             )}
 

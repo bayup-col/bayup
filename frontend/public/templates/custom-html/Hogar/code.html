@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Hogar y Estilo | Muebles Premium &amp; Decoración</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1754cf",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#111621",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .hero-gradient {
+            background: linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 100%);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 bg-white/90 dark:bg-background-dark/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex items-center justify-between h-20">
+<!-- Logo -->
+<div class="flex items-center gap-3">
+<div class="bg-primary p-1.5 rounded-lg">
+<span class="material-symbols-outlined text-white text-2xl">grid_view</span>
+</div>
+<h1 class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white uppercase">Hogar <span class="text-primary">&amp;</span> Estilo</h1>
+</div>
+<!-- Main Nav -->
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-sm font-semibold hover:text-primary transition-colors" href="#">Muebles</a>
+<a class="text-sm font-semibold hover:text-primary transition-colors" href="#">Camas y Colchones</a>
+<a class="text-sm font-semibold hover:text-primary transition-colors" href="#">Alfombras</a>
+<a class="text-sm font-semibold hover:text-primary transition-colors" href="#">Decoración</a>
+<a class="text-sm font-semibold text-primary" href="#">Ofertas</a>
+</nav>
+<!-- Actions -->
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<input class="w-64 pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-full text-sm focus:ring-2 focus:ring-primary" placeholder="Buscar productos..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+</div>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
+<span class="material-symbols-outlined">person</span>
+</button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full relative">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="absolute top-1 right-1 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">2</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<main>
+<!-- Hero Section -->
+<section class="relative h-[85vh] w-full overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="Modern high-end living room with natural light" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBw-qbP2KVdjRQfYly2rR2Xxp0D8kClN5CKQMitTNBzER81-_KejIqph8fM6DGCXeoGgFvojHPUIXasBBsPE6v1sUDlo8nJ4Ysl5k1llvwTOmCfXqynlJPWF3LIldo1P8flRFWN19Mwx_5B7KZyoePu4eQ8TMIFm77CJa39EQicEQWTcYHzZEAKH_9wjQbM_I_8X5n8o-ijuJCTNYHuQ4D3FaanrmMFxR9mY5xd0Q7YDXuKn-W4I4lh0Xc6Do9Uiq-RBdfIn0Q5rs4');"></div>
+<div class="absolute inset-0 hero-gradient"></div>
+<div class="relative max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex flex-col justify-center items-start">
+<span class="text-primary font-bold tracking-widest uppercase mb-4 text-sm">Colección Exclusive 2024</span>
+<h2 class="text-5xl md:text-7xl font-black text-white leading-tight mb-6 max-w-2xl">
+                    Transforma <br/> tu Hogar
+                </h2>
+<p class="text-lg text-slate-200 mb-10 max-w-xl font-light">
+                    Descubre la elegancia en cada detalle de nuestra colección exclusiva. Mobiliario de alta gama diseñado para espacios sofisticados y memorables.
+                </p>
+<div class="flex gap-4">
+<button class="bg-primary hover:bg-primary/90 text-white px-10 py-4 rounded-lg font-bold transition-all transform hover:scale-105">
+                        Ver Colección
+                    </button>
+<button class="bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white border border-white/30 px-10 py-4 rounded-lg font-bold transition-all">
+                        Agendar Asesoría
+                    </button>
+</div>
+</div>
+</section>
+<!-- Categorías Principales (Alfa Inspired) -->
+<section class="py-24 bg-white dark:bg-background-dark">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex justify-between items-end mb-12">
+<div>
+<h3 class="text-3xl font-bold tracking-tight">Categorías Principales</h3>
+<p class="text-slate-500 mt-2">Explora nuestra selección por tipo de producto</p>
+</div>
+<a class="text-primary font-bold flex items-center gap-2 group" href="#">
+                        Ver todo <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Category 1 -->
+<div class="group relative aspect-[4/5] overflow-hidden rounded-xl bg-slate-100 cursor-pointer">
+<img class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Luxury architectural sofa close up" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbfrCm7kxKytNXQx-bQEnj9C04ZvPSlxmlVdwLQUDbhrXFXbLqUB0rWnxbb-W2GFklWwDzSYw9p9wW-yQKL1xFA0-m7Cm7RSjam5DSRQQA3YOJ-vUtZNcNdHYa5Qw7qFUTOJzVYyXEzH8s6vAx6STxhliYgKOZdSCJ5s8He8Y1fNPAwatfz3lZMgxYDvSiQNHex4NWcZm97hf_byCcZHkr1UtNqLM3Wn2Qq2y_BIB-N2sDf0n_YXo6wFPr_lVcm25qRiXTSwO9YUA"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+<div class="absolute bottom-6 left-6 text-white">
+<h4 class="text-xl font-bold">Muebles</h4>
+<p class="text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">Descubre piezas únicas</p>
+</div>
+</div>
+<!-- Category 2 -->
+<div class="group relative aspect-[4/5] overflow-hidden rounded-xl bg-slate-100 cursor-pointer">
+<img class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Minimalist bed with premium linens" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoQEU80MhljgwTg-Je8ZcS4M7ToyJPygsSoXAPnfBEsWtdtDRQJHVaToU7lptUiZYwGFwNiYjOqO8duXWXqEzwSWPt1oWp4brc2SM7N4yvBvCI8958tRxApvY7dyi6eJyxJrRrHBTIpWe7b1GxCcWbaurUNgwVJfF5stZI-mHgcsr6sef_Jq4uz36Nlcrtvk-TTfnyim2OUxn79ovlx8qMa_YoA2w3UIpp_gZQ_I3JCfF6S5ehTIMhl1noNa5FaAO19qE7a9YATQo"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+<div class="absolute bottom-6 left-6 text-white">
+<h4 class="text-xl font-bold">Camas y Colchones</h4>
+<p class="text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">El descanso perfecto</p>
+</div>
+</div>
+<!-- Category 3 -->
+<div class="group relative aspect-[4/5] overflow-hidden rounded-xl bg-slate-100 cursor-pointer">
+<img class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="High quality patterned rug detail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9EQX74faFdZ9pZfpDR81cyoQqNcKsCr172PuHoNINt826u7PQLdiUCLw9W-Dwm4R6KpHyD5FhIw5ysHTIzXVVkmwFUMTvFgq_yIUa_FaI7mVWMIq6ledxDWknVymbcX2Ijt84qhF_cwlxcbucGUZIbijVr9-JmIK7Tki817KJ4hVfEG0jzECdSjK5sOfxkgmaVCHc1qF3kTxkHrn18EovCF9A1SGN1CRtSUcGTs5b9utkO-zxwERGndSnnm0zqAjypcTlbMkA7NY"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+<div class="absolute bottom-6 left-6 text-white">
+<h4 class="text-xl font-bold">Alfombras</h4>
+<p class="text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">Texturas que inspiran</p>
+</div>
+</div>
+<!-- Category 4 -->
+<div class="group relative aspect-[4/5] overflow-hidden rounded-xl bg-slate-100 cursor-pointer">
+<img class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Elegant home decor accessories on shelf" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7URXChWIoFf3hHMscHhfwmHoHbSBt3qetS-sc9Ns8jOnsvZndvXivnKG_8vwf6LQuBJHbY-KeJyzMrHJvIf38r-Y8Wke_azi-B-eqsmW6yFn83n7qQ64bKd3wtUvRf24XtLF9ZX7hGz58YJ08cdaT3JxXePAcsA9bhyyM2Lzg8DI0jImAmpRWFDYnPQlkjId136uI9dxvJXKIiOgoUNUo2-nuov_yp5TyNj4FC-Ml_y4TKoAWhAq3pXD7Oa2_ZgZKtCcxj9glW7I"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+<div class="absolute bottom-6 left-6 text-white">
+<h4 class="text-xl font-bold">Decoración</h4>
+<p class="text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">Detalles con estilo</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Inspiración por Espacios (Bento Style) -->
+<section class="py-24 bg-background-light dark:bg-slate-900">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="text-center mb-16">
+<h3 class="text-4xl font-extrabold mb-4">Inspiración por Espacios</h3>
+<p class="text-slate-500 max-w-2xl mx-auto">Creamos ambientes que cuentan historias. Encuentra el look perfecto para cada rincón de tu vida.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6 h-[700px]">
+<div class="md:col-span-8 group relative overflow-hidden rounded-2xl cursor-pointer">
+<img class="h-full w-full object-cover group-hover:scale-105 transition-transform duration-1000" data-alt="Sophisticated modern living room space" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCu5fgFCgV8GNaQa3EaJADXYIj6keMq5iKhxOZCoUj0FWt1B3Oip8qsYNrlmFgqSUPCAivP2Js-oMh9lkEUThexoJ4tvhhMbycTRMqaPJy8DKBZLEW-g62naxIM_X1OMKDURSpVQNaOmKkkCvrDqpdSK1HY2W8c_aHA8o-jhKu_yyO03sVbHPxZC5y9OKJOX_lTIVa_qS89gQMB8Kr9VdSy10jovXmiNTqD73e3bo0moqAamogwJZMpL0fkEEo_HGH6VzhoyY3xYmo"/>
+<div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="bg-white text-slate-900 font-bold px-8 py-3 rounded-full shadow-xl">Explorar Sala</button>
+</div>
+<div class="absolute bottom-8 left-8">
+<h5 class="text-3xl font-bold text-white">La Sala</h5>
+</div>
+</div>
+<div class="md:col-span-4 grid grid-rows-2 gap-6">
+<div class="group relative overflow-hidden rounded-2xl cursor-pointer">
+<img class="h-full w-full object-cover group-hover:scale-105 transition-transform duration-1000" data-alt="Elegant dining room setup" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIpL8wGjEl17rL2GY0FcQpc8hq8GbTyylpT-u2U0-sDw_4_yfNXvSmXRWPIa8e48ZyQZA6MfzieEOqUqJHHwwaZ6J6slVScEyUbjhNuDHIz_A7f1aK6XhoziB9y1A8mHn41nhU-nCxdFQchcDZrf6s63Oqa2c-VDaRDlPF-gA7_RvmryFYFKHnlvftZCJbif5dhL_U612BsuCaUyXDkHSMASeUBGul6zEau7G5G0BXaNMs111ej-aQ4kkmus5PYuxnViu65--C3K4"/>
+<div class="absolute bottom-6 left-6">
+<h5 class="text-xl font-bold text-white">Comedor</h5>
+</div>
+</div>
+<div class="group relative overflow-hidden rounded-2xl cursor-pointer">
+<img class="h-full w-full object-cover group-hover:scale-105 transition-transform duration-1000" data-alt="Serene minimal bedroom" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDusD7M-660y2lJ_MotXc4YWNPA7TbwIKD48mbdJmrJBxh3qKy-Zlcm7IfazLTEzAVL0vujiL80qgsb9uMIh1Icw8vMN9PnXWcJe099UWMJ254jGRFeXlJr6zU9QZkPk4-tQdP13gxgChPfYBl_UQ5OtVlwAyelsT-ke7CMRj7F-qVLnzVVP3lZjHmA_J5r1OuHNxhISzyIyNp5I-Djaxvp8Zn-ceGGlEkupEeHGMKVtc8Pct5nm6JDcl6JqLavQRorWvJiC6Kk4U8"/>
+<div class="absolute bottom-6 left-6">
+<h5 class="text-xl font-bold text-white">Habitación</h5>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Productos Destacados -->
+<section class="py-24 bg-white dark:bg-background-dark">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex justify-between items-center mb-12">
+<h3 class="text-3xl font-bold">Productos Destacados</h3>
+<div class="flex gap-2">
+<button class="p-2 border border-slate-200 dark:border-slate-800 rounded-full hover:bg-slate-50">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="p-2 border border-slate-200 dark:border-slate-800 rounded-full hover:bg-slate-50">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+<!-- Product 1 -->
+<div class="group">
+<div class="relative aspect-square rounded-xl bg-slate-50 mb-4 overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Velvet green armchair" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpw1MNOZq1HSE-XVqhMHBG_bmOxriCdUW4njGRCzWtgvywwxlfxDedzUnDyS63FaglMidHBLgg0Ltk8-y2jbdCK1EXTPjuoL0jpFt8umKVySo1Zz1VV3DB-a1i189ou-ucx1e8jxYJP1P2nBU3UwmJV9Y8Q1mpdj5fVoqLyQEL9bq50Ix34Lf9uaMZk5hSbSV75xsYvnfEW8oh5BKP2pdQBX8U_O6qHnhgL_wCHemN7tUpn56ogFyrUD-aDR5toRcWCtmuxMpe7Us"/>
+<button class="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-slate-900">favorite</span>
+</button>
+<div class="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform">
+<button class="w-full bg-primary text-white py-3 rounded-lg font-bold text-sm">Añadir al Carrito</button>
+</div>
+</div>
+<h5 class="font-bold text-slate-900 dark:text-white mb-1">Poltrona Velvet Verde</h5>
+<p class="text-slate-500 text-sm mb-2">Muebles de Sala</p>
+<p class="text-primary font-bold">$1.240.000</p>
+</div>
+<!-- Product 2 -->
+<div class="group">
+<div class="relative aspect-square rounded-xl bg-slate-50 mb-4 overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Minimalist wooden dining table" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjid4-KID3IA2BknBUhqd3s7PbUn-0KMSQBeT1N_BV4ycJ0tj1dwc8oE9Ma-S7qNhnGl2_iXM9WegE0xcclTftvQuZWlS_8FB-NE41GpxynI3FJ-t-1DiFKf3TvMBKfa2bK-oT8acoIVXVxAdg_A6BRNc7womCYTKFrT2Wia1LQkRnEwt9bfG7VgrBOPwNojqywmi8D8PdX4o7698vieImgkbL6iFE-KsqOGOtXwHE62o5pbKs6F-o-f0OeBIlIWKD9NYjib3KF2o"/>
+<div class="absolute top-4 left-4 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded">NUEVO</div>
+<button class="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-slate-900">favorite</span>
+</button>
+<div class="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform">
+<button class="w-full bg-primary text-white py-3 rounded-lg font-bold text-sm">Añadir al Carrito</button>
+</div>
+</div>
+<h5 class="font-bold text-slate-900 dark:text-white mb-1">Mesa Nórdica Roble</h5>
+<p class="text-slate-500 text-sm mb-2">Comedor</p>
+<p class="text-primary font-bold">$2.850.000</p>
+</div>
+<!-- Product 3 -->
+<div class="group">
+<div class="relative aspect-square rounded-xl bg-slate-50 mb-4 overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Modern pendant lighting fixture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOrNn3tZUcF4Fjx6wQCBJ_36vsSFxxKJWoq_SrVWlkTlnyiQQY0cDR9b5OxQE_D5_RxsqXGvQy4H1M2bs9ALa3XLWTbyKeNnp38CdzGnPuA7ByiAIeBq8tZCX3vERHkfKxSbGsIIkHTBCkvsRYGb62m_Vq47XJr6NBZbfr0714H5v3t0Z0zeYa58CVT5s88c9ld5v8RpAi6rXfYGn56DrUyEO4u-jf-EkGTWx8Fu9NMq0f9qt1tPWEeaX9WE4v0OGzR7X1ng_1XuI"/>
+<button class="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-slate-900">favorite</span>
+</button>
+<div class="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform">
+<button class="w-full bg-primary text-white py-3 rounded-lg font-bold text-sm">Añadir al Carrito</button>
+</div>
+</div>
+<h5 class="font-bold text-slate-900 dark:text-white mb-1">Lámpara Industrial Black</h5>
+<p class="text-slate-500 text-sm mb-2">Iluminación</p>
+<p class="text-primary font-bold">$450.000</p>
+</div>
+<!-- Product 4 -->
+<div class="group">
+<div class="relative aspect-square rounded-xl bg-slate-50 mb-4 overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Handwoven beige rug texture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJY8BmE4Khd6msfaOYNADO2tMzceKxqCbPPfI7x224aUtUMkPh62155RqSl_YrDv8vUxGfGKVd9if0FxX0DCAWcFP8okd2KRbhfkyr6YePpsKqKQe2HTeqRwzi7OxccibF_T4jq3cZlADmyQKjJXkzvyENljU4yHwPCLF9qnmQnaUDjhpu8MmtcknZ0F9dg2R72dDbW711I3jU1pGZSC3PcW-YoyjnFl9fCupMN5YdQDzy6wtZMmhVP2F2nhEgn5ueERjz5XaTjjw"/>
+<button class="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-slate-900">favorite</span>
+</button>
+<div class="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform">
+<button class="w-full bg-primary text-white py-3 rounded-lg font-bold text-sm">Añadir al Carrito</button>
+</div>
+</div>
+<h5 class="font-bold text-slate-900 dark:text-white mb-1">Alfombra Natural Jute</h5>
+<p class="text-slate-500 text-sm mb-2">Alfombras</p>
+<p class="text-primary font-bold">$890.000</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Servicios Especializados -->
+<section class="py-12 bg-white dark:bg-background-dark border-y border-slate-100 dark:border-slate-800">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Service 1 -->
+<div class="flex items-center gap-6 p-8 rounded-2xl bg-slate-50 dark:bg-slate-900 group cursor-pointer transition-colors hover:bg-primary/5">
+<div class="bg-primary/10 p-5 rounded-full text-primary group-hover:bg-primary group-hover:text-white transition-all">
+<span class="material-symbols-outlined text-4xl">architecture</span>
+</div>
+<div>
+<h4 class="text-xl font-bold mb-1">Asesoría en Diseño</h4>
+<p class="text-slate-500 text-sm">Expertos te ayudan a crear el espacio de tus sueños.</p>
+<button class="mt-2 text-primary text-sm font-bold flex items-center gap-1">Más información <span class="material-symbols-outlined text-xs">arrow_forward</span></button>
+</div>
+</div>
+<!-- Service 2 -->
+<div class="flex items-center gap-6 p-8 rounded-2xl bg-slate-50 dark:bg-slate-900 group cursor-pointer transition-colors hover:bg-primary/5">
+<div class="bg-primary/10 p-5 rounded-full text-primary group-hover:bg-primary group-hover:text-white transition-all">
+<span class="material-symbols-outlined text-4xl">local_shipping</span>
+</div>
+<div>
+<h4 class="text-xl font-bold mb-1">Envío Garantizado</h4>
+<p class="text-slate-500 text-sm">Cuidado excepcional en la entrega y montaje gratuito.</p>
+<button class="mt-2 text-primary text-sm font-bold flex items-center gap-1">Ver cobertura <span class="material-symbols-outlined text-xs">arrow_forward</span></button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-slate-900 text-white pt-20 pb-10">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+<div class="col-span-1 md:col-span-1">
+<div class="flex items-center gap-3 mb-6">
+<div class="bg-primary p-1 rounded-lg">
+<span class="material-symbols-outlined text-white">grid_view</span>
+</div>
+<h1 class="text-xl font-extrabold tracking-tight uppercase">Hogar <span class="text-primary">&amp;</span> Estilo</h1>
+</div>
+<p class="text-slate-400 text-sm leading-relaxed mb-6">
+                        Líderes en diseño de interiores y mobiliario premium. Calidad, estilo y durabilidad para tu hogar desde 1995.
+                    </p>
+<div class="flex gap-4">
+<a class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">share</span>
+</a>
+<a class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">camera</span>
+</a>
+</div>
+</div>
+<div>
+<h5 class="font-bold mb-6">Categorías</h5>
+<ul class="space-y-4 text-slate-400 text-sm">
+<li><a class="hover:text-white transition-colors" href="#">Muebles de Sala</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Comedores</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Dormitorios</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Decoración &amp; Arte</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Iluminación</a></li>
+</ul>
+</div>
+<div>
+<h5 class="font-bold mb-6">Compañía</h5>
+<ul class="space-y-4 text-slate-400 text-sm">
+<li><a class="hover:text-white transition-colors" href="#">Sobre Nosotros</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Nuestros Showrooms</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Trabaja con Nosotros</a></li>
+<li><a class="hover:text-white transition-colors" href="#">Sostenibilidad</a></li>
+</ul>
+</div>
+<div>
+<h5 class="font-bold mb-6">Suscríbete</h5>
+<p class="text-slate-400 text-sm mb-4">Recibe noticias sobre nuevas colecciones y ofertas exclusivas.</p>
+<div class="flex">
+<input class="bg-slate-800 border-none rounded-l-lg w-full text-sm focus:ring-primary" placeholder="Tu email" type="email"/>
+<button class="bg-primary px-4 rounded-r-lg">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+</div>
+<div class="pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 text-xs">
+<p>© 2024 Hogar y Estilo. Todos los derechos reservados.</p>
+<div class="flex gap-6">
+<a class="hover:text-white" href="#">Políticas de Privacidad</a>
+<a class="hover:text-white" href="#">Términos y Condiciones</a>
+<a class="hover:text-white" href="#">Tratamiento de Datos</a>
+</div>
+</div>
+</div>
+</footer>
+</body></html>
