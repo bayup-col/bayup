@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Palette, 
@@ -21,9 +21,7 @@ import {
   Bot
 } from 'lucide-react';
 import Link from 'next/link';
-
 import { useAuth } from '@/context/auth-context';
-import { useEffect, useState } from 'react';
 
 export default function MyStoreHub() {
     const { token } = useAuth();
@@ -49,8 +47,10 @@ export default function MyStoreHub() {
         const savedSettings = localStorage.getItem('bayup_general_settings');
         let slug = "preview";
         if (savedSettings) {
-            const parsed = JSON.parse(savedSettings);
-            slug = parsed.contact?.shop_slug || "preview";
+            try {
+                const parsed = JSON.parse(savedSettings);
+                slug = parsed.contact?.shop_slug || "preview";
+            } catch (e) {}
         }
         window.open(`/shop/${slug}`, '_blank');
     };
