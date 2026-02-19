@@ -7,7 +7,8 @@ export type ModuleId =
   | 'marketing' | 'loyalty' | 'discounts' | 'automations' | 'ai_assistants'
   | 'reports' | 'reports_gen' | 'reports_payroll' | 'purchase_orders' | 'sucursales' 
   | 'vendedores' | 'cuentas' | 'gastos' | 'comisiones' | 'settings' 
-  | 'settings_general' | 'settings_plan' | 'settings_users';
+  | 'settings_general' | 'settings_plan' | 'settings_users'
+  | 'templates' | 'pages';
 
 export const BASICO_MODULES: ModuleId[] = [
     'inicio', 
