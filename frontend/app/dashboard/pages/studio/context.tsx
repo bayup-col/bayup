@@ -294,7 +294,8 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
 
       // 1. PRIORIDAD MÁXIMA: Si elegimos una plantilla de la galería, FORZAMOS su carga
       if (templateId && templateId.startsWith('tpl-')) {
-        console.log("🚀 STUDIO: Forzando carga de plantilla maestra:", templateId);
+        console.log("🚀 STUDIO: Iniciando carga forzada de plantilla:", templateId);
+        
         const idToFolder: Record<string, string> = {
           'tpl-comp': 'computadora', 'tpl-hogar': 'Hogar', 'tpl-joyeria': 'Joyeria',
           'tpl-jugueteria': 'Jugueteria', 'tpl-lenceria': 'lenceria', 'tpl-maquillaje': 'Maquillaje',
@@ -308,12 +309,21 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
             const res = await fetch(`/templates/custom-html/${folder}/architecture.json`);
             if (res.ok) {
               const schema = await res.json();
-              // Limpiamos todo y ponemos la plantilla
-              setPagesData({ [pageKey]: schema });
-              console.log("✅ STUDIO: Plantilla inyectada correctamente.");
+              // RESET TOTAL: No mezclamos datos, reemplazamos todo el objeto de páginas
+              setPagesData({
+                home: schema,
+                colecciones: PRODUCT_SCHEMA,
+                productos: ALL_PRODUCTS_SCHEMA,
+                checkout: CHECKOUT_SCHEMA,
+                detalles: PRODUCT_SCHEMA,
+                nosotros: DEFAULT_SCHEMA,
+                legal: DEFAULT_SCHEMA,
+                contacto: DEFAULT_SCHEMA
+              });
+              console.log("✅ STUDIO: Diseño local inyectado y memoria limpia.");
               return; 
             }
-          } catch (e) { console.error("❌ Error cargando JSON local:", e); }
+          } catch (e) { console.error("❌ Error de red cargando plantilla:", e); }
         }
       }
 

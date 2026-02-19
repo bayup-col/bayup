@@ -154,21 +154,15 @@ export const DraggableCanvasElement = ({
       <div className={cn(!isPreview && "p-2", (el.type === "announcement-bar") && "p-0")}>
         {/* SOPORTE PARA BLOQUES DE ALTA FIDELIDAD DE PLANTILLAS */}
         {el.type === "navbar" && (
-          <div className="pointer-events-none">
-            <SmartNavbar props={elProps} />
-          </div>
+          <SmartNavbar props={elProps} />
         )}
 
         {el.type === "hero-banner" && (
-          <div className="pointer-events-none">
-            <SmartHero props={elProps} />
-          </div>
+          <SmartHero props={elProps} />
         )}
 
         {el.type === "product-grid" && (
-          <div className="pointer-events-none">
-            <SmartProductGrid props={elProps} />
-          </div>
+          <SmartProductGrid props={elProps} />
         )}
 
         {el.type === "announcement-bar" && (
