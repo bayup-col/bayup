@@ -210,6 +210,6 @@ export const SmartFooter = ({ props }: { props: any }) => {
 };
 
 // 8. TRUST BANNER (JOYERÍA NO LO USA SEGÚN TU HTML, PERO LO DEJAMOS POR COMPATIBILIDAD)
-export const SmartTrustBanner = () => null;
-export const SmartBentoGrid = () => null;
-export const SmartServices = () => null;
+export const SmartTrustBanner = ({ props }: { props?: any }) => null;
+export const SmartBentoGrid = ({ props }: { props?: any }) => null;
+export const SmartServices = ({ props }: { props?: any }) => null;
