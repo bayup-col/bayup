@@ -25,7 +25,7 @@ export default function ClientTemplatesGallery() {
         const fetchTemplates = async () => {
             try {
                 const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-                const res = await fetch(`${apiBase}/super-admin/web-templates`, {
+                const res = await fetch(`${apiBase}/web-templates`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {

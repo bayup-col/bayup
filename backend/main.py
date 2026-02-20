@@ -1235,8 +1235,11 @@ def create_web_template(
 
 @app.get("/super-admin/web-templates", response_model=List[schemas.WebTemplate])
 def list_web_templates(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    # Eliminamos la restricción estricta de is_global_staff solo para LISTAR
-    # Esto permite que los clientes elijan plantillas para sus tiendas
+    return db.query(models.WebTemplate).all()
+
+@app.get("/web-templates", response_model=List[schemas.WebTemplate])
+def list_web_templates_public(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    # Versión para clientes (Plan Básico/Pro/Empresa)
     return db.query(models.WebTemplate).all()
 
 @app.delete("/super-admin/web-templates/{template_id}")
