@@ -271,28 +271,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       {/* Subtle Outer Glow */}
                       <div className="absolute inset-0 rounded-2xl border border-white/10 pointer-events-none" />
                   </button>
-
-                  {/* Accesos Rápidos de Diseño (Integrados) */}
-                  <div className="w-full mt-4 pt-4 border-t border-white/10 flex flex-col gap-2">
-                      <Link 
-                        href="/dashboard/my-store/templates" 
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all ${
-                            theme === 'dark' ? 'text-gray-400 hover:text-[#00F2FF] hover:bg-white/5' : 'text-gray-500 hover:text-[#004d4d] hover:bg-[#004d4d]/5'
-                        }`}
-                      >
-                          <LayoutDashboard size={12} />
-                          Plantillas
-                      </Link>
-                      <Link 
-                        href="/dashboard/pages" 
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all ${
-                            theme === 'dark' ? 'text-gray-400 hover:text-[#00F2FF] hover:bg-white/5' : 'text-gray-500 hover:text-[#004d4d] hover:bg-[#004d4d]/5'
-                        }`}
-                      >
-                          <Pencil size={12} />
-                          Editor de Páginas
-                      </Link>
-                  </div>
               </div>
           </div>
 
