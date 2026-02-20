@@ -103,6 +103,64 @@ function ShopContent() {
     });
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
+    const addToCart = (product: any) => {
+        const totalStock = product.variants?.reduce((a: any, b: any) => a + (b.stock || 0), 0) || 0;
+        if (totalStock <= 0 && product.id !== 'd1') { 
+            alert("Lo sentimos, este producto está agotado.");
+            return;
+        }
+
+        addItem({
+            id: product.id,
+            title: product.name,
+            price: product.price,
+            image: Array.isArray(product.image_url) ? product.image_url[0] : (product.image_url || ''),
+            quantity: 1
+        });
+    };
+
+    const handlePlaceOrder = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (cart.length === 0) return;
+        setIsPlacingOrder(true);
+
+        try {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const payload = {
+                customer_name: customerData.name,
+                customer_phone: customerData.phone,
+                customer_email: customerData.email,
+                tenant_id: shopData.owner_id,
+                items: cart.map(item => ({
+                    product_id: item.id,
+                    quantity: item.quantity,
+                    price: item.price
+                }))
+            };
+
+            const res = await fetch(`${apiBase}/public/orders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                clearCart();
+                setIsCheckoutOpen(false);
+                setIsCartOpen(false);
+                setCustomerData({ name: "", phone: "", email: "", address: "", city: "", notes: "" });
+                alert("¡Pedido recibido! ✅ Te hemos enviado una confirmación automática a tu WhatsApp.");
+            } else {
+                const err = await res.json();
+                alert(`Error: ${err.detail || 'No se pudo crear el pedido.'}`);
+            }
+        } catch (error) {
+            alert("Error de conexión. Intenta de nuevo.");
+        } finally {
+            setIsPlacingOrder(false);
+        }
+    };
+
     useEffect(() => {
         const fetchShop = async () => {
             setLoading(true);
