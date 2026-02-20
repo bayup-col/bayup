@@ -40,7 +40,8 @@ import {
   Ghost,
   ExternalLink,
   LogOut,
-  Eye
+  Eye,
+  Sparkles
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
