@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { DragEndEvent } from "@dnd-kit/core";
 import { useSearchParams } from "next/navigation";
+import { useToast } from "@/context/toast-context";
 
 // --- Tipos ---
 export type SectionType = "header" | "body" | "footer";
@@ -53,6 +54,7 @@ interface StudioContextType {
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
 
 export const StudioProvider = ({ children }: { children: ReactNode }) => {
+  const { showToast } = useToast();
   const searchParams = useSearchParams();
   const pageKey = searchParams.get("page") || "home";
   const templateId = searchParams.get("id");
@@ -65,6 +67,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   const [viewport, setViewport] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [editMode, setEditMode] = useState<"all" | "individual">("all");
   const [sidebarView, setSidebarView] = useState<"toolbox" | "properties">("toolbox");
+  const [userProfile, setUserProfile] = useState<any>(null);
   
   const [pagesData, setPagesData] = useState<Record<string, PageSchema>>({
     home: DEFAULT_SCHEMA,
@@ -76,7 +79,23 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const loadEverything = async () => {
       setIsLoading(true);
+      const token = localStorage.getItem("token");
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+      // 1. Cargar Perfil (para el Slug)
+      if (token) {
+        try {
+          const uRes = await fetch(`${apiBase}/users/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (uRes.ok) {
+            const uData = await uRes.json();
+            setUserProfile(uData);
+          }
+        } catch (e) {}
+      }
       
+      // 2. Lógica de Plantillas Locales
       if (templateId && templateId.startsWith('tpl-')) {
         const idToFolder: any = {
           'tpl-comp': 'computadora', 'tpl-hogar': 'Hogar', 'tpl-joyeria': 'Joyeria',
@@ -98,10 +117,9 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      const token = localStorage.getItem("token");
+      // 3. Cargar Diseño de DB
       if (token) {
         try {
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
           const res = await fetch(`${apiBase}/shop-pages/${pageKey}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -150,13 +168,14 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          page_key: pageKey, // 'home', 'product_detail', 'catalog', etc.
+          page_key: pageKey, 
           schema_data: pageData,
           template_id: templateId
         })
       });
+      showToast("Borrador guardado correctamente", "success");
     } catch (e) {
-      console.error("Error al guardar:", e);
+      showToast("No se pudo guardar el borrador", "error");
     } finally {
       setIsSaving(false);
     }
@@ -165,12 +184,15 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   const publishPage = async () => {
     setIsPublishing(true);
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+      showToast("Debes iniciar sesión para publicar", "error");
+      setIsPublishing(false);
+      return;
+    }
 
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      // Publicamos explícitamente esta página
-      await fetch(`${apiBase}/shop-pages/publish`, {
+      const res = await fetch(`${apiBase}/shop-pages/publish`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -181,9 +203,24 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
           schema_data: pageData
         })
       });
-      alert("¡Web publicada con éxito! 🚀");
+
+      if (res.ok) {
+        showToast("¡Tu web ya está en vivo! 🚀", "success");
+        
+        // Abrir la web real en nueva pestaña
+        if (userProfile?.shop_slug) {
+            const origin = window.location.origin;
+            const viewParam = pageKey !== 'home' ? `?view=${pageKey}` : '';
+            const shopUrl = `${origin}/shop/${userProfile.shop_slug}${viewParam}`;
+            setTimeout(() => {
+                window.open(shopUrl, '_blank');
+            }, 1000);
+        }
+      } else {
+        showToast("Error al publicar la página", "error");
+      }
     } catch (e) {
-      console.error("Error al publicar:", e);
+      showToast("Error de conexión con el servidor", "error");
     } finally {
       setIsPublishing(false);
     }
