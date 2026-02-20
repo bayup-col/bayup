@@ -18,8 +18,6 @@ const FloatingParticlesBackground = dynamic(
   }
 );
 
-import { SignInButton, useSession } from "@clerk/nextjs";
-
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -164,6 +162,10 @@ export default function LoginPage() {
       </div>
 
       <div className="relative z-10 w-full max-w-[480px] p-6 perspective-[2000px]">
+        <motion.div 
+          animate={{ rotateY: isFlipped ? 180 : 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          style={{ transformStyle: "preserve-3d" }}
           className="relative w-full h-[650px]"
         >
           {/* --- CARA FRONTAL: LOGIN --- */}
