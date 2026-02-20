@@ -186,32 +186,32 @@ export const DashboardHeader = ({
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                            className="absolute right-10 top-24 w-64 bg-white/90 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-white overflow-hidden z-[110]"
+                            className="absolute right-10 top-24 w-64 bg-white/95 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-white overflow-hidden z-[110]"
                         >
-                            <div className="p-6 bg-gradient-to-br from-[#004d4d]/5 to-transparent">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cuenta</p>
+                            <div className="p-6 bg-gradient-to-br from-[#004d4d]/5 to-transparent border-b border-gray-100/50">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Conectado como</p>
                                 <p className="text-xs font-black text-[#004d4d] mt-1 truncate">{userEmail || 'Usuario Bayup'}</p>
                                 <div className="mt-2 inline-block px-2 py-0.5 bg-[#00F2FF]/10 rounded-full">
-                                    <p className="text-[8px] font-black text-[#004d4d] uppercase">{userRole || 'Admin'}</p>
+                                    <p className="text-[8px] font-black text-[#004d4d] uppercase tracking-tighter">{userRole || 'Admin'}</p>
                                 </div>
                             </div>
                             
                             <div className="p-2">
                                 <button 
                                     onClick={() => { setIsUserSettingsOpen(true); setUserMenuOpen(false); }}
-                                    className="w-full flex items-center gap-3 p-4 hover:bg-[#004d4d]/5 rounded-2xl transition-colors group"
+                                    className="w-full flex items-center gap-3 p-4 hover:bg-[#004d4d]/5 rounded-2xl transition-all duration-300 group"
                                 >
-                                    <div className="h-8 w-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-[#00F2FF]">
-                                        <Sparkles size={14} />
+                                    <div className="h-8 w-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-[#00F2FF] group-hover:scale-110 transition-all">
+                                        <UserIcon size={14} />
                                     </div>
-                                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-tight">Mi Perfil</span>
+                                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-tight">Perfil y Ajustes</span>
                                 </button>
 
                                 <button 
                                     onClick={logout}
-                                    className="w-full flex items-center gap-3 p-4 hover:bg-rose-50 rounded-2xl transition-colors group"
+                                    className="w-full flex items-center gap-3 p-4 hover:bg-rose-50 rounded-2xl transition-all duration-300 group"
                                 >
-                                    <div className="h-8 w-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-rose-500">
+                                    <div className="h-8 w-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-rose-500 group-hover:scale-110 transition-all">
                                         <LogOut size={14} />
                                     </div>
                                     <span className="text-[10px] font-black text-gray-600 uppercase tracking-tight group-hover:text-rose-600">Cerrar Sesión</span>
