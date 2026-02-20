@@ -31,12 +31,12 @@ export default function MyStoreHub() {
         const fetchTopTemplates = async () => {
             try {
                 const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-                const res = await fetch(`${apiBase}/super-admin/web-templates`, {
+                const res = await fetch(`${apiBase}/web-templates`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    setFeaturedTemplates(data.slice(0, 3)); // Mostramos solo las 3 más nuevas como destacadas
+                    setFeaturedTemplates(data.slice(0, 4)); // Mostramos 4 temas destacados
                 }
             } catch (err) { console.error(err); }
         };
@@ -150,40 +150,55 @@ export default function MyStoreHub() {
 
             {/* --- TEMAS (COLLECTION) --- */}
             <section className="px-4 space-y-10">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <h2 className="text-3xl font-black text-gray-900 tracking-tight italic">Galería de temas</h2>
-                        <p className="text-gray-400 text-[10px] font-black tracking-widest mt-1">Evoluciona tu estética con un clic</p>
+                        <h2 className="text-4xl font-black text-gray-900 tracking-tight italic uppercase">Galería de temas</h2>
+                        <div className="flex items-center gap-2 mt-1">
+                            <div className="h-1 w-12 bg-[#00f2ff] rounded-full" />
+                            <p className="text-gray-400 text-[10px] font-black tracking-widest uppercase">Arquitecturas maestras disponibles</p>
+                        </div>
                     </div>
                     <Link href="/dashboard/my-store/templates">
-                        <button className="h-12 px-8 bg-gray-50 text-gray-400 rounded-full font-black text-[9px] tracking-widest border border-gray-100 hover:text-purple-600 hover:border-purple-200 transition-all">Ver catálogo completo</button>
+                        <button className="group relative px-10 py-5 bg-[#004d4d] text-white rounded-2xl font-black text-[11px] tracking-[0.2em] uppercase overflow-hidden shadow-[0_20px_40px_rgba(0,77,77,0.2)] hover:shadow-[#00f2ff]/20 transition-all duration-500">
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#00f2ff]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="flex items-center gap-3 relative z-10">
+                                <Layout size={18} className="text-[#00f2ff]" />
+                                Ver catálogo completo
+                                <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                            </div>
+                        </button>
                     </Link>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
                     {featuredTemplates.map((theme) => (
                         <motion.div 
                             key={theme.id}
-                            whileHover={{ y: -10 }}
-                            className="group bg-white rounded-[3.5rem] border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden"
+                            whileHover={{ y: -12 }}
+                            className="group bg-white rounded-[3rem] border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col"
                         >
-                            <div className="h-64 overflow-hidden relative">
-                                <img src={theme.preview_url} alt={theme.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8">
+                            <div className="h-56 overflow-hidden relative bg-gray-50">
+                                <img src={theme.preview_url || theme.thumbnail} alt={theme.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#004d4d]/80 via-[#004d4d]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
                                     <Link href="/dashboard/my-store/templates" className="w-full">
-                                        <button className="w-full py-4 bg-white text-gray-900 rounded-2xl font-black text-[10px] tracking-widest shadow-2xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">Vista previa & Activar</button>
+                                        <button className="w-full py-3 bg-[#00f2ff] text-[#004d4d] rounded-xl font-black text-[10px] uppercase tracking-widest shadow-2xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">Instalar ahora</button>
                                     </Link>
                                 </div>
                             </div>
-                            <div className="p-10 space-y-4">
-                                <div className="flex justify-between items-start">
-                                    <h4 className="text-xl font-black text-gray-900 italic">{theme.name}</h4>
-                                    <div className={`h-2 w-2 rounded-full bg-cyan shadow-lg`} />
+                            <div className="p-8 flex-1 flex flex-col">
+                                <div className="flex justify-between items-start mb-4">
+                                    <h4 className="text-lg font-black text-gray-900 uppercase tracking-tighter italic">{theme.name}</h4>
+                                    <div className="px-2 py-0.5 bg-gray-50 rounded-full border border-gray-100">
+                                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">Premium</span>
+                                    </div>
                                 </div>
-                                <p className="text-gray-500 text-xs leading-relaxed font-medium italic">"{theme.description}"</p>
-                                <Link href="/dashboard/my-store/templates">
-                                    <button className="w-full mt-6 py-4 border-2 border-gray-50 rounded-2xl text-[9px] font-black tracking-[0.2em] text-gray-400 group-hover:border-[#004d4d] group-hover:text-[#004d4d] transition-all uppercase">Personalizar este diseño</button>
-                                </Link>
+                                <p className="text-gray-400 text-[11px] leading-relaxed font-medium italic line-clamp-3">"{theme.description}"</p>
+                                
+                                <div className="mt-auto pt-6">
+                                    <Link href="/dashboard/my-store/templates">
+                                        <button className="w-full py-3 border border-gray-100 rounded-xl text-[9px] font-black tracking-[0.1em] text-gray-400 group-hover:bg-gray-50 group-hover:text-[#004d4d] transition-all uppercase">Ver detalles</button>
+                                    </Link>
+                                </div>
                             </div>
                         </motion.div>
                     ))}
