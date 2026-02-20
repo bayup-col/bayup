@@ -23,30 +23,7 @@ import { SignUpButton, useSignUp, useSession } from "@clerk/nextjs";
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, clerkLogin } = useAuth();
-  const { isLoaded, signUp } = useSignUp();
-  const { session } = useSession();
-
-  // Sincronización automática si el usuario se registra con Clerk (Social)
-  useEffect(() => {
-    const syncClerk = async () => {
-      if (session) {
-        setIsLoading(true);
-        try {
-          const token = await session.getToken();
-          if (token) {
-            await clerkLogin(token);
-            setIsSuccess(true);
-          }
-        } catch (err: any) {
-          setError(err.message || "Error al sincronizar registro con Clerk");
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-    syncClerk();
-  }, [session, clerkLogin]);
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -326,21 +303,6 @@ function RegisterForm() {
                 </motion.div>
               </button>
 
-              <div className="w-full flex items-center gap-4 py-2 mb-6">
-                <div className="flex-1 h-px bg-gray-100" />
-                <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">O únete con</span>
-                <div className="flex-1 h-px bg-gray-100" />
-              </div>
-
-              <SignUpButton mode="modal">
-                <button 
-                  type="button"
-                  className="w-full py-5 rounded-[2rem] border-2 border-gray-50 flex items-center justify-center gap-3 hover:bg-gray-50 transition-all group/clerk mb-6"
-                >
-                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-4 h-4 transition-all" alt="Google" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover/clerk:text-black">Registrarme con Google</span>
-                </button>
-              </SignUpButton>
               <div className="flex flex-col items-center gap-2">
                 <p className="text-gray-400 text-[9px] font-bold uppercase tracking-wider text-center"> ¿Ya tienes una cuenta? <Link href="/login" className="text-[#004d4d] hover:text-[#00F2FF] transition-colors hover:underline underline-offset-4">Inicia sesión</Link> </p>
               </div>

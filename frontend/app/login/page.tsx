@@ -33,35 +33,8 @@ export default function LoginPage() {
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   
   const router = useRouter();
-  const { login, clerkLogin, isAuthenticated } = useAuth();
-  const { session } = useSession();
-
-  // Sincronización automática si el usuario inicia sesión con Clerk
-  useEffect(() => {
-    const syncClerk = async () => {
-      if (session) {
-        setIsLoading(true);
-        try {
-          const token = await session.getToken();
-          if (token) {
-            console.log("Sincronizando sesión de Clerk...");
-            await clerkLogin(token);
-            setIsSuccess(true);
-          }
-        } catch (err: any) {
-          console.error("Error sincronización Clerk:", err);
-          setError(err.message || "Error al sincronizar con Clerk");
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-    
-    if (session && !isAuthenticated) {
-      syncClerk();
-    }
-  }, [session, clerkLogin, isAuthenticated]);
-
+  const { login, isAuthenticated } = useAuth();
+  
   useEffect(() => {
     // Si ya está autenticado localmente, redirigir
     if (isAuthenticated && !isSuccess) {
@@ -191,11 +164,7 @@ export default function LoginPage() {
       </div>
 
       <div className="relative z-10 w-full max-w-[480px] p-6 perspective-[2000px]">
-        <motion.div 
-          animate={{ rotateY: isFlipped ? 180 : 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          style={{ transformStyle: "preserve-3d" }}
-          className="relative w-full h-[750px]"
+          className="relative w-full h-[650px]"
         >
           {/* --- CARA FRONTAL: LOGIN --- */}
           <div 
@@ -362,23 +331,7 @@ export default function LoginPage() {
                   </motion.div>
                 </button>
 
-                <div className="w-full flex items-center gap-4 py-2">
-                  <div className="flex-1 h-px bg-gray-100" />
-                  <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">O accede con</span>
-                  <div className="flex-1 h-px bg-gray-100" />
-                </div>
-
-                <SignInButton mode="modal">
-                   <button 
-                    type="button"
-                    className="w-full py-5 rounded-[2rem] border-2 border-gray-50 flex items-center justify-center gap-3 hover:bg-gray-50 transition-all group/clerk"
-                   >
-                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-4 h-4 transition-all" alt="Google" />
-                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover/clerk:text-black">Continuar con Google</span>
-                   </button>
-                </SignInButton>
-
-                <div className="flex flex-col items-center gap-2 mt-4">
+                <div className="flex flex-col items-center gap-2 mt-8">
                   <p className="text-gray-400 text-[9px] font-bold uppercase tracking-wider text-center">
                     ¿No tienes cuenta aún? <Link href="/register" className="text-[#004d4d] hover:text-[#00F2FF] transition-colors hover:underline underline-offset-4">Regístrate ahora</Link>
                   </p>
