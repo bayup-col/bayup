@@ -70,8 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clerkLogin = useCallback(async (clerkToken: string) => {
     try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const targetUrl = `${apiUrl}/auth/clerk-login`;
+        const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+        const targetUrl = `${apiUrl}/auth/clerk-login/`;
         console.log("Intentando Clerk Login en:", targetUrl);
         
         const response = await fetch(targetUrl, {
