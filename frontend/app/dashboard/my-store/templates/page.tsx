@@ -62,7 +62,8 @@ export default function ClientTemplatesGallery() {
                 },
                 body: JSON.stringify({
                     page_key: 'home',
-                    schema_data: schema
+                    schema_data: schema,
+                    template_id: template.id // Guardamos el ID de la plantilla
                 })
             });
 

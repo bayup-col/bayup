@@ -145,7 +145,53 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
       sidebarView, toggleSidebar: (v) => setSidebarView(v), handleDragEnd: () => {}, 
       viewport, setViewport, editMode, setEditMode, pageKey,
       headerLocked: true, setHeaderLocked: () => {}, footerLocked: true, setFooterLocked: () => {},
-      publishPage: async () => {}, saveDraft: async () => {}, isPublishing, isSaving, isLoading
+  const saveDraft = async () => {
+    setIsSaving(true);
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiBase}/shop-pages`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          page_key: pageKey,
+          schema_data: pageData,
+          template_id: templateId // Persistimos qué plantilla estamos usando
+        })
+      });
+
+      if (res.ok) {
+        // En un entorno real, usaríamos showToast aquí
+        console.log("¡Proceso guardado con éxito!");
+      }
+    } catch (e) {
+      console.error("Error al guardar:", e);
+    } finally {
+      setIsSaving(null as any); // Reset state
+      setIsSaving(false);
+    }
+  };
+
+  const publishPage = async () => {
+    setIsPublishing(true);
+    // Simulación de publicación (podría ser el mismo endpoint con un flag 'published: true')
+    await saveDraft();
+    setIsPublishing(false);
+  };
+
+  return (
+    <StudioContext.Provider value={{ 
+      activeSection, setActiveSection, selectedElementId, selectElement, pageData, 
+      addElement: () => {}, updateElement, removeElement: () => {}, 
+      sidebarView, toggleSidebar: (v) => setSidebarView(v), handleDragEnd: () => {}, 
+      viewport, setViewport, editMode, setEditMode, pageKey,
+      headerLocked: true, setHeaderLocked: () => {}, footerLocked: true, setFooterLocked: () => {},
+      publishPage, saveDraft, isPublishing, isSaving, isLoading
     }}>
       {children}
     </StudioContext.Provider>

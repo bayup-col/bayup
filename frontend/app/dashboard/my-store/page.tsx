@@ -27,6 +27,8 @@ import { CUSTOM_HTML_TEMPLATES } from '@/lib/custom-templates';
 export default function MyStoreHub() {
     const { token } = useAuth();
     const [dbTemplates, setDbTemplates] = useState<any[]>([]);
+    const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+    const [isLoadingActive, setIsLoadingActive] = useState(true);
     
     useEffect(() => {
         const fetchTopTemplates = async () => {
@@ -41,14 +43,48 @@ export default function MyStoreHub() {
                 }
             } catch (err) { console.error(err); }
         };
-        if (token) fetchTopTemplates();
+
+        const checkActivePage = async () => {
+            if (!token) return;
+            try {
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+                const res = await fetch(`${apiBase}/shop-pages/home`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    // Si hay datos guardados, intentamos recuperar el template_id del schema o del registro
+                    if (data.schema_data && data.template_id) {
+                        setActiveTemplateId(data.template_id);
+                    } else if (data.schema_data) {
+                        // Si no hay template_id pero hay schema, al menos sabemos que hay un proceso
+                        setActiveTemplateId('existing');
+                    }
+                }
+            } catch (e) {} finally { setIsLoadingActive(false); }
+        };
+
+        if (token) {
+            fetchTopTemplates();
+            checkActivePage();
+        }
     }, [token]);
 
-    // GARANTÍA: Si no hay nada en DB, usamos las locales. Siempre mostramos 4.
+    // Combinación inteligente: Preferimos DB, rellenamos con Local hasta tener 4
     const featuredTemplates = [
         ...dbTemplates,
         ...CUSTOM_HTML_TEMPLATES.filter(lt => !dbTemplates.some(dt => dt.name === lt.name))
     ].slice(0, 4);
+
+    const handleCustomizeClick = () => {
+        if (activeTemplateId) {
+            // Si ya tiene algo, vamos directo al Studio
+            window.location.href = `/dashboard/pages/studio?page=home${activeTemplateId !== 'existing' ? `&id=${activeTemplateId}` : ''}`;
+        } else {
+            // Si es nuevo, vamos a la galería para que elija
+            window.location.href = "/dashboard/my-store/templates";
+        }
+    };
 
     const handleViewStore = () => {
         const savedSettings = localStorage.getItem('bayup_general_settings');
@@ -129,12 +165,13 @@ export default function MyStoreHub() {
                             </div>
 
                             <div className="space-y-4">
-                                <Link href="/dashboard/pages">
-                                    <button className="w-full h-20 bg-purple-600 text-white rounded-[2rem] font-black text-xs tracking-[0.3em] shadow-2xl shadow-purple-200 hover:bg-black hover:shadow-none transition-all flex items-center justify-center gap-4 group active:scale-95">
-                                        <Paintbrush2 size={20} className="group-hover:rotate-12 transition-transform" />
-                                        Personalizar página web
-                                    </button>
-                                </Link>
+                                <button 
+                                    onClick={handleCustomizeClick}
+                                    className="w-full h-20 bg-purple-600 text-white rounded-[2rem] font-black text-xs tracking-[0.3em] shadow-2xl shadow-purple-200 hover:bg-black hover:shadow-none transition-all flex items-center justify-center gap-4 group active:scale-95"
+                                >
+                                    <Paintbrush2 size={20} className="group-hover:rotate-12 transition-transform" />
+                                    {activeTemplateId ? 'Continuar personalizando' : 'Personalizar página web'}
+                                </button>
                                 <button 
                                     onClick={handleViewStore}
                                     className="w-full h-16 bg-white border border-gray-100 text-gray-900 rounded-[1.8rem] font-black text-[10px] tracking-[0.2em] shadow-xl hover:bg-gray-50 transition-all flex items-center justify-center gap-3 active:scale-95"
