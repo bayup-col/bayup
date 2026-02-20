@@ -337,8 +337,8 @@ function RegisterForm() {
                   type="button"
                   className="w-full py-5 rounded-[2rem] border-2 border-gray-50 flex items-center justify-center gap-3 hover:bg-gray-50 transition-all group/clerk mb-6"
                 >
-                  <img src="https://clerk.com/favicon.ico" className="w-4 h-4 grayscale group-hover/clerk:grayscale-0 transition-all" alt="Clerk" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover/clerk:text-black">Google / Otros</span>
+                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-4 h-4 transition-all" alt="Google" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover/clerk:text-black">Registrarme con Google</span>
                 </button>
               </SignUpButton>
               <div className="flex flex-col items-center gap-2">

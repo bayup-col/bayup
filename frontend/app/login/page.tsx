@@ -183,7 +183,7 @@ export default function LoginPage() {
           animate={{ rotateY: isFlipped ? 180 : 0 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           style={{ transformStyle: "preserve-3d" }}
-          className="relative w-full h-[650px]"
+          className="relative w-full h-[750px]"
         >
           {/* --- CARA FRONTAL: LOGIN --- */}
           <div 
@@ -361,8 +361,8 @@ export default function LoginPage() {
                     type="button"
                     className="w-full py-5 rounded-[2rem] border-2 border-gray-50 flex items-center justify-center gap-3 hover:bg-gray-50 transition-all group/clerk"
                    >
-                     <img src="https://clerk.com/favicon.ico" className="w-4 h-4 grayscale group-hover/clerk:grayscale-0 transition-all" alt="Clerk" />
-                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover/clerk:text-black">Google / Otros</span>
+                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-4 h-4 transition-all" alt="Google" />
+                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover/clerk:text-black">Continuar con Google</span>
                    </button>
                 </SignInButton>
 
