@@ -26,17 +26,34 @@ export default function PagesDashboard() {
     const { showToast } = useToast();
     const [pages, setPages] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [hasActiveTemplate, setHasActiveTemplate] = useState(false);
 
     useEffect(() => {
-        const fetchPages = async () => {
+        const fetchState = async () => {
+            if (!token) return;
             try {
                 const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-                const res = await fetch(`${apiBase}/pages`, {
+                
+                // 1. Verificamos si hay una página de inicio configurada (indicador de plantilla activa)
+                const resStatus = await fetch(`${apiBase}/shop-pages/home`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                if (res.ok) {
-                    const data = await res.json();
-                    setPages(data);
+                
+                if (resStatus.ok) {
+                    const statusData = await resStatus.json();
+                    if (statusData.schema_data) {
+                        setHasActiveTemplate(true);
+                        
+                        // Generamos las páginas maestras dinámicamente para el listado
+                        const masterPages = [
+                            { id: 'p1', title: 'Página de Inicio', url: '/', key: 'home', icon: <Home size={32}/>, desc: 'Escaparate principal y aterrizaje de campañas.' },
+                            { id: 'p2', title: 'Detalle de Producto', url: '/product/slug', key: 'product_detail', icon: <Layout size={32}/>, desc: 'Alta conversión: Fotos izq, Info der y carrusel de similares.' },
+                            { id: 'p3', title: 'Catálogo & Colecciones', url: '/shop', key: 'catalog', icon: <Globe size={32}/>, desc: 'Buscador pro y filtros inteligentes con panel lateral desenfocado.' },
+                            { id: 'p4', title: 'Checkout & Pago', url: '/checkout', key: 'checkout', icon: <Settings2 size={32}/>, desc: 'Proceso de pago optimizado: Identificación vs Resumen de compra.' },
+                            { id: 'p5', title: 'Nosotros / Contacto', url: '/about', key: 'about', icon: <FileText size={32}/>, desc: 'Información de marca, ubicación y canales de contacto.' }
+                        ];
+                        setPages(masterPages);
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -44,7 +61,7 @@ export default function PagesDashboard() {
                 setIsLoading(false);
             }
         };
-        if (token) fetchPages();
+        fetchState();
     }, [token]);
 
     const handleViewPage = (pageUrl: string) => {
@@ -115,45 +132,39 @@ export default function PagesDashboard() {
                             transition={{ delay: i * 0.1 }}
                             className="relative group p-[2px] overflow-hidden rounded-[4rem] transition-all duration-500 hover:shadow-[0_0_50px_rgba(0,242,255,0.15)]"
                         >
-                            <div className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(from_0deg,transparent_0deg,#00f2ff_20deg,transparent_40deg,#00f2ff_60deg,transparent_80deg)] animate-aurora pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity duration-1000" />
-                            <div className="relative bg-white/90 backdrop-blur-2xl p-10 rounded-[3.9rem] flex flex-col lg:flex-row lg:items-center justify-between gap-10">
-                                <div className="flex items-center gap-8">
-                                    <div className={`h-20 w-20 rounded-[2.5rem] flex items-center justify-center shadow-inner transition-transform group-hover:scale-110 duration-500 ${page.is_home ? 'bg-purple-50 text-purple-600' : 'bg-gray-50 text-gray-400'}`}>
-                                        {page.is_home ? <Home size={32}/> : <FileText size={32}/>}
+                            <div className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(from_0deg,transparent_0deg,#00f2ff_20deg,transparent_40deg,#00f2ff_60deg,transparent_80deg)] animate-aurora pointer-events-none opacity-0 group-hover:opacity-40 transition-opacity duration-1000" />
+                            <div className="relative bg-white p-10 rounded-[3.9rem] flex flex-col lg:flex-row lg:items-center justify-between gap-10">
+                                <div className="flex items-center gap-8 flex-1">
+                                    <div className={`h-24 w-24 rounded-[3rem] flex items-center justify-center shadow-inner transition-all group-hover:scale-110 duration-500 bg-gray-50 text-gray-400 group-hover:bg-[#004d4d]/5 group-hover:text-[#004d4d]`}>
+                                        {page.icon}
                                     </div>
-                                    <div>
+                                    <div className="flex-1">
                                         <div className="flex items-center gap-4">
-                                            <h3 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter">{page.title || 'Página sin título'}</h3>
-                                            <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${
-                                                page.status === 'published' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'
-                                            }`}>
-                                                {page.status === 'published' ? 'Publicada' : 'Borrador'}
-                                            </span>
+                                            <h3 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">{page.title}</h3>
+                                            <span className="px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border bg-emerald-50 text-emerald-600 border-emerald-100">Configurada</span>
                                         </div>
-                                        <p className="text-sm font-bold text-gray-400 mt-2 flex items-center gap-2">
-                                            <Globe size={14} className="text-[#00f2ff]"/> bayup.com<span className="text-[#004d4d]">{page.url || '/'}</span>
+                                        <p className="text-lg font-medium italic text-gray-400 mt-2">{page.desc}</p>
+                                        <p className="text-xs font-bold text-[#00f2ff] mt-2 flex items-center gap-2">
+                                            <Globe size={14}/> bayup.com<span className="text-[#004d4d]">{page.url}</span>
                                         </p>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center gap-4 relative z-10">
                                     <Link 
-                                        href={`/dashboard/pages/editor?page=${page.page_key || 'home'}`} 
+                                        href={`/dashboard/pages/studio?page=${page.key}`} 
                                         className="flex-1 lg:flex-none"
                                     >
-                                        <button className="w-full lg:w-auto h-14 px-10 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-[#004d4d] transition-all flex items-center justify-center gap-3 group/btn active:scale-95">
-                                            Personalizar Diseño
-                                            <Edit3 size={14} className="text-[#00f2ff] group-hover/btn:rotate-12 transition-transform"/>
+                                        <button className="w-full lg:w-auto h-16 px-12 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-[#004d4d] transition-all flex items-center justify-center gap-3 group/btn active:scale-95">
+                                            Personalizar Página
+                                            <Edit3 size={16} className="text-[#00f2ff] group-hover/btn:rotate-12 transition-transform"/>
                                         </button>
                                     </Link>
                                     <button 
-                                        onClick={() => handleViewPage(page.url || '/')}
-                                        className="h-14 w-14 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-[#00f2ff] hover:border-[#00f2ff] transition-all shadow-sm"
+                                        onClick={() => handleViewPage(page.url)}
+                                        className="h-16 w-16 bg-white border border-gray-100 rounded-3xl flex items-center justify-center text-gray-400 hover:text-[#00f2ff] hover:border-[#00f2ff] transition-all shadow-sm"
                                     >
-                                        <ExternalLink size={20} />
-                                    </button>
-                                    <button className="h-14 w-14 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all shadow-sm">
-                                        <Trash2 size={20} />
+                                        <ExternalLink size={24} />
                                     </button>
                                 </div>
                             </div>
