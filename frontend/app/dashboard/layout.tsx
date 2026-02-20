@@ -517,132 +517,209 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {isUserSettingsOpen && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl border border-gray-100 overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 max-h-[90vh]">
-                <div className="bg-gray-900 p-10 text-white relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
-                        <User size={150} />
-                    </div>
-                    <button onClick={() => setIsUserSettingsOpen(false)} className="absolute top-8 right-8 h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all z-10">
-                        <X size={20} />
-                    </button>
-                    
-                    <div className="relative z-10 flex items-center gap-8">
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className={`w-full max-w-4xl rounded-[3rem] shadow-2xl border overflow-hidden flex flex-col md:flex-row h-[85vh] max-h-[800px] transition-all duration-500 ${
+                    theme === 'dark' ? 'bg-[#001a1a]/95 border-[#00F2FF]/20 shadow-[#00F2FF]/5' : 'bg-white/95 border-white shadow-gray-200'
+                }`}
+            >
+                {/* Sidebar del Modal */}
+                <div className={`w-full md:w-64 p-8 flex flex-col border-b md:border-b-0 md:border-r transition-all duration-500 ${
+                    theme === 'dark' ? 'bg-black/20 border-white/5' : 'bg-gray-50/50 border-gray-100'
+                }`}>
+                    <div className="mb-10 flex flex-col items-center md:items-start">
                         <div className="relative group">
-                            <div className="h-24 w-24 rounded-[2rem] bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-4xl font-black shadow-2xl border-4 border-white/10">
+                            <div className={`h-20 w-20 rounded-[2rem] flex items-center justify-center text-3xl font-black shadow-2xl border-4 transition-all duration-500 ${
+                                theme === 'dark' ? 'bg-gradient-to-tr from-[#00F2FF]/20 to-[#004d4d]/40 border-[#00F2FF]/10 text-[#00F2FF]' : 'bg-gradient-to-tr from-purple-600 to-indigo-600 border-white text-white'
+                            }`}>
                                 {userEmail?.charAt(0).toUpperCase()}
                             </div>
-                            <button className="absolute -bottom-2 -right-2 h-10 w-10 bg-white text-gray-900 rounded-2xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform active:scale-95">
-                                <Camera size={18} />
+                            <button className={`absolute -bottom-2 -right-2 h-8 w-8 rounded-xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform active:scale-95 ${
+                                theme === 'dark' ? 'bg-[#00F2FF] text-[#001a1a]' : 'bg-white text-gray-900'
+                            }`}>
+                                <Camera size={14} />
                             </button>
                         </div>
-                        <div>
-                            <h2 className="text-3xl font-black tracking-tight">{userEmail?.split('@')[0]}</h2>
-                            <div className="flex items-center gap-3 mt-2">
-                                <span className="bg-purple-600 text-white text-[9px] font-black px-3 py-1 rounded-full  tracking-widest">{userRole?.replace('_', ' ')}</span>
-                                <span className="text-[10px] text-gray-400 font-bold  tracking-widest italic">{userEmail}</span>
-                            </div>
+                        <div className="mt-4 text-center md:text-left">
+                            <h3 className={`text-lg font-black tracking-tight truncate w-48 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{userEmail?.split('@')[0]}</h3>
+                            <p className={`text-[10px] font-bold tracking-widest uppercase mt-1 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-purple-600'}`}>{userRole?.replace('_', ' ')}</p>
                         </div>
+                    </div>
+
+                    <nav className="flex-1 space-y-2">
+                        {[
+                            { id: 'profile', label: 'Mi Perfil', icon: <User size={16}/> },
+                            { id: 'security', label: 'Seguridad', icon: <Lock size={16}/> },
+                            { id: 'prefs', label: 'Preferencias', icon: <Globe2 size={16}/> }
+                        ].map((tab) => (
+                            <button 
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-black tracking-widest transition-all relative group ${
+                                    activeTab === tab.id 
+                                        ? (theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF]' : 'bg-purple-600 text-white')
+                                        : (theme === 'dark' ? 'text-gray-400 hover:bg-white/5 hover:text-white' : 'text-gray-500 hover:bg-gray-100')
+                                }`}
+                            >
+                                <span className="group-hover:scale-110 transition-transform">{tab.icon}</span>
+                                {tab.label}
+                                {activeTab === tab.id && <motion.div layoutId="tab-active" className={`absolute left-0 w-1 h-6 rounded-full ${theme === 'dark' ? 'bg-[#00F2FF]' : 'bg-white'}`} />}
+                            </button>
+                        ))}
+                    </nav>
+
+                    <div className={`mt-auto p-4 rounded-[2rem] border backdrop-blur-sm transition-all duration-500 ${
+                        theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-white border-gray-100 shadow-sm'
+                    }`}>
+                        <div className="flex items-center gap-2 mb-2">
+                            <Sparkles size={12} className={theme === 'dark' ? 'text-[#00F2FF]' : 'text-purple-600'} />
+                            <span className={`text-[9px] font-black tracking-widest uppercase ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Bayt Advisor</span>
+                        </div>
+                        <p className={`text-[10px] leading-relaxed italic ${theme === 'dark' ? 'text-white/60' : 'text-gray-600'}`}>
+                            {activeTab === 'security' 
+                                ? "Te sugiero usar una contraseña de al menos 12 caracteres para máxima seguridad." 
+                                : "Tu perfil es tu carta de presentación ante tu equipo y clientes."}
+                        </p>
                     </div>
                 </div>
 
-                <div className="flex px-10 bg-gray-50 border-b border-gray-100">
-                    {[
-                        { id: 'profile', label: 'Mi Perfil', icon: <User size={14}/> },
-                        { id: 'security', label: 'Seguridad', icon: <Lock size={14}/> },
-                        { id: 'prefs', label: 'Preferencias', icon: <Globe2 size={14}/> }
-                    ].map((tab) => (
-                        <button 
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex items-center gap-2 px-6 py-5 text-[10px] font-black  tracking-widest transition-all relative ${activeTab === tab.id ? 'text-purple-600' : 'text-gray-400 hover:text-gray-600'}`}
-                        >
-                            {tab.icon}
-                            {tab.label}
-                            {activeTab === tab.id && <div className="absolute bottom-0 left-0 right-0 h-1 bg-purple-600 rounded-t-full"></div>}
+                {/* Contenido Principal */}
+                <div className="flex-1 flex flex-col overflow-hidden bg-transparent">
+                    <div className="p-8 md:p-12 flex items-center justify-between">
+                        <div>
+                            <h2 className={`text-2xl font-black tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                                {activeTab === 'profile' ? 'Configurar Perfil' : activeTab === 'security' ? 'Seguridad de Cuenta' : 'Preferencias Globales'}
+                            </h2>
+                            <p className={`text-xs mt-1 font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Gestiona tus datos personales y ajustes de seguridad.</p>
+                        </div>
+                        <button onClick={() => setIsUserSettingsOpen(false)} className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all ${
+                            theme === 'dark' ? 'text-white/30 hover:text-white hover:bg-white/10' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'
+                        }`}>
+                            <X size={20} />
                         </button>
-                    ))}
-                </div>
+                    </div>
 
-                <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-white">
-                    {activeTab === 'profile' && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400  tracking-widest ml-1">Nombre Público</label>
-                                    <input type="text" defaultValue={userEmail?.split('@')[0]} className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all" />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400  tracking-widest ml-1">Cargo / Rol</label>
-                                    <input type="text" value={userRole === 'admin' ? 'Administrador de Tienda' : 'Super Administrador'} disabled className="w-full p-4 bg-gray-100 border border-gray-100 text-gray-400 rounded-2xl outline-none text-sm font-bold italic" />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400  tracking-widest ml-1">Biografía Breve</label>
-                                <textarea rows={3} placeholder="Cuéntanos un poco sobre ti..." className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-medium transition-all resize-none" />
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'security' && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                            <div className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400  tracking-widest ml-1">Contraseña Actual</label>
-                                    <input type="password" placeholder="••••••••" className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all" />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400  tracking-widest ml-1">Nueva Contraseña</label>
-                                        <input type="password" placeholder="••••••••" className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all" />
+                    <div className="flex-1 overflow-y-auto px-8 md:px-12 pb-12 custom-scrollbar">
+                        {activeTab === 'profile' && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-3">
+                                        <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-purple-600'}`}>Nombre Público</label>
+                                        <input type="text" defaultValue={userEmail?.split('@')[0]} className={`w-full p-4 rounded-2xl outline-none text-sm font-bold transition-all border ${
+                                            theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:border-[#00F2FF]/50' : 'bg-gray-50 border-transparent focus:bg-white focus:border-purple-200 text-gray-900'
+                                        }`} />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400  tracking-widest ml-1">Confirmar Nueva Contraseña</label>
-                                        <input type="password" placeholder="••••••••" className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-purple-200 rounded-2xl outline-none text-sm font-bold transition-all" />
+                                    <div className="space-y-3">
+                                        <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-purple-600'}`}>WhatsApp de Contacto</label>
+                                        <input type="text" placeholder="+57 300 000 0000" className={`w-full p-4 rounded-2xl outline-none text-sm font-bold transition-all border ${
+                                            theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:border-[#00F2FF]/50' : 'bg-gray-50 border-transparent focus:bg-white focus:border-purple-200 text-gray-900'
+                                        }`} />
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-purple-600'}`}>Biografía Estratégica</label>
+                                    <textarea rows={4} placeholder="Describe tu rol en la empresa..." className={`w-full p-4 rounded-2xl outline-none text-sm font-medium transition-all resize-none border ${
+                                        theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:border-[#00F2FF]/50' : 'bg-gray-50 border-transparent focus:bg-white focus:border-purple-200 text-gray-900'
+                                    }`} />
+                                </div>
+                                <div className={`p-6 rounded-[2rem] border flex items-center gap-4 transition-all duration-500 ${
+                                    theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-[#f0f9f9] border-[#004d4d]/10'
+                                }`}>
+                                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${theme === 'dark' ? 'bg-[#00F2FF]/20 text-[#00F2FF]' : 'bg-[#004d4d]/10 text-[#004d4d]'}`}>
+                                        <ShieldCheck size={20} />
+                                    </div>
+                                    <div>
+                                        <p className={`text-[11px] font-black tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Verificación de Identidad</p>
+                                        <p className={`text-[10px] mt-0.5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Tu cuenta está protegida por encriptación de grado militar.</p>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {activeTab === 'prefs' && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                            <div className="space-y-6">
-                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                    <div className="flex items-center gap-3">
-                                        <Bell size={18} className="text-purple-600" />
-                                        <div>
-                                            <p className="text-xs font-black text-gray-900  tracking-widest">Notificaciones Email</p>
-                                            <p className="text-[10px] text-gray-500 font-bold  mt-0.5">Alertas de ventas y stock</p>
+                        {activeTab === 'security' && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="space-y-6">
+                                    <div className="space-y-3">
+                                        <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-purple-600'}`}>Contraseña Actual</label>
+                                        <input type="password" placeholder="••••••••" className={`w-full p-4 rounded-2xl outline-none text-sm font-bold transition-all border ${
+                                            theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:border-[#00F2FF]/50' : 'bg-gray-50 border-transparent focus:bg-white focus:border-purple-200 text-gray-900'
+                                        }`} />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-3">
+                                            <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-purple-600'}`}>Nueva Contraseña</label>
+                                            <input type="password" placeholder="••••••••" className={`w-full p-4 rounded-2xl outline-none text-sm font-bold transition-all border ${
+                                                theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:border-[#00F2FF]/50' : 'bg-gray-50 border-transparent focus:bg-white focus:border-purple-200 text-gray-900'
+                                            }`} />
+                                        </div>
+                                        <div className="space-y-3">
+                                            <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-purple-600'}`}>Confirmar Nueva</label>
+                                            <input type="password" placeholder="••••••••" className={`w-full p-4 rounded-2xl outline-none text-sm font-bold transition-all border ${
+                                                theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:border-[#00F2FF]/50' : 'bg-gray-50 border-transparent focus:bg-white focus:border-purple-200 text-gray-900'
+                                            }`} />
                                         </div>
                                     </div>
-                                    <div className="h-6 w-11 bg-purple-600 rounded-full relative flex items-center px-1 cursor-pointer">
-                                        <div className="h-4 w-4 bg-white rounded-full shadow-sm translate-x-5"></div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                    <div className="flex items-center gap-3">
-                                        <MessageSquare size={18} className="text-emerald-600" />
-                                        <div>
-                                            <p className="text-xs font-black text-gray-900  tracking-widest">Alertas WhatsApp</p>
-                                            <p className="text-[10px] text-gray-500 font-bold  mt-0.5">Notificaciones en tiempo real</p>
-                                        </div>
-                                    </div>
-                                    <div className="h-6 w-11 bg-gray-200 rounded-full relative flex items-center px-1 cursor-pointer">
-                                        <div className="h-4 w-4 bg-white rounded-full shadow-sm translate-x-0"></div>
-                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-                </div>
+                        )}
 
-                <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
-                    <button onClick={() => setIsUserSettingsOpen(false)} className="text-[10px] font-black  text-gray-400 hover:text-gray-900 tracking-[0.2em] transition-colors">Descartar</button>
-                    <button onClick={() => setIsUserSettingsOpen(false)} className="bg-purple-600 hover:bg-purple-700 text-white px-10 py-4 rounded-2xl font-black text-[10px]  tracking-[0.2em] shadow-xl shadow-purple-100 active:scale-95 transition-all">Guardar Ajustes</button>
+                        {activeTab === 'prefs' && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                {[
+                                    { icon: <Bell size={18}/>, title: 'Notificaciones Email', desc: 'Recibe alertas de ventas y stock bajo.', color: 'text-purple-500' },
+                                    { icon: <MessageSquare size={18}/>, title: 'Alertas WhatsApp', desc: 'Notificaciones críticas en tiempo real.', color: 'text-emerald-500' },
+                                    { icon: <Truck size={18}/>, title: 'Tracking Logístico', desc: 'Informar automáticamente cambios en envíos.', color: 'text-blue-500' }
+                                ].map((item, i) => (
+                                    <div key={i} className={`flex items-center justify-between p-6 rounded-[2rem] border transition-all duration-500 ${
+                                        theme === 'dark' ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-gray-50 border-gray-100 hover:bg-white hover:shadow-md'
+                                    }`}>
+                                        <div className="flex items-center gap-4">
+                                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-all ${
+                                                theme === 'dark' ? 'bg-white/5 ' + item.color : 'bg-white shadow-sm ' + item.color
+                                            }`}>
+                                                {item.icon}
+                                            </div>
+                                            <div>
+                                                <p className={`text-xs font-black tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{item.title}</p>
+                                                <p className={`text-[10px] mt-0.5 font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{item.desc}</p>
+                                            </div>
+                                        </div>
+                                        <div className={`h-6 w-12 rounded-full relative flex items-center px-1 cursor-pointer transition-colors ${i === 0 ? 'bg-emerald-500' : 'bg-gray-300'}`}>
+                                            <div className={`h-4 w-4 bg-white rounded-full shadow-sm transition-transform ${i === 0 ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className={`p-8 border-t flex justify-between items-center transition-all duration-500 ${
+                        theme === 'dark' ? 'bg-black/20 border-white/5' : 'bg-gray-50/50 border-gray-100'
+                    }`}>
+                        <button onClick={() => setIsUserSettingsOpen(false)} className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${
+                            theme === 'dark' ? 'text-gray-500 hover:text-white' : 'text-gray-400 hover:text-gray-900'
+                        }`}>Descartar</button>
+                        
+                        <button 
+                            onClick={() => {
+                                // Aquí llamaremos a userService.updateDetails en el futuro
+                                setIsUserSettingsOpen(false);
+                            }}
+                            className={`px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all ${
+                                theme === 'dark' 
+                                    ? 'bg-[#00F2FF] text-[#001a1a] shadow-[#00F2FF]/10 hover:bg-[#00f2ff]/80' 
+                                    : 'bg-purple-600 text-white shadow-purple-100 hover:bg-purple-700'
+                            }`}
+                        >
+                            Guardar Cambios
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </motion.div>
         </div>
       )}
     </div>
   );
 }
+
