@@ -18,6 +18,7 @@ import {
     Image as ImageIcon,
     ChevronRight,
     LayoutGrid,
+    Layout,
     Truck,
     Trash2,
     CreditCard,
