@@ -33,7 +33,7 @@ export default function LoginPage() {
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   
   const router = useRouter();
-  const { login, clerkLogin } = useAuth();
+  const { login, clerkLogin, isAuthenticated } = useAuth();
   const { session } = useSession();
 
   // Sincronización automática si el usuario inicia sesión con Clerk
