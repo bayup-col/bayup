@@ -1190,14 +1190,44 @@ def save_shop_page(
     
     if db_page:
         db_page.schema_data = page_data.schema_data
+        if page_data.template_id: db_page.template_id = page_data.template_id
     else:
         db_page = models.ShopPage(
             id=uuid.uuid4(),
             tenant_id=target_tenant_id,
             page_key=page_data.page_key,
-            schema_data=page_data.schema_data
+            schema_data=page_data.schema_data,
+            template_id=page_data.template_id
         )
         db.add(db_page)
+    db.commit()
+    db.refresh(db_page)
+    return db_page
+
+@app.post("/shop-pages/publish", response_model=schemas.ShopPage)
+def publish_shop_page(
+    page_data: schemas.ShopPageCreate, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(security.get_current_user)
+):
+    target_tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    db_page = db.query(models.ShopPage).filter(
+        models.ShopPage.tenant_id == target_tenant_id,
+        models.ShopPage.page_key == page_data.page_key
+    ).first()
+    
+    if not db_page:
+        db_page = models.ShopPage(
+            id=uuid.uuid4(),
+            tenant_id=target_tenant_id,
+            page_key=page_data.page_key,
+            schema_data=page_data.schema_data,
+            template_id=page_data.template_id
+        )
+        db.add(db_page)
+    
+    db_page.schema_data = page_data.schema_data
+    db_page.is_published = True
     db.commit()
     db.refresh(db_page)
     return db_page
@@ -1215,6 +1245,17 @@ def get_shop_page(
     ).first()
     if not db_page:
         raise HTTPException(status_code=404, detail="Página no encontrada")
+    return db_page
+
+@app.get("/public/shop-pages/{tenant_id}/{page_key}", response_model=schemas.ShopPage)
+def get_public_shop_page(tenant_id: uuid.UUID, page_key: str, db: Session = Depends(get_db)):
+    db_page = db.query(models.ShopPage).filter(
+        models.ShopPage.tenant_id == tenant_id, 
+        models.ShopPage.page_key == page_key,
+        models.ShopPage.is_published == True
+    ).first()
+    if not db_page:
+        raise HTTPException(status_code=404, detail="Diseño no publicado")
     return db_page
 
 # --- WEB TEMPLATES (SUPER ADMIN) ---

@@ -150,7 +150,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          page_key: pageKey,
+          page_key: pageKey, // 'home', 'product_detail', 'catalog', etc.
           schema_data: pageData,
           template_id: templateId
         })
@@ -164,8 +164,29 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
 
   const publishPage = async () => {
     setIsPublishing(true);
-    await saveDraft();
-    setIsPublishing(false);
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      // Publicamos explícitamente esta página
+      await fetch(`${apiBase}/shop-pages/publish`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          page_key: pageKey,
+          schema_data: pageData
+        })
+      });
+      alert("¡Web publicada con éxito! 🚀");
+    } catch (e) {
+      console.error("Error al publicar:", e);
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (
