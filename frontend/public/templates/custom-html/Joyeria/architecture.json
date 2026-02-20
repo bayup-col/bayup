@@ -1,6 +1,11 @@
 {
   "id": "tpl-joyeria",
   "name": "Jewelry Luxe",
+  "config": {
+    "fontFamily": "font-serif",
+    "primaryColor": "#b45309",
+    "accentColor": "#78350f"
+  },
   "header": {
     "elements": [
       {
@@ -8,8 +13,9 @@
         "type": "navbar",
         "props": {
           "logoText": "Joyas de Lujo",
-          "logoColor": "#b45309",
-          "menuItems": ["Tienda", "Colecciones", "Herencia", "Contacto"]
+          "logoColor": "#000000",
+          "menuItems": ["Tienda", "Colecciones", "Herencia", "Contacto"],
+          "style": "minimal-luxe"
         }
       }
     ],
@@ -25,7 +31,8 @@
           "title": "Elegancia Eterna",
           "subtitle": "Descubra la perfección en cada detalle con nuestra colección exclusiva de alta joyería.",
           "imageUrl": "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=2000",
-          "primaryBtnText": "Ver Colección"
+          "primaryBtnText": "Ver Colección",
+          "style": "luxe-serif"
         }
       },
       {
@@ -34,7 +41,8 @@
         "props": {
           "title": "Nuestra Herencia",
           "subtitle": "Maestros artesanos desde 1924",
-          "content": "Cada pieza de Joyas de Lujo es el resultado de un legado centenario de excelencia. Fusionamos técnicas tradicionales con un diseño contemporáneo para crear obras de arte que trascienden el tiempo."
+          "content": "Cada pieza de Joyas de Lujo es el resultado de un legado centenario de excelencia. Fusionamos técnicas tradicionales con un diseño contemporáneo para crear obras de arte que trascienden el tiempo.",
+          "style": "heritage-luxe"
         }
       },
       {
@@ -42,22 +50,11 @@
         "type": "product-grid",
         "props": {
           "title": "Novedades",
+          "currency": "€",
           "products": [
             { "name": "Anillo de Diamantes 'Solitaire'", "category": "Oro de 18k · 1.5 Quilates", "price": "4.500", "image": "https://images.unsplash.com/photo-1605100804763-247f67b3f41e?q=80&w=800" },
             { "name": "Brazalete de Oro Blanco 18k", "category": "Edición Limitada · Colección Lumière", "price": "3.200", "image": "https://images.unsplash.com/photo-1599643478123-242f153782a1?q=80&w=800" },
             { "name": "Pendientes de Zafiro Real", "category": "Alta Joyería · Zafiros de Ceilán", "price": "5.800", "image": "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=800" }
-          ]
-        }
-      },
-      {
-        "id": "j-collections",
-        "type": "categories-grid",
-        "props": {
-          "title": "Descubra Nuestras Colecciones",
-          "items": [
-            { "label": "Anillos de Compromiso", "image": "https://images.unsplash.com/photo-1586822330090-c3828d44dc3e?q=80&w=800" },
-            { "label": "Alta Joyería", "image": "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?q=80&w=800" },
-            { "label": "Relojes de Lujo", "image": "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?q=80&w=800" }
           ]
         }
       }
@@ -72,7 +69,8 @@
         "props": {
           "logoText": "Joyas de Lujo",
           "description": "Redefiniendo el lujo y la elegancia a través de piezas excepcionales y artesanía de clase mundial.",
-          "location": "Calle Serrano 145, 28006, Madrid, España"
+          "location": "Calle Serrano 145, 28006, Madrid, España",
+          "style": "dark-luxe"
         }
       }
     ],
