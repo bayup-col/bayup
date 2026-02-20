@@ -44,18 +44,30 @@ export default function LoginPage() {
         try {
           const token = await session.getToken();
           if (token) {
+            console.log("Sincronizando sesión de Clerk...");
             await clerkLogin(token);
             setIsSuccess(true);
           }
         } catch (err: any) {
+          console.error("Error sincronización Clerk:", err);
           setError(err.message || "Error al sincronizar con Clerk");
         } finally {
           setIsLoading(false);
         }
       }
     };
-    syncClerk();
-  }, [session, clerkLogin]);
+    
+    if (session && !isAuthenticated) {
+      syncClerk();
+    }
+  }, [session, clerkLogin, isAuthenticated]);
+
+  useEffect(() => {
+    // Si ya está autenticado localmente, redirigir
+    if (isAuthenticated && !isSuccess) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, isSuccess, router]);
 
   useEffect(() => {
     // Cleanup de WebGL y GSAP para evitar "Context Lost" e "Invalid scope"
