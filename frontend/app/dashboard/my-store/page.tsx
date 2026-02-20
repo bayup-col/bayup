@@ -22,10 +22,11 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
+import { CUSTOM_HTML_TEMPLATES } from '@/lib/custom-templates';
 
 export default function MyStoreHub() {
     const { token } = useAuth();
-    const [featuredTemplates, setFeaturedTemplates] = useState<any[]>([]);
+    const [dbTemplates, setDbTemplates] = useState<any[]>([]);
     
     useEffect(() => {
         const fetchTopTemplates = async () => {
@@ -36,12 +37,18 @@ export default function MyStoreHub() {
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    setFeaturedTemplates(data.slice(0, 4)); // Mostramos 4 temas destacados
+                    if (Array.isArray(data)) setDbTemplates(data);
                 }
             } catch (err) { console.error(err); }
         };
         if (token) fetchTopTemplates();
     }, [token]);
+
+    // GARANTÍA: Si no hay nada en DB, usamos las locales. Siempre mostramos 4.
+    const featuredTemplates = [
+        ...dbTemplates,
+        ...CUSTOM_HTML_TEMPLATES.filter(lt => !dbTemplates.some(dt => dt.name === lt.name))
+    ].slice(0, 4);
 
     const handleViewStore = () => {
         const savedSettings = localStorage.getItem('bayup_general_settings');
