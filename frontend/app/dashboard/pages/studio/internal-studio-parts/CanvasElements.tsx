@@ -58,6 +58,7 @@ export const DraggableCanvasElement = ({
         {el.type === "categories-grid" && <SmartCategoriesGrid props={elProps} />}
         {el.type === "bento-grid" && <SmartBentoGrid props={elProps} />}
         {el.type === "product-grid" && <SmartProductGrid props={elProps} />}
+        {el.type === "newsletter" && <SmartNewsletter />}
         {el.type === "services-block" && <SmartServices />}
         {el.type === "trust-banner" && <SmartTrustBanner />}
         {el.type === "footer-premium" && <SmartFooter props={elProps} />}
