@@ -1,7 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, Suspense } from "react";
-import { v4 as uuidv4 } from "uuid";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { DragEndEvent } from "@dnd-kit/core";
 import { useSearchParams } from "next/navigation";
 
@@ -21,7 +20,6 @@ export interface PageSchema {
   footer: { elements: StudioElement[]; styles: Record<string, any>; };
 }
 
-// Esquemas por defecto (vaciados para no interferir)
 const DEFAULT_SCHEMA: PageSchema = { header: { elements: [], styles: {} }, body: { elements: [], styles: {} }, footer: { elements: [], styles: {} } };
 
 interface StudioContextType {
@@ -79,7 +77,6 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     const loadEverything = async () => {
       setIsLoading(true);
       
-      // 1. CARGA FORZADA DE PLANTILLA (Si viene de la galería)
       if (templateId && templateId.startsWith('tpl-')) {
         const idToFolder: any = {
           'tpl-comp': 'computadora', 'tpl-hogar': 'Hogar', 'tpl-joyeria': 'Joyeria',
@@ -101,7 +98,6 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // 2. CARGA DE BASE DE DATOS (Si no hay plantilla nueva)
       const token = localStorage.getItem("token");
       if (token) {
         try {
@@ -124,7 +120,6 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
 
   const pageData = pagesData[pageKey] || DEFAULT_SCHEMA;
 
-  // Funciones de utilidad (Simplificadas para esta reparación)
   const selectElement = (id: string | null) => {
     setSelectedElementId(id);
     setSidebarView(id ? "properties" : "toolbox");
@@ -138,21 +133,17 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  return (
-    <StudioContext.Provider value={{ 
-      activeSection, setActiveSection, selectedElementId, selectElement, pageData, 
-      addElement: () => {}, updateElement, removeElement: () => {}, 
-      sidebarView, toggleSidebar: (v) => setSidebarView(v), handleDragEnd: () => {}, 
-      viewport, setViewport, editMode, setEditMode, pageKey,
-      headerLocked: true, setHeaderLocked: () => {}, footerLocked: true, setFooterLocked: () => {},
   const saveDraft = async () => {
     setIsSaving(true);
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+        setIsSaving(false);
+        return;
+    }
 
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${apiBase}/shop-pages`, {
+      await fetch(`${apiBase}/shop-pages`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -161,25 +152,18 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
         body: JSON.stringify({
           page_key: pageKey,
           schema_data: pageData,
-          template_id: templateId // Persistimos qué plantilla estamos usando
+          template_id: templateId
         })
       });
-
-      if (res.ok) {
-        // En un entorno real, usaríamos showToast aquí
-        console.log("¡Proceso guardado con éxito!");
-      }
     } catch (e) {
       console.error("Error al guardar:", e);
     } finally {
-      setIsSaving(null as any); // Reset state
       setIsSaving(false);
     }
   };
 
   const publishPage = async () => {
     setIsPublishing(true);
-    // Simulación de publicación (podría ser el mismo endpoint con un flag 'published: true')
     await saveDraft();
     setIsPublishing(false);
   };
