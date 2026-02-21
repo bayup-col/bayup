@@ -17,3 +17,5 @@ clerk-sdk-python
 openai
 python-dotenv
 requests
+pandas
+openpyxl

@@ -99,8 +99,54 @@ export default function ProductsPage() {
     
     // UI States
     const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
+    const [importFile, setImportFile] = useState<File | null>(null);
     const [limitType, setLimitType] = useState<'warning' | 'blocked'>('warning');
     const isBasicPlan = userPlan?.name === "Básico" || !userPlan;
+
+    const handleDownloadTemplate = () => {
+        const headers = ["Nombre", "Descripcion", "Precio", "Categoria", "Talla", "Color", "Stock"];
+        const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + 
+            "Producto de Ejemplo,Esta es una descripcion,50000,Ropa,M,Negro,10";
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "plantilla_bayup_productos.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleImportSubmit = async () => {
+        if (!importFile || !token) return;
+        setIsImporting(true);
+        const formData = new FormData();
+        formData.append('file', importFile);
+
+        try {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const res = await fetch(`${apiBase}/products/import-excel`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                showToast(data.message, data.skipped > 0 ? "info" : "success");
+                setIsImportModalOpen(false);
+                setImportFile(null);
+                fetchProducts();
+            } else {
+                showToast(data.detail || "Error al importar", "error");
+            }
+        } catch (e) {
+            showToast("Error de conexión", "error");
+        } finally {
+            setIsImporting(false);
+        }
+    };
 
     const handleNewProductClick = () => {
         if (isBasicPlan) {
@@ -260,9 +306,14 @@ export default function ProductsPage() {
                     </h1>
                     <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">¡Crea y edita todos los productos de tu tienda! 🛍️</p>
                 </div>
-                <button onClick={handleNewProductClick} className="h-12 px-8 bg-[#004d4d] text-white rounded-full font-black text-[10px] tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center gap-3 group">
-                    <Plus size={16} className="group-hover:rotate-90 transition-transform"/> Nuevo producto
-                </button>
+                <div className="flex gap-4">
+                    <button onClick={() => setIsImportModalOpen(true)} className="h-12 px-8 bg-white border border-gray-100 text-[#004d4d] rounded-full font-black text-[10px] tracking-[0.3em] shadow-xl hover:shadow-2xl transition-all flex items-center gap-3">
+                        <Download size={16} className="rotate-180"/> Importar Catálogo
+                    </button>
+                    <button onClick={handleNewProductClick} className="h-12 px-8 bg-[#004d4d] text-white rounded-full font-black text-[10px] tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center gap-3 group">
+                        <Plus size={16} className="group-hover:rotate-90 transition-transform"/> Nuevo producto
+                    </button>
+                </div>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
@@ -591,6 +642,59 @@ export default function ProductsPage() {
                                 <button onClick={() => setProductToDelete(null)} className="py-5 bg-gray-100 text-gray-400 rounded-2xl font-black text-[10px] tracking-widest hover:bg-gray-200 transition-all">Cancelar</button>
                                 <button onClick={handleDeleteProduct} disabled={isDeletingProduct} className="py-5 bg-rose-600 text-white rounded-2xl font-black text-[10px] tracking-widest shadow-xl shadow-rose-100 hover:bg-rose-700 transition-all">
                                     {isDeletingProduct ? 'Eliminando...' : 'Sí, eliminar'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* MODAL IMPORTAR CATÁLOGO (PREMIUM) */}
+            <AnimatePresence>
+                {isImportModalOpen && (
+                    <div className="fixed inset-0 z-[3500] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsImportModalOpen(false)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-2xl" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="relative bg-white w-full max-w-xl rounded-[4rem] shadow-3xl border border-white p-12 overflow-hidden">
+                            <div className="text-center mb-10">
+                                <div className="h-20 w-20 bg-emerald-50 rounded-[2rem] flex items-center justify-center mx-auto text-emerald-600 mb-6 shadow-inner"><Download size={40} className="rotate-180" /></div>
+                                <h3 className="text-3xl font-black italic uppercase tracking-tighter text-gray-900">Importador <span className="text-emerald-600">Masivo</span></h3>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-2">Carga cientos de productos en segundos</p>
+                            </div>
+
+                            <div className="space-y-8">
+                                <div 
+                                    className={`border-2 border-dashed rounded-[2.5rem] p-12 text-center transition-all ${importFile ? 'border-emerald-500 bg-emerald-50/30' : 'border-gray-100 hover:border-[#004D4D]/30'}`}
+                                    onDragOver={e => e.preventDefault()}
+                                    onDrop={e => { e.preventDefault(); setImportFile(e.dataTransfer.files[0]); }}
+                                >
+                                    {importFile ? (
+                                        <div className="space-y-4">
+                                            <p className="text-sm font-black text-gray-900 italic">{importFile.name}</p>
+                                            <button onClick={() => setImportFile(null)} className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:underline">Cambiar archivo</button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <p className="text-sm font-black text-gray-400">Arrastra tu Excel o CSV aquí</p>
+                                            <input type="file" accept=".xlsx,.xls,.csv" onChange={e => setImportFile(e.target.files?.[0] || null)} className="hidden" id="fileImport" />
+                                            <label htmlFor="fileImport" className="inline-block px-8 py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest cursor-pointer hover:scale-105 transition-all">Seleccionar archivo</label>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="bg-gray-50 rounded-[2rem] p-6 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm"><Activity size={20}/></div>
+                                        <div><p className="text-[10px] font-black text-gray-900 uppercase">¿No tienes el formato?</p><p className="text-[9px] text-gray-400 font-bold italic">Usa nuestra plantilla oficial</p></div>
+                                    </div>
+                                    <button onClick={handleDownloadTemplate} className="px-6 py-3 bg-white border border-gray-100 rounded-xl font-black text-[9px] uppercase tracking-widest text-[#004D4D] hover:bg-[#004D4D] hover:text-white transition-all shadow-sm">Descargar</button>
+                                </div>
+
+                                <button 
+                                    onClick={handleImportSubmit} 
+                                    disabled={!importFile || isImporting}
+                                    className={`w-full py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl transition-all flex items-center justify-center gap-4 ${!importFile || isImporting ? 'bg-gray-100 text-gray-300' : 'bg-[#004D4D] text-white hover:bg-black hover:scale-[1.02]'}`}
+                                >
+                                    {isImporting ? <Loader2 className="animate-spin" size={20}/> : <><Rocket size={20}/> Iniciar Importación</>}
                                 </button>
                             </div>
                         </motion.div>

@@ -529,6 +529,95 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
             
     return crud.create_product(db=db, product=product, owner_id=tenant_id)
 
+import pandas as pd
+import io
+
+@app.post("/products/import-excel")
+async def import_products_excel(
+    file: UploadFile = File(...), 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(security.get_current_user)
+):
+    tenant_id = get_tenant_id(current_user)
+    
+    # 1. Verificar plan y límite
+    tenant_owner = db.query(models.User).filter(models.User.id == tenant_id).first()
+    is_basic = tenant_owner and tenant_owner.plan and tenant_owner.plan.name == "Básico"
+    current_count = db.query(models.Product).filter(models.Product.owner_id == tenant_id).count()
+    
+    # 2. Leer el archivo
+    contents = await file.read()
+    try:
+        if file.filename.endswith(('.xlsx', '.xls')):
+            df = pd.read_excel(io.BytesIO(contents))
+        else:
+            df = pd.read_csv(io.BytesIO(contents))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al leer el archivo: {str(e)}")
+
+    # Normalizar columnas
+    df.columns = [c.lower().strip() for c in df.columns]
+    
+    limit = 30
+    imported_count = 0
+    skipped_count = 0
+    errors = []
+
+    # 3. Procesar filas
+    for index, row in df.iterrows():
+        # Check limit if basic
+        if is_basic and (current_count + imported_count) >= limit:
+            skipped_count = len(df) - index
+            break
+            
+        try:
+            name = str(row.get('nombre', '')).strip()
+            if not name: continue
+            
+            # Buscar si el producto ya existe (por nombre)
+            db_product = db.query(models.Product).filter(
+                models.Product.owner_id == tenant_id,
+                models.Product.name == name
+            ).first()
+            
+            if not db_product:
+                db_product = models.Product(
+                    id=uuid.uuid4(),
+                    owner_id=tenant_id,
+                    name=name,
+                    description=str(row.get('descripcion', '')),
+                    price=float(row.get('precio', 0)),
+                    category=str(row.get('categoria', 'General')),
+                    image_url=[] # Empiezan sin fotos como pidió el usuario
+                )
+                db.add(db_product)
+                db.flush()
+                imported_count += 1
+            
+            # Crear variante vinculada
+            variant = models.ProductVariant(
+                id=uuid.uuid4(),
+                product_id=db_product.id,
+                size=str(row.get('talla', 'Única')),
+                color=str(row.get('color', 'Único')),
+                stock=int(row.get('stock', 0))
+            )
+            db.add(variant)
+            
+        except Exception as e:
+            errors.append(f"Fila {index+2}: {str(e)}")
+
+    db.commit()
+    
+    return {
+        "status": "success",
+        "imported": imported_count,
+        "skipped": skipped_count,
+        "errors": errors,
+        "message": f"¡Listo! Se crearon {imported_count} productos. {f'Se omitieron {skipped_count} productos por el límite de tu Plan Básico.' if skipped_count > 0 else ''}"
+    }
+
+
 @app.delete("/products/{product_id}")
 def delete_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = get_tenant_id(current_user)
