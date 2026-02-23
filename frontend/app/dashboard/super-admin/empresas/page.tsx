@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
-import { Loader2, Search, Filter, Package, ShoppingBag, Zap, Mail, Phone, Calendar, User, Bot, Sparkles, ShieldCheck, ExternalLink, ArrowUpRight, Code, Copy, Check, Download } from "lucide-react";
+import { Loader2, Search, Filter, Package, ShoppingBag, Zap, Mail, Phone, Calendar, User, Bot, Sparkles, ShieldCheck, ExternalLink, ArrowUpRight, Code, Copy, Check, Download, Globe } from "lucide-react";
 
 interface CompanyClient {
     id: string;
