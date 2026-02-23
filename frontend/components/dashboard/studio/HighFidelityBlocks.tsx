@@ -8,6 +8,7 @@ import {
   LayoutGrid, Heart, Camera, Send, Ruler, MapPin, Globe
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { motion } from 'framer-motion';
 
 /**
  * COMPONENTES DE ALTA FIDELIDAD - ESPECIALIZADOS POR MARCA
