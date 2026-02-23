@@ -18,12 +18,9 @@ export const BASICO_MODULES: ModuleId[] = [
     'productos', 
     'products_all', 
     'mensajes', 
-    'clientes', 
     'settings', 
     'settings_general', 
     'settings_plan', 
-    'reports', 
-    'reports_gen',
     'templates',
     'pages'
 ];
