@@ -123,6 +123,17 @@ export default function OrdersPage() {
     const [isExportHovered, setIsExportHovered] = useState(false);
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [activeGuideTab, setActiveGuideTab] = useState('overview');
+    const [companyName, setCompanyName] = useState('Mi Tienda Bayup');
+
+    useEffect(() => {
+        const savedData = localStorage.getItem('bayup_general_settings');
+        if (savedData) {
+            try {
+                const parsed = JSON.parse(savedData);
+                if (parsed.identity?.name) setCompanyName(parsed.identity.name);
+            } catch (e) {}
+        }
+    }, []);
 
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
