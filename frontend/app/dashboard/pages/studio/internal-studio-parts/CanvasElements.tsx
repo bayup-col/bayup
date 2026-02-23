@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Trash2, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStudio } from "../context";
-import { SmartNavbar, SmartHero, SmartProductGrid, SmartCategoriesGrid, SmartFooter, SmartTrustBanner, SmartBentoGrid, SmartServices, SmartHeritageBlock, SmartNewsletter } from "@/components/dashboard/studio/HighFidelityBlocks";
+import { SmartNavbar, SmartHero, SmartProductGrid, SmartCategoriesGrid, SmartFooter, SmartTrustBanner, SmartBentoGrid, SmartServices, SmartHeritageBlock, SmartNewsletter, SmartContactForm } from "@/components/dashboard/studio/HighFidelityBlocks";
 
 export const DraggableCanvasElement = ({ 
   el, 
@@ -14,7 +14,8 @@ export const DraggableCanvasElement = ({
   selectElement, 
   setActiveSection, 
   removeElement, 
-  isPreview = false
+  isPreview = false,
+  tenantId = null
 }: any) => {
   const { viewport } = useStudio();
   
@@ -58,6 +59,7 @@ export const DraggableCanvasElement = ({
         {el.type === "categories-grid" && <SmartCategoriesGrid props={elProps} />}
         {el.type === "bento-grid" && <SmartBentoGrid props={elProps} />}
         {el.type === "product-grid" && <SmartProductGrid props={elProps} />}
+        {el.type === "contact-form" && <SmartContactForm props={elProps} tenantId={tenantId} />}
         {el.type === "newsletter" && <SmartNewsletter />}
         {el.type === "services-block" && <SmartServices />}
         {el.type === "trust-banner" && <SmartTrustBanner />}

@@ -96,14 +96,16 @@ export const Canvas = ({
   initialProducts = null, 
   initialCategories = null,
   onOpenCart = null,
-  onOpenLogin = null
+  onOpenLogin = null,
+  tenantId = null
 }: { 
   overrideData?: any, 
   isPreview?: boolean, 
   initialProducts?: any[] | null, 
   initialCategories?: any[] | null,
   onOpenCart?: (() => void) | null,
-  onOpenLogin?: (() => void) | null
+  onOpenLogin?: (() => void) | null,
+  tenantId?: string | null
 }) => {
   const studio = useStudio();
   const { isLoading, activeSection, setActiveSection, selectElement, selectedElementId, removeElement, viewport, pageKey } = studio;
@@ -193,6 +195,7 @@ export const Canvas = ({
               isPreview={isPreview} 
               onOpenCart={onOpenCart}
               onOpenLogin={onOpenLogin}
+              tenantId={tenantId}
             />
           </React.Fragment>
         ))}

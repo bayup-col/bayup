@@ -209,7 +209,84 @@ export const SmartFooter = ({ props }: { props: any }) => {
   );
 };
 
-// 8. TRUST BANNER (JOYERÍA NO LO USA SEGÚN TU HTML, PERO LO DEJAMOS POR COMPATIBILIDAD)
+// 9. FORMULARIO DE CONTACTO PREMIUM
+export const SmartContactForm = ({ props, tenantId }: { props: any, tenantId?: string }) => {
+  const [formData, setFormData] = React.useState({ name: '', email: '', phone: '', message: '' });
+  const [isSending, setIsSending] = React.useState(false);
+  const [sent, setSent] = React.useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tenantId) return;
+    setIsSending(true);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${apiBase}/public/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          customer_name: formData.name,
+          customer_email: formData.email,
+          customer_phone: formData.phone,
+          message: formData.message
+        })
+      });
+      if (res.ok) {
+        setSent(true);
+        setFormData({ name: '', email: '', phone: '', message: '' });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <section className="py-32 bg-white font-serif px-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-20 space-y-4">
+          <h3 className="text-[10px] font-bold uppercase tracking-[0.5em] text-amber-700">{props.badge || 'CONTACTO'}</h3>
+          <h2 className="text-4xl md:text-5xl font-light italic text-slate-900">{props.title || 'Hablemos de su próxima joya'}</h2>
+        </div>
+
+        {sent ? (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-emerald-50 border border-emerald-100 p-12 rounded-[2rem] text-center space-y-6">
+            <div className="h-20 w-20 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-lg"><CheckCheck size={40}/></div>
+            <h4 className="text-2xl font-bold text-emerald-900">¡Mensaje recibido!</h4>
+            <p className="text-emerald-700/70 font-medium italic">Gracias por escribirnos. Un asesor se pondrá en contacto con usted en breve.</p>
+            <button onClick={() => setSent(false)} className="text-xs font-black uppercase tracking-widest text-emerald-600 hover:underline">Enviar otro mensaje</button>
+          </motion.div>
+        ) : (
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50 p-12 rounded-[3.5rem] border border-slate-100 shadow-sm">
+            <div className="space-y-2">
+              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Nombre completo</label>
+              <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-6 py-4 bg-white border border-transparent focus:border-amber-500 outline-none transition-all text-sm font-medium rounded-2xl shadow-inner" placeholder="Ej: Julian Garcia" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Correo electrónico</label>
+              <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-6 py-4 bg-white border border-transparent focus:border-amber-500 outline-none transition-all text-sm font-medium rounded-2xl shadow-inner" placeholder="email@ejemplo.com" />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">WhatsApp (Opcional)</label>
+              <input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-6 py-4 bg-white border border-transparent focus:border-amber-500 outline-none transition-all text-sm font-medium rounded-2xl shadow-inner" placeholder="+57 300 000 0000" />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Su mensaje</label>
+              <textarea required rows={5} value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} className="w-full px-6 py-4 bg-white border border-transparent focus:border-amber-500 outline-none transition-all text-sm font-medium rounded-2xl shadow-inner resize-none" placeholder="¿En qué podemos ayudarle?" />
+            </div>
+            <button disabled={isSending} type="submit" className="md:col-span-2 w-full py-5 bg-slate-900 text-white font-bold text-xs uppercase tracking-[0.3em] hover:bg-black transition-all shadow-xl flex items-center justify-center gap-4">
+              {isSending ? <Loader2 className="animate-spin" size={18}/> : <><Send size={18}/> Enviar mensaje</>}
+            </button>
+          </form>
+        )}
+      </div>
+    </section>
+  );
+};
+
+// 10. TRUST BANNER (JOYERÍA NO LO USA SEGÚN TU HTML, PERO LO DEJAMOS POR COMPATIBILIDAD)
 export const SmartTrustBanner = ({ props }: { props?: any }) => null;
 export const SmartBentoGrid = ({ props }: { props?: any }) => null;
 export const SmartServices = ({ props }: { props?: any }) => null;

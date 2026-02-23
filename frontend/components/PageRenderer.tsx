@@ -1,9 +1,9 @@
 "use client";
 
 import { motion } from 'framer-motion';
-import { SmartNavbar, SmartHero, SmartProductGrid } from './dashboard/studio/HighFidelityBlocks';
+import { SmartNavbar, SmartHero, SmartProductGrid, SmartContactForm } from './dashboard/studio/HighFidelityBlocks';
 
-export type ComponentType = 'text' | 'image' | 'button' | 'section' | 'grid' | 'catalog' | 'whatsapp' | 'countdown' | 'navbar' | 'hero-banner' | 'product-grid' | 'categories-grid' | 'footer-premium';
+export type ComponentType = 'text' | 'image' | 'button' | 'section' | 'grid' | 'catalog' | 'whatsapp' | 'countdown' | 'navbar' | 'hero-banner' | 'product-grid' | 'categories-grid' | 'footer-premium' | 'contact-form';
 
 export interface PageComponent {
     id: string;
@@ -21,6 +21,7 @@ interface PageRendererProps {
     selectedId?: string | null;
     isEditor?: boolean;
     constraintsRef?: React.RefObject<HTMLDivElement>;
+    tenantId?: string;
 }
 
 export const PageRenderer: React.FC<PageRendererProps> = ({ 
@@ -29,7 +30,8 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
     onComponentDrag,
     selectedId,
     isEditor = false,
-    constraintsRef
+    constraintsRef,
+    tenantId
 }) => {
     
     const renderComponent = (comp: PageComponent) => {
@@ -55,6 +57,8 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
                     return <SmartHero props={comp.props} />;
                 case 'product-grid':
                     return <SmartProductGrid props={comp.props} />;
+                case 'contact-form':
+                    return <SmartContactForm props={comp.props} tenantId={tenantId} />;
                 case 'text':
                     return <div style={comp.styles}>{comp.props.text || 'Escribe aquí...'}</div>;
                 case 'button':

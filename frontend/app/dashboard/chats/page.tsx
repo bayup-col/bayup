@@ -120,84 +120,57 @@ export default function MensajesPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<any>(null);
 
-  // --- CONEXIÓN REAL CON EL PUENTE WHATSAPP ---
-  useEffect(() => {
-      const bridgeUrl = process.env.NEXT_PUBLIC_WHATSAPP_BRIDGE_URL || 'http://localhost:8001';
-      const socket = io(bridgeUrl);
-      socketRef.current = socket;
-
-      const fetchRealChats = async () => {
-          try {
-              const res = await fetch(`${bridgeUrl}/chats`);
-              if (res.ok) {
-                  const realChats = await res.json();
-                  setChats(realChats);
-                  setLinkedChannels(prev => prev.includes('whatsapp') ? prev : [...prev, 'whatsapp']);
-              }
-          } catch (e) { console.error("Error cargando chats", e); }
-      };
-
-      socket.on('status', (status: string) => {
-          console.log("Bridge Status:", status);
-          if (status === 'ready') {
-              setPaired(true);
-              setIsQRVisible(false);
-              fetchRealChats();
+  // --- CARGA DE MENSAJES WEB REALES ---
+  const fetchWebMessages = useCallback(async () => {
+      if (!token) return;
+      setIsMessagesLoading(true);
+      try {
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+          const res = await fetch(`${apiBase}/admin/messages`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+              const data = await res.json();
+              // Mapeamos al formato de la interfaz de chat
+              const mappedChats = data.map((m: any) => ({
+                  id: m.id,
+                  name: m.customer_name,
+                  email: m.customer_email,
+                  phone: m.customer_phone,
+                  lastMsg: m.message,
+                  time: new Date(m.created_at).toLocaleDateString(),
+                  unread: m.status === 'unread' ? 1 : 0,
+                  channel: 'web'
+              }));
+              setChats(mappedChats);
           }
-          if (status === 'qr') setIsQRVisible(true);
-      });
+      } catch (e) { console.error("Error cargando mensajes web", e); }
+      finally { setIsMessagesLoading(false); }
+  }, [token]);
 
-      socket.on('qr', (url: string) => {
-          setQrCodeUrl(url);
-          setIsQRVisible(true);
-          setIsPairing(false);
-      });
-
-      socket.on('ready', async () => {
-          setPaired(true);
-          setIsQRVisible(false);
-          setIsPairing(false);
-          showToast("¡WhatsApp conectado! ✨", "success");
-          fetchRealChats();
-      });
-
-      socket.on('new_message', (msg: any) => {
-          // Si es el chat actual, podríamos refrescar mensajes
-          fetchRealChats(); // Refrescar lista al recibir mensaje
-      });
-
-      return () => { socket.disconnect(); };
-  }, [showToast]);
-
-  // --- CARGAR MENSAJES DEL CHAT SELECCIONADO ---
   useEffect(() => {
-      if (!selectedChatId) return;
-      
-      const fetchMessages = async () => {
-          setIsMessagesLoading(true);
-          const bridgeUrl = process.env.NEXT_PUBLIC_WHATSAPP_BRIDGE_URL || 'http://localhost:8001';
-          try {
-              const res = await fetch(`${bridgeUrl}/chats/${encodeURIComponent(selectedChatId)}/messages`);
-              if (res.ok) {
-                  const msgs = await res.json();
-                  setChatMessages(msgs);
-                  // Scroll al final
-                  setTimeout(() => {
-                      if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-                  }, 100);
-              }
-          } catch (e) { console.error(e); }
-          finally { setIsMessagesLoading(false); }
-      };
+      fetchWebMessages();
+  }, [fetchWebMessages]);
 
-      fetchMessages();
-  }, [selectedChatId]);
+  // --- CARGAR DETALLE DEL MENSAJE SELECCIONADO ---
+  useEffect(() => {
+      if (!selectedChatId || chats.length === 0) return;
+      const chat = chats.find(c => c.id === selectedChatId);
+      if (chat) {
+          setChatMessages([{
+              id: chat.id,
+              body: chat.lastMsg,
+              fromMe: false,
+              time: chat.time
+          }]);
+      }
+  }, [selectedChatId, chats]);
 
   const kpis = [
-    { label: "Chats activos", value: chats.length, icon: <Activity size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Live" },
-    { label: "Tiempo respuesta", value: paired ? 4 : 0, icon: <Clock size={24}/>, color: "text-amber-600", bg: "bg-amber-50", trend: "Óptimo", isTime: true },
-    { label: "Conversión CRM", value: paired ? 12.5 : 0, icon: <Target size={24}/>, color: "text-emerald-600", bg: "bg-emerald-50", trend: "+2.4%", isPercentage: true },
-    { label: "Tickets abiertos", value: paired ? 2 : 0, icon: <Zap size={24}/>, color: "text-[#00f2ff]", bg: "bg-cyan-50", trend: "N/A" },
+    { label: "Consultas Web", value: chats.length, icon: <Activity size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Buzón" },
+    { label: "Tiempo respuesta", value: 0, icon: <Clock size={24}/>, color: "text-amber-600", bg: "bg-amber-50", trend: "V1.0", isTime: true },
+    { label: "Conversión Web", value: 0, icon: <Target size={24}/>, color: "text-emerald-600", bg: "bg-emerald-50", trend: "0%", isPercentage: true },
+    { label: "Tickets hoy", value: chats.filter(c => c.unread > 0).length, icon: <Zap size={24}/>, color: "text-[#00f2ff]", bg: "bg-cyan-50", trend: "Pendientes" },
   ];
 
   const handleExportReport = () => {
@@ -290,33 +263,20 @@ export default function MensajesPage() {
   };
 
   const handleSendMessage = async () => {
-      if (!message.trim() || !selectedChatId) return;
+      if (!selectedChatId) return;
       
-      const bridgeUrl = process.env.NEXT_PUBLIC_WHATSAPP_BRIDGE_URL || 'http://localhost:8001';
-      const body = message;
-      setMessage(""); // Limpiar input inmediatamente
-
       try {
-          const res = await fetch(`${bridgeUrl}/send`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ to: selectedChatId, body })
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+          const res = await fetch(`${apiBase}/admin/messages/${selectedChatId}?status=read`, {
+              method: 'PATCH',
+              headers: { 'Authorization': `Bearer ${token}` }
           });
 
           if (res.ok) {
-              // Añadir mensaje optimista
-              const newMsg = {
-                  id: Date.now().toString(),
-                  body,
-                  fromMe: true,
-                  time: new Date().toLocaleTimeString()
-              };
-              setChatMessages(prev => [...prev, newMsg]);
-              setTimeout(() => {
-                  if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-              }, 100);
+              showToast("Mensaje marcado como leído. La respuesta directa llegará pronto. 🚀", "info");
+              fetchWebMessages();
           }
-      } catch (e) { showToast("Error al enviar mensaje", "error"); }
+      } catch (e) { showToast("Error al procesar", "error"); }
   };
 
   return (

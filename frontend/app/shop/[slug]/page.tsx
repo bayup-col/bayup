@@ -295,6 +295,7 @@ function ShopContent() {
                             initialProducts={shopData.products}
                             initialCategories={shopData.categories}
                             onOpenCart={() => setIsCartOpen(true)}
+                            tenantId={shopData.owner_id}
                         />
                     </StudioProvider>
                 ) : (

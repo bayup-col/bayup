@@ -1430,6 +1430,29 @@ def get_public_shop_products(db: Session = Depends(get_db)):
     # Alias para compatibilidad con rutas de tienda
     return db.query(models.Product).all()
 
+# --- Store Messages Endpoints ---
+@app.post("/public/messages", response_model=schemas.StoreMessage)
+def create_store_message(request: schemas.StoreMessageCreate, db: Session = Depends(get_db)):
+    db_message = models.StoreMessage(**request.model_dump())
+    db.add(db_message)
+    db.commit()
+    db.refresh(db_message)
+    return db_message
+
+@app.get("/admin/messages", response_model=List[schemas.StoreMessage])
+def list_store_messages(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = get_tenant_id(current_user)
+    return db.query(models.StoreMessage).filter(models.StoreMessage.tenant_id == tenant_id).order_by(models.StoreMessage.created_at.desc()).all()
+
+@app.patch("/admin/messages/{message_id}")
+def update_message_status(message_id: uuid.UUID, status: str, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = get_tenant_id(current_user)
+    db_message = db.query(models.StoreMessage).filter(models.StoreMessage.id == message_id, models.StoreMessage.tenant_id == tenant_id).first()
+    if not db_message: raise HTTPException(status_code=404, detail="Mensaje no encontrado")
+    db_message.status = status
+    db.commit()
+    return {"status": "success"}
+
 if __name__ == "__main__":
     import uvicorn
     # Leemos el puerto de la variable de entorno PORT que asigna Railway, por defecto 8000

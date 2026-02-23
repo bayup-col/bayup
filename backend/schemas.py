@@ -466,8 +466,28 @@ class ShopPageCreate(ShopPageBase):
 class ShopPage(ShopPageBase):
     id: uuid.UUID
     tenant_id: uuid.UUID
+    is_published: bool
     updated_at: datetime
     class Config:
+        from_attributes = True
+
+# --- Store Message Schemas ---
+class StoreMessageBase(BaseModel):
+    customer_name: str
+    customer_email: str
+    customer_phone: Optional[str] = None
+    message: str
+
+class StoreMessageCreate(StoreMessageBase):
+    tenant_id: uuid.UUID
+
+class StoreMessage(StoreMessageBase):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    status: str
+    created_at: datetime
+    class Config:
+        from_attributes = True
         from_attributes = True
         orm_mode = True
 

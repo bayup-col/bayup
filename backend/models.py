@@ -364,10 +364,24 @@ class WebTemplate(Base):
 
 
 class ShopPage(Base):
-
     __tablename__ = "shop_pages"
-
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(GUID(), ForeignKey("users.id"))
+    page_key = Column(String) # home, catalog, product, about, etc
+    schema_data = Column(JSON)
+    is_published = Column(Boolean, default=False)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class StoreMessage(Base):
+    __tablename__ = "store_messages"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(GUID(), ForeignKey("users.id"))
+    customer_name = Column(String)
+    customer_email = Column(String)
+    customer_phone = Column(String, nullable=True)
+    message = Column(String)
+    status = Column(String, default="unread") # unread, read, replied
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     tenant_id = Column(GUID(), ForeignKey("users.id"))
 
