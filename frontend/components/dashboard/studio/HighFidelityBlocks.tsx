@@ -5,7 +5,7 @@ import {
   ShoppingBag, User, Search, Terminal, Grid, ArrowRight, PlayCircle, 
   ChevronLeft, ChevronRight, ShoppingCart, Verified, Truck, Headset,
   Facebook, Instagram, Twitter, Languages, Mail, Share2, ShieldCheck,
-  LayoutGrid, Heart, Camera, Send, Ruler, MapPin, Globe
+  LayoutGrid, Heart, Camera, Send, Ruler, MapPin, Globe, CheckCheck, Loader2
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { motion } from 'framer-motion';
