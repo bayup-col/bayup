@@ -342,7 +342,7 @@ export default function SuperAdminClients() {
                                                 setDesignJson(JSON.stringify(data, null, 2));
                                                 showToast("¡Diseño de carpeta cargado! ✨", "success");
                                             } else {
-                                                showToast("No se encontró schema.json en la carpeta del cliente.", "warning");
+                                                showToast("No se encontró schema.json en la carpeta del cliente.", "info");
                                             }
                                         } catch(e) {
                                             showToast("Error al leer la carpeta local.", "error");
