@@ -206,7 +206,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     </p>
                     <div className="space-y-1">
                         <MenuItem href="/dashboard" label={<><LayoutDashboard size={16} className="mr-2" /> Inicio</>} id="m_inicio" />
-                        <MenuItem href="/dashboard/invoicing" label={<><FileText size={16} className="mr-2" /> Facturación (POS)</>} id="m_facturacion" />
+                        <MenuItem href="/dashboard/invoicing" label={<><FileText size={16} className="mr-2" /> Facturación</>} id="m_facturacion" />
                         <MenuItem href="/dashboard/orders" label={<><Package size={16} className="mr-2" /> Pedidos Web</>} id="m_pedidos" />
                         
                         {/* GESTIÓN DE PRODUCTOS DINÁMICA */}
@@ -294,7 +294,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Gestión</p>
                     <div className="space-y-1">
                         <MenuItem href="/dashboard/settings/general" label={<><Settings size={16} className="mr-2" /> Perfil de Tienda</>} id="s_settings_general" />
-                        <MenuItem href="/dashboard/settings/plan" label={<><ShieldCheck size={16} className="mr-2" /> Mi Plan Bayup</>} id="s_settings_plan" />
                         <MenuItem href="/dashboard/settings/users" label={<><Users size={16} className="mr-2" /> Equipo Staff</>} id="s_settings_users" />
                     </div>
                 </div>
