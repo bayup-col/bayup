@@ -327,25 +327,15 @@ export default function MensajesPage() {
         <div>
             <div className="flex items-center gap-3 mb-2">
                 <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                <span className="text-[10px] font-black tracking-[0.3em] text-[#004d4d]/60 italic">Omnichannel CRM v2.0</span>
+                <span className="text-[10px] font-black tracking-[0.3em] text-[#004d4d]/60 italic">Mensajería Directa Web v1.0</span>
             </div>
             <h1 className="text-5xl md:text-6xl font-black italic tracking-tighter leading-none text-[#001A1A]">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">Mensajes</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">Mensajes Web</span>
             </h1>
-            <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">¡Contéstales a tus clientes desde múltiples plataformas! 💬</p>
+            <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">Gestiona las consultas de tus clientes desde tu tienda online. 🌐</p>
         </div>
         <div className="flex items-center gap-4">
-            <button onClick={() => setIsLinkModalOpen(true)} className="h-12 px-8 bg-[#004d4d] text-white rounded-full font-black text-[10px] tracking-[0.3em] shadow-xl hover:bg-black transition-all flex items-center gap-2">
-                <Plus size={16} /> Vincular canales
-            </button>
-            <button onClick={handleExportReport} className="h-12 px-8 bg-white/60 backdrop-blur-xl border border-white text-[#004d4d] rounded-full font-black text-[10px] tracking-[0.3em] shadow-xl hover:bg-[#004d4d] hover:text-white transition-all">Reporte omnicanal</button>
-            <div className="flex -space-x-3">
-                {Object.values(CHANNEL_CONFIG).map((c: any, i) => (
-                    <div key={i} className="h-10 w-10 rounded-xl border-2 border-white shadow-lg overflow-hidden hover:scale-110 transition-transform cursor-help" title="Canal disponible">
-                        <img src={c.logo} className="h-full w-full object-cover" alt="" />
-                    </div>
-                ))}
-            </div>
+            <button onClick={handleExportReport} className="h-12 px-8 bg-white/60 backdrop-blur-xl border border-white text-[#004d4d] rounded-full font-black text-[10px] tracking-[0.3em] shadow-xl hover:bg-[#004d4d] hover:text-white transition-all">Reporte de mensajes</button>
         </div>
       </div>
 
@@ -403,8 +393,8 @@ export default function MensajesPage() {
                       {chats.length === 0 ? (
                           <div className="py-20 text-center space-y-4 px-10">
                               <div className="h-20 w-20 bg-[#F0F2F5] rounded-full flex items-center justify-center mx-auto text-gray-300"><Bot size={40}/></div>
-                              <h5 className="text-sm font-black text-gray-900">Tu terminal está lista</h5>
-                              <p className="text-xs text-gray-400 font-medium leading-relaxed italic">Víncula tus cuentas para recibir transmisiones en tiempo real.</p>
+                              <h5 className="text-sm font-black text-gray-900">Buzón Web Activo</h5>
+                              <p className="text-xs text-gray-400 font-medium leading-relaxed italic">Aquí aparecerán los mensajes que tus clientes envíen desde tu tienda online.</p>
                           </div>
                       ) : (
                           chats
@@ -538,15 +528,9 @@ export default function MensajesPage() {
                           </div>
                           <div className="mt-12 space-y-8">
                               <div className="space-y-4">
-                                  <h3 className="text-3xl font-black text-gray-900 italic tracking-tighter">Bayup terminal CRM</h3>
-                                  <p className="text-gray-500 text-sm font-medium max-w-sm mx-auto italic leading-relaxed">Centraliza todas tus comunicaciones. Víncula canales para empezar.</p>
+                                  <h3 className="text-3xl font-black text-gray-900 italic tracking-tighter">Terminal de Mensajes Web</h3>
+                                  <p className="text-gray-500 text-sm font-medium max-w-sm mx-auto italic leading-relaxed">Centraliza las consultas de tus clientes y responde de forma rápida y profesional.</p>
                               </div>
-                              <button 
-                                onClick={handleStartPairing}
-                                className="h-14 px-10 bg-[#004d4d] text-white rounded-full font-black text-[11px] tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center gap-3 mx-auto"
-                              >
-                                  <MessageCircle size={20} className="text-cyan" /> Vincular WhatsApp ahora
-                              </button>
                           </div>
                       </div>
                   )}
