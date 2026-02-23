@@ -22,10 +22,26 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "pk_test_YnVpbGRfdGltZV9rZXlfZm9yX2JheXVwX3ByZXZlbnRfZXJyb3IK";
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+  if (!publishableKey && process.env.NODE_ENV === 'production') {
+    // Durante el build en CI, Clerk puede fallar si no hay una llave válida.
+    // Solo renderizamos el resto de proveedores si falta la llave para evitar romper el build estático.
+    return (
+      <AuthProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <CartProvider>
+              {children}
+            </CartProvider>
+          </ToastProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    );
+  }
 
   return (
-    <ClerkProvider localization={esES} publishableKey={publishableKey}>
+    <ClerkProvider localization={esES} publishableKey={publishableKey || "pk_test_YmF5dXBfdGVzdF9rZXlfZm9yX2J1aWxkX3B1cnBvc2VzX29ubHkK"}>
       <AuthProvider>
         <ThemeProvider>
           <ToastProvider>
