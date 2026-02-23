@@ -45,7 +45,7 @@ import {
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { userEmail: authEmail, userRole: authRole, token, logout, userPlan, isGlobalStaff, userPermissions } = useAuth();
+  const { userEmail: authEmail, userRole: authRole, token, logout, userPlan, isGlobalStaff } = useAuth();
   const { theme } = useTheme();
   
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -132,6 +132,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       );
   };
 
+  const hasVisibleModules = (moduleIds: string[]) => {
+      if (isGlobalStaff) return true;
+      return moduleIds.some(id => (allowedModules as any[]).includes(id.replace('m_', '').replace('s_', '')));
+  };
+
   const renderSidebar = () => {
     if (isGlobalStaff === true) {
         return (
@@ -194,22 +199,43 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </div>
           </div>
           <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar">
+                {/* SECCIÓN OPERACIÓN (Disponible para todos los planes con sus respectivos filtros) */}
                 <div>
-                    <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Operación V1</p>
+                    <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Operación</p>
                     <div className="space-y-1">
                         <MenuItem href="/dashboard" label={<><LayoutDashboard size={16} className="mr-2" /> Inicio</>} id="m_inicio" />
                         <MenuItem href="/dashboard/invoicing" label={<><FileText size={16} className="mr-2" /> Facturación (POS)</>} id="m_facturacion" />
                         <MenuItem href="/dashboard/orders" label={<><Package size={16} className="mr-2" /> Pedidos Web</>} id="m_pedidos" />
                         <MenuItem href="/dashboard/products" label={<><Store size={16} className="mr-2" /> Productos</>} id="m_productos" />
-                        <MenuItem href="/dashboard/chats" label={<><MessageSquare size={16} className="mr-2" /> Mensajes Web</>} id="m_mensajes" />
+                        <MenuItem href="/dashboard/chats" label={<><MessageSquare size={16} className="mr-2" /> Mensajes</>} id="m_mensajes" />
                         <MenuItem href="/dashboard/shipping" label={<><Truck size={16} className="mr-2" /> Envíos</>} id="m_envios" />
+                        <MenuItem href="/dashboard/multiventa" label={<><Globe size={16} className="mr-2" /> Multiventa</>} id="m_multiventa" />
+                        <MenuItem href="/dashboard/customers" label={<><Users size={16} className="mr-2" /> Clientes</>} id="m_clientes" />
+                        <MenuItem href="/dashboard/returns" label={<><ShieldCheck size={16} className="mr-2" /> Garantías</>} id="m_garantias" />
                     </div>
                 </div>
+
+                {/* SECCIÓN CRECIMIENTO (Solo para planes Pro/Empresa) */}
+                {hasVisibleModules(['m_web_analytics', 'm_marketing', 'm_loyalty', 'm_discounts', 'm_automations', 'm_ai_assistants']) && (
+                    <div>
+                        <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Crecimiento</p>
+                        <div className="space-y-1">
+                            <MenuItem href="/dashboard/web-analytics" label={<><BarChart3 size={16} className="mr-2" /> Estadísticas Web</>} id="m_web_analytics" />
+                            <MenuItem href="/dashboard/marketing" label={<><TrendingUp size={16} className="mr-2" /> Marketing</>} id="m_marketing" />
+                            <MenuItem href="/dashboard/loyalty" label={<><Gem size={16} className="mr-2" /> Club de Puntos</>} id="m_loyalty" />
+                            <MenuItem href="/dashboard/discounts" label={<><Tag size={16} className="mr-2" /> Descuentos</>} id="m_discounts" />
+                            <MenuItem href="/dashboard/automations" label={<><Settings size={16} className="mr-2" /> Automatizaciones</>} id="m_automations" />
+                            <MenuItem href="/dashboard/ai-assistants" label={<><Bot size={16} className="mr-2" /> Asistentes IA</>} id="m_ai_assistants" />
+                        </div>
+                    </div>
+                )}
+
                 <div>
                     <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Gestión</p>
                     <div className="space-y-1">
                         <MenuItem href="/dashboard/settings/general" label={<><Settings size={16} className="mr-2" /> Perfil de Tienda</>} id="s_settings_general" />
                         <MenuItem href="/dashboard/settings/plan" label={<><ShieldCheck size={16} className="mr-2" /> Mi Plan Bayup</>} id="s_settings_plan" />
+                        <MenuItem href="/dashboard/settings/users" label={<><Users size={16} className="mr-2" /> Staff</>} id="s_settings_users" />
                     </div>
                 </div>
           </nav>
