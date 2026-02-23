@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
 import requests
+from pydantic import BaseModel
 
 # Cargar variables de entorno inmediatamente
 load_dotenv()
