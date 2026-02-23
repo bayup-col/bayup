@@ -60,8 +60,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'prefs'>('profile');
   const [companyName, setCompanyName] = useState('Mi Tienda Bayup');
 
-  const planName = userPlan?.name || 'Básico';
-  const allowedModules = getModulesByPlan(planName);
+  // NORMALIZACIÓN DE PLAN PARA EVITAR FUGAS
+  const rawPlanName = userPlan?.name || 'Básico';
+  const planNameNormalized = rawPlanName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const allowedModules = getModulesByPlan(rawPlanName);
+  
   const router = useRouter();
   const pathname = usePathname();
 
@@ -102,7 +105,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
   
   const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
-      if (isGlobalStaff === true) return (
+      // SOLO EL SUPER ADMIN VE TODO EN SU PROPIA RUTA
+      if (isGlobalStaff === true && pathname?.includes('/super-admin')) return (
         <div className="relative group">
           <Link href={href} className={getLinkStyles(href, 'admin', isSub)}>
             <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
@@ -129,12 +133,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   const hasVisibleModules = (moduleIds: string[]) => {
-      if (isGlobalStaff) return true;
+      // En dashboard normal, respetamos el plan incluso para admins
       return moduleIds.some(id => (allowedModules as any[]).includes(id.replace('m_', '').replace('s_', '')));
   };
 
   const renderSidebar = () => {
-    if (isGlobalStaff === true) {
+    if (isGlobalStaff === true && pathname?.includes('/super-admin')) {
         return (
             <>
               <div className="p-6 border-b border-white/10">
@@ -195,36 +199,40 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </div>
           </div>
           <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar">
-                {/* SECCIÓN OPERACIÓN (Básico, Pro, Empresa) */}
+                {/* SECCIÓN OPERACIÓN */}
                 <div>
                     <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">
-                        {(planName === 'Básico' || planName === 'Free') ? 'Operación V1' : planName === 'Pro' ? 'Operación Plus' : 'Operación Maestro'}
+                        {(planNameNormalized === 'basico' || planNameNormalized === 'free') ? 'Operación V1' : planNameNormalized === 'pro' ? 'Operación Plus' : 'Operación Maestro'}
                     </p>
                     <div className="space-y-1">
                         <MenuItem href="/dashboard" label={<><LayoutDashboard size={16} className="mr-2" /> Inicio</>} id="m_inicio" />
                         <MenuItem href="/dashboard/invoicing" label={<><FileText size={16} className="mr-2" /> Facturación (POS)</>} id="m_facturacion" />
                         <MenuItem href="/dashboard/orders" label={<><Package size={16} className="mr-2" /> Pedidos Web</>} id="m_pedidos" />
                         
-                        {/* GESTIÓN DE PRODUCTOS DINÁMICA - VERSIÓN FULL RESTAURADA */}
-                        { (planName === 'Básico' || planName === 'Free') ? (
-                            <MenuItem href="/dashboard/products" label={<><Store size={16} className="mr-2" /> Productos</>} id="m_productos" />
-                        ) : (
-                            <div className="space-y-1">
-                                <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
-                                    <span className="flex items-center gap-2 text-sm font-bold"><Store size={16} /> Productos</span>
-                                    <ChevronDown size={14} className={`transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} />
-                                </button>
-                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                        {/* GESTIÓN DE PRODUCTOS DINÁMICA */}
+                        {allowedModules.includes('productos') && (
+                            <>
+                                { (planNameNormalized === 'basico') ? (
+                                    <MenuItem href="/dashboard/products" label={<><Store size={16} className="mr-2" /> Productos</>} id="m_productos" />
+                                ) : (
                                     <div className="space-y-1">
-                                        <MenuItem href="/dashboard/products" label="Todos los productos" id="s_products_all" isSub />
-                                        <MenuItem href="/dashboard/inventory" label="Inventario Pro" id="s_inventory" isSub />
-                                        <MenuItem href="/dashboard/catalogs" label="Catálogos WhatsApp" id="s_catalogs" isSub />
-                                        <MenuItem href="/dashboard/products/separados" label="Separados (IA)" id="s_separados" isSub />
-                                        <MenuItem href="/dashboard/products/cotizaciones" label="Cotizaciones" id="s_cotizaciones" isSub />
-                                        <MenuItem href="/dashboard/products/bodegas" label="Bodegas & Stock" id="s_bodegas" isSub />
+                                        <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
+                                            <span className="flex items-center gap-2 text-sm font-bold"><Store size={16} /> Productos</span>
+                                            <ChevronDown size={14} className={`transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                            <div className="space-y-1">
+                                                <MenuItem href="/dashboard/products" label="Todos los productos" id="s_products_all" isSub />
+                                                <MenuItem href="/dashboard/inventory" label="Inventario Pro" id="s_inventory" isSub />
+                                                <MenuItem href="/dashboard/catalogs" label="Catálogos WhatsApp" id="s_catalogs" isSub />
+                                                <MenuItem href="/dashboard/products/separados" label="Separados (IA)" id="s_separados" isSub />
+                                                <MenuItem href="/dashboard/products/cotizaciones" label="Cotizaciones" id="s_cotizaciones" isSub />
+                                                <MenuItem href="/dashboard/products/bodegas" label="Bodegas & Stock" id="s_bodegas" isSub />
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
+                                )}
+                            </>
                         )}
 
                         <MenuItem href="/dashboard/chats" label={<><MessageSquare size={16} className="mr-2" /> Mensajes Web</>} id="m_mensajes" />
@@ -234,12 +242,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     </div>
                 </div>
 
-                {/* SECCIÓN CRECIMIENTO (Pro & Empresa) */}
+                {/* SECCIÓN CRECIMIENTO */}
                 {hasVisibleModules(['m_web_analytics', 'm_marketing', 'm_loyalty', 'm_discounts']) && (
                     <div>
                         <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Crecimiento</p>
                         <div className="space-y-1">
-                            <MenuItem href="/dashboard/web-analytics" label={<><BarChart3 size={16} className="mr-2" /> Estadísticas ROI</>} id="m_web_analytics" />
+                            <MenuItem href="/dashboard/web-analytics" label={<><BarChart3 size={16} className="mr-2" /> ROI & Analytics</>} id="m_web_analytics" />
                             <MenuItem href="/dashboard/marketing" label={<><TrendingUp size={16} className="mr-2" /> Marketing</>} id="m_marketing" />
                             <MenuItem href="/dashboard/loyalty" label={<><Gem size={16} className="mr-2" /> Club de Puntos</>} id="m_loyalty" />
                             <MenuItem href="/dashboard/discounts" label={<><Tag size={16} className="mr-2" /> Descuentos</>} id="m_discounts" />
@@ -247,7 +255,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     </div>
                 )}
 
-                {/* SECCIÓN INTELIGENCIA & INFORMES - VERSIÓN FULL RESTAURADA */}
+                {/* SECCIÓN INTELIGENCIA */}
                 {hasVisibleModules(['m_automations', 'm_ai_assistants', 'm_reports']) && (
                     <div>
                         <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Inteligencia</p>
@@ -256,7 +264,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <MenuItem href="/dashboard/ai-assistants" label={<><Bot size={16} className="mr-2" /> Asistentes AI</>} id="m_ai_assistants" />
                             <MenuItem href="/dashboard/multiventa" label={<><Globe size={16} className="mr-2" /> Multiventa Hub</>} id="m_multiventa" />
                             
-                            {/* BLOQUE DE INFORMES CON SUBMÓDULOS */}
+                            {/* INFORMES AVANZADOS */}
                             {allowedModules.includes('reports') && (
                                 <div className="mt-1">
                                     <button onClick={() => setReportsOpen(!reportsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/reports')}`}>
@@ -365,7 +373,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <div className="pt-4">{children}</div>
         </main>
         
-        {(planName === 'Empresa' || isGlobalStaff) && (
+        {(planNameNormalized === 'empresa' || isGlobalStaff) && (
           <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />
         )}
       </div>
