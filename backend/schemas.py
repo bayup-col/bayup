@@ -30,6 +30,7 @@ class UserBase(BaseModel):
     phone: str | None = None
     city: str | None = None
     shop_slug: str | None = None
+    custom_domain: str | None = None
     status: str | None = "Activo"
 
 class UserCreate(UserBase):
