@@ -41,9 +41,7 @@ import {
   ExternalLink,
   LogOut,
   Eye,
-  Sparkles,
-  Activity,
-  Target
+  Sparkles
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -102,9 +100,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
   
   const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
-      const moduleKey = id.replace('m_', '').replace('s_', '');
-      const isAllowedByPlan = (allowedModules as any[]).includes(moduleKey);
-
       if (isGlobalStaff === true) return (
         <div className="relative group">
           <Link href={href} className={getLinkStyles(href, 'admin', isSub)}>
@@ -114,6 +109,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Link>
         </div>
       );
+
+      const moduleKey = id.replace('m_', '').replace('s_', '');
+      const isAllowedByPlan = (allowedModules as any[]).includes(moduleKey);
 
       if (!isAllowedByPlan && !pathname?.includes('/super-admin')) return null;
       
@@ -195,47 +193,57 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </div>
           </div>
           <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar">
-                {/* SECCIÓN OPERACIÓN */}
+                {/* SECCIÓN OPERACIÓN (Básico, Pro, Empresa) */}
                 <div>
-                    <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">{planName === 'Básico' ? 'Operación V1' : 'Operación Maestro'}</p>
+                    <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">
+                        {planName === 'Básico' ? 'Operación V1' : planName === 'Pro' ? 'Operación Plus' : 'Operación Maestro'}
+                    </p>
                     <div className="space-y-1">
                         <MenuItem href="/dashboard" label={<><LayoutDashboard size={16} className="mr-2" /> Inicio</>} id="m_inicio" />
                         <MenuItem href="/dashboard/invoicing" label={<><FileText size={16} className="mr-2" /> Facturación (POS)</>} id="m_facturacion" />
                         <MenuItem href="/dashboard/orders" label={<><Package size={16} className="mr-2" /> Pedidos Web</>} id="m_pedidos" />
                         
-                        {/* BLINDAJE PRODUCTOS */}
-                        { (planName === 'Básico' || planName === 'Free') ? (
-                            <MenuItem href="/dashboard/products" label={<><Store size={16} className="mr-2" /> Productos</>} id="m_productos" />
-                        ) : (
+                        {/* GESTIÓN DE PRODUCTOS DINÁMICA POR PLAN */}
+                        {allowedModules.includes('productos') && (
                             <>
-                                <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
-                                    <span className="flex items-center gap-2 text-sm font-medium"><Store size={16} /> Productos</span>
-                                    <ChevronDown size={14} className={`transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} />
-                                </button>
-                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                    <div className="space-y-1">
-                                        <MenuItem href="/dashboard/products" label="Todos los productos" id="s_products_all" isSub />
-                                        <MenuItem href="/dashboard/inventory" label="Inventario Pro" id="s_inventory" isSub />
-                                        <MenuItem href="/dashboard/catalogs" label="Catálogos WA" id="s_catalogs" isSub />
-                                    </div>
-                                </div>
+                                { (planName === 'Básico') ? (
+                                    <MenuItem href="/dashboard/products" label={<><Store size={16} className="mr-2" /> Productos</>} id="m_productos" />
+                                ) : (
+                                    <>
+                                        <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
+                                            <span className="flex items-center gap-2 text-sm font-medium"><Store size={16} /> Productos</span>
+                                            <ChevronDown size={14} className={`transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                            <div className="space-y-1">
+                                                <MenuItem href="/dashboard/products" label="Todos los productos" id="s_products_all" isSub />
+                                                <MenuItem href="/dashboard/inventory" label="Inventario Pro" id="s_inventory" isSub />
+                                                <MenuItem href="/dashboard/catalogs" label="Catálogos WA" id="s_catalogs" isSub />
+                                                <MenuItem href="/dashboard/products/separados" label="Separados (IA)" id="s_separados" isSub />
+                                                <MenuItem href="/dashboard/products/cotizaciones" label="Cotizaciones" id="s_cotizaciones" isSub />
+                                                <MenuItem href="/dashboard/products/bodegas" label="Bodegas & Stock" id="s_bodegas" isSub />
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </>
                         )}
 
                         <MenuItem href="/dashboard/chats" label={<><MessageSquare size={16} className="mr-2" /> Mensajes Web</>} id="m_mensajes" />
                         <MenuItem href="/dashboard/shipping" label={<><Truck size={16} className="mr-2" /> Envíos</>} id="m_envios" />
                         <MenuItem href="/dashboard/customers" label={<><Users size={16} className="mr-2" /> Clientes</>} id="m_clientes" />
+                        <MenuItem href="/dashboard/returns" label={<><ShieldCheck size={16} className="mr-2" /> Garantías</>} id="m_garantias" />
                     </div>
                 </div>
 
-                {/* SECCIÓN CRECIMIENTO (Solo Pro/Empresa) */}
+                {/* SECCIÓN CRECIMIENTO (Pro & Empresa) */}
                 {hasVisibleModules(['m_web_analytics', 'm_marketing', 'm_loyalty', 'm_discounts']) && (
                     <div>
                         <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Crecimiento</p>
                         <div className="space-y-1">
-                            <MenuItem href="/dashboard/web-analytics" label={<><BarChart3 size={16} className="mr-2" /> Estadísticas ROI</>} id="m_web_analytics" />
+                            <MenuItem href="/dashboard/web-analytics" label={<><BarChart3 size={16} className="mr-2" /> ROI & Analytics</>} id="m_web_analytics" />
                             <MenuItem href="/dashboard/marketing" label={<><TrendingUp size={16} className="mr-2" /> Marketing</>} id="m_marketing" />
-                            <MenuItem href="/dashboard/loyalty" label={<><Gem size={16} className="mr-2" /> Puntos & Lealtad</>} id="m_loyalty" />
+                            <MenuItem href="/dashboard/loyalty" label={<><Gem size={16} className="mr-2" /> Club de Puntos</>} id="m_loyalty" />
                             <MenuItem href="/dashboard/discounts" label={<><Tag size={16} className="mr-2" /> Descuentos</>} id="m_discounts" />
                         </div>
                     </div>
@@ -248,23 +256,32 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         <div className="space-y-1">
                             <MenuItem href="/dashboard/automations" label={<><Settings size={16} className="mr-2" /> Automatización</>} id="m_automations" />
                             <MenuItem href="/dashboard/ai-assistants" label={<><Bot size={16} className="mr-2" /> Asistentes AI</>} id="m_ai_assistants" />
+                            <MenuItem href="/dashboard/multiventa" label={<><Globe size={16} className="mr-2" /> Multiventa Hub</>} id="m_multiventa" />
                             
-                            {/* BLINDAJE INFORMES */}
-                            <button onClick={() => setReportsOpen(!reportsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/reports')}`}>
-                                <span className="flex items-center gap-2 text-sm font-medium"><BarChart3 size={16} /> Informes Pro</span>
-                                <ChevronDown size={14} className={`transition-transform duration-200 ${reportsOpen ? 'rotate-180' : ''}`} />
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${reportsOpen ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                <div className="space-y-1">
-                                    <MenuItem href="/dashboard/reports" label="Análisis General" id="s_reports_gen" isSub />
-                                    <MenuItem href="/dashboard/reports/vendedores" label="Vendedores" id="s_vendedores" isSub />
-                                    <MenuItem href="/dashboard/reports/gastos" label="Gastos & Flujo" id="s_gastos" isSub />
-                                </div>
-                            </div>
+                            {/* INFORMES AVANZADOS */}
+                            {allowedModules.includes('reports') && (
+                                <>
+                                    <button onClick={() => setReportsOpen(!reportsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/reports')}`}>
+                                        <span className="flex items-center gap-2 text-sm font-medium"><BarChart3 size={16} /> Informes Pro</span>
+                                        <ChevronDown size={14} className={`transition-transform duration-200 ${reportsOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${reportsOpen ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                        <div className="space-y-1">
+                                            <MenuItem href="/dashboard/reports" label="Análisis General" id="s_reports_gen" isSub />
+                                            <MenuItem href="/dashboard/reports?tab=nomina" label="Gestión de Nómina" id="s_reports_payroll" isSub />
+                                            <MenuItem href="/dashboard/reports/purchase-orders" label="Órdenes de Compra" id="s_purchase_orders" isSub />
+                                            <MenuItem href="/dashboard/reports/vendedores" label="Vendedores" id="s_vendedores" isSub />
+                                            <MenuItem href="/dashboard/reports/gastos" label="Gastos & Flujo" id="s_gastos" isSub />
+                                            <MenuItem href="/dashboard/reports/comisiones" label="Liquidación 0.5%" id="s_comisiones" isSub />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 )}
 
+                {/* GESTIÓN DE CUENTA */}
                 <div>
                     <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Gestión</p>
                     <div className="space-y-1">
@@ -332,7 +349,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
           )}
           <div className={`p-6 mt-auto flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} border-t border-white/10 bg-transparent relative`}>
-            <div onClick={() => setShowGhost(true)} className={`${isSidebarCollapsed ? 'hidden' : 'block'} text-2xl font-black italic tracking-tighter cursor-pointer w-fit relative group/logo transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-black'}`}>
+            <div onClick={() => {}} className={`${isSidebarCollapsed ? 'hidden' : 'block'} text-2xl font-black italic tracking-tighter cursor-pointer w-fit relative group/logo transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-black'}`}>
               <span>BAY</span><InteractiveUP />
             </div>
           </div>
