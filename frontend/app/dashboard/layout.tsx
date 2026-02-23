@@ -41,7 +41,9 @@ import {
   ExternalLink,
   LogOut,
   Eye,
-  Sparkles
+  Sparkles,
+  Activity,
+  Target
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -56,16 +58,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(true);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [isEditingMenu, setIsEditingMenu] = useState(false);
-  const [hiddenModules, setHiddenModules] = useState<string[]>([]);
   const [isBaytOpen, setIsBaytOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'prefs'>('profile');
-  const [showGhost, setShowGhost] = useState(false);
   const [companyName, setCompanyName] = useState('Mi Tienda Bayup');
 
   useEffect(() => {
@@ -74,7 +71,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       try {
         const parsed = JSON.parse(savedData);
         if (parsed.identity?.name) setCompanyName(parsed.identity.name);
-      } catch (e) { console.error(e); }
+      } catch (e) {}
     }
     const handleNameUpdate = (e: any) => { if (e.detail) setCompanyName(e.detail); };
     window.addEventListener('bayup_name_update', handleNameUpdate);
@@ -105,6 +102,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
   
   const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
+      const moduleKey = id.replace('m_', '').replace('s_', '');
+      const isAllowedByPlan = (allowedModules as any[]).includes(moduleKey);
+
       if (isGlobalStaff === true) return (
         <div className="relative group">
           <Link href={href} className={getLinkStyles(href, 'admin', isSub)}>
@@ -115,15 +115,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
       );
 
-      const moduleKey = id.replace('m_', '').replace('s_', '');
-      const isAllowedByPlan = (allowedModules as any[]).includes(moduleKey);
-
       if (!isAllowedByPlan && !pathname?.includes('/super-admin')) return null;
-      if (hiddenModules.includes(id) && !isEditingMenu) return null;
       
       return (
         <div className="relative group">
-          <Link href={href} className={`${getLinkStyles(href, 'admin', isSub)} ${hiddenModules.includes(id) ? 'opacity-40' : ''}`}>
+          <Link href={href} className={getLinkStyles(href, 'admin', isSub)}>
             <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
                 {label}
             </div>
@@ -199,33 +195,72 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </div>
           </div>
           <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar">
-                {/* SECCIÓN OPERACIÓN (Disponible para todos los planes con sus respectivos filtros) */}
+                {/* SECCIÓN OPERACIÓN */}
                 <div>
-                    <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Operación</p>
+                    <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">{planName === 'Básico' ? 'Operación V1' : 'Operación Maestro'}</p>
                     <div className="space-y-1">
                         <MenuItem href="/dashboard" label={<><LayoutDashboard size={16} className="mr-2" /> Inicio</>} id="m_inicio" />
                         <MenuItem href="/dashboard/invoicing" label={<><FileText size={16} className="mr-2" /> Facturación (POS)</>} id="m_facturacion" />
                         <MenuItem href="/dashboard/orders" label={<><Package size={16} className="mr-2" /> Pedidos Web</>} id="m_pedidos" />
-                        <MenuItem href="/dashboard/products" label={<><Store size={16} className="mr-2" /> Productos</>} id="m_productos" />
-                        <MenuItem href="/dashboard/chats" label={<><MessageSquare size={16} className="mr-2" /> Mensajes</>} id="m_mensajes" />
+                        
+                        {/* BLINDAJE PRODUCTOS */}
+                        { (planName === 'Básico' || planName === 'Free') ? (
+                            <MenuItem href="/dashboard/products" label={<><Store size={16} className="mr-2" /> Productos</>} id="m_productos" />
+                        ) : (
+                            <>
+                                <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
+                                    <span className="flex items-center gap-2 text-sm font-medium"><Store size={16} /> Productos</span>
+                                    <ChevronDown size={14} className={`transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                    <div className="space-y-1">
+                                        <MenuItem href="/dashboard/products" label="Todos los productos" id="s_products_all" isSub />
+                                        <MenuItem href="/dashboard/inventory" label="Inventario Pro" id="s_inventory" isSub />
+                                        <MenuItem href="/dashboard/catalogs" label="Catálogos WA" id="s_catalogs" isSub />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        <MenuItem href="/dashboard/chats" label={<><MessageSquare size={16} className="mr-2" /> Mensajes Web</>} id="m_mensajes" />
                         <MenuItem href="/dashboard/shipping" label={<><Truck size={16} className="mr-2" /> Envíos</>} id="m_envios" />
-                        <MenuItem href="/dashboard/multiventa" label={<><Globe size={16} className="mr-2" /> Multiventa</>} id="m_multiventa" />
                         <MenuItem href="/dashboard/customers" label={<><Users size={16} className="mr-2" /> Clientes</>} id="m_clientes" />
-                        <MenuItem href="/dashboard/returns" label={<><ShieldCheck size={16} className="mr-2" /> Garantías</>} id="m_garantias" />
                     </div>
                 </div>
 
-                {/* SECCIÓN CRECIMIENTO (Solo para planes Pro/Empresa) */}
-                {hasVisibleModules(['m_web_analytics', 'm_marketing', 'm_loyalty', 'm_discounts', 'm_automations', 'm_ai_assistants']) && (
+                {/* SECCIÓN CRECIMIENTO (Solo Pro/Empresa) */}
+                {hasVisibleModules(['m_web_analytics', 'm_marketing', 'm_loyalty', 'm_discounts']) && (
                     <div>
                         <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Crecimiento</p>
                         <div className="space-y-1">
-                            <MenuItem href="/dashboard/web-analytics" label={<><BarChart3 size={16} className="mr-2" /> Estadísticas Web</>} id="m_web_analytics" />
+                            <MenuItem href="/dashboard/web-analytics" label={<><BarChart3 size={16} className="mr-2" /> Estadísticas ROI</>} id="m_web_analytics" />
                             <MenuItem href="/dashboard/marketing" label={<><TrendingUp size={16} className="mr-2" /> Marketing</>} id="m_marketing" />
-                            <MenuItem href="/dashboard/loyalty" label={<><Gem size={16} className="mr-2" /> Club de Puntos</>} id="m_loyalty" />
+                            <MenuItem href="/dashboard/loyalty" label={<><Gem size={16} className="mr-2" /> Puntos & Lealtad</>} id="m_loyalty" />
                             <MenuItem href="/dashboard/discounts" label={<><Tag size={16} className="mr-2" /> Descuentos</>} id="m_discounts" />
-                            <MenuItem href="/dashboard/automations" label={<><Settings size={16} className="mr-2" /> Automatizaciones</>} id="m_automations" />
-                            <MenuItem href="/dashboard/ai-assistants" label={<><Bot size={16} className="mr-2" /> Asistentes IA</>} id="m_ai_assistants" />
+                        </div>
+                    </div>
+                )}
+
+                {/* SECCIÓN INTELIGENCIA (Solo Empresa) */}
+                {hasVisibleModules(['m_automations', 'm_ai_assistants', 'm_reports']) && (
+                    <div>
+                        <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Inteligencia</p>
+                        <div className="space-y-1">
+                            <MenuItem href="/dashboard/automations" label={<><Settings size={16} className="mr-2" /> Automatización</>} id="m_automations" />
+                            <MenuItem href="/dashboard/ai-assistants" label={<><Bot size={16} className="mr-2" /> Asistentes AI</>} id="m_ai_assistants" />
+                            
+                            {/* BLINDAJE INFORMES */}
+                            <button onClick={() => setReportsOpen(!reportsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/reports')}`}>
+                                <span className="flex items-center gap-2 text-sm font-medium"><BarChart3 size={16} /> Informes Pro</span>
+                                <ChevronDown size={14} className={`transition-transform duration-200 ${reportsOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${reportsOpen ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                <div className="space-y-1">
+                                    <MenuItem href="/dashboard/reports" label="Análisis General" id="s_reports_gen" isSub />
+                                    <MenuItem href="/dashboard/reports/vendedores" label="Vendedores" id="s_vendedores" isSub />
+                                    <MenuItem href="/dashboard/reports/gastos" label="Gastos & Flujo" id="s_gastos" isSub />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -235,7 +270,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <div className="space-y-1">
                         <MenuItem href="/dashboard/settings/general" label={<><Settings size={16} className="mr-2" /> Perfil de Tienda</>} id="s_settings_general" />
                         <MenuItem href="/dashboard/settings/plan" label={<><ShieldCheck size={16} className="mr-2" /> Mi Plan Bayup</>} id="s_settings_plan" />
-                        <MenuItem href="/dashboard/settings/users" label={<><Users size={16} className="mr-2" /> Staff</>} id="s_settings_users" />
+                        <MenuItem href="/dashboard/settings/users" label={<><Users size={16} className="mr-2" /> Mi Equipo Staff</>} id="s_settings_users" />
                     </div>
                 </div>
           </nav>
@@ -312,6 +347,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar bg-transparent relative scroll-smooth">
             <div className="pt-4">{children}</div>
         </main>
+        
+        {(planName === 'Empresa' || isGlobalStaff) && (
+          <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />
+        )}
       </div>
     </div>
   );
