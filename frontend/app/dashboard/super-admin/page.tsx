@@ -12,7 +12,8 @@ import {
     Activity, 
     AlertTriangle, 
     CheckCircle2, 
-    Info 
+    Info,
+    Zap
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
