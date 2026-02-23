@@ -211,13 +211,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         
                         {/* GESTIÓN DE PRODUCTOS DINÁMICA */}
                         {allowedModules.includes('productos') && (
-                            <>
-                                { (planNameNormalized === 'basico') ? (
+                            <div className="w-full">
+                                { (planNameNormalized === 'basico' || planNameNormalized === 'free') ? (
                                     <MenuItem href="/dashboard/products" label={<><Store size={16} className="mr-2" /> Productos</>} id="m_productos" />
                                 ) : (
                                     <div className="space-y-1">
                                         <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
-                                            <span className="flex items-center gap-2 text-sm font-bold"><Store size={16} /> Productos</span>
+                                            <span className="flex items-center gap-2 text-sm font-medium"><Store size={16} /> Productos</span>
                                             <ChevronDown size={14} className={`transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} />
                                         </button>
                                         <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
@@ -232,7 +232,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                         </div>
                                     </div>
                                 )}
-                            </>
+                            </div>
                         )}
 
                         <MenuItem href="/dashboard/chats" label={<><MessageSquare size={16} className="mr-2" /> Mensajes Web</>} id="m_mensajes" />
