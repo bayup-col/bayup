@@ -255,19 +255,19 @@ export default function DashboardPage() {
         advice: realStats.orders_count > 0 ? "Tienes pedidos pendientes. Prioriza el despacho." : "No hay órdenes pendientes. Excelente eficiencia operativa."
     },
     { 
-        label: "Tasa de conversión", 
-        value: realStats.conversion, 
-        icon: <TrendingUp size={24}/>, 
+        label: "Mi Saldo Bayup", 
+        value: realStats.revenue * 0.03, 
+        icon: <Wallet size={24}/>, 
         color: "text-purple-600", 
         bg: "bg-purple-50", 
-        trend: "0%", 
-        isPercentage: true,
+        trend: "3% Éxito", 
+        isCurrency: true,
         details: [
-            { l: "Visitas", v: "0", icon: <Target size={14}/> },
-            { l: "Carritos", v: "0", icon: <ShoppingBag size={14}/> },
-            { l: "ROI proy.", v: "0x", icon: <Sparkles size={14}/> }
+            { l: "Comisión neta", v: "3%", icon: <Target size={14}/> },
+            { l: "Recuperación", v: "Próx. Venta", icon: <RefreshCw size={14}/> },
+            { l: "Estado", v: "Pendiente", icon: <Clock size={14}/> }
         ],
-        advice: "Conecta tu tienda para empezar a rastrear el comportamiento de tus visitantes."
+        advice: "Este saldo se descontará automáticamente de tus ventas web con tarjeta. ¡Tú solo enfócate en vender!"
     },
     { 
         label: "Inventario bajo", 
@@ -308,6 +308,19 @@ export default function DashboardPage() {
               showToast("Error al generar el reporte", "error");
           }
       };
+
+      const handleViewStore = () => {
+          const origin = window.location.origin;
+          const savedSettings = localStorage.getItem('bayup_general_settings');
+          let slug = 'preview';
+          if (savedSettings) {
+              try {
+                  const parsed = JSON.parse(savedSettings);
+                  if (parsed.identity?.slug) slug = parsed.identity.slug;
+              } catch(e){}
+          }
+          window.open(`${origin}/shop/${slug}`, '_blank');
+      };
   
       return (
           <div className="max-w-[1600px] mx-auto space-y-10 pb-20 animate-in fade-in duration-1000">
@@ -327,13 +340,13 @@ export default function DashboardPage() {
                   </p>
               </div>
               <div className="flex gap-4 shrink-0 relative z-20">
-                  <Link href="/dashboard/products/new" className="h-16 px-10 bg-white border-2 border-gray-100 rounded-full flex items-center justify-center gap-3 hover:bg-[#004d4d] hover:text-white hover:border-[#004d4d] transition-all shadow-xl group">
-                      <Plus size={20} className="group-hover:rotate-90 transition-transform" /> 
-                      <span className="font-black tracking-widest text-[10px]">Nuevo producto</span>
-                  </Link>
+                  <button onClick={handleViewStore} className="h-16 px-10 bg-white border-2 border-gray-100 rounded-full flex items-center justify-center gap-3 hover:bg-black hover:text-white hover:border-black transition-all shadow-xl group">
+                      <Globe size={20} className="group-hover:rotate-12 transition-transform text-cyan" /> 
+                      <span className="font-black tracking-widest text-[10px]">Ver mi tienda online</span>
+                  </button>
                   <button onClick={handleDownloadReport} className="h-16 px-10 bg-[#004d4d] text-white rounded-full flex items-center justify-center gap-3 shadow-2xl hover:bg-black transition-all group">
                       <FileText size={20} className="text-cyan transition-transform group-hover:scale-110"/> 
-                      <span className="font-black tracking-widest text-[10px]">Descargar reporte diario</span>
+                      <span className="font-black tracking-widest text-[10px]">Reporte diario</span>
                   </button>
               </div>
             </div>
@@ -412,9 +425,9 @@ export default function DashboardPage() {
 
       {/* 4. SECCIÓN DE ACCESOS DIRECTOS PREMIUM */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <AccessCard label="Facturación POS" sub="Vende en efectivo o transferencia" href="/dashboard/invoicing" icon={<FileText size={32}/>} />
           <AccessCard label="Inventario maestro" sub="Control de 360° de tus productos" href="/dashboard/products" icon={<Package size={32}/>} />
-          <AccessCard label="Reportes completos" sub="Gestión de flujo de caja real" href="/dashboard/reports" icon={<FileText size={32}/>} />
-          <AccessCard label="Chats importantes" sub="WhatsApp, Web y POS Físico" href="/dashboard/chats" icon={<MessageSquare size={32}/>} />
+          <AccessCard label="Gestión de Pedidos" sub="Control de despachos y logística" href="/dashboard/orders" icon={<ShoppingBag size={32}/>} />
       </div>
 
       <OnboardingModal isOpen={isOnboardingOpen} onClose={() => setIsOnboardingOpen(false)} onComplete={() => {}} />

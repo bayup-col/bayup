@@ -120,6 +120,9 @@ function ShopContent() {
         });
     };
 
+    const [isOrderSuccess, setIsOrderSuccess] = useState(false);
+    const [lastOrderNum, setLastOrderNum] = useState("");
+
     const handlePlaceOrder = async (e: React.FormEvent) => {
         e.preventDefault();
         if (cart.length === 0) return;
@@ -131,6 +134,7 @@ function ShopContent() {
                 customer_name: customerData.name,
                 customer_phone: customerData.phone,
                 customer_email: customerData.email,
+                shipping_address: `${customerData.address}, ${customerData.city}`,
                 tenant_id: shopData.owner_id,
                 items: cart.map(item => ({
                     product_id: item.id,
@@ -146,11 +150,23 @@ function ShopContent() {
             });
 
             if (res.ok) {
+                const orderData = await res.json();
+                const orderId = orderData.id.slice(-4).toUpperCase();
+                setLastOrderNum(orderId);
+                
+                // REDIRECCIÓN A WHATSAPP DEL DUEÑO (Para confirmar)
+                const shopPhone = shopData.phone || "3000000000"; // Fallback si no hay
+                const message = encodeURIComponent(`¡Hola! Acabo de realizar un pedido en tu tienda ${shopData.store_name} 🚀\n\n🆔 Pedido: #${orderId}\n👤 Nombre: ${customerData.name}\n💰 Total: $${cartTotal.toLocaleString()}\n📍 Dirección: ${customerData.address}, ${customerData.city}\n\nQuedo atento a la confirmación. ✨`);
+                
                 clearCart();
                 setIsCheckoutOpen(false);
-                setIsCartOpen(false);
-                setCustomerData({ name: "", phone: "", email: "", address: "", city: "", notes: "" });
-                alert("¡Pedido recibido! ✅ Te hemos enviado una confirmación automática a tu WhatsApp.");
+                setIsOrderSuccess(true);
+                
+                // Pequeño delay para dejar ver el modal de éxito antes de abrir WhatsApp
+                setTimeout(() => {
+                    window.open(`https://wa.me/57${shopPhone.replace(/\D/g, '')}?text=${message}`, '_blank');
+                }, 2500);
+
             } else {
                 const err = await res.json();
                 alert(`Error: ${err.detail || 'No se pudo crear el pedido.'}`);

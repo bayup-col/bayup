@@ -305,6 +305,31 @@ export default function ProductsPage() {
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">Productos</span>
                     </h1>
                     <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">¡Crea y edita todos los productos de tu tienda! 🛍️</p>
+                    
+                    {/* BARRA DE LÍMITE DE PLAN BÁSICO */}
+                    {isBasicPlan && (
+                        <div className="mt-6 max-w-md bg-white/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/80 shadow-sm space-y-3">
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    <div className={`h-2 w-2 rounded-full ${products.length >= 30 ? 'bg-rose-500' : 'bg-[#00F2FF]'} animate-pulse`} />
+                                    <span className="text-[9px] font-black text-[#004D4D] tracking-widest uppercase">Plan Básico: {products.length}/30 Items</span>
+                                </div>
+                                <button onClick={() => router.push('/planes')} className="text-[8px] font-black text-cyan hover:underline tracking-widest uppercase">Subir de nivel</button>
+                            </div>
+                            <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner border border-gray-50">
+                                <motion.div 
+                                    initial={{ width: 0 }} 
+                                    animate={{ width: `${(products.length / 30) * 100}%` }} 
+                                    className={`h-full rounded-full ${products.length >= 30 ? 'bg-rose-500' : 'bg-gradient-to-r from-[#004D4D] to-[#00F2FF]'}`}
+                                />
+                            </div>
+                            {products.length >= 25 && (
+                                <p className="text-[8px] font-black text-rose-500/80 italic tracking-widest flex items-center gap-1.5">
+                                    <AlertCircle size={10} /> Te queda poco espacio. ¡Considera expandirte!
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </div>
                 <div className="flex gap-4">
                     <button onClick={() => setIsImportModalOpen(true)} className="h-12 px-8 bg-white border border-gray-100 text-[#004d4d] rounded-full font-black text-[10px] tracking-[0.3em] shadow-xl hover:shadow-2xl transition-all flex items-center gap-3">

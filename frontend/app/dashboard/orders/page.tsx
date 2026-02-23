@@ -511,15 +511,39 @@ export default function OrdersPage() {
                             {/* CONTENIDO: DETALLE TÉCNICO */}
                             <div className="flex-1 overflow-y-auto p-12 bg-[#FAFAFA] custom-scrollbar space-y-10">
                                 <section className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm space-y-6">
-                                    <h4 className="text-[10px] font-black text-gray-400 tracking-widest flex items-center gap-2"><User size={14} className="text-[#004D4D]"/> Datos del cliente</h4>
-                                    <div className="grid grid-cols-2 gap-8">
+                                    <div className="flex justify-between items-center">
+                                        <h4 className="text-[10px] font-black text-gray-400 tracking-widest flex items-center gap-2"><User size={14} className="text-[#004D4D]"/> Datos del cliente</h4>
+                                        <button 
+                                            onClick={() => {
+                                                const phone = selectedOrder.customer_phone || '';
+                                                const cleanPhone = phone.replace(/\D/g, '');
+                                                const message = encodeURIComponent(`Hola ${selectedOrder.customer_name}, te saludamos de ${companyName}. Recibimos tu pedido #${selectedOrder.id.slice(0,8).toUpperCase()} y estamos procesándolo. ✨`);
+                                                window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+                                            }}
+                                            className="px-6 py-2 bg-[#25D366] text-white rounded-2xl font-black text-[9px] tracking-widest flex items-center gap-2 hover:scale-105 transition-all shadow-lg"
+                                        >
+                                            <MessageSquare size={14} /> Contactar WhatsApp
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                         <div><p className="text-[9px] font-bold text-gray-400">Nombre completo</p><p className="text-sm font-black text-gray-900">{selectedOrder.customer_name}</p></div>
-                                        <div><p className="text-[9px] font-bold text-gray-400">Email / contacto</p><p className="text-sm font-black text-gray-900">{selectedOrder.customer_email || 'No registrado'}</p></div>
+                                        <div><p className="text-[9px] font-bold text-gray-400">WhatsApp / Tel</p><p className="text-sm font-black text-gray-900">{selectedOrder.customer_phone || 'No registrado'}</p></div>
+                                        <div><p className="text-[9px] font-bold text-gray-400">Ciudad / Destino</p><p className="text-sm font-black text-gray-900">{selectedOrder.customer_city || 'No especificada'}</p></div>
+                                    </div>
+                                    <div className="pt-4 border-t border-gray-50">
+                                        <p className="text-[9px] font-bold text-gray-400 mb-2">Dirección de entrega</p>
+                                        <p className="text-sm font-black text-gray-900 bg-gray-50 p-4 rounded-2xl border border-dashed border-gray-200">{selectedOrder.shipping_address || 'Entrega en tienda / No especificada'}</p>
                                     </div>
                                 </section>
 
                                 <section className="space-y-6">
-                                    <h4 className="text-[10px] font-black text-gray-400 tracking-widest flex items-center gap-2"><ShoppingBag size={14} className="text-[#004D4D]"/> Artículos adquiridos</h4>
+                                    <div className="flex justify-between items-center">
+                                        <h4 className="text-[10px] font-black text-gray-400 tracking-widest flex items-center gap-2"><ShoppingBag size={14} className="text-[#004D4D]"/> Artículos adquiridos</h4>
+                                        <div className="px-4 py-1.5 bg-[#00F2FF]/10 border border-[#00F2FF]/20 rounded-full flex items-center gap-2">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-[#00F2FF] animate-pulse" />
+                                            <span className="text-[8px] font-black text-[#004D4D] tracking-widest uppercase">Comisión Registrada (3%)</span>
+                                        </div>
+                                    </div>
                                     <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
                                         <div className="divide-y divide-gray-50">
                                             {selectedOrder.items?.map((item: any, i: number) => (

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from "@/context/auth-context";
-import { Loader2, Search, Filter, Package, ShoppingBag, Zap, Mail, Phone, Calendar, User, Bot, Sparkles, ShieldCheck, ExternalLink, ArrowUpRight } from "lucide-react";
+import { useToast } from "@/context/toast-context";
+import { Loader2, Search, Filter, Package, ShoppingBag, Zap, Mail, Phone, Calendar, User, Bot, Sparkles, ShieldCheck, ExternalLink, ArrowUpRight, Code, Copy, Check } from "lucide-react";
 
 interface CompanyClient {
     id: string;
@@ -23,10 +24,17 @@ interface CompanyClient {
 
 export default function SuperAdminClients() {
     const { token } = useAuth();
+    const { showToast } = useToast();
     const [companies, setCompanies] = useState<CompanyClient[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCompany, setSelectedCompany] = useState<CompanyClient | null>(null);
+    
+    // Design Injection States
+    const [isInjectModalOpen, setIsInjectModalOpen] = useState(false);
+    const [designJson, setDesignJson] = useState('');
+    const [targetPage, setTargetPage] = useState('home');
+    const [isInjecting, setIsInjecting] = useState(false);
 
     useEffect(() => {
         const fetchCompanies = async () => {
@@ -48,6 +56,47 @@ export default function SuperAdminClients() {
         };
         fetchCompanies();
     }, [token]);
+
+    const handleInjectDesign = async () => {
+        if (!selectedCompany || !designJson.trim()) return;
+        setIsInjecting(true);
+        try {
+            let parsedSchema;
+            try {
+                parsedSchema = JSON.parse(designJson);
+            } catch (e) {
+                showToast("El JSON no es válido", "error");
+                setIsInjecting(false);
+                return;
+            }
+
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const res = await fetch(`${apiBase}/super-admin/inject-design`, {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    tenant_id: selectedCompany.id,
+                    page_key: targetPage,
+                    schema_data: parsedSchema
+                })
+            });
+
+            if (res.ok) {
+                showToast(`Diseño inyectado en ${targetPage} exitosamente`, "success");
+                setIsInjectModalOpen(false);
+                setDesignJson('');
+            } else {
+                showToast("Error al inyectar diseño", "error");
+            }
+        } catch (e) {
+            showToast("Error de conexión", "error");
+        } finally {
+            setIsInjecting(false);
+        }
+    };
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
@@ -146,7 +195,7 @@ export default function SuperAdminClients() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-6">
+                            <div className="space-y-6">
                                     <div className="flex items-center gap-4 group cursor-pointer">
                                         <div className="h-10 w-10 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-[#004d4d] transition-colors"><Mail size={18}/></div>
                                         <div className="min-w-0 flex-1">
@@ -161,18 +210,30 @@ export default function SuperAdminClients() {
                                             <p className="text-sm font-bold text-gray-700">{selectedCompany.phone}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4 group cursor-pointer">
-                                        <div className="h-10 w-10 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-[#004d4d] transition-colors"><Calendar size={18}/></div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Fecha Registro</p>
-                                            <p className="text-sm font-bold text-gray-700">{selectedCompany.registration_date}</p>
-                                        </div>
-                                    </div>
+                                </div>
+
+                                <div className="space-y-3 pt-6 border-t border-gray-100">
+                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Acciones de Soporte</p>
+                                    <button 
+                                        onClick={() => showToast("Enlace de reseteo enviado al cliente 📧", "success")}
+                                        className="w-full py-4 bg-gray-100 text-gray-600 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <ShieldCheck size={14} /> Resetear Contraseña
+                                    </button>
+                                    <button 
+                                        onClick={() => showToast("Generando exportación de datos... 📊", "info")}
+                                        className="w-full py-4 bg-white border border-gray-200 text-gray-400 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Download size={14} /> Exportar Info Cliente
+                                    </button>
                                 </div>
                             </div>
 
                             <button className="w-full py-5 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl flex items-center justify-center gap-3 group mt-10">
                                 <Zap size={16} className="text-cyan group-hover:animate-pulse" /> Impersonar Tienda
+                            </button>
+                            <button onClick={() => setIsInjectModalOpen(true)} className="w-full py-5 bg-cyan text-[#001A1A] rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-[#00f2ff] transition-all shadow-lg flex items-center justify-center gap-3 group mt-4">
+                                <Globe size={16} /> Asignar Página Web
                             </button>
                         </div>
 
@@ -250,6 +311,79 @@ export default function SuperAdminClients() {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL INYECCIÓN DE DISEÑO */}
+            {isInjectModalOpen && (
+                <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in">
+                    <div className="bg-white w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl relative overflow-hidden">
+                        <button onClick={() => setIsInjectModalOpen(false)} className="absolute top-8 right-8 text-gray-300 hover:text-rose-500"><Filter size={24} className="rotate-45"/></button>
+                        
+                        <div className="mb-8">
+                            <h3 className="text-2xl font-black italic text-[#001A1A] tracking-tighter">Gestión de <span className="text-[#004d4d]">Diseño Inyectado</span></h3>
+                            <p className="text-xs font-bold text-gray-400 mt-2 uppercase tracking-widest">Configuración maestra para {selectedCompany?.company_name}</p>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <button 
+                                    onClick={async () => {
+                                        // Simulación de carga desde carpeta física
+                                        showToast(`Buscando en /templates/clients/${selectedCompany?.company_name}...`, "info");
+                                        try {
+                                            // En un entorno real, esto llamaría a un endpoint de node que lee el fs
+                                            // Por ahora, simulamos la lectura del archivo de la carpeta
+                                            const response = await fetch(`/templates/clients/${selectedCompany?.company_name}/schema.json`);
+                                            if (response.ok) {
+                                                const data = await response.json();
+                                                setDesignJson(JSON.stringify(data, null, 2));
+                                                showToast("¡Diseño de carpeta cargado! ✨", "success");
+                                            } else {
+                                                showToast("No se encontró schema.json en la carpeta del cliente.", "warning");
+                                            }
+                                        } catch(e) {
+                                            showToast("Error al leer la carpeta local.", "error");
+                                        }
+                                    }}
+                                    className="p-6 bg-emerald-50 border-2 border-emerald-100 rounded-[2rem] text-center hover:bg-emerald-100 transition-all group"
+                                >
+                                    <Package size={24} className="mx-auto text-emerald-600 mb-2 group-hover:scale-110 transition-transform"/>
+                                    <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Cargar desde Carpeta</p>
+                                    <p className="text-[8px] text-emerald-600/60 mt-1 italic">Lee el archivo local del equipo</p>
+                                </button>
+
+                                <div className="p-6 bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2rem] text-center">
+                                    <Code size={24} className="mx-auto text-gray-400 mb-2"/>
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Manual JSON</p>
+                                    <p className="text-[8px] text-gray-400 mt-1 italic">Pega el código directamente</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-2 mb-2 block">Página Destino</label>
+                                <div className="flex gap-2 p-1.5 bg-gray-100 rounded-2xl overflow-x-auto">
+                                    {['home', 'catalog', 'product_detail', 'checkout', 'about'].map(p => (
+                                        <button key={p} onClick={() => setTargetPage(p)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${targetPage === p ? 'bg-white text-[#004d4d] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>{p}</button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-2 mb-2 block">Vista previa del Schema</label>
+                                <textarea 
+                                    value={designJson} 
+                                    onChange={e => setDesignJson(e.target.value)} 
+                                    placeholder='El JSON aparecerá aquí al cargar la carpeta o al pegarlo...' 
+                                    className="w-full h-48 p-6 bg-gray-50 rounded-3xl border border-transparent focus:border-[#004d4d] outline-none text-xs font-mono text-gray-600 resize-none shadow-inner"
+                                />
+                            </div>
+
+                            <button onClick={handleInjectDesign} disabled={isInjecting || !designJson} className="w-full py-5 bg-[#004d4d] text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-3">
+                                {isInjecting ? <Loader2 className="animate-spin" size={16}/> : <><ShieldCheck size={16}/> Vincular y Publicar Tienda</>}
+                            </button>
                         </div>
                     </div>
                 </div>

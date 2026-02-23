@@ -113,36 +113,73 @@ export default function SuperAdminDashboard() {
             {/* 2. KPIs Principales */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard 
-                    title="Facturación Red" 
+                    title="Ventas Totales Red" 
                     value={formatCurrency(safeStats.total_revenue)} 
                     icon={<DollarSign size={20} className="text-emerald-600" />}
-                    trend="+0%" 
+                    trend="+0% mes" 
                     trendUp={true}
                 />
                 <StatCard 
-                    title="Utilidad Bayup" 
-                    value={formatCurrency(safeStats.total_commission)} 
-                    icon={<TrendingUp size={20} className="text-cyan-600" />}
-                    trend="3.0% Fee" 
+                    title="Comisión Bayup (3.5%)" 
+                    value={formatCurrency(safeStats.total_revenue * 0.035)} 
+                    icon={<TrendingUp size={20} className="text-[#00F2FF]" />}
+                    trend="Meta: 10M" 
                     trendUp={true}
                 />
                 <StatCard 
-                    title="Ecosistemas (Tiendas)" 
-                    value={safeStats.active_companies} 
-                    icon={<Building2 size={20} className="text-blue-600" />}
-                    trend="Activas" 
-                    trendUp={true}
+                    title="Deuda por Cobrar" 
+                    value={formatCurrency(0)} 
+                    icon={<AlertTriangle size={20} className="text-rose-500" />}
+                    trend="Corte: 30 d" 
+                    trendUp={false}
                 />
                 <StatCard 
-                    title="Fuerza de Ventas" 
+                    title="Red de Afiliados" 
                     value={safeStats.active_affiliates} 
                     icon={<Users size={20} className="text-amber-600" />}
-                    trend="Afiliados" 
+                    trend="+0 nuevos" 
                     trendUp={true}
                 />
             </div>
 
-            {/* 3. Panel Dividido */}
+            {/* 3. ACCESOS MAESTROS (V1) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div onClick={() => router.push('/dashboard/super-admin/empresas')} className="bg-[#001A1A] p-8 rounded-[3rem] border border-white/5 shadow-2xl cursor-pointer group hover:scale-[1.02] transition-all">
+                    <div className="flex items-center gap-6">
+                        <div className="h-16 w-16 rounded-3xl bg-cyan/10 flex items-center justify-center text-cyan border border-cyan/20 group-hover:bg-cyan group-hover:text-[#001A1A] transition-all">
+                            <Zap size={32} />
+                        </div>
+                        <div>
+                            <h4 className="text-white font-black italic tracking-tighter text-xl">Inyectar Diseños</h4>
+                            <p className="text-gray-400 text-[9px] font-bold uppercase tracking-widest mt-1">Lanzar nuevas tiendas</p>
+                        </div>
+                    </div>
+                </div>
+                <div onClick={() => router.push('/dashboard/super-admin/tesoreria')} className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-xl cursor-pointer group hover:scale-[1.02] transition-all">
+                    <div className="flex items-center gap-6">
+                        <div className="h-16 w-16 rounded-3xl bg-[#004d4d]/5 flex items-center justify-center text-[#004d4d] border border-[#004d4d]/10 group-hover:bg-[#004d4d] group-hover:text-white transition-all">
+                            <DollarSign size={32} />
+                        </div>
+                        <div>
+                            <h4 className="text-gray-900 font-black italic tracking-tighter text-xl">Libro de Caja</h4>
+                            <p className="text-gray-400 text-[9px] font-bold uppercase tracking-widest mt-1">Verificar comisiones</p>
+                        </div>
+                    </div>
+                </div>
+                <div onClick={() => router.push('/dashboard/super-admin/afiliados')} className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-xl cursor-pointer group hover:scale-[1.02] transition-all">
+                    <div className="flex items-center gap-6">
+                        <div className="h-16 w-16 rounded-3xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100 group-hover:bg-amber-600 group-hover:text-white transition-all">
+                            <Users size={32} />
+                        </div>
+                        <div>
+                            <h4 className="text-gray-900 font-black italic tracking-tighter text-xl">Red de Afiliados</h4>
+                            <p className="text-gray-400 text-[9px] font-bold uppercase tracking-widest mt-1">Gestionar el 0.5%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 4. Panel Dividido */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
                 {/* Top Empresas */}

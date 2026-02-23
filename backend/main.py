@@ -1347,6 +1347,43 @@ def get_public_shop_page(tenant_id: uuid.UUID, page_key: str, db: Session = Depe
         raise HTTPException(status_code=404, detail="Diseño no publicado")
     return db_page
 
+# --- SUPER ADMIN DESIGN INJECTION ---
+
+class DesignInjectionRequest(BaseModel):
+    tenant_id: uuid.UUID
+    page_key: str
+    schema_data: Dict[str, Any]
+
+@app.post("/super-admin/inject-design")
+def inject_design(
+    request: DesignInjectionRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    if not current_user.is_global_staff:
+        raise HTTPException(status_code=403, detail="Acceso denegado: Solo Super Admins")
+
+    db_page = db.query(models.ShopPage).filter(
+        models.ShopPage.tenant_id == request.tenant_id,
+        models.ShopPage.page_key == request.page_key
+    ).first()
+
+    if db_page:
+        db_page.schema_data = request.schema_data
+        db_page.is_published = True # Auto-publicamos al inyectar para agilidad
+    else:
+        db_page = models.ShopPage(
+            id=uuid.uuid4(),
+            tenant_id=request.tenant_id,
+            page_key=request.page_key,
+            schema_data=request.schema_data,
+            is_published=True
+        )
+        db.add(db_page)
+    
+    db.commit()
+    return {"status": "success", "message": f"Diseño inyectado en {request.page_key} para la tienda {request.tenant_id}"}
+
 # --- WEB TEMPLATES (SUPER ADMIN) ---
 
 @app.post("/super-admin/web-templates", response_model=schemas.WebTemplate)

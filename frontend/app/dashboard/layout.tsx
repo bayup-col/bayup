@@ -197,41 +197,26 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const renderSidebar = () => {
     // Si el usuario es Staff Global (Dani o invitados), ve el menú de Bayup
-    // BLOQUEO ABSOLUTO: Solo si isGlobalStaff es explícitamente TRUE
     if (isGlobalStaff === true) {
         return (
             <>
               <div className="p-6 border-b border-white/10">
-                <Link href="/dashboard/super-admin" className="text-2xl font-black bg-gradient-to-r from-[#004d4d] to-[#008080] bg-clip-text text-transparent">
-                  Super Admin
+                <Link href="/dashboard/super-admin" className="text-2xl font-black bg-gradient-to-r from-[#004d4d] to-[#008080] bg-clip-text text-transparent italic tracking-tighter">
+                  Bayup <span className="text-[10px] uppercase tracking-[0.3em] font-black text-cyan">Master</span>
                 </Link>
               </div>
               <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
+                <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">Administración</p>
                 <MenuItem href="/dashboard/super-admin" label={<><LayoutDashboard size={16} /> Dashboard</>} id="m_inicio" />
-                <MenuItem href="/dashboard/super-admin/empresas" label={<><Store size={16} /> Empresas</>} id="m_empresas" />
-                <MenuItem href="/dashboard/super-admin/afiliados" label={<><Users2 size={16} /> Afiliados</>} id="m_afiliados" />
-                <MenuItem href="/dashboard/super-admin/tesoreria" label={<><Gem size={16} /> Tesorería</>} id="m_tesoreria" />
+                <MenuItem href="/dashboard/super-admin/empresas" label={<><Store size={16} /> Directorio Empresas</>} id="m_empresas" />
+                <MenuItem href="/dashboard/super-admin/afiliados" label={<><Users2 size={16} /> Red Afiliados</>} id="m_afiliados" />
+                <MenuItem href="/dashboard/super-admin/tesoreria" label={<><Gem size={16} /> Tesorería (3.5%)</>} id="m_tesoreria" />
                 
-                <div className="my-2 border-t border-gray-100/10"></div>
+                <div className="my-4 border-t border-white/5"></div>
                 
-                <MenuItem href="/dashboard/super-admin/web-analytics" label={<><BarChart3 size={16} /> Estadísticas Web</>} id="m_web_analytics" />
-                <MenuItem href="/dashboard/super-admin/web-templates" label={<><Globe size={16} /> Plantillas Web</>} id="m_web_templates" />
-                <MenuItem href="/dashboard/super-admin/marketing" label={<><TrendingUp size={16} /> Marketing</>} id="m_marketing" />
-                <MenuItem href="/dashboard/super-admin/soporte" label={<><MessageSquare size={16} /> Soporte</>} id="m_soporte" />
-                
-                <div className="my-2 border-t border-gray-100/10"></div>
-                
-                <MenuItem href="/dashboard/super-admin/apis" label={<><Link2 size={16} /> APIs & Integraciones</>} id="m_apis" />
-                <MenuItem href="/dashboard/super-admin/feature-flags" label={<><Tag size={16} /> Feature Flags</>} id="m_feature_flags" />
-                <MenuItem href="/dashboard/super-admin/risk" label={<><ShieldCheck size={16} /> Riesgos & Fraude</>} id="m_riesgos" />
-                <MenuItem href="/dashboard/super-admin/legal" label={<><FileText size={16} /> Legal & Fiscal</>} id="m_legal" />
-                <MenuItem href="/dashboard/super-admin/docs" label={<><FileText size={16} /> Documentación</>} id="m_docs" />
-                <MenuItem href="/dashboard/super-admin/observability" label={<><Camera size={16} /> Observabilidad</>} id="m_observabilidad" />
-                
-                <div className="my-2 border-t border-gray-100/10"></div>
-                
-                <MenuItem href="/dashboard/super-admin/settings" label={<><Settings size={16} /> Configuración</>} id="m_settings" />
-                <MenuItem href="/dashboard/super-admin/users" label={<><Users size={16} /> Usuarios & Roles</>} id="m_staff" />
+                <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">Creatividad & Equipo</p>
+                <MenuItem href="/dashboard/super-admin/web-templates" label={<><Globe size={16} /> Fábrica de Diseño</>} id="m_web_templates" />
+                <MenuItem href="/dashboard/super-admin/users" label={<><Users size={16} /> Equipo Bayup</>} id="m_staff" />
               </nav>
             </>
         );
@@ -252,27 +237,55 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   </div>
                   
                   <button 
-                      onClick={handleStoreClick}
+                      onClick={() => {
+                        const origin = window.location.origin;
+                        const savedSettings = localStorage.getItem('bayup_general_settings');
+                        let slug = 'preview';
+                        if (savedSettings) {
+                            try {
+                                const parsed = JSON.parse(savedSettings);
+                                if (parsed.identity?.slug) slug = parsed.identity.slug;
+                            } catch(e){}
+                        }
+                        window.open(`${origin}/shop/${slug}`, '_blank');
+                      }}
                       className="mt-4 group/conic relative w-full p-[1.5px] overflow-hidden rounded-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(0,242,255,0.2)]"
                   >
-                      {/* Rotating Conic Gradient Border */}
-                      <div 
-                          className="absolute inset-[-200%] bg-[conic-gradient(from_0deg,#00F2FF_0deg,#004d4d_90deg,#9333EA_180deg,#004d4d_270deg,#00F2FF_360deg)] animate-[spin_4s_linear_infinite] opacity-100 group-hover/conic:animate-[spin_2s_linear_infinite]"
-                      />
-
-                      {/* Inner Body */}
+                      <div className="absolute inset-[-200%] bg-[conic-gradient(from_0deg,#00F2FF_0deg,#004d4d_90deg,#9333EA_180deg,#004d4d_270deg,#00F2FF_360deg)] animate-[spin_4s_linear_infinite] opacity-100 group-hover/conic:animate-[spin_2s_linear_infinite]" />
                       <div className={`relative flex items-center justify-center w-full py-4 px-6 backdrop-blur-2xl rounded-[calc(1rem-1.5px)] transition-all duration-500 ${theme === 'dark' ? 'bg-[#001a1a]/90 group-hover/conic:bg-[#001a1a]' : 'bg-white/80 group-hover/conic:bg-white/95'}`}>
                           <span className={`relative z-10 text-[10px] font-black  tracking-[0.1em] flex items-center gap-2 transition-colors ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
                               <Eye size={14} className="opacity-80" />
                               Ver tienda online
                           </span>
                       </div>
-
-                      {/* Subtle Outer Glow */}
-                      <div className="absolute inset-0 rounded-2xl border border-white/10 pointer-events-none" />
                   </button>
               </div>
           </div>
+
+            <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar">
+                <div>
+                    <p className="px-4 text-[11px] font-black text-gray-400  tracking-tight mb-3 uppercase">Operación V1</p>
+                    <div className="space-y-1">
+                        <MenuItem href="/dashboard" label={<><LayoutDashboard size={16} className="mr-2" /> Inicio</>} id="m_inicio" />
+                        <MenuItem href="/dashboard/invoicing" label={<><FileText size={16} className="mr-2" /> Facturación (POS)</>} id="m_facturacion" />
+                        <MenuItem href="/dashboard/orders" label={<><Package size={16} className="mr-2" /> Pedidos Web</>} id="m_pedidos" />
+                        <MenuItem href="/dashboard/products" label={<><Store size={16} className="mr-2" /> Productos</>} id="m_productos" />
+                        <MenuItem href="/dashboard/chats" label={<><MessageSquare size={16} className="mr-2" /> Mensajes Web</>} id="m_mensajes" />
+                        <MenuItem href="/dashboard/shipping" label={<><Truck size={16} className="mr-2" /> Envíos</>} id="m_envios" />
+                    </div>
+                </div>
+
+                <div>
+                    <p className="px-4 text-[11px] font-black text-gray-400  tracking-tight mb-3 uppercase">Gestión</p>
+                    <div className="space-y-1">
+                        <MenuItem href="/dashboard/settings/general" label={<><Settings size={16} className="mr-2" /> Perfil de Tienda</>} id="s_settings_general" />
+                        <MenuItem href="/dashboard/settings/plan" label={<><ShieldCheck size={16} className="mr-2" /> Mi Plan Bayup</>} id="s_settings_plan" />
+                    </div>
+                </div>
+            </nav>
+      </>
+    );
+  };
 
             <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar">
                 {hasVisibleModules(['m_inicio', 'm_facturacion', 'm_pedidos', 'm_envios', 'm_productos']) && (
