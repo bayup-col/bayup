@@ -206,45 +206,48 @@ export default function DashboardPage() {
     
     if (low_stock > 0) {
         return {
-            title: "Inventario en riesgo",
+            title: "Inventario en Riesgo",
             message: `He detectado que tienes ${low_stock} productos con stock crítico. Reabastece estas unidades pronto para evitar perder ventas esta semana.`,
             viability: "98%",
-            impact: "Crítico"
+            impact: "Crítico",
+            signals: ["Stock < 5", "Alta demanda"],
+            actionLabel: "Reponer Stock",
+            actionLink: "/dashboard/inventory"
         };
     }
     
     if (revenue === 0) {
         return {
-            title: "Impulso de ventas",
+            title: "Impulso de Ventas",
             message: "Hoy el flujo está tranquilo. Sugiero enviar un mensaje masivo por WhatsApp a tus clientes habituales con una oferta relámpago de 24 horas.",
             viability: "85%",
-            impact: "Alto"
+            impact: "Alto",
+            signals: ["Tráfico bajo", "Potencial de Recompra"],
+            actionLabel: "Lanzar Campaña",
+            actionLink: "/dashboard/marketing"
         };
     }
 
     if (orders_count > 5) {
         return {
-            title: "Optimización de logística",
+            title: "Optimización Logística",
             message: `Tienes ${orders_count} pedidos pendientes por procesar. Sugiero agrupar los despachos por zona para reducir costos de envío hoy.`,
             viability: "92%",
-            impact: "Medio"
-        };
-    }
-
-    if (avg_ticket < 50000 && revenue > 0) {
-        return {
-            title: "Estrategia de ticket",
-            message: "Tu ticket promedio está por debajo de la meta. Intenta crear 'Kits' o combos de productos para incentivar compras de mayor valor.",
-            viability: "90%",
-            impact: "Alto"
+            impact: "Medio",
+            signals: ["Pedidos represados", "Ruta óptima"],
+            actionLabel: "Gestionar Envíos",
+            actionLink: "/dashboard/orders"
         };
     }
 
     return {
-        title: "Oportunidad de crecimiento 🚀",
-        message: "Tu rendimiento es estable. He detectado que el 85% de tus visitas son móviles; optimizar tus imágenes actuales podría subir la conversión un 12%.",
+        title: "Estrategia de Crecimiento",
+        message: "Tu rendimiento es estable. He detectado que optimizar tus imágenes actuales podría subir la conversión un 12%.",
         viability: "94%",
-        impact: "Alto"
+        impact: "Alto",
+        signals: ["Métricas estables", "Mejora UI"],
+        actionLabel: "Ver Consejos AI",
+        actionLink: "/dashboard/ai-assistants"
     };
   }, [realStats]);
 
@@ -340,19 +343,6 @@ export default function DashboardPage() {
               showToast("Error al generar el reporte", "error");
           }
       };
-
-      const handleViewStore = () => {
-          const origin = window.location.origin;
-          const savedSettings = localStorage.getItem('bayup_general_settings');
-          let slug = 'preview';
-          if (savedSettings) {
-              try {
-                  const parsed = JSON.parse(savedSettings);
-                  if (parsed.identity?.slug) slug = parsed.identity.slug;
-              } catch(e){}
-          }
-          window.open(`${origin}/shop/${slug}`, '_blank');
-      };
   
       return (
           <div className="max-w-[1600px] mx-auto space-y-10 pb-20 animate-in fade-in duration-1000">
@@ -389,32 +379,57 @@ export default function DashboardPage() {
 
       {/* 3. CORE ANALYTICS & BAYT INTELLIGENCE */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <PremiumCard dark className="lg:col-span-8 p-12 flex flex-col items-center justify-center group min-h-[380px]">
-              {/* CABECERA CENTRADA */}
-              <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="relative shrink-0">
-                      <div className="h-20 w-20 bg-gray-900 rounded-[2.5rem] border-2 border-[#00f2ff]/50 flex items-center justify-center shadow-[0_0_40px_rgba(0,242,255,0.3)] group-hover:scale-110 transition-transform duration-700">
-                          <Bot size={40} className="text-cyan animate-pulse" />
+          <PremiumCard dark className="lg:col-span-8 p-12 flex flex-col group min-h-[420px] relative">
+              {/* CABECERA CON ESTADO */}
+              <div className="flex items-center justify-between w-full mb-10">
+                  <div className="flex items-center gap-4">
+                      <div className="relative">
+                          <div className="h-14 w-14 bg-gray-900 rounded-2xl border border-[#00f2ff]/30 flex items-center justify-center shadow-[0_0_20px_rgba(0,242,255,0.1)] group-hover:scale-110 transition-transform duration-700">
+                              <Bot size={28} className="text-cyan" />
+                          </div>
+                          <span className="absolute -top-1 -right-1 h-4 w-4 bg-emerald-500 rounded-full border-2 border-[#001A1A] animate-pulse"></span>
                       </div>
-                      <div className="absolute -bottom-1 -right-1 h-7 w-7 bg-emerald-500 rounded-full border-4 border-[#001A1A] flex items-center justify-center text-white shadow-xl animate-bounce">
-                          <Sparkles size={12} fill="currentColor" />
+                      <div>
+                          <p className="text-[10px] font-black text-cyan tracking-[0.2em] uppercase">Análisis en Tiempo Real</p>
+                          <h3 className="text-xl font-black text-white italic tracking-tighter">Bayt AI Advisor</h3>
                       </div>
                   </div>
-                  <span className="px-4 py-1 bg-cyan/10 text-cyan rounded-full text-[8px] font-black tracking-[0.1em] border border-cyan/20">Tu asesor inteligente</span>
+                  <div className="flex gap-2">
+                      {advisorInsight.signals.map((sig, i) => (
+                          <div key={i} className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                              {sig}
+                          </div>
+                      ))}
+                  </div>
               </div>
 
-              {/* CONTENIDO DE VALOR EN EL CENTRO */}
-              <div className="mt-10 mb-10 space-y-6 flex flex-col items-center text-center w-full max-w-2xl">
-                  <h3 className="text-3xl font-black text-white italic tracking-tighter leading-tight">{advisorInsight.title}</h3>
-                  <p className="text-gray-400 text-base leading-relaxed italic px-4">
+              {/* CONTENIDO ESTRATÉGICO */}
+              <div className="flex-1 space-y-6">
+                  <div className="inline-block px-4 py-1.5 bg-cyan/10 border border-cyan/20 rounded-xl text-[10px] font-black text-cyan uppercase tracking-widest mb-2">
+                      {advisorInsight.title}
+                  </div>
+                  <h2 className="text-3xl font-black text-white leading-tight italic tracking-tighter max-w-2xl">
                       &quot;{advisorInsight.message}&quot;
-                  </p>
+                  </h2>
               </div>
 
-              {/* ETIQUETAS DE IMPACTO AL FINAL */}
-              <div className="flex flex-wrap justify-center gap-4">
-                  <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black tracking-widest">Viabilidad: {advisorInsight.viability}</div>
-                  <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black tracking-widest">Impacto: {advisorInsight.impact}</div>
+              {/* PIE DE TARJETA CON ACCIÓN */}
+              <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-6 pt-8 border-t border-white/5">
+                  <div className="flex gap-6">
+                      <div className="flex flex-col">
+                          <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">Viabilidad</span>
+                          <span className="text-sm font-black text-white italic">{advisorInsight.viability}</span>
+                      </div>
+                      <div className="flex flex-col">
+                          <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">Impacto</span>
+                          <span className="text-sm font-black text-[#00f2ff] italic">{advisorInsight.impact}</span>
+                      </div>
+                  </div>
+                  <Link href={advisorInsight.actionLink} className="w-full sm:w-auto">
+                      <button className="w-full h-14 px-8 bg-cyan text-[#001A1A] rounded-2xl font-black text-[10px] tracking-[0.2em] uppercase flex items-center justify-center gap-3 hover:bg-white hover:scale-105 transition-all shadow-[0_0_30px_rgba(0,242,255,0.2)]">
+                          <Zap size={16} fill="currentColor" /> {advisorInsight.actionLabel}
+                      </button>
+                  </Link>
               </div>
           </PremiumCard>
 
