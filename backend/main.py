@@ -180,13 +180,13 @@ app.add_middleware(
         "https://www.bayup.com.co",
         "https://bayup.com",
         "https://www.bayup.com",
+        "https://bayup.vercel.app",
         "https://gallant-education-production-8b4a.up.railway.app",
         "https://bayup-interactive-production.up.railway.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
 )
 
 # Manejador de Errores Global
