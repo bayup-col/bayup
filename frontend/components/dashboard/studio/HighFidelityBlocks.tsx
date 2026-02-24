@@ -14,40 +14,76 @@ import { motion } from 'framer-motion';
  * COMPONENTES DE ALTA FIDELIDAD - ESPECIALIZADOS POR MARCA
  */
 
-// 1. NAVBAR JOYERÍA (IDÉNTICO AL HTML)
+import { 
+  ShoppingBag, User, Search, Terminal, Grid, ArrowRight, PlayCircle, 
+  ChevronLeft, ChevronRight, ShoppingCart, Verified, Truck, Headset,
+  Facebook, Instagram, Twitter, Languages, Mail, Share2, ShieldCheck,
+  LayoutGrid, Heart, Camera, Send, Ruler, MapPin, Globe, CheckCheck, Loader2, X, Plus, Minus
+} from 'lucide-react';
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from 'framer-motion';
+
+// --- ESTADO GLOBAL SIMPLIFICADO PARA EL CARRITO ---
+// En una app real usaríamos el context, aquí inyectamos la lógica funcional
+const useCart = () => {
+  const [cart, setCart] = React.useState<any[]>([]);
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  const addToCart = (product: any) => {
+    setCart(prev => {
+      const exists = prev.find(item => item.id === product.id);
+      if (exists) return prev.map(item => item.id === product.id ? {...item, qty: item.qty + 1} : item);
+      return [...prev, {...product, qty: 1}];
+    });
+    setIsOpen(true);
+  };
+
+  const removeFromCart = (id: string) => setCart(prev => prev.filter(item => item.id !== id));
+  const updateQty = (id: string, delta: number) => setCart(prev => prev.map(item => item.id === id ? {...item, qty: Math.max(1, item.qty + delta)} : item));
+
+  const total = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+
+  return { cart, isOpen, setIsOpen, addToCart, removeFromCart, updateQty, total };
+};
+
+import { useCart } from '@/context/cart-context';
+
+// 1. NAVBAR PREMIUM (FUNCIONAL CON CARRITO)
 export const SmartNavbar = ({ props }: { props: any }) => {
-  const isJewelry = props.style === 'minimal-luxe' || props.logoText === 'Joyas de Lujo';
+  const { items: cart, setIsCartOpen: setIsOpen } = useCart();
+  
   return (
-    <header className="w-full border-b border-slate-200 bg-white/90 backdrop-blur-md sticky top-0 z-50 font-serif">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-8">
-        <div className="flex items-center gap-3 shrink-0">
-          <h1 className="text-xl font-extrabold tracking-tight text-slate-900 uppercase italic">
-            {props.logoText || 'Joyas de Lujo'}
-          </h1>
-        </div>
-        <nav className="hidden lg:flex items-center gap-8">
-          {(props.menuItems || ["Tienda", "Colecciones", "Herencia", "Contacto"]).map((item: any, i: number) => (
-            <span key={i} className="text-xs font-bold uppercase tracking-widest hover:text-amber-700 cursor-pointer transition-colors">
-              {typeof item === 'string' ? item : item.label}
-            </span>
-          ))}
-        </nav>
-        <div className="flex items-center gap-6 flex-1 justify-end">
-          <div className="relative max-w-xs w-full hidden md:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input className="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-full text-xs outline-none" placeholder="Buscar..." readOnly />
+    <>
+      <header className="w-full border-b border-white/10 bg-white/70 backdrop-blur-xl sticky top-0 z-[200] font-sans transition-all duration-500">
+        <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between gap-8">
+          <div className="flex items-center gap-3 shrink-0">
+            <h1 className="text-2xl font-black tracking-tighter text-gray-900 uppercase italic">
+              {props.logoText || 'BAYUP STORE'}
+            </h1>
           </div>
-          <div className="flex items-center gap-5 text-slate-600">
-            <Heart size={18} className="cursor-pointer hover:text-red-500" />
-            <div className="relative p-1 cursor-pointer">
-              <ShoppingBag size={18} />
-              <span className="absolute -top-1 -right-1 bg-black text-white text-[8px] font-bold w-3.5 h-3.5 flex items-center justify-center rounded-full">0</span>
+          <nav className="hidden lg:flex items-center gap-10">
+            {(props.menuItems || ["Novedades", "Colecciones", "Nosotros", "Contacto"]).map((item: any, i: number) => (
+              <span key={i} className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-cyan cursor-pointer transition-all">
+                {typeof item === 'string' ? item : item.label}
+              </span>
+            ))}
+          </nav>
+          <div className="flex items-center gap-6 flex-1 justify-end">
+            <div className="flex items-center gap-6 text-gray-900">
+              <div className="relative p-3 cursor-pointer hover:scale-110 transition-transform bg-gray-100 rounded-2xl" onClick={() => setIsOpen(true)}>
+                <ShoppingBag size={20} />
+                {cart.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-cyan text-[#001A1A] text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-lg border-2 border-white animate-in zoom-in">
+                    {cart.reduce((a, b) => a + b.quantity, 0)}
+                  </span>
+                )}
+              </div>
+              <User size={20} className="cursor-pointer hover:text-cyan transition-colors" />
             </div>
-            <User size={18} className="cursor-pointer" />
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 };
 
@@ -93,32 +129,60 @@ export const SmartHeritageBlock = ({ props }: { props: any }) => {
   );
 };
 
-// 4. NOVEDADES JOYERÍA
+// 4. GRID DE PRODUCTOS PREMIUM (FUNCIONAL)
 export const SmartProductGrid = ({ props }: { props: any }) => {
+  const { addItem: addToCart } = useCart();
+  
   return (
-    <section className="py-32 bg-slate-50 font-serif">
+    <section className="py-32 bg-white font-sans">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-6">
           <div>
-            <h3 className="text-4xl font-light text-slate-900 italic tracking-tighter uppercase">{props.title || 'Novedades'}</h3>
-            <div className="h-1 w-12 bg-amber-600 mt-4"></div>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-cyan mb-4 block">Tendencias</span>
+            <h3 className="text-5xl font-black text-gray-900 italic tracking-tighter uppercase">{props.title || 'Novedades'}</h3>
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 hover:text-black cursor-pointer transition-colors border-b border-slate-200 pb-1">Ver todos los productos</span>
+          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 hover:text-cyan cursor-pointer transition-all border-b border-gray-100 pb-2">Explorar todo el catálogo</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
           {(props.products || []).map((p: any, i: number) => (
-            <div key={i} className="group flex flex-col items-center text-center">
-              <div className="relative w-full aspect-[4/5] bg-white overflow-hidden mb-8 shadow-sm group-hover:shadow-2xl transition-all duration-700">
-                <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms]" src={p.image} />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
-                <button className="absolute bottom-6 right-6 bg-white text-black p-4 rounded-full shadow-xl opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all">
-                  <ShoppingBag size={20} />
+            <motion.div 
+              key={i} 
+              initial={{ opacity: 0, y: 20 }} 
+              whileInView={{ opacity: 1, y: 0 }} 
+              transition={{ delay: i * 0.1 }}
+              className="group flex flex-col"
+            >
+              <div className="relative w-full aspect-[3/4] rounded-[2.5rem] overflow-hidden mb-8 shadow-sm group-hover:shadow-2xl transition-all duration-700 bg-gray-50">
+                <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2000ms]" src={p.image} />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                
+                {/* BOTÓN RÁPIDO DE COMPRA */}
+                <button 
+                  onClick={() => addToCart({
+                      id: p.id,
+                      title: p.name,
+                      price: p.price,
+                      image: p.image,
+                      quantity: 1
+                  })}
+                  className="absolute bottom-8 right-8 bg-white text-gray-900 h-16 w-16 rounded-full shadow-2xl opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all flex items-center justify-center hover:bg-cyan hover:scale-110 active:scale-95"
+                >
+                  <Plus size={24} />
                 </button>
+
+                {/* ETIQUETA DE NUEVO / PLAN */}
+                <div className="absolute top-8 left-8 px-4 py-1.5 bg-white/80 backdrop-blur-md rounded-full text-[8px] font-black uppercase tracking-widest text-gray-900">
+                  Premium Item
+                </div>
               </div>
-              <h4 className="text-lg font-bold text-slate-900 uppercase tracking-tighter leading-tight">{p.name}</h4>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-2">{p.category}</p>
-              <p className="text-xl font-light text-amber-800 mt-4 italic">€ {p.price}</p>
-            </div>
+              <div className="px-2 space-y-2">
+                <div className="flex justify-between items-start">
+                  <h4 className="text-lg font-black text-gray-900 uppercase tracking-tighter leading-tight max-w-[70%]">{p.name}</h4>
+                  <p className="text-xl font-black text-[#004d4d] italic tracking-tighter">$ {p.price.toLocaleString()}</p>
+                </div>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.1em]">{p.category || 'Colección 2026'}</p>
+              </div>
+            </motion.div>
           ))}
         </div>
       </div>

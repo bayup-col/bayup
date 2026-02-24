@@ -31,6 +31,45 @@ try:
 except Exception as e:
     print(f"ℹ️ Nota de migración: {e}")
 
+# --- SEEDING AUTOMÁTICO DE DEMO ONEUP ---
+def seed_demo_oneup():
+    db = SessionLocal()
+    try:
+        oneup = db.query(models.User).filter(models.User.shop_slug == "oneup").first()
+        if not oneup:
+            print("🌱 Sembrando Demo OneUp...")
+            plan = db.query(models.Plan).first()
+            oneup = models.User(
+                email="oneup@bayup.com",
+                full_name="OneUp Fashion",
+                shop_slug="oneup",
+                hashed_password="hashed_dummy",
+                role="admin_tienda",
+                plan_id=plan.id if plan else None,
+                status="Activo"
+            )
+            db.add(oneup)
+            db.commit()
+            db.refresh(oneup)
+            
+            # Productos de ejemplo
+            demo_products = [
+                {"name": "Vestido Eira Silk", "price": 285000, "sku": "VE-001", "image_url": ["https://images.unsplash.com/photo-1595777457583-95e059d581b8?q=80&w=800"]},
+                {"name": "Blusa Aura White", "price": 145000, "sku": "BA-002", "image_url": ["https://images.unsplash.com/photo-1539109136881-3be061694b9b?q=80&w=800"]},
+                {"name": "Pantalón Luna Beige", "price": 195000, "sku": "PL-003", "image_url": ["https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?q=80&w=800"]}
+            ]
+            for p_data in demo_products:
+                p = models.Product(**p_data, owner_id=oneup.id)
+                db.add(p)
+            db.commit()
+            print("✅ Demo OneUp sembrada con éxito.")
+    except Exception as e:
+        print(f"⚠️ Error en seeding demo: {e}")
+    finally:
+        db.close()
+
+seed_demo_oneup()
+
 import crud
 import models
 import schemas

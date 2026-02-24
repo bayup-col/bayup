@@ -58,7 +58,7 @@ export const DraggableCanvasElement = ({
         {el.type === "text-block-premium" && <SmartHeritageBlock props={elProps} />}
         {el.type === "categories-grid" && <SmartCategoriesGrid props={elProps} />}
         {el.type === "bento-grid" && <SmartBentoGrid props={elProps} />}
-        {el.type === "product-grid" && <SmartProductGrid props={elProps} />}
+        {el.type === "product-grid" && <SmartProductGrid props={{ ...elProps, products: elProps.products || realProducts.slice(0, elProps.itemsCount || 8).map((p: any) => ({ id: p.id, name: p.name, price: p.price, image: Array.isArray(p.image_url) ? p.image_url[0] : p.image_url, category: p.category })) }} />}
         {el.type === "contact-form" && <SmartContactForm props={elProps} tenantId={tenantId} />}
         {el.type === "newsletter" && <SmartNewsletter />}
         {el.type === "services-block" && <SmartServices />}

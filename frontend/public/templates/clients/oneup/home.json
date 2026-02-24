@@ -1,0 +1,66 @@
+{
+    "header": {
+        "elements": [{
+            "id": "oneup-nav",
+            "type": "navbar",
+            "props": {
+                "logoText": "ONEUP",
+                "menuItems": ["Novedades", "Colecciones", "Nosotros", "Contacto"]
+            }
+        }],
+        "styles": {}
+    },
+    "footer": {
+        "elements": [{
+            "id": "oneup-footer",
+            "type": "footer-premium",
+            "props": {
+                "logoText": "ONEUP",
+                "description": "Elevando el estándar de la moda colombiana con diseño minimalista y calidad excepcional. Hecho por Bayup."
+            }
+        }],
+        "styles": {}
+    },
+    "body": {
+        "elements": [
+            {
+                "id": "oneup-hero",
+                "type": "hero-banner",
+                "props": {
+                    "title": "EL ARTE DE VESTIR",
+                    "subtitle": "Descubre el minimalismo visionario en nuestra nueva colección 2026.",
+                    "imageUrl": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2000",
+                    "primaryBtnText": "VER COLECCIÓN"
+                }
+            },
+            {
+                "id": "oneup-grid",
+                "type": "product-grid",
+                "props": {
+                    "title": "PIEZAS ICÓNICAS",
+                    "itemsCount": 6
+                }
+            },
+            {
+                "id": "oneup-about",
+                "type": "text-block-premium",
+                "props": {
+                    "title": "NUESTRO PROPÓSITO",
+                    "subtitle": "Moda que empodera tu visión",
+                    "content": "En OneUp, cada costura es un compromiso con la excelencia. No creamos ropa, creamos herramientas de confianza para la mujer moderna."
+                }
+            },
+            {
+                "id": "oneup-contact",
+                "type": "contact-form",
+                "props": {
+                    "title": "CONTÁCTANOS",
+                    "badge": "ATENCIÓN PREMIUM"
+                }
+            }
+        ],
+        "styles": {
+            "backgroundColor": "#ffffff"
+        }
+    }
+}

@@ -1,0 +1,51 @@
+{
+    "header": {
+        "elements": [{
+            "id": "oneup-nav",
+            "type": "navbar",
+            "props": {
+                "logoText": "ONEUP",
+                "menuItems": ["Novedades", "Colecciones", "Nosotros", "Contacto"]
+            }
+        }],
+        "styles": {}
+    },
+    "footer": {
+        "elements": [{
+            "id": "oneup-footer",
+            "type": "footer-premium",
+            "props": {
+                "logoText": "ONEUP",
+                "description": "Explora nuestro catálogo completo de piezas premium."
+            }
+        }],
+        "styles": {}
+    },
+    "body": {
+        "elements": [
+            {
+                "id": "oneup-catalog-hero",
+                "type": "hero-banner",
+                "props": {
+                    "title": "EL CATÁLOGO",
+                    "height": 300,
+                    "bgType": "color",
+                    "bgColor": "#004d4d",
+                    "titleSize": 40
+                }
+            },
+            {
+                "id": "oneup-catalog-grid",
+                "type": "product-grid",
+                "props": {
+                    "title": "TODOS LOS PRODUCTOS",
+                    "itemsCount": 12,
+                    "showFilters": true
+                }
+            }
+        ],
+        "styles": {
+            "backgroundColor": "#ffffff"
+        }
+    }
+}

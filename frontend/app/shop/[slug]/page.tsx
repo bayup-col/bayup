@@ -197,6 +197,15 @@ function ShopContent() {
                             if (pageData && pageData.schema_data) {
                                 data.custom_schema = pageData.schema_data;
                             }
+                        } else {
+                            // FALLBACK: Intentar cargar desde archivos locales (public/templates/clients/[slug]/[view].json)
+                            try {
+                                const localRes = await fetch(`/templates/clients/${slug}/${view}.json`);
+                                if (localRes.ok) {
+                                    const localData = await localRes.json();
+                                    data.custom_schema = localData;
+                                }
+                            } catch(e) {}
                         }
                     } catch (e) {
                         console.warn(`Diseño para vista ${view} no publicado.`);
