@@ -19,14 +19,20 @@ export default clerkMiddleware(async (auth, request) => {
   const hostname = request.headers.get("host") || "";
 
   // 1. LÓGICA DE DOMINIO PERSONALIZADO (White-labeling)
-  // Ignoramos localhost y el dominio principal de producción
-  const mainDomains = ["localhost:3000", "bayup.com", "www.bayup.com", "bayup.vercel.app"];
+  // Añadimos bayup.com.co y sus variaciones a la lista blanca
+  const mainDomains = [
+    "localhost:3000", 
+    "bayup.com", 
+    "www.bayup.com", 
+    "bayup.vercel.app",
+    "bayup.com.co",
+    "www.bayup.com.co"
+  ];
+  
   const isCustomDomain = !mainDomains.some(d => hostname.includes(d));
 
-  if (isCustomDomain && !url.pathname.startsWith('/api')) {
-    // Si entran a mitienda.com, hacemos un rewrite interno a /shop/[slug]
-    // En el MVP, asumimos que el hostname ya es el slug o podemos consultarlo a la API
-    // Por ahora, simularemos que el hostname es el slug (ej: mitienda.com -> slug: mitienda)
+  // Solo hacemos rewrite si es un dominio externo Y no estamos ya en una ruta de tienda o API
+  if (isCustomDomain && !url.pathname.startsWith('/api') && !url.pathname.startsWith('/shop')) {
     const slug = hostname.split('.')[0]; 
     return NextResponse.rewrite(new URL(`/shop/${slug}${url.pathname}`, request.url));
   }
