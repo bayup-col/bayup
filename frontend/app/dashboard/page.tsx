@@ -92,6 +92,7 @@ export default function DashboardPage() {
       showToast("¡Felicidades! Tu terminal Bayup está lista para operar. 🚀", "success");
   };
   const [activities, setActivities] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [companyName, setCompanyName] = useState('...');
   const [realStats, setRealStats] = useState({ 
     revenue: 0, 
@@ -101,6 +102,39 @@ export default function DashboardPage() {
     avg_ticket: 0,
     out_of_stock: 0
   });
+
+  // --- CÁLCULO DE VENTAS SEMANALES (RESET DOMINGO 11 PM) ---
+  const weeklySales = useMemo(() => {
+    const dailyTotals = [0, 0, 0, 0, 0, 0, 0]; // Lun, Mar, Mié, Jue, Vie, Sáb, Dom
+    if (!orders || orders.length === 0) return dailyTotals;
+
+    const now = new Date();
+    const currentDay = now.getDay(); // 0: Dom, 1: Lun...
+    const currentHour = now.getHours();
+
+    // Determinar inicio de semana (Lunes)
+    let startOfWeek = new Date(now);
+    if (currentDay === 0 && currentHour >= 23) {
+        startOfWeek.setDate(now.getDate() + 1);
+    } else {
+        const diff = (currentDay === 0 ? 7 : currentDay) - 1;
+        startOfWeek.setDate(now.getDate() - diff);
+    }
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+    orders.forEach(order => {
+        const orderDate = new Date(order.created_at);
+        if (orderDate >= startOfWeek && orderDate < endOfWeek) {
+            let dayIdx = orderDate.getDay(); 
+            dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+            dailyTotals[dayIdx] += (order.total_price || 0);
+        }
+    });
+    return dailyTotals;
+  }, [orders]);
 
   useEffect(() => {
     // Intentar cargar nombre de empresa real desde los ajustes generales
@@ -137,17 +171,18 @@ export default function DashboardPage() {
   const loadDashboardData = useCallback(async () => {
     if (!token) return;
     try {
-        const [products, orders, logs] = await Promise.all([
+        const [products, fetchedOrders, logs] = await Promise.all([
             apiRequest<any[]>('/products', { token }),
             apiRequest<any[]>('/orders', { token }),
             apiRequest<any[]>('/admin/logs', { token })
         ]);
 
+        if (fetchedOrders) setOrders(fetchedOrders);
         if (logs) setActivities(logs.slice(0, 6));
 
         // Calcular Estadísticas Reales
         const today = new Date().toISOString().split('T')[0];
-        const ordersToday = orders?.filter(o => o.created_at.startsWith(today)) || [];
+        const ordersToday = fetchedOrders?.filter(o => o.created_at.startsWith(today)) || [];
         const revenue = ordersToday.reduce((acc, o) => acc + (o.total_price || 0), 0);
         const lowStock = products?.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0) <= 5).length || 0;
         const outOfStock = products?.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0) === 0).length || 0;
@@ -453,10 +488,9 @@ export default function DashboardPage() {
                       return n;
                   };
 
-                  const weeklyData = [1200000, 2500000, 1800000, 4200000, 2100000, 3100000, 1500000]; // Ventas reales (Mock)
-                  const maxVal = Math.max(...weeklyData);
+                  const maxVal = Math.max(...weeklySales) || 1; // Evitar división por cero
 
-                  return weeklyData.map((val, i) => {
+                  return weeklySales.map((val, i) => {
                       const day = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"][i];
                       const heightPercent = (val / maxVal) * 100;
                       return (
