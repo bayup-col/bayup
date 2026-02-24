@@ -5,48 +5,15 @@ import {
   ShoppingBag, User, Search, Terminal, Grid, ArrowRight, PlayCircle, 
   ChevronLeft, ChevronRight, ShoppingCart, Verified, Truck, Headset,
   Facebook, Instagram, Twitter, Languages, Mail, Share2, ShieldCheck,
-  LayoutGrid, Heart, Camera, Send, Ruler, MapPin, Globe, CheckCheck, Loader2
-} from 'lucide-react';
-import { cn } from "@/lib/utils";
-import { motion } from 'framer-motion';
-
-/**
- * COMPONENTES DE ALTA FIDELIDAD - ESPECIALIZADOS POR MARCA
- */
-
-import { 
-  ShoppingBag, User, Search, Terminal, Grid, ArrowRight, PlayCircle, 
-  ChevronLeft, ChevronRight, ShoppingCart, Verified, Truck, Headset,
-  Facebook, Instagram, Twitter, Languages, Mail, Share2, ShieldCheck,
   LayoutGrid, Heart, Camera, Send, Ruler, MapPin, Globe, CheckCheck, Loader2, X, Plus, Minus
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from 'framer-motion';
-
-// --- ESTADO GLOBAL SIMPLIFICADO PARA EL CARRITO ---
-// En una app real usaríamos el context, aquí inyectamos la lógica funcional
-const useCart = () => {
-  const [cart, setCart] = React.useState<any[]>([]);
-  const [isOpen, setIsOpen] = React.useState(false);
-
-  const addToCart = (product: any) => {
-    setCart(prev => {
-      const exists = prev.find(item => item.id === product.id);
-      if (exists) return prev.map(item => item.id === product.id ? {...item, qty: item.qty + 1} : item);
-      return [...prev, {...product, qty: 1}];
-    });
-    setIsOpen(true);
-  };
-
-  const removeFromCart = (id: string) => setCart(prev => prev.filter(item => item.id !== id));
-  const updateQty = (id: string, delta: number) => setCart(prev => prev.map(item => item.id === id ? {...item, qty: Math.max(1, item.qty + delta)} : item));
-
-  const total = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
-
-  return { cart, isOpen, setIsOpen, addToCart, removeFromCart, updateQty, total };
-};
-
 import { useCart } from '@/context/cart-context';
+
+/**
+ * COMPONENTES DE ALTA FIDELIDAD - ESPECIALIZADOS POR MARCA
+ */
 
 // 1. NAVBAR PREMIUM (FUNCIONAL CON CARRITO)
 export const SmartNavbar = ({ props }: { props: any }) => {
