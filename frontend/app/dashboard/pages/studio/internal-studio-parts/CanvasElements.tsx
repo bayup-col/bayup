@@ -15,7 +15,9 @@ export const DraggableCanvasElement = ({
   setActiveSection, 
   removeElement, 
   isPreview = false,
-  tenantId = null
+  tenantId = null,
+  realProducts = [],
+  realCategories = []
 }: any) => {
   const { viewport } = useStudio();
   
