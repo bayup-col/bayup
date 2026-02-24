@@ -448,27 +448,42 @@ export default function DashboardPage() {
               </div>
 
               {/* Barras de datos */}
-              {[...Array(7)].map((_, i) => {
-                  const day = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"][i];
-                  const height = [40, 70, 55, 90, 65, 80, 50][i]; // Mock data elegante
-                  return (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-4 group/bar relative z-10">
-                          <div className="relative w-full flex flex-col items-center justify-end h-48">
-                              <motion.div 
-                                  initial={{ height: 0 }}
-                                  animate={{ height: `${height}%` }}
-                                  transition={{ delay: i * 0.1, duration: 1, ease: "circOut" }}
-                                  className="w-full max-w-[40px] bg-gradient-to-t from-[#004d4d] to-cyan rounded-t-2xl relative group-hover/bar:shadow-[0_0_30px_rgba(0,242,255,0.4)] transition-all duration-500"
-                              >
-                                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[9px] font-black px-2 py-1 rounded-lg opacity-0 group-hover/bar:opacity-100 transition-opacity">
-                                      {height}%
-                                  </div>
-                              </motion.div>
+              {(() => {
+                  const formatCash = (n: number) => {
+                      if (n < 1e3) return n;
+                      if (n >= 1e3 && n < 1e6) return +(n / 1e3).toFixed(1) + "K";
+                      if (n >= 1e6 && n < 1e9) return +(n / 1e6).toFixed(1) + "M";
+                      return n;
+                  };
+
+                  const weeklyData = [1200000, 2500000, 1800000, 4200000, 2100000, 3100000, 1500000]; // Ventas reales (Mock)
+                  const maxVal = Math.max(...weeklyData);
+
+                  return weeklyData.map((val, i) => {
+                      const day = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"][i];
+                      const heightPercent = (val / maxVal) * 100;
+                      return (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-4 group/bar relative z-10">
+                              <div className="relative w-full flex flex-col items-center justify-end h-48">
+                                  <motion.div 
+                                      initial={{ height: 0 }}
+                                      animate={{ height: `${heightPercent}%` }}
+                                      transition={{ delay: i * 0.1, duration: 1, ease: "circOut" }}
+                                      className="w-full max-w-[40px] bg-gradient-to-t from-[#004d4d] to-cyan rounded-t-2xl relative group-hover/bar:shadow-[0_0_30px_rgba(0,242,255,0.4)] transition-all duration-500"
+                                  >
+                                      <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] font-black px-3 py-1.5 rounded-xl opacity-0 group-hover/bar:opacity-100 transition-all shadow-2xl border border-white/10 whitespace-nowrap z-50">
+                                          $ {val.toLocaleString()}
+                                      </div>
+                                      <div className="absolute top-2 left-0 right-0 text-center text-[8px] font-black text-white/40 group-hover/bar:text-white transition-colors">
+                                          {formatCash(val)}
+                                      </div>
+                                  </motion.div>
+                              </div>
+                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover/bar:text-[#004d4d] transition-colors">{day}</span>
                           </div>
-                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover/bar:text-[#004d4d] transition-colors">{day}</span>
-                      </div>
-                  );
-              })}
+                      );
+                  });
+              })()}
           </div>
       </PremiumCard>
 
