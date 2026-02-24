@@ -419,12 +419,58 @@ export default function DashboardPage() {
           </PremiumCard>
       </div>
 
-      {/* 4. SECCIÓN DE ACCESOS DIRECTOS PREMIUM */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <AccessCard label="Facturación POS" sub="Vende en efectivo o transferencia" href="/dashboard/invoicing" icon={<FileText size={32}/>} />
-          <AccessCard label="Inventario maestro" sub="Control de 360° de tus productos" href="/dashboard/products" icon={<Package size={32}/>} />
-          <AccessCard label="Gestión de Pedidos" sub="Control de despachos y logística" href="/dashboard/orders" icon={<ShoppingBag size={32}/>} />
-      </div>
+      {/* 4. SECCIÓN DE RENDIMIENTO SEMANAL (PLATINUM CHART) */}
+      <PremiumCard className="p-12">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+              <div>
+                  <div className="flex items-center gap-3 mb-2">
+                      <TrendingUp size={18} className="text-[#004d4d]" />
+                      <h4 className="text-xs font-black tracking-[0.3em] text-gray-900 uppercase">Rendimiento Semanal</h4>
+                  </div>
+                  <p className="text-[10px] text-gray-400 font-bold italic tracking-widest">Visualización de ingresos de los últimos 7 días</p>
+              </div>
+              <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-cyan" />
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ventas Web</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-[#004d4d]" />
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ventas POS</span>
+                  </div>
+              </div>
+          </div>
+
+          <div className="h-64 flex items-end justify-between gap-4 px-4 relative">
+              {/* Líneas de guía */}
+              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
+                  {[1, 2, 3, 4].map(i => <div key={i} className="w-full h-px bg-gray-900" />)}
+              </div>
+
+              {/* Barras de datos */}
+              {[...Array(7)].map((_, i) => {
+                  const day = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"][i];
+                  const height = [40, 70, 55, 90, 65, 80, 50][i]; // Mock data elegante
+                  return (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-4 group/bar relative z-10">
+                          <div className="relative w-full flex flex-col items-center justify-end h-48">
+                              <motion.div 
+                                  initial={{ height: 0 }}
+                                  animate={{ height: `${height}%` }}
+                                  transition={{ delay: i * 0.1, duration: 1, ease: "circOut" }}
+                                  className="w-full max-w-[40px] bg-gradient-to-t from-[#004d4d] to-cyan rounded-t-2xl relative group-hover/bar:shadow-[0_0_30px_rgba(0,242,255,0.4)] transition-all duration-500"
+                              >
+                                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[9px] font-black px-2 py-1 rounded-lg opacity-0 group-hover/bar:opacity-100 transition-opacity">
+                                      {height}%
+                                  </div>
+                              </motion.div>
+                          </div>
+                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover/bar:text-[#004d4d] transition-colors">{day}</span>
+                      </div>
+                  );
+              })}
+          </div>
+      </PremiumCard>
 
       <OnboardingModal isOpen={isOnboardingOpen} onClose={() => setIsOnboardingOpen(false)} onComplete={() => {}} />
       <OnboardingWizard isOpen={isWizardOpen} onComplete={handleWizardComplete} />
@@ -468,33 +514,5 @@ function MetricKPI({ label, value, icon, color, bg, trend, isCurrency = false, i
                 </h3>
             </div>
         </PremiumCard>
-    );
-}
-
-interface AccessCardProps {
-    label: string;
-    sub: string;
-    href: string;
-    icon: React.ReactElement;
-}
-
-function AccessCard({ label, sub, href, icon }: AccessCardProps) {
-    return (
-        <Link href={href}>
-            <PremiumCard className="p-10 group cursor-pointer hover:border-cyan/30 transition-all overflow-hidden h-full">
-                <div className="flex items-center gap-8 relative z-10">
-                    <div className="h-20 w-20 rounded-[2rem] bg-gray-900 text-white flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(0,242,255,0.3)] border-2 border-white/5 group-hover:border-cyan/50">
-                        {React.cloneElement(icon, { className: "text-white group-hover:text-cyan transition-colors" } as any)}
-                    </div>
-                    <div>
-                        <h4 className="text-xl font-black text-gray-900 italic tracking-tighter">{label}</h4>
-                        <p className="text-[10px] font-bold text-gray-400 tracking-widest mt-1">{sub}</p>
-                    </div>
-                </div>
-                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 translate-x-4 transition-all">
-                    <ArrowRight size={24} className="text-cyan" />
-                </div>
-            </PremiumCard>
-        </Link>
     );
 }
