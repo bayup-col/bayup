@@ -103,7 +103,6 @@ def log_activity(db: Session, user_id: uuid.UUID, tenant_id: uuid.UUID, action: 
         print(f"Error logging activity: {e}")
         db.rollback()
 
-# Lifespan manager for startup and shutdown events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Starting Bayup API...")
@@ -112,6 +111,9 @@ async def lifespan(app: FastAPI):
         print("Database tables synchronized.")
     except Exception as e:
         print(f"Metadata creation error: {e}")
+
+    # Sembrar datos demo de forma segura
+    seed_demo_oneup()
 
     db = SessionLocal()
     try:
@@ -170,20 +172,10 @@ if not os.path.exists("uploads"):
     os.makedirs("uploads")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# --- CONFIGURACIÓN DE CONEXIÓN GLOBAL (CORS) ---
+# --- CONFIGURACIÓN DE CONEXIÓN GLOBAL (CORS LIBRE) ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://bayup.com.co",
-        "https://www.bayup.com.co",
-        "https://bayup.com",
-        "https://www.bayup.com",
-        "https://bayup.vercel.app",
-        "https://gallant-education-production-8b4a.up.railway.app",
-        "https://bayup-interactive-production.up.railway.app",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
