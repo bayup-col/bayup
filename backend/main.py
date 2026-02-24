@@ -19,6 +19,18 @@ from pydantic import BaseModel
 load_dotenv()
 
 from database import SessionLocal, engine, get_db
+
+# --- MIGRACIÓN AUTOMÁTICA DE EMERGENCIA ---
+# Forzamos la creación de custom_domain si no existe en producción
+try:
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_domain VARCHAR;"))
+        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_custom_domain ON users (custom_domain);"))
+        conn.commit()
+        print("✅ Base de datos verificada: custom_domain está presente.")
+except Exception as e:
+    print(f"ℹ️ Nota de migración: {e}")
+
 import crud
 import models
 import schemas
