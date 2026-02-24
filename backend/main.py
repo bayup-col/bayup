@@ -31,6 +31,16 @@ try:
 except Exception as e:
     print(f"ℹ️ Nota de migración: {e}")
 
+import crud
+import models
+import schemas
+import security
+import s3_service
+import payment_service
+import clerk_auth_service
+import ai_service
+import email_service
+
 # --- SEEDING AUTOMÁTICO DE DEMO ONEUP ---
 def seed_demo_oneup():
     db = SessionLocal()
@@ -69,16 +79,6 @@ def seed_demo_oneup():
         db.close()
 
 seed_demo_oneup()
-
-import crud
-import models
-import schemas
-import security
-import s3_service
-import payment_service
-import clerk_auth_service
-import ai_service
-import email_service
 
 # --- Tenant Isolation Helper ---
 def get_tenant_id(current_user: models.User):
