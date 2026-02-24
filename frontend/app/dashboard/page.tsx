@@ -340,10 +340,6 @@ export default function DashboardPage() {
                   </p>
               </div>
               <div className="flex gap-4 shrink-0 relative z-20">
-                  <button onClick={handleViewStore} className="h-16 px-10 bg-white border-2 border-gray-100 rounded-full flex items-center justify-center gap-3 hover:bg-black hover:text-white hover:border-black transition-all shadow-xl group">
-                      <Globe size={20} className="group-hover:rotate-12 transition-transform text-cyan" /> 
-                      <span className="font-black tracking-widest text-[10px]">Ver mi tienda online</span>
-                  </button>
                   <button onClick={handleDownloadReport} className="h-16 px-10 bg-[#004d4d] text-white rounded-full flex items-center justify-center gap-3 shadow-2xl hover:bg-black transition-all group">
                       <FileText size={20} className="text-cyan transition-transform group-hover:scale-110"/> 
                       <span className="font-black tracking-widest text-[10px]">Reporte diario</span>
