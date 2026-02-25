@@ -98,6 +98,20 @@ export default function SuperAdminClients() {
         return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
     };
 
+    const filteredCompanies = companies.filter(c => {
+        const matchesSearch = c.company_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             c.owner_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             c.email.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesSearch;
+    });
+
+    if (loading) return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+            <Loader2 className="w-12 h-12 animate-spin text-[#004d4d]" />
+            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Cargando directorio real...</p>
+        </div>
+    );
+
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-20 relative animate-in fade-in duration-700">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-4">
