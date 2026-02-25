@@ -275,13 +275,20 @@ export default function GeneralSettings() {
 
             <div className="flex items-center justify-center gap-6 relative z-20">
                 <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl flex items-center overflow-x-auto relative">
-                    {[ { id: 'identidad', label: 'Identidad', icon: <Store size={14}/> }, { id: 'contacto', label: 'Contacto & web', icon: <MapPin size={14}/> }, { id: 'finanzas', label: 'Finanzas & topes', icon: <CreditCard size={14}/> }, { id: 'canales', label: 'Canales & social', icon: <Globe size={14}/> } ].map((tab) => {
+                    {[ 
+                        { id: 'identidad', label: 'Identidad', icon: <Store size={14}/>, disabled: false }, 
+                        { id: 'contacto', label: 'Contacto & web', icon: <MapPin size={14}/>, disabled: false }, 
+                        { id: 'finanzas', label: 'Finanzas (Próximamente)', icon: <CreditCard size={14}/>, disabled: true }, 
+                        { id: 'canales', label: 'Canales & social', icon: <Globe size={14}/>, disabled: false } 
+                    ].map((tab) => {
                         const isActive = activeTab === tab.id;
                         return (
                             <button 
                                 key={tab.id} 
-                                onClick={() => setActiveTab(tab.id as any)} 
-                                className={`relative px-8 py-3.5 rounded-full text-[9px] font-black  tracking-widest transition-all z-10 whitespace-nowrap flex items-center gap-2 ${isActive ? 'text-white' : 'text-gray-400 hover:text-gray-900'}`}
+                                onClick={() => !tab.disabled && setActiveTab(tab.id as any)} 
+                                className={`relative px-8 py-3.5 rounded-full text-[9px] font-black tracking-widest transition-all z-10 whitespace-nowrap flex items-center gap-2 ${
+                                    isActive ? 'text-white' : tab.disabled ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-900'
+                                }`}
                             >
                                 {isActive && (
                                     <motion.div layoutId="generalTabGlow" className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
@@ -431,36 +438,10 @@ export default function GeneralSettings() {
                     )}
 
                     {activeTab === 'canales' && (
-                        <motion.div key="chan" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                            {currentPlan !== 'Básico' && (
-                                <div className="lg:col-span-7 bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
-                                    <div className="flex justify-between items-center">
-                                        <h3 className="text-xl font-black text-gray-900 italic">Líneas WhatsApp</h3>
-                                        <button onClick={() => setIsWhatsappModalOpen(true)} className="h-10 w-10 bg-[#004d4d] text-white rounded-xl flex items-center justify-center shadow-lg">
-                                            <Plus size={20}/>
-                                        </button>
-                                    </div>
-                                    <div className="space-y-4">
-                                        {whatsappLines.map((line) => (
-                                            <div key={line.id} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2.5rem] border border-transparent hover:border-emerald-100 transition-all">
-                                                <div className="flex items-center gap-6">
-                                                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center font-black text-[#004d4d] shadow-sm italic">WA</div>
-                                                    <div>
-                                                        <p className="text-sm font-black text-gray-900">{line.name}</p>
-                                                        <p className="text-[10px] font-bold text-gray-400">{line.number}</p>
-                                                    </div>
-                                                </div>
-                                                <button onClick={() => setWhatsappLines(whatsappLines.filter(w => w.id !== line.id))} className="h-10 w-10 bg-white text-gray-300 hover:text-rose-500 rounded-xl transition-all">
-                                                    <Trash2 size={16}/>
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                            <div className={`${currentPlan === 'Básico' ? 'lg:col-span-12' : 'lg:col-span-5'} bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm space-y-8`}>
+                        <motion.div key="chan" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+                            <div className="bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
                                 <h3 className="text-xl font-black text-gray-900 italic">Ecosistema social</h3>
-                                <div className={`grid ${currentPlan === 'Básico' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2'} gap-4`}>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     {[ 
                                         { id: 'instagram', label: 'Instagram', icon: <Instagram size={24}/>, color: 'text-pink-500', link: socialLinks.instagram, disabled: false }, 
                                         { id: 'facebook', label: 'Facebook', icon: <Facebook size={24}/>, color: 'text-blue-600', link: socialLinks.facebook, disabled: false }, 
@@ -479,8 +460,8 @@ export default function GeneralSettings() {
                                             <div className={`h-14 w-14 bg-white ${social.color} rounded-2xl flex items-center justify-center shadow-lg ${!social.disabled && 'group-hover:scale-110'} transition-all`}>
                                                 {social.icon}
                                             </div>
-                                            <span className="text-[10px] font-black text-gray-900 tracking-widest">
-                                                {social.label} {social.disabled && '(Próximamente)'}
+                                            <span className="text-[10px] font-black text-gray-900 tracking-widest text-center">
+                                                {social.label} {social.disabled && <span className="block text-[8px]">(Próximamente)</span>}
                                             </span>
                                         </a>
                                     ))}
