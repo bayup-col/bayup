@@ -37,6 +37,12 @@ export default function SuperAdminClients() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCompany, setSelectedCompany] = useState<CompanyClient | null>(null);
 
+    // Design Injection States
+    const [isInjectModalOpen, setIsInjectModalOpen] = useState(false);
+    const [designJson, setDesignJson] = useState('');
+    const [targetPage, setTargetPage] = useState('home');
+    const [isInjecting, setIsInjecting] = useState(false);
+
     // Commission Update States
     const [editComm, setEditComm] = useState({
         rate: 0,
@@ -65,6 +71,47 @@ export default function SuperAdminClients() {
     useEffect(() => {
         fetchCompanies();
     }, [token]);
+
+    const handleInjectDesign = async () => {
+        if (!selectedCompany || !designJson.trim()) return;
+        setIsInjecting(true);
+        try {
+            let parsedSchema;
+            try {
+                parsedSchema = JSON.parse(designJson);
+            } catch (e) {
+                showToast("El JSON no es válido", "error");
+                setIsInjecting(false);
+                return;
+            }
+
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const res = await fetch(`${apiBase}/super-admin/inject-design`, {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    tenant_id: selectedCompany.id,
+                    page_key: targetPage,
+                    schema_data: parsedSchema
+                })
+            });
+
+            if (res.ok) {
+                showToast(`Diseño inyectado en ${targetPage} exitosamente`, "success");
+                setIsInjectModalOpen(false);
+                setDesignJson('');
+            } else {
+                showToast("Error al inyectar diseño", "error");
+            }
+        } catch (e) {
+            showToast("Error de conexión", "error");
+        } finally {
+            setIsInjecting(false);
+        }
+    };
 
     const handleCloseMonth = async () => {
         if (!confirm("¿Deseas ejecutar el cierre contable? Esto actualizará las comisiones de todas las tiendas basado en sus ventas del mes pasado.")) return;
