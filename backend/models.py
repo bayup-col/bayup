@@ -62,6 +62,13 @@ class User(Base):
     whatsapp_lines = Column(JSON, default=[])
     permissions = Column(JSON, default={})
     
+    # --- Gestión de Comisiones Bayup (Escala Dinámica) ---
+    custom_commission_rate = Column(Float, nullable=True) # % Manual (ej: 1.2)
+    commission_is_fixed = Column(Boolean, default=False) # Si es True, no varía por ventas
+    commission_fixed_until = Column(DateTime, nullable=True) # Fecha límite del acuerdo manual
+    last_month_revenue = Column(Float, default=0.0) # Ventas totales del mes anterior
+    referred_by_id = Column(GUID(), ForeignKey("users.id"), nullable=True) # ID del Afiliado
+    
     # Multi-tenancy: Who owns this user account/staff
     owner_id = Column(GUID(), ForeignKey("users.id"), nullable=True)
     

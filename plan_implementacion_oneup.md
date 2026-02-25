@@ -94,15 +94,19 @@ Checkout optimizado para móviles (One-page checkout).
 💳 Fase 5: Split Payments y Comisiones (Semanas 14-16)
 Objetivo: Monetización de la plataforma.
 
-5.1. Integración de Pasarelas
-Mercado Pago (Marketplace): Configurar el flujo de OAuth para que los clientes vinculen su cuenta.
+5.1. Integración con Wompi
+Configurar el flujo de **Split Payments** de Wompi para separar automáticamente la comisión de Bayup del pago al comercio.
 
-PayPal (Commerce Platform): Implementación del SDK para pagos de terceros.
+Implementar Webhooks para la confirmación de transacciones en tiempo real.
 
-5.2. Lógica de Split (Reparto)
-Consultar el plan de suscripción del cliente.
+5.2. Lógica de Comisión Decreciente
+Implementar el cálculo dinámico basado en el plan del tenant:
+- **Básico:** 3.5%
+- **Pro:** 2.5%
+- **Empresa:** 1.5%
+- **Ventas POS:** 0% fija.
 
-Al procesar el pago, enviar automáticamente el % de comisión a la cuenta maestra y el resto a la cuenta del cliente.
+Al procesar el pago, enviar automáticamente el % correspondiente a la cuenta maestra de Bayup y el resto directo a la cuenta del cliente a través de Wompi.
 
 🏢 Fase 6: Paneles de Administración (Semanas 17-18)
 Objetivo: Gestión de los dos niveles de usuario.

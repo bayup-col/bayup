@@ -82,8 +82,11 @@ seed_demo_oneup()
 
 # --- Tenant Isolation Helper ---
 def get_tenant_id(current_user: models.User):
-    # Si el usuario tiene un owner_id, significa que es Staff y su "tienda" es la del dueño.
-    # Si no tiene owner_id, él es el dueño de la tienda.
+    """
+    Retorna el ID del dueño de la tienda (Tenant). 
+    Si el usuario es Staff (tiene owner_id), retornamos el owner_id para que vea los datos de la tienda.
+    Si el usuario es el Dueño, retornamos su propio ID.
+    """
     return current_user.owner_id if current_user.owner_id else current_user.id
 
 # --- Admin / Staff Logs Helper ---
@@ -947,43 +950,135 @@ def get_pages(db: Session = Depends(get_db), current_user: models.User = Depends
     tenant_id = get_tenant_id(current_user)
     return db.query(models.Page).filter(models.Page.owner_id == tenant_id).all()
 
-# --- Super Admin Stats ---
+# --- Month-End Accounting Logic ---
+
+def perform_month_end_closing(db: Session):
+    """
+    Calcula las ventas totales de cada tienda del mes calendario anterior
+    y actualiza el campo last_month_revenue para definir la comisión del mes actual.
+    """
+    today = datetime.date.today()
+    # 1. Calcular el rango del mes anterior
+    first_day_this_month = today.replace(day=1)
+    last_day_last_month = first_day_this_month - datetime.timedelta(days=1)
+    first_day_last_month = last_day_last_month.replace(day=1)
+    
+    start_date = datetime.datetime.combine(first_day_last_month, datetime.time.min)
+    end_date = datetime.datetime.combine(first_day_this_month, datetime.time.min)
+    
+    print(f"🔄 INICIANDO CIERRE CONTABLE: {start_date} -> {end_date}")
+    
+    # 2. Obtener todos los dueños de tiendas
+    stores = db.query(models.User).filter(models.User.role == 'admin_tienda', models.User.owner_id == None).all()
+    
+    results = []
+    for store in stores:
+        # Sumar ventas web y pos del mes anterior
+        monthly_revenue = db.query(func.sum(models.Order.total_price)).filter(
+            models.Order.tenant_id == store.id,
+            models.Order.created_at >= start_date,
+            models.Order.created_at < end_date,
+            models.Order.status != 'cancelled' # No sumamos pedidos cancelados
+        ).scalar() or 0.0
+        
+        # 3. Actualizar la tienda
+        store.last_month_revenue = monthly_revenue
+        results.append({"store": store.full_name, "revenue": monthly_revenue})
+    
+    db.commit()
+    print(f"✅ CIERRE COMPLETADO: {len(results)} tiendas actualizadas.")
+    return results
+
+@app.post("/super-admin/close-month")
+def trigger_month_closing(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_super_admin_user)):
+    """
+    Ejecución manual del cierre de mes desde el panel de Super Admin.
+    """
+    try:
+        report = perform_month_end_closing(db)
+        log_activity(db, current_user.id, current_user.id, "MONTH_CLOSING_MANUAL", f"Ejecutó cierre contable para {len(report)} tiendas.")
+        return {"status": "success", "updated_stores": len(report), "details": report}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    """
+    Calcula la comisión exacta de Bayup y del Afiliado.
+    Regla: POS = 0%. Web = Escala por volumen mes anterior o Manual.
+    """
+    if source.lower() == "pos":
+        return {"total": 0.0, "bayup": 0.0, "affiliate": 0.0}
+
+    now = datetime.datetime.utcnow()
+    
+    # 1. Verificar Sobre-mando Manual (Super Admin)
+    if store.custom_commission_rate is not None:
+        is_active = True
+        # Si tiene fecha límite, verificar si ya caducó
+        if store.commission_fixed_until and now > store.commission_fixed_until:
+            is_active = False
+            
+        if is_active or store.commission_is_fixed:
+            total_rate = store.custom_commission_rate / 100
+            affiliate_rate = 0.005 if store.referred_by_id else 0.0
+            bayup_rate = max(0.01, total_rate - affiliate_rate) # Bayup mínimo 1%
+            return {"total": total_rate, "bayup": bayup_rate, "affiliate": affiliate_rate}
+
+    # 2. Lógica Variable por Volumen (Mes Anterior)
+    revenue = store.last_month_revenue or 0.0
+    
+    if revenue <= 15000000: # 0 - 15 Millones
+        total_rate = 0.035
+    elif revenue <= 50000000: # 15 - 50 Millones
+        total_rate = 0.025
+    else: # > 50 Millones
+        total_rate = 0.015
+
+    affiliate_rate = 0.005 if store.referred_by_id else 0.0
+    bayup_rate = total_rate - affiliate_rate # Aquí siempre es >= 1% (1.5% - 0.5% = 1.0%)
+    
+    return {
+        "total": total_rate,
+        "bayup": bayup_rate,
+        "affiliate": affiliate_rate
+    }
 
 @app.get("/super-admin/stats", response_model=schemas.SuperAdminStats)
 def get_super_admin_stats(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_super_admin_user)):
-    # Calcular métricas reales
     total_revenue = db.query(func.sum(models.Order.total_price)).scalar() or 0.0
     
-    # Comisión estimada (5% promedio si no se especifica)
-    total_commission = total_revenue * 0.05 
+    all_orders = db.query(models.Order).all()
+    total_commission = 0.0
+    store_cache = {}
     
+    for order in all_orders:
+        if order.tenant_id not in store_cache:
+            store_cache[order.tenant_id] = db.query(models.User).filter(models.User.id == order.tenant_id).first()
+        
+        store = store_cache[order.tenant_id]
+        if store:
+            comm = calculate_dynamic_commission(store, order.source)
+            total_commission += (order.total_price * comm["bayup"]) # Solo lo que gana Bayup
+            
     active_companies = db.query(models.User).filter(models.User.role == 'admin_tienda', models.User.status == 'Activo').count()
     active_affiliates = db.query(models.User).filter(models.User.role == 'afiliado', models.User.status == 'Activo').count()
     
-    # Obtener top empresas (por facturación)
     top_stores = db.query(
-        models.User.nickname,
+        models.User.full_name,
         func.sum(models.Order.total_price).label('revenue')
     ).join(models.Order, models.Order.tenant_id == models.User.id)\
      .group_by(models.User.id)\
      .order_by(text('revenue DESC'))\
      .limit(5).all()
     
-    top_companies = [{"name": s.nickname or "Tienda", "revenue": s.revenue} for s in top_stores]
+    top_companies = [{"name": s.full_name or "Tienda", "revenue": s.revenue} for s in top_stores]
     
-    # Alertas recientes (ej: stock bajo o pedidos demorados)
-    recent_alerts = [
-        {"type": "info", "message": "Nuevos registros en las últimas 24h", "count": 3},
-        {"type": "warning", "message": "Tiendas con stock crítico", "count": active_companies // 4}
-    ]
-
     return {
         "total_revenue": total_revenue,
         "total_commission": total_commission,
         "active_companies": active_companies,
         "active_affiliates": active_affiliates,
         "top_companies": top_companies,
-        "recent_alerts": recent_alerts
+        "recent_alerts": []
     }
 
 @app.post("/super-admin/impersonate/{user_id}")
@@ -1025,21 +1120,26 @@ def get_all_stores(db: Session = Depends(get_db), current_user: models.User = De
     
     result = []
     for store in stores:
-        # 1. Facturación Total
-        total_invoiced = db.query(func.sum(models.Order.total_price)).filter(models.Order.tenant_id == store.id).scalar() or 0.0
+        # 1. Facturación Total por Origen
+        # Separamos para aplicar comisión real (0% POS, X% Web)
+        orders = db.query(models.Order).filter(models.Order.tenant_id == store.id).all()
         
-        # 2. Conteo de Productos y Pedidos
+        total_invoiced = 0.0
+        profit = 0.0
+        order_count = len(orders)
+        
+        plan_name = store.plan.name if store.plan else "Básico"
+        
+        for order in orders:
+            total_invoiced += order.total_price
+            rate = get_commission_rate(plan_name, order.source)
+            profit += (order.total_price * rate)
+        
+        # 2. Conteo de Productos
         product_count = db.query(models.Product).filter(models.Product.owner_id == store.id).count()
-        order_count = db.query(models.Order).filter(models.Order.tenant_id == store.id).count()
         
         # 3. Ticket Promedio
         avg_ticket = total_invoiced / order_count if order_count > 0 else 0.0
-        
-        # 4. Ganancia Bayup (Comisión)
-        commission = 0.05
-        if store.plan:
-            commission = store.plan.commission_rate / 100
-        profit = total_invoiced * commission
         
         result.append({
             "id": str(store.id),
@@ -1047,14 +1147,14 @@ def get_all_stores(db: Session = Depends(get_db), current_user: models.User = De
             "company_name": store.nickname or store.full_name or "Tienda Bayup",
             "email": store.email,
             "phone": store.phone or "No registrado",
-            "plan": store.plan.name if store.plan else "Básico",
+            "plan": plan_name,
             "status": store.status or "Activo",
             "total_invoiced": total_invoiced,
             "our_profit": profit,
             "product_count": product_count,
             "order_count": order_count,
             "avg_ticket": avg_ticket,
-            "registration_date": "2026-02-16", # Placeholder
+            "registration_date": "2026-02-16", 
             "avatar": (store.nickname or store.full_name or "U")[:2].upper()
         })
     
@@ -1134,29 +1234,39 @@ def get_public_shop(slug: str, page: str = "home", db: Session = Depends(get_db)
 async def create_public_order(data: dict, db: Session = Depends(get_db)):
     try:
         # 1. Validar datos básicos
-        tenant_id = data.get("tenant_id")
-        if not tenant_id:
+        tenant_id_str = data.get("tenant_id")
+        if not tenant_id_str:
             raise HTTPException(status_code=400, detail="Falta identificación del comercio")
             
+        tenant_id = uuid.UUID(tenant_id_str)
         items_data = data.get("items", [])
-        if not items_data:
-            raise HTTPException(status_code=400, detail="El carrito está vacío")
-
-        # 2. Crear la orden base
-        total_price = sum(item.get("price", 0) * item.get("quantity", 1) for item in items_data)
         
+        # 2. Obtener Dueño y Calcular Comisión Dinámica
+        store_owner = db.query(models.User).filter(models.User.id == tenant_id).first()
+        if not store_owner:
+            raise HTTPException(status_code=404, detail="Comercio no encontrado")
+            
+        comm = calculate_dynamic_commission(store_owner, source="web")
+
+        # 3. Calcular Totales y Reparto
+        total_price = sum(item.get("price", 0) * item.get("quantity", 1) for item in items_data)
+        bayup_fee = total_price * comm["bayup"]
+        affiliate_fee = total_price * comm["affiliate"]
+        merchant_net = total_price - bayup_fee - affiliate_fee
+        
+        print(f"💰 WOMPI SPLIT: Total {total_price} | Bayup: {bayup_fee} | Afiliado: {affiliate_fee} | Neto: {merchant_net}")
+
+        # 4. Crear la orden
         new_order = models.Order(
             id=uuid.uuid4(),
-            tenant_id=uuid.UUID(tenant_id),
+            tenant_id=tenant_id,
             customer_name=data.get("customer_name"),
             customer_phone=data.get("customer_phone"),
             total_price=total_price,
             status="pending",
-            source="web", # Identificamos que vino de la tienda online
-            created_at=datetime.datetime.utcnow(),
-            payment_method="pending_confirmation"
+            source="web",
+            payment_method="wompi_pending"
         )
-        
         db.add(new_order)
         
         # 3. Crear los items de la orden y DESCONTAR INVENTARIO

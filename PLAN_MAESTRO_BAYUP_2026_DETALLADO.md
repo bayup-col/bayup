@@ -9,22 +9,30 @@
 
 ## 📄 TABLA DE CONTENIDO (Resumen)
 1.  **Visión Partner vs Shopify.**
-2.  **Tabla de Comisiones (3.5% Web / 0% POS).**
-3.  **La Regla de los 2 Meses (Gestión de Inactividad).**
-4.  **Visión Global 2028 (10 Empleados / Escala LATAM).**
-5.  **PLAYBOOK DE VENTAS: El Cierre del 90%.**
-6.  **Red de Afiliados Elite (0.5% de por vida).**
+2.  **Tabla de Comisiones Decreciente (3.5% -> 1.5%).**
+3.  **Pasarela Oficial: Wompi (Split Payments).**
+4.  **La Regla de los 2 Meses (Gestión de Inactividad).**
+5.  **Visión Global 2028 (10 Empleados / Escala LATAM).**
+6.  **PLAYBOOK DE VENTAS: El Cierre del 90%.**
+7.  **Red de Afiliados Elite (0.5% de por vida).**
 
 ---
 
-## 5. PLAYBOOK DE VENTAS: EL CIERRE DEL 90%
-Para dominar el mercado colombiano, no vendemos tecnología, vendemos **éxito sin riesgo**.
+## 2. ESTRUCTURA DE COMISIONES (DECRECIENTE)
+Premiamos el crecimiento de nuestros partners. A medida que tu negocio escala, nuestra comisión baja:
 
-### A. La Oferta "No-Brainer"
-*   **Diseño Premium Inyectado:** $0 COP.
-*   **Software POS e Inventario:** $0 COP.
-*   **Mensualidad:** $0 COP.
-*   **Compromiso:** 3.5% de comisión solo sobre ventas web exitosas.
+*   **Plan Básico:** 3.5% por venta web.
+*   **Plan Pro:** 2.5% por venta web.
+*   **Plan Empresa:** 1.5% por venta web.
+*   **Ventas POS:** 0% (Siempre gratis para incentivar el uso del software en tienda física).
+
+---
+
+## 3. PASARELA DE PAGOS: WOMPI
+Utilizamos la infraestructura de **Wompi** para garantizar:
+*   **Split Payments:** El dinero se reparte automáticamente: la comisión para Bayup y el resto directo a la cuenta del cliente.
+*   **Seguridad:** Estándares bancarios de Grupo Bancolombia.
+
 
 ### B. El Guion de Captación (Efectivo)
 *"Te regalo la tienda y el software de inventario. No me pagas nada hoy. Solo ganamos un porcentaje si tú vendes. Si no vendes, no nos debes nada. ¿Empezamos hoy?"*
