@@ -432,20 +432,35 @@ export default function GeneralSettings() {
 
                     {activeTab === 'canales' && (
                         <motion.div key="chan" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                            <div className="lg:col-span-7 bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
-                                <div className="flex justify-between items-center"><h3 className="text-xl font-black text-gray-900  italic">Líneas WhatsApp</h3><button onClick={() => setIsWhatsappModalOpen(true)} className="h-10 w-10 bg-[#004d4d] text-white rounded-xl flex items-center justify-center shadow-lg"><Plus size={20}/></button></div>
-                                <div className="space-y-4">
-                                    {whatsappLines.map((line) => (
-                                        <div key={line.id} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2.5rem] border border-transparent hover:border-emerald-100 transition-all">
-                                            <div className="flex items-center gap-6"><div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center font-black text-[#004d4d] shadow-sm italic">WA</div><div><p className="text-sm font-black text-gray-900">{line.name}</p><p className="text-[10px] font-bold text-gray-400 ">{line.number}</p></div></div>
-                                            <button onClick={() => setWhatsappLines(whatsappLines.filter(w => w.id !== line.id))} className="h-10 w-10 bg-white text-gray-300 hover:text-rose-500 rounded-xl transition-all"><Trash2 size={16}/></button>
-                                        </div>
-                                    ))}
+                            {currentPlan !== 'Básico' && (
+                                <div className="lg:col-span-7 bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
+                                    <div className="flex justify-between items-center">
+                                        <h3 className="text-xl font-black text-gray-900 italic">Líneas WhatsApp</h3>
+                                        <button onClick={() => setIsWhatsappModalOpen(true)} className="h-10 w-10 bg-[#004d4d] text-white rounded-xl flex items-center justify-center shadow-lg">
+                                            <Plus size={20}/>
+                                        </button>
+                                    </div>
+                                    <div className="space-y-4">
+                                        {whatsappLines.map((line) => (
+                                            <div key={line.id} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2.5rem] border border-transparent hover:border-emerald-100 transition-all">
+                                                <div className="flex items-center gap-6">
+                                                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center font-black text-[#004d4d] shadow-sm italic">WA</div>
+                                                    <div>
+                                                        <p className="text-sm font-black text-gray-900">{line.name}</p>
+                                                        <p className="text-[10px] font-bold text-gray-400">{line.number}</p>
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => setWhatsappLines(whatsappLines.filter(w => w.id !== line.id))} className="h-10 w-10 bg-white text-gray-300 hover:text-rose-500 rounded-xl transition-all">
+                                                    <Trash2 size={16}/>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="lg:col-span-5 bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
-                                <h3 className="text-xl font-black text-gray-900  italic">Ecosistema social</h3>
-                                <div className="grid grid-cols-2 gap-4">
+                            )}
+                            <div className={`${currentPlan === 'Básico' ? 'lg:col-span-12' : 'lg:col-span-5'} bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm space-y-8`}>
+                                <h3 className="text-xl font-black text-gray-900 italic">Ecosistema social</h3>
+                                <div className={`grid ${currentPlan === 'Básico' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2'} gap-4`}>
                                     {[ 
                                         { id: 'instagram', label: 'Instagram', icon: <Instagram size={24}/>, color: 'text-pink-500', link: socialLinks.instagram, disabled: false }, 
                                         { id: 'facebook', label: 'Facebook', icon: <Facebook size={24}/>, color: 'text-blue-600', link: socialLinks.facebook, disabled: false }, 
