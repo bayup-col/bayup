@@ -1233,23 +1233,48 @@ async def create_public_order(data: dict, db: Session = Depends(get_db)):
         # 4. Registrar actividad para el dueño
         log_activity(db, new_order.tenant_id, new_order.tenant_id, "NEW_PUBLIC_ORDER", f"Nuevo pedido online de {new_order.customer_name}", str(new_order.id))
         
-        # --- AUTOMATIZACIÓN WHATSAPP (Fase 3) ---
-        try:
-            bridge_url = "http://localhost:8001/send"
-            # Mensaje para el Cliente
-            customer_msg = f"¡Hola {new_order.customer_name}! 👋\n\nTu pedido en *{tenant_owner.full_name if tenant_owner else 'la tienda'}* ha sido recibido con éxito. ✅\n\n*ID Pedido:* #{str(new_order.id)[:8]}\n*Total:* ${total_price:,.0f}\n\nEstamos preparando todo. ¡Gracias por confiar en nosotros!"
-            
-            # Limpiar número del cliente (asegurar prefijo 57 si es Colombia y tiene 10 dígitos)
-            c_phone = str(new_order.customer_phone).replace(" ", "").replace("+", "")
-            if len(c_phone) == 10: c_phone = "57" + c_phone
-            if not c_phone.endswith("@c.us"): c_phone += "@c.us"
+        # Obtener información del dueño para notificaciones
+        tenant_owner = db.query(models.User).filter(models.User.id == new_order.tenant_id).first()
+        store_name = tenant_owner.full_name if tenant_owner else "Tu Tienda Bayup"
 
-            import requests
-            requests.post(bridge_url, json={"to": c_phone, "body": customer_msg}, timeout=5)
-            print(f"WhatsApp auto-msg sent to customer: {c_phone}")
+        # --- AUTOMATIZACIÓN DE NOTIFICACIONES (WhatsApp al Dueño, Email al Cliente) ---
+        
+        # 1. WhatsApp al Dueño de la Tienda
+        if tenant_owner and tenant_owner.phone:
+            try:
+                bridge_url = "http://localhost:8001/send"
+                owner_msg = (
+                    f"💰 *¡NUEVA VENTA ONLINE!* 💰\n\n"
+                    f"Hola *{tenant_owner.full_name}*, has recibido un pedido.\n\n"
+                    f"*Cliente:* {new_order.customer_name}\n"
+                    f"*Total:* ${total_price:,.0f} COP\n"
+                    f"*ID:* #{str(new_order.id)[:8]}\n\n"
+                    f"Revisa tu dashboard para gestionar el envío. 🚀"
+                )
+                
+                # Formatear número del dueño
+                owner_phone = str(tenant_owner.phone).replace(" ", "").replace("+", "")
+                if len(owner_phone) == 10: owner_phone = "57" + owner_phone
+                if not owner_phone.endswith("@c.us"): owner_phone += "@c.us"
 
-        except Exception as wa_err:
-            print(f"WhatsApp Automation Error: {wa_err}")
+                requests.post(bridge_url, json={"to": owner_phone, "body": owner_msg}, timeout=5)
+                print(f"✅ WhatsApp de notificación enviado al dueño: {owner_phone}")
+            except Exception as wa_err:
+                print(f"❌ Error WhatsApp Dueño: {wa_err}")
+
+        # 2. Email de Confirmación al Cliente
+        if new_order.customer_email:
+            try:
+                email_service.send_order_confirmation(
+                    customer_email=new_order.customer_email,
+                    customer_name=new_order.customer_name,
+                    order_id=str(new_order.id),
+                    total_price=total_price,
+                    store_name=store_name
+                )
+                print(f"✅ Correo de confirmación enviado al cliente: {new_order.customer_email}")
+            except Exception as mail_err:
+                print(f"❌ Error Email Cliente: {mail_err}")
 
         return {"status": "success", "id": str(new_order.id), "total": total_price}
         

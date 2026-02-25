@@ -117,8 +117,38 @@ def send_password_reset(user_email: str, new_pass: str):
         <div style="{S_BODY}">
             <h2 style="color: #004d4d;">Nueva Clave.</h2>
             <p>Tu clave temporal es: <strong>{new_pass}</strong></p>
-            <div style="text-align: center;"><a href="{BASE_URL}/login" style="{S_BTN}">Iniciar Sesión</a></div>
-        </div>
-    </div>
-    """
-    return send_email(user_email, "Restablecer Clave - Bayup", html)
+                        <div style="text-align: center;"><a href="{BASE_URL}/login" style="{S_BTN}">Iniciar Sesión</a></div>
+                    </div>
+                </div>
+                """
+                return send_email(user_email, "Restablecer Clave - Bayup", html)
+            
+            def send_order_confirmation(customer_email: str, customer_name: str, order_id: str, total_price: float, store_name: str):
+                html = f"""
+                <div style="max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 20px; font-family: Arial, sans-serif;">
+                    <div style="{S_HEADER}">
+                        <h1 style="color: #00f2ff; font-style: italic; margin: 0; font-size: 28px;">BAYUP</h1>
+                        <p style="color: #ffffff; margin-top: 5px; opacity: 0.8;">ORDEN CONFIRMADA</p>
+                    </div>
+                    <div style="{S_BODY}">
+                        <h2 style="color: #004d4d; margin-top: 0;">¡Hola {customer_name}! 👋</h2>
+                        <p>Gracias por tu compra en <strong>{store_name}</strong>. Hemos recibido tu pedido con éxito y estamos trabajando en él.</p>
+                        
+                        <div style="background-color: #f4fdfd; border: 1px dashed #004d4d; padding: 20px; border-radius: 15px; margin: 25px 0; text-align: center;">
+                            <p style="margin: 0; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número de Pedido</p>
+                            <p style="margin: 5px 0; font-size: 24px; font-weight: bold; color: #004d4d;">#{str(order_id)[:8]}</p>
+                            <hr style="border: 0; border-top: 1px solid #cceeee; margin: 15px 0;">
+                            <p style="margin: 0; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px;">Total Pagado</p>
+                            <p style="margin: 5px 0; font-size: 20px; font-weight: bold; color: #004d4d;">${total_price:,.0f} COP</p>
+                        </div>
+            
+                        <p>Te notificaremos en cuanto tu pedido sea enviado. Si tienes alguna duda, puedes contactarnos directamente.</p>
+                        
+                        <div style="text-align: center; margin-top: 30px;">
+                            <p style="font-size: 12px; color: #999;">Bayup InteractiveUP - Potenciando el comercio digital.</p>
+                        </div>
+                    </div>
+                </div>
+                """
+                return send_email(customer_email, f"Confirmación de Pedido #{str(order_id)[:8]} - {store_name}", html)
+            
