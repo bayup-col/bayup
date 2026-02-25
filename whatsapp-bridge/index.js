@@ -34,12 +34,23 @@ io.on('connection', (socket) => {
     }
 });
 
+const fs = require('fs');
+
 client.on('qr', (qr) => {
     connectionStatus = 'qr';
-    console.log('QR GENERATED');
+    console.log('QR GENERATED - PLEASE SCAN SCAN_ME.png');
+    
+    // Guardar en base64 para el socket
     qrcode.toDataURL(qr, (err, url) => {
         lastQRUrl = url;
         io.emit('qr', url);
+    });
+
+    // Guardar como archivo físico para escaneo directo
+    qrcode.toFile('./SCAN_ME.png', qr, {
+        color: { dark: '#000', light: '#FFF' }
+    }, (err) => {
+        if (err) console.error("Error al guardar QR", err);
     });
 });
 
