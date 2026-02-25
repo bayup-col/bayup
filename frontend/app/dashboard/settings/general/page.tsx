@@ -72,10 +72,10 @@ export default function GeneralSettings() {
     const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
     const [whatsappLines, setWhatsappLines] = useState<WhatsAppLine[]>([]);
     const [socialLinks, setSocialLinks] = useState({
-        instagram: "https://instagram.com/bayup",
-        facebook: "https://facebook.com/bayup",
-        tiktok: "https://tiktok.com/@bayup",
-        telegram: "https://t.me/bayup"
+        instagram: "https://www.instagram.com/",
+        facebook: "https://www.facebook.com/?locale=es_LA",
+        tiktok: "https://www.tiktok.com/signup?lang=es",
+        telegram: "#"
     });
 
     const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
@@ -446,10 +446,27 @@ export default function GeneralSettings() {
                             <div className="lg:col-span-5 bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
                                 <h3 className="text-xl font-black text-gray-900  italic">Ecosistema social</h3>
                                 <div className="grid grid-cols-2 gap-4">
-                                    {[ { id: 'instagram', label: 'Instagram', icon: <Instagram size={24}/>, color: 'text-pink-500', link: socialLinks.instagram }, { id: 'facebook', label: 'Facebook', icon: <Facebook size={24}/>, color: 'text-blue-600', link: socialLinks.facebook }, { id: 'tiktok', label: 'TikTok', icon: <TikTokIcon size={24}/>, color: 'text-gray-900', link: socialLinks.tiktok }, { id: 'telegram', label: 'Telegram', icon: <Send size={24}/>, color: 'text-sky-500', link: socialLinks.telegram } ].map((social) => (
-                                        <a key={social.id} href={social.link} target="_blank" rel="noopener noreferrer" className="p-8 rounded-[3rem] bg-gray-50 border border-transparent hover:border-[#004d4d]/20 hover:bg-white hover:shadow-2xl transition-all flex flex-col items-center gap-4 group relative overflow-hidden">
-                                            <div className={`h-14 w-14 bg-white ${social.color} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all`}>{social.icon}</div>
-                                            <span className="text-[10px] font-black  text-gray-900 tracking-widest">{social.label}</span>
+                                    {[ 
+                                        { id: 'instagram', label: 'Instagram', icon: <Instagram size={24}/>, color: 'text-pink-500', link: socialLinks.instagram, disabled: false }, 
+                                        { id: 'facebook', label: 'Facebook', icon: <Facebook size={24}/>, color: 'text-blue-600', link: socialLinks.facebook, disabled: false }, 
+                                        { id: 'tiktok', label: 'TikTok', icon: <TikTokIcon size={24}/>, color: 'text-gray-900', link: socialLinks.tiktok, disabled: false }, 
+                                        { id: 'telegram', label: 'Telegram', icon: <Send size={24}/>, color: 'text-gray-300', link: '#', disabled: true } 
+                                    ].map((social) => (
+                                        <a 
+                                            key={social.id} 
+                                            href={social.disabled ? undefined : social.link} 
+                                            target={social.disabled ? undefined : "_blank"} 
+                                            rel="noopener noreferrer" 
+                                            className={`p-8 rounded-[3rem] bg-gray-50 border border-transparent transition-all flex flex-col items-center gap-4 group relative overflow-hidden ${
+                                                social.disabled ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:border-[#004d4d]/20 hover:bg-white hover:shadow-2xl'
+                                            }`}
+                                        >
+                                            <div className={`h-14 w-14 bg-white ${social.color} rounded-2xl flex items-center justify-center shadow-lg ${!social.disabled && 'group-hover:scale-110'} transition-all`}>
+                                                {social.icon}
+                                            </div>
+                                            <span className="text-[10px] font-black text-gray-900 tracking-widest">
+                                                {social.label} {social.disabled && '(Próximamente)'}
+                                            </span>
                                         </a>
                                     ))}
                                 </div>
