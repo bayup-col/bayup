@@ -279,7 +279,7 @@ export default function GeneralSettings() {
                         { id: 'identidad', label: 'Identidad', icon: <Store size={14}/>, disabled: false }, 
                         { id: 'contacto', label: 'Contacto & web', icon: <MapPin size={14}/>, disabled: false }, 
                         { id: 'finanzas', label: 'Finanzas (Próximamente)', icon: <CreditCard size={14}/>, disabled: true }, 
-                        { id: 'canales', label: 'Canales & social', icon: <Globe size={14}/>, disabled: false } 
+                        { id: 'canales', label: `Canales & social${currentPlan === 'Básico' ? ' (Próximamente)' : ''}`, icon: <Globe size={14}/>, disabled: currentPlan === 'Básico' } 
                     ].map((tab) => {
                         const isActive = activeTab === tab.id;
                         return (
