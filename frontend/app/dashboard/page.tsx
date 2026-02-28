@@ -67,15 +67,25 @@ const PremiumCard = ({ children, className = "", dark = false }: PremiumCardProp
     );
 };
 
-// --- COMPONENTE ESPECIAL PARA MÉTRICAS CON EFECTO AURORA ---
+// --- COMPONENTE ESPECIAL PARA MÉTRICAS CON EFECTO AURORA (BORDE EXTERNO) ---
 const AuroraMetricCard = ({ children, onClick }: { children: React.ReactNode, onClick: () => void }) => {
     return (
-        <div className="relative group cursor-pointer" onClick={onClick}>
-            {/* EL HALO AURORA EXTERNO (SIN AFECTAR EL INTERIOR) */}
-            <div className="absolute inset-0 -m-[2px] rounded-[3rem] bg-[conic-gradient(from_0deg,#00F2FF_0deg,#004d4d_90deg,#9333EA_180deg,#004d4d_270deg,#00F2FF_360deg)] animate-[spin_10s_linear_infinite] opacity-40 blur-[2px] group-hover:opacity-100 transition-opacity duration-700" />
-            <PremiumCard className="h-full border-none">
-                {children}
-            </PremiumCard>
+        <div className="relative group cursor-pointer h-full" onClick={onClick}>
+            {/* EL HALO AURORA (EXTERNO AL CONTENIDO) */}
+            <div className="absolute inset-0 -m-[1.5px] rounded-[3rem] overflow-hidden pointer-events-none">
+                <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-[-300%] bg-[conic-gradient(from_0deg,transparent_0deg,transparent_280deg,#00f2ff_320deg,transparent_360deg)] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                />
+            </div>
+            
+            {/* LA CARD ORIGINAL INTACTA */}
+            <div className="relative z-10 h-full">
+                <PremiumCard className="h-full">
+                    {children}
+                </PremiumCard>
+            </div>
         </div>
     );
 };
