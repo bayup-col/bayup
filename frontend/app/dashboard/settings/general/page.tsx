@@ -46,7 +46,7 @@ export default function GeneralSettings() {
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     
-    const [currentPlan, setCurrentPlan] = useState<'Pro' | 'Empresa' | 'Básico'>('Pro');
+    const [currentPlan, setCurrentPlan] = useState<'Pro' | 'Empresa' | 'Básico'>('Básico');
 
     const [identity, setIdentity] = useState({
         name: "Mi Tienda Bayup",
@@ -279,7 +279,7 @@ export default function GeneralSettings() {
                         { id: 'identidad', label: 'Identidad', icon: <Store size={14}/>, disabled: false }, 
                         { id: 'contacto', label: 'Contacto & web', icon: <MapPin size={14}/>, disabled: false }, 
                         { id: 'finanzas', label: 'Finanzas (Próximamente)', icon: <CreditCard size={14}/>, disabled: true }, 
-                        { id: 'canales', label: `Canales & social${currentPlan === 'Básico' ? ' (Próximamente)' : ''}`, icon: <Globe size={14}/>, disabled: currentPlan === 'Básico' } 
+                        { id: 'canales', label: currentPlan === 'Básico' ? <div className="flex items-center gap-2">Canales & social <Lock size={10} className="text-gray-400"/></div> : 'Canales & social', icon: <Globe size={14}/>, disabled: currentPlan === 'Básico' } 
                     ].map((tab) => {
                         const isActive = activeTab === tab.id;
                         return (
