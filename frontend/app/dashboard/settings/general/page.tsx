@@ -547,7 +547,6 @@ export default function GeneralSettings() {
             </div>
 
             <AnimatePresence>
-            <AnimatePresence>
                 {isGuideOpen && (
                     <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 md:p-12">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsGuideOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -614,6 +613,9 @@ export default function GeneralSettings() {
                         </motion.div>
                     </div>
                 )}
+            </AnimatePresence>
+
+            <AnimatePresence>
                 {isAccountModalOpen && (
                     <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAccountModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
@@ -634,6 +636,9 @@ export default function GeneralSettings() {
                         </motion.div>
                     </div>
                 )}
+            </AnimatePresence>
+
+            <AnimatePresence>
                 {isWhatsappModalOpen && (
                     <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsWhatsappModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
