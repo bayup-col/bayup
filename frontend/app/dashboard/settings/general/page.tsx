@@ -313,8 +313,8 @@ export default function GeneralSettings() {
                         <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
                         <span className="text-[10px] font-black  tracking-[0.3em] text-[#004d4d]/60 italic">Identidad corporativa v2.0</span>
                     </div>
-                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-tight text-[#001A1A] py-2 px-1 overflow-visible">
-                        Info <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block pr-8">general</span>
+                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-[1.5] text-[#001A1A] pt-2 pb-6 px-2 overflow-visible">
+                        Info <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block pb-4 pr-10">general</span>
                     </h1>
                     <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">¡Toda la información de tu empresa en un solo lugar! 🏢</p>
                 </div>
