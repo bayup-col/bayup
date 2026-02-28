@@ -13,8 +13,6 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { ActionButton } from "@/components/landing/ActionButton";
-import OnboardingModal from '@/components/dashboard/OnboardingModal';
-import OnboardingWizard from '@/components/dashboard/OnboardingWizard';
 import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
 import { useToast } from "@/context/toast-context";
 import { apiRequest } from '@/lib/api';
@@ -77,14 +75,9 @@ export default function DashboardPage() {
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
 
   useEffect(() => {
-    // Onboarding eliminado por solicitud del usuario
+    // Onboarding desactivado
   }, []);
 
-  const handleWizardComplete = () => {
-      setIsWizardOpen(false);
-      localStorage.setItem('bayup_onboarding_completed', 'true');
-      showToast("¡Felicidades! Tu terminal Bayup está lista para operar. 🚀", "success");
-  };
   const [activities, setActivities] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [companyName, setCompanyName] = useState('...');
@@ -526,8 +519,6 @@ export default function DashboardPage() {
           </div>
       </PremiumCard>
 
-      <OnboardingModal isOpen={isOnboardingOpen} onClose={() => setIsOnboardingOpen(false)} onComplete={() => {}} />
-      <OnboardingWizard isOpen={isWizardOpen} onComplete={handleWizardComplete} />
       <MetricDetailModal 
         isOpen={!!selectedMetric} 
         onClose={() => setSelectedMetric(null)} 
