@@ -140,6 +140,8 @@ export default function OrdersPage() {
 
     // UI States
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+    const [dateRange, setDateRange] = useState({ start: '', end: '' });
+    const [extraFilters, setExtraFilters] = useState({ source: 'Todos', status: 'Todos' });
     const [isFilterHovered, setIsFilterHovered] = useState(false);
     const [isExportHovered, setIsExportHovered] = useState(false);
     const [isGuideOpen, setIsGuideOpen] = useState(false);
@@ -342,10 +344,18 @@ export default function OrdersPage() {
     const filteredOrders = useMemo(() => {
         return orders.filter(o => {
             const matchesSearch = o.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) || o.id.toLowerCase().includes(searchTerm.toLowerCase());
+            
+            const invDate = new Date(o.created_at);
+            const matchesStart = !dateRange.start || invDate >= new Date(dateRange.start);
+            const matchesEnd = !dateRange.end || invDate <= new Date(dateRange.end);
+            
             const matchesTab = activeTab === 'all' || o.status === activeTab;
-            return matchesSearch && matchesTab;
+            const matchesSource = extraFilters.source === 'Todos' || o.source === extraFilters.source;
+            const matchesStatus = extraFilters.status === 'Todos' || o.status === extraFilters.status;
+
+            return matchesSearch && matchesStart && matchesEnd && matchesTab && matchesSource && matchesStatus;
         });
-    }, [orders, searchTerm, activeTab]);
+    }, [orders, searchTerm, activeTab, dateRange, extraFilters]);
 
     const guideContent = {
         overview: { title: 'Flujo de Ventas', icon: <LayoutGrid size={20}/>, color: 'text-slate-600', description: 'Central de monitoreo transaccional. Aquí ves el ciclo completo de tus ventas.', whyImportant: 'Controlar cada etapa evita pedidos olvidados y mejora el flujo de caja.', kpi: { label: 'Eficiencia Cierre', val: '94%' }, baytTip: 'Prioriza siempre los pedidos "Por Facturar" para agilizar el despacho.' },
@@ -450,8 +460,53 @@ export default function OrdersPage() {
                             className={`h-14 flex items-center gap-2 px-6 rounded-3xl transition-all border ${isFilterPanelOpen ? 'bg-[#004d4d] text-white border-[#004d4d]' : 'bg-white border-white/80 text-slate-500 hover:text-[#004d4d] shadow-sm'}`}
                         >
                             {isFilterPanelOpen ? <FilterX size={20}/> : <Filter size={20}/>}
-                            <AnimatePresence>{isFilterHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black">Filtros</motion.span>}</AnimatePresence>
+                            <AnimatePresence>{isFilterHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest">Filtros avanzados</motion.span>}</AnimatePresence>
                         </motion.button>
+                    </div>
+                </div>
+
+                <AnimatePresence>
+                    {isFilterPanelOpen && (
+                        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="max-w-6xl mx-auto p-8 bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-xl space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-3">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Periodo Desde</label>
+                                    <input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} className="w-full p-4 bg-white/50 border border-gray-100 rounded-2xl outline-none font-bold text-sm focus:border-[#004D4D]/20 transition-all" />
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Periodo Hasta</label>
+                                    <input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} className="w-full p-4 bg-white/50 border border-gray-100 rounded-2xl outline-none font-bold text-sm focus:border-[#004D4D]/20 transition-all" />
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-gray-100/50">
+                                <div className="space-y-3">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Canal de Entrada</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['Todos', 'web', 'WhatsApp', 'Instagram', 'pos'].map(opt => (
+                                            <button key={opt} onClick={() => setExtraFilters({...extraFilters, source: opt})} className={`px-6 py-2.5 rounded-full text-[9px] font-black tracking-widest transition-all ${extraFilters.source === opt ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100 hover:border-[#004D4D]/20'}`}>
+                                                {opt === 'pos' ? 'TIENDA FÍSICA' : opt.toUpperCase()}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Estado Logístico</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['Todos', 'pending', 'processing', 'completed', 'cancelled'].map(opt => (
+                                            <button key={opt} onClick={() => setExtraFilters({...extraFilters, status: opt})} className={`px-6 py-2.5 rounded-full text-[9px] font-black tracking-widest transition-all ${extraFilters.status === opt ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100 hover:border-[#004D4D]/20'}`}>
+                                                {opt === 'pending' ? 'PENDIENTE' : opt === 'processing' ? 'EN PREPARACIÓN' : opt === 'completed' ? 'FINALIZADO' : opt === 'cancelled' ? 'CANCELADO' : 'TODOS'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex justify-end pt-4">
+                                <button onClick={() => { setDateRange({start:'', end:''}); setExtraFilters({source:'Todos', status:'Todos'}); }} className="text-[9px] font-black text-rose-500 uppercase tracking-widest hover:underline">Limpiar filtros de búsqueda</button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
                         <motion.button 
                             layout 
                             onClick={handleExport}
