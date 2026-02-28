@@ -336,7 +336,7 @@ export default function InvoicingPage() {
                                     <span className="text-[10px] font-black tracking-[0.3em] text-[#004d4d]/60 italic">Terminal de facturación</span>
                                 </div>
                                 <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-[1.2] text-[#001A1A] py-2 px-1 overflow-visible">
-                                    Factura<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block pr-6">ción</span>
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block pr-10">Facturación</span>
                                 </h1>
                                 <p className="text-gray-400 font-medium text-lg italic mt-4">¡Lleva el control de todas tus ventas aquí! 💰</p>
                             </div>
