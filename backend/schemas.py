@@ -26,6 +26,7 @@ class Plan(PlanBase):
 class UserBase(BaseModel):
     email: str
     full_name: str | None = None
+    logo_url: str | None = None
     nickname: str | None = None
     phone: str | None = None
     city: str | None = None
@@ -47,6 +48,7 @@ class User(UserBase):
     bank_accounts: List[dict] | None = []
     social_links: dict | None = {}
     whatsapp_lines: List[dict] | None = []
+    logo_url: str | None = None
     permissions: Optional[Dict[str, bool]] = {}
     plan: Optional[Plan] = None
     

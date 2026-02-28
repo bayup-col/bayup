@@ -48,6 +48,7 @@ class User(Base):
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     email = Column(String, unique=True, index=True)
     full_name = Column(String)
+    logo_url = Column(String, nullable=True) # Logo de la tienda
     nickname = Column(String)
     phone = Column(String, nullable=True) # Pilar 2: Para el botón de WhatsApp
     hashed_password = Column(String)

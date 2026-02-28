@@ -127,7 +127,8 @@ export default function GeneralSettings() {
                     const data = await res.json();
                     setIdentity(prev => ({ 
                         ...prev, 
-                        name: data.full_name || prev.name 
+                        name: data.full_name || prev.name,
+                        logo: data.logo_url || prev.logo
                     }));
                     setContact(prev => ({ 
                         ...prev, 
@@ -179,6 +180,7 @@ export default function GeneralSettings() {
                 },
                 body: JSON.stringify({
                     full_name: identity.name,
+                    logo_url: identity.logo,
                     phone: contact.phone,
                     shop_slug: contact.shop_slug,
                     bank_accounts: accounts,
