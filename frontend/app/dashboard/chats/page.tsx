@@ -112,7 +112,7 @@ export default function MensajesPage() {
       try {
           const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
           const currentChat = chats.find(c => c.id === selectedChatId);
-          await fetch(`${apiBaseBase || apiBase}/admin/messages`, {
+          await fetch(`${apiBase}/admin/messages`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({
