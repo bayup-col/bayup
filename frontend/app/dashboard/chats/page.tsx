@@ -4,7 +4,8 @@ import React, { useState, useEffect, useMemo, useRef, memo, useCallback } from '
 import { 
   Search, Send, MoreVertical, Phone, Video, Image as ImageIcon, Paperclip, Smile,
   CheckCheck, ShieldCheck, Activity, MessageSquare, Bot, Globe, ChevronRight, X, Loader2,
-  DollarSign, AlertCircle, TrendingUp, TrendingDown, UserCheck, Zap, Clock, Sparkles
+  DollarSign, AlertCircle, TrendingUp, TrendingDown, UserCheck, Zap, Clock, Sparkles,
+  Target, ShoppingBag
 } from 'lucide-react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useAuth } from "@/context/auth-context";
