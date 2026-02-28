@@ -612,6 +612,51 @@ export default function DashboardPage() {
           </div>
       </PremiumCard>
 
+      {/* MODALES GLOBALES (Z-INDEX MÁXIMO PARA PANTALLA COMPLETA) */}
+      <AnimatePresence>
+          {isCustomReportModalOpen && (
+              <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8">
+                  <motion.div 
+                      initial={{ opacity: 0 }} 
+                      animate={{ opacity: 1 }} 
+                      exit={{ opacity: 0 }} 
+                      onClick={() => setIsCustomReportModalOpen(false)} 
+                      className="fixed inset-0 bg-[#001A1A]/90 backdrop-blur-xl" 
+                  />
+                  <motion.div 
+                      initial={{ scale: 0.9, opacity: 0, y: 40 }} 
+                      animate={{ scale: 1, opacity: 1, y: 0 }} 
+                      exit={{ scale: 0.9, opacity: 0, y: 40 }} 
+                      className="relative bg-white w-full max-w-md rounded-[3.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.5)] p-12 z-10 border border-white/20"
+                  >
+                      <div className="text-center space-y-4 mb-10">
+                          <div className="h-20 w-20 bg-cyan/10 rounded-[2rem] flex items-center justify-center mx-auto text-[#004d4d] shadow-inner"><Calendar size={40}/></div>
+                          <h3 className="text-2xl font-black italic tracking-tighter text-[#001A1A]">Auditar mi <span className="text-[#004d4d]">negocio</span></h3>
+                          <p className="text-xs text-gray-400 font-medium italic">Selecciona el rango de fechas para generar tu reporte inteligente.</p>
+                      </div>
+
+                      <div className="space-y-6">
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Desde el día:</label>
+                              <input type="date" value={customRange.start} onChange={e => setCustomRange({...customRange, start: e.target.value})} className="w-full p-5 bg-gray-50 border-2 border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none font-bold text-sm shadow-inner" />
+                          </div>
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Hasta el día:</label>
+                              <input type="date" value={customRange.end} onChange={e => setCustomRange({...customRange, end: e.target.value})} className="w-full p-5 bg-gray-50 border-2 border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none font-bold text-sm shadow-inner" />
+                          </div>
+                      </div>
+
+                      <div className="mt-10 grid grid-cols-1 gap-4">
+                          <button onClick={handleGenerateCustomReport} className="w-full py-6 bg-gray-900 text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3">
+                              <Download size={18} className="text-cyan"/> Descargar Reporte
+                          </button>
+                          <button onClick={() => setIsCustomReportModalOpen(false)} className="w-full py-4 text-[10px] font-black text-gray-300 uppercase tracking-widest hover:text-rose-500 transition-colors">Cancelar</button>
+                      </div>
+                  </motion.div>
+              </div>
+          )}
+      </AnimatePresence>
+
       <MetricDetailModal 
         isOpen={!!selectedMetric} 
         onClose={() => setSelectedMetric(null)} 
