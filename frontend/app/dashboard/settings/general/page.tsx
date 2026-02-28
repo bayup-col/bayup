@@ -42,7 +42,7 @@ export default function GeneralSettings() {
     const { token } = useAuth();
     const { showToast } = useToast();
     
-    const [activeTab, setActiveTab] = useState<'identidad' | 'contacto' | 'finanzas' | 'canales'>('identidad');
+    const [activeTab, setActiveTab] = useState<'perfil' | 'finanzas' | 'canales'>('perfil');
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     
@@ -278,8 +278,7 @@ export default function GeneralSettings() {
             <div className="flex items-center justify-center gap-6 relative z-20">
                 <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl flex items-center overflow-x-auto relative">
                     {[ 
-                        { id: 'identidad', label: 'Identidad', icon: <Store size={14}/>, disabled: false }, 
-                        { id: 'contacto', label: 'Contacto & web', icon: <MapPin size={14}/>, disabled: false }, 
+                        { id: 'perfil', label: 'Información de Tienda', icon: <Store size={14}/>, disabled: false }, 
                         { id: 'finanzas', label: 'Finanzas (Próximamente)', icon: <CreditCard size={14}/>, disabled: true }, 
                         { id: 'canales', label: currentPlan === 'Básico' ? <div className="flex items-center gap-2">Canales & social <Lock size={10} className="text-gray-400"/></div> : 'Canales & social', icon: <Globe size={14}/>, disabled: currentPlan === 'Básico' } 
                     ].map((tab) => {
@@ -307,102 +306,123 @@ export default function GeneralSettings() {
 
             <div className="px-4">
                 <AnimatePresence mode="wait">
-                    {activeTab === 'identidad' && (
-                        <motion.div key="id" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                            <div className="lg:col-span-4 flex flex-col items-center gap-6 bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm">
-                                <div className="relative group cursor-pointer" onClick={() => document.getElementById('logo-file')?.click()}>
-                                    <div className="h-48 w-48 rounded-[3.5rem] bg-gray-900 flex items-center justify-center text-white text-6xl font-black border-8 border-white shadow-2xl relative overflow-hidden">
-                                        {identity.logo ? <img src={identity.logo} className="w-full h-full object-cover" /> : identity.name.charAt(0)}
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all"><Camera className="text-[#00f2ff]" /></div>
-                                    </div>
-                                    <input id="logo-file" type="file" hidden accept="image/*" onChange={(e) => {
-                                        const f = e.target.files?.[0];
-                                        if(f) { const r = new FileReader(); r.onloadend = () => setIdentity({...identity, logo: r.result as string}); r.readAsDataURL(f); }
-                                    }}/>
-                                </div>
-                                <div className="text-center">
-                                    <h3 className="text-xl font-black text-gray-900  italic tracking-tight">{identity.name}</h3>
-                                    <p className="text-[10px] font-black text-gray-400  mt-1 tracking-widest">{identity.category}</p>
-                                </div>
-                            </div>
-                            <div className="lg:col-span-8 bg-white p-12 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400  tracking-widest ml-2">Nombre de la empresa</label>
-                                        <input 
-                                            type="text" 
-                                            value={identity.name} 
-                                            onChange={(e) => {
-                                                const newName = e.target.value;
-                                                setIdentity({...identity, name: newName});
-                                                window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: newName }));
-                                            }} 
-                                            className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" 
-                                        />
-                                    </div>
-                                    <PremiumSelect label="Nicho de mercado" value={identity.category} onChange={(v:any) => setIdentity({...identity, category: v})} options={categoriesOptions} icon={LayoutGrid} />
-                                </div>
-                                <div className="space-y-2 pt-4">
-                                    <label className="text-[10px] font-black text-gray-400  tracking-widest ml-2">Historia / biografía</label>
-                                    <textarea rows={4} value={identity.story} onChange={(e) => setIdentity({...identity, story: e.target.value})} className="w-full p-6 bg-gray-50 rounded-[2.5rem] border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-medium shadow-inner resize-none" />
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {activeTab === 'contacto' && (
-                        <motion.div key="contact" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <div className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
-                                <div className="flex items-center gap-3 mb-4"><div className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><Mail size={20}/></div><h4 className="text-sm font-black  tracking-widest">Atención al cliente</h4></div>
-                                <div className="space-y-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400  tracking-widest ml-2">Email de soporte</label>
-                                        <input value={contact.email} onChange={e => setContact({...contact, email: e.target.value})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validateEmail(contact.email) ? 'border-transparent' : 'border-rose-200'}`} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400  tracking-widest ml-2">Teléfono público</label>
-                                        <input maxLength={10} value={contact.phone} onChange={e => setContact({...contact, phone: e.target.value.replace(/\D/g, '')})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validatePhone(contact.phone) ? 'border-transparent' : 'border-rose-200'}`} />
-                                    </div>
-                                    
-                                    <div className="space-y-4 pt-4 border-t border-gray-100">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-[#004d4d]  tracking-widest ml-2 flex items-center gap-2">
-                                                <Zap size={12} /> Link de tienda único (slug)
-                                            </label>
-                                            <div className="relative group">
-                                                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 text-xs font-bold">bayup.com.co/shop/</span>
-                                                <input 
-                                                    value={contact.shop_slug} 
-                                                    onChange={e => setContact({...contact, shop_slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} 
-                                                    placeholder="mi-tienda"
-                                                    className="w-full p-5 pl-36 bg-[#004d4d]/5 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-black text-[#004d4d] shadow-inner" 
-                                                />
-                                            </div>
-                                            <p className="text-[9px] text-gray-400 ml-2 italic">Este es el link que pondrás en tu Instagram o TikTok.</p>
+                    {activeTab === 'perfil' && (
+                        <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-12">
+                            {/* SECCIÓN 1: IDENTIDAD Y MARCA */}
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                                <div className="lg:col-span-4 flex flex-col items-center gap-6 bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm">
+                                    <div className="relative group cursor-pointer" onClick={() => document.getElementById('logo-file')?.click()}>
+                                        <div className="h-48 w-48 rounded-[3.5rem] bg-gray-900 flex items-center justify-center text-white text-6xl font-black border-8 border-white shadow-2xl relative overflow-hidden">
+                                            {identity.logo ? <img src={identity.logo} className="w-full h-full object-cover" /> : identity.name.charAt(0)}
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all"><Camera className="text-[#00f2ff]" /></div>
                                         </div>
+                                        <input id="logo-file" type="file" hidden accept="image/*" onChange={(e) => {
+                                            const f = e.target.files?.[0];
+                                            if(f) { const r = new FileReader(); r.onloadend = () => setIdentity({...identity, logo: r.result as string}); r.readAsDataURL(f); }
+                                        }}/>
+                                    </div>
+                                    <div className="text-center">
+                                        <h3 className="text-xl font-black text-gray-900 italic tracking-tight">{identity.name}</h3>
+                                        <p className="text-[10px] font-black text-gray-400 mt-1 tracking-widest uppercase">{identity.category}</p>
+                                    </div>
+                                </div>
+                                <div className="lg:col-span-8 bg-white p-12 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-gray-400 tracking-widest ml-2 uppercase">Nombre de la empresa</label>
+                                            <input 
+                                                type="text" 
+                                                value={identity.name} 
+                                                onChange={(e) => {
+                                                    const newName = e.target.value;
+                                                    setIdentity({...identity, name: newName});
+                                                    window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: newName }));
+                                                }} 
+                                                className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" 
+                                            />
+                                        </div>
+                                        <PremiumSelect label="NICHO DE MERCADO" value={identity.category} onChange={(v:any) => setIdentity({...identity, category: v})} options={categoriesOptions} icon={LayoutGrid} />
+                                    </div>
+                                    <div className="space-y-2 pt-4">
+                                        <label className="text-[10px] font-black text-gray-400 tracking-widest ml-2 uppercase">Historia / biografía corporativa</label>
+                                        <textarea rows={3} value={identity.story} onChange={(e) => setIdentity({...identity, story: e.target.value})} className="w-full p-6 bg-gray-50 rounded-[2.5rem] border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-medium shadow-inner resize-none" />
+                                    </div>
+                                </div>
+                            </div>
 
-                                        <div className="flex flex-col gap-3">
+                            {/* SECCIÓN 2: CONTACTO Y TIENDA ONLINE */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <div className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
+                                    <div className="flex items-center gap-3 mb-4"><div className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><Mail size={20}/></div><h4 className="text-sm font-black tracking-widest uppercase">Atención al cliente</h4></div>
+                                    <div className="space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 tracking-widest ml-2 uppercase">Email de soporte</label>
+                                                <input value={contact.email} onChange={e => setContact({...contact, email: e.target.value})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validateEmail(contact.email) ? 'border-transparent' : 'border-rose-200'}`} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 tracking-widest ml-2 uppercase">Teléfono público</label>
+                                                <input maxLength={10} value={contact.phone} onChange={e => setContact({...contact, phone: e.target.value.replace(/\D/g, '')})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validatePhone(contact.phone) ? 'border-transparent' : 'border-rose-200'}`} />
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="space-y-4 pt-6 border-t border-gray-100">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-[#004d4d] tracking-widest ml-2 flex items-center gap-2 uppercase">
+                                                    <Zap size={12} /> Link de tienda único (slug)
+                                                </label>
+                                                <div className="relative group">
+                                                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 text-xs font-bold">bayup.com.co/shop/</span>
+                                                    <input 
+                                                        value={contact.shop_slug} 
+                                                        onChange={e => setContact({...contact, shop_slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} 
+                                                        placeholder="mi-tienda"
+                                                        className="w-full p-5 pl-36 bg-[#004d4d]/5 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-black text-[#004d4d] shadow-inner" 
+                                                    />
+                                                </div>
+                                                <p className="text-[9px] text-gray-400 ml-2 italic">Este es el link que pondrás en tu Instagram o TikTok.</p>
+                                            </div>
+
                                             <button 
                                                 onClick={() => window.open(`/shop/${contact.shop_slug || 'preview'}`, '_blank')}
                                                 disabled={!contact.shop_slug}
-                                                className="flex items-center justify-between p-5 bg-gray-900 text-white rounded-2xl group hover:bg-black transition-all disabled:opacity-50"
+                                                className="w-full flex items-center justify-between p-5 bg-gray-900 text-white rounded-2xl group hover:bg-black transition-all disabled:opacity-50"
                                             >
-                                                <span className="text-[10px] font-black  tracking-widest">Ver mi tienda ahora</span>
+                                                <span className="text-[10px] font-black tracking-widest uppercase">Ver mi tienda ahora</span>
                                                 <ExternalLink size={16} className="text-[#00f2ff]"/>
                                             </button>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="bg-[#001a1a] p-12 rounded-[4rem] text-white relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12"><MapPin size={250} /></div>
-                                <div className="relative z-10 space-y-8">
-                                    <div className="flex items-center gap-3"><div className="h-10 w-10 bg-white/10 text-[#00f2ff] rounded-xl flex items-center justify-center"><MapPin size={20}/></div><h4 className="text-sm font-black  tracking-widest">Ubicación</h4></div>
-                                    <div className="space-y-6">
-                                        <input value={contact.address} onChange={e => setContact({...contact, address: e.target.value})} className="w-full p-5 bg-white/5 border-2 border-white/10 rounded-2xl outline-none text-sm font-bold" />
-                                        <div className="grid grid-cols-2 gap-6">
-                                            <input value={contact.city} onChange={e => setContact({...contact, city: e.target.value})} className="w-full p-5 bg-white/5 border-2 border-white/10 rounded-2xl outline-none text-sm font-bold" />
-                                            <input value={contact.country} onChange={e => setContact({...contact, country: e.target.value})} className="w-full p-5 bg-white/5 border-2 border-white/10 rounded-2xl outline-none text-sm font-bold" />
+
+                                <div className="bg-[#001a1a] p-12 rounded-[4rem] text-white relative overflow-hidden flex flex-col justify-between">
+                                    <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12"><MapPin size={250} /></div>
+                                    <div className="relative z-10 space-y-8">
+                                        <div className="flex items-center gap-3"><div className="h-10 w-10 bg-white/10 text-[#00f2ff] rounded-xl flex items-center justify-center"><MapPin size={20}/></div><h4 className="text-sm font-black tracking-widest uppercase">Ubicación física</h4></div>
+                                        <div className="space-y-6">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-white/40 tracking-widest ml-2 uppercase">Dirección principal</label>
+                                                <input value={contact.address} onChange={e => setContact({...contact, address: e.target.value})} className="w-full p-5 bg-white/5 border-2 border-white/10 rounded-2xl outline-none text-sm font-bold" />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-6">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-white/40 tracking-widest ml-2 uppercase">Ciudad</label>
+                                                    <input value={contact.city} onChange={e => setContact({...contact, city: e.target.value})} className="w-full p-5 bg-white/5 border-2 border-white/10 rounded-2xl outline-none text-sm font-bold" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-white/40 tracking-widest ml-2 uppercase">País</label>
+                                                    <input value={contact.country} onChange={e => setContact({...contact, country: e.target.value})} className="w-full p-5 bg-white/5 border-2 border-white/10 rounded-2xl outline-none text-sm font-bold" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="relative z-10 mt-8 p-6 bg-white/5 rounded-[2.5rem] border border-white/10">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-12 w-12 bg-[#00f2ff]/20 text-[#00f2ff] rounded-2xl flex items-center justify-center shrink-0"><Clock size={20}/></div>
+                                            <div>
+                                                <h5 className="text-[10px] font-black tracking-widest uppercase text-white/60">Horario de operación</h5>
+                                                <input value={contact.hours} onChange={e => setContact({...contact, hours: e.target.value})} className="bg-transparent border-none outline-none text-sm font-bold w-full p-0" />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
