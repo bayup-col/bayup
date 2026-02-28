@@ -233,34 +233,49 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <PremiumCard dark={theme === 'dark'} className="lg:col-span-8 p-12 min-h-[450px]">
                 <div className="flex items-center justify-between mb-12">
-                    <div className="flex items-center gap-4"><div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" /><span className="text-[10px] font-black text-emerald-500 tracking-[0.4em] uppercase">Tráfico en Tiempo Real</span></div>
-                    <div className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><Globe size={12} className="text-cyan" /> bayup.com.co/shop/{companyName.toLowerCase().replace(/ /g, '-')}</div>
+                    <div className="flex items-center gap-4">
+                        <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className={`text-[10px] font-black tracking-[0.4em] uppercase ${theme === 'dark' ? 'text-emerald-500' : 'text-[#004d4d]'}`}>Tráfico en Tiempo Real</span>
+                    </div>
+                    <div className={`px-4 py-1.5 border rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${theme === 'dark' ? 'bg-white/5 border-white/10 text-gray-400' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
+                        <Globe size={12} className="text-cyan" /> bayup.com.co/shop/{companyName.toLowerCase().replace(/ /g, '-')}
+                    </div>
                 </div>
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
-                    <h2 className="text-8xl font-black text-white italic tracking-tighter leading-none mb-4 flex items-center gap-4">4 <span className="text-2xl text-cyan not-italic tracking-normal">Online</span></h2>
-                    <p className="text-gray-400 text-base font-medium italic">Personas navegando tu tienda ahora</p>
+                    <h2 className={`text-8xl font-black italic tracking-tighter leading-none mb-4 flex items-center gap-4 ${theme === 'dark' ? 'text-white' : 'text-[#001A1A]'}`}>
+                        4 <span className="text-2xl text-cyan not-italic tracking-normal">Online</span>
+                    </h2>
+                    <p className={`text-base font-medium italic ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Personas navegando tu tienda ahora</p>
                 </div>
-                <div className="mt-12 grid grid-cols-3 gap-8 pt-10 border-t border-white/5">
-                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Récord</p><span className="text-xl font-black text-white italic">42 Visitas</span></div>
-                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Día Pico</p><span className="text-xl font-black text-white italic">Sábados</span></div>
-                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Hora Pico</p><span className="text-xl font-black text-white italic">8:00 PM</span></div>
+                <div className={`mt-12 grid grid-cols-3 gap-8 pt-10 border-t ${theme === 'dark' ? 'border-white/5' : 'border-gray-100'}`}>
+                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Récord</p><span className={`text-xl font-black italic ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>42 Visitas</span></div>
+                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Día Pico</p><span className={`text-xl font-black italic ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Sábados</span></div>
+                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Hora Pico</p><span className={`text-xl font-black italic ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>8:00 PM</span></div>
                 </div>
             </PremiumCard>
             <PremiumCard dark={theme === 'dark'} className="lg:col-span-4 p-10 flex flex-col justify-between">
                 <div className="space-y-8">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-6">
-                        <div className="flex items-center gap-3"><Activity size={20} className="text-cyan"/><h4 className="text-xs font-black tracking-widest text-white">Actividad Live</h4></div>
+                    <div className={`flex items-center justify-between border-b pb-6 ${theme === 'dark' ? 'border-white/5' : 'border-gray-100'}`}>
+                        <div className="flex items-center gap-3">
+                            <Activity size={20} className="text-cyan"/>
+                            <h4 className={`text-xs font-black tracking-widest ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Actividad Live</h4>
+                        </div>
                     </div>
                     <div className="space-y-6">
                         {activities.length > 0 ? activities.map((act, i) => (
                             <div key={i} className="flex items-center gap-4 group/item">
-                                <div className="h-10 w-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400 group-hover/item:text-cyan transition-all"><RefreshCw size={16}/></div>
-                                <div className="flex-1 min-w-0"><p className="text-[11px] font-black text-white truncate">{act.user_name || 'Sistema'}</p><p className="text-[9px] text-gray-500 truncate font-medium italic">{act.detail}</p></div>
+                                <div className={`h-10 w-10 rounded-2xl flex items-center justify-center transition-all ${theme === 'dark' ? 'bg-white/5 text-gray-400 group-hover/item:text-cyan' : 'bg-gray-50 text-gray-400 group-hover/item:text-[#004d4d]'}`}>
+                                    <RefreshCw size={16}/>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className={`text-[11px] font-black truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{act.user_name || 'Sistema'}</p>
+                                    <p className="text-[9px] text-gray-500 truncate font-medium italic">{act.detail}</p>
+                                </div>
                             </div>
                         )) : (<div className="py-12 text-center space-y-4"><div className="h-12 w-12 border-4 border-white/5 border-t-cyan rounded-full animate-spin mx-auto" /><p className="text-[10px] font-black text-gray-500">Sincronizando flujo...</p></div>)}
                     </div>
                 </div>
-                <button onClick={loadDashboardData} className="w-full py-4 bg-white/5 rounded-2xl text-[9px] font-black text-gray-400 hover:bg-cyan/10 hover:text-cyan transition-all uppercase tracking-widest">Actualizar terminal</button>
+                <button onClick={loadDashboardData} className={`w-full py-4 rounded-2xl text-[9px] font-black transition-all uppercase tracking-widest ${theme === 'dark' ? 'bg-white/5 text-gray-400 hover:bg-cyan/10 hover:text-cyan' : 'bg-gray-50 text-gray-400 hover:bg-[#004d4d] hover:text-white'}`}>Actualizar terminal</button>
             </PremiumCard>
         </div>
 
