@@ -173,6 +173,25 @@ export default function InvoicingPage() {
 
     useEffect(() => { loadData(); }, [loadData]);
 
+    // --- COMPONENTE ESPECIAL AURORA (SÓLO BORDE) ---
+    const AuroraMetricCard = ({ children, onClick }: { children: React.ReactNode, onClick: () => void }) => {
+        return (
+            <div className="relative group cursor-pointer h-full perspective-1000" onClick={onClick}>
+                <div className="absolute inset-0 -m-[2px] rounded-[3rem] overflow-hidden pointer-events-none z-0">
+                    <motion.div 
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                        style={{ willChange: 'transform' }}
+                        className="absolute inset-[-150%] bg-[conic-gradient(from_0deg,transparent_0deg,#00F2FF_20deg,#10B981_40deg,#9333EA_60deg,transparent_80deg,transparent_360deg)] opacity-40 group-hover:opacity-100 transition-opacity duration-700 blur-[8px] transform-gpu"
+                    />
+                </div>
+                <div className="relative z-10 h-full transform-gpu">
+                    {children}
+                </div>
+            </div>
+        );
+    };
+
     const handleViewDetail = async (inv: PastInvoice) => {
         setSelectedInvoice(inv);
         setFullSelectedOrder(null);
@@ -329,7 +348,23 @@ export default function InvoicingPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
                             {invoicingKpis.map((k, i) => (
-                                <div key={i} onClick={() => setSelectedMetric(k)}><PremiumCard className="p-8"><div className="flex justify-between items-start mb-6"><div className={`h-14 w-14 rounded-2xl flex items-center justify-center border border-white/50 ${k.bg} ${k.color}`}>{k.icon}</div></div><div><p className="text-[10px] font-black text-gray-400 tracking-widest mb-1.5">{k.label}</p><h3 className="text-3xl font-black text-gray-900 tracking-tighter italic"><AnimatedNumber value={k.value} type={k.isSimple ? 'simple' : 'currency'} /></h3></div></PremiumCard></div>
+                                <div key={i}>
+                                    <AuroraMetricCard onClick={() => setSelectedMetric(k)}>
+                                        <PremiumCard className="p-8 border-none bg-white/80 backdrop-blur-2xl">
+                                            <div className="flex justify-between items-start mb-6">
+                                                <div className={`h-14 w-14 rounded-2xl flex items-center justify-center border border-white/50 ${k.bg} ${k.color}`}>
+                                                    {k.icon}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-gray-400 tracking-widest mb-1.5">{k.label}</p>
+                                                <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">
+                                                    <AnimatedNumber value={k.value} type={k.isSimple ? 'simple' : 'currency'} />
+                                                </h3>
+                                            </div>
+                                        </PremiumCard>
+                                    </AuroraMetricCard>
+                                </div>
                             ))}
                         </div>
 
