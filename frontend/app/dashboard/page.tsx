@@ -71,12 +71,12 @@ const PremiumCard = ({ children, className = "", dark = false }: PremiumCardProp
 const AuroraMetricCard = ({ children, onClick }: { children: React.ReactNode, onClick: () => void }) => {
     return (
         <div className="relative group cursor-pointer h-full" onClick={onClick}>
-            {/* EL HALO AURORA (EXTERNO AL CONTENIDO) */}
-            <div className="absolute inset-0 -m-[1.5px] rounded-[3rem] overflow-hidden pointer-events-none">
+            {/* EL HALO AURORA (MÁS VISTOSO Y ELEGANTE) */}
+            <div className="absolute inset-0 -m-[3px] rounded-[3rem] overflow-hidden pointer-events-none">
                 <motion.div 
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                    className="absolute inset-[-300%] bg-[conic-gradient(from_0deg,transparent_0deg,transparent_280deg,#00f2ff_320deg,transparent_360deg)] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-[-250%] bg-[conic-gradient(from_0deg,transparent_0deg,#00F2FF_15deg,#10B981_30deg,#9333EA_45deg,transparent_60deg,transparent_360deg)] opacity-50 group-hover:opacity-100 transition-opacity duration-700 blur-[6px]"
                 />
             </div>
             
