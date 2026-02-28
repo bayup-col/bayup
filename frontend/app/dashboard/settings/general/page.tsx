@@ -329,9 +329,10 @@ export default function GeneralSettings() {
                     {[ 
                         { id: 'perfil', label: 'Información de Tienda', icon: <Store size={14}/>, disabled: false }, 
                         { id: 'finanzas', label: 'Finanzas (Próximamente)', icon: <CreditCard size={14}/>, disabled: true }, 
-                        { id: 'canales', label: currentPlan === 'Básico' ? <div className="flex items-center gap-2">Canales & social <Lock size={10} className="text-gray-400"/></div> : 'Canales & social', icon: <Globe size={14}/>, disabled: currentPlan === 'Básico' } 
+                        { id: 'canales', label: currentPlan === 'Básico' ? 'Canales & social' : 'Canales & social', icon: <Globe size={14}/>, disabled: currentPlan === 'Básico' } 
                     ].map((tab) => {
                         const isActive = activeTab === tab.id;
+                        const isLocked = tab.id === 'canales' && currentPlan === 'Básico';
                         return (
                             <button 
                                 key={tab.id} 
@@ -343,7 +344,9 @@ export default function GeneralSettings() {
                                 {isActive && (
                                     <motion.div layoutId="generalTabGlow" className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
                                 )}
-                                {tab.icon} {tab.label}
+                                {tab.icon} 
+                                {tab.label}
+                                {isLocked && <Lock size={10} className="ml-1 text-gray-300"/>}
                             </button>
                         );
                     })}
