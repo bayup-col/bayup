@@ -445,6 +445,7 @@ def update_user_profile(data: dict, db: Session = Depends(get_db), current_user:
 
     # 2. Actualizar datos básicos
     current_user.full_name = data.get("full_name", current_user.full_name)
+    current_user.logo_url = data.get("logo_url", current_user.logo_url)
     current_user.phone = data.get("phone", current_user.phone)
     
     # 3. Actualizar estructuras JSON (Configuración avanzada)
