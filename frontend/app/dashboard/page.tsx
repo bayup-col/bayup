@@ -57,19 +57,26 @@ const PremiumCard = ({ children, className = "", dark = false }: PremiumCardProp
             onMouseLeave={() => { setIsHovered(false); setGlare(g => ({...g, op: 0})); }}
             animate={{ scale: isHovered ? 1.02 : 1 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className={`relative group p-[2px] rounded-[3rem] overflow-hidden isolate shadow-2xl transition-all duration-500 ${className}`}
+            className={`rounded-[3rem] border transition-all duration-500 relative overflow-hidden isolate ${dark ? 'bg-[#001A1A] border-white/5 shadow-2xl' : 'bg-white/40 backdrop-blur-xl border-white/80 shadow-xl'} ${className}`}
         >
-            {/* EFECTO AURORA BOREALIS (BORDE ANIMADO) */}
-            <div className="absolute inset-[-200%] bg-[conic-gradient(from_0deg,#00F2FF_0deg,#004d4d_90deg,#9333EA_180deg,#004d4d_270deg,#00F2FF_360deg)] animate-[spin_8s_linear_infinite] opacity-30 group-hover:opacity-100 transition-opacity duration-700" />
-            
-            {/* CONTENIDO DE LA CARD */}
-            <div className={`relative h-full w-full rounded-[2.9rem] backdrop-blur-3xl transition-colors duration-500 z-10 ${dark ? 'bg-[#001a1a]/95 border-white/5' : 'bg-white/90 border-white/80'}`}>
-                <div className="absolute inset-0 pointer-events-none transition-opacity duration-300"
-                     style={{ opacity: glare.op, background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, ${dark ? 'rgba(0,242,255,0.2)' : 'white'} 0%, transparent 60%)`, zIndex: 11 }} />
-                <div className="h-full relative z-[12]">{children}</div>
-                <div className={`absolute -bottom-20 -right-20 h-40 w-40 blur-[80px] rounded-full pointer-events-none ${dark ? 'bg-[#00f2ff]/10' : 'bg-[#004d4d]/5'}`} />
-            </div>
+            <div className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+                 style={{ opacity: glare.op, background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, ${dark ? 'rgba(0,242,255,0.2)' : 'white'} 0%, transparent 60%)`, zIndex: 1 }} />
+            <div className="h-full relative z-[2]">{children}</div>
+            <div className={`absolute -bottom-20 -right-20 h-40 w-40 blur-[80px] rounded-full pointer-events-none ${dark ? 'bg-[#00f2ff]/10' : 'bg-[#004d4d]/5'}`} />
         </motion.div>
+    );
+};
+
+// --- COMPONENTE ESPECIAL PARA MÉTRICAS CON EFECTO AURORA ---
+const AuroraMetricCard = ({ children, onClick }: { children: React.ReactNode, onClick: () => void }) => {
+    return (
+        <div className="relative group cursor-pointer" onClick={onClick}>
+            {/* EL HALO AURORA EXTERNO (SIN AFECTAR EL INTERIOR) */}
+            <div className="absolute inset-0 -m-[2px] rounded-[3rem] bg-[conic-gradient(from_0deg,#00F2FF_0deg,#004d4d_90deg,#9333EA_180deg,#004d4d_270deg,#00F2FF_360deg)] animate-[spin_10s_linear_infinite] opacity-40 blur-[2px] group-hover:opacity-100 transition-opacity duration-700" />
+            <PremiumCard className="h-full border-none">
+                {children}
+            </PremiumCard>
+        </div>
     );
 };
 
@@ -347,8 +354,10 @@ export default function DashboardPage() {
         {/* 2. GRID DE MÉTRICAS MAESTRAS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {kpis.map((kpi, i) => (
-              <div key={i} onClick={() => setSelectedMetric(kpi)} className="cursor-pointer">
-                  <MetricKPI {...kpi} />
+              <div key={i}>
+                  <AuroraMetricCard onClick={() => setSelectedMetric(kpi)}>
+                      <MetricKPI {...kpi} />
+                  </AuroraMetricCard>
               </div>
           ))}
       </div>
