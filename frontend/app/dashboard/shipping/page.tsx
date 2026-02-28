@@ -138,7 +138,7 @@ export default function ShippingPage() {
                 customer: { 
                     name: s.recipient_name || 'Cliente', 
                     city: s.destination_address || 'Sin dirección',
-                    phone: '' // Podríamos traerlo del pedido si fuera necesario
+                    phone: s.recipient_phone || '' 
                 },
                 last_update: s.updated_at
             }));

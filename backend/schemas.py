@@ -187,6 +187,7 @@ class ShipmentBase(BaseModel):
     order_id: uuid.UUID
     status: str = "pending_packing"
     recipient_name: str
+    recipient_phone: Optional[str] = None
     destination_address: str
     carrier: Optional[str] = None
     tracking_number: Optional[str] = None

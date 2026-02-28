@@ -323,6 +323,7 @@ class Shipment(Base):
     tenant_id = Column(GUID(), ForeignKey("users.id"))
     status = Column(String, default="pending_packing")
     recipient_name = Column(String)
+    recipient_phone = Column(String, nullable=True) # Teléfono de contacto logístico
     destination_address = Column(String)
     carrier = Column(String, nullable=True)
     tracking_number = Column(String, nullable=True)
