@@ -70,19 +70,20 @@ const PremiumCard = ({ children, className = "", dark = false }: PremiumCardProp
 // --- COMPONENTE ESPECIAL PARA MÉTRICAS CON EFECTO AURORA (BORDE EXTERNO) ---
 const AuroraMetricCard = ({ children, onClick }: { children: React.ReactNode, onClick: () => void }) => {
     return (
-        <div className="relative group cursor-pointer h-full" onClick={onClick}>
-            {/* EL HALO AURORA (MÁS VISTOSO Y ELEGANTE) */}
-            <div className="absolute inset-0 -m-[3px] rounded-[3rem] overflow-hidden pointer-events-none">
+        <div className="relative group cursor-pointer h-full perspective-1000" onClick={onClick}>
+            {/* EL HALO AURORA (OPTIMIZADO PARA FLUIDEZ EXTREMA) */}
+            <div className="absolute inset-0 -m-[2px] rounded-[3rem] overflow-hidden pointer-events-none z-0">
                 <motion.div 
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-                    className="absolute inset-[-250%] bg-[conic-gradient(from_0deg,transparent_0deg,#00F2FF_15deg,#10B981_30deg,#9333EA_45deg,transparent_60deg,transparent_360deg)] opacity-50 group-hover:opacity-100 transition-opacity duration-700 blur-[6px]"
+                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                    style={{ willChange: 'transform' }}
+                    className="absolute inset-[-150%] bg-[conic-gradient(from_0deg,transparent_0deg,#00F2FF_20deg,#10B981_40deg,#9333EA_60deg,transparent_80deg,transparent_360deg)] opacity-40 group-hover:opacity-100 transition-opacity duration-700 blur-[8px] transform-gpu"
                 />
             </div>
             
             {/* LA CARD ORIGINAL INTACTA */}
-            <div className="relative z-10 h-full">
-                <PremiumCard className="h-full">
+            <div className="relative z-10 h-full transform-gpu">
+                <PremiumCard className="h-full border-none shadow-none bg-white/80 backdrop-blur-2xl">
                     {children}
                 </PremiumCard>
             </div>
