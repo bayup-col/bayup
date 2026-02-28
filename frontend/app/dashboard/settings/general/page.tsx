@@ -366,11 +366,37 @@ export default function GeneralSettings() {
                                     <div className="relative group cursor-pointer" onClick={() => document.getElementById('logo-file')?.click()}>
                                         <div className="h-48 w-48 rounded-[3.5rem] bg-gray-900 flex items-center justify-center text-white text-6xl font-black border-8 border-white shadow-2xl relative overflow-hidden">
                                             {identity.logo ? <img src={identity.logo} className="w-full h-full object-cover" /> : identity.name.charAt(0)}
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all"><Camera className="text-[#00f2ff]" /></div>
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                                                {isSaving ? <Loader2 className="animate-spin text-cyan" /> : <Camera className="text-[#00f2ff]" />}
+                                            </div>
                                         </div>
-                                        <input id="logo-file" type="file" hidden accept="image/*" onChange={(e) => {
+                                        <input id="logo-file" type="file" hidden accept="image/*" onChange={async (e) => {
                                             const f = e.target.files?.[0];
-                                            if(f) { const r = new FileReader(); r.onloadend = () => setIdentity({...identity, logo: r.result as string}); r.readAsDataURL(f); }
+                                            if(!f || !token) return;
+                                            
+                                            setIsSaving(true);
+                                            try {
+                                                const formData = new FormData();
+                                                formData.append('file', f);
+                                                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                                                const res = await fetch(`${apiUrl}/admin/upload-image`, {
+                                                    method: 'POST',
+                                                    headers: { 'Authorization': `Bearer ${token}` },
+                                                    body: formData
+                                                });
+                                                if (res.ok) {
+                                                    const data = await res.json();
+                                                    setIdentity({...identity, logo: data.url});
+                                                    showToast("Logo subido correctamente", "success");
+                                                } else {
+                                                    showToast("Error al subir imagen", "error");
+                                                }
+                                            } catch (err) {
+                                                console.error(err);
+                                                showToast("Error de conexión al subir", "error");
+                                            } finally {
+                                                setIsSaving(false);
+                                            }
                                         }}/>
                                     </div>
                                     <div className="text-center">
