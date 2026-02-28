@@ -372,7 +372,8 @@ export default function DashboardPage() {
                   userName: companyName,
                   products: allProducts || [],
                   orders: filteredOrders,
-                  expenses: filteredExpenses
+                  expenses: filteredExpenses,
+                  range: customRange
               });
 
               showToast("¡Reporte listo! 📊", "success");

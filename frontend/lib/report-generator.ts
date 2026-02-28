@@ -6,6 +6,7 @@ interface ReportData {
     products: any[];
     orders: any[];
     expenses: any[];
+    range?: { start: string, end: string };
 }
 
 export const generateDailyReport = async (data: ReportData) => {
@@ -15,10 +16,14 @@ export const generateDailyReport = async (data: ReportData) => {
         format: 'a4'
     });
 
-    const { userName, products, orders, expenses } = data;
-    const date = new Date().toLocaleDateString('es-CO', { 
+    const { userName, products, orders, expenses, range } = data;
+    const dateStr = new Date().toLocaleDateString('es-CO', { 
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
     });
+
+    const periodStr = range 
+        ? `Desde ${new Date(range.start).toLocaleDateString()} hasta ${new Date(range.end).toLocaleDateString()}`
+        : `Día: ${dateStr}`;
 
     // Colores Corporativos Bayup
     const primaryColor: [number, number, number] = [0, 77, 77]; // #004D4D
@@ -40,11 +45,11 @@ export const generateDailyReport = async (data: ReportData) => {
 
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
-    doc.text("RESUMEN DE MI NEGOCIO", 20, 80);
+    doc.text(range ? "REPORTE DE MI NEGOCIO (PERIODO)" : "RESUMEN DE MI NEGOCIO (HOY)", 20, 80);
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
-    doc.text(`Hola, ${userName}! Así va tu tienda hoy.`, 20, 95);
-    doc.text(`${date}`, 20, 105);
+    doc.text(`Hola, ${userName}! Así va tu tienda en este tiempo.`, 20, 95);
+    doc.text(periodStr, 20, 105);
 
     // Cálculos amigables
     const totalSales = orders.reduce((acc, o) => acc + (o.total_price || 0), 0);
@@ -57,9 +62,9 @@ export const generateDailyReport = async (data: ReportData) => {
     doc.line(20, 120, 190, 120);
 
     const kpis = [
-        { label: "DINERO QUE ENTRÓ HOY (VENTAS)", val: `$ ${totalSales.toLocaleString()}`, desc: "Este es el valor total de las ventas que hiciste." },
-        { label: "NÚMERO DE VENTAS", val: totalOrders.toString(), desc: "Es la cantidad de clientes que te compraron hoy." },
-        { label: "LO QUE GASTA CADA CLIENTE", val: `$ ${avgTicket.toLocaleString()}`, desc: "En promedio, esto es lo que cada persona te paga." },
+        { label: "DINERO QUE ENTRÓ (VENTAS)", val: `$ ${totalSales.toLocaleString()}`, desc: "Este es el valor total de las ventas que hiciste." },
+        { label: "NÚMERO DE VENTAS", val: totalOrders.toString(), desc: "Es la cantidad de clientes que te compraron." },
+        { label: "LO QUE GASTA CADA CLIENTE", val: `$ ${avgTicket.toLocaleString()}`, desc: "En promedio, esto es lo que cada persona te pagó." },
         { label: "PRODUCTOS POR AGOTARSE", val: stockCritical.toString(), desc: "¡Atención! Estos productos se están acabando." }
     ];
 
