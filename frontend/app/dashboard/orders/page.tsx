@@ -43,7 +43,9 @@ import {
   ShieldCheck,
   FileText,
   Printer,
-  User
+  User,
+  CheckCircle2,
+  Truck
 } from 'lucide-react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
