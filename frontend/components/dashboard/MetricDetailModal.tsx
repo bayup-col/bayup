@@ -53,20 +53,21 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-10">
+          {/* FONDO OSCURO TOTAL (FIJO E INMERSIVO) */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-[#001A1A]/60 backdrop-blur-md"
+            className="fixed inset-0 bg-[#001A1A]/90 backdrop-blur-xl"
           />
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 40 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative bg-white/90 backdrop-blur-2xl w-full max-w-[600px] rounded-[3.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.3)] overflow-hidden border border-white/40 flex flex-col"
+            exit={{ opacity: 0, scale: 0.95, y: 40 }}
+            className="relative bg-white/95 backdrop-blur-3xl w-full max-w-[650px] rounded-[4rem] shadow-[0_50px_100px_rgba(0,0,0,0.5)] overflow-hidden border border-white/20 flex flex-col z-10"
           >
             {/* Minimal Header */}
             <div className="p-8 pb-4 flex justify-between items-center relative z-10">
