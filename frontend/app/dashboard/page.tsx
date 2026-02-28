@@ -335,14 +335,14 @@ export default function DashboardPage() {
           <div className="max-w-[1600px] mx-auto space-y-10 pb-20 animate-in fade-in duration-1000">
             
             {/* 1. SECCIÓN DE BIENVENIDA (HERO) */}
-            <div className="flex flex-col xl:flex-row items-center gap-8">
-              <div className="flex-1 space-y-4 text-center xl:text-left">
+            <div className="flex flex-col xl:flex-row items-center gap-8 overflow-visible">
+              <div className="flex-1 space-y-4 text-center xl:text-left overflow-visible">
                   <div className="flex items-center justify-center xl:justify-start gap-3">
                       <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
                       <span className="text-[10px] font-black tracking-[0.3em] text-[#004d4d]/60 italic">Tú panel de control</span>
                   </div>
-                  <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter leading-tight text-[#001A1A] py-2 px-1">
-                      ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block pr-4">{companyName}</span>!
+                  <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter leading-[1.3] text-[#001A1A] py-4 px-2 overflow-visible">
+                      ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block px-2 pr-8">{companyName}</span>!
                   </h1>
                   <p className="text-gray-400 font-medium text-lg italic max-w-2xl">
                       ¡Aquí tienes el resumen de tu negocio hoy! 🚀
