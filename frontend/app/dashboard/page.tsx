@@ -124,28 +124,6 @@ export default function DashboardPage() {
   }, [orders]);
 
   useEffect(() => {
-    // Intentar cargar nombre de empresa real desde los ajustes generales
-    const loadName = () => {
-        const savedData = localStorage.getItem('bayup_general_settings');
-        if (savedData) {
-            try {
-                const parsed = JSON.parse(savedData);
-                if (parsed.identity?.name && parsed.identity.name.trim() !== "") {
-                    setCompanyName(parsed.identity.name);
-                } else {
-                    setCompanyName('Mi Negocio');
-                }
-            } catch (e) { 
-                console.error("Error al parsear ajustes de empresa:", e);
-                setCompanyName('Mi Negocio');
-            }
-        } else {
-            setCompanyName('Mi Negocio');
-        }
-    };
-
-    loadName();
-
     // Escuchar actualizaciones en tiempo real desde otros componentes
     const handleNameUpdate = (e: any) => {
         if (e.detail) setCompanyName(e.detail);
@@ -158,11 +136,16 @@ export default function DashboardPage() {
   const loadDashboardData = useCallback(async () => {
     if (!token) return;
     try {
-        const [products, fetchedOrders, logs] = await Promise.all([
+        const [products, fetchedOrders, logs, userData] = await Promise.all([
             apiRequest<any[]>('/products', { token }),
             apiRequest<any[]>('/orders', { token }),
-            apiRequest<any[]>('/admin/logs', { token })
+            apiRequest<any[]>('/admin/logs', { token }),
+            apiRequest<any>('/auth/me', { token })
         ]);
+
+        if (userData && userData.full_name) {
+            setCompanyName(userData.full_name);
+        }
 
         if (fetchedOrders) setOrders(fetchedOrders);
         if (logs) setActivities(logs.slice(0, 6));
