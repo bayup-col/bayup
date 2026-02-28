@@ -93,6 +93,55 @@ export default function GeneralSettings() {
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [activeGuideStep, setActiveGuideStep] = useState(0);
 
+    const guideSteps = [
+        {
+            id: 'identidad',
+            title: 'Identidad & Marca',
+            icon: <Store size={20}/>,
+            desc: 'La primera impresión es la que vende. Tu logo y nombre son el ADN de tu negocio.',
+            details: [
+                { label: 'Logo Corporativo', value: 'Usa una imagen cuadrada (1:1) de alta resolución. Evita textos pequeños que no se lean en móvil.' },
+                { label: 'Nicho de Mercado', value: 'Ayuda a Bayup a categorizarte para enviarte el tráfico correcto y sugerencias personalizadas.' },
+                { label: 'Historia / Bio', value: 'No vendas productos, vende soluciones. Cuenta por qué creaste esta marca en 3 o 4 líneas.' }
+            ],
+            baytTip: 'Las tiendas con una biografía que cuenta una historia real venden un 22% más que las que solo listan productos.'
+        },
+        {
+            id: 'contacto',
+            title: 'Contacto & Confianza',
+            icon: <Mail size={20}/>,
+            desc: 'La transparencia genera ventas. Asegúrate de que tus clientes puedan encontrarte.',
+            details: [
+                { label: 'Email de Soporte', value: 'Usa un correo profesional. Aquí llegarán las dudas de tus clientes.' },
+                { label: 'Teléfono Público', value: 'Preferiblemente un número con WhatsApp activo para cierre de ventas directo.' },
+                { label: 'Horarios', value: 'Define tus tiempos de respuesta. Un cliente informado es un cliente paciente.' }
+            ],
+            baytTip: 'Mostrar un número de contacto visible reduce el abandono de carrito en un 15%.'
+        },
+        {
+            id: 'tienda',
+            title: 'Tu Link (Slug)',
+            icon: <Zap size={20}/>,
+            desc: 'Tu dirección en el mundo digital. Es el enlace que compartirás en todas tus redes sociales.',
+            details: [
+                { label: 'Shop Slug', value: 'Debe ser corto, memorable y sin caracteres especiales. Ej: "mi-tienda" en lugar de "mi_tienda_123".' },
+                { label: 'Importancia SEO', value: 'Este nombre ayuda a Google a encontrarte. Si lo cambias, los enlaces anteriores dejarán de funcionar.' }
+            ],
+            baytTip: 'Los slugs cortos son más fáciles de recordar y tienen una tasa de click un 40% mayor en redes sociales.'
+        },
+        {
+            id: 'ubicacion',
+            title: 'Presencia Física',
+            icon: <MapPin size={20}/>,
+            desc: 'Incluso si eres 100% digital, tener una base de operaciones genera seguridad legal y logística.',
+            details: [
+                { label: 'Ciudad/País', value: 'Vital para calcular costos de envío automáticos y moneda de recaudo.' },
+                { label: 'Dirección', value: 'Solo se mostrará en las facturas y guías de envío si tú lo permites.' }
+            ],
+            baytTip: 'Muchos clientes prefieren comprar en tiendas de su misma ciudad para recibir el pedido más rápido.'
+        }
+    ];
+
     const categoriesOptions = [
         { id: 'Moda & Accesorios', label: 'Moda & Accesorios', icon: <ShoppingBag size={14}/> },
         { id: 'Calzado', label: 'Calzado', icon: <ChevronRight size={14}/> },
@@ -495,6 +544,73 @@ export default function GeneralSettings() {
             </div>
 
             <AnimatePresence>
+            <AnimatePresence>
+                {isGuideOpen && (
+                    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 md:p-12">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsGuideOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 40 }} className="bg-white w-full max-w-5xl h-[80vh] rounded-[4rem] shadow-3xl relative z-10 border border-white/20 overflow-hidden flex flex-col md:flex-row">
+                            
+                            {/* SIDEBAR TÁCTICO */}
+                            <div className="w-full md:w-80 bg-gray-50 border-r border-gray-100 p-8 flex flex-col gap-8">
+                                <div className="space-y-1">
+                                    <h3 className="text-2xl font-black text-gray-900 italic tracking-tight">Guía <span className="text-[#004d4d]">Élite</span></h3>
+                                    <p className="text-[9px] font-black text-gray-400 tracking-[0.2em] uppercase">Módulo Info General</p>
+                                </div>
+                                <div className="flex flex-col gap-2 flex-1">
+                                    {guideSteps.map((step, idx) => (
+                                        <button key={step.id} onClick={() => setActiveGuideStep(idx)} className={`flex items-center gap-4 p-4 rounded-3xl transition-all group ${activeGuideStep === idx ? 'bg-[#004d4d] text-white shadow-xl scale-[1.02]' : 'hover:bg-white text-gray-500 hover:text-[#004d4d]'}`}>
+                                            <div className={`h-10 w-10 rounded-2xl flex items-center justify-center transition-all ${activeGuideStep === idx ? 'bg-white/20 text-[#00f2ff]' : 'bg-gray-200/50 group-hover:bg-[#004d4d]/10'}`}>{step.icon}</div>
+                                            <span className="text-[10px] font-black tracking-widest uppercase">{step.title}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="p-6 bg-[#004d4d]/5 rounded-[2.5rem] border border-[#004d4d]/10">
+                                    <div className="flex items-center gap-3 mb-2"><Zap size={14} className="text-[#004d4d]"/> <span className="text-[9px] font-black tracking-widest uppercase text-[#004d4d]">Propósito</span></div>
+                                    <p className="text-[10px] font-medium text-gray-500 leading-relaxed italic">"Tu perfil no es solo datos, es la base de tu confianza digital para cerrar ventas."</p>
+                                </div>
+                            </div>
+
+                            {/* CONTENIDO PRINCIPAL */}
+                            <div className="flex-1 p-12 overflow-y-auto custom-scrollbar relative flex flex-col">
+                                <button onClick={() => setIsGuideOpen(false)} className="absolute top-8 right-8 h-12 w-12 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-all z-20"><X size={20}/></button>
+                                
+                                <div className="flex-1 space-y-10">
+                                    <div className="space-y-4">
+                                        <div className="h-16 w-16 bg-[#004d4d]/10 text-[#004d4d] rounded-3xl flex items-center justify-center scale-110 mb-6">{guideSteps[activeGuideStep].icon}</div>
+                                        <h2 className="text-4xl font-black text-gray-900 italic tracking-tighter leading-none">{guideSteps[activeGuideStep].title}</h2>
+                                        <p className="text-gray-400 font-medium text-lg leading-relaxed max-w-xl">{guideSteps[activeGuideStep].desc}</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-6">
+                                        {guideSteps[activeGuideStep].details.map((det, i) => (
+                                            <div key={i} className="p-8 bg-gray-50 rounded-[3rem] border border-transparent hover:border-gray-200 transition-all group">
+                                                <h4 className="text-[10px] font-black tracking-widest uppercase text-[#004d4d] mb-2">{det.label}</h4>
+                                                <p className="text-sm font-medium text-gray-600 leading-relaxed">{det.value}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="p-10 bg-[#001a1a] rounded-[4rem] text-white relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12 group-hover:rotate-0 transition-all duration-700"><Bot size={200} /></div>
+                                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+                                            <div className="h-20 w-20 bg-gradient-to-br from-[#00f2ff] to-[#004d4d] rounded-[2rem] flex items-center justify-center shadow-2xl shrink-0"><Bot size={40} className="text-white animate-pulse" /></div>
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-3"><span className="h-1.5 w-1.5 rounded-full bg-[#00f2ff] shadow-[0_0_10px_#00f2ff] animate-pulse"></span><span className="text-[10px] font-black tracking-widest uppercase text-[#00f2ff]">Estrategia de Bayt AI</span></div>
+                                                <p className="text-lg font-bold italic leading-tight text-white/90">"{guideSteps[activeGuideStep].baytTip}"</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-12 flex justify-end">
+                                    <button onClick={() => activeGuideStep === guideSteps.length - 1 ? setIsGuideOpen(false) : setActiveGuideStep(activeGuideStep + 1)} className="h-16 px-10 bg-[#004d4d] text-white rounded-full font-black text-[10px] tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4">
+                                        {activeGuideStep === guideSteps.length - 1 ? '¡LO TENGO CLARO!' : 'SIGUIENTE PASO'}
+                                        {activeGuideStep !== guideSteps.length - 1 && <ChevronRight size={18} className="text-[#00f2ff]" />}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
                 {isAccountModalOpen && (
                     <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAccountModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
