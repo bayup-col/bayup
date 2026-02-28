@@ -324,8 +324,8 @@ export default function DashboardPage() {
                       <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
                       <span className="text-[10px] font-black tracking-[0.3em] text-[#004d4d]/60 italic">Tú panel de control</span>
                   </div>
-                  <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter leading-[1.3] text-[#001A1A] py-4 px-2 overflow-visible">
-                      ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block px-2 pr-8">{companyName}</span>!
+                  <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter leading-[1.6] text-[#001A1A] pt-4 pb-8 px-2 overflow-visible">
+                      ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block pb-4 px-2 pr-10">{companyName}</span>!
                   </h1>
                   <p className="text-gray-400 font-medium text-lg italic max-w-2xl">
                       ¡Aquí tienes el resumen de tu negocio hoy! 🚀
