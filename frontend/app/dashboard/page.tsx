@@ -74,16 +74,10 @@ export default function DashboardPage() {
   const { userEmail, token } = useAuth();
   const { showToast } = useToast();
   
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
 
   useEffect(() => {
-    // Verificar si ya completó el onboarding
-    const completed = localStorage.getItem('bayup_onboarding_completed');
-    if (!completed) {
-        setTimeout(() => setIsWizardOpen(true), 1500); // Pequeño delay para que cargue el dashboard de fondo
-    }
+    // Onboarding eliminado por solicitud del usuario
   }, []);
 
   const handleWizardComplete = () => {
@@ -354,8 +348,8 @@ export default function DashboardPage() {
                       <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
                       <span className="text-[10px] font-black tracking-[0.3em] text-[#004d4d]/60 italic">Tú panel de control</span>
                   </div>
-                  <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter leading-none text-[#001A1A] pb-2 overflow-visible">
-                      ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block px-1 pr-4">{companyName}</span>!
+                  <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter leading-tight text-[#001A1A] py-2 px-1">
+                      ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block pr-4">{companyName}</span>!
                   </h1>
                   <p className="text-gray-400 font-medium text-lg italic max-w-2xl">
                       ¡Aquí tienes el resumen de tu negocio hoy! 🚀
