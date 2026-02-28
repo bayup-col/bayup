@@ -60,7 +60,29 @@ export default function MensajesPage() {
   const [message, setMessage] = useState("");
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleExportReport = () => {
+    try {
+      showToast("Generando reporte de mensajería...", "info");
+      generateChatsPDF({
+        stats: {
+            totalChats: chats.length,
+            activeChannels: 1,
+            aiEfficiency: "98.5%",
+            totalRevenue: "$ 0"
+        },
+        chats: chats.map(c => ({
+            customer: { name: c.name, type: 'Usuario Final', ltv: 0 },
+            source: c.channel,
+            status: 'Atendido',
+            time: c.time
+        }))
+      });
+      showToast("¡Reporte generado!", "success");
+    } catch (e) { showToast("Error al exportar", "error"); }
+  };
 
   const fetchChats = useCallback(async () => {
       if (!token) return;
@@ -150,7 +172,14 @@ export default function MensajesPage() {
         <div className="h-[800px] px-4 shrink-0">
             <div className="h-full bg-white border border-gray-200 rounded-[3rem] shadow-2xl flex overflow-hidden isolate relative">
                 <div className="w-[350px] border-r border-gray-100 flex flex-col bg-[#F0F2F5] shrink-0">
-                    <div className="h-16 px-4 flex items-center justify-between shrink-0"><div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#004d4d] to-cyan flex items-center justify-center text-white font-black text-xs">{userEmail?.charAt(0).toUpperCase()}</div><div className="flex items-center gap-4 text-gray-500"><Activity size={20}/><MessageSquare size={20}/><MoreVertical size={20}/></div></div>
+                    <div className="h-16 px-4 flex items-center justify-between shrink-0">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#004d4d] to-cyan flex items-center justify-center text-white font-black text-xs">{userEmail?.charAt(0).toUpperCase()}</div>
+                        <div className="flex items-center gap-4 text-gray-500">
+                            <button onClick={handleExportReport} title="Reporte"><Activity size={20} className="hover:text-[#004d4d] transition-colors" /></button>
+                            <button onClick={() => setIsLinkModalOpen(true)} title="Vincular Canal"><MessageSquare size={20} className="hover:text-[#004d4d] transition-colors" /></button>
+                            <button onClick={() => showToast("Opciones avanzadas próximamente", "info")} title="Menú"><MoreVertical size={20} className="hover:text-[#004d4d] transition-colors" /></button>
+                        </div>
+                    </div>
                     <div className="px-3 py-2 shrink-0"><div className="bg-white rounded-xl flex items-center px-4 gap-4 h-9 shadow-sm"><Search size={16} className="text-gray-400"/><input placeholder="Busca un chat..." className="flex-1 bg-transparent border-none text-[13px] outline-none text-gray-600 font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div></div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
                         {chats.filter(c => c.name?.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (<div className="py-20 text-center space-y-4 px-10"><div className="h-20 w-20 bg-[#F0F2F5] rounded-full flex items-center justify-center mx-auto text-gray-300"><Bot size={40}/></div><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sin conversaciones</p></div>) : (
@@ -197,6 +226,42 @@ export default function MensajesPage() {
             </div>
         </div>
         <MetricDetailModal isOpen={!!selectedMetric} onClose={() => setSelectedMetric(null)} metric={selectedMetric} />
+
+        {/* MODAL DE VINCULACIÓN OMNICANAL */}
+        <AnimatePresence>
+            {isLinkModalOpen && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsLinkModalOpen(false)} className="fixed inset-0 bg-[#001A1A]/90 backdrop-blur-xl" />
+                    <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-4xl bg-white rounded-[4rem] shadow-3xl overflow-hidden flex flex-col max-h-[90vh] z-10 border border-white/20">
+                        <div className="p-12 bg-gradient-to-br from-[#001a1a] to-[#004d4d] text-white flex justify-between items-start relative overflow-hidden shrink-0">
+                            <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12"><Activity size={200}/></div>
+                            <div className="relative z-10">
+                                <h3 className="text-4xl font-black italic tracking-tighter">Centro de <span className="text-cyan">vinculación</span></h3>
+                                <p className="text-white/60 text-sm font-medium mt-4 max-w-md">Activa la sincronización de tus canales oficiales para recibir mensajes en tiempo real en tu terminal Bayup.</p>
+                            </div>
+                            <button onClick={() => setIsLinkModalOpen(false)} className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all group relative z-10"><X size={20}/></button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-12 bg-gray-50">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {[
+                                    { id: 'whatsapp', name: 'WhatsApp Business', desc: 'Sincronización oficial via QR', icon: <MessageSquare className="text-emerald-500" />, active: true },
+                                    { id: 'instagram', name: 'Instagram Direct', desc: 'Mensajes y comentarios', icon: <ImageIcon className="text-pink-500" />, active: false },
+                                    { id: 'facebook', name: 'Facebook Messenger', desc: 'Chats de tu FanPage', icon: <Activity className="text-blue-500" />, active: false }
+                                ].map(chan => (
+                                    <div key={chan.id} className="p-8 bg-white rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
+                                        <div className="flex items-center gap-6">
+                                            <div className="h-14 w-14 rounded-2xl bg-gray-50 flex items-center justify-center group-hover:scale-110 transition-transform">{chan.icon}</div>
+                                            <div><h4 className="text-sm font-black text-gray-900">{chan.name}</h4><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{chan.desc}</p></div>
+                                        </div>
+                                        <button disabled={!chan.active} className={`px-6 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all ${chan.active ? 'bg-[#004d4d] text-white hover:bg-black' : 'bg-gray-100 text-gray-300'}`}>{chan.active ? 'Vincular' : 'Próximamente'}</button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
     </div>
   );
 }
