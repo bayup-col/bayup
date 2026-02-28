@@ -211,6 +211,8 @@ export default function OrdersPage() {
         
         // 2. Items Activos (Total de productos en catálogo)
         const activeItemsCount = products.length;
+        const inStockCount = products.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0) > 0).length;
+        const outOfStockCount = activeItemsCount - inStockCount;
 
         // 3. Stock Crítico
         const lowStockProducts = products.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0) <= 5);
@@ -274,8 +276,12 @@ export default function OrdersPage() {
                 bg: 'bg-purple-50', 
                 trend: 'Catálogo', 
                 isSimple: true,
-                details: topCategories.map(c => ({ ...c, icon: React.cloneElement(c.icon, { size: 10 }) })),
-                advice: "Tus categorías con más rotación hoy. Mantén siempre el inventario al día en estos grupos para no perder ventas web."
+                details: [
+                    { l: "DISPONIBLES", v: `${inStockCount}`, icon: <Package size={10}/> },
+                    { l: "AGOTADOS", v: `${outOfStockCount}`, icon: <Zap size={10}/> },
+                    { l: "TOTAL", v: `${activeItemsCount}`, icon: <Layers size={10}/> }
+                ],
+                advice: "Mantener un catálogo variado atrae más visitas web. Te sugiero reponer los productos agotados para no perder oportunidades de venta."
             },
             { 
                 id: 'stock', 
