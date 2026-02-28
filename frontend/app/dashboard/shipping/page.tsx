@@ -192,10 +192,70 @@ export default function ShippingPage() {
   }), [shipments]);
 
   const kpis = [
-      { id: 'total_shipments', label: 'Envíos activos', value: stats.total, icon: <Package size={24}/>, color: 'text-[#004d4d]', bg: 'bg-[#004d4d]/5', trend: 'Live', description: 'Volumen total de paquetes bajo gestión logística.' },
-      { id: 'in_transit', label: 'En camino', value: stats.transit, icon: <Truck size={24}/>, color: 'text-blue-600', bg: 'bg-blue-50', trend: '85% ok', description: 'Envíos navegando la red logística nacional.' },
-      { id: 'delivered', label: 'Entregados', value: stats.delivered, icon: <CheckCircle2 size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: 'Excellent', description: 'Ventas finalizadas con entrega exitosa confirmada.' },
-      { id: 'alerts', label: 'Alertas críticas', value: stats.alerts, icon: <AlertCircle size={24}/>, color: 'text-rose-600', bg: 'bg-rose-50', trend: 'Atención', description: 'Incidentes o novedades que requieren intervención inmediata.' }
+      { 
+          id: 'total_shipments', 
+          label: 'Envíos activos', 
+          value: stats.total, 
+          icon: <Package size={24}/>, 
+          color: 'text-[#004d4d]', 
+          bg: 'bg-[#004d4d]/5', 
+          trend: 'Live', 
+          description: 'Volumen total de paquetes bajo gestión logística.',
+          details: [
+              { l: 'BODEGA', v: `${shipments.filter(s => s.status === 'label_generated').length}`, icon: <Box size={10}/> },
+              { l: 'REPARTO', v: `${shipments.filter(s => s.status === 'out_for_delivery').length}`, icon: <Zap size={10}/> },
+              { l: 'INCIDENTES', v: `${stats.alerts}`, icon: <AlertCircle size={10}/> }
+          ],
+          advice: 'Detecto un 15% de envíos estancados en bodega. Te sugiero agilizar el despacho para mejorar tu reputación en la tienda.'
+      },
+      { 
+          id: 'in_transit', 
+          label: 'En camino', 
+          value: stats.transit, 
+          icon: <Truck size={24}/>, 
+          color: 'text-blue-600', 
+          bg: 'bg-blue-50', 
+          trend: '85% ok', 
+          description: 'Envíos navegando la red logística nacional.',
+          details: [
+              { l: 'VELOCIDAD', v: '2.4 d', icon: <TrendingUp size={10}/> },
+              { l: 'MILLA FINAL', v: '92%', icon: <Target size={10}/> },
+              { l: 'COSTO PROM', v: '$12.500', icon: <DollarSign size={10}/> }
+          ],
+          advice: 'Tus envíos a Bogotá están llegando un 20% más rápido esta semana. Podrías usar esto como gancho de venta en redes.'
+      },
+      { 
+          id: 'delivered', 
+          label: 'Entregados', 
+          value: stats.delivered, 
+          icon: <CheckCircle2 size={24}/>, 
+          color: 'text-emerald-600', 
+          bg: 'bg-emerald-50', 
+          trend: 'Excellent', 
+          description: 'Ventas finalizadas con entrega exitosa confirmada.',
+          details: [
+              { l: 'SATISFACCIÓN', v: '4.9/5', icon: <Sparkles size={10}/> },
+              { l: 'RECOMPRA', v: '18%', icon: <RotateCcw size={10}/> },
+              { l: 'ENTREGA 24H', v: '65%', icon: <Zap size={10}/> }
+          ],
+          advice: '¡Excelente ritmo! El 65% de tus clientes recibe en menos de 24 horas. Activa el sello "Envío Flash" en tus productos.'
+      },
+      { 
+          id: 'alerts', 
+          label: 'Alertas críticas', 
+          value: stats.alerts, 
+          icon: <AlertCircle size={24}/>, 
+          color: 'text-rose-600', 
+          bg: 'bg-rose-50', 
+          trend: 'Atención', 
+          description: 'Incidentes o novedades que requieren intervención inmediata.',
+          details: [
+              { l: 'NOVEDADES', v: `${shipments.filter(s => s.status === 'incident').length}`, icon: <AlertCircle size={10}/> },
+              { l: 'DEVOLUCIONES', v: `${shipments.filter(s => s.status === 'returned').length}`, icon: <RotateCcw size={10}/> },
+              { l: 'PENDIENTES', v: '3', icon: <Activity size={10}/> }
+          ],
+          advice: 'Tienes 3 novedades sin responder hace más de 12 horas. Contacta a los clientes por WhatsApp para evitar la devolución.'
+      }
   ];
 
   const handleExport = async () => {
