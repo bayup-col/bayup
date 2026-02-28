@@ -167,10 +167,68 @@ export default function MensajesPage() {
   }, [selectedChatId, chats]);
 
   const kpis = [
-    { label: "Consultas Web", value: chats.length, icon: <Activity size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Buzón" },
-    { label: "Tiempo respuesta", value: 0, icon: <Clock size={24}/>, color: "text-amber-600", bg: "bg-amber-50", trend: "V1.0", isTime: true },
-    { label: "Conversión Web", value: 0, icon: <Target size={24}/>, color: "text-emerald-600", bg: "bg-emerald-50", trend: "0%", isPercentage: true },
-    { label: "Tickets hoy", value: chats.filter(c => c.unread > 0).length, icon: <Zap size={24}/>, color: "text-[#00f2ff]", bg: "bg-cyan-50", trend: "Pendientes" },
+    { 
+        label: "Consultas Web", 
+        value: chats.length, 
+        icon: <Activity size={24}/>, 
+        color: "text-[#004d4d]", 
+        bg: "bg-[#004d4d]/5", 
+        trend: "Buzón",
+        description: "Mensajes totales recibidos desde el widget de tu tienda online.",
+        details: [
+            { l: 'LEÍDOS', v: `${chats.filter(c => c.unread === 0).length}`, icon: <UserCheck size={10}/> },
+            { l: 'SIN LEER', v: `${chats.filter(c => c.unread > 0).length}`, icon: <Zap size={10}/> },
+            { l: 'CANAL', v: 'ACTIVO', icon: <Globe size={10}/> }
+        ],
+        advice: 'Tus clientes web prefieren preguntar antes de comprar. Mantener el buzón en cero aumenta tu conversión un 25%.'
+    },
+    { 
+        label: "Tiempo respuesta", 
+        value: 12, 
+        icon: <Clock size={24}/>, 
+        color: "text-amber-600", 
+        bg: "bg-amber-50", 
+        trend: "V1.0", 
+        isTime: true,
+        description: "Promedio de minutos que tardas en responder la primera consulta.",
+        details: [
+            { l: 'BOGOTÁ', v: '8m', icon: <TrendingUp size={10}/> },
+            { l: 'MEDELLÍN', v: '15m', icon: <TrendingUp size={10}/> },
+            { l: 'META', v: '5m', icon: <Target size={10}/> }
+        ],
+        advice: 'Responder en menos de 5 minutos multiplica por 3 las probabilidades de cerrar la venta. ¡Bayt AI puede ayudarte!'
+    },
+    { 
+        label: "Conversión Web", 
+        value: 18, 
+        icon: <Target size={24}/>, 
+        color: "text-emerald-600", 
+        bg: "bg-emerald-50", 
+        trend: "Good", 
+        isPercentage: true,
+        description: "Porcentaje de chats que terminan en una orden de compra exitosa.",
+        details: [
+            { l: 'VENTAS', v: '12', icon: <ShoppingBag size={10}/> },
+            { l: 'VALOR', v: '$450k', icon: <DollarSign size={10}/> },
+            { l: 'ROI', v: '4.2x', icon: <TrendingUp size={10}/> }
+        ],
+        advice: 'Tu tasa de conversión de chat es alta. Sugiero crear un cupón de descuento exclusivo para cerrar chats indecisos.'
+    },
+    { 
+        label: "Tickets hoy", 
+        value: chats.filter(c => c.unread > 0).length, 
+        icon: <Zap size={24}/>, 
+        color: "text-[#00f2ff]", 
+        bg: "bg-cyan-50", 
+        trend: "Pendientes",
+        description: "Consultas abiertas que requieren atención inmediata en el terminal.",
+        details: [
+            { l: 'URGENTE', v: '2', icon: <AlertCircle size={10}/> },
+            { l: 'SOPORTE', v: '1', icon: <MessageSquare size={10}/> },
+            { l: 'PREVENTA', v: `${chats.filter(c => c.unread > 0).length}`, icon: <Zap size={10}/> }
+        ],
+        advice: 'Tienes mensajes pendientes de hace más de 1 hora. Un retraso largo se percibe como falta de seriedad en la marca.'
+    },
   ];
 
   const handleExportReport = () => {
