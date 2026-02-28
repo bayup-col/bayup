@@ -389,7 +389,7 @@ export default function DashboardPage() {
                       <span className="text-[10px] font-black text-emerald-500 tracking-[0.4em] uppercase">Tráfico en Tiempo Real</span>
                   </div>
                   <div className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                      <Globe size={12} className="text-cyan" /> bayup.com/shop/{companyName.toLowerCase().replace(/ /g, '-')}
+                      <Globe size={12} className="text-cyan" /> bayup.com.co/shop/{companyName.toLowerCase().replace(/ /g, '-')}
                   </div>
               </div>
 
