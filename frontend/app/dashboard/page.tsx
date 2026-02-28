@@ -97,6 +97,8 @@ export default function DashboardPage() {
   const { showToast } = useToast();
   
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
+  const [isCustomReportModalOpen, setIsCustomReportModalOpen] = useState(false);
+  const [customRange, setCustomRange] = useState({ start: '', end: '' });
 
   useEffect(() => {
     // Onboarding desactivado
@@ -337,6 +339,49 @@ export default function DashboardPage() {
               showToast("Error al generar el reporte", "error");
           }
       };
+
+      const handleGenerateCustomReport = async () => {
+          if (!token || !customRange.start || !customRange.end) {
+              showToast("Por favor selecciona ambas fechas", "info");
+              return;
+          }
+          try {
+              showToast("Generando reporte de periodo...", "info");
+              const [allProducts, allOrders, allExpenses] = await Promise.all([
+                  apiRequest<any[]>('/products', { token }),
+                  apiRequest<any[]>('/orders', { token }),
+                  apiRequest<any[]>('/expenses', { token })
+              ]);
+
+              const start = new Date(customRange.start);
+              const end = new Date(customRange.end);
+              end.setHours(23, 59, 59, 999);
+
+              const filteredOrders = (allOrders || []).filter(o => {
+                  const d = new Date(o.created_at);
+                  return d >= start && d <= end;
+              });
+
+              const filteredExpenses = (allExpenses || []).filter(e => {
+                  const d = new Date(e.date);
+                  return d >= start && d <= end;
+              });
+
+              const { generateDailyReport } = await import('@/lib/report-generator');
+              await generateDailyReport({
+                  userName: companyName,
+                  products: allProducts || [],
+                  orders: filteredOrders,
+                  expenses: filteredExpenses
+              });
+
+              showToast("¡Reporte listo! 📊", "success");
+              setIsCustomReportModalOpen(false);
+          } catch (e) {
+              console.error(e);
+              showToast("Error al generar reporte", "error");
+          }
+      };
   
       return (
           <div className="max-w-[1600px] mx-auto space-y-10 pb-20 animate-in fade-in duration-1000">
@@ -356,12 +401,50 @@ export default function DashboardPage() {
                   </p>
               </div>
               <div className="flex gap-4 shrink-0 relative z-20">
-                  <button onClick={handleDownloadReport} className="h-16 px-10 bg-[#004d4d] text-white rounded-full flex items-center justify-center gap-3 shadow-2xl hover:bg-black transition-all group">
+                  <button onClick={handleDownloadReport} className="h-16 px-10 bg-white border border-gray-100 text-[#004d4d] rounded-full flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transition-all group">
                       <FileText size={20} className="text-cyan transition-transform group-hover:scale-110"/> 
                       <span className="font-black tracking-widest text-[10px]">Reporte diario</span>
                   </button>
+                  <button onClick={() => setIsCustomReportModalOpen(true)} className="h-16 px-10 bg-[#004d4d] text-white rounded-full flex items-center justify-center gap-3 shadow-2xl hover:bg-black transition-all group">
+                      <Calendar size={20} className="text-cyan transition-transform group-hover:scale-110"/> 
+                      <span className="font-black tracking-widest text-[10px]">Reportes del mes</span>
+                  </button>
               </div>
             </div>
+
+            {/* MODAL REPORTE PERSONALIZADO */}
+            <AnimatePresence>
+                {isCustomReportModalOpen && (
+                    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCustomReportModalOpen(false)} className="absolute inset-0 bg-[#001A1A]/80 backdrop-blur-xl" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 40 }} className="bg-white w-full max-w-md rounded-[3.5rem] shadow-3xl p-12 relative z-10 border border-white">
+                            <div className="text-center space-y-4 mb-10">
+                                <div className="h-20 w-20 bg-cyan/10 rounded-[2rem] flex items-center justify-center mx-auto text-[#004d4d] shadow-inner"><Calendar size={40}/></div>
+                                <h3 className="text-2xl font-black italic tracking-tighter text-[#001A1A]">Auditar mi <span className="text-[#004d4d]">negocio</span></h3>
+                                <p className="text-xs text-gray-400 font-medium italic">Selecciona el rango de fechas para generar tu reporte inteligente.</p>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Desde el día:</label>
+                                    <input type="date" value={customRange.start} onChange={e => setCustomRange({...customRange, start: e.target.value})} className="w-full p-5 bg-gray-50 border-2 border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none font-bold text-sm shadow-inner" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Hasta el día:</label>
+                                    <input type="date" value={customRange.end} onChange={e => setCustomRange({...customRange, end: e.target.value})} className="w-full p-5 bg-gray-50 border-2 border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none font-bold text-sm shadow-inner" />
+                                </div>
+                            </div>
+
+                            <div className="mt-10 grid grid-cols-1 gap-4">
+                                <button onClick={handleGenerateCustomReport} className="w-full py-6 bg-gray-900 text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3">
+                                    <Download size={18} className="text-cyan"/> Descargar Reporte
+                                </button>
+                                <button onClick={() => setIsCustomReportModalOpen(false)} className="w-full py-4 text-[10px] font-black text-gray-300 uppercase tracking-widest hover:text-rose-500 transition-colors">Cancelar</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         {/* 2. GRID DE MÉTRICAS MAESTRAS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {kpis.map((kpi, i) => (
