@@ -102,6 +102,7 @@ export default function InvoicingPage() {
     const [history, setHistory] = useState<PastInvoice[]>([]);
     const [historySearch, setHistorySearch] = useState('');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
+    const [extraFilters, setExtraFilters] = useState({ type: 'Todos', source: 'Todos', payment: 'Todos' });
     const [isHistoryFilterOpen, setIsHistoryFilterOpen] = useState(false);
     
     const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', phone: '', city: '', source: 'Tienda Física', type: 'final' });
@@ -286,9 +287,14 @@ export default function InvoicingPage() {
             const invDate = new Date(inv.date);
             const matchesStart = !dateRange.start || invDate >= new Date(dateRange.start);
             const matchesEnd = !dateRange.end || invDate <= new Date(dateRange.end);
-            return matchesSearch && matchesStart && matchesEnd;
+            
+            // Nuevos filtros
+            const matchesSource = extraFilters.source === 'Todos' || inv.source === extraFilters.source;
+            const matchesPayment = extraFilters.payment === 'Todos' || inv.payment_method === (extraFilters.payment === 'Efectivo' ? 'cash' : 'transfer');
+            
+            return matchesSearch && matchesStart && matchesEnd && matchesSource && matchesPayment;
         });
-    }, [history, historySearch, dateRange]);
+    }, [history, historySearch, dateRange, extraFilters]);
 
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
@@ -396,9 +402,33 @@ export default function InvoicingPage() {
                             </div>
 
                             <AnimatePresence>{isHistoryFilterOpen && (
-                                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="max-w-6xl mx-auto p-8 bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-xl grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <div className="space-y-3"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Desde Fecha</label><input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} className="w-full p-4 bg-white/50 border border-gray-100 rounded-2xl outline-none font-bold text-sm" /></div>
-                                    <div className="space-y-3"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Hasta Fecha</label><input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} className="w-full p-4 bg-white/50 border border-gray-100 rounded-2xl outline-none font-bold text-sm" /></div>
+                                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="max-w-6xl mx-auto p-8 bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-xl space-y-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-3"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Desde Fecha</label><input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} className="w-full p-4 bg-white/50 border border-gray-100 rounded-2xl outline-none font-bold text-sm focus:border-[#004D4D]/20 transition-all" /></div>
+                                        <div className="space-y-3"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Hasta Fecha</label><input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} className="w-full p-4 bg-white/50 border border-gray-100 rounded-2xl outline-none font-bold text-sm focus:border-[#004D4D]/20 transition-all" /></div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-gray-100/50">
+                                        <div className="space-y-3">
+                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Canal de Venta</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {['Todos', 'Tienda Física', 'WhatsApp', 'Página Web'].map(opt => (
+                                                    <button key={opt} onClick={() => setExtraFilters({...extraFilters, source: opt === 'Tienda Física' ? 'pos' : opt})} className={`px-6 py-2.5 rounded-full text-[9px] font-black tracking-widest transition-all ${extraFilters.source === (opt === 'Tienda Física' ? 'pos' : opt) ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100 hover:border-[#004D4D]/20'}`}>{opt}</button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Medio de Pago</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {['Todos', 'Efectivo', 'Transferencia'].map(opt => (
+                                                    <button key={opt} onClick={() => setExtraFilters({...extraFilters, payment: opt})} className={`px-6 py-2.5 rounded-full text-[9px] font-black tracking-widest transition-all ${extraFilters.payment === opt ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100 hover:border-[#004D4D]/20'}`}>{opt}</button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end pt-4">
+                                        <button onClick={() => { setDateRange({start:'', end:''}); setExtraFilters({type:'Todos', source:'Todos', payment:'Todos'}); }} className="text-[9px] font-black text-rose-500 uppercase tracking-widest hover:underline">Limpiar todos los filtros</button>
+                                    </div>
                                 </motion.div>
                             )}</AnimatePresence>
 
