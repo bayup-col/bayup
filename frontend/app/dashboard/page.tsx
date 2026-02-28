@@ -196,8 +196,8 @@ export default function DashboardPage() {
                     <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
                     <span className={`text-[10px] font-black tracking-[0.3em] uppercase italic ${theme === 'dark' ? 'text-white/40' : 'text-[#004d4d]/60'}`}>Tú panel de control</span>
                 </div>
-                <h1 className={`text-4xl md:text-6xl font-black italic tracking-tighter leading-[1.4] py-2 overflow-visible transition-colors duration-500 ${theme === 'dark' ? 'text-white shadow-[0_0_30px_rgba(255,255,255,0.05)]' : 'text-[#001A1A]'}`}>
-                    ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block pb-4 pr-10"> {companyName}</span>!
+                <h1 className={`text-4xl md:text-6xl font-black italic tracking-tighter leading-[1.4] py-4 overflow-visible transition-colors duration-500 ${theme === 'dark' ? 'text-white shadow-[0_0_30px_rgba(255,255,255,0.05)]' : 'text-[#001A1A]'}`}>
+                    ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block pb-4 pr-2"> {companyName}</span>!
                 </h1>
                 <p className="text-gray-400 font-medium text-lg italic">¡Aquí tienes el resumen de tu negocio hoy! 🚀</p>
             </div>
@@ -215,16 +215,7 @@ export default function DashboardPage() {
             {kpis.map((kpi, i) => (
                 <div key={i}>
                     <AuroraMetricCard onClick={() => setSelectedMetric(kpi)}>
-                        <PremiumCard dark={theme === 'dark'} className="p-8 h-full border-none bg-white/80 backdrop-blur-2xl shadow-none">
-                            <div className="flex justify-between items-start mb-6">
-                                <div className={`h-14 w-14 rounded-2xl flex items-center justify-center border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'border-white/50 ' + kpi.bg} ${kpi.color}`}>{kpi.icon}</div>
-                                <div className={`px-3 py-1 rounded-full text-[9px] font-black tracking-wider ${theme === 'dark' ? 'bg-white/5 text-white/40' : 'bg-gray-100 text-gray-400'}`}>{kpi.trend}</div>
-                            </div>
-                            <p className={`text-[10px] font-black tracking-tight mb-1.5 ${theme === 'dark' ? 'text-white/40' : 'text-gray-400'}`}>{kpi.label}</p>
-                            <h3 className={`text-3xl font-black tracking-tighter italic ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                {kpi.isCurrency && "$ "}<AnimatedNumber value={kpi.value} />
-                            </h3>
-                        </PremiumCard>
+                        <MetricKPI {...kpi} dark={theme === 'dark'} />
                     </AuroraMetricCard>
                 </div>
             ))}
@@ -291,4 +282,43 @@ export default function DashboardPage() {
         </AnimatePresence>
     </div>
   );
+}
+
+// --- SUB-COMPONENTES AUXILIARES ---
+
+interface MetricKPIProps {
+    label: string;
+    value: number;
+    icon: React.ReactNode;
+    color: string;
+    bg: string;
+    trend: string;
+    isCurrency?: boolean;
+    isPercentage?: boolean;
+    dark?: boolean;
+    details?: any[];
+    advice?: string;
+}
+
+function MetricKPI({ label, value, icon, color, bg, trend, isCurrency = false, isPercentage = false, dark = false }: MetricKPIProps) {
+    return (
+        <PremiumCard dark={dark} className="p-8 group h-full border-none shadow-none">
+            <div className="flex justify-between items-start mb-6">
+                <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg group-hover:scale-110 border ${dark ? 'bg-white/5 border-white/10' : 'border-white/50 ' + bg} ${color}`}>
+                    {icon}
+                </div>
+                <div className={`px-3 py-1 rounded-full text-[9px] font-black tracking-wider ${
+                    dark ? 'bg-white/5 text-white/40' : 'bg-gray-100 text-gray-400'
+                }`}>
+                    {trend}
+                </div>
+            </div>
+            <div>
+                <p className={`text-[10px] font-black tracking-tight mb-1.5 ${dark ? 'text-white/40' : 'text-gray-400'}`}>{label}</p>
+                <h3 className={`text-3xl font-black tracking-tighter italic ${dark ? 'text-white' : 'text-gray-900'}`}>
+                    <AnimatedNumber value={value} type={isCurrency ? 'currency' : isPercentage ? 'percentage' : 'simple'} />
+                </h3>
+            </div>
+        </PremiumCard>
+    );
 }
