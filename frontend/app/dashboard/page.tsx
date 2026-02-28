@@ -73,6 +73,30 @@ export default function DashboardPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [realStats, setRealStats] = useState({ revenue: 0, orders_count: 0, conversion: 0, low_stock: 0, avg_ticket: 0 });
 
+  // --- CÁLCULO DE VENTAS SEMANALES ---
+  const weeklySales = useMemo(() => {
+    const dailyTotals = [0, 0, 0, 0, 0, 0, 0]; // Lun, Mar, Mié, Jue, Vie, Sáb, Dom
+    if (!orders || orders.length === 0) return dailyTotals;
+    const now = new Date();
+    const currentDay = now.getDay();
+    const currentHour = now.getHours();
+    let startOfWeek = new Date(now);
+    if (currentDay === 0 && currentHour >= 23) { startOfWeek.setDate(now.getDate() + 1); } 
+    else { const diff = (currentDay === 0 ? 7 : currentDay) - 1; startOfWeek.setDate(now.getDate() - diff); }
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+    orders.forEach(order => {
+        const orderDate = new Date(order.created_at);
+        if (orderDate >= startOfWeek && orderDate < endOfWeek) {
+            let dayIdx = orderDate.getDay(); 
+            dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+            dailyTotals[dayIdx] += (order.total_price || 0);
+        }
+    });
+    return dailyTotals;
+  }, [orders]);
+
   const loadDashboardData = useCallback(async () => {
     if (!token) return;
     try {
@@ -269,6 +293,54 @@ export default function DashboardPage() {
                 <button onClick={loadDashboardData} className={`w-full py-4 rounded-2xl text-[9px] font-black transition-all uppercase tracking-widest ${theme === 'dark' ? 'bg-white/5 text-gray-400 hover:bg-cyan/10 hover:text-cyan' : 'bg-gray-50 text-gray-400 hover:bg-[#004d4d] hover:text-white'}`}>Actualizar terminal</button>
             </PremiumCard>
         </div>
+
+        {/* 4. SECCIÓN DE RENDIMIENTO SEMANAL (PLATINUM CHART) */}
+        <PremiumCard dark={theme === 'dark'} className="p-12">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+                <div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <TrendingUp size={18} className="text-cyan" />
+                        <h4 className={`text-xs font-black tracking-[0.3em] uppercase ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Rendimiento Semanal</h4>
+                    </div>
+                    <p className="text-[10px] text-gray-400 font-bold italic tracking-widest uppercase">Visualización de ingresos de los últimos 7 días</p>
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-cyan" /><span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ventas Web</span></div>
+                    <div className="flex items-center gap-2"><div className={`h-2 w-2 rounded-full ${theme === 'dark' ? 'bg-white/20' : 'bg-[#004d4d]'}`} /><span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ventas POS</span></div>
+                </div>
+            </div>
+
+            <div className="h-64 flex items-end justify-between gap-4 px-4 relative">
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
+                    {[1, 2, 3, 4].map(i => <div key={i} className={`w-full h-px ${theme === 'dark' ? 'bg-white' : 'bg-gray-900'}`} />)}
+                </div>
+
+                {(() => {
+                    const maxVal = Math.max(...weeklySales) || 1;
+                    return weeklySales.map((val, i) => {
+                        const day = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"][i];
+                        const heightPercent = (val / maxVal) * 100;
+                        return (
+                            <div key={i} className="flex-1 flex flex-col items-center gap-4 group/bar relative z-10">
+                                <div className="relative w-full flex flex-col items-center justify-end h-48">
+                                    <motion.div 
+                                        initial={{ height: 0 }}
+                                        animate={{ height: `${heightPercent}%` }}
+                                        transition={{ delay: i * 0.1, duration: 1, ease: "circOut" }}
+                                        className="w-full max-w-[40px] bg-gradient-to-t from-[#004d4d] to-cyan rounded-t-2xl relative group-hover/bar:shadow-[0_0_30px_rgba(0,242,255,0.4)] transition-all duration-500"
+                                    >
+                                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] font-black px-3 py-1.5 rounded-xl opacity-0 group-hover/bar:opacity-100 transition-all shadow-2xl border border-white/10 whitespace-nowrap z-50">
+                                            $ {val.toLocaleString()}
+                                        </div>
+                                    </motion.div>
+                                </div>
+                                <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${theme === 'dark' ? 'text-white/40 group-hover/bar:text-cyan' : 'text-gray-400 group-hover/bar:text-[#004d4d]'}`}>{day}</span>
+                            </div>
+                        );
+                    });
+                })()}
+            </div>
+        </PremiumCard>
 
         <MetricDetailModal isOpen={!!selectedMetric} onClose={() => setSelectedMetric(null)} metric={selectedMetric} />
         
