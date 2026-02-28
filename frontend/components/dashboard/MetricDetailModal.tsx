@@ -140,13 +140,6 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
                         </div>
                     </div>
                 </div>
-
-                <button 
-                    onClick={onClose}
-                    className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] tracking-[0.2em] hover:bg-black transition-all shadow-xl shadow-gray-200"
-                >
-                    Continuar operación
-                </button>
             </div>
           </motion.div>
         </div>

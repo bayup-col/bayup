@@ -69,17 +69,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    const savedData = localStorage.getItem('bayup_general_settings');
-    if (savedData) {
+    const fetchCompanyName = async () => {
+      if (!token) return;
       try {
-        const parsed = JSON.parse(savedData);
-        if (parsed.identity?.name) setCompanyName(parsed.identity.name);
-      } catch (e) {}
-    }
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${apiUrl}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.full_name) setCompanyName(data.full_name);
+        }
+      } catch (e) { console.error("Error al cargar nombre de empresa", e); }
+    };
+    fetchCompanyName();
+
     const handleNameUpdate = (e: any) => { if (e.detail) setCompanyName(e.detail); };
     window.addEventListener('bayup_name_update', handleNameUpdate);
     return () => window.removeEventListener('bayup_name_update', handleNameUpdate);
-  }, []);
+  }, [token]);
 
   const userEmail = authEmail || 'usuario@ejemplo.com';
   const userRole = authRole || 'admin';
