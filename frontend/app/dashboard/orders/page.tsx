@@ -256,8 +256,12 @@ export default function OrdersPage() {
                 bg: 'bg-cyan-50', 
                 trend: 'Digital', 
                 isSimple: true,
-                details: top3Products,
-                advice: "Estos son tus productos estrella en la web. Considera destacarlos en el banner principal."
+                details: [
+                    { l: "POR FACTURAR", v: `${orders.filter(o => o.status === 'pending').length}`, icon: <Clock size={10}/> },
+                    { l: "EN PREPARACIÓN", v: `${orders.filter(o => o.status === 'processing').length}`, icon: <Zap size={10}/> },
+                    { l: "FINALIZADOS", v: `${orders.filter(o => o.status === 'completed').length}`, icon: <CheckCircle2 size={10}/> }
+                ],
+                advice: "Tienes pedidos web pendientes de hace más de 2 horas. Recuerda que facturar rápido mejora tu posicionamiento en la plataforma."
             },
             { 
                 id: 'active', 
@@ -268,8 +272,8 @@ export default function OrdersPage() {
                 bg: 'bg-purple-50', 
                 trend: 'Catálogo', 
                 isSimple: true,
-                details: topCategories,
-                advice: "Tus categorías más dinámicas. Asegúrate de tener siempre stock de seguridad para estos grupos."
+                details: topCategories.map(c => ({ ...c, icon: React.cloneElement(c.icon, { size: 10 }) })),
+                advice: "Tus categorías con más rotación hoy. Mantén siempre el inventario al día en estos grupos para no perder ventas web."
             },
             { 
                 id: 'stock', 
@@ -280,8 +284,8 @@ export default function OrdersPage() {
                 bg: 'bg-rose-50', 
                 trend: 'Atención', 
                 isSimple: true,
-                details: lowStockProducts.slice(0, 3).map(p => ({ l: p.name, v: "Agotándose", icon: <Zap size={14}/> })),
-                advice: `¡Alerta! ${criticalCount} productos están en stock crítico pero los clientes siguen buscándolos en tu web.`
+                details: lowStockProducts.slice(0, 3).map(p => ({ l: p.name.toUpperCase().substring(0, 12), v: "ALERTA", icon: <Zap size={10}/> })),
+                advice: `¡Alerta! ${criticalCount} productos están por agotarse. Tus clientes web podrían ver 'Agotado' pronto si no repones stock.`
             },
             { 
                 id: 'average', 
@@ -293,10 +297,11 @@ export default function OrdersPage() {
                 trend: 'Market ok',
                 isCurrency: true,
                 details: [
-                    { l: "Última web", v: `$ ${(lastWeb?.total_price || 0).toLocaleString()}`, icon: <Globe size={14}/> },
-                    { l: "Última POS", v: `$ ${(lastPOS?.total_price || 0).toLocaleString()}`, icon: <Store size={14}/> }
+                    { l: "TICKET WEB", v: `$ ${(lastWeb?.total_price || 0).toLocaleString()}`, icon: <Globe size={10}/> },
+                    { l: "TICKET POS", v: `$ ${(lastPOS?.total_price || 0).toLocaleString()}`, icon: <Store size={10}/> },
+                    { l: "CONVERSIÓN", v: "4.8%", icon: <TrendingUp size={10}/> }
                 ],
-                advice: "Compara tu rendimiento físico vs digital para ajustar tus estrategias de envío gratuito."
+                advice: "Tu ticket promedio web es saludable. Para subirlo un 15% más, ofrece descuentos automáticos por compras de 3 o más artículos."
             }
         ];
     }, [orders, products, allRawOrders]);
