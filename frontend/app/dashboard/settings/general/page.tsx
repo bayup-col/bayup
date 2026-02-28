@@ -311,7 +311,7 @@ export default function GeneralSettings() {
                 <div className="overflow-visible">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                        <span className="text-[10px] font-black  tracking-[0.3em] text-[#004d4d]/60 italic">Identidad corporativa v2.0</span>
+                        <span className="text-[10px] font-black  tracking-[0.3em] text-[#004d4d]/60 italic">Identidad corporativa</span>
                     </div>
                     <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-[1.5] text-[#001A1A] pt-2 pb-6 px-2 overflow-visible">
                         Info <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block pb-4 pr-10">general</span>
