@@ -95,6 +95,7 @@ const AuroraMetricCard = ({ children, onClick }: { children: React.ReactNode, on
 export default function DashboardPage() {
   const { userEmail, token } = useAuth();
   const { showToast } = useToast();
+  const { theme } = useTheme();
   
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
   const [isCustomReportModalOpen, setIsCustomReportModalOpen] = useState(false);
@@ -394,23 +395,24 @@ export default function DashboardPage() {
                       <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
                       <span className="text-[10px] font-black tracking-[0.3em] text-[#004d4d]/60 italic">Tú panel de control</span>
                   </div>
-                  <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter leading-tight text-[#001A1A] pt-4 pb-8 px-2 overflow-visible">
-                      ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block py-2 pb-4 pr-1">{companyName}</span>!
-                  </h1>
-                  <p className="text-gray-400 font-medium text-lg italic max-w-2xl">
-                      ¡Aquí tienes el resumen de tu negocio hoy! 🚀
-                  </p>
-              </div>
-              <div className="flex gap-4 shrink-0 relative z-20">
-                  <button onClick={handleDownloadReport} className="h-16 px-10 bg-white border border-gray-100 text-[#004d4d] rounded-full flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transition-all group">
-                      <FileText size={20} className="text-cyan transition-transform group-hover:scale-110"/> 
-                      <span className="font-black tracking-widest text-[10px]">Reporte diario</span>
-                  </button>
-                  <button onClick={() => setIsCustomReportModalOpen(true)} className="h-16 px-10 bg-[#004d4d] text-white rounded-full flex items-center justify-center gap-3 shadow-2xl hover:bg-black transition-all group">
-                      <Calendar size={20} className="text-cyan transition-transform group-hover:scale-110"/> 
-                      <span className="font-black tracking-widest text-[10px]">Reportes del mes</span>
-                  </button>
-              </div>
+                                    <h1 className={`text-3xl md:text-5xl font-black italic tracking-tighter leading-[1.6] py-4 pb-8 px-2 overflow-visible transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-[#001A1A]'}`}>
+                                        ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block py-2 pb-4 pr-1">{companyName}</span>!
+                                    </h1>
+                                    <p className={`text-base font-medium italic max-w-2xl transition-colors duration-500 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'}`}>
+                                        ¡Aquí tienes el resumen de tu negocio hoy! 🚀
+                                    </p>
+                                </div>
+                  
+                                <div className="flex gap-4 shrink-0 relative z-20">
+                                    <button onClick={handleDownloadReport} className={`h-16 px-10 border rounded-full flex items-center justify-center gap-3 shadow-xl transition-all group ${theme === 'dark' ? 'bg-[#001a1a]/40 border-white/10 text-white hover:bg-[#001a1a]' : 'bg-white border-gray-100 text-[#004d4d] hover:shadow-2xl'}`}>
+                                        <FileText size={20} className="text-cyan transition-transform group-hover:scale-110"/> 
+                                        <span className="font-black tracking-widest text-[10px]">Reporte diario</span>
+                                    </button>
+                                    <button onClick={() => setIsCustomReportModalOpen(true)} className={`h-16 px-10 rounded-full flex items-center justify-center gap-3 shadow-2xl transition-all group ${theme === 'dark' ? 'bg-cyan/10 border border-cyan/20 text-cyan hover:bg-cyan/20' : 'bg-[#004d4d] text-white hover:bg-black'}`}>
+                                        <Calendar size={20} className="text-cyan transition-transform group-hover:scale-110"/> 
+                                        <span className="font-black tracking-widest text-[10px]">Reportes del mes</span>
+                                    </button>
+                                </div>
             </div>
 
             {/* MODAL REPORTE PERSONALIZADO */}
@@ -451,7 +453,7 @@ export default function DashboardPage() {
           {kpis.map((kpi, i) => (
               <div key={i}>
                   <AuroraMetricCard onClick={() => setSelectedMetric(kpi)}>
-                      <MetricKPI {...kpi} />
+                      <MetricKPI {...kpi} dark={theme === 'dark'} />
                   </AuroraMetricCard>
               </div>
           ))}
@@ -677,22 +679,23 @@ interface MetricKPIProps {
     trend: string;
     isCurrency?: boolean;
     isPercentage?: boolean;
+    dark?: boolean;
 }
 
-function MetricKPI({ label, value, icon, color, bg, trend, isCurrency = false, isPercentage = false }: MetricKPIProps) {
+function MetricKPI({ label, value, icon, color, bg, trend, isCurrency = false, isPercentage = false, dark = false }: MetricKPIProps) {
     return (
-        <PremiumCard className="p-8 group h-full">
+        <PremiumCard dark={dark} className="p-8 group h-full border-none shadow-none">
             <div className="flex justify-between items-start mb-6">
                 <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg group-hover:scale-110 border border-white/50 ${bg} ${color}`}>
                     {icon}
                 </div>
-                <div className={`px-3 py-1 rounded-full text-[9px] font-black tracking-wider ${trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                <div className={`px-3 py-1 rounded-full text-[9px] font-black tracking-wider ${trend.startsWith('+') || trend === 'Live' || trend === 'Online' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-gray-100 text-gray-400'}`}>
                     {trend}
                 </div>
             </div>
             <div>
-                <p className="text-[10px] font-black text-gray-400 tracking-tight mb-1.5">{label}</p>
-                <h3 className="text-3xl font-black text-gray-900 tracking-tighter">
+                <p className={`text-[10px] font-black tracking-tight mb-1.5 ${dark ? 'text-white/40' : 'text-gray-400'}`}>{label}</p>
+                <h3 className={`text-3xl font-black tracking-tighter ${dark ? 'text-white' : 'text-gray-900'}`}>
                     {isCurrency && "$ "}<AnimatedNumber value={value} type={isPercentage ? 'percentage' : 'simple'} />
                 </h3>
             </div>
