@@ -3,6 +3,7 @@
 import React, { useState, useEffect, memo, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from "@/context/auth-context";
 import { useTheme } from "@/context/theme-context";
+import { useToast } from "@/context/toast-context";
 import Link from 'next/link';
 import { 
   Plus, Search, Filter, Download, Package, AlertCircle, ShoppingBag, Trophy, Layers, 
@@ -101,24 +102,90 @@ export default function DashboardPage() {
   useEffect(() => { loadDashboardData(); }, [loadDashboardData]);
 
   const kpis = [
-    { label: 'Ventas de hoy', value: realStats.revenue, icon: <Activity size={24}/>, color: "text-emerald-500", bg: "bg-emerald-500/10", trend: "+12.5%", isCurrency: true },
-    { label: 'Pedidos pendientes', value: orders.filter(o => o.status === 'pending').length, icon: <ShoppingBag size={24}/>, color: "text-amber-500", bg: "bg-amber-500/10", trend: "Estable" },
-    { label: 'Mi Saldo Bayup', value: realStats.revenue, icon: <Wallet size={24}/>, color: "text-purple-500", bg: "bg-purple-500/10", trend: "3% Éxito", isCurrency: true },
-    { label: 'Inventario bajo', value: realStats.low_stock, icon: <Package size={24}/>, color: "text-rose-500", bg: "bg-rose-500/10", trend: "OK" }
+    { 
+        label: 'Ventas de hoy', value: realStats.revenue, icon: <Activity size={24}/>, color: "text-emerald-500", bg: "bg-emerald-500/10", trend: "+12.5%", isCurrency: true,
+        details: [
+            { l: 'EFECTIVO', v: `$ ${(realStats.revenue * 0.6).toLocaleString()}`, icon: <DollarSign size={10}/> },
+            { l: 'TRANSF.', v: `$ ${(realStats.revenue * 0.4).toLocaleString()}`, icon: <CreditCard size={10}/> },
+            { l: 'META DÍA', v: '92%', icon: <Target size={10}/> }
+        ],
+        advice: 'Tus ventas de hoy van por buen camino. Te sugiero enviar un mensaje de agradecimiento a tus compradores de la mañana.'
+    },
+    { 
+        label: 'Pedidos pendientes', value: orders.filter(o => o.status === 'pending').length, icon: <ShoppingBag size={24}/>, color: "text-amber-500", bg: "bg-amber-500/10", trend: "Estable",
+        details: [
+            { l: 'WEB', v: `${orders.filter(o => o.status === 'pending' && o.source !== 'pos').length}`, icon: <Globe size={10}/> },
+            { l: 'WHATSAPP', v: '0', icon: <MessageSquare size={10}/> },
+            { l: 'ALERTA', v: '0', icon: <AlertCircle size={10}/> }
+        ],
+        advice: 'Tienes pedidos pendientes por facturar. Recuerda que procesar órdenes en menos de 1 hora aumenta tu reputación.'
+    },
+    { 
+        label: 'Mi Saldo Bayup', value: realStats.revenue, icon: <Wallet size={24}/>, color: "text-purple-500", bg: "bg-purple-500/10", trend: "3% Éxito", isCurrency: true,
+        details: [
+            { l: 'DISPONIBLE', v: `$ ${realStats.revenue.toLocaleString()}`, icon: <ShieldCheck size={10}/> },
+            { l: 'PENDIENTE', v: '$ 0', icon: <Clock size={10}/> },
+            { l: 'RETIRABLE', v: `$ ${realStats.revenue.toLocaleString()}`, icon: <DollarSign size={10}/> }
+        ],
+        advice: 'Tu saldo está listo para ser retirado o reinvertido. ¿Qué tal si activas una campaña de descuentos para mañana?'
+    },
+    { 
+        label: 'Inventario bajo', value: realStats.low_stock, icon: <Package size={24}/>, color: "text-rose-500", bg: "bg-rose-500/10", trend: "OK",
+        details: [
+            { l: 'CRÍTICO', v: `${realStats.low_stock}`, icon: <AlertCircle size={10}/> },
+            { l: 'SANO', v: '12', icon: <CheckCircle2 size={10}/> },
+            { l: 'TOTAL', v: '1', icon: <Layers size={10}/> }
+        ],
+        advice: 'Detecto productos con menos de 5 unidades. Repón inventario pronto para evitar el letrero de "Agotado" en tu web.'
+    }
   ];
 
   const handleDownloadReport = async () => {
       showToast("Generando reporte...", "info");
-      const { generateDailyReport } = await import('@/lib/report-generator');
-      await generateDailyReport({ userName: companyName, products: [], orders, expenses: [] });
+      try {
+          const [products, expenses] = await Promise.all([
+              apiRequest<any[]>('/products', { token }),
+              apiRequest<any[]>('/expenses', { token })
+          ]);
+          const { generateDailyReport } = await import('@/lib/report-generator');
+          await generateDailyReport({ userName: companyName, products: products || [], orders, expenses: expenses || [] });
+      } catch (e) { showToast("Error al generar reporte", "error"); }
   };
 
   const handleGenerateCustomReport = async () => {
       if (!customRange.start || !customRange.end) return showToast("Selecciona fechas", "info");
       showToast("Generando periodo...", "info");
-      const { generateDailyReport } = await import('@/lib/report-generator');
-      await generateDailyReport({ userName: companyName, products: [], orders, expenses: [], range: customRange });
-      setIsCustomReportModalOpen(false);
+      try {
+          const [allProducts, allOrders, allExpenses] = await Promise.all([
+              apiRequest<any[]>('/products', { token }),
+              apiRequest<any[]>('/orders', { token }),
+              apiRequest<any[]>('/expenses', { token })
+          ]);
+
+          const start = new Date(customRange.start);
+          const end = new Date(customRange.end);
+          end.setHours(23, 59, 59, 999);
+
+          const filteredOrders = (allOrders || []).filter(o => {
+              const d = new Date(o.created_at);
+              return d >= start && d <= end;
+          });
+
+          const filteredExpenses = (allExpenses || []).filter(e => {
+              const d = new Date(e.date);
+              return d >= start && d <= end;
+          });
+
+          const { generateDailyReport } = await import('@/lib/report-generator');
+          await generateDailyReport({ 
+              userName: companyName, 
+              products: allProducts || [], 
+              orders: filteredOrders, 
+              expenses: filteredExpenses, 
+              range: customRange 
+          });
+          setIsCustomReportModalOpen(false);
+      } catch (e) { showToast("Error al generar reporte", "error"); }
   };
 
   return (
