@@ -35,7 +35,10 @@ import {
   ShoppingBag,
   Power,
   Save,
-  Loader2
+  Loader2,
+  DollarSign,
+  AlertCircle,
+  TrendingDown
 } from 'lucide-react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useToast } from "@/context/toast-context";
