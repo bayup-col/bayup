@@ -10,7 +10,7 @@ import {
   ArrowRight, TrendingUp, AlertCircle, Package, CreditCard, 
   MessageCircle, Lightbulb, Zap, Globe, ShieldCheck, RefreshCw, Clock, Bot, 
   ArrowUpRight, ArrowDownRight, ShoppingBag, DollarSign, Wallet, Plus, FileText, Target,
-  MessageSquare, Calendar
+  MessageSquare, Calendar, Download
 } from 'lucide-react';
 import { ActionButton } from "@/components/landing/ActionButton";
 import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
