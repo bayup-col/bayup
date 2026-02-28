@@ -216,6 +216,11 @@ export default function OrdersPage() {
 
         // 3. Stock Crítico
         const lowStockProducts = products.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0) <= 5);
+        const warningStockCount = products.filter(p => {
+            const s = p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0;
+            return s > 5 && s <= 15;
+        }).length;
+        const healthyStockCount = products.length - (lowStockProducts.length + warningStockCount);
         const criticalCount = lowStockProducts.length;
 
         // 4. Ticket Promedio
@@ -292,8 +297,14 @@ export default function OrdersPage() {
                 bg: 'bg-rose-50', 
                 trend: 'Atención', 
                 isSimple: true,
-                details: lowStockProducts.slice(0, 3).map(p => ({ l: p.name.toUpperCase().substring(0, 12), v: "ALERTA", icon: <Zap size={10}/> })),
-                advice: `¡Alerta! ${criticalCount} productos están por agotarse. Tus clientes web podrían ver 'Agotado' pronto si no repones stock.`
+                details: [
+                    { l: "CRÍTICO", v: `${criticalCount}`, icon: <AlertCircle size={10}/> },
+                    { l: "PREVENTIVO", v: `${warningStockCount}`, icon: <Zap size={10}/> },
+                    { l: "SANO", v: `${healthyStockCount}`, icon: <CheckCircle2 size={10}/> }
+                ],
+                advice: criticalCount > 0 
+                    ? `¡Alerta! Tienes ${criticalCount} productos en rojo. Repón stock para no perder ventas web.`
+                    : "Tu inventario está en buen estado. Mantener un stock preventivo asegura entregas rápidas."
             },
             { 
                 id: 'average', 
