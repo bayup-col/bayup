@@ -97,6 +97,34 @@ app.get('/status', (req, res) => {
     res.json({ status: connectionStatus });
 });
 
+app.get('/qr', (req, res) => {
+    if (connectionStatus === 'ready') {
+        return res.send('<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#e8f5e9;"><div style="text-align:center;background:white;padding:40px;border-radius:30px;box-shadow:0 10px 30px rgba(0,0,0,0.05); border: 2px solid #4caf50;"><h1 style="color:#2e7d32;">✅ ¡WhatsApp Conectado!</h1><p style="color:#666;">Bayup ya puede enviar mensajes.</p></div></body></html>');
+    }
+    if (!lastQRUrl) {
+        return res.send('<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#fff;"><div style="text-align:center;"><h1>Generando QR...</h1><p>Por favor refresca en 5 segundos.</p><script>setTimeout(()=>location.reload(), 5000)</script></div></body></html>');
+    }
+    res.send(`
+        <html>
+            <body style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#f0f2f5;margin:0;">
+                <div style="background:white;padding:50px;border-radius:40px;box-shadow:0 20px 50px rgba(0,0,0,0.1);text-align:center;max-width:400px;">
+                    <img src="https://bayup.com.co/assets/logo.png" style="height:40px;margin-bottom:20px;display:none;" onerror="this.style.display='none'" />
+                    <h2 style="margin:0 0 10px 0;font-weight:900;text-transform:uppercase;letter-spacing:-1px;">Vincular WhatsApp</h2>
+                    <p style="color:#666;font-size:14px;margin-bottom:30px;">Escanea este código con tu celular para activar las notificaciones de Bayup.</p>
+                    <div style="background:#f8fafc;padding:20px;border-radius:20px;border:1px dashed #cbd5e1;">
+                        <img src="${lastQRUrl}" style="width:280px;height:280px;display:block;" />
+                    </div>
+                    <p style="margin-top:30px;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;font-weight:800;">Bayup Bridge Engine v1.0</p>
+                </div>
+                <script>
+                    // Auto-recarga cada 30 segundos para mantener el QR fresco
+                    setTimeout(() => location.reload(), 30000);
+                </script>
+            </body>
+        </html>
+    `);
+});
+
 app.post('/send', express.json(), async (req, res) => {
     if (connectionStatus !== 'ready') return res.status(400).json({ error: 'Not connected' });
     const { to, body } = req.body;
