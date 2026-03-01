@@ -108,15 +108,36 @@ export default function DashboardPage() {
         ]);
 
         if (uData?.full_name) setCompanyName(uData.full_name);
+        
         if (oData) {
             setOrders(oData);
-            const rev = oData.reduce((acc, o) => acc + (o.total_price || 0), 0);
+            
+            // 1. Filtrar ventas de HOY
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const ordersToday = oData.filter(o => new Date(o.created_at) >= today);
+            const revToday = ordersToday.reduce((acc, o) => acc + (o.total_price || 0), 0);
+            const cashToday = ordersToday.filter(o => o.payment_method === 'cash').reduce((acc, o) => acc + (o.total_price || 0), 0);
+            const transToday = ordersToday.filter(o => o.payment_method === 'transfer' || o.payment_method === 'wompi').reduce((acc, o) => acc + (o.total_price || 0), 0);
+
+            // 2. Cálculos de Inventario
+            const allProducts = pData || [];
+            const lowStockCount = allProducts.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0)||0) <= 5).length;
+            const healthyStockCount = allProducts.length - lowStockCount;
+
             setRealStats({
-                revenue: rev,
-                orders_count: oData.length,
+                revenue: revToday,
+                orders_count: ordersToday.length,
                 conversion: 4.8,
-                low_stock: (pData || []).filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0)||0) <= 5).length,
-                avg_ticket: oData.length > 0 ? rev / oData.length : 0
+                low_stock: lowStockCount,
+                avg_ticket: ordersToday.length > 0 ? revToday / ordersToday.length : 0,
+                // Añadimos campos extra para los detalles
+                cash: cashToday,
+                transfer: transToday,
+                healthy: healthyStockCount,
+                total_products: allProducts.length,
+                total_balance: oData.reduce((acc, o) => acc + (o.total_price || 0), 0) // Saldo histórico total
             });
         }
         if (lData) setActivities(lData.slice(0, 5));
@@ -127,40 +148,44 @@ export default function DashboardPage() {
 
   const kpis = [
     { 
-        label: 'Ventas de hoy', value: realStats.revenue, icon: <Activity size={24}/>, color: "text-emerald-500", bg: "bg-emerald-500/10", trend: "+12.5%", isCurrency: true,
+        label: 'Ventas de hoy', value: realStats.revenue, icon: <Activity size={24}/>, color: "text-emerald-500", bg: "bg-emerald-500/10", trend: "Live", isCurrency: true,
         details: [
-            { l: 'EFECTIVO', v: `$ ${(realStats.revenue * 0.6).toLocaleString()}`, icon: <DollarSign size={10}/> },
-            { l: 'TRANSF.', v: `$ ${(realStats.revenue * 0.4).toLocaleString()}`, icon: <CreditCard size={10}/> },
-            { l: 'META DÍA', v: '92%', icon: <Target size={10}/> }
+            { l: 'EFECTIVO', v: `$ ${realStats.cash.toLocaleString()}`, icon: <DollarSign size={10}/> },
+            { l: 'TRANSF.', v: `$ ${realStats.transfer.toLocaleString()}`, icon: <CreditCard size={10}/> },
+            { l: 'ÓRDENES', v: `${realStats.orders_count}`, icon: <ShoppingBag size={10}/> }
         ],
-        advice: 'Tus ventas de hoy van por buen camino. Te sugiero enviar un mensaje de agradecimiento a tus compradores de la mañana.'
+        advice: realStats.revenue > 0 
+            ? 'Tus ventas de hoy están activas. Recuerda que procesar los pedidos web rápido mejora tu reputación.' 
+            : 'Aún no hay ventas registradas hoy. ¡Es un buen momento para lanzar una promoción por WhatsApp!'
     },
     { 
         label: 'Pedidos pendientes', value: orders.filter(o => o.status === 'pending').length, icon: <ShoppingBag size={24}/>, color: "text-amber-500", bg: "bg-amber-500/10", trend: "Estable",
         details: [
             { l: 'WEB', v: `${orders.filter(o => o.status === 'pending' && o.source !== 'pos').length}`, icon: <Globe size={10}/> },
-            { l: 'WHATSAPP', v: '0', icon: <MessageSquare size={10}/> },
-            { l: 'ALERTA', v: '0', icon: <AlertCircle size={10}/> }
+            { l: 'POS', v: `${orders.filter(o => o.status === 'pending' && o.source === 'pos').length}`, icon: <Store size={10}/> },
+            { l: 'TOTAL', v: `${orders.filter(o => o.status === 'pending').length}`, icon: <Layers size={10}/> }
         ],
-        advice: 'Tienes pedidos pendientes por facturar. Recuerda que procesar órdenes en menos de 1 hora aumenta tu reputación.'
+        advice: 'Tienes pedidos pendientes por facturar. Procesar órdenes en menos de 1 hora aumenta tu probabilidad de recompra.'
     },
     { 
-        label: 'Mi Saldo Bayup', value: realStats.revenue, icon: <Wallet size={24}/>, color: "text-purple-500", bg: "bg-purple-500/10", trend: "3% Éxito", isCurrency: true,
+        label: 'Mi Saldo Bayup', value: realStats.total_balance, icon: <Wallet size={24}/>, color: "text-purple-500", bg: "bg-purple-500/10", trend: "Recaudado", isCurrency: true,
         details: [
-            { l: 'DISPONIBLE', v: `$ ${realStats.revenue.toLocaleString()}`, icon: <ShieldCheck size={10}/> },
+            { l: 'DISPONIBLE', v: `$ ${realStats.total_balance.toLocaleString()}`, icon: <ShieldCheck size={10}/> },
             { l: 'PENDIENTE', v: '$ 0', icon: <Clock size={10}/> },
-            { l: 'RETIRABLE', v: `$ ${realStats.revenue.toLocaleString()}`, icon: <DollarSign size={10}/> }
+            { l: 'ESTIMADO', v: `$ ${(realStats.total_balance * 0.965).toLocaleString()}`, icon: <TrendingUp size={10}/> }
         ],
-        advice: 'Tu saldo está listo para ser retirado o reinvertido. ¿Qué tal si activas una campaña de descuentos para mañana?'
+        advice: 'Tu saldo acumulado refleja el éxito de tu operación. Bayup recomienda reinvertir el 10% en publicidad digital.'
     },
     { 
-        label: 'Inventario bajo', value: realStats.low_stock, icon: <Package size={24}/>, color: "text-rose-500", bg: "bg-rose-500/10", trend: "OK",
+        label: 'Inventario bajo', value: realStats.low_stock, icon: <Package size={24}/>, color: "text-rose-500", bg: "bg-rose-500/10", trend: "Atención",
         details: [
             { l: 'CRÍTICO', v: `${realStats.low_stock}`, icon: <AlertCircle size={10}/> },
-            { l: 'SANO', v: '12', icon: <CheckCircle2 size={10}/> },
-            { l: 'TOTAL', v: '1', icon: <Layers size={10}/> }
+            { l: 'SANO', v: `${realStats.healthy}`, icon: <CheckCircle2 size={10}/> },
+            { l: 'TOTAL', v: `${realStats.total_products}`, icon: <Layers size={10}/> }
         ],
-        advice: 'Detecto productos con menos de 5 unidades. Repón inventario pronto para evitar el letrero de "Agotado" en tu web.'
+        advice: realStats.low_stock > 0 
+            ? `Detecto ${realStats.low_stock} productos por agotarse. Repón stock pronto para no perder ventas en tu tienda web.`
+            : 'Tu inventario está en niveles óptimos. ¡Sigue así para garantizar entregas inmediatas!'
     }
   ];
 
