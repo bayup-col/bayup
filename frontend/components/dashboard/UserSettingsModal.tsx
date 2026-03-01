@@ -302,17 +302,20 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                                         <ArrowUpRight size={16} className="text-gray-300 group-hover:text-[#004d4d]" />
                                     </button>
 
-                                    <button className="w-full flex items-center justify-between p-6 bg-white border border-gray-100 rounded-3xl hover:border-[#004d4d] transition-all group">
+                                    <button className="w-full flex items-center justify-between p-6 bg-white border border-gray-100 rounded-3xl opacity-60 cursor-not-allowed transition-all group relative overflow-hidden">
                                         <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500">
+                                            <div className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
                                                 <Smartphone size={18} />
                                             </div>
                                             <div className="text-left">
-                                                <p className="text-xs font-black text-gray-900 uppercase tracking-tight">Autenticación en Dos Pasos (2FA)</p>
-                                                <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-tighter">Activado - Máxima Seguridad</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-xs font-black text-gray-900 uppercase tracking-tight">Autenticación en Dos Pasos (2FA)</p>
+                                                    <span className="text-[6px] font-black bg-[#00F2FF]/20 text-[#004d4d] px-1.5 py-0.5 rounded-full uppercase tracking-tighter">Próximamente</span>
+                                                </div>
+                                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Capa de Seguridad Extra</p>
                                             </div>
                                         </div>
-                                        <CheckCircle2 size={16} className="text-emerald-500" />
+                                        <Lock size={16} className="text-gray-300" />
                                     </button>
                                 </div>
                             </motion.div>
