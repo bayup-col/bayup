@@ -317,61 +317,84 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                             <motion.div 
                                 key="preferencias"
                                 initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-                                className="max-w-2xl space-y-8"
+                                className="max-w-2xl space-y-8 relative"
                             >
-                                <section className="space-y-4">
-                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
-                                        <Moon size={12} className="text-gray-900"/> Personalización Visual
-                                    </h4>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <button 
-                                            onClick={() => theme !== 'light' && toggleTheme()}
-                                            className={`p-6 rounded-3xl border transition-all flex flex-col items-center gap-3 ${theme === 'light' ? 'bg-[#004d4d]/5 border-[#004d4d] text-[#004d4d]' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
-                                        >
-                                            <Sun size={24} />
-                                            <span className="text-[10px] font-black uppercase tracking-widest">Modo Claro</span>
-                                        </button>
-                                        <button 
-                                            onClick={() => theme !== 'dark' && toggleTheme()}
-                                            className={`p-6 rounded-3xl border transition-all flex flex-col items-center gap-3 ${theme === 'dark' ? 'bg-[#004d4d]/5 border-[#004d4d] text-[#004d4d]' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
-                                        >
-                                            <Moon size={24} />
-                                            <span className="text-[10px] font-black uppercase tracking-widest">Modo Oscuro</span>
-                                        </button>
-                                    </div>
-                                </section>
+                                {/* Overlay de Próximamente */}
+                                <div className="absolute inset-0 z-20 backdrop-blur-[2px] bg-white/10 rounded-[3rem] flex flex-col items-center justify-center border border-white/40 shadow-2xl overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-[#004d4d]/5 to-transparent pointer-events-none"></div>
+                                    <motion.div 
+                                        initial={{ scale: 0.9, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        className="relative p-10 bg-white/90 backdrop-blur-3xl rounded-[3.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white flex flex-col items-center text-center max-w-sm"
+                                    >
+                                        <div className="h-20 w-20 bg-[#004d4d] rounded-[2rem] flex items-center justify-center text-[#00f2ff] shadow-2xl shadow-[#004d4d]/20 mb-6">
+                                            <Sparkles size={40} className="animate-pulse" />
+                                        </div>
+                                        <h3 className="text-2xl font-black text-gray-900 tracking-tighter uppercase italic leading-none mb-2">Próximamente</h3>
+                                        <div className="h-1 w-12 bg-[#00f2ff] rounded-full mb-6"></div>
+                                        <p className="text-sm font-bold text-gray-800 leading-relaxed italic mb-8">
+                                            "Estamos afinando los algoritmos de personalización para que Bayup se adapte exactamente a tu ritmo de trabajo."
+                                        </p>
+                                        <div className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-[#00f2ff] rounded-full">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-[#00f2ff] animate-ping"></div>
+                                            <span className="text-[9px] font-black uppercase tracking-widest">Bayt AI Engine v3.0</span>
+                                        </div>
+                                    </motion.div>
+                                </div>
 
-                                <section className="space-y-4">
-                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
-                                        <Bell size={12} className="text-gray-900"/> Notificaciones Bayt
-                                    </h4>
-                                    <div className="bg-white border border-gray-100 rounded-[2.5rem] overflow-hidden">
-                                        <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500"><Phone size={18}/></div>
-                                                <div>
-                                                    <p className="text-[10px] font-black text-gray-900 uppercase tracking-tight">Alertas WhatsApp</p>
-                                                    <p className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Ventas y Pedidos</p>
+                                <div className="opacity-40 grayscale pointer-events-none">
+                                    <section className="space-y-4">
+                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
+                                            <Moon size={12} className="text-gray-900"/> Personalización Visual
+                                        </h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <button 
+                                                className={`p-6 rounded-3xl border transition-all flex flex-col items-center gap-3 ${theme === 'light' ? 'bg-[#004d4d]/5 border-[#004d4d] text-[#004d4d]' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                            >
+                                                <Sun size={24} />
+                                                <span className="text-[10px] font-black uppercase tracking-widest">Modo Claro</span>
+                                            </button>
+                                            <button 
+                                                className={`p-6 rounded-3xl border transition-all flex flex-col items-center gap-3 ${theme === 'dark' ? 'bg-[#004d4d]/5 border-[#004d4d] text-[#004d4d]' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                                            >
+                                                <Moon size={24} />
+                                                <span className="text-[10px] font-black uppercase tracking-widest">Modo Oscuro</span>
+                                            </button>
+                                        </div>
+                                    </section>
+
+                                    <section className="space-y-4">
+                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
+                                            <Bell size={12} className="text-gray-900"/> Notificaciones Bayt
+                                        </h4>
+                                        <div className="bg-white border border-gray-100 rounded-[2.5rem] overflow-hidden">
+                                            <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500"><Phone size={18}/></div>
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-gray-900 uppercase tracking-tight">Alertas WhatsApp</p>
+                                                        <p className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Ventas y Pedidos</p>
+                                                    </div>
+                                                </div>
+                                                <div className="h-6 w-12 bg-emerald-500 rounded-full p-1 cursor-pointer flex justify-end">
+                                                    <div className="h-4 w-4 bg-white rounded-full shadow-sm"></div>
                                                 </div>
                                             </div>
-                                            <div className="h-6 w-12 bg-emerald-500 rounded-full p-1 cursor-pointer flex justify-end">
-                                                <div className="h-4 w-4 bg-white rounded-full shadow-sm"></div>
-                                            </div>
-                                        </div>
-                                        <div className="p-6 flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500"><Mail size={18}/></div>
-                                                <div>
-                                                    <p className="text-[10px] font-black text-gray-900 uppercase tracking-tight">Resúmenes Email</p>
-                                                    <p className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Reportes Diarios de ROI</p>
+                                            <div className="p-6 flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500"><Mail size={18}/></div>
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-gray-900 uppercase tracking-tight">Resúmenes Email</p>
+                                                        <p className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Reportes Diarios de ROI</p>
+                                                    </div>
+                                                </div>
+                                                <div className="h-6 w-12 bg-gray-200 rounded-full p-1 cursor-pointer flex justify-start">
+                                                    <div className="h-4 w-4 bg-white rounded-full shadow-sm"></div>
                                                 </div>
                                             </div>
-                                            <div className="h-6 w-12 bg-gray-200 rounded-full p-1 cursor-pointer flex justify-start">
-                                                <div className="h-4 w-4 bg-white rounded-full shadow-sm"></div>
-                                            </div>
                                         </div>
-                                    </div>
-                                </section>
+                                    </section>
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
