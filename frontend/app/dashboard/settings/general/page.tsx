@@ -174,17 +174,21 @@ export default function GeneralSettings() {
                 });
                 if (res.ok) {
                     const data = await res.json();
+                    console.log("DEBUG: Perfil cargado desde servidor:", data.full_name, "Logo:", data.logo_url);
+                    
                     setIdentity(prev => ({ 
                         ...prev, 
                         name: data.full_name || prev.name,
-                        logo: data.logo_url || prev.logo
+                        logo: data.logo_url || "" // Usar URL real del servidor
                     }));
+                    
                     setContact(prev => ({ 
                         ...prev, 
                         email: data.email, 
                         phone: data.phone || prev.phone,
                         shop_slug: data.shop_slug || "" 
                     }));
+                    
                     if (data.bank_accounts) setAccounts(data.bank_accounts);
                     if (data.whatsapp_lines) setWhatsappLines(data.whatsapp_lines);
                     if (data.social_links) setSocialLinks(prev => ({ ...prev, ...data.social_links }));
@@ -229,7 +233,7 @@ export default function GeneralSettings() {
                 },
                 body: JSON.stringify({
                     full_name: identity.name,
-                    logo_url: identity.logo,
+                    logo_url: identity.logo, // Enviamos la URL ya subida
                     phone: contact.phone,
                     shop_slug: contact.shop_slug,
                     bank_accounts: accounts,
