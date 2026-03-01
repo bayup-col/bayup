@@ -38,6 +38,13 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
   const [activeTab, setActiveTab] = useState<'perfil' | 'seguridad' | 'preferencias'>('perfil');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwords, setPasswords] = useState({
+    current: '',
+    new: '',
+    confirm: ''
+  });
+  const [passError, setPassError] = useState('');
 
   // Form states
   const [formData, setFormData] = useState({
@@ -50,6 +57,11 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
   useEffect(() => {
     if (isOpen && token) {
       fetchUserData();
+    }
+    if (!isOpen) {
+        setIsChangingPassword(false);
+        setPasswords({ current: '', new: '', confirm: '' });
+        setPassError('');
     }
   }, [isOpen, token]);
 
@@ -97,6 +109,50 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
       console.error("Error saving profile", e);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (passwords.new !== passwords.confirm) {
+        setPassError('Las nuevas contraseñas no coinciden');
+        return;
+    }
+    if (passwords.new.length < 6) {
+        setPassError('La nueva contraseña debe tener al menos 6 caracteres');
+        return;
+    }
+
+    setIsSaving(true);
+    setPassError('');
+
+    try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${apiUrl}/auth/change-password`, {
+            method: 'PUT',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                current_password: passwords.current,
+                new_password: passwords.new,
+                confirm_password: passwords.confirm
+            })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            setSaveSuccess(true);
+            setIsChangingPassword(false);
+            setPasswords({ current: '', new: '', confirm: '' });
+            setTimeout(() => setSaveSuccess(false), 3000);
+        } else {
+            setPassError(data.detail || 'Error al cambiar la contraseña');
+        }
+    } catch (e) {
+        setPassError('Error de conexión');
+    } finally {
+        setIsSaving(false);
     }
   };
 
@@ -276,7 +332,7 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                                 initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
                                 className="max-w-2xl space-y-8"
                             >
-                                <div className="p-8 bg-gray-900 rounded-[2.5rem] text-white relative overflow-hidden group">
+                                <div className="p-8 bg-gray-900 rounded-[2.5rem] text-white relative overflow-hidden group transition-all duration-500">
                                     <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700"><ShieldCheck size={120} /></div>
                                     <div className="relative z-10">
                                         <h4 className="text-[10px] font-black text-[#00f2ff] uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
@@ -289,18 +345,84 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                                 </div>
 
                                 <div className="space-y-4">
-                                    <button className="w-full flex items-center justify-between p-6 bg-white border border-gray-100 rounded-3xl hover:border-[#004d4d] transition-all group">
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:text-[#004d4d] transition-colors">
-                                                <Key size={18} />
+                                    {!isChangingPassword ? (
+                                        <button 
+                                            onClick={() => setIsChangingPassword(true)}
+                                            className="w-full flex items-center justify-between p-6 bg-white border border-gray-100 rounded-3xl hover:border-[#004d4d] transition-all group"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:text-[#004d4d] transition-colors">
+                                                    <Key size={18} />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-xs font-black text-gray-900 uppercase tracking-tight">Cambiar Contraseña</p>
+                                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Último cambio hace 3 meses</p>
+                                                </div>
                                             </div>
-                                            <div className="text-left">
-                                                <p className="text-xs font-black text-gray-900 uppercase tracking-tight">Cambiar Contraseña</p>
-                                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Último cambio hace 3 meses</p>
+                                            <ArrowUpRight size={16} className="text-gray-300 group-hover:text-[#004d4d]" />
+                                        </button>
+                                    ) : (
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="p-8 bg-white border border-[#004d4d]/20 rounded-[2.5rem] shadow-xl space-y-6"
+                                        >
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h4 className="text-[10px] font-black text-[#004d4d] uppercase tracking-widest">Nueva Contraseña</h4>
+                                                <button onClick={() => setIsChangingPassword(false)} className="text-[8px] font-black text-rose-500 uppercase tracking-tighter hover:underline">Cancelar</button>
                                             </div>
-                                        </div>
-                                        <ArrowUpRight size={16} className="text-gray-300 group-hover:text-[#004d4d]" />
-                                    </button>
+
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Contraseña Actual</label>
+                                                    <input 
+                                                        type="password" 
+                                                        value={passwords.current}
+                                                        onChange={(e) => setPasswords({...passwords, current: e.target.value})}
+                                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-xs font-bold focus:outline-none focus:border-[#004d4d] transition-all"
+                                                        placeholder="••••••••"
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Nueva Contraseña</label>
+                                                        <input 
+                                                            type="password" 
+                                                            value={passwords.new}
+                                                            onChange={(e) => setPasswords({...passwords, new: e.target.value})}
+                                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-xs font-bold focus:outline-none focus:border-[#004d4d] transition-all"
+                                                            placeholder="Mín. 6 caracteres"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Confirmar Nueva</label>
+                                                        <input 
+                                                            type="password" 
+                                                            value={passwords.confirm}
+                                                            onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
+                                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-xs font-bold focus:outline-none focus:border-[#004d4d] transition-all"
+                                                            placeholder="Repite la clave"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {passError && (
+                                                    <div className="flex items-center gap-2 text-rose-500 bg-rose-50 p-3 rounded-xl border border-rose-100">
+                                                        <AlertCircle size={12} />
+                                                        <span className="text-[9px] font-bold uppercase">{passError}</span>
+                                                    </div>
+                                                )}
+
+                                                <button 
+                                                    onClick={handlePasswordChange}
+                                                    disabled={isSaving}
+                                                    className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-black transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    {isSaving ? 'Procesando...' : <>Actualizar Credenciales <ShieldCheck size={14}/></>}
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
 
                                     <button className="w-full flex items-center justify-between p-6 bg-white border border-gray-100 rounded-3xl opacity-60 cursor-not-allowed transition-all group relative overflow-hidden">
                                         <div className="flex items-center gap-4">

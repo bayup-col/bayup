@@ -433,6 +433,29 @@ def register_affiliate(data: dict, background_tasks: BackgroundTasks, db: Sessio
 def get_me(current_user: models.User = Depends(security.get_current_user)):
     return current_user
 
+@app.put("/auth/change-password")
+def change_password(data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    current_password = data.get("current_password")
+    new_password = data.get("new_password")
+    confirm_password = data.get("confirm_password")
+
+    if not all([current_password, new_password, confirm_password]):
+        raise HTTPException(status_code=400, detail="Todos los campos son obligatorios")
+
+    if not security.verify_password(current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta")
+
+    if new_password != confirm_password:
+        raise HTTPException(status_code=400, detail="Las nuevas contraseñas no coinciden")
+
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 6 caracteres")
+
+    current_user.hashed_password = security.get_password_hash(new_password)
+    db.commit()
+
+    return {"status": "success", "message": "Contraseña actualizada correctamente"}
+
 @app.put("/admin/update-profile")
 def update_user_profile(data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     # 1. Verificar si el slug ya existe (si se está cambiando)
