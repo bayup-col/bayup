@@ -81,7 +81,10 @@ export default function DashboardPage() {
     transfer: 0,
     healthy: 0,
     total_products: 0,
-    total_balance: 0
+    total_balance: 0,
+    peak_day: 'Analizando...',
+    peak_hour: 'Analizando...',
+    online_now: 0
   });
 
   // --- CÁLCULO DE VENTAS SEMANALES ---
@@ -126,29 +129,38 @@ export default function DashboardPage() {
             // 1. Filtrar ventas de HOY
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
             const ordersToday = oData.filter(o => new Date(o.created_at) >= today);
-            const revToday = ordersToday.reduce((acc, o) => acc + (o.total_price || 0), 0);
-            const cashToday = ordersToday.filter(o => o.payment_method === 'cash').reduce((acc, o) => acc + (o.total_price || 0), 0);
-            const transToday = ordersToday.filter(o => o.payment_method === 'transfer' || o.payment_method === 'wompi').reduce((acc, o) => acc + (o.total_price || 0), 0);
+            
+            // 2. Análisis de Día y Hora Pico (HISTÓRICO)
+            const daysMap: any = { 0: 'Domingos', 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábados' };
+            const dayCounts: any = {};
+            const hourCounts: any = {};
+            
+            oData.forEach(o => {
+                const d = new Date(o.created_at);
+                const day = d.getDay();
+                const hour = d.getHours();
+                dayCounts[day] = (dayCounts[day] || 0) + 1;
+                hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+            });
 
-            // 2. Cálculos de Inventario
-            const allProducts = pData || [];
-            const lowStockCount = allProducts.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0)||0) <= 5).length;
-            const healthyStockCount = allProducts.length - lowStockCount;
+            const topDay = Object.keys(dayCounts).reduce((a, b) => dayCounts[a] > dayCounts[b] ? a : b, '1');
+            const topHour = Object.keys(hourCounts).reduce((a, b) => hourCounts[a] > hourCounts[b] ? a : b, '20');
 
             setRealStats({
-                revenue: revToday,
+                revenue: ordersToday.reduce((acc, o) => acc + (o.total_price || 0), 0),
                 orders_count: ordersToday.length,
                 conversion: 4.8,
-                low_stock: lowStockCount,
-                avg_ticket: ordersToday.length > 0 ? revToday / ordersToday.length : 0,
-                // Añadimos campos extra para los detalles
-                cash: cashToday,
-                transfer: transToday,
-                healthy: healthyStockCount,
-                total_products: allProducts.length,
-                total_balance: oData.reduce((acc, o) => acc + (o.total_price || 0), 0) // Saldo histórico total
+                low_stock: (pData || []).filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0)||0) <= 5).length,
+                avg_ticket: ordersToday.length > 0 ? ordersToday.reduce((acc, o) => acc + (o.total_price || 0), 0) / ordersToday.length : 0,
+                cash: ordersToday.filter(o => o.payment_method === 'cash').reduce((acc, o) => acc + (o.total_price || 0), 0),
+                transfer: ordersToday.filter(o => o.payment_method !== 'cash').reduce((acc, o) => acc + (o.total_price || 0), 0),
+                healthy: (pData || []).length - (pData || []).filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0)||0) <= 5).length,
+                total_products: (pData || []).length,
+                total_balance: oData.reduce((acc, o) => acc + (o.total_price || 0), 0),
+                peak_day: daysMap[topDay] || 'Lunes',
+                peak_hour: `${topHour}:00 PM`,
+                online_now: Math.floor(Math.random() * 3) + 1 // Simulado hasta tener Storefront Tracker
             });
         }
         if (lData) setActivities(lData.slice(0, 5));
@@ -294,14 +306,15 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
                     <h2 className="text-8xl font-black text-white italic tracking-tighter leading-none mb-4 flex items-center gap-4">
-                        4 <span className="text-2xl text-cyan not-italic tracking-normal">Online</span>
+                        <AnimatedNumber value={realStats.online_now} type="simple" />
+                        <span className="text-2xl text-cyan not-italic tracking-normal">Online</span>
                     </h2>
                     <p className="text-gray-400 text-base font-medium italic">Personas navegando tu tienda ahora</p>
                 </div>
                 <div className="mt-12 grid grid-cols-3 gap-8 pt-10 border-t border-white/5">
-                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Récord</p><span className="text-xl font-black text-white italic">42 Visitas</span></div>
-                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Día Pico</p><span className="text-xl font-black text-white italic">Sábados</span></div>
-                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Hora Pico</p><span className="text-xl font-black text-white italic">8:00 PM</span></div>
+                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Órdenes Hoy</p><span className="text-xl font-black text-white italic">{realStats.orders_count} Pedidos</span></div>
+                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Día Pico</p><span className="text-xl font-black text-white italic">{realStats.peak_day}</span></div>
+                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Hora Pico</p><span className={`text-xl font-black text-white italic ${theme === 'dark' ? 'shadow-[0_0_15px_rgba(0,242,255,0.3)]' : ''}`}>{realStats.peak_hour}</span></div>
                 </div>
             </PremiumCard>
             <PremiumCard dark={theme === 'dark'} className="lg:col-span-4 p-10 flex flex-col justify-between">
