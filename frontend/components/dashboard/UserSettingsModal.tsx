@@ -101,9 +101,9 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
   };
 
   const menuItems = [
-    { id: 'perfil', label: 'Mi Perfil', icon: <User size={18}/>, subtitle: 'Datos Personales' },
-    { id: 'seguridad', label: 'Seguridad', icon: <Lock size={18}/>, subtitle: 'Acceso y Protección' },
-    { id: 'preferencias', label: 'Preferencias', icon: <Settings size={18}/>, subtitle: 'Configuración App' },
+    { id: 'perfil', label: 'Mi Perfil', icon: <User size={18}/>, subtitle: 'Datos Personales', disabled: false },
+    { id: 'seguridad', label: 'Seguridad', icon: <Lock size={18}/>, subtitle: 'Acceso y Protección', disabled: false },
+    { id: 'preferencias', label: 'Preferencias', icon: <Settings size={18}/>, subtitle: 'Configuración App', disabled: true },
   ];
 
   if (!isOpen) return null;
@@ -139,15 +139,20 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                         {menuItems.map((item) => (
                             <button
                                 key={item.id}
-                                onClick={() => setActiveTab(item.id as any)}
-                                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all group ${activeTab === item.id ? 'bg-white shadow-xl shadow-gray-200/50 translate-x-1' : 'hover:bg-white/50 hover:translate-x-1'}`}
+                                onClick={() => !item.disabled && setActiveTab(item.id as any)}
+                                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all group ${activeTab === item.id ? 'bg-white shadow-xl shadow-gray-200/50 translate-x-1' : item.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/50 hover:translate-x-1'}`}
                             >
                                 <div className="flex items-center gap-4">
                                     <div className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all ${activeTab === item.id ? 'bg-[#004d4d] text-white' : 'bg-gray-100 text-gray-400'}`}>
                                         {item.icon}
                                     </div>
                                     <div className="text-left">
-                                        <span className={`text-[10px] font-black uppercase tracking-widest block transition-colors ${activeTab === item.id ? 'text-gray-900' : 'text-gray-400 group-hover:text-gray-600'}`}>{item.label}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-[10px] font-black uppercase tracking-widest block transition-colors ${activeTab === item.id ? 'text-gray-900' : 'text-gray-400 group-hover:text-gray-600'}`}>{item.label}</span>
+                                            {item.disabled && (
+                                                <span className="text-[6px] font-black bg-[#00F2FF]/20 text-[#004d4d] px-1.5 py-0.5 rounded-full uppercase tracking-tighter">Próximamente</span>
+                                            )}
+                                        </div>
                                         <span className="text-[8px] font-bold text-gray-300 uppercase tracking-tighter">{item.subtitle}</span>
                                     </div>
                                 </div>
