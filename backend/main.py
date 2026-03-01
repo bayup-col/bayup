@@ -1378,7 +1378,10 @@ async def create_public_order(data: dict, db: Session = Depends(get_db)):
         # 1. WhatsApp al Dueño de la Tienda
         if tenant_owner and tenant_owner.phone:
             try:
-                bridge_url = "http://localhost:8001/send"
+                bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:8001")
+                if not bridge_url.endswith("/send"):
+                    bridge_url = f"{bridge_url.rstrip('/')}/send"
+                
                 owner_msg = (
                     f"💰 *¡NUEVA VENTA ONLINE!* 💰\n\n"
                     f"Hola *{tenant_owner.full_name}*, has recibido un pedido.\n\n"
@@ -1656,6 +1659,13 @@ def update_message_status(message_id: uuid.UUID, status: str, db: Session = Depe
     db_message.status = status
     db.commit()
     return {"status": "success"}
+
+@app.get("/admin/payments/wompi-config")
+def get_wompi_config(amount: float, currency: str = "COP"):
+    """
+    Retorna la configuración necesaria para abrir el widget de Wompi.
+    """
+    return payment_service.create_payment_session(amount, currency)
 
 if __name__ == "__main__":
     import uvicorn
