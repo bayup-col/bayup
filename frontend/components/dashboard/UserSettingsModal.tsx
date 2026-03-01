@@ -21,7 +21,9 @@ import {
   Key,
   Smartphone,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
@@ -39,12 +41,19 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showPasswords, setShowPasswords] = useState(false);
   const [passwords, setPasswords] = useState({
     current: '',
     new: '',
     confirm: ''
   });
   const [passError, setPassError] = useState('');
+
+  // Helper to get clean API URL
+  const getApiUrl = () => {
+    let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    return url.endsWith('/') ? url.slice(0, -1) : url;
+  };
 
   // Form states
   const [formData, setFormData] = useState({
@@ -60,6 +69,7 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
     }
     if (!isOpen) {
         setIsChangingPassword(false);
+        setShowPasswords(false);
         setPasswords({ current: '', new: '', confirm: '' });
         setPassError('');
     }
@@ -67,8 +77,7 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
 
   const fetchUserData = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const res = await fetch(`${apiUrl}/auth/me`, {
+      const res = await fetch(`${getApiUrl()}/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -86,8 +95,7 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const res = await fetch(`${apiUrl}/admin/update-profile`, {
+      const res = await fetch(`${getApiUrl()}/admin/update-profile`, {
         method: 'PUT',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -126,8 +134,7 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
     setPassError('');
 
     try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${apiUrl}/auth/change-password`, {
+        const res = await fetch(`${getApiUrl()}/auth/change-password`, {
             method: 'PUT',
             headers: { 
                 'Authorization': `Bearer ${token}`,
@@ -147,10 +154,15 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
             setPasswords({ current: '', new: '', confirm: '' });
             setTimeout(() => setSaveSuccess(false), 3000);
         } else {
-            setPassError(data.detail || 'Error al cambiar la contraseña');
+            // Handle 404 specifically if it happens
+            if (res.status === 404) {
+              setPassError('Endpoint no encontrado (404). Verifica el backend.');
+            } else {
+              setPassError(data.detail || 'Error al cambiar la contraseña');
+            }
         }
     } catch (e) {
-        setPassError('Error de conexión');
+        setPassError('Error de conexión con el servidor');
     } finally {
         setIsSaving(false);
     }
@@ -375,34 +387,58 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                                             <div className="space-y-4">
                                                 <div className="space-y-2">
                                                     <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Contraseña Actual</label>
-                                                    <input 
-                                                        type="password" 
-                                                        value={passwords.current}
-                                                        onChange={(e) => setPasswords({...passwords, current: e.target.value})}
-                                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-xs font-bold focus:outline-none focus:border-[#004d4d] transition-all"
-                                                        placeholder="••••••••"
-                                                    />
+                                                    <div className="relative">
+                                                        <input 
+                                                            type={showPasswords ? "text" : "password"} 
+                                                            value={passwords.current}
+                                                            onChange={(e) => setPasswords({...passwords, current: e.target.value})}
+                                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-xs font-bold focus:outline-none focus:border-[#004d4d] transition-all"
+                                                            placeholder="••••••••"
+                                                        />
+                                                        <button 
+                                                            onClick={() => setShowPasswords(!showPasswords)}
+                                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors"
+                                                        >
+                                                            {showPasswords ? <EyeOff size={16}/> : <Eye size={16}/>}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div className="space-y-2">
                                                         <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Nueva Contraseña</label>
-                                                        <input 
-                                                            type="password" 
-                                                            value={passwords.new}
-                                                            onChange={(e) => setPasswords({...passwords, new: e.target.value})}
-                                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-xs font-bold focus:outline-none focus:border-[#004d4d] transition-all"
-                                                            placeholder="Mín. 6 caracteres"
-                                                        />
+                                                        <div className="relative">
+                                                            <input 
+                                                                type={showPasswords ? "text" : "password"} 
+                                                                value={passwords.new}
+                                                                onChange={(e) => setPasswords({...passwords, new: e.target.value})}
+                                                                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-xs font-bold focus:outline-none focus:border-[#004d4d] transition-all"
+                                                                placeholder="Mín. 6 caracteres"
+                                                            />
+                                                            <button 
+                                                                onClick={() => setShowPasswords(!showPasswords)}
+                                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors"
+                                                            >
+                                                                {showPasswords ? <EyeOff size={16}/> : <Eye size={16}/>}
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                     <div className="space-y-2">
                                                         <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Confirmar Nueva</label>
-                                                        <input 
-                                                            type="password" 
-                                                            value={passwords.confirm}
-                                                            onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
-                                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-xs font-bold focus:outline-none focus:border-[#004d4d] transition-all"
-                                                            placeholder="Repite la clave"
-                                                        />
+                                                        <div className="relative">
+                                                            <input 
+                                                                type={showPasswords ? "text" : "password"} 
+                                                                value={passwords.confirm}
+                                                                onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
+                                                                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-xs font-bold focus:outline-none focus:border-[#004d4d] transition-all"
+                                                                placeholder="Repite la clave"
+                                                            />
+                                                            <button 
+                                                                onClick={() => setShowPasswords(!showPasswords)}
+                                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors"
+                                                            >
+                                                                {showPasswords ? <EyeOff size={16}/> : <Eye size={16}/>}
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
 
