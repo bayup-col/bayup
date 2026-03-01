@@ -433,7 +433,7 @@ def register_affiliate(data: dict, background_tasks: BackgroundTasks, db: Sessio
 def get_me(current_user: models.User = Depends(security.get_current_user)):
     return current_user
 
-@app.put("/auth/change-password")
+@app.put("/admin/change-password")
 def change_password(data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     current_password = data.get("current_password")
     new_password = data.get("new_password")
