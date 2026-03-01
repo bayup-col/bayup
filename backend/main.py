@@ -433,8 +433,9 @@ def register_affiliate(data: dict, background_tasks: BackgroundTasks, db: Sessio
 def get_me(current_user: models.User = Depends(security.get_current_user)):
     return current_user
 
-@app.put("/admin/change-password")
+@app.put("/auth/change-password")
 def change_password(data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    print(f"DEBUG: Intento de cambio de contraseña para {current_user.email}")
     current_password = data.get("current_password")
     new_password = data.get("new_password")
     confirm_password = data.get("confirm_password")
@@ -453,6 +454,7 @@ def change_password(data: dict, db: Session = Depends(get_db), current_user: mod
 
     current_user.hashed_password = security.get_password_hash(new_password)
     db.commit()
+    print(f"DEBUG: Contraseña actualizada con éxito para {current_user.email}")
 
     return {"status": "success", "message": "Contraseña actualizada correctamente"}
 

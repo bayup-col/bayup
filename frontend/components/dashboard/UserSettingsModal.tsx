@@ -134,7 +134,7 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
     setPassError('');
 
     try {
-        const res = await fetch(`${getApiUrl()}/admin/change-password`, {
+        const res = await fetch(`${getApiUrl()}/auth/change-password`, {
             method: 'PUT',
             headers: { 
                 'Authorization': `Bearer ${token}`,
