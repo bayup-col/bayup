@@ -71,7 +71,18 @@ export default function DashboardPage() {
   const [companyName, setCompanyName] = useState('...');
   const [activities, setActivities] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
-  const [realStats, setRealStats] = useState({ revenue: 0, orders_count: 0, conversion: 0, low_stock: 0, avg_ticket: 0 });
+  const [realStats, setRealStats] = useState({ 
+    revenue: 0, 
+    orders_count: 0, 
+    conversion: 0, 
+    low_stock: 0, 
+    avg_ticket: 0,
+    cash: 0,
+    transfer: 0,
+    healthy: 0,
+    total_products: 0,
+    total_balance: 0
+  });
 
   // --- CÁLCULO DE VENTAS SEMANALES ---
   const weeklySales = useMemo(() => {
