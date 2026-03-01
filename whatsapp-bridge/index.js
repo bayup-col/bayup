@@ -3,6 +3,7 @@ const express = require('express');
 const { Server } = require('socket.io');
 const http = require('http');
 const qrcode = require('qrcode');
+const qrcodeTerminal = require('qrcode-terminal');
 const cors = require('cors');
 
 const app = express();
@@ -47,7 +48,10 @@ const fs = require('fs');
 
 client.on('qr', (qr) => {
     connectionStatus = 'qr';
-    console.log('QR GENERATED - PLEASE SCAN SCAN_ME.png');
+    console.log('QR GENERADO - POR FAVOR ESCANEA EL CÓDIGO ABAJO:');
+    
+    // Imprimir QR en la terminal (Logs de Railway)
+    qrcodeTerminal.generate(qr, { small: true });
     
     // Guardar en base64 para el socket
     qrcode.toDataURL(qr, (err, url) => {
@@ -55,7 +59,7 @@ client.on('qr', (qr) => {
         io.emit('qr', url);
     });
 
-    // Guardar como archivo físico para escaneo directo
+    // Guardar como archivo físico por si acaso
     qrcode.toFile('./SCAN_ME.png', qr, {
         color: { dark: '#000', light: '#FFF' }
     }, (err) => {
