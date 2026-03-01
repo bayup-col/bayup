@@ -7,6 +7,7 @@ import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/context/theme-context';
 import { userService } from '@/lib/api';
 import { DashboardHeader } from '@/components/dashboard/Header';
+import UserSettingsModal from '@/components/dashboard/UserSettingsModal';
 import { BaytAssistant } from '@/components/dashboard/BaytAssistant';
 import { InteractiveUP } from '@/components/landing/InteractiveUP';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -385,6 +386,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         {(planNameNormalized === 'empresa' || isGlobalStaff) && (
           <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />
         )}
+
+        <UserSettingsModal 
+          isOpen={isUserSettingsOpen} 
+          onClose={() => setIsUserSettingsOpen(false)} 
+        />
       </div>
     </div>
   );
