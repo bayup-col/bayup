@@ -6,13 +6,15 @@ import uuid
 import os
 from typing import Dict, Any
 
-# Credenciales de Wompi (SandBox por ahora)
-WOMPI_PUBLIC_KEY = "pub_test_a5bfIpgmDfOA8U72jOc1keurMyUreLqI"
-WOMPI_PRIVATE_KEY = "prv_test_azGm1MD9GL1nC4XlChxCGb53b1RhTBru"
-WOMPI_INTEGRITY_SECRET = "test_integrity_aPmROcyq83HAXHnPj1HV4FpCAK8DMiy9"
-WOMPI_EVENTS_SECRET = "test_events_kz6zoiM62KiAJqT5ZRBu0yRpnQwdP1fk"
+# Credenciales de Wompi (Se leen de variables de entorno para Producción)
+# Si no hay variables, usa las de prueba por defecto.
+WOMPI_PUBLIC_KEY = os.getenv("WOMPI_PUBLIC_KEY", "pub_test_a5bfIpgmDfOA8U72jOc1keurMyUreLqI")
+WOMPI_INTEGRITY_SECRET = os.getenv("WOMPI_INTEGRITY_SECRET", "test_integrity_aPmROcyq83HAXHnPj1HV4FpCAK8DMiy9")
+WOMPI_EVENTS_SECRET = os.getenv("WOMPI_EVENTS_SECRET", "test_events_kz6zoiM62KiAJqT5ZRBu0yRpnQwdP1fk")
 
-WOMPI_API_URL = "https://sandbox.wompi.co/v1"
+# Detectar entorno para URL correcta
+ENVIRONMENT = os.getenv("RAILWAY_ENVIRONMENT", "development")
+WOMPI_API_URL = "https://production.wompi.co/v1" if "prod" in WOMPI_PUBLIC_KEY else "https://sandbox.wompi.co/v1"
 
 def generate_integrity_signature(reference: str, amount_in_cents: int, currency: str) -> str:
     """

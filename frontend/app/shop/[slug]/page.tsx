@@ -375,7 +375,7 @@ function ShopContent() {
                             {cart.length > 0 && (
                                 <div className="p-8 border-t bg-gray-50/50 space-y-6">
                                     <div className="flex justify-between items-end"><p className="text-[10px] font-black text-gray-400 uppercase">Total Estimado</p><p className="text-3xl font-black text-gray-900 tracking-tighter">${cartTotal.toLocaleString()}</p></div>
-                                    <button onClick={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }} className="w-full py-6 bg-gray-900 text-[#00f2ff] rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Finalizar Compra</button>
+                                    <button onClick={() => { setIsCartOpen(false); router.push('/checkout'); }} className="w-full py-6 bg-gray-900 text-[#00f2ff] rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Finalizar Compra</button>
                                 </div>
                             )}
                         </motion.div>

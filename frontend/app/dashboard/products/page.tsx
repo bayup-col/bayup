@@ -328,13 +328,39 @@ export default function ProductsPage() {
         }
     };
 
+    const [filterConfig, setFilterConfig] = useState({
+        minPrice: '',
+        maxPrice: '',
+        minStock: '',
+        selectedCategory: 'all'
+    });
+
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
-            const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.variants?.some((v: any) => v.sku?.toLowerCase().includes(searchTerm.toLowerCase()));
+            // Filtro por texto (Nombre o SKU)
+            const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                 p.variants?.some((v: any) => v.sku?.toLowerCase().includes(searchTerm.toLowerCase()));
+            
+            // Filtro por pestaña (Estado)
             const matchesTab = activeTab === 'all' || p.status === activeTab;
-            return matchesSearch && (activeTab === 'categories' ? true : matchesTab);
+            
+            // Filtros Avanzados
+            const matchesCategory = filterConfig.selectedCategory === 'all' || p.collection_id === filterConfig.selectedCategory;
+            const matchesMinPrice = !filterConfig.minPrice || p.price >= Number(filterConfig.minPrice);
+            const matchesMaxPrice = !filterConfig.maxPrice || p.price <= Number(filterConfig.maxPrice);
+            
+            const totalStock = p.variants?.reduce((a:any, v:any) => a + (v.stock || 0), 0) || 0;
+            const matchesMinStock = !filterConfig.minStock || totalStock >= Number(filterConfig.minStock);
+
+            return matchesSearch && (activeTab === 'categories' ? true : matchesTab) && 
+                   matchesCategory && matchesMinPrice && matchesMaxPrice && matchesMinStock;
         });
-    }, [products, searchTerm, activeTab]);
+    }, [products, searchTerm, activeTab, filterConfig]);
+
+    const handleClearFilters = () => {
+        setFilterConfig({ minPrice: '', maxPrice: '', minStock: '', selectedCategory: 'all' });
+        setSearchTerm("");
+    };
 
     const handleCreateCategory = async () => {
         if (!token || !newCategoryData.name.trim()) return;
@@ -455,6 +481,38 @@ export default function ProductsPage() {
                         <motion.button layout onClick={handleExport} onMouseEnter={() => setIsExportHovered(true)} onMouseLeave={() => setIsExportHovered(false)} className="h-14 flex items-center gap-2 px-6 rounded-3xl bg-white border border-white/80 text-slate-500 hover:text-emerald-600 shadow-sm"><Download size={20}/><AnimatePresence>{isExportHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black">Excel</motion.span>}</AnimatePresence></motion.button>
                     </div>
                 </div>
+
+                {/* PANEL DE FILTROS AVANZADOS */}
+                <AnimatePresence>
+                    {isFilterPanelOpen && (
+                        <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="w-full max-w-5xl mx-auto overflow-hidden"
+                        >
+                            <div className="p-8 bg-white/60 backdrop-blur-xl border border-white/80 rounded-[2.5rem] shadow-xl grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Precio Mínimo</label>
+                                    <input type="number" value={filterConfig.minPrice} onChange={e => setFilterConfig({...filterConfig, minPrice: e.target.value})} placeholder="0" className="w-full p-4 bg-white border border-gray-100 rounded-2xl text-xs font-bold outline-none focus:border-[#004d4d]" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Precio Máximo</label>
+                                    <input type="number" value={filterConfig.maxPrice} onChange={e => setFilterConfig({...filterConfig, maxPrice: e.target.value})} placeholder="Sin límite" className="w-full p-4 bg-white border border-gray-100 rounded-2xl text-xs font-bold outline-none focus:border-[#004d4d]" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Stock Mínimo</label>
+                                    <input type="number" value={filterConfig.minStock} onChange={e => setFilterConfig({...filterConfig, minStock: e.target.value})} placeholder="Ej: 5" className="w-full p-4 bg-white border border-gray-100 rounded-2xl text-xs font-bold outline-none focus:border-[#004d4d]" />
+                                </div>
+                                <div className="space-y-2 flex flex-col justify-end">
+                                    <button onClick={handleClearFilters} className="w-full h-14 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-black transition-all">
+                                        <FilterX size={16} /> Limpiar Filtros
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 <AnimatePresence mode="wait">
                     {activeTab !== 'categories' ? (

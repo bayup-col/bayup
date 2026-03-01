@@ -1373,47 +1373,54 @@ async def create_public_order(data: dict, db: Session = Depends(get_db)):
         tenant_owner = db.query(models.User).filter(models.User.id == new_order.tenant_id).first()
         store_name = tenant_owner.full_name if tenant_owner else "Tu Tienda Bayup"
 
-        # --- AUTOMATIZACIÓN DE NOTIFICACIONES (WhatsApp al Dueño, Email al Cliente) ---
+        # --- AUTOMATIZACIÓN DE NOTIFICACIONES (WhatsApp al Dueño y al Cliente) ---
         
-        # 1. WhatsApp al Dueño de la Tienda
+        bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:8001")
+        if not bridge_url.endswith("/send"):
+            bridge_url = f"{bridge_url.rstrip('/')}/send"
+
+        # 1. WhatsApp al Dueño de la Tienda (Tu Cliente)
         if tenant_owner and tenant_owner.phone:
             try:
-                bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:8001")
-                if not bridge_url.endswith("/send"):
-                    bridge_url = f"{bridge_url.rstrip('/')}/send"
-                
                 owner_msg = (
-                    f"💰 *¡NUEVA VENTA ONLINE!* 💰\n\n"
-                    f"Hola *{tenant_owner.full_name}*, has recibido un pedido.\n\n"
+                    f"💰 *¡NUEVA VENTA EN BAYUP!* 💰\n\n"
+                    f"Hola *{tenant_owner.full_name}*, has recibido un nuevo pedido en tu tienda.\n\n"
                     f"*Cliente:* {new_order.customer_name}\n"
                     f"*Total:* ${total_price:,.0f} COP\n"
-                    f"*ID:* #{str(new_order.id)[:8]}\n\n"
-                    f"Revisa tu dashboard para gestionar el envío. 🚀"
+                    f"*ID Pedido:* #{str(new_order.id)[:8]}\n\n"
+                    f"Accede a tu dashboard para gestionar el envío. ¡Sigue vendiendo con Bayup! 🚀"
                 )
                 
-                # Formatear número del dueño
                 owner_phone = str(tenant_owner.phone).replace(" ", "").replace("+", "")
                 if len(owner_phone) == 10: owner_phone = "57" + owner_phone
                 if not owner_phone.endswith("@c.us"): owner_phone += "@c.us"
 
                 requests.post(bridge_url, json={"to": owner_phone, "body": owner_msg}, timeout=5)
-                print(f"✅ WhatsApp de notificación enviado al dueño: {owner_phone}")
+                print(f"✅ Notificación enviada al dueño: {owner_phone}")
             except Exception as wa_err:
-                print(f"❌ Error WhatsApp Dueño: {wa_err}")
+                print(f"❌ Error enviando WhatsApp al Dueño: {wa_err}")
 
-        # 2. Email de Confirmación al Cliente
-        if new_order.customer_email:
+        # 2. WhatsApp al Comprador Final (Confirmación de Pedido)
+        if new_order.customer_phone:
             try:
-                email_service.send_order_confirmation(
-                    customer_email=new_order.customer_email,
-                    customer_name=new_order.customer_name,
-                    order_id=str(new_order.id),
-                    total_price=total_price,
-                    store_name=store_name
+                customer_msg = (
+                    f"🛍️ *¡PEDIDO CONFIRMADO!* 🛍️\n\n"
+                    f"Hola *{new_order.customer_name}*, gracias por comprar en *{store_name}*.\n\n"
+                    f"Hemos recibido tu pedido con éxito:\n"
+                    f"📦 *ID:* #{str(new_order.id)[:8]}\n"
+                    f"💰 *Total:* ${total_price:,.0f} COP\n\n"
+                    f"Pronto nos pondremos en contacto contigo para el envío. ✨\n\n"
+                    f"_Impulsado por Bayup Interactive_"
                 )
-                print(f"✅ Correo de confirmación enviado al cliente: {new_order.customer_email}")
-            except Exception as mail_err:
-                print(f"❌ Error Email Cliente: {mail_err}")
+                
+                customer_phone = str(new_order.customer_phone).replace(" ", "").replace("+", "")
+                if len(customer_phone) == 10: customer_phone = "57" + customer_phone
+                if not customer_phone.endswith("@c.us"): customer_phone += "@c.us"
+
+                requests.post(bridge_url, json={"to": customer_phone, "body": customer_msg}, timeout=5)
+                print(f"✅ Confirmación enviada al comprador final: {customer_phone}")
+            except Exception as wa_err:
+                print(f"❌ Error enviando WhatsApp al Cliente: {wa_err}")
 
         return {"status": "success", "id": str(new_order.id), "total": total_price}
         
