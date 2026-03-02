@@ -90,7 +90,7 @@ export default function CheckoutPage() {
           try {
             // Extraer el owner_id de la tienda (esto lo obtenemos del contexto o de la URL del shop)
             // Para el MVP, si no viene en el carrito, intentamos obtenerlo de los metadatos o config.
-            const tenant_id = items[0]?.owner_id || items[0]?.tenant_id || "79523a4a-4aad-4c95-a7eb-674af0271f34"; // Fallback a Dani
+            const tenant_id = items[0]?.owner_id || items[0]?.tenant_id || "79523a4a-4aad-4c95-a7eb-674af0271f34";
             
             await fetch(`${apiUrl}/public/orders`, {
               method: 'POST',

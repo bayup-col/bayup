@@ -10,6 +10,8 @@ interface CartItem {
   image: string;
   quantity: number;
   variant?: string;
+  owner_id?: string;
+  tenant_id?: string;
 }
 
 interface CartContextType {
