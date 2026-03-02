@@ -116,7 +116,7 @@ export default function CheckoutPage() {
             router.push("/dashboard/orders");
           } catch (orderErr) {
             console.error("Error al registrar orden:", orderErr);
-            showToast("Pago aprobado, pero hubo un error al registrar el pedido. Contacta a soporte.", "warning");
+            showToast("Pago aprobado, pero hubo un error al registrar el pedido. Contacta a soporte.", "error");
           }
         } else {
           showToast(`Estado del pago: ${transaction.status}`, "info");
