@@ -21,15 +21,33 @@ load_dotenv()
 from database import SessionLocal, engine, get_db
 
 # --- MIGRACIÓN AUTOMÁTICA DE EMERGENCIA ---
-# Forzamos la creación de custom_domain si no existe en producción
+# Forzamos la creación de columnas si no existen en producción
 try:
     with engine.connect() as conn:
-        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_domain VARCHAR;"))
-        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_custom_domain ON users (custom_domain);"))
+        columns = [
+            ("logo_url", "VARCHAR"),
+            ("phone", "VARCHAR"),
+            ("shop_slug", "VARCHAR"),
+            ("custom_domain", "VARCHAR"),
+            ("onboarding_completed", "BOOLEAN DEFAULT FALSE")
+        ]
+        for col_name, col_type in columns:
+            try:
+                conn.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_type};"))
+                print(f"✅ Columna {col_name} verificada/creada.")
+            except Exception as e:
+                print(f"ℹ️ Nota de migración ({col_name}): {e}")
+        
+        # Índices necesarios
+        try:
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_custom_domain ON users (custom_domain);"))
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_shop_slug ON users (shop_slug);"))
+        except: pass
+        
         conn.commit()
-        print("✅ Base de datos verificada: custom_domain está presente.")
+        print("✅ Base de datos sincronizada con el modelo actual.")
 except Exception as e:
-    print(f"ℹ️ Nota de migración: {e}")
+    print(f"❌ Error crítico en auto-migración: {e}")
 
 import crud
 import models
