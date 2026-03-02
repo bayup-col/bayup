@@ -386,7 +386,19 @@ export default function NewProductPage() {
                                             <div className="absolute bottom-2 right-2 h-6 w-6 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center text-white/60"><GripVertical size={12} /></div>
                                         </Reorder.Item>
                                     ))}
-                                    {media.length < 5 && (<label className="h-32 w-32 rounded-2xl border-2 border-dashed border-gray-100 bg-gray-50 flex flex-col items-center justify-center gap-2 hover:border-[#00F2FF]/30 cursor-pointer transition-all"><Plus size={16} className="text-gray-300"/><input type="file" className="hidden" multiple onChange={handleFileUpload} /></label>)}
+                                    {media.length < 5 && (
+                                        <label className="h-40 w-40 rounded-3xl border-2 border-dashed border-[#004D4D]/10 bg-gray-50/50 flex flex-col items-center justify-center gap-3 hover:border-[#00F2FF] hover:bg-white hover:shadow-2xl hover:shadow-cyan/10 cursor-pointer transition-all group relative overflow-hidden">
+                                            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-[#00F2FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <div className="h-12 w-12 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center group-hover:scale-110 group-hover:bg-[#004D4D] group-hover:text-white transition-all duration-500">
+                                                <Plus size={24} className="group-hover:rotate-90 transition-transform duration-500"/>
+                                            </div>
+                                            <div className="flex flex-col items-center">
+                                                <span className="text-[10px] font-black text-gray-400 group-hover:text-[#004D4D] tracking-widest uppercase transition-colors">Añadir Foto</span>
+                                                <span className="text-[8px] font-bold text-gray-300 group-hover:text-cyan tracking-widest uppercase transition-colors">Máx. 5 MB</span>
+                                            </div>
+                                            <input type="file" className="hidden" multiple onChange={handleFileUpload} />
+                                        </label>
+                                    )}
                                 </Reorder.Group>
                             </section>
                         </motion.div>
