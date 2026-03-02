@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export function middleware(request) {
+export function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
   
   // Lista de dominios que NO son de clientes
