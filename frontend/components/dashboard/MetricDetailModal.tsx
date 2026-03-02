@@ -134,7 +134,7 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
                             <Bot size={20} className="text-cyan animate-pulse" />
                         </div>
                         <div className="space-y-3">
-                            <p className="text-[10px] font-black text-cyan tracking-[0.2em]">Bayt insight</p>
+                            <p className="text-[10px] font-black text-cyan tracking-[0.2em]">Bayt sugiere</p>
                             <p className="text-sm font-medium leading-relaxed italic text-gray-300">
                                 &quot;{metric.advice || "Analizando comportamiento de mercado..."}&quot;
                             </p>
