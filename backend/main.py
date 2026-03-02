@@ -707,9 +707,35 @@ async def import_products_excel(
 
     # Normalizar columnas
     df.columns = [c.lower().strip() for c in df.columns]
-    
+
+    # Mapeo flexible de columnas
+    column_mapping = {
+        'nombre': ['nombre', 'name', 'producto', 'articulo', 'artículo', 'item'],
+        'descripcion': ['descripcion', 'descripción', 'description', 'detalle'],
+        'precio': ['precio', 'price', 'valor', 'costo'],
+        'categoria': ['categoria', 'categoría', 'category', 'tipo'],
+        'talla': ['talla', 'size', 'medida', 'dimension'],
+        'color': ['color', 'tono', 'estilo'],
+        'stock': ['stock', 'cantidad', 'inventario', 'existencias']
+    }
+
+    def get_col_val(row, key, default=''):
+        for possible_name in column_mapping.get(key, [key]):
+            if possible_name in row:
+                return row[possible_name]
+        return default
+
+    # Verificar si al menos existe la columna de nombre
+    has_name_col = any(name in df.columns for name in column_mapping['nombre'])
+    if not has_name_col:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"No se encontró la columna de 'Nombre'. Columnas detectadas: {list(df.columns)}"
+        )
+
     limit = 30
     imported_count = 0
+    updated_count = 0
     skipped_count = 0
     errors = []
 
@@ -719,54 +745,65 @@ async def import_products_excel(
         if is_basic and (current_count + imported_count) >= limit:
             skipped_count = len(df) - index
             break
-            
+
         try:
-            name = str(row.get('nombre', '')).strip()
-            if not name: continue
-            
+            name = str(get_col_val(row, 'nombre', '')).strip()
+            if not name or name.lower() == 'nan': 
+                continue
+
             # Buscar si el producto ya existe (por nombre)
             db_product = db.query(models.Product).filter(
                 models.Product.owner_id == tenant_id,
                 models.Product.name == name
             ).first()
-            
+
             if not db_product:
                 db_product = models.Product(
                     id=uuid.uuid4(),
                     owner_id=tenant_id,
                     name=name,
-                    description=str(row.get('descripcion', '')),
-                    price=float(row.get('precio', 0)),
-                    category=str(row.get('categoria', 'General')),
-                    image_url=[] # Empiezan sin fotos como pidió el usuario
+                    description=str(get_col_val(row, 'descripcion', '')),
+                    price=float(get_col_val(row, 'precio', 0)),
+                    category=str(get_col_val(row, 'categoria', 'General')),
+                    image_url=[] 
                 )
                 db.add(db_product)
                 db.flush()
                 imported_count += 1
-            
+            else:
+                updated_count += 1
+
             # Crear variante vinculada
             variant = models.ProductVariant(
                 id=uuid.uuid4(),
                 product_id=db_product.id,
-                size=str(row.get('talla', 'Única')),
-                color=str(row.get('color', 'Único')),
-                stock=int(row.get('stock', 0))
+                size=str(get_col_val(row, 'talla', 'Única')),
+                color=str(get_col_val(row, 'color', 'Único')),
+                stock=int(get_col_val(row, 'stock', 0))
             )
             db.add(variant)
-            
+
         except Exception as e:
             errors.append(f"Fila {index+2}: {str(e)}")
 
     db.commit()
-    
+
+    msg = f"¡Listo! Se crearon {imported_count} productos nuevos."
+    if updated_count > 0:
+        msg += f" Se agregaron variantes a {updated_count} productos existentes."
+    if skipped_count > 0:
+        msg += f" Se omitieron {skipped_count} por límite de plan."
+    if not imported_count and not updated_count and not errors:
+        msg = "No se procesaron productos. Verifica que el archivo tenga datos válidos."
+
     return {
         "status": "success",
         "imported": imported_count,
+        "updated": updated_count,
         "skipped": skipped_count,
         "errors": errors,
-        "message": f"¡Listo! Se crearon {imported_count} productos. {f'Se omitieron {skipped_count} productos por el límite de tu Plan Básico.' if skipped_count > 0 else ''}"
+        "message": msg
     }
-
 
 @app.delete("/products/{product_id}")
 def delete_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
