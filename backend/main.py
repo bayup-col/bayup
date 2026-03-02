@@ -758,13 +758,17 @@ async def import_products_excel(
             ).first()
 
             if not db_product:
+                # 1. Buscar si la colección existe, si no, usar None por ahora
+                # (Mejorado: podrías crear la colección automáticamente aquí si quisieras)
+                
                 db_product = models.Product(
                     id=uuid.uuid4(),
                     owner_id=tenant_id,
                     name=name,
                     description=str(get_col_val(row, 'descripcion', '')),
                     price=float(get_col_val(row, 'precio', 0)),
-                    category=str(get_col_val(row, 'categoria', 'General')),
+                    sku=str(get_col_val(row, 'sku', f"SKU-{str(uuid.uuid4())[:8].upper()}")),
+                    status="active",
                     image_url=[] 
                 )
                 db.add(db_product)
@@ -774,12 +778,18 @@ async def import_products_excel(
                 updated_count += 1
 
             # Crear variante vinculada
+            # Nota: En el modelo ProductVariant, los campos son: stock, name (para talla/color combinado)
+            variant_name = f"{get_col_val(row, 'talla', 'Única')} / {get_col_val(row, 'color', 'Único')}"
             variant = models.ProductVariant(
                 id=uuid.uuid4(),
                 product_id=db_product.id,
-                size=str(get_col_val(row, 'talla', 'Única')),
-                color=str(get_col_val(row, 'color', 'Único')),
-                stock=int(get_col_val(row, 'stock', 0))
+                name=variant_name,
+                sku=f"{db_product.sku}-{str(uuid.uuid4())[:4].upper()}",
+                stock=int(get_col_val(row, 'stock', 0)),
+                attributes={
+                    "talla": str(get_col_val(row, 'talla', 'Única')),
+                    "color": str(get_col_val(row, 'color', 'Único'))
+                }
             )
             db.add(variant)
 
