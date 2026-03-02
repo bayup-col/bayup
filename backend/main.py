@@ -725,6 +725,122 @@ def get_notifications(db: Session = Depends(get_db), current_user: models.User =
     tenant_id = get_tenant_id(current_user)
     return db.query(models.Notification).filter(models.Notification.tenant_id == tenant_id).order_by(models.Notification.created_at.desc()).limit(20).all()
 
+@app.post("/public/orders")
+def create_public_order(order_data: dict, db: Session = Depends(get_db)):
+    """
+    Endpoint público para que clientes externos realicen compras sin estar logueados.
+    """
+    try:
+        # 1. Extraer datos básicos
+        tenant_id_str = order_data.get("tenant_id")
+        if not tenant_id_str:
+            raise HTTPException(status_code=400, detail="tenant_id es obligatorio")
+        
+        tenant_id = uuid.UUID(tenant_id_str)
+        items = order_data.get("items", [])
+        
+        if not items:
+            raise HTTPException(status_code=400, detail="La orden no tiene productos")
+
+        # 2. Crear la Orden en DB
+        new_order = models.Order(
+            id=uuid.uuid4(),
+            tenant_id=tenant_id,
+            customer_name=order_data.get("customer_name", "Cliente Web"),
+            customer_email=order_data.get("customer_email"),
+            customer_phone=order_data.get("customer_phone"),
+            total_price=0, # Se calculará abajo
+            status="pendiente",
+            payment_status=order_data.get("payment_status", "pending"),
+            payment_method=order_data.get("payment_method", "wompi")
+        )
+        
+        db.add(new_order)
+        total_price = 0
+
+        # 3. Procesar Items e Inventario
+        for item in items:
+            product_id = uuid.UUID(item["product_id"])
+            qty = item.get("quantity", 1)
+            
+            product = db.query(models.Product).filter(models.Product.id == product_id).first()
+            if not product: continue
+
+            # Calcular precio
+            item_total = product.price * qty
+            total_price += item_total
+
+            # Crear OrderItem
+            order_item = models.OrderItem(
+                id=uuid.uuid4(),
+                order_id=new_order.id,
+                product_id=product_id,
+                quantity=qty,
+                price=product.price,
+                variant_info=item.get("variant_info", "")
+            )
+            db.add(order_item)
+
+            # --- DESCUENTO DE INVENTARIO ---
+            # Intentar descontar de la primera variante disponible o base
+            if product.variants:
+                variant = product.variants[0]
+                if variant.stock >= qty:
+                    variant.stock -= qty
+                else:
+                    variant.stock = 0 # No bloqueamos la venta pero agotamos stock
+
+        new_order.total_price = total_price
+        db.commit()
+        db.refresh(new_order)
+
+        # 4. NOTIFICACIONES WHATSAPP (Línea Oficial Bayup)
+        tenant_owner = db.query(models.User).filter(models.User.id == tenant_id).first()
+        store_name = tenant_owner.full_name if tenant_owner else "Tienda Bayup"
+        
+        bridge_url = os.getenv("WHATSAPP_BRIDGE_URL", "http://localhost:8001")
+        if not bridge_url.endswith("/send"):
+            bridge_url = f"{bridge_url.rstrip('/')}/send"
+
+        # Notificación al Dueño
+        if tenant_owner and tenant_owner.phone:
+            try:
+                owner_msg = (
+                    f"💰 *¡NUEVA VENTA WEB!* 💰\n\n"
+                    f"Hola *{store_name}*, has recibido un pedido.\n\n"
+                    f"*Cliente:* {new_order.customer_name}\n"
+                    f"*Total:* ${total_price:,.0f} COP\n"
+                    f"*ID:* #{str(new_order.id)[:8]}\n\n"
+                    f"Revisa tu panel para preparar el envío. 🚀"
+                )
+                owner_phone = str(tenant_owner.phone).replace(" ", "").replace("+", "")
+                if len(owner_phone) == 10: owner_phone = "57" + owner_phone
+                if not owner_phone.endswith("@c.us"): owner_phone += "@c.us"
+                requests.post(bridge_url, json={"to": owner_phone, "body": owner_msg}, timeout=5)
+            except: pass
+
+        # Notificación al Cliente
+        if new_order.customer_phone:
+            try:
+                customer_msg = (
+                    f"🛍️ *¡PEDIDO RECIBIDO!* 🛍️\n\n"
+                    f"Hola *{new_order.customer_name}*, gracias por tu compra en *{store_name}*.\n\n"
+                    f"Tu pedido *#{str(new_order.id)[:8]}* por valor de *${total_price:,.0f} COP* está siendo procesado.\n\n"
+                    f"Te avisaremos cuando el envío esté en camino. ✨"
+                )
+                cust_phone = str(new_order.customer_phone).replace(" ", "").replace("+", "")
+                if len(cust_phone) == 10: cust_phone = "57" + cust_phone
+                if not cust_phone.endswith("@c.us"): cust_phone += "@c.us"
+                requests.post(bridge_url, json={"to": cust_phone, "body": customer_msg}, timeout=5)
+            except: pass
+
+        return {"status": "success", "order_id": str(new_order.id)}
+
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR CREATING PUBLIC ORDER: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/orders", response_model=schemas.Order)
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     # Crucial: Identificar al Dueño de la tienda (Tenant) real
@@ -1204,6 +1320,11 @@ def read_root(): return {"message": "Welcome to Bayup API"}
 def get_public_shop(slug: str, page: str = "home", db: Session = Depends(get_db)):
     # 1. Buscar al dueño de la tienda por su slug
     store_owner = db.query(models.User).filter(models.User.shop_slug == slug).first()
+    
+    # FALLBACK PREVIEW: Si no existe la tienda 'preview', mostrar la primera tienda disponible (para que no de 404)
+    if not store_owner and slug == "preview":
+        store_owner = db.query(models.User).filter(models.User.role == 'admin_tienda').first()
+
     if not store_owner:
         raise HTTPException(status_code=404, detail="Tienda no encontrada")
     

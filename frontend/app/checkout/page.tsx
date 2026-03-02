@@ -83,12 +83,41 @@ export default function CheckoutPage() {
         }
       });
 
-      checkout.open((result: any) => {
+      checkout.open(async (result: any) => {
         const transaction = result.transaction;
         if (transaction.status === 'APPROVED') {
-          showToast("¡Pago aprobado! Tu pedido está en camino.", "success");
-          clearCart();
-          router.push("/dashboard/orders");
+          // 3. Registrar la orden oficialmente en nuestro Backend (Público)
+          try {
+            // Extraer el owner_id de la tienda (esto lo obtenemos del contexto o de la URL del shop)
+            // Para el MVP, si no viene en el carrito, intentamos obtenerlo de los metadatos o config.
+            const tenant_id = items[0]?.owner_id || items[0]?.tenant_id || "79523a4a-4aad-4c95-a7eb-674af0271f34"; // Fallback a Dani
+            
+            await fetch(`${apiUrl}/public/orders`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                tenant_id: tenant_id,
+                customer_name: `${customerData.name} ${customerData.lastName}`,
+                customer_email: customerData.email,
+                customer_phone: customerData.phone,
+                items: items.map(i => ({
+                  product_id: i.id,
+                  quantity: i.quantity,
+                  price: i.price,
+                  variant_info: i.variant || ""
+                })),
+                payment_status: "paid",
+                payment_method: "wompi"
+              })
+            });
+            
+            showToast("¡Pago aprobado! Tu pedido está en camino.", "success");
+            clearCart();
+            router.push("/dashboard/orders");
+          } catch (orderErr) {
+            console.error("Error al registrar orden:", orderErr);
+            showToast("Pago aprobado, pero hubo un error al registrar el pedido. Contacta a soporte.", "warning");
+          }
         } else {
           showToast(`Estado del pago: ${transaction.status}`, "info");
         }
