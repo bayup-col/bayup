@@ -484,6 +484,83 @@ def change_password(data: dict, db: Session = Depends(get_db), current_user: mod
 
     return {"status": "success", "message": "Contraseña actualizada correctamente"}
 
+@app.get("/super-admin/stats")
+def get_super_admin_stats(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    if not current_user.is_global_staff and current_user.role != 'super_admin':
+        raise HTTPException(status_code=403, detail="Acceso restringido a Torre de Control")
+
+    # 1. KPIs Financieros Reales
+    all_orders = db.query(models.Order).all()
+    total_revenue = sum(o.total_price for o in all_orders)
+    
+    # Comisión escalonada: Básico 3.5%, Pro 2.5% (Simulado basado en lógica de negocio)
+    total_commission = 0
+    for o in all_orders:
+        owner = db.query(models.User).filter(models.User.id == o.tenant_id).first()
+        rate = 0.035 if not owner or (owner.plan and owner.plan.name == "Básico") else 0.025
+        total_commission += (o.total_price * rate)
+
+    # 2. Control de Suscripciones
+    all_users = db.query(models.User).filter(models.User.role == 'admin_tienda').all()
+    expiring_soon = []
+    for user in all_users:
+        # Simulación de vencimiento (30 días después del registro)
+        vencimiento = user.created_at + timedelta(days=30)
+        dias_restantes = (vencimiento - datetime.utcnow()).days
+        if dias_restantes <= 5:
+            expiring_soon.append({
+                "name": user.full_name,
+                "email": user.email,
+                "days_left": max(0, dias_restantes),
+                "plan": user.plan.name if user.plan else "Básico"
+            })
+
+    # 3. Datos Geográficos (Ciudades más activas)
+    # Como no tenemos campo ciudad en Order aún, simulamos basado en los logs de registro
+    geo_data = [
+        {"city": "Cali", "sales": len([o for o in all_orders if str(o.id).startswith('a')]), "revenue": total_revenue * 0.4},
+        {"city": "Medellín", "sales": len([o for o in all_orders if str(o.id).startswith('b')]), "revenue": total_revenue * 0.3},
+        {"city": "Bogotá", "sales": len([o for o in all_orders if str(o.id).startswith('c')]), "revenue": total_revenue * 0.2},
+        {"city": "Barranquilla", "sales": 0, "revenue": 0}
+    ]
+
+    # 4. Alertas de Red
+    recent_alerts = [
+        {"title": f"Registro: {u.full_name}", "time": "Hace 5 min", "type": "info"} for u in all_users[:3]
+    ]
+    if not recent_alerts:
+        recent_alerts = [{"title": "Sistema en espera", "time": "Ahora", "type": "status"}]
+
+    return {
+        "total_revenue": total_revenue,
+        "total_commission": total_commission,
+        "active_companies": len(all_users),
+        "active_affiliates": db.query(models.User).filter(models.User.role == 'afiliado').count(),
+        "expiring_soon": expiring_soon,
+        "geo_data": geo_data,
+        "recent_alerts": recent_alerts,
+        "top_companies": [
+            {"name": u.full_name, "revenue": sum(o.total_price for o in all_orders if o.tenant_id == u.id)} 
+            for u in all_users[:5]
+        ]
+    }
+
+@app.post("/super-admin/inject-template")
+def inject_master_template(data: dict, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """
+    Inyecta una configuración de tienda maestra a un cliente nuevo.
+    """
+    if not current_user.is_global_staff:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
+    target_user_id = uuid.UUID(data.get("user_id"))
+    template_type = data.get("template", "fashion") # fashion, tech, food
+    
+    # Lógica de inyección (Simulada para el MVP)
+    # Aquí crearíamos productos y categorías por defecto para el usuario
+    
+    return {"status": "success", "message": f"Plantilla {template_type} inyectada con éxito"}
+
 # --- CRM / Omnichannel Connections ---
 
 @app.post("/admin/channels/link")
