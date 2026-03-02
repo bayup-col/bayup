@@ -1,0 +1,15 @@
+# Ignorar absolutamente todo excepto el frontend para evitar el error interno de Vercel
+backend/
+whatsapp-bridge/
+docs/
+scripts/
+venv/
+__pycache__/
+sql_app.db
+*.db
+.git/
+.github/
+.vscode/
+node_modules/
+frontend/node_modules/
+frontend/.next/
