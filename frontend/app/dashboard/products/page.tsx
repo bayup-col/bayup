@@ -110,43 +110,63 @@ export default function ProductsPage() {
 
     const handleDownloadTemplate = async () => {
         try {
-            const { utils, writeFile } = await import('xlsx');
-            
-            // Definimos los encabezados y un ejemplo claro
-            const data = [
-                {
-                    "Nombre": "Camisa Premium Lino",
-                    "Descripcion": "Camisa de alta calidad, fresca y elegante.",
-                    "Precio": 120000,
-                    "Categoria": "Ropa",
-                    "Talla": "M",
-                    "Color": "Blanco",
-                    "Stock": 15,
-                    "SKU": "CAM-001"
-                },
-                {
-                    "Nombre": "Pantalón Chino Slim",
-                    "Descripcion": "Corte moderno, tela stretch.",
-                    "Precio": 150000,
-                    "Categoria": "Ropa",
-                    "Talla": "32",
-                    "Color": "Beige",
-                    "Stock": 10,
-                    "SKU": "PAN-002"
-                }
+            const ExcelJS = (await import('exceljs')).default;
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Productos');
+
+            // Definir columnas con estilos
+            worksheet.columns = [
+                { header: 'Nombre', key: 'name', width: 30 },
+                { header: 'Descripcion', key: 'description', width: 40 },
+                { header: 'Precio', key: 'price', width: 15 },
+                { header: 'Categoria', key: 'category', width: 20 },
+                { header: 'Talla', key: 'size', width: 10 },
+                { header: 'Color', key: 'color', width: 10 },
+                { header: 'Stock', key: 'stock', width: 10 },
+                { header: 'SKU', key: 'sku', width: 15 }
             ];
 
-            const ws = utils.json_to_sheet(data);
-            const wb = utils.book_new();
-            utils.book_append_sheet(wb, ws, "Productos");
-            
-            // Ajustar ancho de columnas para que se vea ordenado
-            ws['!cols'] = [
-                { wch: 25 }, { wch: 40 }, { wch: 15 }, { wch: 15 }, 
-                { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 15 }
-            ];
+            // Estilo para el encabezado
+            worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            worksheet.getRow(1).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF004D4D' } // Color Bayup
+            };
 
-            writeFile(wb, "Formato_Importacion_Bayup.xlsx");
+            // Añadir ejemplos claros
+            worksheet.addRow({
+                name: 'Camisa Premium Lino',
+                description: 'Camisa de alta calidad, fresca y elegante.',
+                price: 120000,
+                category: 'Ropa',
+                size: 'M',
+                color: 'Blanco',
+                stock: 15,
+                sku: 'CAM-001'
+            });
+
+            worksheet.addRow({
+                name: 'Pantalón Chino Slim',
+                description: 'Corte moderno, tela stretch.',
+                price: 150000,
+                category: 'Ropa',
+                size: '32',
+                color: 'Beige',
+                stock: 10,
+                sku: 'PAN-002'
+            });
+
+            // Generar y descargar
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Formato_Importacion_Bayup.xlsx";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
             showToast("Plantilla Excel generada con éxito", "success");
         } catch (e) {
             console.error("Error generating excel", e);
