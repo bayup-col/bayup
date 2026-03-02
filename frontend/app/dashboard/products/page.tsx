@@ -108,17 +108,50 @@ export default function ProductsPage() {
     const [limitType, setLimitType] = useState<'warning' | 'blocked'>('warning');
     const isBasicPlan = userPlan?.name === "Básico" || !userPlan;
 
-    const handleDownloadTemplate = () => {
-        const headers = ["Nombre", "Descripcion", "Precio", "Categoria", "Talla", "Color", "Stock"];
-        const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + 
-            "Producto de Ejemplo,Esta es una descripcion,50000,Ropa,M,Negro,10";
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "plantilla_bayup_productos.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleDownloadTemplate = async () => {
+        try {
+            const { utils, writeFile } = await import('xlsx');
+            
+            // Definimos los encabezados y un ejemplo claro
+            const data = [
+                {
+                    "Nombre": "Camisa Premium Lino",
+                    "Descripcion": "Camisa de alta calidad, fresca y elegante.",
+                    "Precio": 120000,
+                    "Categoria": "Ropa",
+                    "Talla": "M",
+                    "Color": "Blanco",
+                    "Stock": 15,
+                    "SKU": "CAM-001"
+                },
+                {
+                    "Nombre": "Pantalón Chino Slim",
+                    "Descripcion": "Corte moderno, tela stretch.",
+                    "Precio": 150000,
+                    "Categoria": "Ropa",
+                    "Talla": "32",
+                    "Color": "Beige",
+                    "Stock": 10,
+                    "SKU": "PAN-002"
+                }
+            ];
+
+            const ws = utils.json_to_sheet(data);
+            const wb = utils.book_new();
+            utils.book_append_sheet(wb, ws, "Productos");
+            
+            // Ajustar ancho de columnas para que se vea ordenado
+            ws['!cols'] = [
+                { wch: 25 }, { wch: 40 }, { wch: 15 }, { wch: 15 }, 
+                { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 15 }
+            ];
+
+            writeFile(wb, "Formato_Importacion_Bayup.xlsx");
+            showToast("Plantilla Excel generada con éxito", "success");
+        } catch (e) {
+            console.error("Error generating excel", e);
+            showToast("No se pudo generar el formato", "error");
+        }
     };
 
     const handleImportSubmit = async () => {
