@@ -18,8 +18,6 @@ const FloatingParticlesBackground = dynamic(
   }
 );
 
-import { SignUpButton, useSignUp, useSession } from "@clerk/nextjs";
-
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
