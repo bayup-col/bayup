@@ -804,8 +804,8 @@ export default function ProductsPage() {
             {/* MODAL IMPORTAR CATÁLOGO (PREMIUM) */}
             <AnimatePresence>
                 {isImportModalOpen && (
-                    <div className="fixed inset-0 z-[3500] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsImportModalOpen(false)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-2xl" />
+                    <div className="fixed top-0 left-0 right-0 bottom-0 z-[9999] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsImportModalOpen(false)} className="absolute top-0 left-0 right-0 bottom-0 bg-[#001A1A]/90 backdrop-blur-2xl" />
                         <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="relative bg-white w-full max-w-xl rounded-[4rem] shadow-3xl border border-white p-12 overflow-hidden">
                             <div className="text-center mb-10">
                                 <div className="h-20 w-20 bg-emerald-50 rounded-[2rem] flex items-center justify-center mx-auto text-emerald-600 mb-6 shadow-inner"><Download size={40} className="rotate-180" /></div>
