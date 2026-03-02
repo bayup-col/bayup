@@ -454,9 +454,23 @@ export default function EditProductPage() {
             {/* DERECHA: DIGITAL TWIN (SINCRONIZADO) */}
             <div className="flex-1 bg-gray-100 p-12 lg:p-20 flex items-center justify-center relative">
                 <div className="w-full max-w-lg bg-white shadow-2xl rounded-[3.5rem] flex flex-col h-[calc(100vh-160px)] overflow-hidden border border-white relative group">
-                    <div className="bg-[#004D4D] p-10 text-white flex justify-between items-start shrink-0 z-20">
-                        <div className="flex items-center gap-6"><div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center shadow-lg"><Box size={24} className="text-[#004D4D]" /></div><div><h4 className="text-xl font-black uppercase leading-none">Previsualización</h4><p className="text-[9px] font-black text-[#00F2FF] uppercase mt-1">Digital Twin del Producto</p></div></div>
-                        <div className="text-right text-white"><InteractiveUP /></div>
+                    <div className="bg-[#004D4D] p-10 text-white flex justify-between items-center shrink-0 z-20 shadow-lg">
+                        <div className="flex items-center gap-6">
+                            <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
+                                <Box size={24} className="text-[#004D4D]" />
+                            </div>
+                            <div>
+                                <h4 className="text-xl font-black uppercase leading-none">Previsualización</h4>
+                                <p className="text-[9px] font-black text-[#00F2FF] uppercase mt-1.5 tracking-widest">RÉPLICA DIGITAL DEL PRODUCTO</p>
+                            </div>
+                        </div>
+                        <div className="text-right flex flex-col items-end">
+                            <div className="flex items-center gap-0.5">
+                                <span className="text-white font-black italic text-2xl tracking-tighter">BAY</span>
+                                <span className="text-[#00F2FF] font-medium text-2xl tracking-tighter">InteractiveUP</span>
+                            </div>
+                            <span className="text-[7px] font-black text-white/30 uppercase tracking-[0.4em] mt-1">Sincronizado en tiempo real</span>
+                        </div>
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar bg-white p-10 space-y-10 text-slate-900">
                         <div className="space-y-6">
