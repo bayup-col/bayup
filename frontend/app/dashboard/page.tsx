@@ -264,9 +264,9 @@ export default function DashboardPage() {
     <div className="max-w-[1600px] mx-auto space-y-12 pb-20 px-4">
         <div className="flex flex-col xl:flex-row items-center justify-between gap-8 overflow-visible">
             <div className="space-y-2 text-center xl:text-left">
-                <div className="flex items-center justify-center xl:justify-start gap-3">
+                <div className="flex items-center gap-3 mb-2">
                     <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                    <span className={`text-[10px] font-black tracking-[0.3em] uppercase italic ${theme === 'dark' ? 'text-white/40' : 'text-[#004d4d]/60'}`}>Tu panel de control</span>
+                    <span className={`text-[10px] font-black tracking-[0.3em] italic ${theme === 'dark' ? 'text-white/40' : 'text-[#004d4d]/60'}`}>Tu panel de control</span>
                 </div>
                 <h1 className={`text-4xl md:text-6xl font-black italic tracking-tighter leading-[1.4] py-4 overflow-visible transition-colors duration-500 ${theme === 'dark' ? 'text-white shadow-[0_0_30px_rgba(255,255,255,0.05)]' : 'text-[#001A1A]'}`}>
                     ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block pb-4 pr-2"> {companyName}</span>!
