@@ -485,8 +485,13 @@ export default function ProductsPage() {
                     )}
                 </div>
                 <div className="flex gap-4">
-                    <button onClick={() => setIsImportModalOpen(true)} className="h-12 px-8 bg-white border border-gray-100 text-[#004d4d] rounded-full font-black text-[10px] tracking-[0.3em] shadow-xl hover:shadow-2xl transition-all flex items-center gap-3">
-                        <Download size={16} className="rotate-180"/> Importar Catálogo
+                    <button 
+                        onClick={() => showToast("Función en mantenimiento. Estará disponible próximamente ✨", "info")} 
+                        className="h-12 px-8 bg-gray-50 border border-gray-100 text-gray-400 rounded-full font-black text-[10px] tracking-[0.3em] shadow-sm cursor-not-allowed flex items-center gap-3 group relative overflow-hidden"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                        <Download size={16} className="rotate-180 opacity-40"/> Importar Catálogo
+                        <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[6px] px-1.5 py-0.5 rounded-full animate-bounce">SOON</span>
                     </button>
                     <button onClick={handleNewProductClick} className="h-12 px-8 bg-[#004d4d] text-white rounded-full font-black text-[10px] tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center gap-3 group">
                         <Plus size={16} className="group-hover:rotate-90 transition-transform"/> Nuevo producto
