@@ -416,7 +416,7 @@ export default function ShippingPage() {
             <table className="w-full text-center">
                 <thead><tr className="bg-gray-50/50 text-[10px] font-black text-[#004D4D] tracking-[0.2em]"><th className="px-8 py-6">Envío</th><th className="px-8 py-6">Destinatario</th><th className="px-8 py-6 text-center">Estado</th><th className="px-8 py-6 text-right pr-12">Acciones</th></tr></thead>
                 <tbody className="divide-y divide-gray-100/50">
-                    {filteredShipments.length === 0 ? (<tr><td colSpan={4} className="py-20 text-center text-gray-300 font-black text-[10px]">Sin movimientos logísticos activos</td></tr>) : filteredShipments.map((shp) => (
+                    {filteredShipments.length === 0 ? (<tr><td colSpan={4} className="py-20 text-center text-slate-400 font-bold text-[11px] uppercase tracking-widest opacity-60 italic">Sin movimientos logísticos activos</td></tr>) : filteredShipments.map((shp) => (
                         <tr key={shp.id} onClick={() => setSelectedShipment(shp)} className="group hover:bg-white/60 transition-all cursor-pointer">
                             <td className="px-8 py-8"><p className="text-sm font-black text-gray-900">{shp.id}</p><p className="text-[10px] text-gray-400 font-bold">{shp.carrier}</p></td>
                             <td className="px-8 py-8"><p className="text-sm font-bold text-gray-700">{shp.customer.name}</p><p className="text-[10px] text-gray-400 italic">{shp.customer.city}</p></td>
