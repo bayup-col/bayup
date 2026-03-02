@@ -100,7 +100,7 @@ export const DashboardHeader = ({
                     </div>
 
                     <div className="px-4 py-1.5 flex items-center gap-4">
-                        {(userPlan?.name !== "Básico" && userPlan) && (
+                        {(isEmpresaPlan || isGlobalStaff) && (
                             <>
                                 <button onClick={toggleTheme} className="p-2 rounded-full text-[#004d4d]/60 hover:text-[#00F2FF]">{theme === 'light' ? <Moon size={20} /> : <Sun size={20} className="text-[#00F2FF]" />}</button>
                                 <div className="h-6 w-px bg-[#004d4d]/10"></div>
