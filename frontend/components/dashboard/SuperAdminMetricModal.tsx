@@ -81,11 +81,11 @@ export default function SuperAdminMetricModal({ isOpen, onClose, type, data }: S
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8">
+    <div className="fixed top-0 left-0 right-0 bottom-0 z-[9999] flex items-center justify-center p-4 md:p-8">
       <motion.div 
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
+        className="absolute top-0 left-0 right-0 bottom-0 bg-gray-900/60 backdrop-blur-md"
       />
 
       <motion.div 
