@@ -48,9 +48,21 @@ import {
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { userEmail: authEmail, userRole: authRole, token, logout, userPlan, isGlobalStaff } = useAuth();
+  const { userEmail: authEmail, userRole: authRole, token, logout, userPlan, isGlobalStaff, isAuthenticated } = useAuth();
   const { theme } = useTheme();
+  const router = useRouter();
   
+  // --- PROTECCIÓN DE RUTA ESTRICTA ---
+  useEffect(() => {
+      // Si no hay token, expulsar inmediatamente
+      if (!isAuthenticated && typeof window !== 'undefined') {
+          router.replace('/login');
+      }
+  }, [isAuthenticated, router]);
+
+  // Si no está autenticado, no renderizar NADA del dashboard
+  if (!isAuthenticated) return null;
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(true);
