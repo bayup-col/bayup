@@ -51,20 +51,27 @@ export const generateDailyReport = async (data: ReportData) => {
     doc.text(`Hola, ${userName}! Así va tu tienda en este tiempo.`, 20, 95);
     doc.text(periodStr, 20, 105);
 
-    // Cálculos amigables
-    const totalSales = orders.reduce((acc, o) => acc + (o.total_price || 0), 0);
-    const totalOrders = orders.length;
+    // Cálculos amigables con protecciones
+    const safeOrders = Array.isArray(orders) ? orders : [];
+    const safeProducts = Array.isArray(products) ? products : [];
+    const safeExpenses = Array.isArray(expenses) ? expenses : [];
+
+    const totalSales = safeOrders.reduce((acc, o) => acc + (Number(o.total_price) || 0), 0);
+    const totalOrders = safeOrders.length;
     const avgTicket = totalOrders > 0 ? totalSales / totalOrders : 0;
-    const stockCritical = products.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0) <= 5).length;
+    const stockCritical = safeProducts.filter(p => {
+        const totalStock = p.variants?.reduce((a: any, v: any) => a + (Number(v.stock) || 0), 0) || 0;
+        return totalStock <= 5;
+    }).length;
 
     doc.setDrawColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
     doc.setLineWidth(0.5);
     doc.line(20, 120, 190, 120);
 
     const kpis = [
-        { label: "DINERO QUE ENTRÓ (VENTAS)", val: `$ ${totalSales.toLocaleString()}`, desc: "Este es el valor total de las ventas que hiciste." },
+        { label: "DINERO QUE ENTRÓ (VENTAS)", val: `$ ${Math.round(totalSales).toLocaleString()}`, desc: "Este es el valor total de las ventas que hiciste." },
         { label: "NÚMERO DE VENTAS", val: totalOrders.toString(), desc: "Es la cantidad de clientes que te compraron." },
-        { label: "LO QUE GASTA CADA CLIENTE", val: `$ ${avgTicket.toLocaleString()}`, desc: "En promedio, esto es lo que cada persona te pagó." },
+        { label: "LO QUE GASTA CADA CLIENTE", val: `$ ${Math.round(avgTicket).toLocaleString()}`, desc: "En promedio, esto es lo que cada persona te pagó." },
         { label: "PRODUCTOS POR AGOTARSE", val: stockCritical.toString(), desc: "¡Atención! Estos productos se están acabando." }
     ];
 
@@ -97,11 +104,11 @@ export const generateDailyReport = async (data: ReportData) => {
     const splitInvIntro = doc.splitTextToSize(invIntro, 170);
     doc.text(splitInvIntro, 20, 40);
 
-    const inventoryData = products.map(p => [
-        p.name,
+    const inventoryData = safeProducts.map(p => [
+        p.name || 'Producto sin nombre',
         p.sku || 'Sin código',
-        p.variants?.reduce((a:any, v:any) => a + (v.stock || 0), 0) || 0,
-        `$ ${p.price.toLocaleString()}`
+        p.variants?.reduce((a: any, v: any) => a + (Number(v.stock) || 0), 0) || 0,
+        `$ ${(Number(p.price) || 0).toLocaleString()}`
     ]).slice(0, 25);
 
     autoTable(doc, {
@@ -127,15 +134,15 @@ export const generateDailyReport = async (data: ReportData) => {
     const splitSalesIntro = doc.splitTextToSize(salesIntro, 170);
     doc.text(splitSalesIntro, 20, 40);
     
-    const salesBySource = orders.reduce((acc: any, o) => {
+    const salesBySource = safeOrders.reduce((acc: any, o) => {
         const src = o.source === 'pos' ? 'Tienda Física' : (o.source || 'Página Web');
-        acc[src] = (acc[src] || 0) + (o.total_price || 0);
+        acc[src] = (acc[src] || 0) + (Number(o.total_price) || 0);
         return acc;
     }, {});
 
     const salesTable = Object.entries(salesBySource).map(([src, val]: [string, any]) => [
         src.toUpperCase(),
-        `$ ${val.toLocaleString()}`,
+        `$ ${Math.round(val).toLocaleString()}`,
         `${((val / (totalSales || 1)) * 100).toFixed(1)}% del total`
     ]);
 
@@ -161,13 +168,13 @@ export const generateDailyReport = async (data: ReportData) => {
     const splitFinanceIntro = doc.splitTextToSize(financeIntro, 170);
     doc.text(splitFinanceIntro, 20, 40);
     
-    const totalExpenses = expenses.reduce((acc, e) => acc + (e.amount || 0), 0);
+    const totalExpenses = safeExpenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
     const netProfit = totalSales - totalExpenses;
 
     const financeData = [
-        ['(+) Dinero de Ventas', `$ ${totalSales.toLocaleString()}`],
-        ['(-) Dinero que Gasté', `$ ${totalExpenses.toLocaleString()}`],
-        ['(=) Dinero que me queda libre', `$ ${netProfit.toLocaleString()}`],
+        ['(+) Dinero de Ventas', `$ ${Math.round(totalSales).toLocaleString()}`],
+        ['(-) Dinero que Gasté', `$ ${Math.round(totalExpenses).toLocaleString()}`],
+        ['(=) Dinero que me queda libre', `$ ${Math.round(netProfit).toLocaleString()}`],
         ['Mi ganancia real es del:', `${totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : 0}% de lo vendido`]
     ];
 
@@ -178,6 +185,7 @@ export const generateDailyReport = async (data: ReportData) => {
         styles: { fontSize: 12, cellPadding: 5 },
         columnStyles: { 1: { fontStyle: 'bold', halign: 'right' } }
     });
+
 
     // --- PÁGINA 5: CONSEJOS DE BAYT ---
     doc.addPage();
