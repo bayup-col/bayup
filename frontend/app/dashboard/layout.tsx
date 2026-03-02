@@ -78,7 +78,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const planNameNormalized = rawPlanName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const allowedModules = getModulesByPlan(rawPlanName);
   
-  const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
