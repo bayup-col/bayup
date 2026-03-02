@@ -18,25 +18,21 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
-  // --- MODO DE EMERGENCIA: SI LAS LLAVES FALTAN, DEJAR PASAR ---
+  // 1. Verificación de seguridad: Si no hay llaves de Clerk, dejamos pasar para evitar Error 500
   const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const sk = process.env.CLERK_SECRET_KEY;
-
-  if (!pk || !sk || pk.includes('dummy')) {
+  if (!pk || pk.includes('dummy') || !pk.startsWith('pk_live_')) {
     return NextResponse.next();
   }
 
-  try {
-    if (!isPublicRoute(request)) {
-      await auth.protect();
-    }
-  } catch (e) {
-    // Si falla la protección por red o configuración, no bloquear la web
-    return NextResponse.next();
+  // 2. Protección de rutas estándar
+  if (!isPublicRoute(request)) {
+    await auth.protect();
   }
 });
 
 export const config = {
+  // Runtime Node.js es obligatorio para compatibilidad con Clerk v6+ en Vercel
+  runtime: 'nodejs',
   matcher: [
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     '/(api|trpc)(.*)',
