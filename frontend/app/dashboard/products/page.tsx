@@ -190,7 +190,14 @@ export default function ProductsPage() {
 
             const data = await res.json();
             if (res.ok) {
-                showToast(data.message, data.skipped > 0 ? "info" : "success");
+                if (data.imported > 0 || data.updated > 0) {
+                    showToast(data.message, data.skipped > 0 ? "info" : "success");
+                } else if (data.errors && data.errors.length > 0) {
+                    showToast(`Error en filas: ${data.errors[0]}`, "error");
+                } else {
+                    showToast(data.message, "info");
+                }
+                
                 setIsImportModalOpen(false);
                 setImportFile(null);
                 fetchProducts();
