@@ -181,8 +181,7 @@ export default function ProductsPage() {
         formData.append('file', importFile);
 
         try {
-            // Forzamos localhost:8000 para que la importación use el backend local corregido
-            const apiBase = 'http://localhost:8000';
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
             const res = await fetch(`${apiBase}/products/import-excel`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
