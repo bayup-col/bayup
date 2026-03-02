@@ -24,6 +24,7 @@ import {
     Bot
 } from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion";
+import SuperAdminMetricModal from "@/components/dashboard/SuperAdminMetricModal";
 
 export default function SuperAdminDashboard() {
     const { token } = useAuth();
@@ -31,6 +32,10 @@ export default function SuperAdminDashboard() {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('finanzas'); // finanzas, red, geografia
+    
+    // Estados del Modal de Métricas
+    const [isMetricModalOpen, setIsMetricModalOpen] = useState(false);
+    const [selectedMetricType, setSelectedMetricType] = useState<'revenue' | 'commission' | 'companies' | 'affiliates'>('revenue');
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -52,6 +57,11 @@ export default function SuperAdminDashboard() {
         };
         fetchStats();
     }, [token]);
+
+    const openMetric = (type: 'revenue' | 'commission' | 'companies' | 'affiliates') => {
+        setSelectedMetricType(type);
+        setIsMetricModalOpen(true);
+    };
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
@@ -113,6 +123,7 @@ export default function SuperAdminDashboard() {
                     trend="Flujo Total" 
                     trendUp={true}
                     color="blue"
+                    onClick={() => openMetric('revenue')}
                 />
                 <StatCard 
                     title="Recaudo Bayup" 
@@ -121,6 +132,7 @@ export default function SuperAdminDashboard() {
                     trend="Utilidad Real" 
                     trendUp={true}
                     color="emerald"
+                    onClick={() => openMetric('commission')}
                 />
                 <StatCard 
                     title="Empresas Activas" 
@@ -129,6 +141,7 @@ export default function SuperAdminDashboard() {
                     trend={`${safeStats.active_companies} tenants`} 
                     trendUp={true}
                     color="purple"
+                    onClick={() => openMetric('companies')}
                 />
                 <StatCard 
                     title="Red Afiliados" 
@@ -137,8 +150,16 @@ export default function SuperAdminDashboard() {
                     trend="Fuerza de Venta" 
                     trendUp={true}
                     color="amber"
+                    onClick={() => openMetric('affiliates')}
                 />
             </div>
+
+            <SuperAdminMetricModal 
+                isOpen={isMetricModalOpen}
+                onClose={() => setIsMetricModalOpen(false)}
+                type={selectedMetricType}
+                data={safeStats}
+            />
 
             {/* 3. MONITOR DE SUSCRIPCIONES Y GEOGRAFÍA */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
