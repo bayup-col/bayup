@@ -175,6 +175,33 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
+# --- BOTÓN DE PÁNICO: REPARACIÓN FORZADA DE DB ---
+@app.get("/force-repair-db-99")
+def force_repair():
+    results = []
+    try:
+        with engine.connect() as conn:
+            # Forzar cada columna una por una con SQL puro
+            cols = [
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_url VARCHAR;",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR;",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS shop_slug VARCHAR;",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_domain VARCHAR;",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT FALSE;",
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_shop_slug ON users (shop_slug);",
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_custom_domain ON users (custom_domain);"
+            ]
+            for sql in cols:
+                try:
+                    conn.execute(text(sql))
+                    conn.commit()
+                    results.append(f"SUCCESS: {sql}")
+                except Exception as e:
+                    results.append(f"ERROR en {sql}: {str(e)}")
+        return {"status": "Complete", "log": results}
+    except Exception as e:
+        return {"status": "Fatal Error", "error": str(e)}
+
 # Servir archivos estáticos (imágenes de productos)
 if not os.path.exists("uploads"):
     os.makedirs("uploads")
