@@ -211,7 +211,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 {/* SECCIÓN OPERACIÓN */}
                 <div>
                     <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">
-                        {(planNameNormalized === 'basico' || planNameNormalized === 'free') ? 'Operación V1' : planNameNormalized === 'pro' ? 'Operación Plus' : 'Operación Maestro'}
+                        {(planNameNormalized === 'basico' || planNameNormalized === 'free') ? 'Operación' : planNameNormalized === 'pro' ? 'Operación Plus' : 'Operación Maestro'}
                     </p>
                     <div className="space-y-1">
                         <MenuItem href="/dashboard" label={<><LayoutDashboard size={16} className="mr-2" /> Inicio</>} id="m_inicio" />

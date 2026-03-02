@@ -278,11 +278,8 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                             >
                                 <div className="flex items-center gap-8">
                                     <div className="relative group">
-                                        <div className="h-24 w-24 rounded-[2rem] bg-gradient-to-br from-gray-100 to-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 group-hover:border-[#00F2FF] group-hover:text-[#00F2FF] transition-all cursor-pointer overflow-hidden shadow-inner">
-                                            <Camera size={32} />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <span className="text-[8px] font-black text-white uppercase tracking-widest">Cambiar Foto</span>
-                                            </div>
+                                        <div className="h-24 w-24 rounded-[2rem] bg-gradient-to-br from-gray-100 to-gray-50 border-2 border-gray-200 flex items-center justify-center text-[#004d4d] overflow-hidden shadow-inner">
+                                            <User size={32} />
                                         </div>
                                     </div>
                                     <div>

@@ -397,7 +397,25 @@ export default function InvoicingPage() {
                                 <div className="flex items-center gap-3">
                                     <motion.button layout onMouseEnter={() => setIsFilterHovered(true)} onMouseLeave={() => setIsFilterHovered(false)} onClick={() => setIsHistoryFilterOpen(!isHistoryFilterOpen)} className={`h-16 flex items-center gap-2 px-6 rounded-3xl border transition-all ${isHistoryFilterOpen ? 'bg-[#004D4D] text-white border-[#004D4D]' : 'bg-white border-white/80 text-gray-500 shadow-sm'}`}><Filter size={20}/><AnimatePresence>{isFilterHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black tracking-widest whitespace-nowrap overflow-hidden">Filtros</motion.span>}</AnimatePresence></motion.button>
                                     <motion.button layout onMouseEnter={() => setIsDateHovered(true)} onMouseLeave={() => setIsDateHovered(false)} onClick={() => setIsHistoryFilterOpen(!isHistoryFilterOpen)} className="h-16 flex items-center gap-2 px-6 rounded-3xl bg-white border border-white/80 text-gray-500 hover:text-[#004D4D] shadow-sm transition-all"><Calendar size={20}/><AnimatePresence>{isDateHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black tracking-widest whitespace-nowrap overflow-hidden">Fecha</motion.span>}</AnimatePresence></motion.button>
-                                    <motion.button layout onMouseEnter={() => setIsExportHovered(true)} onMouseLeave={() => setIsExportHovered(false)} onClick={() => { if(history.length) import('@/lib/report-generator').then(m => m.generateInvoicesAuditPDF({ userName: authEmail?.split('@')[0] || 'Empresario', invoices: filteredHistory, range: dateRange })); }} className="h-16 flex items-center gap-2 px-6 rounded-3xl bg-[#004D4D] text-white shadow-2xl hover:bg-black transition-all group"><Download size={20}/><AnimatePresence>{isExportHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black tracking-widest whitespace-nowrap overflow-hidden">Exportar PDF</motion.span>}</AnimatePresence></motion.button>
+                                    <motion.button 
+                                        layout 
+                                        onMouseEnter={() => setIsExportHovered(true)} 
+                                        onMouseLeave={() => setIsExportHovered(false)} 
+                                        onClick={async () => { 
+                                            if(filteredHistory.length === 0) return showToast("No hay datos para exportar", "info");
+                                            showToast("Generando Auditoría...", "info");
+                                            const { generateInvoicesAuditPDF } = await import('@/lib/report-generator');
+                                            await generateInvoicesAuditPDF({ 
+                                                userName: companyData?.full_name || authEmail?.split('@')[0] || 'Empresario', 
+                                                invoices: filteredHistory, 
+                                                range: dateRange 
+                                            }); 
+                                        }} 
+                                        className="h-16 flex items-center gap-2 px-6 rounded-3xl bg-[#004D4D] text-white shadow-2xl hover:bg-black transition-all group"
+                                    >
+                                        <Download size={20}/>
+                                        <AnimatePresence>{isExportHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black tracking-widest whitespace-nowrap overflow-hidden">Exportar PDF</motion.span>}</AnimatePresence>
+                                    </motion.button>
                                 </div>
                             </div>
 
