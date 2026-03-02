@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from "@/context/auth-context";
+import { useSignIn } from "@clerk/nextjs";
 import { InteractiveUP } from "@/components/landing/InteractiveUP";
 import { GlassyButton } from "@/components/landing/GlassyButton";
 import { Lock, Mail, Loader2, Ghost, Home, ArrowLeft, Send, Eye, EyeOff, CheckCircle2 } from "lucide-react";
@@ -32,6 +33,7 @@ export default function LoginPage() {
   
   const router = useRouter();
   const { login, isAuthenticated } = useAuth();
+  const { isLoaded, signIn, setActive } = useSignIn();
   
   useEffect(() => {
     // Si ya está autenticado localmente, redirigir
@@ -57,11 +59,12 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSuccess) return;
+    if (isSuccess || !isLoaded) return;
     setError(null);
     setIsLoading(true);
 
     try {
+      // 1. AUTENTICACIÓN BACKEND (Python)
       const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const response = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
@@ -79,11 +82,27 @@ export default function LoginPage() {
 
       const data = await response.json();
       
-      // El backend ahora devuelve el objeto user completo en el login
+      // 2. AUTENTICACIÓN INVISIBLE CLERK (Para el Middleware)
+      try {
+        const result = await signIn.create({
+          identifier: email,
+          password: password,
+        });
+
+        if (result.status === "complete") {
+          await setActive({ session: result.createdSessionId });
+        } else {
+          console.warn("Clerk Login incompleto - Posible 2FA requerido");
+        }
+      } catch (clerkErr: any) {
+        console.error("Clerk Background Auth Error:", clerkErr);
+        // No bloqueamos el login si Clerk falla, para que al menos entre por Backend
+      }
+
+      // 3. PROCESAR DATOS DE USUARIO
       const userData = data.user;
       const isGlobalStaff = userData.is_global_staff || false;
 
-      // 1. BLOQUEO PARA LA FAMILIA (Deben ir por /bayup-family)
       if (isGlobalStaff) {
           setError("Acceso Restringido: Tu cuenta pertenece a la Familia Bayup. Por favor, usa la entrada exclusiva en /bayup-family");
           setIsLoading(false);
@@ -95,19 +114,11 @@ export default function LoginPage() {
       const userPlan = userData.plan || null;
       const shopSlug = userData.shop_slug || "";
       
-      // Guardamos TODO en el contexto de Auth
       login(data.access_token, email, userRole, userPermissions, userPlan, isGlobalStaff, shopSlug);
       
-      console.log("LOGIN EXITOSO - ROL:", userRole, "ES GLOBAL:", isGlobalStaff);
-
       let targetPath = '/dashboard';
-      
-      // SI ES STAFF GLOBAL (DANI O INVITADOS DE DANI), VA AL SUPER ADMIN
-      if (isGlobalStaff) {
-          targetPath = '/dashboard/super-admin';
-      } else if (userRole === 'afiliado') {
-          targetPath = '/afiliado/dashboard';
-      }
+      if (isGlobalStaff) targetPath = '/dashboard/super-admin';
+      else if (userRole === 'afiliado') targetPath = '/afiliado/dashboard';
       
       setRedirectUrl(targetPath);
       setTimeout(() => {
