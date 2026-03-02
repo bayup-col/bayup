@@ -289,7 +289,7 @@ export default function SuperAdminDashboard() {
     );
 }
 
-const StatCard = ({ title, value, icon, trend, trendUp, color }: any) => {
+const StatCard = ({ title, value, icon, trend, trendUp, color, onClick }: any) => {
     const colors: any = {
         blue: 'bg-blue-50 text-blue-600',
         emerald: 'bg-emerald-50 text-emerald-600',
@@ -298,7 +298,10 @@ const StatCard = ({ title, value, icon, trend, trendUp, color }: any) => {
     };
     
     return (
-        <div className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 group">
+        <div 
+            onClick={onClick}
+            className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 group cursor-pointer"
+        >
             <div className="flex justify-between items-start mb-6">
                 <div className={`h-12 w-12 rounded-2xl ${colors[color]} flex items-center justify-center group-hover:scale-110 transition-transform duration-500 shadow-inner`}>
                     {icon}
