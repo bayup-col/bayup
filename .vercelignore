@@ -1,7 +1,0 @@
-# Ignorar carpetas que no son del frontend para agilizar el despliegue
-backend/
-whatsapp-bridge/
-docs/
-scripts/
-.git/
-node_modules/

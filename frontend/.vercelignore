@@ -1,0 +1,9 @@
+# Ignorar archivos innecesarios para el despliegue de Vercel
+.next/
+node_modules/
+*.log
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+public/templates/**
