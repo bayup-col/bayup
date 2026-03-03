@@ -8,6 +8,7 @@ RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 BASE_URL = "https://bayup.com.co"
 SENDER = "Bayup <info@bayup.com.co>"
 
+
 def send_email(to_email: str, subject: str, html_content: str):
     if not RESEND_API_KEY:
         print("ERROR: No se ha configurado RESEND_API_KEY")
@@ -38,11 +39,13 @@ def send_email(to_email: str, subject: str, html_content: str):
         print(f"Error enviando correo: {e}")
         return False
 
+
 # --- COMPONENTES VISUALES ---
 S_HEADER = "background-color: #004d4d; padding: 40px; text-align: center; border-radius: 20px 20px 0 0;"
 S_BODY = "padding: 40px; background-color: #ffffff; color: #333; line-height: 1.6; font-family: Arial, sans-serif;"
 S_BTN = "display: inline-block; background-color: #004d4d; color: #ffffff !important; padding: 18px 35px; text-decoration: none; border-radius: 12px; font-weight: bold; text-transform: uppercase; margin: 25px 0;"
 S_FOOTER = "padding: 30px; text-align: center; color: #999; font-size: 11px;"
+
 
 # --- PLANTILLAS ---
 
@@ -59,6 +62,7 @@ def send_welcome_email(user_email: str, user_name: str):
     </div>
     """
     return send_email(user_email, "Bienvenido a Bayup 🚀", html)
+
 
 def send_staff_invitation(user_email: str, user_name: str, temp_pass: str, inviter_name: str, permissions: dict = None):
     allowed_modules = []
@@ -93,6 +97,7 @@ def send_staff_invitation(user_email: str, user_name: str, temp_pass: str, invit
     """
     return send_email(user_email, f"{inviter_name} te invita a Bayup", html)
 
+
 def send_affiliate_welcome(user_email: str, user_name: str, temp_pass: str):
     html = f"""
     <div style="max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 20px;">
@@ -110,10 +115,11 @@ def send_affiliate_welcome(user_email: str, user_name: str, temp_pass: str):
     """
     return send_email(user_email, "Bienvenido a Partners Bayup", html)
 
+
 def send_password_reset(user_email: str, new_pass: str):
     html = f"""
     <div style="max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 20px;">
-        <div style="background-color: #f43f5e; padding: 40px; text-align: center;"><h1 style="color: #white; margin: 0;">SEGURIDAD</h1></div>
+        <div style="background-color: #f43f5e; padding: 40px; text-align: center;"><h1 style="color: white; margin: 0;">SEGURIDAD</h1></div>
         <div style="{S_BODY}">
             <h2 style="color: #004d4d;">Nueva Clave.</h2>
             <p>Tu clave temporal es: <strong>{new_pass}</strong></p>
@@ -122,6 +128,7 @@ def send_password_reset(user_email: str, new_pass: str):
     </div>
     """
     return send_email(user_email, "Restablecer Clave - Bayup", html)
+
 
 def send_order_confirmation(customer_email: str, customer_name: str, order_id: str, total_price: float, store_name: str):
     html = f"""
