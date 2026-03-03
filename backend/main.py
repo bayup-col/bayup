@@ -1919,6 +1919,6 @@ def get_wompi_config(amount: float, currency: str = "COP"):
 
 if __name__ == "__main__":
     import uvicorn
-    # Leemos el puerto de la variable de entorno PORT que asigna Railway, por defecto 8000
-    port = int(os.environ.get("PORT", 8000))
+    # Forzamos 8080 para coincidir con la configuración de red de Railway vista en Ajustes
+    port = int(os.environ.get("PORT", 8080))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
