@@ -8,57 +8,43 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# MANTENEMOS EL REINICIO PARA LIMPIAR EL DESORDEN DE MODULOS ANTERIOR
-if os.path.exists("sql_app.db"):
-    try: os.remove("sql_app.db")
-    except: pass
-
 from database import SessionLocal, engine, get_db
 import models
 import crud
 import security
 
-def init_approved_basic_plan():
-    print("🛠️ Restaurando Plan Basico Original...")
+def init_final_basic_plan():
+    print("🛠️ Restaurando Plan Básico según especificaciones finales...")
     models.Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        # DEFINICION REAL DEL PLAN BASICO (Solo lo aprobado)
-        basic_modules = ["inicio", "productos", "pedidos", "invoicing", "settings"]
+        # ORDEN Y MÓDULOS APROBADOS:
+        # 1. Inicio, 2. Facturacion, 3. Pedidos Web, 4. Productos, 5. Envios, 6. Mensajes Web, 7. Config Tienda
+        basic_modules = ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]
         
-        plan = models.Plan(
-            id=uuid.uuid4(),
-            name="Básico",
-            description="Plan Esencial Bayup",
-            modules=basic_modules,
-            is_default=True
-        )
-        db.add(plan)
+        plan = db.query(models.Plan).filter(models.Plan.name == "Básico").first()
+        if not plan:
+            plan = models.Plan(id=uuid.uuid4(), name="Básico", modules=basic_modules, is_default=True)
+            db.add(plan)
+        else:
+            plan.modules = basic_modules
+        
         db.commit()
-        db.refresh(plan)
 
-        # Crear Usuario con Nombre Real
+        # Asegurar Usuario Sebastián Bayup
         email = "basicobayup@yopmail.com"
-        user = models.User(
-            id=uuid.uuid4(),
-            email=email,
-            full_name="Sebastián Bayup", # Nombre real para el saludo
-            hashed_password=security.get_password_hash("123456"),
-            role="admin_tienda",
-            status="Activo",
-            plan_id=plan.id,
-            shop_slug="mi-tienda"
-        )
-        db.add(user)
-        db.commit()
-        print(f"✅ Plan y Usuario restaurados correctamente.")
+        user = db.query(models.User).filter(models.User.email == email).first()
+        if user:
+            user.full_name = "Sebastián Bayup"
+            user.plan_id = plan.id
+            db.commit()
     finally:
         db.close()
 
 from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_approved_basic_plan()
+    init_final_basic_plan()
     yield
 
 app = FastAPI(title="Bayup OS", lifespan=lifespan)
@@ -74,14 +60,13 @@ app.add_middleware(
 @app.post("/auth/login")
 async def login(request: Request, db: Session = Depends(get_db)):
     try:
-        try: data = await request.json()
+        try: body = await request.json()
         except: 
             form = await request.form()
-            data = {"username": form.get("username"), "password": form.get("password")}
+            body = {"username": form.get("username"), "password": form.get("password")}
         
-        u, p = data.get("username"), data.get("password")
+        u, p = body.get("username"), body.get("password")
         user = crud.get_user_by_email(db, email=u.lower().strip() if u else "")
-        
         if not user or not security.verify_password(p, user.hashed_password):
             raise HTTPException(status_code=401, detail="Credenciales incorrectas")
         
@@ -100,16 +85,11 @@ async def login(request: Request, db: Session = Depends(get_db)):
 def me(db: Session = Depends(get_db), token: str = Depends(security.oauth2_scheme)):
     email = security.decode_token(token)
     user = crud.get_user_by_email(db, email=email)
-    if not user: raise HTTPException(status_code=404)
     return {
-        "email": user.email,
-        "full_name": user.full_name,
-        "role": user.role,
-        "shop_slug": user.shop_slug,
+        "email": user.email, "full_name": user.full_name, "role": user.role, "shop_slug": user.shop_slug,
         "plan": {"name": user.plan.name if user.plan else "Básico", "modules": user.plan.modules if user.plan else []}
     }
 
-# Rutas Dashboard (Vacias para evitar 404)
 @app.get("/products")
 def p(): return []
 @app.get("/orders")
@@ -118,6 +98,8 @@ def o(): return []
 def n(): return []
 @app.get("/admin/logs")
 def l(): return []
+@app.get("/health")
+def h(): return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn
