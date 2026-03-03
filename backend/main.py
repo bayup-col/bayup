@@ -20,28 +20,6 @@ load_dotenv()
 
 from database import SessionLocal, engine, get_db
 
-app = FastAPI(title="Bayup API")
-
-@app.get("/force-repair-db-99")
-def repair_final_v22():
-    res = []
-    try:
-        with engine.connect() as c:
-            for s in [
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_url VARCHAR;",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR;",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS shop_slug VARCHAR;",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_domain VARCHAR;",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT FALSE;"
-            ]:
-                try:
-                    c.execute(text(s))
-                    c.commit()
-                    res.append(f"OK: {s}")
-                except Exception as e: res.append(f"SKIP: {str(e)}")
-        return {"v": "2.2", "status": "Done", "log": res}
-    except Exception as e: return {"error": str(e)}
-
 # --- MIGRACIÓN AUTOMÁTICA DE EMERGENCIA ---
 try:
     with engine.begin() as conn:
