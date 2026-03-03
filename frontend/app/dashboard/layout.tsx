@@ -51,17 +51,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { userEmail: authEmail, userRole: authRole, token, logout, userPlan, isGlobalStaff, isAuthenticated } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
+  const [isReady, setIsReady] = useState(false);
   
   // --- PROTECCIÓN DE RUTA ESTRICTA ---
   useEffect(() => {
-      // Si no hay token, expulsar inmediatamente
-      if (!isAuthenticated && typeof window !== 'undefined') {
-          router.replace('/login');
-      }
+      // Pequeña espera para asegurar que el contexto de auth está listo
+      const checkAuth = async () => {
+          if (!isAuthenticated) {
+              router.replace('/login');
+          } else {
+              setIsReady(true);
+          }
+      };
+      checkAuth();
   }, [isAuthenticated, router]);
 
-  // Si no está autenticado, no renderizar NADA del dashboard
-  if (!isAuthenticated) return null;
+  // Si no está autenticado o procesando, no renderizar el dashboard
+  if (!isAuthenticated || !isReady) {
+      return <div className="h-screen w-screen flex items-center justify-center bg-[#FAFAFA] font-bold text-[#004d4d]">Cargando Bayup...</div>;
+  }
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
