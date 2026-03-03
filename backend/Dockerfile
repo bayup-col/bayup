@@ -12,8 +12,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install psycopg2-binary python-dotenv
 
-# FORZAR RECONSTRUCCIÓN (VERSIÓN 2.4 - FINAL FIX)
-ENV FORCE_REBUILD_V24=true
+# FORZAR RECONSTRUCCIÓN (VERSIÓN 2.5 - REPARACIÓN SINTAXIS)
+ENV FORCE_REBUILD_V25=true
 
 # Copiamos todo el contenido de la carpeta backend
 COPY . .
