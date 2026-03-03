@@ -1,8 +1,7 @@
-from fastapi import Depends, FastAPI, HTTPException, status, Request, BackgroundTasks
+from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import text, inspect
+from sqlalchemy import text
 import uuid
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
@@ -15,50 +14,58 @@ import models
 import crud
 import security
 
-# --- REPARACIÓN DE ESQUEMA Y PERMISOS ---
-def ensure_full_access():
-    print("🛠️ Restaurando acceso total de módulos...")
+# --- REPARACIÓN MAESTRA POR SQL PURO ---
+def crash_proof_init():
+    print("🛠️ Iniciando reparación blindada de base de datos...")
+    # 1. Crear tablas si no existen
     models.Base.metadata.create_all(bind=engine)
+    
+    # 2. Inyectar columnas faltantes usando SQL Directo (evita fallos de ORM)
+    required_cols = [
+        ("logo_url", "VARCHAR"), ("phone", "VARCHAR"), ("shop_slug", "VARCHAR"),
+        ("custom_domain", "VARCHAR"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
+        ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSON"),
+        ("bank_accounts", "JSON"), ("social_links", "JSON"), ("whatsapp_lines", "JSON"),
+        ("last_month_revenue", "FLOAT DEFAULT 0"), ("custom_commission_rate", "FLOAT"),
+        ("commission_fixed_until", "DATETIME"), ("commission_is_fixed", "BOOLEAN DEFAULT FALSE"),
+        ("referred_by_id", "VARCHAR"), ("customer_type", "VARCHAR"),
+        ("acquisition_channel", "VARCHAR"), ("total_spent", "FLOAT DEFAULT 0"),
+        ("last_purchase_date", "DATETIME"), ("nickname", "VARCHAR")
+    ]
+    
+    with engine.begin() as conn:
+        # Obtenemos columnas actuales mediante PRAGMA (SQLite)
+        res = conn.execute(text("PRAGMA table_info(users)"))
+        existing = [row[1] for row in res]
+        
+        for col_name, col_type in required_cols:
+            if col_name not in existing:
+                try:
+                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type};"))
+                    print(f"✅ SQL: Columna {col_name} inyectada.")
+                except Exception as e:
+                    print(f"⚠️ SQL Skip {col_name}: {e}")
+
+    # 3. Asegurar datos base
     db = SessionLocal()
     try:
-        # Definición oficial de módulos del Plan Básico (Versión Full)
-        full_modules = [
-            "inicio", "productos", "pedidos", "invoicing", "shipping", 
-            "marketing", "loyalty", "discounts", "ai_assistants", 
-            "automations", "settings", "staff", "customers", "analytics"
-        ]
-        
-        plan = db.query(models.Plan).filter(models.Plan.name == "Básico").first()
-        if not plan:
-            plan = models.Plan(
-                id=uuid.uuid4(), 
-                name="Básico", 
-                modules=full_modules,
-                is_default=True
-            )
-            db.add(plan)
-        else:
-            plan.modules = full_modules # Forzamos la actualización de módulos
-        
+        # Usamos sentencias SQL para evitar fallos de mapeo de modelos en el primer arranque
+        db.execute(text("INSERT OR IGNORE INTO plans (id, name, modules, is_default) VALUES (:id, :name, :mod, :def)"), {
+            "id": str(uuid.uuid4()), "name": "Básico", 
+            "mod": '["inicio", "productos", "pedidos", "invoicing", "shipping", "marketing", "loyalty", "discounts", "ai_assistants", "automations", "settings", "staff", "customers", "analytics"]',
+            "def": True
+        })
         db.commit()
-
-        # Asegurar que el usuario de prueba tenga su nombre y plan correcto
-        email = "basicobayup@yopmail.com"
-        user = db.query(models.User).filter(models.User.email == email).first()
-        if user:
-            user.full_name = "Administrador Bayup"
-            user.plan_id = plan.id
-            db.commit()
-            
+        print("✅ SQL: Plan Maestro verificado.")
     finally:
         db.close()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    ensure_full_access()
+    crash_proof_init()
     yield
 
-app = FastAPI(title="Bayup OS Full", lifespan=lifespan)
+app = FastAPI(title="Bayup OS CrashProof", lifespan=lifespan)
 
 # --- CORS DINÁMICO ---
 @app.middleware("http")
@@ -94,6 +101,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
                 "plan": {"name": user.plan.name if user.plan else "Básico", "modules": user.plan.modules if user.plan else []}
             }
         }
+    except HTTPException as he: raise he
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/auth/me")
@@ -101,14 +109,14 @@ def me(db: Session = Depends(get_db), token: str = Depends(security.oauth2_schem
     email = security.decode_token(token)
     user = crud.get_user_by_email(db, email=email)
     return {
-        "email": user.email, 
-        "full_name": user.full_name, # ESTO ARREGLA EL "¡Hola, ...!"
-        "role": user.role, 
-        "shop_slug": user.shop_slug,
+        "email": user.email, "full_name": user.full_name, "role": user.role, "shop_slug": user.shop_slug,
         "plan": {"name": user.plan.name if user.plan else "Básico", "modules": user.plan.modules if user.plan else []}
     }
 
-# --- RUTAS DE MÓDULOS (RESPUESTAS VACÍAS PARA EVITAR ERRORES) ---
+@app.get("/health")
+def h(): return {"status": "ok"}
+
+# Rutas Dashboard (Vacias para evitar 404)
 @app.get("/products")
 def p(): return []
 @app.get("/orders")
@@ -117,8 +125,6 @@ def o(): return []
 def n(): return []
 @app.get("/admin/logs")
 def l(): return []
-@app.get("/health")
-def h(): return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn
