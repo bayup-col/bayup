@@ -12,8 +12,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install psycopg2-binary python-dotenv
 
-# FORZAR RECONSTRUCCIÓN (CAMBIAR ESTO SIEMPRE QUE SE QUIERA FORZAR DEPLOY)
-ENV FORCE_REBUILD_V2=true
+# FORZAR RECONSTRUCCIÓN (VERSIÓN 2.3 - FIX INDENTATION)
+ENV FORCE_REBUILD_V23=true
 
 # Copiamos todo el contenido de la carpeta backend
 COPY . .
