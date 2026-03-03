@@ -11,7 +11,7 @@ import { BaytAssistant } from '@/components/dashboard/BaytAssistant';
 import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, FileText, Package, Store, Truck, MessageSquare, Settings, 
-  LogOut, ChevronDown, Eye, Bot, Sparkles
+  LogOut, ChevronDown, Eye
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -65,7 +65,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   const MenuItem = ({ href, label, id }: { href: string, label: any, id: string }) => {
-      if (!allowedModules.includes(id) && !isGlobalStaff) return null;
+      // Forzamos la visibilidad si el ID coincide con los aprobados del Plan Básico
+      const isApproved = ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"].includes(id);
+      if (!isApproved && !isGlobalStaff && !allowedModules.includes(id)) return null;
+      
       return (
         <Link href={href} className={`flex items-center gap-3 px-4 py-3 text-sm rounded-2xl font-bold transition-all ${getLinkStyles(href)}`}>
             {label}
@@ -109,7 +112,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <nav className="flex-1 space-y-1">
             {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-4">Operación Maestro</p>}
             
-            {/* ORDEN EXACTO SOLICITADO */}
+            {/* ORDEN EXACTO APROBADO */}
             <MenuItem href="/dashboard" label={<><LayoutDashboard size={18} /> Inicio</>} id="inicio" />
             <MenuItem href="/dashboard/invoicing" label={<><FileText size={18} /> Facturación POS</>} id="facturacion" />
             <MenuItem href="/dashboard/orders" label={<><Package size={18} /> Pedidos Web</>} id="pedidos" />
@@ -127,7 +130,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </aside>
       </motion.div>
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative">
         <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
         <main className="flex-1 overflow-y-auto p-8 relative">
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02] pointer-events-none"></div>

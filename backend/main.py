@@ -1,7 +1,7 @@
 from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import text, inspect
 import uuid
 import os
 from dotenv import load_dotenv
@@ -13,12 +13,27 @@ import models
 import crud
 import security
 
-def init_final_basic_plan():
-    print("🛠️ Restaurando Plan Básico según especificaciones finales...")
+# --- REPARACIÓN DE ESQUEMA (SIN BORRAR NADA) ---
+def final_repair():
+    print("🛠️ Asegurando esquema y modulos aprobados...")
     models.Base.metadata.create_all(bind=engine)
+    
+    # Inyectar columnas si faltan (para evitar Error 500)
+    required_cols = [("logo_url", "VARCHAR"), ("phone", "VARCHAR"), ("shop_slug", "VARCHAR"),
+                    ("custom_domain", "VARCHAR"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
+                    ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSON")]
+    
+    with engine.begin() as conn:
+        inspector = inspect(engine)
+        existing = [c['name'] for c in inspector.get_columns('users')]
+        for c_n, c_t in required_cols:
+            if c_n not in existing:
+                try: conn.execute(text(f"ALTER TABLE users ADD COLUMN {c_n} {c_t};"))
+                except: pass
+
     db = SessionLocal()
     try:
-        # ORDEN Y MÓDULOS APROBADOS:
+        # Restaurar Módulos Oficiales del Plan Básico
         # 1. Inicio, 2. Facturacion, 3. Pedidos Web, 4. Productos, 5. Envios, 6. Mensajes Web, 7. Config Tienda
         basic_modules = ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]
         
@@ -28,12 +43,10 @@ def init_final_basic_plan():
             db.add(plan)
         else:
             plan.modules = basic_modules
-        
         db.commit()
 
-        # Asegurar Usuario Sebastián Bayup
-        email = "basicobayup@yopmail.com"
-        user = db.query(models.User).filter(models.User.email == email).first()
+        # Asegurar que el usuario Sebastián Bayup tenga su nombre y plan
+        user = db.query(models.User).filter(models.User.email == "basicobayup@yopmail.com").first()
         if user:
             user.full_name = "Sebastián Bayup"
             user.plan_id = plan.id
@@ -44,11 +57,12 @@ def init_final_basic_plan():
 from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_final_basic_plan()
+    final_repair()
     yield
 
-app = FastAPI(title="Bayup OS", lifespan=lifespan)
+app = FastAPI(title="Bayup OS Final", lifespan=lifespan)
 
+# --- CORS ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://www.bayup.com.co", "https://bayup.com.co", "https://bayup-interactive.vercel.app", "http://localhost:3000"],
@@ -60,13 +74,14 @@ app.add_middleware(
 @app.post("/auth/login")
 async def login(request: Request, db: Session = Depends(get_db)):
     try:
-        try: body = await request.json()
+        try: data = await request.json()
         except: 
             form = await request.form()
-            body = {"username": form.get("username"), "password": form.get("password")}
+            data = {"username": form.get("username"), "password": form.get("password")}
         
-        u, p = body.get("username"), body.get("password")
+        u, p = data.get("username"), data.get("password")
         user = crud.get_user_by_email(db, email=u.lower().strip() if u else "")
+        
         if not user or not security.verify_password(p, user.hashed_password):
             raise HTTPException(status_code=401, detail="Credenciales incorrectas")
         
