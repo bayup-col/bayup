@@ -8,65 +8,61 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# --- REINICIO NUCLEAR DE BASE DE DATOS ---
-# Borramos la DB antigua para asegurar que el esquema sea PERFECTO
+# MANTENEMOS EL REINICIO PARA LIMPIAR EL DESORDEN DE MODULOS ANTERIOR
 if os.path.exists("sql_app.db"):
-    try:
-        os.remove("sql_app.db")
-        print("🗑️ Base de datos antigua eliminada satisfactoriamente.")
-    except Exception as e:
-        print(f"Error borrando DB: {e}")
+    try: os.remove("sql_app.db")
+    except: pass
 
 from database import SessionLocal, engine, get_db
 import models
 import crud
 import security
 
-def init_system_full():
-    print("🚀 Iniciando Reconstruccion Total del Sistema...")
+def init_approved_basic_plan():
+    print("🛠️ Restaurando Plan Basico Original...")
     models.Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        # 1. Crear Plan Maestro con TODOS los modulos
-        modules = ["inicio", "productos", "pedidos", "invoicing", "shipping", "marketing", "loyalty", "discounts", "ai_assistants", "automations", "settings", "staff", "customers", "analytics"]
+        # DEFINICION REAL DEL PLAN BASICO (Solo lo aprobado)
+        basic_modules = ["inicio", "productos", "pedidos", "invoicing", "settings"]
+        
         plan = models.Plan(
             id=uuid.uuid4(),
             name="Básico",
-            description="Plan Full Restaurado",
-            modules=modules,
+            description="Plan Esencial Bayup",
+            modules=basic_modules,
             is_default=True
         )
         db.add(plan)
         db.commit()
         db.refresh(plan)
 
-        # 2. Crear Usuario Maestro con acceso garantizado
+        # Crear Usuario con Nombre Real
         email = "basicobayup@yopmail.com"
         user = models.User(
             id=uuid.uuid4(),
             email=email,
-            full_name="Administrador Bayup",
+            full_name="Sebastián Bayup", # Nombre real para el saludo
             hashed_password=security.get_password_hash("123456"),
             role="admin_tienda",
             status="Activo",
             plan_id=plan.id,
-            shop_slug="tienda-principal"
+            shop_slug="mi-tienda"
         )
         db.add(user)
         db.commit()
-        print(f"✨ SISTEMA RECONSTRUIDO: {email} / 123456")
+        print(f"✅ Plan y Usuario restaurados correctamente.")
     finally:
         db.close()
 
 from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_system_full()
+    init_approved_basic_plan()
     yield
 
-app = FastAPI(title="Bayup OS Ultimate", lifespan=lifespan)
+app = FastAPI(title="Bayup OS", lifespan=lifespan)
 
-# --- CORS OFICIAL ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://www.bayup.com.co", "https://bayup.com.co", "https://bayup-interactive.vercel.app", "http://localhost:3000"],
@@ -104,12 +100,16 @@ async def login(request: Request, db: Session = Depends(get_db)):
 def me(db: Session = Depends(get_db), token: str = Depends(security.oauth2_scheme)):
     email = security.decode_token(token)
     user = crud.get_user_by_email(db, email=email)
+    if not user: raise HTTPException(status_code=404)
     return {
-        "email": user.email, "full_name": user.full_name, "role": user.role, "shop_slug": user.shop_slug,
+        "email": user.email,
+        "full_name": user.full_name,
+        "role": user.role,
+        "shop_slug": user.shop_slug,
         "plan": {"name": user.plan.name if user.plan else "Básico", "modules": user.plan.modules if user.plan else []}
     }
 
-# Rutas Dashboard (Vacias para evitar errores 404)
+# Rutas Dashboard (Vacias para evitar 404)
 @app.get("/products")
 def p(): return []
 @app.get("/orders")
@@ -118,8 +118,6 @@ def o(): return []
 def n(): return []
 @app.get("/admin/logs")
 def l(): return []
-@app.get("/health")
-def h(): return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn
