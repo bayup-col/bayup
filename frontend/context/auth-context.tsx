@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
@@ -14,6 +14,7 @@ interface AuthContextType {
   login: (token: string, email: string, role: string, permissions?: any, plan?: any, isGlobal?: boolean, shopSlug?: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,27 +27,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userPlan, setUserPlan] = useState<any | null>(null);
   const [shopSlug, setShopSlug] = useState<string | null>(null);
   const [isGlobalStaff, setIsGlobalStaff] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
 
   useEffect(() => {
-    // Attempt to load token and email from localStorage on mount
-    const storedToken = localStorage.getItem('token');
-    const storedEmail = localStorage.getItem('userEmail');
-    const storedRole = localStorage.getItem('userRole');
-    const storedPerms = localStorage.getItem('userPermissions');
-    const storedPlan = localStorage.getItem('userPlan');
-    const storedSlug = localStorage.getItem('shopSlug');
-    const storedIsGlobal = localStorage.getItem('isGlobalStaff');
+    const loadStorage = () => {
+      try {
+        const storedToken = localStorage.getItem('token');
+        const storedEmail = localStorage.getItem('userEmail');
+        
+        if (storedToken && storedEmail) {
+          setToken(storedToken);
+          setUserEmail(storedEmail);
+          setUserRole(localStorage.getItem('userRole'));
+          setShopSlug(localStorage.getItem('shopSlug'));
+          
+          const storedPerms = localStorage.getItem('userPermissions');
+          const storedPlan = localStorage.getItem('userPlan');
+          const storedIsGlobal = localStorage.getItem('isGlobalStaff');
 
-    if (storedToken && storedEmail) {
-      setToken(storedToken);
-      setUserEmail(storedEmail);
-      setUserRole(storedRole);
-      setShopSlug(storedSlug);
-      if (storedPerms) setUserPermissions(JSON.parse(storedPerms));
-      if (storedPlan) setUserPlan(JSON.parse(storedPlan));
-      if (storedIsGlobal) setIsGlobalStaff(storedIsGlobal === 'true');
-    }
+          if (storedPerms) setUserPermissions(JSON.parse(storedPerms));
+          if (storedPlan) setUserPlan(JSON.parse(storedPlan));
+          if (storedIsGlobal) setIsGlobalStaff(storedIsGlobal === 'true');
+        }
+      } catch (e) {
+        console.error("Error loading auth storage", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadStorage();
   }, []);
 
   const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "") => {
@@ -81,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAuthenticated = !!token;
 
-  const contextValue = {
+  const contextValue = useMemo(() => ({
     token,
     userEmail,
     userRole,
@@ -92,7 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     isAuthenticated,
-  };
+    isLoading
+  }), [token, userEmail, userRole, userPermissions, userPlan, shopSlug, isGlobalStaff, login, logout, isAuthenticated, isLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>

@@ -48,27 +48,28 @@ import {
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { userEmail: authEmail, userRole: authRole, token, logout, userPlan, isGlobalStaff, isAuthenticated } = useAuth();
+  const { userEmail: authEmail, userRole: authRole, token, logout, userPlan, isGlobalStaff, isAuthenticated, isLoading } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
-  const [isReady, setIsReady] = useState(false);
   
   // --- PROTECCIÓN DE RUTA ESTRICTA ---
   useEffect(() => {
-      // Pequeña espera para asegurar que el contexto de auth está listo
-      const checkAuth = async () => {
+      // Solo actuar cuando el contexto haya terminado de cargar
+      if (!isLoading) {
           if (!isAuthenticated) {
               router.replace('/login');
-          } else {
-              setIsReady(true);
           }
-      };
-      checkAuth();
-  }, [isAuthenticated, router]);
+      }
+  }, [isAuthenticated, isLoading, router]);
 
-  // Si no está autenticado o procesando, no renderizar el dashboard
-  if (!isAuthenticated || !isReady) {
-      return <div className="h-screen w-screen flex items-center justify-center bg-[#FAFAFA] font-bold text-[#004d4d]">Cargando Bayup...</div>;
+  // Si está cargando o no está autenticado, mostrar pantalla de carga
+  if (isLoading || !isAuthenticated) {
+      return (
+        <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#FAFAFA]">
+            <div className="text-2xl font-black italic tracking-tighter text-[#004d4d] animate-pulse mb-4">BAYUP</div>
+            <div className="text-xs font-bold text-gray-400 tracking-widest uppercase">Validando sesión...</div>
+        </div>
+      );
   }
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
