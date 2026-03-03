@@ -1,97 +1,72 @@
-from fastapi import Depends, FastAPI, HTTPException, status, Request
+from fastapi import Depends, FastAPI, HTTPException, status, Request, BackgroundTasks, File, UploadFile
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from sqlalchemy import text, inspect
+from sqlalchemy import func, text, inspect
+import datetime
+from datetime import timedelta
+from typing import List, Optional, Dict, Any
 import uuid
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
+import requests
 
 load_dotenv()
 
 from database import SessionLocal, engine, get_db
 import models
 import crud
+import schemas
 import security
+import email_service
 
-# --- AUTO-REPARACION DE DB (Basada en inspeccion) ---
-def ensure_db_schema():
-    print("🛠️ Verificando esquema de base de datos...")
-    try:
-        # Crear tablas faltantes
-        models.Base.metadata.create_all(bind=engine)
-        
-        # Inspeccionar columnas existentes
-        inspector = inspect(engine)
-        existing_columns = [c['name'] for c in inspector.get_columns('users')]
-        
-        # Lista de columnas que DEBEN existir
-        required_columns = [
-            ("logo_url", "VARCHAR"), ("phone", "VARCHAR"), ("shop_slug", "VARCHAR"),
-            ("custom_domain", "VARCHAR"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
-            ("nickname", "VARCHAR"), ("is_global_staff", "BOOLEAN DEFAULT FALSE"),
-            ("bank_accounts", "JSON"), ("social_links", "JSON"), ("whatsapp_lines", "JSON"),
-            ("last_month_revenue", "FLOAT DEFAULT 0"), ("custom_commission_rate", "FLOAT"),
-            ("commission_fixed_until", "DATETIME"), ("commission_is_fixed", "BOOLEAN DEFAULT FALSE"),
-            ("referred_by_id", "VARCHAR"), ("customer_type", "VARCHAR"),
-            ("acquisition_channel", "VARCHAR"), ("total_spent", "FLOAT DEFAULT 0"),
-            ("last_purchase_date", "DATETIME"), ("permissions", "JSON")
-        ]
-        
-        with engine.begin() as conn:
-            for col_name, col_type in required_columns:
-                if col_name not in existing_columns:
-                    try:
-                        conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type};"))
-                        print(f"✅ Inyectada columna faltante: {col_name}")
-                    except Exception as e:
-                        print(f"⚠️ No se pudo inyectar {col_name}: {e}")
-        
-        # Asegurar datos minimos
-        db = SessionLocal()
-        try:
-            plan = db.query(models.Plan).first()
-            if not plan:
-                plan = models.Plan(id=uuid.uuid4(), name="Básico", modules=["inicio", "productos", "pedidos", "settings"], is_default=True)
-                db.add(plan); db.commit(); db.refresh(plan)
-            
-            email = "basicobayup@yopmail.com"
-            if not db.query(models.User).filter(models.User.email == email).first():
-                user = models.User(id=uuid.uuid4(), email=email, full_name="Admin", hashed_password=security.get_password_hash("123456"), role="admin_tienda", status="Activo", plan_id=plan.id, shop_slug="tienda")
-                db.add(user); db.commit()
-        finally:
-            db.close()
-            
-    except Exception as e:
-        print(f"❌ Error critico en esquema: {e}")
+# --- REPARACIÓN TÉCNICA (SIN BORRAR DATOS) ---
+def repair_schema():
+    print("🛠️ Verificando esquema premium...")
+    models.Base.metadata.create_all(bind=engine)
+    inspector = inspect(engine)
+    existing_columns = [c['name'] for c in inspector.get_columns('users')]
+    
+    required = [
+        ("logo_url", "VARCHAR"), ("phone", "VARCHAR"), ("shop_slug", "VARCHAR"),
+        ("custom_domain", "VARCHAR"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
+        ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSON"),
+        ("bank_accounts", "JSON"), ("social_links", "JSON"), ("whatsapp_lines", "JSON"),
+        ("last_month_revenue", "FLOAT DEFAULT 0"), ("custom_commission_rate", "FLOAT"),
+        ("commission_fixed_until", "DATETIME"), ("commission_is_fixed", "BOOLEAN DEFAULT FALSE"),
+        ("referred_by_id", "VARCHAR"), ("customer_type", "VARCHAR"),
+        ("acquisition_channel", "VARCHAR"), ("total_spent", "FLOAT DEFAULT 0"),
+        ("last_purchase_date", "DATETIME"), ("nickname", "VARCHAR")
+    ]
+    
+    with engine.begin() as conn:
+        for col_name, col_type in required:
+            if col_name not in existing_columns:
+                try: conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type};"))
+                except: pass
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    ensure_db_schema()
+    repair_schema()
     yield
 
-app = FastAPI(title="Bayup Final API", lifespan=lifespan)
+app = FastAPI(title="Bayup OS", lifespan=lifespan)
 
-# --- CORS DINAMICO (Acepta cualquier origen de Bayup/Vercel) ---
-@app.middleware("http")
-async def add_cors_header(request: Request, call_next):
-    origin = request.headers.get("origin")
-    response = await call_next(request)
-    if origin:
-        # Permitir dominios oficiales y subdominios
-        if "bayup.com.co" in origin or "vercel.app" in origin or "localhost" in origin:
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept"
-    return response
+# --- CORS PREMIUM (DOMINIOS OFICIALES) ---
+origins = ["https://www.bayup.com.co", "https://bayup.com.co", "https://bayup-interactive.vercel.app", "http://localhost:3000"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_origin_regex="https://.*\\.bayup\\.com\\.co|https://.*\\.vercel\\.app",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    print(f"🔥 FALLO INTERNO: {exc}")
-    return JSONResponse(status_code=500, content={"detail": "Error en el servidor", "message": str(exc)})
-
+# --- AUTH ---
 @app.post("/auth/login")
 async def login(request: Request, db: Session = Depends(get_db)):
     try:
@@ -107,36 +82,60 @@ async def login(request: Request, db: Session = Depends(get_db)):
             raise HTTPException(status_code=401, detail="Credenciales incorrectas")
         
         token = security.create_access_token(data={"sub": user.email})
+        
+        # Restauramos la devolucion completa de modulos segun el plan
+        plan = user.plan
+        modules = plan.modules if plan and plan.modules else ["inicio", "productos", "pedidos", "settings", "invoicing"]
+        
         return {
             "access_token": token, "token_type": "bearer",
             "user": {
                 "email": user.email, "full_name": user.full_name, "role": user.role, "shop_slug": user.shop_slug,
-                "plan": {"name": user.plan.name if user.plan else "Básico", "modules": user.plan.modules if user.plan else []}
+                "is_global_staff": bool(user.is_global_staff), "permissions": user.permissions or {},
+                "plan": {"name": plan.name if plan else "Básico", "modules": modules}
             }
         }
     except HTTPException as he: raise he
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/auth/me")
-def me(db: Session = Depends(get_db), token: str = Depends(security.oauth2_scheme)):
-    email = security.decode_token(token)
-    user = crud.get_user_by_email(db, email=email)
-    if not user: raise HTTPException(status_code=404)
-    return {
-        "email": user.email, "full_name": user.full_name, "role": user.role, "shop_slug": user.shop_slug,
-        "plan": {"name": user.plan.name if user.plan else "Básico", "modules": user.plan.modules if user.plan else []}
-    }
+@app.get("/auth/me", response_model=schemas.User)
+def get_me(current_user: models.User = Depends(security.get_current_user)):
+    return current_user
 
+# --- RESTAURACIÓN DE TODAS LAS RUTAS ORIGINALES ---
 @app.get("/products")
-def p(): return []
+def read_products(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    t_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.Product).filter(models.Product.owner_id == t_id).all()
+
 @app.get("/orders")
-def o(): return []
+def get_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    t_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.Order).filter(models.Order.tenant_id == t_id).all()
+
 @app.get("/notifications")
-def n(): return []
+def get_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    t_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.Notification).filter(models.Notification.tenant_id == t_id).limit(20).all()
+
 @app.get("/admin/logs")
-def l(): return []
+def get_logs(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    t_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.ActivityLog).filter(models.ActivityLog.tenant_id == t_id).limit(50).all()
+
+# --- MODULOS ADICIONALES RESTAURADOS ---
+@app.get("/expenses")
+def get_expenses(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    t_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.Expense).filter(models.Expense.tenant_id == t_id).all()
+
+@app.get("/ai-assistants")
+def get_assistants(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    t_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.AIAssistant).filter(models.AIAssistant.owner_id == t_id).all()
+
 @app.get("/health")
-def h(): return {"status": "ok"}
+def health(): return {"status": "online", "version": "Full Restore"}
 
 if __name__ == "__main__":
     import uvicorn
