@@ -1,6 +1,5 @@
 from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import uuid
 from contextlib import asynccontextmanager
@@ -9,15 +8,7 @@ import os
 
 load_dotenv()
 
-# IMPORTANTE: Borrar DB antigua para forzar esquema limpio si hay errores de columnas
-DB_FILE = "sql_app.db"
-if os.path.exists(DB_FILE):
-    print("🗑️ Borrando base de datos antigua para reconstruccion completa...")
-    try:
-        os.remove(DB_FILE)
-    except Exception as e:
-        print(f"No se pudo borrar: {e}")
-
+# Ya no borramos la DB en cada inicio, solo aseguramos que el esquema sea correcto
 from database import SessionLocal, engine, get_db
 import models
 import crud
@@ -26,26 +17,28 @@ import security
 def init_db_emergency():
     db = SessionLocal()
     try:
-        print("🛠️ Creando tablas con esquema maestro...")
+        print("🛠️ Verificando integridad de tablas...")
         models.Base.metadata.create_all(bind=engine)
         
-        # Crear Plan y Usuario
-        plan = models.Plan(id=uuid.uuid4(), name="Básico", modules=["inicio", "productos", "pedidos", "settings"], is_default=True)
-        db.add(plan)
-        db.commit()
-        db.refresh(plan)
+        # Asegurar Plan Básico
+        plan = db.query(models.Plan).filter(models.Plan.name == "Básico").first()
+        if not plan:
+            plan = models.Plan(id=uuid.uuid4(), name="Básico", modules=["inicio", "productos", "pedidos", "settings"], is_default=True)
+            db.add(plan); db.commit(); db.refresh(plan)
 
+        # Asegurar Usuario Maestro de Emergencia
         email = "basicobayup@yopmail.com"
-        user = models.User(
-            id=uuid.uuid4(), email=email, full_name="Usuario Básico",
-            hashed_password=security.get_password_hash("123456"),
-            role="admin_tienda", status="Activo", plan_id=plan.id, shop_slug="tienda-basica"
-        )
-        db.add(user)
-        db.commit()
-        print(f"✅ Sistema listo. Usuario: {email} / Clave: 123456")
+        user = db.query(models.User).filter(models.User.email == email).first()
+        if not user:
+            print(f"✨ Creando usuario de acceso: {email}")
+            user = models.User(
+                id=uuid.uuid4(), email=email, full_name="Administrador Bayup",
+                hashed_password=security.get_password_hash("123456"),
+                role="admin_tienda", status="Activo", plan_id=plan.id, shop_slug="tienda-maestra"
+            )
+            db.add(user); db.commit()
     except Exception as e:
-        print(f"❌ Error en inicializacion: {e}")
+        print(f"❌ Error init: {e}")
     finally:
         db.close()
 
@@ -56,10 +49,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
-# --- CORS BLINDADO (Dominios Vercel + Bayup) ---
+# --- CORS BLINDADO ---
 origins = [
     "https://www.bayup.com.co",
     "https://bayup.com.co",
+    "https://bayup-interactive.vercel.app",
     "http://localhost:3000",
 ]
 
@@ -76,16 +70,22 @@ app.add_middleware(
 async def login(request: Request, db: Session = Depends(get_db)):
     try:
         data = await request.json()
-        u = data.get("username")
-        p = data.get("password")
+        u, p = data.get("username"), data.get("password")
     except:
         form = await request.form()
-        u = form.get("username")
-        p = form.get("password")
+        u, p = form.get("username"), form.get("password")
 
-    user = crud.get_user_by_email(db, email=u.lower().strip() if u else "")
+    if not u or not p:
+        raise HTTPException(status_code=400, detail="Faltan credenciales")
+
+    user = crud.get_user_by_email(db, email=u.lower().strip())
+    
+    # Debug en logs de Railway para verificar intento
+    print(f"Login attempt: {u}")
+
     if not user or not security.verify_password(p, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+        # El 401 ocurre aqui si la clave o el usuario no coinciden
+        raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
     
     token = security.create_access_token(data={"sub": user.email})
     return {
@@ -99,17 +99,17 @@ async def login(request: Request, db: Session = Depends(get_db)):
 @app.get("/health")
 def health(): return {"status": "ok"}
 
-# Rutas minimas para evitar 404
+# Rutas de Dashboard (Retornan vacio para evitar errores 404)
 @app.get("/auth/me")
 def me(curr: models.User = Depends(security.get_current_user)): return curr
 @app.get("/products")
-def p(db: Session = Depends(get_db)): return []
+def p(): return []
 @app.get("/orders")
-def o(db: Session = Depends(get_db)): return []
+def o(): return []
 @app.get("/notifications")
-def n(db: Session = Depends(get_db)): return []
+def n(): return []
 @app.get("/admin/logs")
-def l(db: Session = Depends(get_db)): return []
+def l(): return []
 
 if __name__ == "__main__":
     import uvicorn
