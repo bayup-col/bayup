@@ -114,7 +114,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             
             {/* ORDEN EXACTO APROBADO */}
             <MenuItem href="/dashboard" label={<><LayoutDashboard size={18} /> Inicio</>} id="inicio" />
-            <MenuItem href="/dashboard/invoicing" label={<><FileText size={18} /> Facturación POS</>} id="facturacion" />
+            <MenuItem href="/dashboard/invoicing" label={<><FileText size={18} /> Facturación</>} id="facturacion" />
             <MenuItem href="/dashboard/orders" label={<><Package size={18} /> Pedidos Web</>} id="pedidos" />
             <MenuItem href="/dashboard/products" label={<><Store size={18} /> Productos</>} id="productos" />
             <MenuItem href="/dashboard/shipping" label={<><Truck size={18} /> Envíos</>} id="envios" />
@@ -123,10 +123,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Configuración</p>}
             <MenuItem href="/dashboard/settings/general" label={<><Settings size={18} /> Config Tienda</>} id="settings" />
           </nav>
-
-          <button onClick={logout} className="mt-8 flex items-center gap-3 px-4 py-4 text-red-500 font-black text-[10px] uppercase tracking-widest hover:bg-red-50 rounded-2xl transition-all">
-            <LogOut size={18} /> {!isSidebarCollapsed && "Cerrar Sesión"}
-          </button>
         </aside>
       </motion.div>
 
