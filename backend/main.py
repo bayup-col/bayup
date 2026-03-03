@@ -3,9 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 import uuid
-from contextlib import asynccontextmanager
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -14,58 +13,64 @@ import models
 import crud
 import security
 
-# --- REPARACIÓN MAESTRA POR SQL PURO ---
-def crash_proof_init():
-    print("🛠️ Iniciando reparación blindada de base de datos...")
-    # 1. Crear tablas si no existen
+# --- BLINDAJE Y ASEGURAMIENTO DE ACCESO ---
+def startup_repair():
+    print("🛠️ Ejecutando mantenimiento de arranque...")
     models.Base.metadata.create_all(bind=engine)
     
-    # 2. Inyectar columnas faltantes usando SQL Directo (evita fallos de ORM)
-    required_cols = [
-        ("logo_url", "VARCHAR"), ("phone", "VARCHAR"), ("shop_slug", "VARCHAR"),
-        ("custom_domain", "VARCHAR"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
-        ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSON"),
-        ("bank_accounts", "JSON"), ("social_links", "JSON"), ("whatsapp_lines", "JSON"),
-        ("last_month_revenue", "FLOAT DEFAULT 0"), ("custom_commission_rate", "FLOAT"),
-        ("commission_fixed_until", "DATETIME"), ("commission_is_fixed", "BOOLEAN DEFAULT FALSE"),
-        ("referred_by_id", "VARCHAR"), ("customer_type", "VARCHAR"),
-        ("acquisition_channel", "VARCHAR"), ("total_spent", "FLOAT DEFAULT 0"),
-        ("last_purchase_date", "DATETIME"), ("nickname", "VARCHAR")
-    ]
+    # Columnas necesarias
+    cols = [("logo_url", "VARCHAR"), ("phone", "VARCHAR"), ("shop_slug", "VARCHAR"),
+            ("custom_domain", "VARCHAR"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
+            ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSON"),
+            ("last_month_revenue", "FLOAT DEFAULT 0"), ("custom_commission_rate", "FLOAT")]
     
     with engine.begin() as conn:
-        # Obtenemos columnas actuales mediante PRAGMA (SQLite)
         res = conn.execute(text("PRAGMA table_info(users)"))
         existing = [row[1] for row in res]
-        
-        for col_name, col_type in required_cols:
-            if col_name not in existing:
-                try:
-                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type};"))
-                    print(f"✅ SQL: Columna {col_name} inyectada.")
-                except Exception as e:
-                    print(f"⚠️ SQL Skip {col_name}: {e}")
+        for c_n, c_t in cols:
+            if c_n not in existing:
+                try: conn.execute(text(f"ALTER TABLE users ADD COLUMN {c_n} {c_t};"))
+                except: pass
 
-    # 3. Asegurar datos base
+    # ASEGURAR USUARIO Y CLAVE (Garantiza acceso 100%)
     db = SessionLocal()
     try:
-        # Usamos sentencias SQL para evitar fallos de mapeo de modelos en el primer arranque
-        db.execute(text("INSERT OR IGNORE INTO plans (id, name, modules, is_default) VALUES (:id, :name, :mod, :def)"), {
-            "id": str(uuid.uuid4()), "name": "Básico", 
-            "mod": '["inicio", "productos", "pedidos", "invoicing", "shipping", "marketing", "loyalty", "discounts", "ai_assistants", "automations", "settings", "staff", "customers", "analytics"]',
-            "def": True
-        })
+        # 1. Asegurar Plan Full
+        modulos = '["inicio", "productos", "pedidos", "invoicing", "shipping", "marketing", "loyalty", "discounts", "ai_assistants", "automations", "settings", "staff", "customers", "analytics"]'
+        db.execute(text("INSERT OR IGNORE INTO plans (id, name, modules, is_default) VALUES (:id, :n, :m, :d)"),
+                  {"id": str(uuid.uuid4()), "n": "Básico", "m": modulos, "d": True})
         db.commit()
-        print("✅ SQL: Plan Maestro verificado.")
+        
+        plan = db.query(models.Plan).first()
+        
+        # 2. Resetear Usuario Maestro (Si existe, actualizamos clave; si no, creamos)
+        email = "basicobayup@yopmail.com"
+        pass_hash = security.get_password_hash("123456")
+        
+        user = db.query(models.User).filter(models.User.email == email).first()
+        if user:
+            user.hashed_password = pass_hash # Forzamos reset de clave a 123456
+            user.full_name = "Administrador Bayup"
+            user.plan_id = plan.id
+        else:
+            user = models.User(
+                id=uuid.uuid4(), email=email, full_name="Administrador Bayup",
+                hashed_password=pass_hash, role="admin_tienda", status="Activo",
+                plan_id=plan.id, shop_slug="tienda-maestra"
+            )
+            db.add(user)
+        db.commit()
+        print(f"✨ ACCESO RESTAURADO: {email} / 123456")
     finally:
         db.close()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    crash_proof_init()
+    startup_repair()
     yield
 
-app = FastAPI(title="Bayup OS CrashProof", lifespan=lifespan)
+from contextlib import asynccontextmanager
+app = FastAPI(title="Bayup OS Final", lifespan=lifespan)
 
 # --- CORS DINÁMICO ---
 @app.middleware("http")
@@ -116,7 +121,7 @@ def me(db: Session = Depends(get_db), token: str = Depends(security.oauth2_schem
 @app.get("/health")
 def h(): return {"status": "ok"}
 
-# Rutas Dashboard (Vacias para evitar 404)
+# Rutas Dashboard minimas
 @app.get("/products")
 def p(): return []
 @app.get("/orders")
