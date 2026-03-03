@@ -66,7 +66,7 @@ import s3_service
 import payment_service
 import clerk_auth_service
 import ai_service
-import email_service
+import mail_system as email_service
 
 # --- SEEDING AUTOMÁTICO DE DEMO ONEUP ---
 def seed_demo_oneup():
