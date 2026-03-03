@@ -1251,18 +1251,7 @@ def perform_month_end_closing(db: Session):
     print(f"✅ CIERRE COMPLETADO: {len(results)} tiendas actualizadas.")
     return results
 
-@app.post("/super-admin/close-month")
-def trigger_month_closing(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_super_admin_user)):
-    """
-    Ejecución manual del cierre de mes desde el panel de Super Admin.
-    """
-    try:
-        report = perform_month_end_closing(db)
-        log_activity(db, current_user.id, current_user.id, "MONTH_CLOSING_MANUAL", f"Ejecutó cierre contable para {len(report)} tiendas.")
-        return {"status": "success", "updated_stores": len(report), "details": report}
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+def calculate_dynamic_commission(store: models.User, source: str):
     """
     Calcula la comisión exacta de Bayup y del Afiliado.
     Regla: POS = 0%. Web = Escala por volumen mes anterior o Manual.
@@ -1303,6 +1292,19 @@ def trigger_month_closing(db: Session = Depends(get_db), current_user: models.Us
         "bayup": bayup_rate,
         "affiliate": affiliate_rate
     }
+
+@app.post("/super-admin/close-month")
+def trigger_month_closing(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_super_admin_user)):
+    """
+    Ejecución manual del cierre de mes desde el panel de Super Admin.
+    """
+    try:
+        report = perform_month_end_closing(db)
+        log_activity(db, current_user.id, current_user.id, "MONTH_CLOSING_MANUAL", f"Ejecutó cierre contable para {len(report)} tiendas.")
+        return {"status": "success", "updated_stores": len(report), "details": report}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/super-admin/stats", response_model=schemas.SuperAdminStats)
 def get_super_admin_stats(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_super_admin_user)):
