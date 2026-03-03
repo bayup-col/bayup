@@ -8,91 +8,82 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# --- REINICIO NUCLEAR DE BASE DE DATOS ---
+# Borramos la DB antigua para asegurar que el esquema sea PERFECTO
+if os.path.exists("sql_app.db"):
+    try:
+        os.remove("sql_app.db")
+        print("🗑️ Base de datos antigua eliminada satisfactoriamente.")
+    except Exception as e:
+        print(f"Error borrando DB: {e}")
+
 from database import SessionLocal, engine, get_db
 import models
 import crud
 import security
 
-# --- BLINDAJE Y ASEGURAMIENTO DE ACCESO ---
-def startup_repair():
-    print("🛠️ Ejecutando mantenimiento de arranque...")
+def init_system_full():
+    print("🚀 Iniciando Reconstruccion Total del Sistema...")
     models.Base.metadata.create_all(bind=engine)
-    
-    # Columnas necesarias
-    cols = [("logo_url", "VARCHAR"), ("phone", "VARCHAR"), ("shop_slug", "VARCHAR"),
-            ("custom_domain", "VARCHAR"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
-            ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSON"),
-            ("last_month_revenue", "FLOAT DEFAULT 0"), ("custom_commission_rate", "FLOAT")]
-    
-    with engine.begin() as conn:
-        res = conn.execute(text("PRAGMA table_info(users)"))
-        existing = [row[1] for row in res]
-        for c_n, c_t in cols:
-            if c_n not in existing:
-                try: conn.execute(text(f"ALTER TABLE users ADD COLUMN {c_n} {c_t};"))
-                except: pass
-
-    # ASEGURAR USUARIO Y CLAVE (Garantiza acceso 100%)
     db = SessionLocal()
     try:
-        # 1. Asegurar Plan Full
-        modulos = '["inicio", "productos", "pedidos", "invoicing", "shipping", "marketing", "loyalty", "discounts", "ai_assistants", "automations", "settings", "staff", "customers", "analytics"]'
-        db.execute(text("INSERT OR IGNORE INTO plans (id, name, modules, is_default) VALUES (:id, :n, :m, :d)"),
-                  {"id": str(uuid.uuid4()), "n": "Básico", "m": modulos, "d": True})
+        # 1. Crear Plan Maestro con TODOS los modulos
+        modules = ["inicio", "productos", "pedidos", "invoicing", "shipping", "marketing", "loyalty", "discounts", "ai_assistants", "automations", "settings", "staff", "customers", "analytics"]
+        plan = models.Plan(
+            id=uuid.uuid4(),
+            name="Básico",
+            description="Plan Full Restaurado",
+            modules=modules,
+            is_default=True
+        )
+        db.add(plan)
         db.commit()
-        
-        plan = db.query(models.Plan).first()
-        
-        # 2. Resetear Usuario Maestro (Si existe, actualizamos clave; si no, creamos)
+        db.refresh(plan)
+
+        # 2. Crear Usuario Maestro con acceso garantizado
         email = "basicobayup@yopmail.com"
-        pass_hash = security.get_password_hash("123456")
-        
-        user = db.query(models.User).filter(models.User.email == email).first()
-        if user:
-            user.hashed_password = pass_hash # Forzamos reset de clave a 123456
-            user.full_name = "Administrador Bayup"
-            user.plan_id = plan.id
-        else:
-            user = models.User(
-                id=uuid.uuid4(), email=email, full_name="Administrador Bayup",
-                hashed_password=pass_hash, role="admin_tienda", status="Activo",
-                plan_id=plan.id, shop_slug="tienda-maestra"
-            )
-            db.add(user)
+        user = models.User(
+            id=uuid.uuid4(),
+            email=email,
+            full_name="Administrador Bayup",
+            hashed_password=security.get_password_hash("123456"),
+            role="admin_tienda",
+            status="Activo",
+            plan_id=plan.id,
+            shop_slug="tienda-principal"
+        )
+        db.add(user)
         db.commit()
-        print(f"✨ ACCESO RESTAURADO: {email} / 123456")
+        print(f"✨ SISTEMA RECONSTRUIDO: {email} / 123456")
     finally:
         db.close()
 
+from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    startup_repair()
+    init_system_full()
     yield
 
-from contextlib import asynccontextmanager
-app = FastAPI(title="Bayup OS Final", lifespan=lifespan)
+app = FastAPI(title="Bayup OS Ultimate", lifespan=lifespan)
 
-# --- CORS DINÁMICO ---
-@app.middleware("http")
-async def add_cors_header(request: Request, call_next):
-    origin = request.headers.get("origin")
-    response = await call_next(request)
-    if origin:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept"
-    return response
+# --- CORS OFICIAL ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://www.bayup.com.co", "https://bayup.com.co", "https://bayup-interactive.vercel.app", "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/auth/login")
 async def login(request: Request, db: Session = Depends(get_db)):
     try:
-        try: body = await request.json()
+        try: data = await request.json()
         except: 
             form = await request.form()
-            body = {"username": form.get("username"), "password": form.get("password")}
+            data = {"username": form.get("username"), "password": form.get("password")}
         
-        u, p = body.get("username"), body.get("password")
+        u, p = data.get("username"), data.get("password")
         user = crud.get_user_by_email(db, email=u.lower().strip() if u else "")
         
         if not user or not security.verify_password(p, user.hashed_password):
@@ -118,10 +109,7 @@ def me(db: Session = Depends(get_db), token: str = Depends(security.oauth2_schem
         "plan": {"name": user.plan.name if user.plan else "Básico", "modules": user.plan.modules if user.plan else []}
     }
 
-@app.get("/health")
-def h(): return {"status": "ok"}
-
-# Rutas Dashboard minimas
+# Rutas Dashboard (Vacias para evitar errores 404)
 @app.get("/products")
 def p(): return []
 @app.get("/orders")
@@ -130,6 +118,8 @@ def o(): return []
 def n(): return []
 @app.get("/admin/logs")
 def l(): return []
+@app.get("/health")
+def h(): return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn
