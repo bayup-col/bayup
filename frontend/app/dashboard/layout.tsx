@@ -1,99 +1,49 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/context/theme-context';
-import { userService } from '@/lib/api';
 import { DashboardHeader } from '@/components/dashboard/Header';
 import UserSettingsModal from '@/components/dashboard/UserSettingsModal';
 import { BaytAssistant } from '@/components/dashboard/BaytAssistant';
 import { InteractiveUP } from '@/components/landing/InteractiveUP';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { getModulesByPlan } from '@/lib/plan-configs';
 import { 
-  LayoutDashboard, 
-  Bot, 
-  FileText, 
-  Package, 
-  Truck, 
-  Globe, 
-  MessageSquare, 
-  Link2, 
-  Users, 
-  ShieldCheck, 
-  TrendingUp, 
-  Gem, 
-  Tag, 
-  Settings,
-  Users2,
-  BarChart3,
-  Store,
-  ChevronDown,
-  Pencil,
-  User,
-  Lock,
-  Bell,
-  Globe2,
-  Camera,
-  X,
-  Ghost,
-  ExternalLink,
-  LogOut,
-  Eye,
-  Sparkles,
-  Activity,
-  Target
+  LayoutDashboard, FileText, Package, Store, MessageSquare, Truck, Users, 
+  ShieldCheck, BarChart3, TrendingUp, Gem, Tag, Settings, Users2, ChevronDown, Eye
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { userEmail: authEmail, userRole: authRole, token, logout, userPlan, isGlobalStaff, isAuthenticated, isLoading } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
-  
-  // --- PROTECCIÓN DE RUTA ESTRICTA ---
-  useEffect(() => {
-      // Solo actuar cuando el contexto haya terminado de cargar
-      if (!isLoading) {
-          if (!isAuthenticated) {
-              router.replace('/login');
-          }
-      }
-  }, [isAuthenticated, isLoading, router]);
+  const pathname = usePathname();
 
-  // Si está cargando o no está autenticado, mostrar pantalla de carga
-  if (isLoading || !isAuthenticated) {
-      return (
-        <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#FAFAFA]">
-            <div className="text-2xl font-black italic tracking-tighter text-[#004d4d] animate-pulse mb-4">BAYUP</div>
-            <div className="text-xs font-bold text-gray-400 tracking-widest uppercase">Validando sesión...</div>
-        </div>
-      );
-  }
-
+  // DEFINICION DE TODOS LOS HOOKS (DEBEN IR AL PRINCIPIO)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(true);
   const [reportsOpen, setReportsOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [isBaytOpen, setIsBaytOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'prefs'>('profile');
   const [companyName, setCompanyName] = useState('Mi Tienda Bayup');
 
-  // NORMALIZACIÓN DE PLAN PARA EVITAR FUGAS
-  const rawPlanName = userPlan?.name || 'Básico';
-  const planNameNormalized = rawPlanName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const allowedModules = getModulesByPlan(rawPlanName);
-  
-  const pathname = usePathname();
-
+  // Proteccion de ruta
   useEffect(() => {
+      if (!isLoading && !isAuthenticated) {
+          router.replace('/login');
+      }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Carga de datos iniciales
+  useEffect(() => {
+    if (!token) return;
     const fetchCompanyName = async () => {
-      if (!token) return;
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://exciting-optimism-production-4624.up.railway.app';
         const res = await fetch(`${apiUrl}/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -101,316 +51,69 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           const data = await res.json();
           if (data.full_name) setCompanyName(data.full_name);
         }
-      } catch (e) { console.error("Error al cargar nombre de empresa", e); }
+      } catch (e) { console.error("Error al cargar perfil", e); }
     };
     fetchCompanyName();
-
-    const handleNameUpdate = (e: any) => { if (e.detail) setCompanyName(e.detail); };
-    window.addEventListener('bayup_name_update', handleNameUpdate);
-    return () => window.removeEventListener('bayup_name_update', handleNameUpdate);
   }, [token]);
 
-  const userEmail = authEmail || 'usuario@ejemplo.com';
-  const userRole = authRole || 'admin';
+  // Normalizacion de modulos
+  const rawPlanName = userPlan?.name || 'Básico';
+  const planNameNormalized = rawPlanName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const allowedModules = getModulesByPlan(rawPlanName);
 
-  const getLinkStyles = (path: string, type: 'admin' | 'super' = 'admin', isSub = false) => {
-      const isActive = pathname === path || (path !== '/dashboard' && pathname?.startsWith(path));
-      const base = `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300  `;
-      const subBase = `flex items-center gap-3 px-4 py-2 ml-9 rounded-xl text-xs font-bold transition-all duration-300  `;
-      
-      if (type === 'super') {
-        return (isSub ? subBase : base) + (isActive 
-          ? (theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF] shadow-[0_0_15px_rgba(0,242,255,0.1)]' : 'bg-[#f0f9f9] text-[#004d4d] shadow-sm')
-          : (theme === 'dark' ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'));
-      }
-      
-      return (isSub ? subBase : base) + (isActive 
-        ? (theme === 'dark' 
-            ? 'backdrop-blur-md bg-[#00F2FF]/10 border border-[#00F2FF]/20 text-[#00F2FF] shadow-[0_8px_32px_-4px_rgba(0,242,255,0.2)] scale-[1.02]'
-            : 'backdrop-blur-md bg-white/20 border border-white/30 text-[#004d4d] shadow-[0_8px_16px_-4px_rgba(0,77,77,0.15)] scale-[1.02]')
-        : (theme === 'dark'
-            ? 'text-slate-400 hover:bg-white/5 hover:text-[#00F2FF]'
-            : 'text-gray-500 hover:bg-[#004d4d]/5 hover:text-[#004d4d]'));
-  };
-  
-  const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
-      // SOLO EL SUPER ADMIN VE TODO EN SU PROPIA RUTA
-      if (isGlobalStaff === true && pathname?.includes('/super-admin')) return (
-        <div className="relative group">
-          <Link href={href} className={getLinkStyles(href, 'admin', isSub)}>
-            <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
-                {label}
-            </div>
-          </Link>
-        </div>
-      );
-
-      const moduleKey = id.replace('m_', '').replace('s_', '');
-      const isAllowedByPlan = (allowedModules as any[]).includes(moduleKey);
-
-      if (!isAllowedByPlan && !pathname?.includes('/super-admin')) return null;
-      
+  // VALIDACION DE RENDERIZADO (DESPUES DE LOS HOOKS)
+  if (isLoading || !isAuthenticated) {
       return (
-        <div className="relative group">
-          <Link href={href} className={getLinkStyles(href, 'admin', isSub)}>
-            <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
-                {label}
-            </div>
-          </Link>
+        <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#FAFAFA]">
+            <div className="text-2xl font-black italic tracking-tighter text-[#004d4d] animate-pulse mb-4">BAYUP</div>
+            <div className="text-xs font-bold text-gray-400 tracking-widest uppercase">Verificando acceso...</div>
         </div>
       );
+  }
+
+  // ESTILOS Y HELPERS
+  const getLinkStyles = (path: string) => {
+      const isActive = pathname === path || (path !== '/dashboard' && pathname?.startsWith(path));
+      return isActive 
+        ? (theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF]' : 'bg-[#f0f9f9] text-[#004d4d]')
+        : (theme === 'dark' ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:text-gray-900');
   };
 
-  const hasVisibleModules = (moduleIds: string[]) => {
-      // En dashboard normal, respetamos el plan incluso para admins
-      return moduleIds.some(id => (allowedModules as any[]).includes(id.replace('m_', '').replace('s_', '')));
-  };
-
-  const renderSidebar = () => {
-    if (isGlobalStaff === true && pathname?.includes('/super-admin')) {
-        return (
-            <>
-              <div className="p-6 border-b border-white/10">
-                <Link href="/dashboard/super-admin" className="text-2xl font-black bg-gradient-to-r from-[#004d4d] to-[#008080] bg-clip-text text-transparent italic tracking-tighter">
-                  Bayup <span className="text-[10px] uppercase tracking-[0.3em] font-black text-cyan">Master</span>
-                </Link>
-              </div>
-              <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-                <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">Administración</p>
-                <MenuItem href="/dashboard/super-admin" label={<><LayoutDashboard size={16} /> Dashboard</>} id="m_inicio" />
-                <MenuItem href="/dashboard/super-admin/empresas" label={<><Store size={16} /> Directorio Empresas</>} id="m_empresas" />
-                <MenuItem href="/dashboard/super-admin/afiliados" label={<><Users2 size={16} /> Red Afiliados</>} id="m_afiliados" />
-                <MenuItem href="/dashboard/super-admin/tesoreria" label={<><Gem size={16} /> Tesorería (3.5%)</>} id="m_tesoreria" />
-                <div className="my-4 border-t border-white/5"></div>
-                <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">Creatividad & Equipo</p>
-                <MenuItem href="/dashboard/super-admin/web-templates" label={<><Globe size={16} /> Fábrica de Diseño</>} id="m_web_templates" />
-                <MenuItem href="/dashboard/super-admin/users" label={<><Users size={16} /> Equipo Bayup</>} id="m_staff" />
-              </nav>
-            </>
-        );
-    }
-
-    return (
-      <>
-          <div className="p-4 border-b border-white/10 relative">
-              <div className={`backdrop-blur-md p-6 rounded-[2.5rem] border shadow-sm flex flex-col items-center text-center transition-all duration-500 ${theme === 'dark' ? 'bg-[#002626]/40 border-[#00F2FF]/10' : 'bg-white/10 border-white/30'}`}>
-                  <div className="flex flex-col items-center">
-                      <span className={`text-base font-black leading-tight tracking-tighter transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                          {companyName}
-                      </span>
-                      <div className="flex items-center gap-1.5 mt-1.5">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>
-                          <span className={`text-[9px] font-black tracking-widest transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-[#004d4d]'}`}>En línea</span>
-                      </div>
-                  </div>
-                  <button 
-                      onClick={() => {
-                        const origin = window.location.origin;
-                        const savedSettings = localStorage.getItem('bayup_general_settings');
-                        let slug = 'preview';
-                        if (savedSettings) {
-                            try {
-                                const parsed = JSON.parse(savedSettings);
-                                if (parsed.identity?.slug) slug = parsed.identity.slug;
-                            } catch(e){}
-                        }
-                        window.open(`${origin}/shop/${slug}`, '_blank');
-                      }}
-                      className="mt-4 group/conic relative w-full p-[1.5px] overflow-hidden rounded-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(0,242,255,0.2)]"
-                  >
-                      <div className="absolute inset-[-200%] bg-[conic-gradient(from_0deg,#00F2FF_0deg,#004d4d_90deg,#9333EA_180deg,#004d4d_270deg,#00F2FF_360deg)] animate-[spin_4s_linear_infinite] opacity-100 group-hover/conic:animate-[spin_2s_linear_infinite]" />
-                      <div className={`relative flex items-center justify-center w-full py-4 px-6 backdrop-blur-2xl rounded-[calc(1rem-1.5px)] transition-all duration-500 ${theme === 'dark' ? 'bg-[#001a1a]/90 group-hover/conic:bg-[#001a1a]' : 'bg-white/80 group-hover/conic:bg-white/95'}`}>
-                          <span className={`relative z-10 text-[10px] font-black tracking-[0.1em] flex items-center gap-2 transition-colors ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
-                              <Eye size={14} className="opacity-80" /> Ver tienda online
-                          </span>
-                      </div>
-                  </button>
-              </div>
-          </div>
-          <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar">
-                {/* SECCIÓN OPERACIÓN */}
-                <div>
-                    <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">
-                        {(planNameNormalized === 'basico' || planNameNormalized === 'free') ? 'Operación' : planNameNormalized === 'pro' ? 'Operación Plus' : 'Operación Maestro'}
-                    </p>
-                    <div className="space-y-1">
-                        <MenuItem href="/dashboard" label={<><LayoutDashboard size={16} className="mr-2" /> Inicio</>} id="m_inicio" />
-                        <MenuItem href="/dashboard/invoicing" label={<><FileText size={16} className="mr-2" /> Facturación</>} id="m_facturacion" />
-                        <MenuItem href="/dashboard/orders" label={<><Package size={16} className="mr-2" /> Pedidos Web</>} id="m_pedidos" />
-                        
-                        {/* GESTIÓN DE PRODUCTOS DINÁMICA */}
-                        {allowedModules.includes('productos') && (
-                            <div className="w-full">
-                                { (planNameNormalized === 'basico' || planNameNormalized === 'free') ? (
-                                    <MenuItem href="/dashboard/products" label={<><Store size={16} className="mr-2" /> Productos</>} id="m_productos" />
-                                ) : (
-                                    <div className="space-y-1">
-                                        <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
-                                            <span className="flex items-center gap-2 text-sm font-medium"><Store size={16} /> Productos</span>
-                                            <ChevronDown size={14} className={`transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} />
-                                        </button>
-                                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                            <div className="space-y-1">
-                                                <MenuItem href="/dashboard/products" label="Todos los productos" id="s_products_all" isSub />
-                                                <MenuItem href="/dashboard/inventory" label="Inventario Pro" id="s_inventory" isSub />
-                                                <MenuItem href="/dashboard/catalogs" label="Catálogos WhatsApp" id="s_catalogs" isSub />
-                                                <MenuItem href="/dashboard/products/separados" label="Separados (IA)" id="s_separados" isSub />
-                                                <MenuItem href="/dashboard/products/cotizaciones" label="Cotizaciones" id="s_cotizaciones" isSub />
-                                                <MenuItem href="/dashboard/products/bodegas" label="Bodegas & Stock" id="s_bodegas" isSub />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        <MenuItem href="/dashboard/chats" label={<><MessageSquare size={16} className="mr-2" /> Mensajes Web</>} id="m_mensajes" />
-                        <MenuItem href="/dashboard/shipping" label={<><Truck size={16} className="mr-2" /> Envíos</>} id="m_envios" />
-                        <MenuItem href="/dashboard/customers" label={<><Users size={16} className="mr-2" /> Clientes</>} id="m_clientes" />
-                        <MenuItem href="/dashboard/returns" label={<><ShieldCheck size={16} className="mr-2" /> Garantías</>} id="m_garantias" />
-                    </div>
-                </div>
-
-                {/* SECCIÓN CRECIMIENTO */}
-                {hasVisibleModules(['m_web_analytics', 'm_marketing', 'm_loyalty', 'm_discounts']) && (
-                    <div>
-                        <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Crecimiento</p>
-                        <div className="space-y-1">
-                            <MenuItem href="/dashboard/web-analytics" label={<><BarChart3 size={16} className="mr-2" /> ROI & Analytics</>} id="m_web_analytics" />
-                            <MenuItem href="/dashboard/marketing" label={<><TrendingUp size={16} className="mr-2" /> Marketing</>} id="m_marketing" />
-                            <MenuItem href="/dashboard/loyalty" label={<><Gem size={16} className="mr-2" /> Club de Puntos</>} id="m_loyalty" />
-                            <MenuItem href="/dashboard/discounts" label={<><Tag size={16} className="mr-2" /> Descuentos</>} id="m_discounts" />
-                        </div>
-                    </div>
-                )}
-
-                {/* SECCIÓN INTELIGENCIA */}
-                {hasVisibleModules(['m_automations', 'm_ai_assistants', 'm_reports']) && (
-                    <div>
-                        <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Inteligencia</p>
-                        <div className="space-y-1">
-                            <MenuItem href="/dashboard/automations" label={<><Settings size={16} className="mr-2" /> Automatización</>} id="m_automations" />
-                            <MenuItem href="/dashboard/ai-assistants" label={<><Bot size={16} className="mr-2" /> Asistentes AI</>} id="m_ai_assistants" />
-                            <MenuItem href="/dashboard/multiventa" label={<><Globe size={16} className="mr-2" /> Multiventa Hub</>} id="m_multiventa" />
-                            
-                            {/* INFORMES AVANZADOS */}
-                            {allowedModules.includes('reports') && (
-                                <div className="mt-1">
-                                    <button onClick={() => setReportsOpen(!reportsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/reports')}`}>
-                                        <span className="flex items-center gap-2 text-sm font-bold"><BarChart3 size={16} /> Informes Pro</span>
-                                        <ChevronDown size={14} className={`transition-transform duration-200 ${reportsOpen ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${reportsOpen ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                        <div className="space-y-1">
-                                            <MenuItem href="/dashboard/reports" label="Análisis General" id="s_reports_gen" isSub />
-                                            <MenuItem href="/dashboard/reports?tab=nomina" label="Gestión de Nómina" id="s_reports_payroll" isSub />
-                                            <MenuItem href="/dashboard/reports/purchase-orders" label="Órdenes de Compra" id="s_purchase_orders" isSub />
-                                            <MenuItem href="/dashboard/reports/sucursales" label="Sucursales" id="s_sucursales" isSub />
-                                            <MenuItem href="/dashboard/reports/vendedores" label="Vendedores" id="s_vendedores" isSub />
-                                            <MenuItem href="/dashboard/reports/cuentas" label="Cuentas y Cartera" id="s_cuentas" isSub />
-                                            <MenuItem href="/dashboard/reports/gastos" label="Control de Gastos" id="s_gastos" isSub />
-                                            <MenuItem href="/dashboard/reports/comisiones" label="Liquidación 0.5%" id="s_comisiones" isSub />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* GESTIÓN DE CUENTA */}
-                <div>
-                    <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Gestión</p>
-                    <div className="space-y-1">
-                        <MenuItem href="/dashboard/settings/general" label={<><Settings size={16} className="mr-2" /> Perfil de Tienda</>} id="s_settings_general" />
-                        <MenuItem href="/dashboard/settings/users" label={<><Users size={16} className="mr-2" /> Equipo Staff</>} id="s_settings_users" />
-                    </div>
-                </div>
-          </nav>
-      </>
-    );
+  const MenuItem = ({ href, label, id }: { href: string, label: any, id: string }) => {
+      const moduleKey = id.replace('m_', '');
+      if (!allowedModules.includes(moduleKey) && !isGlobalStaff) return null;
+      return (
+        <Link href={href} className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${getLinkStyles(href)}`}>
+            {label}
+        </Link>
+      );
   };
 
   return (
-    <div className={`h-screen w-full flex overflow-hidden transition-colors duration-500 ${theme === 'dark' ? 'bg-[#001212]' : 'bg-[#FAFAFA]'}`}>
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: ${theme === 'dark' ? 'rgba(0, 242, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: ${theme === 'dark' ? 'rgba(0, 242, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}; }
-      `}</style>
-      
+    <div className={`h-screen w-full flex overflow-hidden ${theme === 'dark' ? 'bg-[#001212]' : 'bg-[#FAFAFA]'}`}>
       <motion.div 
         animate={{ width: isSidebarCollapsed ? 80 : 256 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className={`relative group m-4 p-[2px] rounded-[2.5rem] overflow-hidden isolate flex-shrink-0 shadow-2xl transition-all duration-500 ${theme === 'dark' ? 'shadow-black/40 border border-white/5' : 'shadow-[0_20px_50px_rgba(0,77,77,0.05)]'}`}
+        className="relative m-4 p-[2px] rounded-[2.5rem] overflow-hidden flex-shrink-0 shadow-2xl bg-white/90"
       >
-        <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden -z-10">
-          <motion.div 
-            animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-            className="absolute top-1/2 left-1/2 w-[300%] aspect-square"
-            style={{
-              background: theme === 'dark' 
-                ? `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #002626 360deg)`
-                : `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)`,
-              x: "-50%",
-              y: "-50%",
-              willChange: 'transform'
-            }}
-          />
-          <div className={`absolute inset-[1px] rounded-[2.45rem] backdrop-blur-3xl transition-colors duration-500 ${theme === 'dark' ? 'bg-[#001a1a]/90' : 'bg-white/90'}`} />
-        </div>
-        
-        <aside className={`w-full h-full flex flex-col overflow-y-auto custom-scrollbar z-0 transition-all duration-500 ${theme === 'dark' ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-white/30 text-gray-600'}`}>
-          <div className={`${isSidebarCollapsed ? 'hidden' : 'block'}`}>
-            <div className="relative">
-                <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="absolute top-8 right-3 z-50 flex items-center justify-center text-gray-300 hover:text-[#004d4d] transition-all active:scale-90 group/btn">
-                    <ChevronDown className="rotate-90 transition-transform group-hover/btn:scale-110" size={20}/>
-                </button>
-                {renderSidebar()}
-            </div>
+        <aside className="w-full h-full flex flex-col p-4 overflow-y-auto">
+          <div className="mb-8 text-center">
+            <span className="text-xl font-black italic text-[#004d4d]">{companyName}</span>
           </div>
-          {isSidebarCollapsed && (
-            <div className="flex-1 flex flex-col items-center py-6 space-y-8 overflow-y-auto no-scrollbar relative">
-                <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="flex items-center justify-center text-gray-300 hover:text-[#004d4d] transition-all active:scale-90 mb-4 group/btn">
-                    <ChevronDown className="-rotate-90 transition-transform group-hover/btn:scale-110" size={24}/>
-                </button>
-                <div className="space-y-4 w-full px-2">
-                    <MenuItem href="/dashboard" label={<LayoutDashboard size={20} />} id="m_inicio" />
-                    <MenuItem href="/dashboard/invoicing" label={<FileText size={20} />} id="m_facturacion" />
-                    <MenuItem href="/dashboard/orders" label={<Package size={20} />} id="m_pedidos" />
-                    <MenuItem href="/dashboard/products" label={<Store size={20} />} id="m_productos" />
-                    <MenuItem href="/dashboard/chats" label={<MessageSquare size={20} />} id="m_mensajes" />
-                    <MenuItem href="/dashboard/shipping" label={<Truck size={20} />} id="m_envios" />
-                </div>
-            </div>
-          )}
-          <div className={`p-6 mt-auto flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} border-t border-white/10 bg-transparent relative`}>
-            <div onClick={() => {}} className={`${isSidebarCollapsed ? 'hidden' : 'block'} text-2xl font-black italic tracking-tighter cursor-pointer w-fit relative group/logo transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-black'}`}>
-              <span>BAY</span><InteractiveUP />
-            </div>
-          </div>
+          <nav className="space-y-2">
+            <MenuItem href="/dashboard" label={<><LayoutDashboard size={18} /> Inicio</>} id="m_inicio" />
+            <MenuItem href="/dashboard/products" label={<><Store size={18} /> Productos</>} id="m_productos" />
+            <MenuItem href="/dashboard/orders" label={<><Package size={18} /> Pedidos</>} id="m_pedidos" />
+            <MenuItem href="/dashboard/settings/general" label={<><Settings size={18} /> Perfil</>} id="m_settings" />
+          </nav>
+          <button onClick={logout} className="mt-auto flex items-center gap-2 p-4 text-red-500 font-bold hover:bg-red-50 rounded-2xl">
+            Cerrar Sesión
+          </button>
         </aside>
       </motion.div>
 
-      <div className="flex-1 flex flex-col min-w-0 relative">
-        <DashboardHeader pathname={pathname} userEmail={userEmail} userRole={userRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
-        <div className={`absolute inset-0 -z-10 transition-all duration-500 ${theme === 'dark' ? 'opacity-20' : 'opacity-5'}`}>
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
-        </div>
-        <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar bg-transparent relative scroll-smooth">
-            <div className="pt-4">{children}</div>
-        </main>
-        
-        {(planNameNormalized === 'empresa' || isGlobalStaff) && (
-          <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />
-        )}
-
-        <UserSettingsModal 
-          isOpen={isUserSettingsOpen} 
-          onClose={() => setIsUserSettingsOpen(false)} 
-        />
+      <div className="flex-1 flex flex-col min-w-0 relative overflow-hidden">
+        <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
+        <main className="flex-1 overflow-y-auto p-8">{children}</main>
       </div>
     </div>
   );

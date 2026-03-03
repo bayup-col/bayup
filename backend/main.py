@@ -14,12 +14,10 @@ import models
 import crud
 import security
 
-# --- MANTENIMIENTO DE EMERGENCIA ---
 def repair_db():
     db = SessionLocal()
     try:
         models.Base.metadata.create_all(bind=engine)
-        # Aseguramos el usuario por si acaso se borró
         plan = db.query(models.Plan).first()
         if not plan:
             plan = models.Plan(id=uuid.uuid4(), name="Básico", modules=["inicio", "productos", "pedidos", "settings"], is_default=True)
@@ -41,26 +39,35 @@ async def lifespan(app: FastAPI):
     repair_db()
     yield
 
-app = FastAPI(title="Bayup Rescue Mode", lifespan=lifespan)
+app = FastAPI(title="Bayup API Production", lifespan=lifespan)
 
-# --- CORS TOTAL (SIN RESTRICCIONES PARA RESCATE) ---
+# --- CONFIGURACION CORS SEGURA (DOMINIOS EXPLICITOS) ---
+origins = [
+    "https://www.bayup.com.co",
+    "https://bayup.com.co",
+    "https://bayup-interactive.vercel.app",
+    "http://localhost:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
+    allow_origin_regex="https://.*\\.bayup\\.com\\.co|https://.*\\.vercel\\.app",
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Content-Type", "Authorization", "Accept"],
 )
 
-# --- MANEJADOR DE ERRORES GLOBAL (FUERZA CORS EN ERRORES) ---
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    print(f"FALLO CRITICO: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Error Interno", "message": str(exc)},
-        headers={"Access-Control-Allow-Origin": "*"}
-    )
+    print(f"ERROR INTERNO: {exc}")
+    # Garantizamos que incluso los errores devuelvan cabeceras CORS
+    origin = request.headers.get("origin")
+    response = JSONResponse(status_code=500, content={"detail": str(exc)})
+    if origin in origins or (origin and "bayup.com.co" in origin):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 @app.post("/auth/login")
 async def login(request: Request, db: Session = Depends(get_db)):
@@ -86,7 +93,6 @@ async def login(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/auth/me")
 def me(db: Session = Depends(get_db), token: str = Depends(security.oauth2_scheme)):
-    # Version ultra-simple de /me para evitar caidas
     email = security.decode_token(token)
     user = crud.get_user_by_email(db, email=email)
     if not user: raise HTTPException(status_code=404)
@@ -95,6 +101,7 @@ def me(db: Session = Depends(get_db), token: str = Depends(security.oauth2_schem
         "plan": {"name": user.plan.name if user.plan else "Básico", "modules": user.plan.modules if user.plan else []}
     }
 
+# Endpoints de Dashboard basicos
 @app.get("/products")
 def p(): return []
 @app.get("/orders")
