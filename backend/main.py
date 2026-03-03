@@ -20,7 +20,6 @@ import models
 import crud
 import schemas
 import security
-import email_service
 
 # --- REPARACIÓN Y SEMBRADO ---
 def init_db_emergency():
@@ -51,9 +50,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
+# --- CONFIGURACIÓN DE SEGURIDAD (CORS) - DOMINIOS EXPLÍCITOS ---
+origins = [
+    "https://www.bayup.com.co",
+    "https://bayup.com.co",
+    "https://bayup-interactive.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:3001",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
+    allow_origin_regex="https://.*\\.bayup\\.com\\.co", # IMPORTANTE para subdominios
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
