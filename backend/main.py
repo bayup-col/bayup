@@ -64,7 +64,6 @@ import schemas
 import security
 import s3_service
 import payment_service
-import clerk_auth_service
 import ai_service
 import email_service
 
@@ -225,10 +224,20 @@ if not os.path.exists("uploads"):
     os.makedirs("uploads")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# --- CONFIGURACIÓN DE CONEXIÓN GLOBAL (CORS LIBRE) ---
+# --- CONFIGURACIÓN DE CONEXIÓN GLOBAL (CORS CONTROLADO) ---
+origins = [
+    "https://www.bayup.com.co",
+    "https://bayup.com.co",
+    "https://bayup-interactive.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -362,67 +371,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     except Exception as e:
         print(f"CRITICAL LOGIN ERROR: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
-
-@app.post("/auth/clerk-login")
-async def clerk_login(request: schemas.ClerkLoginRequest, db: Session = Depends(get_db)):
-    """
-    Endpoint para que el frontend envíe el token de Clerk.
-    Si el usuario no existe, se crea con el plan por defecto.
-    """
-    try:
-        # Verificar el token con Clerk
-        clerk_data = await clerk_auth_service.verify_clerk_token(request.clerk_token)
-        email = clerk_data.get("email").lower().strip()
-        full_name = clerk_data.get("full_name") or email.split('@')[0]
-        
-        # Buscar usuario en nuestra DB
-        user = crud.get_user_by_email(db, email=email)
-        
-        if not user:
-            # Autocreación de usuario si es la primera vez que entra con Clerk
-            default_plan = crud.get_default_plan(db)
-            
-            # Generar shop_slug automático
-            base_slug = email.split('@')[0].replace('.', '-').lower()
-            shop_slug = base_slug
-            counter = 1
-            while crud.get_user_by_slug(db, shop_slug):
-                shop_slug = f"{base_slug}-{counter}"
-                counter += 1
-
-            user = models.User(
-                id=uuid.uuid4(),
-                email=email,
-                full_name=full_name,
-                hashed_password="CLERK_AUTH_EXTERNAL", # No se usa para Clerk
-                role="admin_tienda",
-                status="Activo",
-                plan_id=default_plan.id if default_plan else None,
-                shop_slug=shop_slug,
-                permissions={}
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-
-        # Generar un token local de sesión de Bayup basado en la identidad de Clerk
-        access_token = security.create_access_token(data={"sub": user.email})
-        
-        return {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user": {
-                "email": user.email,
-                "full_name": user.full_name,
-                "role": user.role,
-                "shop_slug": user.shop_slug,
-                "plan": {
-                    "name": user.plan.name if user.plan else "Básico"
-                }
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Clerk authentication failed: {str(e)}")
 
 @app.post("/auth/forgot-password")
 def forgot_password(data: dict, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):

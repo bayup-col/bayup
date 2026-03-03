@@ -6,8 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
 
-import { UserButton } from "@clerk/nextjs";
-
 interface HeaderProps {
     pathname: string;
     userEmail: string | null;
@@ -155,29 +153,16 @@ export const DashboardHeader = ({
 
                         <div className="h-6 w-px bg-[#004d4d]/10"></div>
 
-                        <div className="flex items-center gap-3">
-                            {/* Botón de Usuario Manual (Bayup Style) */}
-                            <button 
-                                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                className="h-10 w-10 rounded-2xl bg-gradient-to-br from-white to-gray-100 shadow-lg border border-[#004d4d]/5 flex items-center justify-center text-[#004d4d] hover:scale-105 transition-all relative group"
-                            >
-                                <UserIcon size={18} />
-                                <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-emerald-500 border-2 border-white rounded-full"></div>
-                            </button>
-
-                            {/* Clerk UserButton (Oculto si no carga, pero presente para el futuro) */}
-                            <div className="hidden">
-                                <UserButton 
-                                    afterSignOutUrl="/login"
-                                    appearance={{
-                                        elements: {
-                                            userButtonAvatarBox: "h-10 w-10 rounded-2xl border border-white/10 shadow-lg",
-                                            userButtonTrigger: "focus:shadow-none focus:outline-none"
-                                        }
-                                    }}
-                                />
+                            <div className="flex items-center gap-3">
+                                {/* Botón de Usuario Manual (Bayup Style) */}
+                                <button 
+                                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                                    className="h-10 w-10 rounded-2xl bg-gradient-to-br from-white to-gray-100 shadow-lg border border-[#004d4d]/5 flex items-center justify-center text-[#004d4d] hover:scale-105 transition-all relative group"
+                                >
+                                    <UserIcon size={18} />
+                                    <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-emerald-500 border-2 border-white rounded-full"></div>
+                                </button>
                             </div>
-                        </div>
                     </div>
                 </div>
             </div>
