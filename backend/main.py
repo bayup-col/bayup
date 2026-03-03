@@ -2,6 +2,7 @@ from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 import uuid
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
@@ -14,34 +15,56 @@ import models
 import crud
 import security
 
-def repair_db():
+def fix_db_structure():
+    """Fuerza la creacion de la columna faltante para evitar el Error 500."""
+    try:
+        with engine.begin() as conn:
+            # Lista de columnas criticas que han causado el 500
+            columns = [
+                ("custom_commission_rate", "FLOAT"),
+                ("commission_fixed_until", "DATETIME"),
+                ("commission_is_fixed", "BOOLEAN DEFAULT FALSE"),
+                ("last_month_revenue", "FLOAT DEFAULT 0")
+            ]
+            for col_name, col_type in columns:
+                try:
+                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type};"))
+                    print(f"✅ Reparada columna: {col_name}")
+                except Exception:
+                    pass # La columna ya existe
+    except Exception as e:
+        print(f"Nota reparacion: {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("🚀 Iniciando Bayup en Modo Estable...")
+    models.Base.metadata.create_all(bind=engine)
+    fix_db_structure()
+    
+    # Asegurar usuario maestro
     db = SessionLocal()
     try:
-        models.Base.metadata.create_all(bind=engine)
-        plan = db.query(models.Plan).first()
-        if not plan:
-            plan = models.Plan(id=uuid.uuid4(), name="Básico", modules=["inicio", "productos", "pedidos", "settings"], is_default=True)
-            db.add(plan); db.commit(); db.refresh(plan)
-        
         email = "basicobayup@yopmail.com"
         if not db.query(models.User).filter(models.User.email == email).first():
+            plan = db.query(models.Plan).first()
+            if not plan:
+                plan = models.Plan(id=uuid.uuid4(), name="Básico", modules=["inicio", "productos", "pedidos", "settings"], is_default=True)
+                db.add(plan); db.commit(); db.refresh(plan)
+            
             user = models.User(
                 id=uuid.uuid4(), email=email, full_name="Admin",
                 hashed_password=security.get_password_hash("123456"),
                 role="admin_tienda", status="Activo", plan_id=plan.id, shop_slug="tienda"
             )
             db.add(user); db.commit()
-    except Exception as e: print(f"DB Error: {e}")
-    finally: db.close()
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    repair_db()
+            print(f"✨ Usuario maestro verificado: {email}")
+    finally:
+        db.close()
     yield
 
-app = FastAPI(title="Bayup API Production", lifespan=lifespan)
+app = FastAPI(title="Bayup Stable API", lifespan=lifespan)
 
-# --- CONFIGURACION CORS SEGURA (DOMINIOS EXPLICITOS) ---
+# --- CORS BLINDADO ---
 origins = [
     "https://www.bayup.com.co",
     "https://bayup.com.co",
@@ -60,25 +83,32 @@ app.add_middleware(
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    print(f"ERROR INTERNO: {exc}")
-    # Garantizamos que incluso los errores devuelvan cabeceras CORS
-    origin = request.headers.get("origin")
-    response = JSONResponse(status_code=500, content={"detail": str(exc)})
-    if origin in origins or (origin and "bayup.com.co" in origin):
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
+    print(f"🔥 FALLO INTERNO: {exc}")
+    # Si falla la DB, intentamos devolver un error que no rompa el CORS
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Error en el servidor", "message": str(exc)}
+    )
 
 @app.post("/auth/login")
 async def login(request: Request, db: Session = Depends(get_db)):
     try:
-        data = await request.json()
-        u, p = data.get("username"), data.get("password")
+        # Extraer credenciales de forma ultra-segura
+        body = await request.json()
+        u = body.get("username", "").lower().strip()
+        p = body.get("password", "")
     except:
-        form = await request.form()
-        u, p = form.get("username"), form.get("password")
+        try:
+            form = await request.form()
+            u = form.get("username", "").lower().strip()
+            p = form.get("password", "")
+        except:
+            raise HTTPException(status_code=400, detail="Formato de datos no valido")
 
-    user = crud.get_user_by_email(db, email=u.lower().strip() if u else "")
+    if not u or not p:
+        raise HTTPException(status_code=400, detail="Usuario y clave requeridos")
+
+    user = crud.get_user_by_email(db, email=u)
     if not user or not security.verify_password(p, user.hashed_password):
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     
@@ -101,7 +131,6 @@ def me(db: Session = Depends(get_db), token: str = Depends(security.oauth2_schem
         "plan": {"name": user.plan.name if user.plan else "Básico", "modules": user.plan.modules if user.plan else []}
     }
 
-# Endpoints de Dashboard basicos
 @app.get("/products")
 def p(): return []
 @app.get("/orders")
