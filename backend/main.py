@@ -50,7 +50,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bayup API", lifespan=lifespan)
 
-# --- CONFIGURACIÓN DE SEGURIDAD (CORS) - DOMINIOS EXPLÍCITOS ---
+# --- CONFIGURACION CORS DEFINITIVA (FORZANDO REDEPLOY) ---
 origins = [
     "https://www.bayup.com.co",
     "https://bayup.com.co",
