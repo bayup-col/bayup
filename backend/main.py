@@ -1,66 +1,46 @@
-from fastapi import Depends, FastAPI, HTTPException, status, Request
+from fastapi import Depends, FastAPI, HTTPException, status, Request, BackgroundTasks, File, UploadFile
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from sqlalchemy import text, inspect
+from sqlalchemy import func, text, inspect
+import datetime
+from datetime import timedelta
+from typing import List, Optional, Dict, Any
 import uuid
-import os
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 
 from database import SessionLocal, engine, get_db
 import models
 import crud
+import schemas
 import security
+import email_service
 
-# --- REPARACIÓN DE ESQUEMA (SIN BORRAR NADA) ---
-def final_repair():
-    print("🛠️ Asegurando esquema y modulos aprobados...")
+# --- REPARACIÓN DE ESQUEMA (ASEGURAR COLUMNAS) ---
+def ensure_schema():
     models.Base.metadata.create_all(bind=engine)
-    
-    # Inyectar columnas si faltan (para evitar Error 500)
-    required_cols = [("logo_url", "VARCHAR"), ("phone", "VARCHAR"), ("shop_slug", "VARCHAR"),
-                    ("custom_domain", "VARCHAR"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
-                    ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSON")]
-    
+    inspector = inspect(engine)
+    existing_columns = [c['name'] for c in inspector.get_columns('users')]
+    required = [("logo_url", "VARCHAR"), ("phone", "VARCHAR"), ("shop_slug", "VARCHAR"),
+                ("custom_domain", "VARCHAR"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE")]
     with engine.begin() as conn:
-        inspector = inspect(engine)
-        existing = [c['name'] for c in inspector.get_columns('users')]
-        for c_n, c_t in required_cols:
-            if c_n not in existing:
+        for c_n, c_t in required:
+            if c_n not in existing_columns:
                 try: conn.execute(text(f"ALTER TABLE users ADD COLUMN {c_n} {c_t};"))
                 except: pass
 
-    db = SessionLocal()
-    try:
-        # Restaurar Módulos Oficiales del Plan Básico
-        # 1. Inicio, 2. Facturacion, 3. Pedidos Web, 4. Productos, 5. Envios, 6. Mensajes Web, 7. Config Tienda
-        basic_modules = ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]
-        
-        plan = db.query(models.Plan).filter(models.Plan.name == "Básico").first()
-        if not plan:
-            plan = models.Plan(id=uuid.uuid4(), name="Básico", modules=basic_modules, is_default=True)
-            db.add(plan)
-        else:
-            plan.modules = basic_modules
-        db.commit()
-
-        # Asegurar que el usuario Sebastián Bayup tenga su nombre y plan
-        user = db.query(models.User).filter(models.User.email == "basicobayup@yopmail.com").first()
-        if user:
-            user.full_name = "Sebastián Bayup"
-            user.plan_id = plan.id
-            db.commit()
-    finally:
-        db.close()
-
-from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    final_repair()
+    ensure_schema()
     yield
 
-app = FastAPI(title="Bayup OS Final", lifespan=lifespan)
+app = FastAPI(title="Bayup OS - Connected", lifespan=lifespan)
 
 # --- CORS ---
 app.add_middleware(
@@ -71,17 +51,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- AUTH ---
 @app.post("/auth/login")
 async def login(request: Request, db: Session = Depends(get_db)):
     try:
-        try: data = await request.json()
+        try: body = await request.json()
         except: 
             form = await request.form()
-            data = {"username": form.get("username"), "password": form.get("password")}
+            body = {"username": form.get("username"), "password": form.get("password")}
         
-        u, p = data.get("username"), data.get("password")
+        u, p = body.get("username"), body.get("password")
         user = crud.get_user_by_email(db, email=u.lower().strip() if u else "")
-        
         if not user or not security.verify_password(p, user.hashed_password):
             raise HTTPException(status_code=401, detail="Credenciales incorrectas")
         
@@ -96,25 +76,37 @@ async def login(request: Request, db: Session = Depends(get_db)):
     except HTTPException as he: raise he
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/auth/me")
-def me(db: Session = Depends(get_db), token: str = Depends(security.oauth2_scheme)):
-    email = security.decode_token(token)
-    user = crud.get_user_by_email(db, email=email)
-    return {
-        "email": user.email, "full_name": user.full_name, "role": user.role, "shop_slug": user.shop_slug,
-        "plan": {"name": user.plan.name if user.plan else "Básico", "modules": user.plan.modules if user.plan else []}
-    }
+@app.get("/auth/me", response_model=schemas.User)
+def get_me(current_user: models.User = Depends(security.get_current_user)):
+    return current_user
 
-@app.get("/products")
-def p(): return []
-@app.get("/orders")
-def o(): return []
-@app.get("/notifications")
-def n(): return []
-@app.get("/admin/logs")
-def l(): return []
+# --- PRODUCTOS (CONECTADO A DB) ---
+@app.get("/products", response_model=List[schemas.Product])
+def read_products(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    # Filtrar por owner_id para que solo vea SUS productos
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.Product).filter(models.Product.owner_id == tenant_id).all()
+
+# --- PEDIDOS (CONECTADO A DB) ---
+@app.get("/orders", response_model=List[schemas.Order])
+def get_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).all()
+
+# --- FACTURACIÓN / VENTAS POS (CONECTADO A DB) ---
+@app.get("/invoices")
+def get_invoices(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.Sale).filter(models.Sale.tenant_id == tenant_id).all()
+
+# --- MENSAJES / CHATS (CONECTADO A DB) ---
+@app.get("/chats")
+def get_chats(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.ChatMessage).filter(models.ChatMessage.tenant_id == tenant_id).all()
+
 @app.get("/health")
-def h(): return {"status": "ok"}
+def health(): return {"status": "fully_connected"}
 
 if __name__ == "__main__":
     import uvicorn
