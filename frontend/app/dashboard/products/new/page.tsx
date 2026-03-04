@@ -372,23 +372,43 @@ export default function NewProductPage() {
                                             <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">No hay atributos configurados</p>
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            {variants.map((v, idx) => (
-                                                <div key={v.id || idx} className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-xl hover:shadow-cyan/5 transition-all group relative overflow-hidden">
-                                                    <div className="absolute top-0 right-0 p-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button onClick={() => setVariants(prev => prev.filter(item => item.id !== v.id))} className="h-8 w-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"><Trash2 size={14}/></button>
-                                                    </div>
-                                                    <div className="space-y-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="h-8 w-8 rounded-xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D] font-black text-[10px]">{idx + 1}</div>
-                                                            <h4 className="text-sm font-black text-[#004D4D] uppercase tracking-wider truncate">{v.name}</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            {Array.from(new Set(variants.map(v => v.name.split('/')[0].trim()))).map((masterName, mIdx) => {
+                                                const groupVariants = variants.filter(v => v.name.startsWith(masterName));
+                                                return (
+                                                    <div key={mIdx} className="p-10 bg-white rounded-[3.5rem] border border-gray-100 shadow-2xl shadow-gray-200/20 hover:shadow-cyan/5 transition-all group relative overflow-hidden flex flex-col">
+                                                        <div className="absolute top-0 right-0 p-8 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button onClick={() => setVariants(prev => prev.filter(v => !v.name.startsWith(masterName)))} className="h-10 w-10 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm"><Trash2 size={16}/></button>
                                                         </div>
-                                                        <div className="px-3 py-1.5 bg-gray-50 rounded-lg text-[10px] font-bold text-gray-600 border border-gray-100 inline-block">
-                                                            Stock: <span className="text-[#004D4D] font-black">{v.stock} uds</span>
+                                                        <div className="space-y-6">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="h-12 w-12 rounded-[1.2rem] bg-[#004D4D] flex items-center justify-center text-white font-black text-xs shadow-lg shadow-[#004D4D]/20">{mIdx + 1}</div>
+                                                                <h4 className="text-lg font-black text-[#004D4D] italic uppercase tracking-tighter truncate">{masterName}</h4>
+                                                            </div>
+                                                            <div className="space-y-4">
+                                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2">Especificaciones y Stock:</p>
+                                                                <div className="flex flex-wrap gap-3">
+                                                                    {groupVariants.map((gv, gIdx) => {
+                                                                        const detail = gv.name.includes('/') ? gv.name.split('/')[1].trim() : gv.name;
+                                                                        const hasColor = detail.includes(': #');
+                                                                        const colorHex = hasColor ? detail.split(': #')[1] : null;
+                                                                        const cleanDetail = hasColor ? detail.split(':')[0] : detail;
+
+                                                                        return (
+                                                                            <div key={gIdx} className="px-4 py-2 bg-gray-50 rounded-2xl text-[10px] font-bold text-gray-600 border border-gray-100 flex items-center gap-2 shadow-sm">
+                                                                                {hasColor && <div className="w-3 h-3 rounded-full border border-white shadow-sm" style={{ backgroundColor: `#${colorHex}` }} />}
+                                                                                <span>{cleanDetail}</span>
+                                                                                <span className="mx-1 opacity-20">|</span>
+                                                                                <span className="text-[#004D4D] font-black">{gv.stock} uds</span>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     )}
 
@@ -537,7 +557,19 @@ export default function NewProductPage() {
                             {variants.length > 0 && (
                                 <div className="space-y-4 pt-4 border-t border-gray-50">
                                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Variantes y Stock</p>
-                                    <div className="flex flex-wrap gap-2">{variants.map((v, i) => (<div key={i} className="px-3 py-1.5 bg-gray-50 rounded-lg border text-[10px] font-bold text-gray-600">{v.name}: {v.stock}</div>))}</div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {variants.map((v, i) => {
+                                            const hasColor = v.name.includes(': #');
+                                            const colorHex = hasColor ? v.name.split(': #')[1] : null;
+                                            const cleanName = hasColor ? v.name.split(':')[0] : v.name;
+                                            return (
+                                                <div key={i} className="px-3 py-1.5 bg-gray-50 rounded-lg border text-[10px] font-bold text-gray-600 flex items-center gap-2">
+                                                    {hasColor && <div className="w-2 h-2 rounded-full border border-white" style={{ backgroundColor: `#${colorHex}` }} />}
+                                                    {cleanName}: {v.stock}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
                             <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-50"><div className="space-y-2"><p className="text-[9px] font-black text-gray-300 uppercase">SKU Maestro</p><p className="text-sm font-black text-gray-900 uppercase tracking-widest">{formData.sku || 'PENDIENTE'}</p></div><div className="space-y-2 text-right"><p className="text-[9px] font-black text-gray-300 uppercase">Stock Total</p><p className="text-sm font-black text-gray-900 uppercase tracking-widest">{variants.reduce((acc, v) => acc + (v.stock || 0), 0)} UNIDADES</p></div></div>
