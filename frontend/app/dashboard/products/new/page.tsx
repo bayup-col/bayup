@@ -213,21 +213,24 @@ export default function NewProductPage() {
                         return (
                             <motion.div key="financial" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-10">
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                                    <div className="space-y-8">
+                                    <div className="space-y-10">
+                                        {/* TARJETA DE COSTOS - AHORA ARRIBA */}
                                         <section className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                            <div className="flex items-center gap-3"><DollarSign className="text-[#004D4D]" size={20}/><h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest">Gestión Financiera</h3></div>
-
-                                            <div className="space-y-8">
-                                                {/* COSTO UNITARIO PRIMERO */}
-                                                <div className="space-y-2">
-                                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Package size={12}/> Costo Unitario del Producto</label>
-                                                    <div className="relative">
-                                                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                                                        <input type="number" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" placeholder="0" />
-                                                    </div>
+                                            <div className="flex items-center gap-3"><Package className="text-[#004D4D]" size={20}/><h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest">Costos Base</h3></div>
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Costo Unitario del Producto</label>
+                                                <div className="relative">
+                                                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                                    <input type="number" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" placeholder="0" />
                                                 </div>
+                                            </div>
+                                        </section>
 
-                                                {/* PRECIO MAYORISTA SEGUNDO */}
+                                        {/* TARJETA DE PRECIOS - AHORA ABAJO */}
+                                        <section className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                                            <div className="flex items-center gap-3"><DollarSign className="text-[#004D4D]" size={20}/><h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest">Precios de Venta</h3></div>
+                                            <div className="space-y-6">
+                                                {/* PRECIO MAYORISTA PRIMERO (SEGÚN PETICIÓN) */}
                                                 <div className="space-y-2">
                                                     <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio Mayorista</label>
                                                     <div className="flex gap-4">
@@ -235,16 +238,14 @@ export default function NewProductPage() {
                                                             <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
                                                             <input type="number" value={formData.wholesale_price} onChange={e => setFormData({...formData, wholesale_price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" placeholder="0" />
                                                         </div>
-                                                        {formData.wholesale_price > 0 && (
-                                                            <div className="px-6 py-2 bg-gray-900 text-white rounded-2xl flex flex-col justify-center items-center min-w-[100px] border border-gray-800 shadow-xl">
-                                                                <span className="text-[12px] font-black">{calculateMargin(formData.wholesale_price)}%</span>
-                                                                <span className="text-[7px] font-bold text-cyan-400 uppercase tracking-widest">Utilidad</span>
-                                                            </div>
-                                                        )}
+                                                        <div className="px-5 py-2 bg-gray-900 text-white rounded-2xl flex flex-col justify-center items-center min-w-[90px] shadow-xl">
+                                                            <span className="text-[11px] font-black">{calculateMargin(formData.wholesale_price)}%</span>
+                                                            <span className="text-[6px] font-bold text-cyan-400 uppercase tracking-widest">Margen</span>
+                                                        </div>
                                                     </div>
                                                 </div>
 
-                                                {/* PRECIO RETAIL TERCERO */}
+                                                {/* PRECIO RETAIL SEGUNDO (SEGÚN PETICIÓN) */}
                                                 <div className="space-y-2">
                                                     <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio Retail (Público Final)</label>
                                                     <div className="flex gap-4">
@@ -252,19 +253,17 @@ export default function NewProductPage() {
                                                             <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
                                                             <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" placeholder="0" />
                                                         </div>
-                                                        {formData.price > 0 && (
-                                                            <div className="px-6 py-2 bg-gray-900 text-white rounded-2xl flex flex-col justify-center items-center min-w-[100px] border border-gray-800 shadow-xl">
-                                                                <span className="text-[12px] font-black">{calculateMargin(formData.price)}%</span>
-                                                                <span className="text-[7px] font-bold text-cyan-400 uppercase tracking-widest">Utilidad</span>
-                                                            </div>
-                                                        )}
+                                                        <div className="px-5 py-2 bg-gray-900 text-white rounded-2xl flex flex-col justify-center items-center min-w-[90px] shadow-xl">
+                                                            <span className="text-[11px] font-black">{calculateMargin(formData.price)}%</span>
+                                                            <span className="text-[6px] font-bold text-cyan-400 uppercase tracking-widest">Margen</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </section>
                                     </div>
 
-                                    <div className="space-y-8">
+                                    <div className="space-y-10">
                                         <section className="p-10 bg-gray-900 rounded-[3.5rem] text-white shadow-2xl space-y-8 relative overflow-hidden">
                                             <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12"><TrendingUp size={120} /></div>
                                             <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-3 text-cyan-400 relative z-10"><Zap size={18} /> Análisis de Utilidad Real</h3>
@@ -300,8 +299,7 @@ export default function NewProductPage() {
                                 </div>
                             </motion.div>
                         );
-                    })()}
-                    {activeTab === 'variants' && (
+                    })()}                    {activeTab === 'variants' && (
                         <motion.div key="variants" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10 pb-20">
                             <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
                                 <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><Layers size={18} /> Atributos Maestro</h3>
