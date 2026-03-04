@@ -383,6 +383,18 @@ def get_public_page(tenant_id: uuid.UUID, slug: str, db: Session = Depends(get_d
         raise HTTPException(status_code=404, detail="Página no encontrada")
     return page
 
+# --- MENSAJERÍA (WEB MESSAGES) ---
+
+@app.get("/admin/messages")
+def get_store_messages(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Lista los mensajes enviados por clientes a través de la tienda web."""
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    try:
+        return db.query(models.StoreMessage).filter(models.StoreMessage.tenant_id == tenant_id).order_by(models.StoreMessage.created_at.desc()).all()
+    except Exception as e:
+        print(f"Error en /admin/messages: {e}")
+        return []
+
 @app.get("/health")
 def health(): return {"status": "connected_and_persistent"}
 
