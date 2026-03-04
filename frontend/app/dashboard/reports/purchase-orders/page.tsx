@@ -417,7 +417,7 @@ export default function PurchaseOrdersPage() {
                                 <button onClick={() => setIsGuideOpen(false)} className="absolute top-10 right-10 text-gray-300 hover:text-rose-500 transition-all group"><X size={24} className="group-hover:rotate-90"/></button>
                                 <h2 className="text-4xl font-black italic uppercase tracking-tighter text-gray-900">{guideContent[activeGuideTab as keyof typeof guideContent]?.title}</h2>
                                 <div className="space-y-6">
-                                    <section><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Estrategia Supply</h4><p className="text-lg font-medium text-slate-600 italic leading-relaxed">"{guideContent[activeGuideTab as keyof typeof guideContent].how}"</p></section>
+                                    <section><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Estrategia Supply</h4><p className="text-lg font-medium text-slate-600 italic leading-relaxed">&quot;{guideContent[activeGuideTab as keyof typeof guideContent].how}&quot;</p></section>
                                     <div className="bg-amber-50 p-8 rounded-[2.5rem] border border-amber-100 flex gap-6 items-start">
                                         <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-amber-500 shadow-sm shrink-0"><Zap size={24}/></div>
                                         <div><p className="text-[10px] font-black text-amber-600 uppercase mb-1">Bayup Smart Tip</p><p className="text-sm font-bold text-amber-900 leading-relaxed">{guideContent[activeGuideTab as keyof typeof guideContent].tip}</p></div>

@@ -78,7 +78,7 @@ const CatalogsMetricModal = ({ isOpen, onClose, metric }: CatalogsMetricModalPro
                 <span className="text-sm font-black text-[#004D4D]">+12.5%</span>
               </div>
             </div>
-            <p className="text-[10px] font-medium text-slate-500 italic text-center">"Tu canal de WhatsApp aporta el 68% de la facturación histórica de este módulo."</p>
+            <p className="text-[10px] font-medium text-slate-500 italic text-center">&quot;Tu canal de WhatsApp aporta el 68% de la facturación histórica de este módulo.&quot;</p>
           </div>
         );
       case 'wholesale_clients':

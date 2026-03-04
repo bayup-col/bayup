@@ -40,6 +40,15 @@ class UserCreate(UserBase):
     permissions: Optional[Dict[str, bool]] = {}
     plan_id: Optional[uuid.UUID] = None
 
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    logo_url: Optional[str] = None
+    phone: Optional[str] = None
+    shop_slug: Optional[str] = None
+    bank_accounts: Optional[List[dict]] = None
+    social_links: Optional[dict] = None
+    whatsapp_lines: Optional[List[dict]] = None
+
 class User(UserBase):
     id: uuid.UUID
     role: str = "admin_tienda"

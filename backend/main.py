@@ -106,6 +106,61 @@ async def login(request: Request, db: Session = Depends(get_db)):
     except HTTPException as he: raise he
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
+from fastapi import Depends, FastAPI, HTTPException, status, Request, File, UploadFile
+import shutil
+
+# ... (mantener imports existentes)
+
+@app.put("/admin/update-profile")
+def update_profile(
+    profile_data: schemas.UserUpdate, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Actualiza la información corporativa de la tienda."""
+    try:
+        update_dict = profile_data.dict(exclude_unset=True)
+        for key, value in update_dict.items():
+            setattr(current_user, key, value)
+        
+        db.commit()
+        db.refresh(current_user)
+        return {"status": "success", "message": "Perfil actualizado correctamente"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al actualizar perfil: {str(e)}")
+
+@app.post("/admin/upload-image")
+async def upload_image(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Sube una imagen (logo/producto) al servidor."""
+    try:
+        # Crear carpeta de uploads si no existe
+        upload_dir = "uploads"
+        if not os.path.exists(upload_dir):
+            os.makedirs(upload_dir)
+            
+        file_extension = file.filename.split(".")[-1]
+        file_name = f"{uuid.uuid4()}.{file_extension}"
+        file_path = os.path.join(upload_dir, file_name)
+        
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # En producción real esto sería una URL de S3 o Cloudfront
+        # Por ahora devolvemos una URL relativa o absoluta según el host
+        base_url = os.getenv("API_URL", "http://localhost:8000")
+        return {"url": f"{base_url}/uploads/{file_name}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al subir imagen: {str(e)}")
+
+from fastapi.staticfiles import StaticFiles
+# Montar carpeta de uploads para servir imágenes estáticas
+if not os.path.exists("uploads"): os.makedirs("uploads")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 @app.get("/auth/me", response_model=schemas.User)
 def me(current_user: models.User = Depends(security.get_current_user)):
     return current_user

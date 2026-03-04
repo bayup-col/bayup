@@ -334,7 +334,7 @@ export default function InvoicingPage() {
                     { l: "MÍNIMO", v: `$ ${lowestTicket.toLocaleString()}`, icon: <ArrowDownRight size={10}/> },
                     { l: "RECOMPRA", v: "12%", icon: <Zap size={10}/> }
                 ], 
-                advice: "Para subir tu ticket promedio, intenta ofrecer 'combos' o productos complementarios en el momento del pago." 
+                advice: "Para subir tu ticket promedio, intenta ofrecer &apos;combos&apos; o productos complementarios en el momento del pago." 
             },
             { label: 'Flujo de caja', value: totalRevenue, icon: <Wallet size={24}/>, isCurrency: true, color: "text-[#004D4D]", bg: "bg-[#004D4D]/5", trend: "Balance", 
                 details: [

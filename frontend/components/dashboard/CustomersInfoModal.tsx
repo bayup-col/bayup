@@ -206,7 +206,7 @@ export default function CustomersInfoModal({ isOpen, onClose }: CustomersInfoMod
                                     <Zap size={14}/> Visión de Valor
                                 </h4>
                                 <p className="text-base font-medium leading-relaxed opacity-90 italic relative z-10">
-                                    "{guideContent[activeGuideTab].strategy}"
+                                    &quot;{guideContent[activeGuideTab].strategy}&quot;
                                 </p>
                                 <div className="mt-10 pt-10 border-t border-white/10 relative z-10">
                                     <button className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[#00f2ff] hover:gap-5 transition-all">

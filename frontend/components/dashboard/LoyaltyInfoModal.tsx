@@ -126,7 +126,7 @@ export default function LoyaltyInfoModal({ isOpen, onClose }: LoyaltyInfoModalPr
                             </h4>
                             <div className="p-6 bg-cyan-50/30 border border-cyan-100 rounded-[2rem]">
                                 <p className="text-xs font-medium text-cyan-900 leading-relaxed italic">
-                                    "{guideContent[activeGuideTab].example}"
+                                    &quot;{guideContent[activeGuideTab].example}&quot;
                                 </p>
                             </div>
                         </section>

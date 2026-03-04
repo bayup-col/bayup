@@ -150,7 +150,7 @@ export default function ComercialModule() {
                         <div className="flex-1">
                             <h4 className="text-lg font-black text-gray-900 tracking-tight">Estrategia de Afiliados</h4>
                             <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-                                Los afiliados están moviendo el **38.3% del volumen total**. Recomendamos crear un nivel "Black" para los que superen el $1M en GMV referido.
+                                Los afiliados están moviendo el **38.3% del volumen total**. Recomendamos crear un nivel &quot;Black&quot; para los que superen el $1M en GMV referido.
                             </p>
                         </div>
                         <button className="px-6 py-3 bg-purple-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-700 transition-all shadow-lg shadow-purple-100">Optimizar Incentivos</button>

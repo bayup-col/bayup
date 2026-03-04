@@ -76,7 +76,7 @@ export default function AutomationsMetricModal({ isOpen, onClose, metric }: Auto
                     </h4>
                     <div className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 shadow-inner">
                         <p className="text-sm font-medium text-gray-600 leading-relaxed italic">
-                            "Este indicador refleja la salud de tu arquitectura neural. Un valor de {metric.value} indica que el sistema está operando al 94% de su capacidad teórica, permitiendo una escalabilidad sin fricciones."
+                            &quot;Este indicador refleja la salud de tu arquitectura neural. Un valor de {metric.value} indica que el sistema está operando al 94% de su capacidad teórica, permitiendo una escalabilidad sin fricciones.&quot;
                         </p>
                     </div>
                 </section>

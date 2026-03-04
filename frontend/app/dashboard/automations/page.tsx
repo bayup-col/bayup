@@ -201,7 +201,7 @@ export default function AutomationsPage() {
 
                 <div>
                     <h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase group-hover:text-[#004d4d] transition-colors">{auto.name}</h3>
-                    <p className="text-sm font-medium text-gray-500 mt-4 leading-relaxed italic line-clamp-2">"{auto.description}"</p>
+                    <p className="text-sm font-medium text-gray-500 mt-4 leading-relaxed italic line-clamp-2">&quot;{auto.description}&quot;</p>
                 </div>
 
                 <div className="flex items-center gap-4 bg-gray-50 p-6 rounded-[2.5rem] border border-gray-100 relative overflow-hidden">
@@ -307,9 +307,9 @@ export default function AutomationsPage() {
                             <div className="bg-gray-900 p-10 rounded-[3.5rem] text-white relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-8 opacity-5"><Bot size={150} /></div>
                                 <p className="text-base font-medium italic opacity-90 leading-relaxed relative z-10">
-                                    "{auto.status === 'active' 
+                                    &quot;{auto.status === 'active' 
                                         ? `El flujo '${auto.name}' está operando bajo el protocolo de máxima eficiencia. He analizado las últimas ejecuciones y el tiempo de respuesta es óptimo (< 200ms). No se requieren ajustes tácticos.` 
-                                        : `Este flujo neural está pausado. Los eventos disparadores se están acumulando en la cola. Sugiero reanudar para evitar cuellos de botella en la operativa.`}"
+                                        : `Este flujo neural está pausado. Los eventos disparadores se están acumulando en la cola. Sugiero reanudar para evitar cuellos de botella en la operativa.`}&quot;
                                 </p>
                             </div>
                         </div>
@@ -357,7 +357,7 @@ export default function AutomationsPage() {
                     </div>
                     <h3 className="text-2xl font-black text-gray-900 italic uppercase tracking-tight">¿Confirmar Eliminación?</h3>
                     <p className="text-sm font-medium text-gray-500 mt-4 leading-relaxed italic">
-                        Estás a punto de desmantelar el flujo neural <span className="font-bold text-gray-900">"{selectedAutomationDetail.name}"</span>. Esta acción es irreversible y detendrá toda automatización vinculada.
+                        Estás a punto de desmantelar el flujo neural <span className="font-bold text-gray-900">&quot;{selectedAutomationDetail.name}&quot;</span>. Esta acción es irreversible y detendrá toda automatización vinculada.
                     </p>
                     
                     <div className="grid grid-cols-1 gap-3 mt-10">
@@ -464,7 +464,7 @@ export default function AutomationsPage() {
                                     <div className="flex-1 space-y-6">
                                         <span className="px-4 py-1.5 bg-[#00f2ff]/10 text-[#00f2ff] rounded-full text-[10px] font-black uppercase tracking-[0.4em] border border-[#00f2ff]/20">Smart Templates</span>
                                         <h3 className="text-4xl font-black uppercase italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-[#00f2ff]">Recetas de Élite para tu Negocio</h3>
-                                        <p className="text-gray-300 text-lg font-medium italic opacity-80">"No reinventes la rueda. Activa flujos prediseñados por expertos en e-commerce y IA."</p>
+                                        <p className="text-gray-300 text-lg font-medium italic opacity-80">&quot;No reinventes la rueda. Activa flujos prediseñados por expertos en e-commerce y IA.&quot;</p>
                                     </div>
                                 </div>
                             </div>
@@ -515,7 +515,7 @@ export default function AutomationsPage() {
                     <div className="flex-1 relative z-10 space-y-4">
                         <h3 className="text-3xl font-black tracking-tight italic uppercase">Seguridad en la Ejecución</h3>
                         <p className="text-gray-400 text-lg font-medium leading-relaxed italic">
-                            "Cada flujo ejecutado por la Terminal Neural es auditado en tiempo real. Bayt garantiza que ninguna acción automatizada comprometa la integridad de tus datos financieros."
+                            &quot;Cada flujo ejecutado por la Terminal Neural es auditado en tiempo real. Bayt garantiza que ninguna acción automatizada comprometa la integridad de tus datos financieros.&quot;
                         </p>
                     </div>
                 </div>
@@ -629,7 +629,7 @@ export default function AutomationsPage() {
                                                         <div className="h-14 w-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:text-gray-900 transition-colors"><Zap size={28}/></div>
                                                         <h5 className="text-xl font-black text-gray-900 uppercase italic">Lógica Estática</h5>
                                                     </div>
-                                                    <p className="text-sm text-gray-500 font-medium leading-relaxed italic">"Ejecuta la acción siempre de la misma forma, sin variaciones basadas en datos externos."</p>
+                                                    <p className="text-sm text-gray-500 font-medium leading-relaxed italic">&quot;Ejecuta la acción siempre de la misma forma, sin variaciones basadas en datos externos.&quot;</p>
                                                 </button>
 
                                                 <button 
@@ -644,7 +644,7 @@ export default function AutomationsPage() {
                                                             <span className="px-2 py-0.5 bg-[#00f2ff]/10 text-[#00f2ff] rounded text-[8px] font-black uppercase">Recomendado</span>
                                                         </div>
                                                     </div>
-                                                    <p className="text-sm text-gray-500 font-medium leading-relaxed italic relative z-10">"La IA analiza el contexto (historial del cliente, hora, precios) y personaliza la acción para maximizar el éxito."</p>
+                                                    <p className="text-sm text-gray-500 font-medium leading-relaxed italic relative z-10">&quot;La IA analiza el contexto (historial del cliente, hora, precios) y personaliza la acción para maximizar el éxito.&quot;</p>
                                                 </button>
                                             </div>
                                         </motion.div>
@@ -689,7 +689,7 @@ export default function AutomationsPage() {
                                                         </div>
                                                         <h5 className="text-3xl font-black italic uppercase italic">Protocolo Listo para Despegue</h5>
                                                         <p className="text-gray-400 text-lg font-medium leading-relaxed italic italic">
-                                                            "He analizado tu flujo: **{newFlow.trigger}** + **{newFlow.logic === 'bayt_ai' ? 'Bayt Engine' : 'Lógica Base'}** —&gt; **{newFlow.action}**. Estimo un ahorro operativo de **12 horas semanales**."
+                                                            &quot;He analizado tu flujo: **{newFlow.trigger}** + **{newFlow.logic === 'bayt_ai' ? 'Bayt Engine' : 'Lógica Base'}** —&gt; **{newFlow.action}**. Estimo un ahorro operativo de **12 horas semanales**.&quot;
                                                         </p>
                                                     </div>
                                                     <button 

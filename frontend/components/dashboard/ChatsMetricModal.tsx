@@ -86,7 +86,7 @@ export default function ChatsMetricModal({ isOpen, onClose, metric }: ChatsMetri
               <div className="absolute top-0 right-0 p-6 opacity-10"><Bot size={100} /></div>
               <h4 className="text-[#00f2ff] text-[10px] font-black uppercase tracking-widest mb-4">Análisis de Bayt AI</h4>
               <p className="text-lg font-medium italic opacity-90 leading-relaxed">
-                "{getMetricInsight(metric.label)}"
+                &quot;{getMetricInsight(metric.label)}&quot;
               </p>
             </div>
           </div>

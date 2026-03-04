@@ -598,7 +598,7 @@ export default function GeneralSettings() {
                                 </div>
                                 <div className="p-6 bg-[#004d4d]/5 rounded-[2.5rem] border border-[#004d4d]/10">
                                     <div className="flex items-center gap-3 mb-2"><Zap size={14} className="text-[#004d4d]"/> <span className="text-[9px] font-black tracking-widest uppercase text-[#004d4d]">Propósito</span></div>
-                                    <p className="text-[10px] font-medium text-gray-500 leading-relaxed italic">"Tu perfil no es solo datos, es la base de tu confianza digital para cerrar ventas."</p>
+                                    <p className="text-[10px] font-medium text-gray-500 leading-relaxed italic">&quot;Tu perfil no es solo datos, es la base de tu confianza digital para cerrar ventas.&quot;</p>
                                 </div>
                             </div>
 
@@ -628,7 +628,7 @@ export default function GeneralSettings() {
                                             <div className="h-20 w-20 bg-gradient-to-br from-[#00f2ff] to-[#004d4d] rounded-[2rem] flex items-center justify-center shadow-2xl shrink-0"><Bot size={40} className="text-white animate-pulse" /></div>
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-3"><span className="h-1.5 w-1.5 rounded-full bg-[#00f2ff] shadow-[0_0_10px_#00f2ff] animate-pulse"></span><span className="text-[10px] font-black tracking-widest uppercase text-[#00f2ff]">Estrategia de Bayt AI</span></div>
-                                                <p className="text-lg font-bold italic leading-tight text-white/90">"{guideSteps[activeGuideStep].baytTip}"</p>
+                                                <p className="text-lg font-bold italic leading-tight text-white/90">&quot;{guideSteps[activeGuideStep].baytTip}&quot;</p>
                                             </div>
                                         </div>
                                     </div>

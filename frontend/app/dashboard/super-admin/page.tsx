@@ -225,7 +225,7 @@ export default function SuperAdminDashboard() {
                         </div>
                     </div>
                     <div className="relative z-10 pt-10">
-                        <p className="text-[9px] font-bold text-cyan/60 uppercase tracking-widest italic">"Cali lidera la penetración de mercado con el 40% del flujo total."</p>
+                        <p className="text-[9px] font-bold text-cyan/60 uppercase tracking-widest italic">&quot;Cali lidera la penetración de mercado con el 40% del flujo total.&quot;</p>
                     </div>
                 </div>
             </div>

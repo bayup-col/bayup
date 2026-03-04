@@ -106,7 +106,7 @@ export default function AffiliateMaterial() {
                             >
                                 <Copy size={14} />
                             </button>
-                            "¿Quieres llevar tu e-commerce al siguiente nivel? Conoce Bayup, la plataforma que integra IA y logística avanzada en un solo lugar. Regístrate hoy y obtén un 15% de descuento en tu primer mes. 🚀 [Tu Link de Afiliado]"
+                            &quot;¿Quieres llevar tu e-commerce al siguiente nivel? Conoce Bayup, la plataforma que integra IA y logística avanzada en un solo lugar. Regístrate hoy y obtén un 15% de descuento en tu primer mes. 🚀 [Tu Link de Afiliado]&quot;
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -165,7 +165,7 @@ export default function AffiliateMaterial() {
                         </div>
                         <h5 className="text-[13px] font-black uppercase italic relative z-10">Consejo de Partner</h5>
                         <p className="mt-4 text-[11px] font-medium italic text-emerald-50/80 leading-relaxed relative z-10">
-                            "Las empresas que ven un video demo antes de registrarse tienen una tasa de retención un 40% mayor. Usa nuestros videos tutoriales."
+                            &quot;Las empresas que ven un video demo antes de registrarse tienen una tasa de retención un 40% mayor. Usa nuestros videos tutoriales.&quot;
                         </p>
                         <button 
                             onClick={() => handleUpcoming('Tutoriales')}

@@ -156,23 +156,41 @@ function InteractiveStars() {
 }
 
 function CometSystem() {
-  const comets = Array.from({ length: 5 }).map(() => useRef<THREE.Mesh>(null));
-  const [states, setStates] = useState(comets.map(() => ({ active: false })));
+  const cometRefs = [
+    useRef<THREE.Mesh>(null),
+    useRef<THREE.Mesh>(null),
+    useRef<THREE.Mesh>(null),
+    useRef<THREE.Mesh>(null),
+    useRef<THREE.Mesh>(null)
+  ];
+  const [states, setStates] = useState([
+    { active: false },
+    { active: false },
+    { active: false },
+    { active: false },
+    { active: false }
+  ]);
+  
   useFrame((state) => {
-    comets.forEach((ref, i) => {
+    cometRefs.forEach((ref, i) => {
       if (!ref.current) return;
       if (!states[i].active && Math.random() < 0.015) {
-        states[i].active = true;
+        const newStates = [...states];
+        newStates[i].active = true;
         ref.current.position.set(-35 - (Math.random() * 15), (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 20);
-        setStates([...states]);
+        setStates(newStates);
       }
       if (states[i].active) {
         ref.current.position.x += 1.4; ref.current.position.y -= 0.25;
-        if (ref.current.position.x > 35) { states[i].active = false; setStates([...states]); }
+        if (ref.current.position.x > 35) { 
+          const newStates = [...states];
+          newStates[i].active = false; 
+          setStates(newStates); 
+        }
       }
     });
   });
-  return <>{comets.map((ref, i) => (<mesh key={i} ref={ref} visible={states[i].active}><sphereGeometry args={[0.08, 8, 8]} /><meshBasicMaterial color="#00f2ff" /><pointLight intensity={8} distance={15} color="#00f2ff" /></mesh>))}</>;
+  return <>{cometRefs.map((ref, i) => (<mesh key={i} ref={ref} visible={states[i].active}><sphereGeometry args={[0.08, 8, 8]} /><meshBasicMaterial color="#00f2ff" /><pointLight intensity={8} distance={15} color="#00f2ff" /></mesh>))}</>;
 }
 
 function GlowHeading({ children, mousePos }: { children: React.ReactNode, mousePos: { x: number, y: number } }) {

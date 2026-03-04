@@ -364,7 +364,7 @@ export default function GarantiasPage() {
                                         <div className="absolute left-[-52px] top-0 h-10 w-10 rounded-full border-4 border-white bg-[#004d4d] flex items-center justify-center text-white shadow-lg z-10 group-hover:scale-110 transition-transform"><Zap size={14} fill="currentColor" /></div>
                                         <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
                                             <div className="flex justify-between items-center"><h5 className="text-sm font-black text-[#004d4d] uppercase tracking-widest">{event.status}</h5><span className="text-[10px] font-black text-gray-300 uppercase tracking-widest italic">{event.date}</span></div>
-                                            <p className="text-sm font-medium text-gray-600 leading-relaxed italic">"{event.comment}"</p>
+                                            <p className="text-sm font-medium text-gray-600 leading-relaxed italic">&quot;{event.comment}&quot;</p>
                                             <div className="pt-4 border-t border-gray-50 flex items-center gap-2"><div className="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center text-[8px] font-black">{event.user.charAt(0)}</div><p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Responsable: {event.user}</p></div>
                                         </div>
                                     </div>

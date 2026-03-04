@@ -476,8 +476,8 @@ export default function LoyaltyPage() {
                                         <span className="px-4 py-1.5 bg-[#00f2ff]/10 text-[#00f2ff] rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-[#00f2ff]/20">Estrategia de Fidelización</span>
                                         <h3 className="text-4xl font-black uppercase italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-[#00f2ff]">Maximiza el LTV de tus clientes</h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">"Los clientes en nivel **Oro** tienen una frecuencia de compra 3.2x mayor. Sugerencia: Ofrecer bono de bienvenida al siguiente nivel."</p></div>
-                                            <div className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">"El premio **Gorra Oficial** está agotándose. Clientes con +500 pts están esperando redimir. Reponer stock pronto."</p></div>
+                                            <div className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">&quot;Los clientes en nivel **Oro** tienen una frecuencia de compra 3.2x mayor. Sugerencia: Ofrecer bono de bienvenida al siguiente nivel.&quot;</p></div>
+                                            <div className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">&quot;El premio **Gorra Oficial** está agotándose. Clientes con +500 pts están esperando redimir. Reponer stock pronto.&quot;</p></div>
                                         </div>
                                     </div>
                                 </div>

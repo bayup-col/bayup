@@ -404,8 +404,8 @@ export default function DiscountsPage() {
                                         <span className="px-4 py-1.5 bg-[#00f2ff]/10 text-[#00f2ff] rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-[#00f2ff]/20">Estrategia de Conversión</span>
                                         <h3 className="text-4xl font-black uppercase italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-[#00f2ff]">Optimiza tus ofertas en tiempo real</h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">"El cupón **VERANO20** está cerca de su meta de usos. Sugerencia: Extender meta un 20% ya que el ROAS es de 5.2x."</p></div>
-                                            <div className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">"Detectado abandono de carrito en pedidos de +$100k. Crear un descuento automático de **Envío Gratis** para este segmento."</p></div>
+                                            <div className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">&quot;El cupón **VERANO20** está cerca de su meta de usos. Sugerencia: Extender meta un 20% ya que el ROAS es de 5.2x.&quot;</p></div>
+                                            <div className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">&quot;Detectado abandono de carrito en pedidos de +$100k. Crear un descuento automático de **Envío Gratis** para este segmento.&quot;</p></div>
                                         </div>
                                     </div>
                                 </div>

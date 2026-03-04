@@ -160,7 +160,7 @@ export default function MyStoreHub() {
                             <div className="space-y-4">
                                 <h3 className="text-4xl font-black text-gray-900 italic tracking-tighter leading-tight">Editor visual <span className="text-purple-600">premium</span></h3>
                                 <p className="text-gray-500 font-medium leading-relaxed italic text-lg">
-                                    "Redefine la identidad de tu marca. Cada cambio se publica en <span className="text-gray-900 font-black underline decoration-purple-500/30">tiempo real</span>."
+                                    &quot;Redefine la identidad de tu marca. Cada cambio se publica en <span className="text-gray-900 font-black underline decoration-purple-500/30">tiempo real</span>.&quot;
                                 </p>
                             </div>
 
@@ -236,7 +236,7 @@ export default function MyStoreHub() {
                                         <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">Premium</span>
                                     </div>
                                 </div>
-                                <p className="text-gray-400 text-[11px] leading-relaxed font-medium italic line-clamp-3">"{theme.description}"</p>
+                                <p className="text-gray-400 text-[11px] leading-relaxed font-medium italic line-clamp-3">&quot;{theme.description}&quot;</p>
                                 
                                 <div className="mt-auto pt-6">
                                     <Link href="/dashboard/my-store/templates">
@@ -261,7 +261,7 @@ export default function MyStoreHub() {
                             <span className="px-4 py-1.5 bg-purple-500/10 text-purple-400 rounded-full text-[10px] font-black tracking-[0.4em] border border-purple-500/20">Bayt UI intelligence</span>
                             <h3 className="text-4xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-purple-400">Optimización cognitiva</h3>
                             <p className="text-gray-400 text-lg font-medium leading-relaxed italic max-w-3xl">
-                                "Tus páginas ahora son inteligentes. Bayt analiza el comportamiento del usuario en tiempo real y <span className="text-purple-400 font-black">reordena automáticamente</span> tus productos para maximizar la conversión."
+                                &quot;Tus páginas ahora son inteligentes. Bayt analiza el comportamiento del usuario en tiempo real y <span className="text-purple-400 font-black">reordena automáticamente</span> tus productos para maximizar la conversión.&quot;
                             </p>
                         </div>
                     </div>

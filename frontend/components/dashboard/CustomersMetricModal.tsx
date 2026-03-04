@@ -77,7 +77,7 @@ export default function CustomersMetricModal({ isOpen, onClose, metric }: Custom
                     </h4>
                     <div className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 shadow-inner">
                         <p className="text-sm font-medium text-gray-600 leading-relaxed italic">
-                            "Este indicador refleja la fidelidad de tu audiencia. Un valor de {metric.value} posiciona a Bayup un 15% por encima de la media del sector retail este mes."
+                            &quot;Este indicador refleja la fidelidad de tu audiencia. Un valor de {metric.value} posiciona a Bayup un 15% por encima de la media del sector retail este mes.&quot;
                         </p>
                     </div>
                 </section>

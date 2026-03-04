@@ -178,7 +178,7 @@ export const BaytAssistant = ({ isOpen, setIsOpen }: BaytAssistantProps) => {
                                                 <span className="text-[9px] font-black text-purple-400 uppercase tracking-[0.2em]">Estado General</span>
                                                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
                                             </div>
-                                            <p className="text-xs text-gray-400 mt-2 font-medium italic">"{m.reportData.message || 'Reporte generado correctamente.'}"</p>
+                                            <p className="text-xs text-gray-400 mt-2 font-medium italic">&quot;{m.reportData.message || 'Reporte generado correctamente.'}&quot;</p>
                                         </div>
                                     </div>
                                 )}
