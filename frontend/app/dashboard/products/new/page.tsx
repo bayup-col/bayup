@@ -441,15 +441,15 @@ export default function NewProductPage() {
                             {/* MODAL FLOTANTE DE PERSONALIZACIÓN (DANIEL'S VERSION) */}
                             <AnimatePresence>
                                 {isNewVariantModalOpen && (
-                                    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 md:p-20">
-                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNewVariantModalOpen(false)} className="absolute inset-0 bg-gray-900/80 backdrop-blur-xl" />
+                                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 md:p-20">
+                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNewVariantModalOpen(false)} className="fixed inset-0 bg-gray-900/90 backdrop-blur-2xl" />
                                         <motion.div 
                                             initial={{ opacity: 0, scale: 0.9, y: 20 }} 
                                             animate={{ opacity: 1, scale: 1, y: 0 }} 
                                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                                            className="relative w-full max-w-2xl bg-white rounded-[4rem] shadow-3xl overflow-hidden border border-white flex flex-col"
+                                            className="relative w-full max-w-2xl bg-white rounded-[4rem] shadow-3xl overflow-hidden border border-white/20 flex flex-col z-[10000]"
                                         >
-                                            <div className="bg-gray-50 p-12 border-b border-gray-100 flex justify-between items-center">
+                                            <div className="bg-gray-50 p-12 border-b border-gray-100 flex justify-between items-center w-full">
                                                 <div className="space-y-1">
                                                     <h3 className="text-2xl font-black italic tracking-tighter uppercase text-[#004D4D]">Personalizar Atributo</h3>
                                                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em]">Crea combinaciones de talla, color y stock juntos</p>
