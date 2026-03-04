@@ -46,7 +46,7 @@ import { useToast } from '@/context/toast-context';
 import { apiRequest } from '@/lib/api';
 
 export default function NewProductPage() {
-    const { token } = useAuth();
+    const { token, userPlan } = useAuth();
     const { showToast } = useToast();
     const router = useRouter();
     
