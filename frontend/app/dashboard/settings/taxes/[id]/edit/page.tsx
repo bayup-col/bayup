@@ -30,7 +30,7 @@ export default function EditTaxRatePage() {
     const fetchTaxRate = async () => {
       setLoading(true);
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://exciting-optimism-production-4624.up.railway.app';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         const response = await fetch(`${apiUrl}/taxes/${taxRateId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -66,7 +66,7 @@ export default function EditTaxRatePage() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://exciting-optimism-production-4624.up.railway.app';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const response = await fetch(`${apiUrl}/taxes/${taxRateId}`, {
         method: 'PUT',
         headers: {
