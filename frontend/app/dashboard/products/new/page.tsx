@@ -202,62 +202,105 @@ export default function NewProductPage() {
                         </motion.div>
                     )}
 
-                    {activeTab === 'financial' && (
-                        <motion.div key="financial" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-10">
-                            {/* ESTRUCTURA DE PRECIOS VERTICAL */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                                <div className="space-y-8">
-                                    <section className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                        <div className="flex items-center justify-between"><h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><DollarSign size={18} /> Precios de Venta</h3></div>
-                                        <div className="space-y-6">
-                                            <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio Retail (Público Final)</label><div className="relative"><span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span><input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" /></div></div>
-                                            <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio Mayorista</label><div className="relative"><span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span><input type="number" value={formData.wholesale_price} onChange={e => setFormData({...formData, wholesale_price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" /></div></div>
-                                        </div>
-                                    </section>
+                    {activeTab === 'financial' && (() => {
+                        const commissionRate = userPlan?.commission_rate || 0.035;
+                        const calculateMargin = (price: number) => {
+                            if (!price || !formData.cost || price === 0) return "0";
+                            const utility = price - formData.cost - (price * commissionRate);
+                            return ((utility / price) * 100).toFixed(1);
+                        };
 
-                                    <section className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                        <div className="flex items-center justify-between"><h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><Package size={18} /> Costos Base</h3></div>
-                                        <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Costo Unitario del Producto</label><div className="relative"><span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span><input type="number" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" /></div></div>
-                                    </section>
-                                </div>
+                        return (
+                            <motion.div key="financial" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-10">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                                    <div className="space-y-8">
+                                        <section className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                                            <div className="flex items-center gap-3"><DollarSign className="text-[#004D4D]" size={20}/><h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest">Gestión Financiera</h3></div>
 
-                                <div className="space-y-8">
-                                    <section className="p-10 bg-gray-900 rounded-[3.5rem] text-white shadow-2xl space-y-8 relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12"><TrendingUp size={120} /></div>
-                                        <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-3 text-cyan-400 relative z-10"><Zap size={18} /> Análisis de Utilidad Real</h3>
-                                        
-                                        <div className="space-y-6 relative z-10">
-                                            <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Comisión Bayup (3.5%)</p>
-                                                <p className="text-sm font-black text-rose-400">-${(formData.price * 0.035).toLocaleString('de-DE')}</p>
-                                            </div>
-                                            <div className="flex justify-between items-end pt-4">
-                                                <div className="space-y-1">
-                                                    <p className="text-[9px] font-black text-cyan-400 uppercase tracking-widest">Utilidad Neta / Und</p>
-                                                    <h4 className="text-5xl font-black tracking-tighter">${(formData.price - formData.cost - (formData.price * 0.035)).toLocaleString('de-DE')}</h4>
+                                            <div className="space-y-8">
+                                                {/* COSTO UNITARIO PRIMERO */}
+                                                <div className="space-y-2">
+                                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Package size={12}/> Costo Unitario del Producto</label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                                        <input type="number" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" placeholder="0" />
+                                                    </div>
                                                 </div>
-                                                <div className="px-4 py-2 bg-white/10 rounded-xl border border-white/10">
-                                                    <span className="text-[10px] font-black">{formData.price > 0 ? (((formData.price - formData.cost - (formData.price * 0.035)) / formData.price) * 100).toFixed(1) : 0}% Margen</span>
+
+                                                {/* PRECIO MAYORISTA SEGUNDO */}
+                                                <div className="space-y-2">
+                                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio Mayorista</label>
+                                                    <div className="flex gap-4">
+                                                        <div className="relative flex-1">
+                                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                                            <input type="number" value={formData.wholesale_price} onChange={e => setFormData({...formData, wholesale_price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" placeholder="0" />
+                                                        </div>
+                                                        {formData.wholesale_price > 0 && (
+                                                            <div className="px-6 py-2 bg-gray-900 text-white rounded-2xl flex flex-col justify-center items-center min-w-[100px] border border-gray-800 shadow-xl">
+                                                                <span className="text-[12px] font-black">{calculateMargin(formData.wholesale_price)}%</span>
+                                                                <span className="text-[7px] font-bold text-cyan-400 uppercase tracking-widest">Utilidad</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* PRECIO RETAIL TERCERO */}
+                                                <div className="space-y-2">
+                                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio Retail (Público Final)</label>
+                                                    <div className="flex gap-4">
+                                                        <div className="relative flex-1">
+                                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                                            <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" placeholder="0" />
+                                                        </div>
+                                                        {formData.price > 0 && (
+                                                            <div className="px-6 py-2 bg-gray-900 text-white rounded-2xl flex flex-col justify-center items-center min-w-[100px] border border-gray-800 shadow-xl">
+                                                                <span className="text-[12px] font-black">{calculateMargin(formData.price)}%</span>
+                                                                <span className="text-[7px] font-bold text-cyan-400 uppercase tracking-widest">Utilidad</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </section>
+                                        </section>
+                                    </div>
 
-                                    <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm flex items-center justify-between group">
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-14 w-14 rounded-2xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D] group-hover:scale-110 transition-all"><HelpCircle size={24}/></div>
-                                            <div>
-                                                <p className="text-xs font-black text-[#004D4D] uppercase tracking-widest leading-none">¿Dudas con tus precios?</p>
-                                                <p className="text-[9px] font-bold text-gray-400 uppercase mt-2">Usa el asistente Bayt en el dashboard</p>
+                                    <div className="space-y-8">
+                                        <section className="p-10 bg-gray-900 rounded-[3.5rem] text-white shadow-2xl space-y-8 relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12"><TrendingUp size={120} /></div>
+                                            <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-3 text-cyan-400 relative z-10"><Zap size={18} /> Análisis de Utilidad Real</h3>
+
+                                            <div className="space-y-6 relative z-10">
+                                                <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Comisión Bayup ({(commissionRate * 100).toFixed(1)}%)</p>
+                                                    <p className="text-sm font-black text-rose-400">-${(formData.price * commissionRate).toLocaleString('de-DE')}</p>
+                                                </div>
+                                                <div className="flex justify-between items-end pt-4">
+                                                    <div className="space-y-1">
+                                                        <p className="text-[9px] font-black text-cyan-400 uppercase tracking-widest">Utilidad Neta / Und</p>
+                                                        <h4 className="text-5xl font-black tracking-tighter">${(formData.price - formData.cost - (formData.price * commissionRate)).toLocaleString('de-DE')}</h4>
+                                                    </div>
+                                                    <div className="px-4 py-2 bg-white/10 rounded-xl border border-white/10">
+                                                        <span className="text-[10px] font-black">{formData.price > 0 ? (((formData.price - formData.cost - (formData.price * commissionRate)) / formData.price) * 100).toFixed(1) : 0}% Margen</span>
+                                                    </div>
+                                                </div>
                                             </div>
+                                        </section>
+
+                                        <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm flex items-center justify-between group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="h-14 w-14 rounded-2xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D] group-hover:scale-110 transition-all"><HelpCircle size={24}/></div>
+                                                <div>
+                                                    <p className="text-xs font-black text-[#004D4D] uppercase tracking-widest leading-none">¿Dudas con tus precios?</p>
+                                                    <p className="text-[9px] font-bold text-gray-400 uppercase mt-2">Usa el asistente Bayt en el dashboard</p>
+                                                </div>
+                                            </div>
+                                            <ChevronRight size={20} className="text-gray-300"/>
                                         </div>
-                                        <ChevronRight size={20} className="text-gray-300"/>
                                     </div>
                                 </div>
-                            </div>
-                        </motion.div>
-                    )}
-
+                            </motion.div>
+                        );
+                    })()}
                     {activeTab === 'variants' && (
                         <motion.div key="variants" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10 pb-20">
                             <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-8">

@@ -46,7 +46,7 @@ import { useToast } from '@/context/toast-context';
 import { apiRequest } from '@/lib/api';
 
 export default function EditProductPage() {
-    const { token } = useAuth();
+    const { token, userPlan } = useAuth();
     const { showToast } = useToast();
     const router = useRouter();
     const params = useParams();
@@ -180,6 +180,12 @@ export default function EditProductPage() {
 
     if (isLoading) return <div className="p-20 text-center font-black uppercase text-[#004D4D] animate-pulse">Sincronizando...</div>;
 
+    // Cálculo de Comisiones (3.5% base si no se define en el plan)
+    const currentCommissionRate = userPlan?.commission_rate || 0.035;
+    const platformDeduction = formData.price * currentCommissionRate;
+    const netProfit = formData.price - formData.cost - platformDeduction;
+    const netMargin = formData.price > 0 ? (netProfit / formData.price) * 100 : 0;
+
     return (
         <div className="fixed inset-0 z-[1000] bg-white flex flex-col lg:flex-row overflow-hidden text-slate-900 font-sans">
             <motion.button whileHover={{ scale: 1.1, rotate: 90 }} onClick={() => router.back()} className="absolute top-8 right-8 z-[1010] h-12 w-12 flex items-center justify-center rounded-full bg-gray-900/10 backdrop-blur-md text-gray-500 hover:text-rose-500 shadow-lg"><X size={20} /></motion.button>
@@ -196,7 +202,7 @@ export default function EditProductPage() {
 
                 <AnimatePresence mode="wait">
                     {activeTab === 'info' && (
-                        <motion.div key="info" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-10">
+                        <motion.div key="info" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10">
                             <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
                                 <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">TÍTULO DEL PRODUCTO</label><input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl outline-none font-bold shadow-inner" /></div>
                                 <div className="grid grid-cols-2 gap-8">
@@ -237,64 +243,101 @@ export default function EditProductPage() {
                         </motion.div>
                     )}
 
-                    {activeTab === 'financial' && (
-                        <motion.div key="financial" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-10">
-                            <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><DollarSign size={18} /> Estructura de Precios</h3>
-                                    <div className="px-4 py-2 bg-cyan-50 text-cyan-700 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 border border-cyan-100"><Bot size={14}/> Análisis Bayt Activo</div>
-                                </div>
+                    {activeTab === 'financial' && (() => {
+                        const calculateMargin = (price: number) => {
+                            if (!price || !formData.cost || price === 0) return "0";
+                            const utility = price - formData.cost - (price * currentCommissionRate);
+                            return ((utility / price) * 100).toFixed(1);
+                        };
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                    <div className="space-y-2">
-                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">PRECIO RETAIL</label>
-                                        <div className="relative">
-                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                                            <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">PRECIO MAYORISTA</label>
-                                        <div className="relative">
-                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                                            <input type="number" value={formData.wholesale_price} onChange={e => setFormData({...formData, wholesale_price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">COSTO UNITARIO</label>
-                                        <div className="relative">
-                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                                            <input type="number" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" />
-                                        </div>
-                                    </div>
-                                </div>
+                        return (
+                            <motion.div key="financial" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-10">
+                                <div className="flex flex-col gap-8 max-w-2xl mx-auto">
+                                    <section className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                                        <div className="flex items-center gap-3"><DollarSign className="text-[#004D4D]" size={20}/><h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest">Gestión Financiera</h3></div>
+                                        
+                                        <div className="space-y-8">
+                                            {/* COSTO UNITARIO PRIMERO */}
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Package size={12}/> Costo Unitario del Producto</label>
+                                                <div className="relative">
+                                                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                                    <input type="number" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none font-black shadow-inner" placeholder="0" />
+                                                </div>
+                                            </div>
 
-                                <div className="p-6 bg-[#FAFAFA] rounded-3xl border border-gray-100 flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-10 w-10 rounded-xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D]"><Zap size={18}/></div>
-                                        <div>
-                                            <p className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Incluir comisión de pasarela</p>
-                                            <p className="text-[8px] font-bold text-gray-400 uppercase">Suma automáticamente el 3.5% + $900 al precio final</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => setFormData({...formData, add_gateway_fee: !formData.add_gateway_fee})} className={`w-14 h-7 rounded-full transition-all relative ${formData.add_gateway_fee ? 'bg-emerald-500' : 'bg-gray-200'}`}>
-                                        <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-sm ${formData.add_gateway_fee ? 'left-8' : 'left-1'}`} />
-                                    </button>
-                                </div>
-                            </div>
+                                            {/* PRECIO MAYORISTA SEGUNDO */}
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio Mayorista</label>
+                                                <div className="flex gap-4">
+                                                    <div className="relative flex-1">
+                                                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                                        <input type="number" value={formData.wholesale_price} onChange={e => setFormData({...formData, wholesale_price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none font-black shadow-inner" placeholder="0" />
+                                                    </div>
+                                                    {formData.wholesale_price > 0 && (
+                                                        <div className="px-6 py-2 bg-gray-900 text-white rounded-2xl flex flex-col justify-center items-center min-w-[100px] border border-gray-800 shadow-xl">
+                                                            <span className="text-[12px] font-black">{calculateMargin(formData.wholesale_price)}%</span>
+                                                            <span className="text-[7px] font-bold text-cyan-400 uppercase tracking-widest">Utilidad</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
-                                    <div className="flex items-center justify-between text-slate-900"><p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em]">Utilidad Retail Bruta</p></div>
-                                    <div className="flex items-baseline gap-2"><span className="text-4xl font-black text-gray-900 tracking-tighter">${(formData.price - formData.cost).toLocaleString('de-DE')}</span><span className="text-[10px] font-black text-gray-400 uppercase">Bruto / UND</span></div>
+                                            {/* PRECIO RETAIL TERCERO */}
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio Retail (Público Final)</label>
+                                                <div className="flex gap-4">
+                                                    <div className="relative flex-1">
+                                                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                                        <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none font-black shadow-inner" placeholder="0" />
+                                                    </div>
+                                                    {formData.price > 0 && (
+                                                        <div className="px-6 py-2 bg-gray-900 text-white rounded-2xl flex flex-col justify-center items-center min-w-[100px] border border-gray-800 shadow-xl">
+                                                            <span className="text-[12px] font-black">{calculateMargin(formData.price)}%</span>
+                                                            <span className="text-[7px] font-bold text-cyan-400 uppercase tracking-widest">Utilidad</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <section className="p-10 bg-[#001A1A] rounded-[3.5rem] text-white shadow-2xl space-y-8 relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12"><TrendingUp size={120} /></div>
+                                        <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-3 text-cyan-400 relative z-10"><Zap size={18} /> Análisis de Utilidad Real</h3>
+                                        
+                                        <div className="space-y-6 relative z-10">
+                                            <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Comisión Bayup ({(currentCommissionRate * 100).toFixed(1)}%)</p>
+                                                <p className="text-sm font-black text-rose-400">-${platformDeduction.toLocaleString('de-DE')}</p>
+                                            </div>
+                                            <div className="flex justify-between items-end pt-4">
+                                                <div className="space-y-1">
+                                                    <p className="text-[9px] font-black text-cyan-400 uppercase tracking-widest">Utilidad Neta / Und</p>
+                                                    <h4 className="text-5xl font-black tracking-tighter">${netProfit.toLocaleString('de-DE')}</h4>
+                                                </div>
+                                                <div className="px-4 py-2 bg-white/10 rounded-xl border border-white/10 text-center">
+                                                    <span className="text-[10px] font-black block">{netMargin.toFixed(1)}%</span>
+                                                    <span className="text-[7px] font-bold text-gray-400 uppercase">Margen</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm flex items-center justify-between group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-14 w-14 rounded-2xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D] group-hover:scale-110 transition-all"><HelpCircle size={24}/></div>
+                                            <div>
+                                                <p className="text-xs font-black text-[#004D4D] uppercase tracking-widest leading-none">¿Dudas con tus precios?</p>
+                                                <p className="text-[9px] font-bold text-gray-400 uppercase mt-2">Usa el asistente Bayt en el dashboard</p>
+                                            </div>
+                                        </div>
+                                        <ChevronRight size={20} className="text-gray-300"/>
+                                    </div>
                                 </div>
-                                <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
-                                    <div className="flex items-center justify-between text-slate-900"><p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em]">Utilidad Mayorista Bruta</p></div>
-                                    <div className="flex items-baseline gap-2"><span className="text-4xl font-black text-gray-900 tracking-tighter">${(formData.wholesale_price - formData.cost).toLocaleString('de-DE')}</span><span className="text-[10px] font-black text-gray-400 uppercase">Bruto / UND</span></div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
+                            </motion.div>
+                        );
+                    })()}
 
                     {activeTab === 'variants' && (
                         <motion.div key="variants" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10 pb-20">
