@@ -178,6 +178,123 @@ from fastapi.staticfiles import StaticFiles
 if not os.path.exists("uploads"): os.makedirs("uploads")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
+# --- ENDPOINTS DE ADMINISTRACIÓN Y STAFF ---
+
+@app.get("/admin/users", response_model=list[schemas.User])
+def get_staff(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Lista todos los miembros del staff de la tienda."""
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.User).filter(models.User.owner_id == tenant_id).all()
+
+@app.post("/admin/users")
+def create_staff_member(
+    user_in: schemas.UserCreate, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Crea un nuevo miembro del staff vinculado a la tienda actual."""
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    if crud.get_user_by_email(db, email=user_in.email):
+        raise HTTPException(status_code=400, detail="El email ya está registrado")
+    
+    hashed_password = security.get_password_hash(user_in.password)
+    db_user = models.User(
+        id=uuid.uuid4(),
+        email=user_in.email.lower().strip(),
+        full_name=user_in.full_name,
+        hashed_password=hashed_password,
+        role=user_in.role or "vendedor",
+        status=user_in.status or "Invitado",
+        owner_id=tenant_id,
+        plan_id=current_user.plan_id
+    )
+    db.add(db_user)
+    
+    # Registrar en auditoría
+    log = models.ActivityLog(
+        id=uuid.uuid4(),
+        user_id=current_user.id,
+        tenant_id=tenant_id,
+        action="CREATE_USER",
+        detail=f"Invitación enviada a {user_in.email}"
+    )
+    db.add(log)
+    
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+@app.post("/admin/update-user")
+def update_staff_details(
+    data: dict, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Endpoint flexible para actualizar detalles de staff desde el dashboard."""
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    target_user = db.query(models.User).filter(models.User.email == data.get("email"), models.User.owner_id == tenant_id).first()
+    
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado en tu tienda")
+    
+    if "new_role" in data: target_user.role = data["new_role"]
+    if "full_name" in data: target_user.full_name = data["full_name"]
+    if "status" in data: target_user.status = data["status"]
+    
+    db.commit()
+    return {"status": "success"}
+
+@app.delete("/admin/users/{user_id}")
+def delete_staff_member(
+    user_id: uuid.UUID, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(security.get_current_user)
+):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    db_user = db.query(models.User).filter(models.User.id == user_id, models.User.owner_id == tenant_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    db.delete(db_user)
+    db.commit()
+    return {"status": "success"}
+
+# --- ENDPOINTS DE ROLES Y PERMISOS ---
+
+@app.get("/admin/roles")
+def get_roles(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.CustomRole).filter(models.CustomRole.owner_id == tenant_id).all()
+
+@app.post("/admin/roles")
+def create_role(role_in: schemas.CustomRoleCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return crud.create_custom_role(db, role_in, owner_id=tenant_id)
+
+@app.put("/admin/roles/{role_id}")
+def update_role(role_id: uuid.UUID, role_in: schemas.CustomRoleCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return crud.update_custom_role(db, role_id, role_in, owner_id=tenant_id)
+
+# --- ENDPOINTS DE COLECCIONES ---
+
+@app.get("/collections")
+def get_collections(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return crud.get_collections_by_owner(db, owner_id=tenant_id)
+
+@app.post("/collections")
+def create_collection(col_in: schemas.CollectionCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return crud.create_collection(db, col_in, owner_id=tenant_id)
+
+# --- AUDITORÍA Y LOGS ---
+
+@app.get("/admin/logs")
+def get_logs(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.ActivityLog).filter(models.ActivityLog.tenant_id == tenant_id).order_by(models.ActivityLog.created_at.desc()).limit(50).all()
+
 @app.get("/auth/me", response_model=schemas.User)
 def me(current_user: models.User = Depends(security.get_current_user)):
     return current_user
