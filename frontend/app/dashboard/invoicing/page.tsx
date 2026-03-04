@@ -298,7 +298,11 @@ export default function InvoicingPage() {
 
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
-            // 1. Filtros de búsqueda y categoría
+            // 1. Verificar si el producto tiene stock (suma de todas sus variantes)
+            const totalStock = p.variants?.reduce((acc: number, v: any) => acc + (v.stock || 0), 0) || 0;
+            if (totalStock <= 0) return false;
+
+            // 2. Filtros de búsqueda y categoría
             const matchesSearch = p.name.toLowerCase().includes(productSearch.toLowerCase()) || 
                                  (p.sku?.toLowerCase() || '').includes(productSearch.toLowerCase());
             

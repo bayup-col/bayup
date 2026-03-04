@@ -347,7 +347,7 @@ def update_product(
     db: Session = Depends(get_db), 
     current_user: models.User = Depends(security.get_current_user)
 ):
-    """Actualiza los datos de un producto (nombre, precio, stock, variantes)."""
+    """Actualiza los datos de un producto y sus variantes de forma atómica."""
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
     db_product = db.query(models.Product).filter(
         models.Product.id == product_id, 
@@ -358,17 +358,37 @@ def update_product(
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
     try:
-        update_data = product_in.dict(exclude_unset=True)
+        # 1. Actualizar campos básicos del producto
+        update_data = product_in.dict(exclude_unset=True, exclude={"variants"})
         for key, value in update_data.items():
             setattr(db_product, key, value)
+        
+        # 2. Si se envían variantes, refrescarlas completamente
+        if product_in.variants is not None:
+            # Borrar variantes actuales
+            db.query(models.ProductVariant).filter(models.ProductVariant.product_id == product_id).delete()
+            
+            # Insertar las nuevas
+            for v_in in product_in.variants:
+                new_variant = models.ProductVariant(
+                    id=uuid.uuid4(),
+                    product_id=product_id,
+                    name=v_in.name,
+                    sku=v_in.sku,
+                    stock=v_in.stock,
+                    price_adjustment=v_in.price_adjustment,
+                    image_url=v_in.image_url,
+                    attributes=v_in.attributes
+                )
+                db.add(new_variant)
         
         db.commit()
         db.refresh(db_product)
         return db_product
     except Exception as e:
         db.rollback()
-        print(f"Error actualizando producto: {e}")
-        raise HTTPException(status_code=500, detail="Error interno al guardar cambios")
+        print(f"CRITICAL ERROR actualizando producto {product_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
 @app.delete("/products/{product_id}")
 def delete_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
