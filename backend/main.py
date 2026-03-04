@@ -365,6 +365,12 @@ def update_product(
             print(f"🔹 Actualizando campo {key}: {value}")
             setattr(db_product, key, value)
         
+        # Sincronizar el string 'category' con el título de la colección para el listado
+        if product_in.collection_id:
+            collection = db.query(models.Collection).filter(models.Collection.id == product_in.collection_id).first()
+            if collection:
+                db_product.category = collection.title
+        
         # 2. Si se envían variantes, refrescarlas completamente
         if product_in.variants is not None:
             print(f"🔹 Refrescando {len(product_in.variants)} variantes...")

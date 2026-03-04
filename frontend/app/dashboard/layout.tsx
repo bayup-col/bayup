@@ -84,7 +84,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       <>
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Empresa</span>
                         <span className="text-base font-black italic text-[#004d4d] truncate max-w-full mb-4">{authName || 'Bayup'}</span>
-                        
+
                         {/* BOTÓN GRADIENT FRAMER PREMIUM */}
                         <motion.button 
                             onClick={() => window.open(`${window.location.origin}/shop/${authSlug || 'mi-tienda'}`, '_blank')}
