@@ -327,6 +327,61 @@ def read_products(db: Session = Depends(get_db), current_user: models.User = Dep
         print(f"Error en /products: {e}")
         return []
 
+@app.post("/products", response_model=schemas.Product)
+def create_product(
+    product_in: schemas.ProductCreate, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Crea un nuevo producto con sus variantes en la tienda actual."""
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    try:
+        # 1. Crear el registro maestro del producto
+        db_product = models.Product(
+            id=uuid.uuid4(),
+            name=product_in.name,
+            description=product_in.description,
+            price=product_in.price,
+            wholesale_price=product_in.wholesale_price,
+            cost=product_in.cost,
+            sku=product_in.sku,
+            status=product_in.status or "active",
+            add_gateway_fee=product_in.add_gateway_fee,
+            image_url=product_in.image_url,
+            collection_id=product_in.collection_id,
+            owner_id=tenant_id
+        )
+        
+        # Sincronizar nombre de categoría
+        if product_in.collection_id:
+            col = db.query(models.Collection).filter(models.Collection.id == product_in.collection_id).first()
+            if col: db_product.category = col.title
+
+        db.add(db_product)
+        
+        # 2. Crear las variantes (tallas/colores)
+        for v_in in product_in.variants:
+            db_variant = models.ProductVariant(
+                id=uuid.uuid4(),
+                product_id=db_product.id,
+                name=v_in.name,
+                sku=v_in.sku,
+                stock=v_in.stock,
+                price_adjustment=v_in.price_adjustment,
+                image_url=v_in.image_url,
+                attributes=v_in.attributes
+            )
+            db.add(db_variant)
+            
+        db.commit()
+        db.refresh(db_product)
+        print(f"✨ Producto '{db_product.name}' creado con éxito.")
+        return db_product
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error creando producto: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/products/{product_id}")
 def read_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     """Obtiene el detalle de un producto específico para edición."""
