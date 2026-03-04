@@ -221,6 +221,28 @@ export default function NewProductPage() {
         return new Intl.NumberFormat("de-DE").format(Number(num));
     };
 
+    // Mapeo de colores para reconocimiento automático
+    const colorMap: { [key: string]: string } = {
+        'rojo': '#FF0000', 'red': '#FF0000',
+        'azul': '#0000FF', 'blue': '#0000FF',
+        'verde': '#008000', 'green': '#008000',
+        'negro': '#000000', 'black': '#000000',
+        'blanco': '#FFFFFF', 'white': '#FFFFFF',
+        'amarillo': '#FFFF00', 'yellow': '#FFFFFF',
+        'gris': '#808080', 'gray': '#808080',
+        'naranja': '#FFA500', 'orange': '#FFA500',
+        'morado': '#800080', 'purple': '#800080',
+        'rosa': '#FFC0CB', 'pink': '#FFC0CB',
+        'cian': '#00FFFF', 'cyan': '#00F2FF'
+    };
+
+    const resolveColor = (val: string) => {
+        const lower = val?.toLowerCase().trim() || "";
+        if (colorMap[lower]) return colorMap[lower];
+        if (/^#[0-9A-F]{6}$/i.test(lower)) return lower;
+        return '#000000';
+    };
+
     const handleAddTempSubVariant = () => {
         setTempSubVariants([...tempSubVariants, { id: Math.random().toString(36).substr(2, 9), spec: '', stock: 0 }]);
     };
