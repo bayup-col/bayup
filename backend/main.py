@@ -327,6 +327,19 @@ def read_products(db: Session = Depends(get_db), current_user: models.User = Dep
         print(f"Error en /products: {e}")
         return []
 
+@app.get("/products/{product_id}")
+def read_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Obtiene el detalle de un producto específico para edición."""
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    product = db.query(models.Product).filter(
+        models.Product.id == product_id, 
+        models.Product.owner_id == tenant_id
+    ).first()
+    
+    if not product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado en tu tienda")
+    return product
+
 @app.get("/orders")
 def get_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
