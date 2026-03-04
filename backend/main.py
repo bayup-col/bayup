@@ -309,6 +309,16 @@ def get_orders(db: Session = Depends(get_db), current_user: models.User = Depend
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
     return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).all()
 
+# --- NOTIFICACIONES ---
+
+@app.get("/notifications")
+def get_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Lista las notificaciones pendientes de la tienda."""
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.Notification).filter(
+        models.Notification.tenant_id == tenant_id
+    ).order_by(models.Notification.created_at.desc()).limit(20).all()
+
 @app.get("/health")
 def health(): return {"status": "connected_and_persistent"}
 
