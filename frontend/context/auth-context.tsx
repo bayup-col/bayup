@@ -13,6 +13,7 @@ interface AuthContextType {
   shopSlug: string | null;
   isGlobalStaff: boolean;
   login: (token: string, email: string, role: string, permissions?: any, plan?: any, isGlobal?: boolean, shopSlug?: string, name?: string) => void;
+  updateUser: (data: { name?: string, slug?: string }) => void;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -82,6 +83,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (plan) localStorage.setItem('userPlan', JSON.stringify(plan));
   }, []);
 
+  const updateUser = useCallback((data: { name?: string, slug?: string }) => {
+    if (data.name) {
+      setUserName(data.name);
+      localStorage.setItem('userName', data.name);
+    }
+    if (data.slug) {
+      setShopSlug(data.slug);
+      localStorage.setItem('shopSlug', data.slug);
+    }
+  }, []);
+
   const logout = useCallback(() => {
     setToken(null);
     setUserEmail(null);
@@ -107,10 +119,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     shopSlug,
     isGlobalStaff,
     login,
+    updateUser,
     logout,
     isAuthenticated,
     isLoading
-  }), [token, userEmail, userName, userRole, userPermissions, userPlan, shopSlug, isGlobalStaff, login, logout, isAuthenticated, isLoading]);
+  }), [token, userEmail, userName, userRole, userPermissions, userPlan, shopSlug, isGlobalStaff, login, updateUser, logout, isAuthenticated, isLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>

@@ -39,7 +39,7 @@ interface WhatsAppLine {
 }
 
 export default function GeneralSettings() {
-    const { token } = useAuth();
+    const { token, updateUser } = useAuth();
     const { showToast } = useToast();
     
     const [activeTab, setActiveTab] = useState<'perfil' | 'finanzas' | 'canales'>('perfil');
@@ -246,6 +246,12 @@ export default function GeneralSettings() {
                 const errData = await response.json();
                 throw new Error(errData.detail || "Error al actualizar en el servidor");
             }
+
+            // Actualizar contexto global para reflejo inmediato en Sidebar y otros módulos
+            updateUser({
+                name: identity.name,
+                slug: contact.shop_slug
+            });
 
             window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: identity.name }));
             

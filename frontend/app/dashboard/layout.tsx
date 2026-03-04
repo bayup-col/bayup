@@ -15,7 +15,18 @@ import {
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { userEmail: authEmail, userRole: authRole, token, logout, userPlan, isGlobalStaff, isAuthenticated, isLoading } = useAuth();
+  const { 
+    userEmail: authEmail, 
+    userRole: authRole, 
+    userName: authName,
+    shopSlug: authSlug,
+    token, 
+    logout, 
+    userPlan, 
+    isGlobalStaff, 
+    isAuthenticated, 
+    isLoading 
+  } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
@@ -24,28 +35,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isBaytOpen, setIsBaytOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
-  const [companyName, setCompanyName] = useState('Mi Tienda Bayup');
-  const [shopSlug, setShopSlug] = useState('mi-tienda');
+
+  // El nombre y slug ahora vienen directamente del contexto global
+  const companyName = authName || 'Mi Tienda Bayup';
+  const shopSlug = authSlug || 'mi-tienda';
 
   useEffect(() => {
       if (!isLoading && !isAuthenticated) router.replace('/login');
   }, [isAuthenticated, isLoading, router]);
-
-  useEffect(() => {
-    if (!token) return;
-    const fetchProfile = async () => {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://exciting-optimism-production-4624.up.railway.app';
-        const res = await fetch(`${apiUrl}/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.full_name) setCompanyName(data.full_name);
-          if (data.shop_slug) setShopSlug(data.shop_slug);
-        }
-      } catch (e) {}
-    };
-    fetchProfile();
-  }, [token]);
 
   if (isLoading || !isAuthenticated) {
       return (
