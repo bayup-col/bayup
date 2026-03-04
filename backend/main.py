@@ -324,9 +324,21 @@ def me(current_user: models.User = Depends(security.get_current_user)):
 
 @app.get("/products")
 def read_products(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Lista productos calculando stock total y categoría en tiempo real."""
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
     try:
-        return db.query(models.Product).filter(models.Product.owner_id == tenant_id).all()
+        products = db.query(models.Product).filter(models.Product.owner_id == tenant_id).all()
+        
+        # Inyectar stock total dinámico para el frontend
+        for p in products:
+            p.total_stock = sum(v.stock for v in p.variants) if p.variants else 0
+            # Asegurar que el nombre de la categoría esté disponible
+            if p.collection:
+                p.category = p.collection.title
+            elif not p.category:
+                p.category = "General"
+                
+        return products
     except Exception as e:
         print(f"Error en /products: {e}")
         return []
