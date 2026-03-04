@@ -431,12 +431,24 @@ export default function NewProductPage() {
                                                     <div className="space-y-4">
                                                         {tempSubVariants.map((sv, idx) => (
                                                             <div key={sv.id} className="flex gap-4 items-center animate-in slide-in-from-left-4 duration-300">
-                                                                <input 
-                                                                    value={sv.spec}
-                                                                    onChange={(e) => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: e.target.value } : item))}
-                                                                    placeholder="Especificación..." 
-                                                                    className="flex-1 bg-gray-50 rounded-2xl px-6 py-4 text-xs font-bold outline-none border border-transparent focus:border-gray-200" 
-                                                                />
+                                                                <div className="flex-1 relative flex items-center">
+                                                                    {sv.spec.toLowerCase().includes('color') && (
+                                                                        <div className="absolute left-4 z-10">
+                                                                            <input 
+                                                                                type="color" 
+                                                                                value={resolveColor(sv.spec.split(' ').pop() || '')} 
+                                                                                onChange={e => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: `${sv.spec.split(' ').slice(0, -1).join(' ')} ${e.target.value}` } : item))} 
+                                                                                className="w-6 h-6 rounded-full border-2 border-white shadow-sm cursor-pointer bg-transparent" 
+                                                                            />
+                                                                        </div>
+                                                                    )}
+                                                                    <input 
+                                                                        value={sv.spec}
+                                                                        onChange={(e) => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: e.target.value } : item))}
+                                                                        placeholder="Especificación..." 
+                                                                        className={`flex-1 bg-gray-50 rounded-2xl py-4 text-xs font-bold outline-none border border-transparent focus:border-gray-200 ${sv.spec.toLowerCase().includes('color') ? 'pl-14' : 'px-6'}`} 
+                                                                    />
+                                                                </div>
                                                                 <input 
                                                                     type="number"
                                                                     value={sv.stock}
