@@ -340,6 +340,36 @@ def read_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_u
         raise HTTPException(status_code=404, detail="Producto no encontrado en tu tienda")
     return product
 
+@app.put("/products/{product_id}")
+def update_product(
+    product_id: uuid.UUID, 
+    product_in: schemas.ProductUpdate, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Actualiza los datos de un producto (nombre, precio, stock, variantes)."""
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    db_product = db.query(models.Product).filter(
+        models.Product.id == product_id, 
+        models.Product.owner_id == tenant_id
+    ).first()
+    
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    try:
+        update_data = product_in.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_product, key, value)
+        
+        db.commit()
+        db.refresh(db_product)
+        return db_product
+    except Exception as e:
+        db.rollback()
+        print(f"Error actualizando producto: {e}")
+        raise HTTPException(status_code=500, detail="Error interno al guardar cambios")
+
 @app.get("/orders")
 def get_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
