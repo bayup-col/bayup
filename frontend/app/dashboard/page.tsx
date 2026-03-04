@@ -61,14 +61,14 @@ const AuroraMetricCard = ({ children, onClick }: { children: React.ReactNode, on
 };
 
 export default function DashboardPage() {
-  const { token } = useAuth();
+  const { token, userName } = useAuth();
   const { theme } = useTheme();
   const { showToast } = useToast();
   
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
   const [isCustomReportModalOpen, setIsCustomReportModalOpen] = useState(false);
   const [customRange, setCustomRange] = useState({ start: '', end: '' });
-  const [companyName, setCompanyName] = useState('...');
+  const [companyName, setCompanyName] = useState(userName || 'Empresario Bayup');
   const [activities, setActivities] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [realStats, setRealStats] = useState({ 
