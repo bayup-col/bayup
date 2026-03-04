@@ -419,80 +419,73 @@ export default function EditProductPage() {
                             <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3">
-                                        <Layers size={18} /> Control de Inventario por Variante
+                                        <Layers size={18} /> Configuración de Variantes
                                     </h3>
-                                    <div className="px-4 py-2 bg-emerald-50 rounded-xl text-[9px] font-black text-emerald-600 uppercase tracking-widest">
-                                        Lógica de Combinación Activa
+                                    <div className="px-4 py-2 bg-purple-50 rounded-xl text-[9px] font-black text-purple-600 uppercase tracking-widest">
+                                        Modo Matriz Pro
                                     </div>
                                 </div>
-                                
-                                <p className="text-xs text-gray-400 font-medium leading-relaxed italic">
-                                    Define tus productos por combinaciones únicas (Ej: &quot;Talla S / Color Rojo&quot;). El stock total será la suma exacta de estas unidades físicas.
-                                </p>
 
-                                <div className="flex gap-6 mb-4 px-2 text-slate-900 border-b border-gray-50 pb-4">
-                                    <div className="flex-1"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre de la Variante (Talla, Color, etc)</label></div>
-                                    <div className="w-48"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Referencia / SKU</label></div>
-                                    <div className="w-32 text-center"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Stock Real</label></div>
-                                    <div className="w-11"></div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    {variants.map((variant, idx) => (
-                                        <div key={variant.id || idx} className="flex gap-6 items-center group/row animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <div className="flex-1">
-                                                <input 
-                                                    placeholder="Ej: S / Rojo"
-                                                    value={variant.name} 
-                                                    onChange={e => setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, name: e.target.value } : v))} 
-                                                    className="w-full bg-gray-50 border border-transparent rounded-xl px-5 py-4 outline-none text-xs font-bold focus:bg-white focus:border-[#00F2FF]/30 shadow-inner transition-all" 
-                                                />
+                                {/* PASO 1: DEFINIR ATRIBUTOS */}
+                                <div className="space-y-6">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">1. Define tus atributos (Talla, Color, etc.)</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="p-6 bg-gray-50 rounded-3xl space-y-4">
+                                            <input placeholder="Nombre Familia (Ej: Talla)" className="w-full bg-white border-none rounded-xl px-4 py-3 text-xs font-bold shadow-sm outline-none" />
+                                            <div className="flex flex-wrap gap-2">
+                                                <span className="px-3 py-1 bg-white rounded-lg text-[10px] font-black border">S</span>
+                                                <span className="px-3 py-1 bg-white rounded-lg text-[10px] font-black border">M</span>
+                                                <button className="h-6 w-6 rounded-lg bg-[#004D4D] text-white flex items-center justify-center"><Plus size={12}/></button>
                                             </div>
-                                            <div className="w-48">
-                                                <input 
-                                                    placeholder="Opcional"
-                                                    value={variant.sku} 
-                                                    onChange={e => setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, sku: e.target.value } : v))} 
-                                                    className="w-full bg-gray-50 border border-transparent rounded-xl px-5 py-4 outline-none text-[10px] font-black uppercase tracking-widest focus:bg-white shadow-inner" 
-                                                />
-                                            </div>
-                                            <div className="w-32">
-                                                <input 
-                                                    type="number" 
-                                                    value={variant.stock} 
-                                                    onChange={e => setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, stock: Number(e.target.value) } : v))} 
-                                                    className="w-full bg-[#004D4D]/5 border border-transparent rounded-xl px-4 py-4 outline-none text-xs font-black text-center text-[#004D4D] focus:bg-white focus:border-[#004D4D]/20" 
-                                                />
-                                            </div>
-                                            <button 
-                                                onClick={() => setVariants(prev => prev.filter(v => v.id !== variant.id))} 
-                                                className="h-12 w-11 flex items-center justify-center text-gray-300 hover:text-rose-500 transition-colors"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
                                         </div>
-                                    ))}
+                                        <div className="p-6 bg-gray-50 rounded-3xl space-y-4">
+                                            <input placeholder="Nombre Familia (Ej: Color)" className="w-full bg-white border-none rounded-xl px-4 py-3 text-xs font-bold shadow-sm outline-none" />
+                                            <div className="flex flex-wrap gap-2">
+                                                <span className="px-3 py-1 bg-white rounded-lg text-[10px] font-black border">Negro</span>
+                                                <span className="px-3 py-1 bg-white rounded-lg text-[10px] font-black border">Rojo</span>
+                                                <button className="h-6 w-6 rounded-lg bg-[#004D4D] text-white flex items-center justify-center"><Plus size={12}/></button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <button 
-                                    onClick={() => setVariants([...variants, { id: Math.random().toString(36).substr(2, 9), name: '', sku: '', stock: 0, price_adjustment: 0 }])} 
-                                    className="w-full py-6 border-2 border-dashed border-gray-100 rounded-[2.5rem] text-[10px] font-black text-gray-400 uppercase hover:text-[#004D4D] hover:border-[#004D4D]/20 transition-all flex items-center justify-center gap-3 mt-4"
-                                >
-                                    <Plus size={16} /> Añadir Combinación de Stock
-                                </button>
+                                {/* PASO 2: ASIGNAR STOCK A COMBINACIONES */}
+                                <div className="space-y-6 pt-8 border-t border-gray-50">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">2. Distribuye tu stock real</p>
+                                    <div className="space-y-3">
+                                        {[
+                                            { n: 'S / Negro', s: 5 },
+                                            { n: 'S / Rojo', s: 5 },
+                                            { n: 'M / Negro', s: 5 },
+                                            { n: 'M / Rojo', s: 5 }
+                                        ].map((item, i) => (
+                                            <div key={i} className="flex items-center gap-6 p-4 bg-gray-50/50 rounded-2xl hover:bg-white hover:shadow-xl transition-all group">
+                                                <div className="flex-1 text-xs font-bold text-gray-600 uppercase tracking-widest">{item.n}</div>
+                                                <div className="w-32">
+                                                    <input 
+                                                        type="number" 
+                                                        defaultValue={item.s}
+                                                        className="w-full bg-white border border-transparent group-hover:border-[#00F2FF]/20 rounded-xl px-4 py-3 text-center text-xs font-black outline-none shadow-sm" 
+                                                    />
+                                                </div>
+                                                <div className="w-10 text-gray-300 group-hover:text-[#004D4D]"><Package size={18}/></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* RESUMEN DE MATRIZ PARA DANIEL */}
-                            <div className="p-8 bg-[#004D4D] rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
+                            {/* RESUMEN DE MATRIZ */}
+                            <div className="p-8 bg-[#004D4D] rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12"><Package size={120} /></div>
-                                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                                    <div className="space-y-2">
-                                        <h4 className="text-xl font-black italic tracking-tighter uppercase">Resumen de Inventario</h4>
-                                        <p className="text-[10px] font-bold text-cyan-300 uppercase tracking-[0.2em]">Total de unidades físicas en todas las variantes</p>
+                                <div className="relative z-10 flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <h4 className="text-xl font-black italic tracking-tighter uppercase leading-none">Inventario Consolidado</h4>
+                                        <p className="text-[9px] font-bold text-cyan-300 uppercase tracking-[0.2em]">Suma real de unidades físicas</p>
                                     </div>
-                                    <div className="text-center md:text-right">
-                                        <span className="text-5xl font-black tracking-tighter">{variants.reduce((acc, v) => acc + (v.stock || 0), 0)}</span>
-                                        <span className="text-[10px] font-black uppercase ml-2 text-cyan-400">Unidades</span>
+                                    <div className="text-right">
+                                        <span className="text-5xl font-black tracking-tighter">20</span>
+                                        <span className="text-[10px] font-black uppercase ml-2 text-cyan-400">Total</span>
                                     </div>
                                 </div>
                             </div>
