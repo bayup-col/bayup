@@ -44,10 +44,9 @@ import {
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { apiRequest } from '@/lib/api';
-import { InteractiveUP } from '@/components/landing/InteractiveUP';
 
 export default function EditProductPage() {
-    const { token, userEmail } = useAuth();
+    const { token } = useAuth();
     const { showToast } = useToast();
     const router = useRouter();
     const params = useParams();
@@ -57,13 +56,9 @@ export default function EditProductPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'info' | 'financial' | 'variants'>('info');
     
-    // Estados para Categorías y Guía
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-    const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
-    const [newCategoryName, setNewCategoryName] = useState("");
     const [categoriesList, setCategoriesList] = useState<any[]>([]);
     
-    // Estados para Variantes Multinivel
     const [isNewVariantModalOpen, setIsNewVariantModalOpen] = useState(false);
     const [tempVariantName, setTempVariantName] = useState("");
     const [tempSubVariants, setTempSubVariants] = useState([{ id: '1', spec: '', stock: 0 }]);
@@ -83,62 +78,47 @@ export default function EditProductPage() {
     });
 
     const [variants, setVariants] = useState<any[]>([]);
-    const [media, setMedia] = useState<{file?: File, preview: string, type: 'image' | 'video', isMuted: boolean}[]>([]);
+    const [media, setMedia] = useState<{file?: File, preview: string, type: 'image' | 'video'}[]>([]);
     const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
 
-    // Carga de Datos Inicial
+    const colorMap: { [key: string]: string } = {
+        'rojo': '#FF0000', 'red': '#FF0000', 'azul': '#0000FF', 'blue': '#0000FF',
+        'verde': '#008000', 'green': '#008000', 'negro': '#000000', 'black': '#000000',
+        'blanco': '#FFFFFF', 'white': '#FFFFFF', 'amarillo': '#FFFF00', 'yellow': '#FFFFFF',
+        'gris': '#808080', 'gray': '#808080', 'naranja': '#FFA500', 'orange': '#FFA500',
+        'morado': '#800080', 'purple': '#800080', 'rosa': '#FFC0CB', 'pink': '#FFC0CB',
+        'cian': '#00FFFF', 'cyan': '#00F2FF'
+    };
+
+    const resolveColor = (val: string) => {
+        const lower = val?.toLowerCase().trim() || "";
+        if (colorMap[lower]) return colorMap[lower];
+        if (/^#[0-9A-F]{6}$/i.test(lower)) return lower;
+        return '#000000';
+    };
+
     useEffect(() => {
         const fetchAllData = async () => {
             if (!token || !productId) return;
             try {
-                const [productData, categories, userData] = await Promise.all([
+                const [productData, categories] = await Promise.all([
                     apiRequest<any>(`/products/${productId}?t=${Date.now()}`, { token }),
-                    apiRequest<any[]>('/collections', { token }),
-                    apiRequest<any>('/auth/me', { token })
+                    apiRequest<any[]>('/collections', { token })
                 ]);
 
                 if (productData) {
-                    const loadedImages = Array.isArray(productData.image_url) 
-                        ? productData.image_url 
-                        : (productData.image_url ? [productData.image_url] : []);
-
                     setFormData({
-                        name: productData.name || '',
-                        description: productData.description || '',
-                        price: Number(productData.price) || 0,
-                        wholesale_price: Number(productData.wholesale_price) || 0,
-                        cost: Number(productData.cost) || 0,
-                        category: productData.category || productData.collection?.title || '',
-                        collection_id: productData.collection_id || null,
-                        sku: productData.sku || '',
-                        status: productData.status || 'active',
-                        add_gateway_fee: !!productData.add_gateway_fee,
-                        image_url: loadedImages
+                        ...productData,
+                        image_url: Array.isArray(productData.image_url) ? productData.image_url : [productData.image_url]
                     });
-
-                    if (productData.variants) {
-                        setVariants(productData.variants.map((v: any) => ({
-                            id: v.id,
-                            name: v.name,
-                            sku: v.sku || '',
-                            stock: Number(v.stock) || 0
-                        })));
-                    }
-
-                    if (loadedImages.length > 0) {
-                        setMedia(loadedImages.map((url: string) => ({ 
-                            preview: url, 
-                            type: 'image', 
-                            isMuted: true 
-                        })));
+                    if (productData.variants) setVariants(productData.variants);
+                    if (productData.image_url) {
+                        const urls = Array.isArray(productData.image_url) ? productData.image_url : [productData.image_url];
+                        setMedia(urls.map(url => ({ preview: url, type: 'image' })));
                     }
                 }
                 if (categories) setCategoriesList(categories);
-            } catch (err) {
-                console.error("Error al cargar:", err);
-            } finally {
-                setIsLoading(false);
-            }
+            } catch (err) {} finally { setIsLoading(false); }
         };
         fetchAllData();
     }, [token, productId]);
@@ -146,65 +126,33 @@ export default function EditProductPage() {
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (media.length >= 5) return showToast("Límite de 5 imágenes", "info");
-        const allowedFiles = files.slice(0, 5 - media.length);
-        for (const file of allowedFiles) {
-            setMedia(prev => [...prev, { 
-                file, preview: URL.createObjectURL(file),
-                type: 'image', isMuted: true
-            }]);
+        for (const file of files.slice(0, 5 - media.length)) {
+            setMedia(prev => [...prev, { file, preview: URL.createObjectURL(file), type: 'image' }]);
         }
     };
 
     const handleSave = async () => {
-        if (!formData.name.trim()) return showToast("Nombre obligatorio", "error");
         setIsSubmitting(true);
         try {
             const finalImageUrls: string[] = [];
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
             for (const item of media) {
                 if (item.file) {
-                    const fd = new FormData();
-                    fd.append('file', item.file);
-                    const res = await fetch(`${apiUrl}/admin/upload-image`, {
-                        method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd
-                    });
+                    const fd = new FormData(); fd.append('file', item.file);
+                    const res = await fetch(`${apiUrl}/admin/upload-image`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
                     if (res.ok) { const d = await res.json(); finalImageUrls.push(d.url); }
-                } else {
-                    finalImageUrls.push(item.preview);
-                }
+                } else { finalImageUrls.push(item.preview); }
             }
-
-            await apiRequest(`/products/${productId}`, {
-                method: 'PUT', token,
-                body: JSON.stringify({ 
-                    ...formData, 
-                    image_url: finalImageUrls, 
-                    variants: variants.map(v => ({ name: v.name, sku: v.sku, stock: Number(v.stock) })) 
-                })
-            });
-
+            await apiRequest(`/products/${productId}`, { method: 'PUT', token, body: JSON.stringify({ ...formData, image_url: finalImageUrls, variants: variants.map(v => ({ name: v.name, sku: v.sku, stock: Number(v.stock) })) }) });
             window.dispatchEvent(new CustomEvent('bayup_product_update'));
-            showToast("Producto actualizado con éxito ✨", "success");
+            showToast("Producto actualizado ✨", "success");
             router.push('/dashboard/products');
-        } catch (err) { showToast("Error al guardar", "error"); } finally { setIsSubmitting(false); }
-    };
-
-    const handleAddTempSubVariant = () => {
-        setTempSubVariants([...tempSubVariants, { id: Math.random().toString(36).substr(2, 9), spec: '', stock: 0 }]);
+        } catch (err) {} finally { setIsSubmitting(false); }
     };
 
     const handleSaveMatrixAttributes = () => {
-        if (!tempVariantName.trim()) return showToast("Asigna un nombre al atributo", "error");
-        const newCombs = tempSubVariants
-            .filter(sv => sv.spec.trim() !== '')
-            .map(sv => ({
-                id: Math.random().toString(36).substr(2, 9),
-                name: `${tempVariantName} / ${sv.spec}`,
-                sku: '',
-                stock: sv.stock
-            }));
-        if (newCombs.length === 0) return showToast("Añade especificaciones", "error");
+        if (!tempVariantName.trim()) return;
+        const newCombs = tempSubVariants.filter(sv => sv.spec.trim() !== '').map(sv => ({ id: Math.random().toString(36).substr(2, 9), name: `${tempVariantName} / ${sv.spec}`, sku: '', stock: sv.stock }));
         setVariants([...variants, ...newCombs]);
         setIsNewVariantModalOpen(false);
         setTempVariantName("");
@@ -218,7 +166,7 @@ export default function EditProductPage() {
             <motion.button whileHover={{ scale: 1.1, rotate: 90 }} onClick={() => router.back()} className="absolute top-8 right-8 z-[1010] h-12 w-12 flex items-center justify-center rounded-full bg-gray-900/10 backdrop-blur-md text-gray-500 hover:text-rose-500 shadow-lg"><X size={20} /></motion.button>
 
             <div className="w-full lg:w-[55%] h-full flex flex-col bg-[#FAFAFA] border-r border-gray-100 overflow-y-auto custom-scrollbar p-12 lg:p-20 space-y-12">
-                <header className="flex flex-col md:flex-row items-center justify-between gap-8">
+                <header className="flex flex-col md:flex-row items-center justify-between gap-8 text-slate-900">
                     <h2 className="text-4xl font-black italic uppercase tracking-tighter">Editar <span className="text-[#004D4D]">Producto</span></h2>
                     <div className="flex gap-2 p-1 bg-white border border-gray-100 rounded-full shadow-lg">
                         {(['info', 'financial', 'variants'] as const).map((tab) => (
@@ -243,17 +191,25 @@ export default function EditProductPage() {
                                 <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Descripción</label><textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows={5} className="w-full p-6 bg-gray-50 rounded-[2.5rem] outline-none text-sm font-medium shadow-inner resize-none" /></div>
                             </div>
                             <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                <div className="flex items-center justify-between"><h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><ImageIcon size={18} /> Multimedia</h3></div>
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><ImageIcon size={18} /> Multimedia</h3>
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-8">Capacidad: <span className="text-[#004D4D]">{media.length} / 5</span> archivos</p>
+                                    </div>
+                                    <div className="px-4 py-2 bg-cyan-50 rounded-xl flex items-center gap-2"><Info size={12} className="text-cyan-600"/><span className="text-[8px] font-black text-cyan-700 uppercase tracking-widest">Plan Básico</span></div>
+                                </div>
                                 <Reorder.Group axis="x" values={media} onReorder={setMedia} className="flex flex-wrap gap-4">
                                     {media.map((item, i) => (
-                                        <Reorder.Item key={item.preview} value={item} className="group relative h-32 w-32 rounded-2xl overflow-hidden bg-gray-100 border shadow-sm cursor-grab">
+                                        <Reorder.Item key={item.preview} value={item} className="group relative h-32 w-32 rounded-3xl overflow-hidden border-2 border-white shadow-xl cursor-grab">
                                             <img src={item.preview} className="w-full h-full object-cover" />
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><button type="button" onClick={() => setMedia(media.filter((_, idx) => idx !== i))} className="h-8 w-8 bg-rose-500 text-white rounded-xl flex items-center justify-center"><Trash2 size={14}/></button></div>
+                                            {i === 0 && <div className="absolute top-2 left-2 px-2 py-1 bg-[#00F2FF] text-[#004D4D] text-[7px] font-black uppercase rounded-lg shadow-lg">Principal</div>}
                                         </Reorder.Item>
                                     ))}
                                     {media.length < 5 && (
-                                        <label className="h-32 w-32 rounded-2xl border-2 border-dashed border-[#004D4D]/10 bg-gray-50/50 flex flex-col items-center justify-center cursor-pointer hover:border-[#00F2FF]">
-                                            <Plus size={20} className="text-gray-400"/>
+                                        <label className="h-32 w-32 rounded-3xl border-2 border-dashed border-[#004D4D]/10 bg-gray-50/50 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#00F2FF] group transition-all">
+                                            <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-all"><Plus size={20} className="text-[#004D4D]"/></div>
+                                            <div className="text-center"><span className="text-[8px] font-black text-gray-400 uppercase block leading-none">Subir</span><span className="text-[7px] font-bold text-gray-300 uppercase mt-1">Máx. 5 archivos</span></div>
                                             <input type="file" className="hidden" multiple onChange={handleFileUpload} />
                                         </label>
                                     )}
@@ -264,9 +220,10 @@ export default function EditProductPage() {
 
                     {activeTab === 'variants' && (
                         <motion.div key="variants" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10 pb-20">
-                            <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                            <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-8 text-slate-900">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><Layers size={18} /> Atributos Maestro</h3>
+                                    <div className="px-4 py-2 bg-purple-50 rounded-xl text-[9px] font-black text-purple-600 uppercase tracking-widest animate-pulse">Multinivel</div>
                                 </div>
                                 <div className="space-y-6">
                                     {variants.length === 0 ? (
@@ -274,31 +231,28 @@ export default function EditProductPage() {
                                             <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">Sin atributos</p>
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-slate-900">
                                             {Array.from(new Set(variants.map(v => v.name.split('/')[0].trim()))).map((masterName, mIdx) => {
                                                 const groupVariants = variants.filter(v => v.name.startsWith(masterName));
                                                 return (
-                                                    <div key={mIdx} className="p-10 bg-white rounded-[3.5rem] border border-gray-100 shadow-2xl shadow-gray-200/20 hover:shadow-cyan/5 transition-all group relative overflow-hidden flex flex-col">
-                                                        <div className="absolute top-0 right-0 p-8 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button onClick={() => setVariants(prev => prev.filter(v => !v.name.startsWith(masterName)))} className="h-10 w-10 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm"><Trash2 size={16}/></button>
-                                                        </div>
+                                                    <div key={mIdx} className="p-10 bg-white rounded-[3.5rem] border border-gray-100 shadow-2xl group relative overflow-hidden flex flex-col text-slate-900">
+                                                        <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => setVariants(prev => prev.filter(v => !v.name.startsWith(masterName)))} className="h-10 w-10 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm"><Trash2 size={16}/></button></div>
                                                         <div className="space-y-6">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="h-12 w-12 rounded-[1.2rem] bg-[#004D4D] flex items-center justify-center text-white font-black text-xs shadow-lg shadow-[#004D4D]/20">{mIdx + 1}</div>
-                                                                <h4 className="text-lg font-black text-[#004D4D] italic uppercase tracking-tighter truncate">{masterName}</h4>
+                                                            <div className="flex items-center gap-4 text-slate-900">
+                                                                <div className="h-12 w-12 rounded-[1.2rem] bg-[#004D4D] flex items-center justify-center text-white font-black text-xs shadow-lg">{mIdx + 1}</div>
+                                                                <h4 className="text-lg font-black text-[#004D4D] italic uppercase tracking-tighter">{masterName}</h4>
                                                             </div>
                                                             <div className="space-y-4">
-                                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2">Especificaciones y Stock:</p>
+                                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest border-b pb-2">Especificaciones:</p>
                                                                 <div className="flex flex-wrap gap-3">
                                                                     {groupVariants.map((gv, gIdx) => {
                                                                         const detail = gv.name.includes('/') ? gv.name.split('/')[1].trim() : gv.name;
                                                                         const hasColor = detail.includes(': #');
                                                                         const colorHex = hasColor ? detail.split(': #')[1] : null;
                                                                         const cleanDetail = hasColor ? detail.split(':')[0] : detail;
-
                                                                         return (
                                                                             <div key={gIdx} className="px-4 py-2 bg-gray-50 rounded-2xl text-[10px] font-bold text-gray-600 border border-gray-100 flex items-center gap-2 shadow-sm">
-                                                                                {hasColor && <div className="w-3 h-3 rounded-full border border-white shadow-sm" style={{ backgroundColor: `#${colorHex}` }} />}
+                                                                                {hasColor && <div className="w-3 h-3 rounded-full border border-white" style={{ backgroundColor: `#${colorHex}` }} />}
                                                                                 <span>{cleanDetail}</span>
                                                                                 <span className="mx-1 opacity-20">|</span>
                                                                                 <span className="text-[#004D4D] font-black">{gv.stock} uds</span>
@@ -313,8 +267,8 @@ export default function EditProductPage() {
                                             })}
                                         </div>
                                     )}
-                                    <button onClick={() => setIsNewVariantModalOpen(true)} className="w-full py-8 border-2 border-dashed border-gray-100 rounded-[3rem] text-[10px] font-black text-gray-400 uppercase hover:text-[#004D4D] hover:bg-gray-50 transition-all flex items-center justify-center gap-4">
-                                        <div className="h-10 w-10 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center"><Plus size={20} className="text-[#004D4D]"/></div>
+                                    <button onClick={() => setIsNewVariantModalOpen(true)} className="w-full py-8 border-2 border-dashed border-gray-100 rounded-[3rem] text-[10px] font-black text-gray-400 uppercase hover:text-[#004D4D] hover:bg-gray-50 transition-all flex items-center justify-center gap-4 shadow-sm group">
+                                        <div className="h-10 w-10 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center group-hover:scale-110 transition-all"><Plus size={20} className="text-[#004D4D]"/></div>
                                         Añadir Atributo / Variante
                                     </button>
                                 </div>
@@ -336,30 +290,35 @@ export default function EditProductPage() {
 
                             <AnimatePresence>
                                 {isNewVariantModalOpen && (
-                                    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 md:p-20">
-                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNewVariantModalOpen(false)} className="absolute inset-0 bg-gray-900/80 backdrop-blur-xl" />
-                                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-2xl bg-white rounded-[4rem] shadow-3xl overflow-hidden flex flex-col">
-                                            <div className="bg-gray-50 p-12 border-b border-gray-100 flex justify-between items-center">
+                                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 md:p-20">
+                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNewVariantModalOpen(false)} className="fixed inset-0 bg-gray-900/90 backdrop-blur-3xl" />
+                                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-2xl bg-white rounded-[4rem] shadow-3xl overflow-hidden border border-white/20 flex flex-col z-[10000]">
+                                            <div className="bg-gray-50 p-12 border-b border-gray-100 flex justify-between items-center w-full">
                                                 <div className="space-y-1"><h3 className="text-2xl font-black italic tracking-tighter uppercase text-[#004D4D]">Personalizar Atributo</h3><p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em]">Talla, color y stock juntos</p></div>
-                                                <button onClick={() => setIsNewVariantModalOpen(false)}><X size={20}/></button>
+                                                <button onClick={() => setIsNewVariantModalOpen(false)} className="h-12 w-12 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-400 hover:text-rose-500 transition-all"><X size={20}/></button>
                                             </div>
-                                            <div className="p-12 space-y-10 overflow-y-auto max-h-[50vh] custom-scrollbar">
+                                            <div className="p-12 space-y-10 overflow-y-auto max-h-[50vh] custom-scrollbar text-slate-900">
                                                 <div className="space-y-4">
-                                                    <label className="text-[10px] font-black text-[#004D4D] uppercase tracking-[0.2em]">Nombre Atributo (Ej: Talla S)</label>
-                                                    <input value={tempVariantName} onChange={(e) => setTempVariantName(e.target.value)} placeholder="Escribe el nombre..." className="w-full bg-gray-50 border-2 border-transparent focus:border-[#00F2FF]/30 rounded-3xl px-8 py-6 text-sm font-bold outline-none" />
+                                                    <label className="text-[10px] font-black text-[#004D4D] uppercase tracking-[0.2em] ml-2">Nombre Atributo Principal (Ej: Talla S)</label>
+                                                    <input value={tempVariantName} onChange={(e) => setTempVariantName(e.target.value)} placeholder="Escribe el nombre principal..." className="w-full bg-gray-50 border-2 border-transparent focus:border-[#00F2FF]/30 rounded-3xl px-8 py-6 text-sm font-bold outline-none transition-all shadow-inner text-slate-900" />
                                                 </div>
                                                 <div className="space-y-6">
-                                                    <label className="text-[10px] font-black text-[#004D4D] uppercase tracking-[0.2em]">Especificaciones (Ej: Color Rojo...)</label>
+                                                    <label className="text-[10px] font-black text-[#004D4D] uppercase tracking-[0.2em] ml-2">Sub-variantes (Ej: Color Rojo, 16GB RAM...)</label>
                                                     <div className="space-y-4">
                                                         {tempSubVariants.map((sv) => (
                                                             <div key={sv.id} className="flex gap-4 items-center">
-                                                                <input value={sv.spec} onChange={(e) => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: e.target.value } : item))} placeholder="Especificación..." className="flex-1 bg-gray-50 rounded-2xl px-6 py-4 text-xs font-bold outline-none" />
-                                                                <input type="number" value={sv.stock} onChange={(e) => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, stock: Number(e.target.value) } : item))} placeholder="0" className="w-24 bg-[#004D4D]/5 rounded-2xl px-4 py-4 text-center text-xs font-black text-[#004D4D]" />
-                                                                <button onClick={() => setTempSubVariants(prev => prev.filter(item => item.id !== sv.id))}><Trash2 size={16}/></button>
+                                                                <div className="flex-1 relative flex items-center">
+                                                                    {sv.spec.toLowerCase().includes('color') && (
+                                                                        <div className="absolute left-4 z-10"><input type="color" value={resolveColor(sv.spec.split(':').pop() || '')} onChange={e => { const baseName = sv.spec.includes(':') ? sv.spec.split(':')[0] : sv.spec; setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: `${baseName.trim()}: ${e.target.value}` } : item)); }} className="w-6 h-6 rounded-full border-2 border-white shadow-sm cursor-pointer bg-transparent" /></div>
+                                                                    )}
+                                                                    <input value={sv.spec.includes(': #') ? sv.spec.split(':')[0] : sv.spec} onChange={(e) => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: e.target.value } : item))} placeholder="Especificación..." className={`flex-1 bg-gray-50 rounded-2xl py-4 text-xs font-bold outline-none border border-transparent focus:border-gray-200 text-slate-900 ${sv.spec.toLowerCase().includes('color') ? 'pl-14' : 'px-6'}`} />
+                                                                </div>
+                                                                <input type="number" value={sv.stock} onChange={(e) => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, stock: Number(e.target.value) } : item))} className="w-24 bg-[#004D4D]/5 rounded-2xl px-4 py-4 text-center text-xs font-black text-[#004D4D] shadow-inner" />
+                                                                <button onClick={() => setTempSubVariants(prev => prev.filter(item => item.id !== sv.id))} className="text-gray-300 hover:text-rose-500"><Trash2 size={16}/></button>
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    <button onClick={handleAddTempSubVariant} className="text-[9px] font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-2"><Plus size={14}/> Añadir Especificación</button>
+                                                    <button onClick={() => setTempSubVariants([...tempSubVariants, { id: Math.random().toString(36).substr(2, 9), spec: '', stock: 0 }])} className="text-[9px] font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-2 hover:opacity-70"><Plus size={14}/> Añadir Especificación</button>
                                                 </div>
                                             </div>
                                             <div className="p-12 bg-gray-50 flex gap-4 mt-auto">
@@ -380,9 +339,8 @@ export default function EditProductPage() {
                 </div>
             </div>
 
-            {/* PREVISUALIZACIÓN DERECHA */}
             <div className="flex-1 bg-gray-100 p-12 lg:p-20 flex items-center justify-center relative">
-                <div className="w-full max-w-lg bg-white shadow-2xl rounded-[3.5rem] flex flex-col h-[calc(100vh-160px)] overflow-hidden">
+                <div className="w-full max-w-lg bg-white shadow-2xl rounded-[3.5rem] flex flex-col h-[calc(100vh-160px)] overflow-hidden border border-white">
                     <div className="bg-[#004D4D] p-10 text-white flex justify-between items-start shrink-0">
                         <div className="flex items-center gap-6">
                             <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center"><Box size={24} className="text-[#004D4D]" /></div>
@@ -393,11 +351,29 @@ export default function EditProductPage() {
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar bg-white p-10 space-y-10">
-                        <div className="aspect-square w-full rounded-[2.5rem] bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center">
+                        <div className="aspect-square w-full rounded-[2.5rem] bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center relative">
                             {media.length > 0 ? <img src={media[selectedPreviewIndex]?.preview} className="w-full h-full object-cover" /> : <ImageIcon size={40} className="text-gray-200" />}
                         </div>
                         <div className="space-y-6">
                             <div className="flex justify-between items-start"><div className="space-y-1"><p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">{formData.category || 'Categoría'}</p><h3 className="text-2xl font-black text-gray-900 tracking-tighter leading-tight">{formData.name || 'Sin nombre'}</h3></div><div className="text-right"><p className="text-xl font-black text-[#004D4D]">${formData.price.toLocaleString('de-DE')}</p></div></div>
+                            {variants.length > 0 && (
+                                <div className="space-y-4 pt-4 border-t border-gray-50">
+                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Variantes y Stock</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {variants.map((v, i) => {
+                                            const hasColor = v.name.includes(': #');
+                                            const colorHex = hasColor ? v.name.split(': #')[1] : null;
+                                            const cleanName = hasColor ? v.name.split(':')[0] : v.name;
+                                            return (
+                                                <div key={i} className="px-3 py-1.5 bg-gray-50 rounded-lg border text-[10px] font-bold text-gray-600 flex items-center gap-2">
+                                                    {hasColor && <div className="w-2 h-2 rounded-full border border-white" style={{ backgroundColor: `#${colorHex}` }} />}
+                                                    {cleanName}: {v.stock}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                             <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-50"><div className="space-y-2"><p className="text-[9px] font-black text-gray-300 uppercase">SKU Maestro</p><p className="text-sm font-black text-gray-900 uppercase tracking-widest">{formData.sku || 'PENDIENTE'}</p></div><div className="space-y-2 text-right"><p className="text-[9px] font-black text-gray-300 uppercase">Stock Total</p><p className="text-sm font-black text-gray-900 uppercase tracking-widest">{variants.reduce((acc, v) => acc + (v.stock || 0), 0)} UNIDADES</p></div></div>
                         </div>
                     </div>

@@ -44,31 +44,23 @@ import {
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { apiRequest } from '@/lib/api';
-import { InteractiveUP } from '@/components/landing/InteractiveUP';
 
 export default function NewProductPage() {
-    const { token, userEmail } = useAuth();
+    const { token } = useAuth();
     const { showToast } = useToast();
     const router = useRouter();
     
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [activeTab, setActiveTab] = useState<'info' | 'financial' | 'variants'>('info');
     
-    // Estados para Categorías y Guía
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState("");
     const [categoriesList, setCategoriesList] = useState<any[]>([]);
     
-    // Estados para Variantes Multinivel
     const [isNewVariantModalOpen, setIsNewVariantModalOpen] = useState(false);
     const [tempVariantName, setTempVariantName] = useState("");
     const [tempSubVariants, setTempSubVariants] = useState([{ id: '1', spec: '', stock: 0 }]);
-
-    // Estados para Tooltips
-    const [showWholesaleTip, setShowWholesaleTip] = useState(false);
-    const [showRetailTip, setShowRetailTip] = useState(false);
-    const [showGatewayTip, setShowGatewayTip] = useState(false);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -84,155 +76,15 @@ export default function NewProductPage() {
     });
 
     const [variants, setVariants] = useState<any[]>([]);
-
-    const [media, setMedia] = useState<{file?: File, preview: string, type: 'image' | 'video', isMuted: boolean}[]>([]);
+    const [media, setMedia] = useState<{file?: File, preview: string, type: 'image' | 'video'}[]>([]);
     const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
 
-    const [isPriceAssistantOpen, setIsPriceAssistantOpen] = useState(false);
-    const [isAnalyzingBayt, setIsAnalyzingBayt] = useState(false);
-    const [assistantExpenses, setAssistantExpenses] = useState({ payroll: 0, rent: 0, utilities: 0, ops: 0 });
-    const [calcQuantity, setCalcQuantity] = useState(1);
-    const [calcMargin, setCalcMargin] = useState(30);
-    const [calcWholesaleMargin, setCalcWholesaleMargin] = useState(15);
-    const [hasAnalyzed, setHasAnalyzed] = useState(false);
-    const [isNoDataModalOpen, setIsNoDataModalOpen] = useState(false);
-    const [platformCommission, setPlatformCommission] = useState(2.5);
-
-    const handleBaytAnalysis = async () => {
-        if (!token) return;
-        setIsAnalyzingBayt(true);
-        try {
-            const [expenses, orders] = await Promise.all([
-                apiRequest<any[]>('/expenses', { token }).catch(() => []),
-                apiRequest<any[]>('/orders', { token }).catch(() => [])
-            ]);
-            const totals = { payroll: 0, rent: 0, utilities: 0, ops: 0 };
-            const hasRealData = (expenses && expenses.length > 0) || (orders && orders.length > 0);
-            if (!hasRealData) { setIsNoDataModalOpen(true); setIsAnalyzingBayt(false); return; }
-            if (expenses) {
-                expenses.forEach(exp => {
-                    const desc = exp.description?.toLowerCase() || "";
-                    const amount = exp.amount || 0;
-                    if (desc.includes('nómina')) totals.payroll += amount;
-                    else if (desc.includes('arriendo')) totals.rent += amount;
-                    else if (desc.includes('servicio')) totals.utilities += amount;
-                    else totals.ops += amount;
-                });
-            }
-            setAssistantExpenses(totals);
-            showToast("Auditoría de Bayt completada ✨", "success");
-            setHasAnalyzed(true);
-        } catch (err) { setIsNoDataModalOpen(true); } finally { setIsAnalyzingBayt(false); }
-    };
-
-    useEffect(() => {
-        const fetchInitial = async () => {
-            if (!token) return;
-            try {
-                const [cats, userData] = await Promise.all([
-                    apiRequest<any[]>('/collections', { token }),
-                    apiRequest<any>('/auth/me', { token })
-                ]);
-                if (cats) setCategoriesList(cats);
-                if (userData?.plan) setPlatformCommission(userData.plan.commission_rate * 100);
-            } catch (e) {}
-        };
-        fetchInitial();
-    }, [token]);
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        if (media.length >= 5) {
-            showToast("Límite de 5 imágenes alcanzado (Plan Básico)", "info");
-            return;
-        }
-        const allowedFiles = files.slice(0, 5 - media.length);
-        for (const file of allowedFiles) {
-            setMedia(prev => [...prev, { 
-                file, preview: URL.createObjectURL(file),
-                type: file.type.startsWith('video') ? 'video' : 'image', isMuted: true
-            }]);
-        }
-    };
-
-    const handleSave = async () => {
-        if (!formData.name.trim()) return showToast("Nombre obligatorio", "error");
-        setIsSubmitting(true);
-        try {
-            const finalImageUrls: string[] = [];
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-            for (const item of media) {
-                if (item.file) {
-                    const fd = new FormData();
-                    fd.append('file', item.file);
-                    const res = await fetch(`${apiUrl}/admin/upload-image`, {
-                        method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd
-                    });
-                    if (res.ok) { const d = await res.json(); finalImageUrls.push(d.url); }
-                }
-            }
-
-            const payload = {
-                name: formData.name,
-                description: formData.description,
-                price: formData.price,
-                wholesale_price: formData.wholesale_price,
-                cost: formData.cost,
-                collection_id: formData.collection_id,
-                sku: formData.sku,
-                status: formData.status,
-                add_gateway_fee: formData.add_gateway_fee,
-                image_url: finalImageUrls,
-                variants: variants.map(v => ({ 
-                    name: v.name, 
-                    sku: v.sku, 
-                    stock: Number(v.stock) || 0, 
-                    price_adjustment: 0 
-                }))
-            };
-
-            await apiRequest('/products', { method: 'POST', token, body: JSON.stringify(payload) });
-            showToast("¡Producto creado con éxito! ✨", "success");
-            router.push('/dashboard/products');
-        } catch (err) { showToast("Error al guardar", "error"); } finally { setIsSubmitting(false); }
-    };
-
-    const handleCreateCategory = async () => {
-        if (!newCategoryName.trim() || !token) return;
-        try {
-            const data = await apiRequest<any>('/collections', {
-                method: 'POST', token,
-                body: JSON.stringify({ title: newCategoryName.trim(), description: "Creada desde el editor", status: 'active' })
-            });
-            if (data) {
-                setCategoriesList(prev => [...prev, data]);
-                setFormData(prev => ({...prev, category: data.title, collection_id: data.id}));
-                setNewCategoryName("");
-                setIsNewCategoryModalOpen(false);
-                setIsCategoryOpen(false);
-                showToast("Categoría creada con éxito", "success");
-            }
-        } catch (err) { showToast("Error al crear categoría", "error"); }
-    };
-
-    const formatValue = (val: number | string) => {
-        const num = String(val).replace(/\D/g, "");
-        return new Intl.NumberFormat("de-DE").format(Number(num));
-    };
-
-    // Mapeo de colores para reconocimiento automático
     const colorMap: { [key: string]: string } = {
-        'rojo': '#FF0000', 'red': '#FF0000',
-        'azul': '#0000FF', 'blue': '#0000FF',
-        'verde': '#008000', 'green': '#008000',
-        'negro': '#000000', 'black': '#000000',
-        'blanco': '#FFFFFF', 'white': '#FFFFFF',
-        'amarillo': '#FFFF00', 'yellow': '#FFFFFF',
-        'gris': '#808080', 'gray': '#808080',
-        'naranja': '#FFA500', 'orange': '#FFA500',
-        'morado': '#800080', 'purple': '#800080',
-        'rosa': '#FFC0CB', 'pink': '#FFC0CB',
+        'rojo': '#FF0000', 'red': '#FF0000', 'azul': '#0000FF', 'blue': '#0000FF',
+        'verde': '#008000', 'green': '#008000', 'negro': '#000000', 'black': '#000000',
+        'blanco': '#FFFFFF', 'white': '#FFFFFF', 'amarillo': '#FFFF00', 'yellow': '#FFFFFF',
+        'gris': '#808080', 'gray': '#808080', 'naranja': '#FFA500', 'orange': '#FFA500',
+        'morado': '#800080', 'purple': '#800080', 'rosa': '#FFC0CB', 'pink': '#FFC0CB',
         'cian': '#00FFFF', 'cyan': '#00F2FF'
     };
 
@@ -243,62 +95,70 @@ export default function NewProductPage() {
         return '#000000';
     };
 
-    const handleAddTempSubVariant = () => {
-        setTempSubVariants([...tempSubVariants, { id: Math.random().toString(36).substr(2, 9), spec: '', stock: 0 }]);
+    useEffect(() => {
+        const fetchInitial = async () => {
+            if (!token) return;
+            try {
+                const cats = await apiRequest<any[]>('/collections', { token });
+                if (cats) setCategoriesList(cats);
+            } catch (e) {}
+        };
+        fetchInitial();
+    }, [token]);
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (media.length >= 5) return showToast("Límite de 5 imágenes", "info");
+        for (const file of files.slice(0, 5 - media.length)) {
+            setMedia(prev => [...prev, { file, preview: URL.createObjectURL(file), type: 'image' }]);
+        }
+    };
+
+    const handleSave = async () => {
+        if (!formData.name.trim()) return showToast("Nombre obligatorio", "error");
+        setIsSubmitting(true);
+        try {
+            const finalImageUrls: string[] = [];
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            for (const item of media) {
+                if (item.file) {
+                    const fd = new FormData(); fd.append('file', item.file);
+                    const res = await fetch(`${apiUrl}/admin/upload-image`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
+                    if (res.ok) { const d = await res.json(); finalImageUrls.push(d.url); }
+                }
+            }
+            const payload = { ...formData, image_url: finalImageUrls, variants: variants.map(v => ({ name: v.name, sku: v.sku || '', stock: Number(v.stock) || 0 })) };
+            await apiRequest('/products', { method: 'POST', token, body: JSON.stringify(payload) });
+            window.dispatchEvent(new CustomEvent('bayup_product_update'));
+            showToast("Producto creado ✨", "success");
+            router.push('/dashboard/products');
+        } catch (err) { showToast("Error al guardar", "error"); } finally { setIsSubmitting(false); }
     };
 
     const handleSaveMatrixAttributes = () => {
-        if (!tempVariantName.trim()) return showToast("Asigna un nombre al atributo", "error");
-        
-        const newCombs = tempSubVariants
-            .filter(sv => sv.spec.trim() !== '')
-            .map(sv => ({
-                id: Math.random().toString(36).substr(2, 9),
-                name: `${tempVariantName} / ${sv.spec}`,
-                sku: '',
-                stock: sv.stock
-            }));
-
-        if (newCombs.length === 0) return showToast("Añade al menos una especificación", "error");
-
+        if (!tempVariantName.trim()) return;
+        const newCombs = tempSubVariants.filter(sv => sv.spec.trim() !== '').map(sv => ({
+            id: Math.random().toString(36).substr(2, 9),
+            name: `${tempVariantName} / ${sv.spec}`,
+            sku: '',
+            stock: sv.stock
+        }));
         setVariants([...variants, ...newCombs]);
         setIsNewVariantModalOpen(false);
         setTempVariantName("");
         setTempSubVariants([{ id: '1', spec: '', stock: 0 }]);
-        showToast("Atributos añadidos correctamente", "success");
     };
-
-    // Cálculos Financieros
-    const platformFeeRate = 0.025;
-    const gatewayFeeRate = 0.035;
-    const platformDeductionUser = formData.price * platformFeeRate;
-    const gatewayDeductionUser = formData.add_gateway_fee ? 0 : (formData.price * gatewayFeeRate);
-    const profitUser = formData.price - formData.cost - platformDeductionUser - gatewayDeductionUser;
-    const marginUser = formData.price > 0 ? (profitUser / formData.price) * 100 : 0;
-
-    const platformDeductionWholesale = formData.wholesale_price * platformFeeRate;
-    const gatewayDeductionWholesale = formData.add_gateway_fee ? 0 : (formData.wholesale_price * gatewayFeeRate);
-    const profitWholesale = formData.wholesale_price - formData.cost - platformDeductionWholesale - gatewayDeductionWholesale;
-    const marginWholesale = formData.wholesale_price > 0 ? (profitWholesale / formData.wholesale_price) * 100 : 0;
-
-    // Lógica de Cálculo Asistente
-    const currentGatewayRate = 0.035;
-    const totalFixedExpenses = assistantExpenses.payroll + assistantExpenses.rent + assistantExpenses.utilities + assistantExpenses.ops;
-    const expensePerUnit = calcQuantity > 0 ? totalFixedExpenses / calcQuantity : 0;
-    const totalUnitCost = formData.cost + expensePerUnit;
-    const suggestedPrice = totalUnitCost / (1 - (calcMargin / 100) - (platformCommission / 100) - (formData.add_gateway_fee ? 0 : currentGatewayRate));
-    const suggestedWholesale = totalUnitCost / (1 - (calcWholesaleMargin / 100) - (platformCommission / 100) - (formData.add_gateway_fee ? 0 : currentGatewayRate));
 
     return (
         <div className="fixed inset-0 z-[1000] bg-white flex flex-col lg:flex-row overflow-hidden text-slate-900 font-sans">
-            <motion.button whileHover={{ scale: 1.1, rotate: 90 }} onClick={() => router.back()} className="absolute top-8 right-8 z-[1010] h-12 w-12 flex items-center justify-center rounded-full bg-gray-900/10 backdrop-blur-md border border-white/20 text-gray-500 hover:text-rose-500 shadow-lg"><X size={20} /></motion.button>
+            <motion.button whileHover={{ scale: 1.1, rotate: 90 }} onClick={() => router.back()} className="absolute top-8 right-8 z-[1010] h-12 w-12 flex items-center justify-center rounded-full bg-gray-900/10 backdrop-blur-md text-gray-500 shadow-lg"><X size={20} /></motion.button>
 
-            <motion.div initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="w-full lg:w-[55%] h-full flex flex-col bg-[#FAFAFA] border-r border-gray-100 overflow-y-auto custom-scrollbar p-12 lg:p-20 space-y-12">
+            <div className="w-full lg:w-[55%] h-full flex flex-col bg-[#FAFAFA] border-r border-gray-100 overflow-y-auto custom-scrollbar p-12 lg:p-20 space-y-12">
                 <header className="flex flex-col md:flex-row items-center justify-between gap-8">
-                    <div><h2 className="text-4xl font-black italic uppercase text-[#001A1A] tracking-tighter leading-none">Crear <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF]">Producto</span></h2></div>
+                    <h2 className="text-4xl font-black italic uppercase tracking-tighter">Crear <span className="text-[#004D4D]">Producto</span></h2>
                     <div className="flex gap-2 p-1 bg-white border border-gray-100 rounded-full shadow-lg">
                         {(['info', 'financial', 'variants'] as const).map((tab) => (
-                            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-[#004D4D] text-white shadow-md' : 'text-gray-400 hover:text-[#004D4D]'}`}>{tab === 'info' ? 'Información' : tab === 'financial' ? 'Finanzas' : 'Variantes'}</button>
+                            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-[#004D4D] text-white' : 'text-gray-400 hover:text-[#004D4D]'}`}>{tab === 'info' ? 'Información' : tab === 'financial' ? 'Finanzas' : 'Variantes'}</button>
                         ))}
                     </div>
                 </header>
@@ -306,212 +166,113 @@ export default function NewProductPage() {
                 <AnimatePresence mode="wait">
                     {activeTab === 'info' && (
                         <motion.div key="info" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-10">
-                            <section className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                <div className="space-y-6">
-                                    <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">TÍTULO DEL PRODUCTO</label><input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Ej: Camiseta Urban o MacBook Pro" className="w-full px-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner" /></div>
-                                    <div className="grid grid-cols-2 gap-8">
-                                        <div className="space-y-2 relative"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Categoría</label><button type="button" onClick={() => setIsCategoryOpen(!isCategoryOpen)} className="w-full px-6 py-5 bg-gray-50 rounded-2xl text-left text-sm font-bold shadow-inner flex items-center justify-between"><span className={formData.category ? "text-[#004D4D]" : "text-gray-300"}>{formData.category || "Seleccionar..."}</span><ChevronDown size={16} /></button>
-                                            <AnimatePresence>
-                                                {isCategoryOpen && (
-                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border z-[110] p-2">
-                                                        <div className="max-h-[200px] overflow-y-auto no-scrollbar">
-                                                            {categoriesList.map(cat => (
-                                                                <button key={cat.id} type="button" onClick={() => { setFormData({...formData, category: cat.title, collection_id: cat.id}); setIsCategoryOpen(false); }} className="w-full text-left px-5 py-3 rounded-xl text-xs font-black uppercase text-slate-500 hover:bg-slate-50">{cat.title}</button>
-                                                            ))}
-                                                        </div>
-                                                        <button type="button" onClick={() => setIsNewCategoryModalOpen(true)} className="w-full mt-2 py-3 bg-[#004D4D]/5 text-[#004D4D] rounded-xl text-[9px] font-black uppercase tracking-widest">+ Nueva Categoría</button>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </div>
-                                        <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Estado</label><div className="flex bg-gray-50 p-1 rounded-2xl shadow-inner h-[60px]"><button onClick={() => setFormData({...formData, status: 'active'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase transition-all ${formData.status === 'active' ? 'bg-[#004D4D] text-white shadow-md' : 'text-gray-400'}`}>Activo</button><button onClick={() => setFormData({...formData, status: 'draft'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase transition-all ${formData.status === 'draft' ? 'bg-[#004D4D] text-white shadow-md' : 'text-gray-400'}`}>Borrador</button></div></div>
+                            <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                                <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">TÍTULO</label><input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl outline-none font-bold" /></div>
+                                <div className="grid grid-cols-2 gap-8">
+                                    <div className="space-y-2 relative"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Categoría</label><button onClick={() => setIsCategoryOpen(!isCategoryOpen)} className="w-full p-5 bg-gray-50 rounded-2xl text-left text-sm font-bold flex items-center justify-between"><span>{formData.category || "Seleccionar..."}</span><ChevronDown size={16} /></button>
+                                        <AnimatePresence>{isCategoryOpen && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border z-[110] p-2">
+                                            <div className="max-h-[200px] overflow-y-auto no-scrollbar">{categoriesList.map(cat => (<button key={cat.id} onClick={() => { setFormData({...formData, category: cat.title, collection_id: cat.id}); setIsCategoryOpen(false); }} className="w-full text-left px-5 py-3 rounded-xl text-xs font-black uppercase text-slate-500 hover:bg-slate-50">{cat.title}</button>))}</div>
+                                        </motion.div>)}</AnimatePresence>
                                     </div>
-                                    <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Descripción</label><textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows={5} placeholder="Describe tu activo comercial..." className="w-full px-6 py-6 bg-gray-50 border border-transparent rounded-[2.5rem] outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-medium shadow-inner transition-all resize-none" /></div>
+                                    <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Estado</label><div className="flex bg-gray-50 p-1 rounded-2xl h-[60px]"><button onClick={() => setFormData({...formData, status: 'active'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase ${formData.status === 'active' ? 'bg-[#004D4D] text-white' : 'text-gray-400'}`}>Activo</button><button onClick={() => setFormData({...formData, status: 'draft'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase ${formData.status === 'draft' ? 'bg-[#004D4D] text-white' : 'text-gray-400'}`}>Borrador</button></div></div>
                                 </div>
-                            </section>
-                            <section className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                <div className="flex items-center justify-between text-slate-900"><h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><ImageIcon size={18} /> Galería Multimedia</h3></div>
+                                <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Descripción</label><textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows={5} className="w-full p-6 bg-gray-50 rounded-[2.5rem] outline-none text-sm font-medium resize-none" /></div>
+                            </div>
+                            <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1"><h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><ImageIcon size={18} /> Multimedia</h3><p className="text-[9px] font-bold text-gray-400 uppercase ml-8">Capacidad: <span className="text-[#004D4D]">{media.length} / 5</span> archivos</p></div>
+                                </div>
                                 <Reorder.Group axis="x" values={media} onReorder={setMedia} className="flex flex-wrap gap-4">
                                     {media.map((item, i) => (
-                                        <Reorder.Item key={item.preview} value={item} className="group relative h-32 w-32 rounded-2xl overflow-hidden bg-gray-100 border shadow-sm cursor-grab active:cursor-grabbing">
-                                            <img src={item.preview} className="w-full h-full object-cover pointer-events-none" alt="Preview" />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><button type="button" onClick={() => setMedia(media.filter((_, idx) => idx !== i))} className="h-8 w-8 bg-rose-500 text-white rounded-xl flex items-center justify-center"><Trash2 size={14}/></button></div>
+                                        <Reorder.Item key={item.preview} value={item} className="group relative h-32 w-32 rounded-3xl overflow-hidden border-2 border-white shadow-xl cursor-grab">
+                                            <img src={item.preview} className="w-full h-full object-cover" />
+                                            <button onClick={() => setMedia(media.filter((_, idx) => idx !== i))} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><Trash2 size={16}/></button>
+                                            {i === 0 && <div className="absolute top-2 left-2 px-2 py-1 bg-[#00F2FF] text-[#004D4D] text-[7px] font-black uppercase rounded-lg shadow-lg">Principal</div>}
                                         </Reorder.Item>
                                     ))}
                                     {media.length < 5 && (
-                                        <label className="h-32 w-32 rounded-2xl border-2 border-dashed border-[#004D4D]/10 bg-gray-50/50 flex flex-col items-center justify-center gap-2 hover:border-[#00F2FF] cursor-pointer transition-all">
-                                            <Plus size={20} className="text-gray-400"/>
-                                            <span className="text-[8px] font-black text-gray-400 uppercase">Subir</span>
+                                        <label className="h-32 w-32 rounded-3xl border-2 border-dashed border-[#004D4D]/10 bg-gray-50/50 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#00F2FF] group transition-all">
+                                            <Plus size={20} className="text-[#004D4D] group-hover:scale-110 transition-transform"/>
+                                            <div className="text-center"><span className="text-[8px] font-black text-gray-400 uppercase block">Subir</span><span className="text-[7px] font-bold text-gray-300 uppercase">Máx. 5 archivos</span></div>
                                             <input type="file" className="hidden" multiple onChange={handleFileUpload} />
                                         </label>
                                     )}
                                 </Reorder.Group>
-                            </section>
+                            </div>
                         </motion.div>
                     )}
 
                     {activeTab === 'variants' && (
                         <motion.div key="variants" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10 pb-20">
                             <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3">
-                                        <Layers size={18} /> Gestión de Atributos Maestro
-                                    </h3>
-                                    <div className="px-4 py-2 bg-purple-50 rounded-xl text-[9px] font-black text-purple-600 uppercase tracking-widest animate-pulse">
-                                        Modo Multinivel Activo
-                                    </div>
-                                </div>
-
-                                <p className="text-xs text-gray-400 font-medium leading-relaxed italic">
-                                    Organiza tu inventario por grupos personalizados. Cada atributo puede tener múltiples sub-variantes con stock independiente.
-                                </p>
-
-                                <div className="space-y-6">
-                                    {variants.length === 0 ? (
-                                        <div className="text-center py-20 bg-gray-50/50 rounded-[2.5rem] border border-dashed border-gray-200">
-                                            <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">No hay atributos configurados</p>
-                                        </div>
-                                    ) : (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                            {Array.from(new Set(variants.map(v => v.name.split('/')[0].trim()))).map((masterName, mIdx) => {
-                                                const groupVariants = variants.filter(v => v.name.startsWith(masterName));
-                                                return (
-                                                    <div key={mIdx} className="p-10 bg-white rounded-[3.5rem] border border-gray-100 shadow-2xl shadow-gray-200/20 hover:shadow-cyan/5 transition-all group relative overflow-hidden flex flex-col">
-                                                        <div className="absolute top-0 right-0 p-8 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button onClick={() => setVariants(prev => prev.filter(v => !v.name.startsWith(masterName)))} className="h-10 w-10 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm"><Trash2 size={16}/></button>
-                                                        </div>
-                                                        <div className="space-y-6">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="h-12 w-12 rounded-[1.2rem] bg-[#004D4D] flex items-center justify-center text-white font-black text-xs shadow-lg shadow-[#004D4D]/20">{mIdx + 1}</div>
-                                                                <h4 className="text-lg font-black text-[#004D4D] italic uppercase tracking-tighter truncate">{masterName}</h4>
-                                                            </div>
-                                                            <div className="space-y-4">
-                                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2">Especificaciones y Stock:</p>
-                                                                <div className="flex flex-wrap gap-3">
-                                                                    {groupVariants.map((gv, gIdx) => {
-                                                                        const detail = gv.name.includes('/') ? gv.name.split('/')[1].trim() : gv.name;
-                                                                        const hasColor = detail.includes(': #');
-                                                                        const colorHex = hasColor ? detail.split(': #')[1] : null;
-                                                                        const cleanDetail = hasColor ? detail.split(':')[0] : detail;
-
-                                                                        return (
-                                                                            <div key={gIdx} className="px-4 py-2 bg-gray-50 rounded-2xl text-[10px] font-bold text-gray-600 border border-gray-100 flex items-center gap-2 shadow-sm">
-                                                                                {hasColor && <div className="w-3 h-3 rounded-full border border-white shadow-sm" style={{ backgroundColor: `#${colorHex}` }} />}
-                                                                                <span>{cleanDetail}</span>
-                                                                                <span className="mx-1 opacity-20">|</span>
-                                                                                <span className="text-[#004D4D] font-black">{gv.stock} uds</span>
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><Layers size={18} /> Atributos Maestro</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    {Array.from(new Set(variants.map(v => v.name.split('/')[0].trim()))).map((master, mIdx) => {
+                                        const subs = variants.filter(v => v.name.startsWith(master));
+                                        return (
+                                            <div key={mIdx} className="p-10 bg-white rounded-[3.5rem] border border-gray-100 shadow-2xl relative overflow-hidden group">
+                                                <button onClick={() => setVariants(prev => prev.filter(v => !v.name.startsWith(master)))} className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-rose-500"><Trash2 size={16}/></button>
+                                                <div className="space-y-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="h-10 w-10 rounded-2xl bg-[#004D4D] flex items-center justify-center text-white font-black text-xs">{mIdx + 1}</div>
+                                                        <h4 className="text-lg font-black text-[#004D4D] italic uppercase tracking-tighter">{master}</h4>
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-
-                                    <button 
-                                        onClick={() => setIsNewVariantModalOpen(true)}
-                                        className="w-full py-8 border-2 border-dashed border-gray-100 rounded-[3rem] text-[10px] font-black text-gray-400 uppercase hover:text-[#004D4D] hover:bg-gray-50 transition-all flex items-center justify-center gap-4 shadow-sm group"
-                                    >
-                                        <div className="h-10 w-10 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center group-hover:scale-110 transition-all">
-                                            <Plus size={20} className="text-[#004D4D]"/>
-                                        </div>
-                                        Añadir Nuevo Atributo / Variante
+                                                    <div className="flex flex-wrap gap-3">
+                                                        {subs.map((s, sIdx) => {
+                                                            const detail = s.name.includes('/') ? s.name.split('/')[1].trim() : s.name;
+                                                            const hasColor = detail.includes(': #');
+                                                            const colorHex = hasColor ? detail.split(': #')[1] : null;
+                                                            const cleanDetail = hasColor ? detail.split(':')[0] : detail;
+                                                            return (
+                                                                <div key={sIdx} className="px-4 py-2 bg-gray-50 rounded-2xl text-[10px] font-bold border flex items-center gap-2">
+                                                                    {hasColor && <div className="w-3 h-3 rounded-full border border-white" style={{ backgroundColor: `#${colorHex}` }} />}
+                                                                    <span>{cleanDetail}: {s.stock} uds</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    <button onClick={() => setIsNewVariantModalOpen(true)} className="w-full py-8 border-2 border-dashed border-gray-100 rounded-[3rem] text-[10px] font-black text-gray-400 uppercase hover:text-[#004D4D] hover:bg-gray-50 transition-all flex flex-col items-center justify-center gap-2">
+                                        <Plus size={24}/><span className="tracking-widest">Añadir Atributo</span>
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="p-10 bg-[#004D4D] rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12"><Package size={140} /></div>
-                                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
-                                    <div className="space-y-3">
-                                        <h4 className="text-2xl font-black italic tracking-tighter uppercase leading-none">Inventario Consolidado</h4>
-                                        <p className="text-[11px] font-bold text-cyan-300 uppercase tracking-[0.2em] opacity-80">Suma total de unidades físicas de todas las variantes</p>
-                                    </div>
-                                    <div className="bg-black/20 backdrop-blur-md px-12 py-6 rounded-[2.5rem] border border-white/10 text-center min-w-[220px]">
-                                        <span className="text-6xl font-black tracking-tighter">{variants.reduce((acc, v) => acc + (Number(v.stock) || 0), 0)}</span>
-                                        <p className="text-[11px] font-black uppercase mt-1 text-cyan-400 tracking-widest">Unidades en Stock</p>
-                                    </div>
-                                </div>
+                            <div className="p-10 bg-[#004D4D] rounded-[3.5rem] text-white shadow-2xl flex items-center justify-between">
+                                <div className="space-y-1"><h4 className="text-xl font-black italic uppercase tracking-tighter">Inventario Consolidado</h4><p className="text-[9px] font-bold text-cyan-300 uppercase tracking-widest opacity-80">Suma total de unidades físicas</p></div>
+                                <div className="bg-black/20 backdrop-blur-md px-10 py-5 rounded-[2rem] text-center"><span className="text-5xl font-black">{variants.reduce((acc, v) => acc + (Number(v.stock) || 0), 0)}</span><p className="text-[10px] font-black uppercase text-cyan-400">Total Stock</p></div>
                             </div>
 
-                            {/* MODAL FLOTANTE DE PERSONALIZACIÓN (DANIEL'S VERSION) */}
                             <AnimatePresence>
                                 {isNewVariantModalOpen && (
-                                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 md:p-20">
-                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNewVariantModalOpen(false)} className="fixed inset-0 bg-gray-900/90 backdrop-blur-2xl" />
-                                        <motion.div 
-                                            initial={{ opacity: 0, scale: 0.9, y: 20 }} 
-                                            animate={{ opacity: 1, scale: 1, y: 0 }} 
-                                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                                            className="relative w-full max-w-2xl bg-white rounded-[4rem] shadow-3xl overflow-hidden border border-white/20 flex flex-col z-[10000]"
-                                        >
-                                            <div className="bg-gray-50 p-12 border-b border-gray-100 flex justify-between items-center w-full">
-                                                <div className="space-y-1">
-                                                    <h3 className="text-2xl font-black italic tracking-tighter uppercase text-[#004D4D]">Personalizar Atributo</h3>
-                                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em]">Crea combinaciones de talla, color y stock juntos</p>
-                                                </div>
-                                                <button onClick={() => setIsNewVariantModalOpen(false)} className="h-12 w-12 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-400 hover:text-rose-500 transition-all"><X size={20}/></button>
-                                            </div>
-                                            
+                                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6">
+                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNewVariantModalOpen(false)} className="fixed inset-0 bg-gray-900/90 backdrop-blur-3xl" />
+                                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-2xl bg-white rounded-[4rem] shadow-3xl overflow-hidden border border-white/20 flex flex-col z-[10000]">
+                                            <div className="bg-gray-50 p-12 border-b flex justify-between items-center"><div className="space-y-1"><h3 className="text-2xl font-black italic uppercase text-[#004D4D]">Personalizar Atributo</h3><p className="text-[9px] font-black text-gray-400 uppercase">Talla, color y stock juntos</p></div><button onClick={() => setIsNewVariantModalOpen(false)} className="h-12 w-12 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-400 hover:text-rose-500 transition-all"><X size={20}/></button></div>
                                             <div className="p-12 space-y-10 overflow-y-auto max-h-[50vh] custom-scrollbar">
-                                                <div className="space-y-4">
-                                                    <label className="text-[10px] font-black text-[#004D4D] uppercase tracking-[0.2em] ml-2">Nombre del Atributo Principal (Ej: Talla S o Config. Gamer)</label>
-                                                    <input 
-                                                        value={tempVariantName}
-                                                        onChange={(e) => setTempVariantName(e.target.value)}
-                                                        placeholder="Escribe el nombre principal..."
-                                                        className="w-full bg-gray-50 border-2 border-transparent focus:border-[#00F2FF]/30 rounded-3xl px-8 py-6 text-sm font-bold outline-none transition-all shadow-inner"
-                                                    />
-                                                </div>
-
-                                                <div className="space-y-6">
-                                                    <label className="text-[10px] font-black text-[#004D4D] uppercase tracking-[0.2em] ml-2">Detalles / Sub-variantes (Ej: Color Rojo, 16GB RAM...)</label>
+                                                <div className="space-y-4"><label className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Nombre Atributo (Ej: Talla S)</label><input value={tempVariantName} onChange={e => setTempVariantName(e.target.value)} placeholder="Escribe el nombre maestro..." className="w-full bg-gray-50 border-2 border-transparent focus:border-cyan-400/30 rounded-3xl px-8 py-6 text-sm font-bold outline-none shadow-inner transition-all" /></div>
+                                                <div className="space-y-6"><label className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Sub-variantes</label>
                                                     <div className="space-y-4">
-                                                        {tempSubVariants.map((sv, idx) => (
-                                                            <div key={sv.id} className="flex gap-4 items-center animate-in slide-in-from-left-4 duration-300">
+                                                        {tempSubVariants.map(sv => (
+                                                            <div key={sv.id} className="flex gap-4 items-center">
                                                                 <div className="flex-1 relative flex items-center">
-                                                                    {sv.spec.toLowerCase().includes('color') && (
-                                                                        <div className="absolute left-4 z-10">
-                                                                            <input 
-                                                                                type="color" 
-                                                                                value={resolveColor(sv.spec.split(':').pop() || '')} 
-                                                                                onChange={e => {
-                                                                                    const baseName = sv.spec.includes(':') ? sv.spec.split(':')[0] : sv.spec;
-                                                                                    setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: `${baseName.trim()}: ${e.target.value}` } : item));
-                                                                                }} 
-                                                                                className="w-6 h-6 rounded-full border-2 border-white shadow-sm cursor-pointer bg-transparent" 
-                                                                            />
-                                                                        </div>
-                                                                    )}
-                                                                    <input 
-                                                                        value={sv.spec.includes(': #') ? sv.spec.split(':')[0] : sv.spec}
-                                                                        onChange={(e) => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: e.target.value } : item))}
-                                                                        placeholder="Especificación..." 
-                                                                        className={`flex-1 bg-gray-50 rounded-2xl py-4 text-xs font-bold outline-none border border-transparent focus:border-gray-200 ${sv.spec.toLowerCase().includes('color') ? 'pl-14' : 'px-6'}`} 
-                                                                    />
+                                                                    {sv.spec.toLowerCase().includes('color') && (<div className="absolute left-4 z-10"><input type="color" value={resolveColor(sv.spec.split(':').pop() || '')} onChange={e => { const base = sv.spec.includes(':') ? sv.spec.split(':')[0] : sv.spec; setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: `${base.trim()}: ${e.target.value}` } : item)); }} className="w-6 h-6 rounded-full border-2 border-white shadow-sm cursor-pointer bg-transparent" /></div>)}
+                                                                    <input value={sv.spec.includes(': #') ? sv.spec.split(':')[0] : sv.spec} onChange={e => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: e.target.value } : item))} placeholder="Especificación..." className={`flex-1 bg-gray-50 rounded-2xl py-4 text-xs font-bold outline-none ${sv.spec.toLowerCase().includes('color') ? 'pl-14' : 'px-6'}`} />
                                                                 </div>
-                                                                <input 
-                                                                    type="number"
-                                                                    value={sv.stock}
-                                                                    onChange={(e) => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, stock: Number(e.target.value) } : item))}
-                                                                    placeholder="0" 
-                                                                    className="w-24 bg-[#004D4D]/5 rounded-2xl px-4 py-4 text-center text-xs font-black text-[#004D4D] outline-none" 
-                                                                />
+                                                                <input type="number" value={sv.stock} onChange={e => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, stock: Number(e.target.value) } : item))} className="w-24 bg-[#004D4D]/5 rounded-2xl px-4 py-4 text-center text-xs font-black text-[#004D4D]" />
                                                                 <button onClick={() => setTempSubVariants(prev => prev.filter(item => item.id !== sv.id))} className="text-gray-300 hover:text-rose-500"><Trash2 size={16}/></button>
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    <button onClick={handleAddTempSubVariant} className="text-[9px] font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-2 hover:opacity-70"><Plus size={14}/> Añadir Especificación</button>
+                                                    <button onClick={() => setTempSubVariants([...tempSubVariants, { id: Math.random().toString(36).substr(2, 9), spec: '', stock: 0 }])} className="text-[9px] font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-2"><Plus size={14}/> Añadir Especificación</button>
                                                 </div>
                                             </div>
-
                                             <div className="p-12 bg-gray-50 flex gap-4 mt-auto">
                                                 <button onClick={() => setIsNewVariantModalOpen(false)} className="flex-1 py-6 text-[10px] font-black uppercase text-gray-400">Cancelar</button>
-                                                <button onClick={handleSaveMatrixAttributes} className="flex-[2] py-6 bg-[#004D4D] text-white rounded-3xl font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl hover:bg-black transition-all">Guardar Atributos</button>
+                                                <button onClick={handleSaveMatrixAttributes} className="flex-[2] py-6 bg-[#004D4D] text-white rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-2xl hover:bg-black transition-all">Guardar Atributos</button>
                                             </div>
                                         </motion.div>
                                     </div>
@@ -523,30 +284,14 @@ export default function NewProductPage() {
 
                 <div className="pt-10 flex items-center justify-between border-t border-gray-100 pb-20">
                     <button onClick={() => router.back()} className="px-10 py-5 text-[10px] font-black uppercase text-gray-400">Descartar</button>
-                    <div className="flex gap-4">
-                        <button type="button" onClick={() => { setFormData({...formData, status: 'draft'}); handleSave(); }} className="px-10 py-5 bg-white border border-gray-100 text-[#004D4D] rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest shadow-sm hover:shadow-lg transition-all">Guardar Borrador</button>
-                        {activeTab !== 'variants' ? (
-                            <button onClick={() => setActiveTab(activeTab === 'info' ? 'financial' : 'variants')} className="px-14 py-5 bg-[#004D4D] text-white rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl hover:bg-black transition-all">Siguiente</button>
-                        ) : (
-                            <button onClick={handleSave} disabled={isSubmitting} className="px-14 py-5 bg-[#004D4D] text-white rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl hover:bg-black transition-all">
-                                {isSubmitting ? 'Publicando...' : 'Publicar Catálogo'}
-                            </button>
-                        )}
-                    </div>
+                    <button onClick={handleSave} disabled={isSubmitting} className="px-14 py-5 bg-[#004D4D] text-white rounded-[1.8rem] font-black text-[10px] uppercase shadow-2xl hover:bg-black transition-all">{isSubmitting ? 'Guardando...' : 'Publicar Catálogo'}</button>
                 </div>
-            </motion.div>
+            </div>
 
-            {/* PREVISUALIZACIÓN DERECHA */}
             <motion.div initial={{ y: 200, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex-1 bg-gray-100 p-12 lg:p-20 flex items-center justify-center relative">
                 <div className="w-full max-w-lg bg-white shadow-2xl rounded-[3.5rem] flex flex-col h-[calc(100vh-160px)] overflow-hidden border border-white">
                     <div className="bg-[#004D4D] p-10 text-white flex justify-between items-start shrink-0">
-                        <div className="flex items-center gap-6">
-                            <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center"><Box size={24} className="text-[#004D4D]" /></div>
-                            <div>
-                                <h4 className="text-xl font-black uppercase leading-none">Previsualización</h4>
-                                <p className="text-[9px] font-black text-[#00F2FF] uppercase mt-1">RÉPLICA DIGITAL DEL PRODUCTO</p>
-                            </div>
-                        </div>
+                        <div className="flex items-center gap-6"><div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center"><Box size={24} className="text-[#004D4D]" /></div><div><h4 className="text-xl font-black uppercase leading-none">Previsualización</h4><p className="text-[9px] font-black text-[#00F2FF] uppercase mt-1">RÉPLICA DIGITAL</p></div></div>
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar bg-white p-10 space-y-10">
                         <div className="aspect-square w-full rounded-[2.5rem] bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center relative">
@@ -555,21 +300,13 @@ export default function NewProductPage() {
                         <div className="space-y-6">
                             <div className="flex justify-between items-start"><div className="space-y-1"><p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">{formData.category || 'Categoría'}</p><h3 className="text-2xl font-black text-gray-900 tracking-tighter leading-tight">{formData.name || 'Sin nombre'}</h3></div><div className="text-right"><p className="text-[9px] font-black text-gray-300 uppercase">Precio</p><p className="text-2xl font-black text-[#004D4D] tracking-tighter">${formData.price.toLocaleString('de-DE')}</p></div></div>
                             {variants.length > 0 && (
-                                <div className="space-y-4 pt-4 border-t border-gray-50">
-                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Variantes y Stock</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {variants.map((v, i) => {
-                                            const hasColor = v.name.includes(': #');
-                                            const colorHex = hasColor ? v.name.split(': #')[1] : null;
-                                            const cleanName = hasColor ? v.name.split(':')[0] : v.name;
-                                            return (
-                                                <div key={i} className="px-3 py-1.5 bg-gray-50 rounded-lg border text-[10px] font-bold text-gray-600 flex items-center gap-2">
-                                                    {hasColor && <div className="w-2 h-2 rounded-full border border-white" style={{ backgroundColor: `#${colorHex}` }} />}
-                                                    {cleanName}: {v.stock}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                <div className="space-y-4 pt-4 border-t border-gray-50"><p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Variantes y Stock</p>
+                                    <div className="flex flex-wrap gap-2">{variants.map((v, i) => {
+                                        const hasColor = v.name.includes(': #');
+                                        const colorHex = hasColor ? v.name.split(': #')[1] : null;
+                                        const cleanName = hasColor ? v.name.split(':')[0] : v.name;
+                                        return (<div key={i} className="px-3 py-1.5 bg-gray-50 rounded-lg border text-[10px] font-bold text-gray-600 flex items-center gap-2">{hasColor && <div className="w-2 h-2 rounded-full border border-white" style={{ backgroundColor: `#${colorHex}` }} />}{cleanName}: {v.stock}</div>);
+                                    })}</div>
                                 </div>
                             )}
                             <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-50"><div className="space-y-2"><p className="text-[9px] font-black text-gray-300 uppercase">SKU Maestro</p><p className="text-sm font-black text-gray-900 uppercase tracking-widest">{formData.sku || 'PENDIENTE'}</p></div><div className="space-y-2 text-right"><p className="text-[9px] font-black text-gray-300 uppercase">Stock Total</p><p className="text-sm font-black text-gray-900 uppercase tracking-widest">{variants.reduce((acc, v) => acc + (v.stock || 0), 0)} UNIDADES</p></div></div>
@@ -577,35 +314,6 @@ export default function NewProductPage() {
                     </div>
                 </div>
             </motion.div>
-
-            {/* MODALES EXTRAS */}
-            <AnimatePresence>
-                {isNewCategoryModalOpen && (
-                    <div className="fixed inset-0 z-[7000] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNewCategoryModalOpen(false)} className="absolute inset-0 bg-[#001A1A]/80 backdrop-blur-xl" />
-                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative bg-white w-full max-w-md rounded-[3rem] shadow-2xl p-10 border border-white text-slate-900">
-                            <div className="flex items-center gap-4 mb-8 text-slate-900"><div className="h-12 w-12 rounded-2xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D]"><Layers size={24}/></div><div><h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tighter">Nueva Categoría</h3><p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Creación Rápida</p></div></div>
-                            <div className="space-y-6 text-slate-900">
-                                <div className="space-y-2 text-slate-900"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre de la Familia</label><input autoFocus value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="Ej: Nueva Colección" className="w-full px-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner transition-all text-slate-900" /></div>
-                                <div className="flex gap-3 pt-4 text-slate-900"><button type="button" onClick={() => setIsNewCategoryModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors text-slate-900">Cancelar</button><button type="button" disabled={!newCategoryName.trim()} onClick={handleCreateCategory} className="flex-[2] py-4 bg-[#004D4D] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[#004D4D]/20 disabled:opacity-50">Crear Categoría</button></div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-                {isNoDataModalOpen && (
-                    <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNoDataModalOpen(false)} className="absolute inset-0 bg-[#001A1A]/80 backdrop-blur-xl" />
-                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative bg-white w-full max-w-xl rounded-[4rem] shadow-2xl p-12 text-center space-y-8 text-slate-900">
-                            <div className="flex justify-center"><div className="h-24 w-24 rounded-[2.5rem] bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D] relative"><Bot size={48} className="animate-bounce" /><div className="absolute -top-2 -right-2 h-8 w-8 bg-rose-500 text-white rounded-full flex items-center justify-center border-4 border-white"><AlertCircle size={16} /></div></div></div>
-                            <div className="space-y-3"><h3 className="text-3xl font-black italic uppercase tracking-tighter text-[#001A1A]">Faltan <span className="text-rose-600">Datos Clave</span></h3><p className="text-sm font-medium text-slate-500 max-w-md mx-auto">Bayt necesita registros financieros para darte una estrategia infalible. Registra tus gastos y ventas para desbloquear el análisis profundo.</p></div>
-                            <button onClick={() => setIsNoDataModalOpen(false)} className="w-full py-5 bg-[#004D4D] text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-xl">Entendido</button>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
 
             <style jsx global>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
