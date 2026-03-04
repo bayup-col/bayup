@@ -320,6 +320,43 @@ def get_notifications(db: Session = Depends(get_db), current_user: models.User =
         models.Notification.tenant_id == tenant_id
     ).order_by(models.Notification.created_at.desc()).limit(20).all()
 
+# --- ENDPOINTS PÚBLICOS (PARA LA TIENDA ONLINE) ---
+
+@app.get("/public/shop/{shop_slug}")
+def get_public_shop_data(shop_slug: str, db: Session = Depends(get_db)):
+    """Obtiene la información pública de una tienda por su slug."""
+    user = db.query(models.User).filter(models.User.shop_slug == shop_slug).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Tienda no encontrada")
+    
+    return {
+        "id": user.id,
+        "full_name": user.full_name,
+        "logo_url": user.logo_url,
+        "phone": user.phone,
+        "social_links": user.social_links,
+        "whatsapp_lines": user.whatsapp_lines
+    }
+
+@app.get("/public/stores/{tenant_id}/products")
+def get_public_products(tenant_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Lista productos públicos de una tienda específica."""
+    return db.query(models.Product).filter(
+        models.Product.owner_id == tenant_id,
+        models.Product.status == "active"
+    ).all()
+
+@app.get("/public/stores/{tenant_id}/pages/{slug}")
+def get_public_page(tenant_id: uuid.UUID, slug: str, db: Session = Depends(get_db)):
+    """Obtiene una página personalizada pública (ej: Inicio, Sobre Nosotros)."""
+    page = db.query(models.Page).filter(
+        models.Page.owner_id == tenant_id,
+        models.Page.slug == slug
+    ).first()
+    if not page:
+        raise HTTPException(status_code=404, detail="Página no encontrada")
+    return page
+
 @app.get("/health")
 def health(): return {"status": "connected_and_persistent"}
 

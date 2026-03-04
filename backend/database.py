@@ -20,16 +20,14 @@ if DATABASE_URL.startswith("sqlite"):
     )
 else:
     # Configuración para PostgreSQL (Supabase con Pooler)
+    # Se optimiza para Transaction Mode del Pooler de Supabase
     engine = create_engine(
         DATABASE_URL,
         pool_size=20,
         max_overflow=0,
         pool_timeout=30,
         pool_recycle=1800,
-        pool_pre_ping=True,
-        connect_args={
-            "prepare_threshold": 0 # Desactiva prepared statements para compatibilidad con Pooler
-        }
+        pool_pre_ping=True
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
