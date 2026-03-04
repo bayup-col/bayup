@@ -371,15 +371,14 @@ def update_product(
             if collection:
                 db_product.category = collection.title
         
-        # 2. Si se envían variantes, refrescarlas completamente
+        # 2. Si se envían variantes, refrescarlas usando el método de relación de SQLAlchemy (más seguro)
         if product_in.variants is not None:
-            print(f"🔹 Refrescando {len(product_in.variants)} variantes...")
-            # Borrar variantes actuales
-            db.query(models.ProductVariant).filter(models.ProductVariant.product_id == product_id).delete()
+            print(f"🔹 Refrescando {len(product_in.variants)} variantes para {product_id}...")
             
-            # Insertar las nuevas
+            # Crear las nuevas instancias de variante
+            new_variants = []
             for v_in in product_in.variants:
-                new_variant = models.ProductVariant(
+                v = models.ProductVariant(
                     id=uuid.uuid4(),
                     product_id=product_id,
                     name=v_in.name,
@@ -389,11 +388,14 @@ def update_product(
                     image_url=v_in.image_url,
                     attributes=v_in.attributes
                 )
-                db.add(new_variant)
+                new_variants.append(v)
+            
+            # Reemplazo atómico: SQLAlchemy se encarga de borrar las huérfanas
+            db_product.variants = new_variants
         
         db.commit()
         db.refresh(db_product)
-        print(f"✅ Producto {product_id} actualizado con éxito en Supabase.")
+        print(f"✅ Sincronización total de {db_product.name} completada.")
         return db_product
     except Exception as e:
         db.rollback()

@@ -142,6 +142,7 @@ class ProductCreate(ProductBase):
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    category: Optional[str] = None
     price: Optional[float] = None
     wholesale_price: Optional[float] = None
     cost: Optional[float] = None
