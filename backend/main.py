@@ -405,7 +405,7 @@ def create_product(
 
 @app.get("/products/{product_id}")
 def read_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    """Obtiene el detalle de un producto específico para edición."""
+    """Obtiene el detalle de un producto normalizado para el editor."""
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
     product = db.query(models.Product).filter(
         models.Product.id == product_id, 
@@ -413,7 +413,13 @@ def read_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_u
     ).first()
     
     if not product:
-        raise HTTPException(status_code=404, detail="Producto no encontrado en tu tienda")
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    # Normalización para el editor del frontend
+    product.total_stock = sum(v.stock for v in product.variants) if product.variants else 0
+    if product.collection:
+        product.category = product.collection.title
+    
     return product
 
 @app.put("/products/{product_id}")

@@ -115,10 +115,10 @@ export default function EditProductPage() {
                     setFormData({
                         name: productData.name || '',
                         description: productData.description || '',
-                        price: productData.price || 0,
-                        wholesale_price: productData.wholesale_price || 0,
-                        cost: productData.cost || 0,
-                        category: productData.collection?.title || '',
+                        price: Number(productData.price) || 0,
+                        wholesale_price: Number(productData.wholesale_price) || 0,
+                        cost: Number(productData.cost) || 0,
+                        category: productData.category || productData.collection?.title || '',
                         collection_id: productData.collection_id || null,
                         sku: productData.sku || '',
                         status: productData.status || 'active',
@@ -126,22 +126,23 @@ export default function EditProductPage() {
                         image_url: loadedImages
                     });
 
+                    // Sincronizar variantes con stock real
                     if (productData.variants && productData.variants.length > 0) {
                         setVariants(productData.variants.map((v: any) => ({
-                            id: v.id || Math.random().toString(36).substr(2, 9),
-                            name: v.name,
-                            sku: v.sku,
-                            stock: v.stock,
-                            price_adjustment: v.price_adjustment || 0
+                            id: v.id,
+                            name: v.name || 'Estándar',
+                            sku: v.sku || '',
+                            stock: Number(v.stock) || 0,
+                            price_adjustment: Number(v.price_adjustment) || 0
                         })));
                     } else {
-                        setVariants([{ id: Math.random().toString(36).substr(2, 9), name: 'Estándar', sku: '', stock: 0 }]);
+                        setVariants([{ id: 'default', name: 'Estándar', sku: '', stock: 0 }]);
                     }
 
                     if (loadedImages.length > 0) {
                         setMedia(loadedImages.map((url: string) => ({ 
                             preview: url, 
-                            type: url.toLowerCase().includes('.mp4') ? 'video' : 'image', 
+                            type: 'image', 
                             isMuted: true 
                         })));
                     }
