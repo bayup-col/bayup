@@ -171,9 +171,8 @@ async def upload_image(
     file: UploadFile = File(...),
     current_user: models.User = Depends(security.get_current_user)
 ):
-    """Sube una imagen (logo/producto) al servidor."""
+    """Sube una imagen al servidor y devuelve la URL real de producción."""
     try:
-        # Crear carpeta de uploads si no existe
         upload_dir = "uploads"
         if not os.path.exists(upload_dir):
             os.makedirs(upload_dir)
@@ -185,9 +184,14 @@ async def upload_image(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
-        # En producción real esto sería una URL de S3 o Cloudfront
-        # Por ahora devolvemos una URL relativa o absoluta según el host
-        base_url = os.getenv("API_URL", "http://localhost:8000")
+        # URL DINÁMICA: Detecta si estamos en Railway o Local
+        base_url = os.getenv("RAILWAY_PUBLIC_DOMAIN", "localhost:8080")
+        protocol = "https" if "railway" in base_url else "http"
+        
+        # Si base_url no tiene el protocolo, se lo añadimos
+        if not base_url.startswith("http"):
+            base_url = f"{protocol}://{base_url}"
+            
         return {"url": f"{base_url}/uploads/{file_name}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al subir imagen: {str(e)}")
@@ -355,23 +359,28 @@ def create_product(
         # Sincronizar nombre de categoría
         if product_in.collection_id:
             col = db.query(models.Collection).filter(models.Collection.id == product_in.collection_id).first()
-            if col: db_product.category = col.title
+            if col: 
+                db_product.category = col.title
+                print(f"✅ Categoría asignada: {col.title}")
 
         db.add(db_product)
+        db.flush() # Genera el ID del producto antes del commit para las variantes
         
-        # 2. Crear las variantes (tallas/colores)
-        for v_in in product_in.variants:
-            db_variant = models.ProductVariant(
-                id=uuid.uuid4(),
-                product_id=db_product.id,
-                name=v_in.name,
-                sku=v_in.sku,
-                stock=v_in.stock,
-                price_adjustment=v_in.price_adjustment,
-                image_url=v_in.image_url,
-                attributes=v_in.attributes
-            )
-            db.add(db_variant)
+        # 2. Crear las variantes (tallas/colores) de forma explícita
+        if product_in.variants:
+            for v_in in product_in.variants:
+                db_variant = models.ProductVariant(
+                    id=uuid.uuid4(),
+                    product_id=db_product.id,
+                    name=v_in.name,
+                    sku=v_in.sku,
+                    stock=v_in.stock,
+                    price_adjustment=v_in.price_adjustment,
+                    image_url=v_in.image_url,
+                    attributes=v_in.attributes
+                )
+                db.add(db_variant)
+            print(f"✅ {len(product_in.variants)} variantes creadas.")
             
         db.commit()
         db.refresh(db_product)
