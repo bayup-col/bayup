@@ -121,41 +121,56 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <MenuItem href="/dashboard/settings/general" label={<><Settings size={18} /> Config Tienda</>} id="settings" />
           </nav>
 
-          {/* LOGOTIPO BAYUP OFICIAL CON EFECTO GHOST SALTADOR */}
+          {/* LOGOTIPO BAYUP OFICIAL CON FANTASMA SALTADOR DINÁMICO */}
           <div className="mt-auto pt-10 pb-4 flex flex-col items-center">
               <motion.div 
-                whileHover={{ y: -2 }}
+                whileHover="hover"
                 className="relative group cursor-pointer"
               >
-                  {/* RESPLANDOR DE FONDO */}
-                  <div className="absolute inset-0 bg-cyan-400/20 blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-500 -z-10" />
+                  {/* EL FANTASMA QUE BRINCA SOBRE EL LOGO */}
+                  <motion.div 
+                    variants={{
+                        hover: {
+                            x: [-40, 0, 40],
+                            y: [0, -35, 0],
+                            opacity: [0, 1, 0],
+                            scale: [0.8, 1.2, 0.8],
+                            rotate: [0, 45, 90]
+                        }
+                    }}
+                    transition={{ 
+                        duration: 1.2, 
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                    }}
+                    className="absolute inset-0 m-auto w-8 h-8 bg-[#00f2ff]/20 blur-md rounded-lg -z-10 pointer-events-none"
+                  />
+
+                  {/* BLOQUE DE COLOR DEL FANTASMA (EL QUE SE VE EN LA IMAGEN) */}
+                  <motion.div 
+                    variants={{
+                        hover: {
+                            y: [0, -45, 0],
+                            x: [-10, 0, 10],
+                            scaleY: [1, 0.8, 1.2, 1],
+                            opacity: [0, 1, 1, 0]
+                        }
+                    }}
+                    transition={{ 
+                        duration: 1, 
+                        repeat: Infinity,
+                        ease: "anticipate"
+                    }}
+                    className="absolute right-4 top-0 w-10 h-10 bg-indigo-500/30 rounded-lg -z-10 pointer-events-none"
+                  />
                   
-                  <div className="flex flex-col items-center">
-                      <div className="text-3xl font-black italic tracking-tighter flex items-baseline">
+                  <div className="flex flex-col items-center relative">
+                      <div className="text-3xl font-black italic tracking-tighter flex items-baseline relative z-10">
                           <span className="text-black">BAY</span>
                           <span className="text-transparent bg-clip-text bg-gradient-to-r from-black via-[#00b2bd] to-[#00f2ff]">UP.</span>
                       </div>
-                      {/* LÍNEA DE ENERGÍA INFERIOR */}
-                      <div className="h-[2px] w-0 bg-gradient-to-r from-transparent via-[#00f2ff] to-transparent group-hover:w-full transition-all duration-500 mt-1" />
+                      <div className="h-[2px] w-0 bg-[#00f2ff] group-hover:w-full transition-all duration-500 mt-1" />
                   </div>
-
-                  {/* EL FANTASMA QUE SALTA (PARTÍCULA NEURAL) */}
-                  <motion.div 
-                    initial={{ opacity: 0, y: 0, scale: 0 }}
-                    whileHover={{ 
-                        opacity: [0, 1, 0.8, 0],
-                        y: [0, -40, -45, -50],
-                        scale: [0.5, 1.5, 1, 0.5],
-                    }}
-                    transition={{ 
-                        duration: 0.8, 
-                        repeat: Infinity,
-                        ease: "easeOut"
-                    }}
-                    className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none"
-                  >
-                      <div className="h-2 w-2 rounded-full bg-[#00f2ff] shadow-[0_0_20px_#00f2ff,0_0_40px_#00f2ff]" />
-                  </motion.div>
               </motion.div>
               <p className="text-[8px] font-bold text-gray-300 uppercase tracking-[0.4em] mt-4">Core Engine v4.2</p>
           </div>
