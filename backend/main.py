@@ -16,34 +16,40 @@ import security
 import schemas
 
 def safe_db_init():
-    """Repara el esquema sin tocar los datos existentes."""
+    """Repara el esquema sin tocar los datos existentes. Blindado contra colapsos."""
     print("🛠️ Verificando base de datos persistente...")
-    # Crea las tablas solo si NO existen
-    models.Base.metadata.create_all(bind=engine)
-    
-    # Inyección segura de columnas (ALTER TABLE)
-    required_cols = [
-        ("logo_url", "VARCHAR"), ("phone", "VARCHAR"), ("shop_slug", "VARCHAR"),
-        ("custom_domain", "VARCHAR"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
-        ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSON"),
-        ("bank_accounts", "JSON"), ("social_links", "JSON"), ("whatsapp_lines", "JSON"),
-        ("custom_commission_rate", "FLOAT DEFAULT 0.0"), ("commission_is_fixed", "BOOLEAN DEFAULT FALSE"),
-        ("fixed_commission_until", "DATETIME"), ("last_month_revenue", "FLOAT DEFAULT 0.0"),
-        ("referred_by_id", "VARCHAR"), ("owner_id", "VARCHAR"), ("loyalty_points", "INTEGER DEFAULT 0"),
-        ("total_spent", "FLOAT DEFAULT 0.0"), ("last_purchase_date", "DATETIME"),
-        ("last_purchase_summary", "VARCHAR"), ("customer_type", "VARCHAR DEFAULT 'final'"),
-        ("acquisition_channel", "VARCHAR"), ("city", "VARCHAR"), ("plan_id", "VARCHAR")
-    ]
-    
-    with engine.begin() as conn:
-        inspector = inspect(engine)
-        existing = [c['name'] for c in inspector.get_columns('users')]
-        for c_n, c_t in required_cols:
-            if c_n not in existing:
-                try:
-                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {c_n} {c_t};"))
-                    print(f"✅ Columna recuperada: {c_n}")
-                except: pass
+    try:
+        # Crea las tablas solo si NO existen
+        models.Base.metadata.create_all(bind=engine)
+        
+        # Inyección segura de columnas (ALTER TABLE)
+        # Sincronizado exactamente con models.py
+        required_cols = [
+            ("logo_url", "VARCHAR"), ("phone", "VARCHAR"), ("shop_slug", "VARCHAR"),
+            ("custom_domain", "VARCHAR"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
+            ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSON"),
+            ("bank_accounts", "JSON"), ("social_links", "JSON"), ("whatsapp_lines", "JSON"),
+            ("custom_commission_rate", "FLOAT"), ("commission_is_fixed", "BOOLEAN DEFAULT FALSE"),
+            ("commission_fixed_until", "DATETIME"), ("last_month_revenue", "FLOAT DEFAULT 0.0"),
+            ("referred_by_id", "VARCHAR"), ("owner_id", "VARCHAR"), ("loyalty_points", "INTEGER DEFAULT 0"),
+            ("total_spent", "FLOAT DEFAULT 0.0"), ("last_purchase_date", "DATETIME"),
+            ("last_purchase_summary", "VARCHAR"), ("customer_type", "VARCHAR DEFAULT 'final'"),
+            ("acquisition_channel", "VARCHAR"), ("city", "VARCHAR"), ("plan_id", "VARCHAR")
+        ]
+        
+        with engine.begin() as conn:
+            inspector = inspect(engine)
+            existing = [c['name'] for c in inspector.get_columns('users')]
+            for c_n, c_t in required_cols:
+                if c_n not in existing:
+                    try:
+                        conn.execute(text(f"ALTER TABLE users ADD COLUMN {c_n} {c_t};"))
+                        print(f"✅ Columna recuperada: {c_n}")
+                    except Exception as e:
+                        print(f"⚠️ Aviso: No se pudo inyectar columna {c_n} (puede que ya exista o sea incompatible).")
+
+    except Exception as global_e:
+        print(f"❌ Error crítico en safe_db_init: {global_e}. Continuando arranque...")
 
     # Asegurar Plan Básico y Usuario Sebastián
     db = SessionLocal()
@@ -53,6 +59,7 @@ def safe_db_init():
         if not plan:
             plan = models.Plan(
                 id=uuid.uuid4(), name="Básico", 
+                commission_rate=3.5, monthly_fee=0.0,
                 modules=["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"],
                 is_default=True
             )
@@ -68,6 +75,8 @@ def safe_db_init():
             )
             db.add(user); db.commit()
             print("✨ Usuario maestro creado.")
+    except Exception as e:
+        print(f"⚠️ Aviso en post-init: {e}")
     finally:
         db.close()
 
