@@ -120,6 +120,36 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Configuración</p>}
             <MenuItem href="/dashboard/settings/general" label={<><Settings size={18} /> Config Tienda</>} id="settings" />
           </nav>
+
+          {/* LOGOTIPO BAYUP CON EFECTO GHOST FLOTANTE */}
+          <div className="mt-auto pt-10 pb-4 flex flex-col items-center">
+              <motion.div 
+                whileHover={{ y: -5 }}
+                className="relative group cursor-pointer"
+              >
+                  {/* EFECTO FANTASMA (GHOST GLOW) */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/0 via-cyan-400/40 to-cyan-400/0 blur-xl opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-all duration-700 -z-10" />
+                  
+                  <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center">
+                          <span className="text-2xl font-black italic tracking-tighter text-[#004d4d] group-hover:text-black transition-colors">BAY</span>
+                          <div className="h-5 w-[2px] bg-gray-200 mx-2 rotate-12 group-hover:bg-[#00f2ff] transition-all" />
+                          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 group-hover:text-[#004d4d] transition-colors">InteractiveUP</span>
+                      </div>
+                      <div className="h-1 w-8 bg-gray-100 rounded-full group-hover:w-16 group-hover:bg-gradient-to-r group-hover:from-transparent group-hover:via-[#00f2ff] group-hover:to-transparent transition-all duration-500" />
+                  </div>
+
+                  {/* ELEMENTO FLOTANTE EXTRA (EL FANTASMA) */}
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    whileHover={{ opacity: 1, scale: 1.2, y: -20 }}
+                    className="absolute -top-2 left-1/2 -translate-x-1/2 pointer-events-none"
+                  >
+                      <div className="h-1 w-1 rounded-full bg-[#00f2ff] shadow-[0_0_15px_#00f2ff]" />
+                  </motion.div>
+              </motion.div>
+              <p className="text-[8px] font-bold text-gray-300 uppercase tracking-[0.4em] mt-4">Core Engine v4.2</p>
+          </div>
         </aside>
       </motion.div>
 
