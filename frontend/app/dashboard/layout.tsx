@@ -36,10 +36,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isBaytOpen, setIsBaytOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
 
-  // El nombre y slug ahora vienen directamente del contexto global
-  const companyName = authName || 'Mi Tienda Bayup';
-  const shopSlug = authSlug || 'mi-tienda';
-
+  // Sincronización total con el contexto global
   useEffect(() => {
       if (!isLoading && !isAuthenticated) router.replace('/login');
   }, [isAuthenticated, isLoading, router]);
@@ -86,11 +83,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   {!isSidebarCollapsed && (
                       <>
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Empresa</span>
-                        <span className="text-base font-black italic text-[#004d4d] truncate max-w-full mb-4">{companyName}</span>
+                        <span className="text-base font-black italic text-[#004d4d] truncate max-w-full mb-4">{authName || 'Bayup'}</span>
                         
                         {/* BOTÓN GRADIENT FRAMER PREMIUM */}
                         <motion.button 
-                            onClick={() => window.open(`${window.location.origin}/shop/${shopSlug}`, '_blank')}
+                            onClick={() => window.open(`${window.location.origin}/shop/${authSlug || 'mi-tienda'}`, '_blank')}
                             whileHover="hover"
                             whileTap={{ scale: 0.98 }}
                             className="relative w-full h-12 flex items-center justify-center p-[2px] overflow-hidden rounded-[1.2rem] group"

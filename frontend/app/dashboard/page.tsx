@@ -61,7 +61,7 @@ const AuroraMetricCard = ({ children, onClick }: { children: React.ReactNode, on
 };
 
 export default function DashboardPage() {
-  const { token, userName } = useAuth();
+  const { token, userName, updateUser } = useAuth();
   const { theme } = useTheme();
   const { showToast } = useToast();
   
@@ -69,6 +69,11 @@ export default function DashboardPage() {
   const [isCustomReportModalOpen, setIsCustomReportModalOpen] = useState(false);
   const [customRange, setCustomRange] = useState({ start: '', end: '' });
   const [companyName, setCompanyName] = useState(userName || 'Empresario Bayup');
+
+  // Sincronizar estado local con global si el global cambia
+  useEffect(() => {
+    if (userName) setCompanyName(userName);
+  }, [userName]);
   const [activities, setActivities] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [realStats, setRealStats] = useState({ 
@@ -121,7 +126,10 @@ export default function DashboardPage() {
             apiRequest<any>('/auth/me', { token })
         ]);
 
-        if (uData?.full_name) setCompanyName(uData.full_name);
+        if (uData?.full_name) {
+            setCompanyName(uData.full_name);
+            updateUser({ name: uData.full_name, slug: uData.shop_slug });
+        }
         
         if (oData) {
             setOrders(oData);

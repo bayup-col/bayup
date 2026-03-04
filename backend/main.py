@@ -358,13 +358,16 @@ def update_product(
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
     try:
+        print(f"📦 Iniciando actualización de producto: {db_product.name} ({product_id})")
         # 1. Actualizar campos básicos del producto
         update_data = product_in.dict(exclude_unset=True, exclude={"variants"})
         for key, value in update_data.items():
+            print(f"🔹 Actualizando campo {key}: {value}")
             setattr(db_product, key, value)
         
         # 2. Si se envían variantes, refrescarlas completamente
         if product_in.variants is not None:
+            print(f"🔹 Refrescando {len(product_in.variants)} variantes...")
             # Borrar variantes actuales
             db.query(models.ProductVariant).filter(models.ProductVariant.product_id == product_id).delete()
             
@@ -384,6 +387,7 @@ def update_product(
         
         db.commit()
         db.refresh(db_product)
+        print(f"✅ Producto {product_id} actualizado con éxito en Supabase.")
         return db_product
     except Exception as e:
         db.rollback()

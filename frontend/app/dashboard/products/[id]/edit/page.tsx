@@ -272,6 +272,10 @@ export default function EditProductPage() {
                     })) 
                 })
             });
+
+            // DISPARAR EVENTO DE ACTUALIZACIÓN GLOBAL
+            window.dispatchEvent(new CustomEvent('bayup_product_update'));
+            
             showToast("Producto actualizado con éxito ✨", "success");
             router.push('/dashboard/products');
         } catch (err) { showToast("Error al guardar", "error"); } finally { setIsSubmitting(false); }
