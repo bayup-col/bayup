@@ -299,6 +299,16 @@ export default function ProductsPage() {
 
     useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
+    // ESCUCHA ACTIVA DE ACTUALIZACIONES (Para refrescar al guardar cambios)
+    useEffect(() => {
+        const handleRefresh = () => {
+            console.log("♻️ Refresco forzado por actualización...");
+            setTimeout(() => fetchProducts(), 500); // Pequeño delay para dejar que Supabase asiente los datos
+        };
+        window.addEventListener('bayup_product_update', handleRefresh);
+        return () => window.removeEventListener('bayup_product_update', handleRefresh);
+    }, [fetchProducts]);
+
     const handleDeleteProduct = async () => {
         if (!token || !productToDelete) return;
         setIsDeletingProduct(true);
