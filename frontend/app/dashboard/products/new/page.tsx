@@ -458,14 +458,17 @@ export default function NewProductPage() {
                                                                         <div className="absolute left-4 z-10">
                                                                             <input 
                                                                                 type="color" 
-                                                                                value={resolveColor(sv.spec.split(' ').pop() || '')} 
-                                                                                onChange={e => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: `${sv.spec.split(' ').slice(0, -1).join(' ')} ${e.target.value}` } : item))} 
+                                                                                value={resolveColor(sv.spec.split(':').pop() || '')} 
+                                                                                onChange={e => {
+                                                                                    const baseName = sv.spec.includes(':') ? sv.spec.split(':')[0] : sv.spec;
+                                                                                    setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: `${baseName.trim()}: ${e.target.value}` } : item));
+                                                                                }} 
                                                                                 className="w-6 h-6 rounded-full border-2 border-white shadow-sm cursor-pointer bg-transparent" 
                                                                             />
                                                                         </div>
                                                                     )}
                                                                     <input 
-                                                                        value={sv.spec}
+                                                                        value={sv.spec.includes(': #') ? sv.spec.split(':')[0] : sv.spec}
                                                                         onChange={(e) => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: e.target.value } : item))}
                                                                         placeholder="Especificación..." 
                                                                         className={`flex-1 bg-gray-50 rounded-2xl py-4 text-xs font-bold outline-none border border-transparent focus:border-gray-200 ${sv.spec.toLowerCase().includes('color') ? 'pl-14' : 'px-6'}`} 
