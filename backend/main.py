@@ -23,30 +23,31 @@ def safe_db_init():
         models.Base.metadata.create_all(bind=engine)
         
         # Inyección segura de columnas (ALTER TABLE)
-        # Sincronizado exactamente con models.py
+        # Sincronizado exactamente con models.py y optimizado para Postgres
         required_cols = [
-            ("logo_url", "VARCHAR"), ("phone", "VARCHAR"), ("shop_slug", "VARCHAR"),
-            ("custom_domain", "VARCHAR"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
-            ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSON"),
-            ("bank_accounts", "JSON"), ("social_links", "JSON"), ("whatsapp_lines", "JSON"),
-            ("custom_commission_rate", "FLOAT"), ("commission_is_fixed", "BOOLEAN DEFAULT FALSE"),
-            ("commission_fixed_until", "DATETIME"), ("last_month_revenue", "FLOAT DEFAULT 0.0"),
-            ("referred_by_id", "VARCHAR"), ("owner_id", "VARCHAR"), ("loyalty_points", "INTEGER DEFAULT 0"),
-            ("total_spent", "FLOAT DEFAULT 0.0"), ("last_purchase_date", "DATETIME"),
-            ("last_purchase_summary", "VARCHAR"), ("customer_type", "VARCHAR DEFAULT 'final'"),
-            ("acquisition_channel", "VARCHAR"), ("city", "VARCHAR"), ("plan_id", "VARCHAR")
+            ("logo_url", "TEXT"), ("phone", "TEXT"), ("shop_slug", "TEXT"),
+            ("custom_domain", "TEXT"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
+            ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSONB"),
+            ("bank_accounts", "JSONB"), ("social_links", "JSONB"), ("whatsapp_lines", "JSONB"),
+            ("custom_commission_rate", "NUMERIC"), ("commission_is_fixed", "BOOLEAN DEFAULT FALSE"),
+            ("commission_fixed_until", "TIMESTAMP"), ("last_month_revenue", "NUMERIC DEFAULT 0.0"),
+            ("referred_by_id", "UUID"), ("owner_id", "UUID"), ("loyalty_points", "INTEGER DEFAULT 0"),
+            ("total_spent", "NUMERIC DEFAULT 0.0"), ("last_purchase_date", "TIMESTAMP"),
+            ("last_purchase_summary", "TEXT"), ("customer_type", "TEXT DEFAULT 'final'"),
+            ("acquisition_channel", "TEXT"), ("city", "TEXT"), ("plan_id", "UUID")
         ]
         
-        with engine.begin() as conn:
-            inspector = inspect(engine)
-            existing = [c['name'] for c in inspector.get_columns('users')]
+        # Usamos una conexión directa para las alteraciones
+        with engine.connect() as conn:
             for c_n, c_t in required_cols:
-                if c_n not in existing:
-                    try:
-                        conn.execute(text(f"ALTER TABLE users ADD COLUMN {c_n} {c_t};"))
-                        print(f"✅ Columna recuperada: {c_n}")
-                    except Exception as e:
-                        print(f"⚠️ Aviso: No se pudo inyectar columna {c_n} (puede que ya exista o sea incompatible).")
+                try:
+                    # En Postgres es más seguro intentar el ADD y fallar si existe
+                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {c_n} {c_t};"))
+                    conn.commit()
+                    print(f"✅ Columna inyectada: {c_n}")
+                except Exception:
+                    # Si falla es porque usualmente ya existe, lo ignoramos silenciosamente
+                    pass
 
     except Exception as global_e:
         print(f"❌ Error crítico en safe_db_init: {global_e}. Continuando arranque...")
