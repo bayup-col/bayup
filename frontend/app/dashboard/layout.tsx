@@ -87,15 +87,45 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       <>
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Empresa</span>
                         <span className="text-base font-black italic text-[#004d4d] truncate max-w-full mb-4">{companyName}</span>
-                        <button 
+                        
+                        {/* BOTÓN GRADIENT FRAMER PREMIUM */}
+                        <motion.button 
                             onClick={() => window.open(`${window.location.origin}/shop/${shopSlug}`, '_blank')}
-                            className="group/btn relative w-full p-[1px] overflow-hidden rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500"
+                            whileHover="hover"
+                            whileTap={{ scale: 0.98 }}
+                            className="relative w-full h-12 flex items-center justify-center p-[2px] overflow-hidden rounded-[1.2rem] group"
                         >
-                            <div className="relative bg-white py-2 px-4 rounded-[11px] flex items-center justify-center gap-2 transition-all group-hover/btn:bg-transparent">
-                                <Eye size={14} className="text-[#004d4d] group-hover/btn:text-white" />
-                                <span className="text-[10px] font-black uppercase tracking-tighter text-[#004d4d] group-hover/btn:text-white">Ver mi tienda</span>
+                            {/* GRADIENTE ANIMADO DE FONDO (BORDE) */}
+                            <motion.div 
+                                variants={{
+                                    hover: { 
+                                        rotate: [0, 360],
+                                        scale: 1.5
+                                    }
+                                }}
+                                transition={{ 
+                                    rotate: { duration: 3, repeat: Infinity, ease: "linear" },
+                                    scale: { duration: 0.4 }
+                                }}
+                                className="absolute inset-0 bg-[conic-gradient(from_0deg,rgb(170,185,207)_0%,rgb(0,255,135)_35%,rgb(0,97,255)_92%,rgb(170,185,207)_100%)] opacity-80"
+                            />
+
+                            {/* CONTENEDOR INTERIOR */}
+                            <div className="relative w-full h-full bg-[#000F26] rounded-[1.1rem] flex items-center justify-center gap-2 px-4 transition-colors group-hover:bg-[#001529]">
+                                <Eye size={14} className="text-[#00FF87] group-hover:scale-110 transition-transform" />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-white">
+                                    Ver mi tienda
+                                </span>
                             </div>
-                        </button>
+
+                            {/* EFECTO DE RESPLANDOR AL HOVER */}
+                            <motion.div 
+                                variants={{
+                                    hover: { opacity: 1, scale: 1.1 }
+                                }}
+                                className="absolute inset-0 bg-gradient-to-r from-[#00FF87]/20 to-[#0061FF]/20 blur-xl opacity-0 transition-opacity pointer-events-none"
+                            />
+                        </motion.button>
                       </>
                   )}
                   {isSidebarCollapsed && (
