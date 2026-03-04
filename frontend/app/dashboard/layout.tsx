@@ -121,31 +121,40 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <MenuItem href="/dashboard/settings/general" label={<><Settings size={18} /> Config Tienda</>} id="settings" />
           </nav>
 
-          {/* LOGOTIPO BAYUP CON EFECTO GHOST FLOTANTE */}
+          {/* LOGOTIPO BAYUP OFICIAL CON EFECTO GHOST SALTADOR */}
           <div className="mt-auto pt-10 pb-4 flex flex-col items-center">
               <motion.div 
-                whileHover={{ y: -5 }}
+                whileHover={{ y: -2 }}
                 className="relative group cursor-pointer"
               >
-                  {/* EFECTO FANTASMA (GHOST GLOW) */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/0 via-cyan-400/40 to-cyan-400/0 blur-xl opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-all duration-700 -z-10" />
+                  {/* RESPLANDOR DE FONDO */}
+                  <div className="absolute inset-0 bg-cyan-400/20 blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-500 -z-10" />
                   
-                  <div className="flex flex-col items-center gap-1">
-                      <div className="flex items-center">
-                          <span className="text-2xl font-black italic tracking-tighter text-[#004d4d] group-hover:text-black transition-colors">BAY</span>
-                          <div className="h-5 w-[2px] bg-gray-200 mx-2 rotate-12 group-hover:bg-[#00f2ff] transition-all" />
-                          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 group-hover:text-[#004d4d] transition-colors">InteractiveUP</span>
+                  <div className="flex flex-col items-center">
+                      <div className="text-3xl font-black italic tracking-tighter flex items-baseline">
+                          <span className="text-black">BAY</span>
+                          <span className="text-transparent bg-clip-text bg-gradient-to-r from-black via-[#00b2bd] to-[#00f2ff]">UP.</span>
                       </div>
-                      <div className="h-1 w-8 bg-gray-100 rounded-full group-hover:w-16 group-hover:bg-gradient-to-r group-hover:from-transparent group-hover:via-[#00f2ff] group-hover:to-transparent transition-all duration-500" />
+                      {/* LÍNEA DE ENERGÍA INFERIOR */}
+                      <div className="h-[2px] w-0 bg-gradient-to-r from-transparent via-[#00f2ff] to-transparent group-hover:w-full transition-all duration-500 mt-1" />
                   </div>
 
-                  {/* ELEMENTO FLOTANTE EXTRA (EL FANTASMA) */}
+                  {/* EL FANTASMA QUE SALTA (PARTÍCULA NEURAL) */}
                   <motion.div 
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    whileHover={{ opacity: 1, scale: 1.2, y: -20 }}
-                    className="absolute -top-2 left-1/2 -translate-x-1/2 pointer-events-none"
+                    initial={{ opacity: 0, y: 0, scale: 0 }}
+                    whileHover={{ 
+                        opacity: [0, 1, 0.8, 0],
+                        y: [0, -40, -45, -50],
+                        scale: [0.5, 1.5, 1, 0.5],
+                    }}
+                    transition={{ 
+                        duration: 0.8, 
+                        repeat: Infinity,
+                        ease: "easeOut"
+                    }}
+                    className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none"
                   >
-                      <div className="h-1 w-1 rounded-full bg-[#00f2ff] shadow-[0_0_15px_#00f2ff]" />
+                      <div className="h-2 w-2 rounded-full bg-[#00f2ff] shadow-[0_0_20px_#00f2ff,0_0_40px_#00f2ff]" />
                   </motion.div>
               </motion.div>
               <p className="text-[8px] font-bold text-gray-300 uppercase tracking-[0.4em] mt-4">Core Engine v4.2</p>
