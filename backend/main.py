@@ -347,7 +347,7 @@ def update_product(
     db: Session = Depends(get_db), 
     current_user: models.User = Depends(security.get_current_user)
 ):
-    """Actualiza los datos de un producto y sus variantes de forma atómica."""
+    """Actualiza los datos de un producto y sus variantes de forma atómica y forzada."""
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
     db_product = db.query(models.Product).filter(
         models.Product.id == product_id, 
@@ -358,27 +358,29 @@ def update_product(
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
     try:
-        print(f"📦 Iniciando actualización de producto: {db_product.name} ({product_id})")
-        # 1. Actualizar campos básicos del producto
-        update_data = product_in.dict(exclude_unset=True, exclude={"variants"})
-        for key, value in update_data.items():
-            print(f"🔹 Actualizando campo {key}: {value}")
+        print(f"🚀 RECIBIENDO ACTUALIZACIÓN PARA: {db_product.name}")
+        
+        # 1. Actualizar campos básicos
+        update_dict = product_in.dict(exclude_unset=True, exclude={"variants"})
+        for key, value in update_dict.items():
             setattr(db_product, key, value)
-        
-        # Sincronizar el string 'category' con el título de la colección para el listado
+            print(f"✅ Campo '{key}' actualizado a: {value}")
+
+        # 2. Sincronizar Categoría (Texto y ID)
         if product_in.collection_id:
-            collection = db.query(models.Collection).filter(models.Collection.id == product_in.collection_id).first()
-            if collection:
-                db_product.category = collection.title
-        
-        # 2. Si se envían variantes, refrescarlas usando el método de relación de SQLAlchemy (más seguro)
+            col = db.query(models.Collection).filter(models.Collection.id == product_in.collection_id).first()
+            if col:
+                db_product.category = col.title
+                print(f"✅ Categoría sincronizada a: {col.title}")
+
+        # 3. Refrescar Variantes (Borrado y Creación Limpia)
         if product_in.variants is not None:
-            print(f"🔹 Refrescando {len(product_in.variants)} variantes para {product_id}...")
+            print(f"📦 Procesando {len(product_in.variants)} variantes...")
+            # Borrado físico manual para asegurar limpieza en Supabase
+            db.query(models.ProductVariant).filter(models.ProductVariant.product_id == product_id).delete()
             
-            # Crear las nuevas instancias de variante
-            new_variants = []
             for v_in in product_in.variants:
-                v = models.ProductVariant(
+                new_v = models.ProductVariant(
                     id=uuid.uuid4(),
                     product_id=product_id,
                     name=v_in.name,
@@ -388,19 +390,16 @@ def update_product(
                     image_url=v_in.image_url,
                     attributes=v_in.attributes
                 )
-                new_variants.append(v)
-            
-            # Reemplazo atómico: SQLAlchemy se encarga de borrar las huérfanas
-            db_product.variants = new_variants
-        
+                db.add(new_v)
+            print(f"✅ Variantes recreadas con éxito.")
+
         db.commit()
         db.refresh(db_product)
-        print(f"✅ Sincronización total de {db_product.name} completada.")
         return db_product
     except Exception as e:
         db.rollback()
-        print(f"CRITICAL ERROR actualizando producto {product_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+        print(f"❌ ERROR CRÍTICO EN UPDATE: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al sincronizar con Supabase: {str(e)}")
 
 @app.delete("/products/{product_id}")
 def delete_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
