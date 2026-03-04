@@ -92,11 +92,29 @@ app = FastAPI(title="Bayup OS - Persistent", lifespan=lifespan)
 # --- CORS ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://www.bayup.com.co", "https://bayup.com.co", "https://bayup-interactive.vercel.app", "http://localhost:3000"],
+    allow_origins=[
+        "https://www.bayup.com.co", 
+        "https://bayup.com.co", 
+        "https://bayup-interactive.vercel.app", 
+        "http://localhost:3000",
+        "https://exciting-optimism-production-4624.up.railway.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- LOGÍSTICA (ENVÍOS) ---
+
+@app.get("/admin/shipments")
+def get_shipments(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Lista todos los envíos vinculados a la tienda."""
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    try:
+        return db.query(models.Shipment).filter(models.Shipment.tenant_id == tenant_id).all()
+    except Exception as e:
+        print(f"Error en /admin/shipments: {e}")
+        return []
 
 # --- ENDPOINTS CONECTADOS A DB REAL ---
 
@@ -303,12 +321,20 @@ def me(current_user: models.User = Depends(security.get_current_user)):
 @app.get("/products")
 def read_products(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
-    return db.query(models.Product).filter(models.Product.owner_id == tenant_id).all()
+    try:
+        return db.query(models.Product).filter(models.Product.owner_id == tenant_id).all()
+    except Exception as e:
+        print(f"Error en /products: {e}")
+        return []
 
 @app.get("/orders")
 def get_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
-    return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).all()
+    try:
+        return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).all()
+    except Exception as e:
+        print(f"Error en /orders: {e}")
+        return []
 
 # --- NOTIFICACIONES ---
 
