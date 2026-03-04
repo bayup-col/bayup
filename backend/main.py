@@ -25,7 +25,14 @@ def safe_db_init():
     required_cols = [
         ("logo_url", "VARCHAR"), ("phone", "VARCHAR"), ("shop_slug", "VARCHAR"),
         ("custom_domain", "VARCHAR"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
-        ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSON")
+        ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSON"),
+        ("bank_accounts", "JSON"), ("social_links", "JSON"), ("whatsapp_lines", "JSON"),
+        ("custom_commission_rate", "FLOAT DEFAULT 0.0"), ("commission_is_fixed", "BOOLEAN DEFAULT FALSE"),
+        ("fixed_commission_until", "DATETIME"), ("last_month_revenue", "FLOAT DEFAULT 0.0"),
+        ("referred_by_id", "VARCHAR"), ("owner_id", "VARCHAR"), ("loyalty_points", "INTEGER DEFAULT 0"),
+        ("total_spent", "FLOAT DEFAULT 0.0"), ("last_purchase_date", "DATETIME"),
+        ("last_purchase_summary", "VARCHAR"), ("customer_type", "VARCHAR DEFAULT 'final'"),
+        ("acquisition_channel", "VARCHAR"), ("city", "VARCHAR"), ("plan_id", "VARCHAR")
     ]
     
     with engine.begin() as conn:
