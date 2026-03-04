@@ -60,6 +60,7 @@ export default function EditProductPage() {
     // Estados para Categorías y Guía
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
+    const [isNewVariantModalOpen, setIsNewVariantModalOpen] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState("");
     const [categoriesList, setCategoriesList] = useState<any[]>([]);
     
