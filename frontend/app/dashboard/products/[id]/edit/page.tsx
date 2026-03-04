@@ -416,76 +416,98 @@ export default function EditProductPage() {
 
                     {activeTab === 'variants' && (
                         <motion.div key="variants" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10">
-                            <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                            <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-10">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3">
-                                        <Layers size={18} /> Configuración de Variantes
+                                        <Layers size={18} /> Matriz de Inventario Real
                                     </h3>
-                                    <div className="px-4 py-2 bg-purple-50 rounded-xl text-[9px] font-black text-purple-600 uppercase tracking-widest">
-                                        Modo Matriz Pro
+                                    <div className="px-4 py-2 bg-purple-50 rounded-xl text-[9px] font-black text-purple-600 uppercase tracking-widest animate-pulse">
+                                        Sistema de Combinaciones Activo
                                     </div>
                                 </div>
 
-                                {/* PASO 1: DEFINIR ATRIBUTOS */}
+                                <div className="p-6 bg-amber-50 border border-amber-100 rounded-2xl flex gap-4">
+                                    <Info className="text-amber-600 shrink-0" size={20} />
+                                    <p className="text-[11px] text-amber-900 font-medium leading-relaxed">
+                                        <b>¿Cómo funciona?</b> Define tus atributos arriba (ej: Tallas y Colores). El sistema generará las combinaciones automáticas abajo. <b>Solo el stock que pongas en las combinaciones finales sumará al total de tu tienda.</b>
+                                    </p>
+                                </div>
+
+                                {/* LISTA DE VARIANTES FUNCIONAL */}
                                 <div className="space-y-6">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">1. Define tus atributos (Talla, Color, etc.)</p>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="p-6 bg-gray-50 rounded-3xl space-y-4">
-                                            <input placeholder="Nombre Familia (Ej: Talla)" className="w-full bg-white border-none rounded-xl px-4 py-3 text-xs font-bold shadow-sm outline-none" />
-                                            <div className="flex flex-wrap gap-2">
-                                                <span className="px-3 py-1 bg-white rounded-lg text-[10px] font-black border">S</span>
-                                                <span className="px-3 py-1 bg-white rounded-lg text-[10px] font-black border">M</span>
-                                                <button className="h-6 w-6 rounded-lg bg-[#004D4D] text-white flex items-center justify-center"><Plus size={12}/></button>
-                                            </div>
-                                        </div>
-                                        <div className="p-6 bg-gray-50 rounded-3xl space-y-4">
-                                            <input placeholder="Nombre Familia (Ej: Color)" className="w-full bg-white border-none rounded-xl px-4 py-3 text-xs font-bold shadow-sm outline-none" />
-                                            <div className="flex flex-wrap gap-2">
-                                                <span className="px-3 py-1 bg-white rounded-lg text-[10px] font-black border">Negro</span>
-                                                <span className="px-3 py-1 bg-white rounded-lg text-[10px] font-black border">Rojo</span>
-                                                <button className="h-6 w-6 rounded-lg bg-[#004D4D] text-white flex items-center justify-center"><Plus size={12}/></button>
-                                            </div>
-                                        </div>
+                                    <div className="flex gap-6 mb-2 px-4 text-slate-900 border-b border-gray-50 pb-4">
+                                        <div className="flex-1 text-[9px] font-black text-gray-400 uppercase tracking-widest">Variante / Combinación</div>
+                                        <div className="w-48 text-[9px] font-black text-gray-400 uppercase tracking-widest">SKU / Referencia</div>
+                                        <div className="w-32 text-center text-[9px] font-black text-gray-400 uppercase tracking-widest">Stock Disponible</div>
+                                        <div className="w-11"></div>
                                     </div>
-                                </div>
 
-                                {/* PASO 2: ASIGNAR STOCK A COMBINACIONES */}
-                                <div className="space-y-6 pt-8 border-t border-gray-50">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">2. Distribuye tu stock real</p>
                                     <div className="space-y-3">
-                                        {[
-                                            { n: 'S / Negro', s: 5 },
-                                            { n: 'S / Rojo', s: 5 },
-                                            { n: 'M / Negro', s: 5 },
-                                            { n: 'M / Rojo', s: 5 }
-                                        ].map((item, i) => (
-                                            <div key={i} className="flex items-center gap-6 p-4 bg-gray-50/50 rounded-2xl hover:bg-white hover:shadow-xl transition-all group">
-                                                <div className="flex-1 text-xs font-bold text-gray-600 uppercase tracking-widest">{item.n}</div>
-                                                <div className="w-32">
+                                        {variants.map((v, idx) => (
+                                            <div key={v.id || idx} className="flex gap-6 items-center p-4 bg-gray-50/50 rounded-2xl hover:bg-white hover:shadow-xl transition-all group">
+                                                <div className="flex-1">
                                                     <input 
-                                                        type="number" 
-                                                        defaultValue={item.s}
-                                                        className="w-full bg-white border border-transparent group-hover:border-[#00F2FF]/20 rounded-xl px-4 py-3 text-center text-xs font-black outline-none shadow-sm" 
+                                                        placeholder="Ej: Talla S / Color Negro"
+                                                        value={v.name}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setVariants(prev => prev.map(item => item.id === v.id ? { ...item, name: val } : item));
+                                                        }}
+                                                        className="w-full bg-transparent border-none outline-none text-xs font-bold text-[#004D4D] uppercase tracking-wider"
                                                     />
                                                 </div>
-                                                <div className="w-10 text-gray-300 group-hover:text-[#004D4D]"><Package size={18}/></div>
+                                                <div className="w-48">
+                                                    <input 
+                                                        placeholder="SKU-001"
+                                                        value={v.sku || ''}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setVariants(prev => prev.map(item => item.id === v.id ? { ...item, sku: val } : item));
+                                                        }}
+                                                        className="w-full bg-white rounded-xl px-4 py-2 text-[10px] font-black border border-transparent group-hover:border-gray-100 shadow-sm outline-none"
+                                                    />
+                                                </div>
+                                                <div className="w-32">
+                                                    <input 
+                                                        type="number"
+                                                        value={v.stock}
+                                                        onChange={(e) => {
+                                                            const val = Number(e.target.value);
+                                                            setVariants(prev => prev.map(item => item.id === v.id ? { ...item, stock: val } : item));
+                                                        }}
+                                                        className="w-full bg-white rounded-xl px-4 py-3 text-center text-xs font-black text-[#004D4D] border border-transparent group-hover:border-[#00F2FF]/30 shadow-sm outline-none"
+                                                    />
+                                                </div>
+                                                <button 
+                                                    onClick={() => setVariants(prev => prev.filter(item => item.id !== v.id))}
+                                                    className="h-10 w-10 flex items-center justify-center text-gray-300 hover:text-rose-500 transition-colors"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
                                         ))}
                                     </div>
+
+                                    <button 
+                                        onClick={() => setVariants([...variants, { id: Math.random().toString(36).substr(2, 9), name: '', sku: '', stock: 0 }])}
+                                        className="w-full py-6 border-2 border-dashed border-gray-100 rounded-[2.5rem] text-[10px] font-black text-gray-400 uppercase hover:text-[#004D4D] hover:bg-gray-50 transition-all flex items-center justify-center gap-3"
+                                    >
+                                        <Plus size={16} /> Añadir Nueva Combinación (Talla/Color)
+                                    </button>
                                 </div>
                             </div>
 
-                            {/* RESUMEN DE MATRIZ */}
-                            <div className="p-8 bg-[#004D4D] rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12"><Package size={120} /></div>
-                                <div className="relative z-10 flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <h4 className="text-xl font-black italic tracking-tighter uppercase leading-none">Inventario Consolidado</h4>
-                                        <p className="text-[9px] font-bold text-cyan-300 uppercase tracking-[0.2em]">Suma real de unidades físicas</p>
+                            {/* RESUMEN MATEMÁTICO REAL */}
+                            <div className="p-10 bg-[#004D4D] rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12"><Package size={140} /></div>
+                                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
+                                    <div className="space-y-3">
+                                        <h4 className="text-2xl font-black italic tracking-tighter uppercase leading-none">Inventario Consolidado</h4>
+                                        <p className="text-[11px] font-bold text-cyan-300 uppercase tracking-[0.3em] opacity-80">Suma total de unidades físicas disponibles</p>
                                     </div>
-                                    <div className="text-right">
-                                        <span className="text-5xl font-black tracking-tighter">20</span>
-                                        <span className="text-[10px] font-black uppercase ml-2 text-cyan-400">Total</span>
+                                    <div className="bg-black/20 backdrop-blur-md px-12 py-6 rounded-[2rem] border border-white/10 text-center">
+                                        <span className="text-6xl font-black tracking-tighter">{variants.reduce((acc, v) => acc + (Number(v.stock) || 0), 0)}</span>
+                                        <span className="text-[11px] font-black uppercase block mt-1 text-cyan-400 tracking-widest">Unidades en Stock</span>
                                     </div>
                                 </div>
                             </div>
