@@ -81,6 +81,11 @@ export default function EditProductPage() {
     const [media, setMedia] = useState<{file?: File, preview: string, type: 'image' | 'video'}[]>([]);
     const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
 
+    const formatValue = (val: number | string) => {
+        const num = String(val).replace(/\D/g, "");
+        return new Intl.NumberFormat("de-DE").format(Number(num));
+    };
+
     const colorMap: { [key: string]: string } = {
         'rojo': '#FF0000', 'red': '#FF0000', 'azul': '#0000FF', 'blue': '#0000FF',
         'verde': '#008000', 'green': '#008000', 'negro': '#000000', 'black': '#000000',
@@ -111,7 +116,14 @@ export default function EditProductPage() {
                         ...productData,
                         image_url: Array.isArray(productData.image_url) ? productData.image_url : [productData.image_url]
                     });
-                    if (productData.variants) setVariants(productData.variants);
+                    if (productData.variants) {
+                        setVariants(productData.variants.map((v: any) => ({
+                            id: v.id,
+                            name: v.name,
+                            sku: v.sku || '',
+                            stock: Number(v.stock) || 0
+                        })));
+                    }
                     if (productData.image_url) {
                         const urls = Array.isArray(productData.image_url) ? productData.image_url : [productData.image_url];
                         setMedia(urls.map(url => ({ preview: url, type: 'image' })));
@@ -143,7 +155,14 @@ export default function EditProductPage() {
                     if (res.ok) { const d = await res.json(); finalImageUrls.push(d.url); }
                 } else { finalImageUrls.push(item.preview); }
             }
-            await apiRequest(`/products/${productId}`, { method: 'PUT', token, body: JSON.stringify({ ...formData, image_url: finalImageUrls, variants: variants.map(v => ({ name: v.name, sku: v.sku, stock: Number(v.stock) })) }) });
+            await apiRequest(`/products/${productId}`, { 
+                method: 'PUT', token, 
+                body: JSON.stringify({ 
+                    ...formData, 
+                    image_url: finalImageUrls, 
+                    variants: variants.map(v => ({ name: v.name, sku: v.sku, stock: Number(v.stock) })) 
+                }) 
+            });
             window.dispatchEvent(new CustomEvent('bayup_product_update'));
             showToast("Producto actualizado ✨", "success");
             router.push('/dashboard/products');
@@ -177,7 +196,7 @@ export default function EditProductPage() {
 
                 <AnimatePresence mode="wait">
                     {activeTab === 'info' && (
-                        <motion.div key="info" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10">
+                        <motion.div key="info" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-10">
                             <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
                                 <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">TÍTULO DEL PRODUCTO</label><input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl outline-none font-bold shadow-inner" /></div>
                                 <div className="grid grid-cols-2 gap-8">
@@ -214,6 +233,65 @@ export default function EditProductPage() {
                                         </label>
                                     )}
                                 </Reorder.Group>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {activeTab === 'financial' && (
+                        <motion.div key="financial" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-10">
+                            <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><DollarSign size={18} /> Estructura de Precios</h3>
+                                    <div className="px-4 py-2 bg-cyan-50 text-cyan-700 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 border border-cyan-100"><Bot size={14}/> Análisis Bayt Activo</div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">PRECIO RETAIL</label>
+                                        <div className="relative">
+                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                            <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">PRECIO MAYORISTA</label>
+                                        <div className="relative">
+                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                            <input type="number" value={formData.wholesale_price} onChange={e => setFormData({...formData, wholesale_price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">COSTO UNITARIO</label>
+                                        <div className="relative">
+                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                            <input type="number" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-6 bg-[#FAFAFA] rounded-3xl border border-gray-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D]"><Zap size={18}/></div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Incluir comisión de pasarela</p>
+                                            <p className="text-[8px] font-bold text-gray-400 uppercase">Suma automáticamente el 3.5% + $900 al precio final</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setFormData({...formData, add_gateway_fee: !formData.add_gateway_fee})} className={`w-14 h-7 rounded-full transition-all relative ${formData.add_gateway_fee ? 'bg-emerald-500' : 'bg-gray-200'}`}>
+                                        <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-sm ${formData.add_gateway_fee ? 'left-8' : 'left-1'}`} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
+                                    <div className="flex items-center justify-between text-slate-900"><p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em]">Utilidad Retail Bruta</p></div>
+                                    <div className="flex items-baseline gap-2"><span className="text-4xl font-black text-gray-900 tracking-tighter">${(formData.price - formData.cost).toLocaleString('de-DE')}</span><span className="text-[10px] font-black text-gray-400 uppercase">Bruto / UND</span></div>
+                                </div>
+                                <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
+                                    <div className="flex items-center justify-between text-slate-900"><p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em]">Utilidad Mayorista Bruta</p></div>
+                                    <div className="flex items-baseline gap-2"><span className="text-4xl font-black text-gray-900 tracking-tighter">${(formData.wholesale_price - formData.cost).toLocaleString('de-DE')}</span><span className="text-[10px] font-black text-gray-400 uppercase">Bruto / UND</span></div>
+                                </div>
                             </div>
                         </motion.div>
                     )}

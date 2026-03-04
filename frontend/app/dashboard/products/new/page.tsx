@@ -192,12 +192,70 @@ export default function NewProductPage() {
                                     ))}
                                     {media.length < 5 && (
                                         <label className="h-32 w-32 rounded-3xl border-2 border-dashed border-[#004D4D]/10 bg-gray-50/50 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#00F2FF] group transition-all">
-                                            <Plus size={20} className="text-[#004D4D] group-hover:scale-110 transition-transform"/>
+                                            <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-all"><Plus size={20} className="text-[#004D4D]"/></div>
                                             <div className="text-center"><span className="text-[8px] font-black text-gray-400 uppercase block">Subir</span><span className="text-[7px] font-bold text-gray-300 uppercase">Máx. 5 archivos</span></div>
                                             <input type="file" className="hidden" multiple onChange={handleFileUpload} />
                                         </label>
                                     )}
                                 </Reorder.Group>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {activeTab === 'financial' && (
+                        <motion.div key="financial" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-10">
+                            <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                                <div className="flex items-center justify-between text-slate-900">
+                                    <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><DollarSign size={18} /> Estructura de Precios</h3>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">PRECIO RETAIL</label>
+                                        <div className="relative">
+                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                            <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">PRECIO MAYORISTA</label>
+                                        <div className="relative">
+                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                            <input type="number" value={formData.wholesale_price} onChange={e => setFormData({...formData, wholesale_price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">COSTO UNITARIO</label>
+                                        <div className="relative">
+                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                            <input type="number" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-6 bg-[#FAFAFA] rounded-3xl border border-gray-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D]"><Zap size={18}/></div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Incluir comisión de pasarela</p>
+                                            <p className="text-[8px] font-bold text-gray-400 uppercase">Suma automáticamente el 3.5% + $900 al precio final</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setFormData({...formData, add_gateway_fee: !formData.add_gateway_fee})} className={`w-14 h-7 rounded-full transition-all relative ${formData.add_gateway_fee ? 'bg-emerald-500' : 'bg-gray-200'}`}>
+                                        <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-sm ${formData.add_gateway_fee ? 'left-8' : 'left-1'}`} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
+                                    <div className="flex items-center justify-between text-slate-900"><p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em]">Utilidad Retail Bruta</p></div>
+                                    <div className="flex items-baseline gap-2"><span className="text-4xl font-black text-gray-900 tracking-tighter">${(formData.price - formData.cost).toLocaleString('de-DE')}</span><span className="text-[10px] font-black text-gray-400 uppercase">Bruto / UND</span></div>
+                                </div>
+                                <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
+                                    <div className="flex items-center justify-between text-slate-900"><p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em]">Utilidad Mayorista Bruta</p></div>
+                                    <div className="flex items-baseline gap-2"><span className="text-4xl font-black text-gray-900 tracking-tighter">${(formData.wholesale_price - formData.cost).toLocaleString('de-DE')}</span><span className="text-[10px] font-black text-gray-400 uppercase">Bruto / UND</span></div>
+                                </div>
                             </div>
                         </motion.div>
                     )}
