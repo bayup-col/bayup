@@ -13,6 +13,7 @@ from database import SessionLocal, engine, get_db
 import models
 import crud
 import security
+import schemas
 
 def safe_db_init():
     """Repara el esquema sin tocar los datos existentes."""
