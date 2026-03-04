@@ -370,6 +370,27 @@ def update_product(
         print(f"Error actualizando producto: {e}")
         raise HTTPException(status_code=500, detail="Error interno al guardar cambios")
 
+@app.delete("/products/{product_id}")
+def delete_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Elimina un producto del catálogo."""
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    db_product = db.query(models.Product).filter(
+        models.Product.id == product_id, 
+        models.Product.owner_id == tenant_id
+    ).first()
+    
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    try:
+        db.delete(db_product)
+        db.commit()
+        return {"status": "success", "message": "Producto eliminado correctamente"}
+    except Exception as e:
+        db.rollback()
+        print(f"Error eliminando producto: {e}")
+        raise HTTPException(status_code=500, detail="Error interno al eliminar")
+
 @app.get("/orders")
 def get_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id

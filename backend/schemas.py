@@ -139,6 +139,20 @@ class ProductBase(BaseModel):
 class ProductCreate(ProductBase):
     variants: List[ProductVariantCreate]
 
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[float] = None
+    wholesale_price: Optional[float] = None
+    cost: Optional[float] = None
+    sku: Optional[str] = None
+    status: Optional[str] = None
+    add_gateway_fee: Optional[bool] = None
+    image_url: Optional[List[str]] = None
+    product_type_id: Optional[uuid.UUID] = None
+    collection_id: Optional[uuid.UUID] = None
+    variants: Optional[List[ProductVariantCreate]] = None
+
 class Product(ProductBase):
     id: uuid.UUID
     owner_id: uuid.UUID
@@ -479,8 +493,6 @@ class StoreMessage(StoreMessageBase):
     created_at: datetime
     class Config:
         from_attributes = True
-        from_attributes = True
-        orm_mode = True
 
 # --- Web Template Schemas ---
 class WebTemplateBase(BaseModel):
