@@ -296,9 +296,25 @@ export default function NewProductPage() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-8">
                                     <div className="space-y-2 relative"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Categoría</label><button onClick={() => setIsCategoryOpen(!isCategoryOpen)} className="w-full p-5 bg-gray-50 rounded-2xl text-left text-sm font-bold flex items-center justify-between"><span>{formData.category || "Seleccionar..."}</span><ChevronDown size={16} /></button>
-                                        <AnimatePresence>{isCategoryOpen && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border z-[110] p-2">
-                                            <div className="max-h-[200px] overflow-y-auto no-scrollbar">{categoriesList.map(cat => (<button key={cat.id} onClick={() => { setFormData({...formData, category: cat.title, collection_id: cat.id}); setIsCategoryOpen(false); }} className="w-full text-left px-5 py-3 rounded-xl text-xs font-black uppercase text-slate-500 hover:bg-slate-50">{cat.title}</button>))}</div>
-                                        </motion.div>)}</AnimatePresence>
+                                        <AnimatePresence>
+                                            {isCategoryOpen && (
+                                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border z-[110] p-2 overflow-hidden">
+                                                    <div className="max-h-[250px] overflow-y-auto no-scrollbar">
+                                                        {categoriesList.map(cat => (
+                                                            <button key={cat.id} onClick={() => { setFormData({...formData, category: cat.title, collection_id: cat.id}); setIsCategoryOpen(false); }} className="w-full text-left px-5 py-3 rounded-xl text-[9px] font-black uppercase text-slate-500 hover:bg-slate-50 hover:text-[#004D4D] transition-colors">
+                                                                {cat.title}
+                                                            </button>
+                                                        ))}
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); setIsNewCategoryModalOpen(true); setIsCategoryOpen(false); }}
+                                                            className="w-full text-left px-5 py-4 mt-2 rounded-xl text-[9px] font-black uppercase bg-[#004D4D]/5 text-[#004D4D] border border-dashed border-[#004D4D]/20 hover:bg-[#004D4D] hover:text-white transition-all flex items-center gap-2"
+                                                        >
+                                                            <Plus size={12}/> Crear nueva categoría
+                                                        </button>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                     <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Estado</label><div className="flex bg-gray-50 p-1 rounded-2xl h-[60px]"><button onClick={() => setFormData({...formData, status: 'active'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase ${formData.status === 'active' ? 'bg-[#004D4D] text-white' : 'text-gray-400'}`}>Activo</button><button onClick={() => setFormData({...formData, status: 'draft'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase ${formData.status === 'draft' ? 'bg-[#004D4D] text-white' : 'text-gray-400'}`}>Borrador</button></div></div>
                                 </div>
