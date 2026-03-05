@@ -79,6 +79,8 @@ export default function NewProductPage() {
     const [media, setMedia] = useState<{file?: File, preview: string, type: 'image' | 'video'}[]>([]);
     const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
 
+    const [fixedCosts, setFixedCosts] = useState({ payroll: 0, rent: 0, services: 0, others: 0 });
+
     const colorMap: { [key: string]: string } = {
         'rojo': '#FF0000', 'red': '#FF0000', 'azul': '#0000FF', 'blue': '#0000FF',
         'verde': '#008000', 'green': '#008000', 'negro': '#000000', 'black': '#000000',
