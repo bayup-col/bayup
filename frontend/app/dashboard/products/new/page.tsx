@@ -518,7 +518,7 @@ export default function NewProductPage() {
                 </AnimatePresence>
 
                 <div className="pt-10 flex items-center justify-between border-t border-gray-100 pb-20">
-                    <button onClick={() => router.back()} className="px-10 py-5 text-[10px] font-black uppercase text-gray-400">Descartar</button>
+                    <button onClick={() => router.back()} className="px-10 py-5 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 transition-colors">Descartar</button>
                     <button 
                         onClick={() => {
                             if (activeTab === 'info') setActiveTab('financial');
