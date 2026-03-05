@@ -165,7 +165,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <MenuItem href="/dashboard/invoicing" label={<><FileText size={18} /> Facturación</>} id="facturacion" />
                     <MenuItem href="/dashboard/orders" label={<><Package size={18} /> Pedidos Web</>} id="pedidos" />
                     <MenuItem href="/dashboard/products" label={<><Store size={18} /> Productos</>} id="productos" />
-                    <MenuItem href="/dashboard/envios" label={<><Truck size={18} /> Envíos</>} id="envios" />
+                    <MenuItem href="/dashboard/shipping" label={<><Truck size={18} /> Envíos</>} id="envios" />
                     <MenuItem href="/dashboard/chats" label={<><MessageSquare size={18} /> Mensajes Web</>} id="mensajes" />
 
                     {showExtraModules && (
