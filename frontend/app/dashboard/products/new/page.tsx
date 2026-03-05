@@ -314,14 +314,8 @@ export default function NewProductPage() {
                                         <h4 className="text-3xl font-black">${calculateProfit(formData.wholesale_price).net.toLocaleString('de-DE')}</h4>
                                         <div className="flex items-center gap-2 mt-2">
                                             <div className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-                                            <p className="text-[8px] font-bold text-gray-400 uppercase">Bayup (3.5%): -${calculateProfit(formData.wholesale_price).bayupFee.toLocaleString('de-DE')}</p>
+                                            <p className="text-[8px] font-bold text-gray-400 uppercase">Bayup: -${calculateProfit(formData.wholesale_price).bayupFee.toLocaleString('de-DE')}</p>
                                         </div>
-                                        {!formData.add_gateway_fee && (
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-                                                <p className="text-[8px] font-bold text-gray-400 uppercase">Wompi (2.85%): -${calculateProfit(formData.wholesale_price).wompiFee.toLocaleString('de-DE')}</p>
-                                            </div>
-                                        )}
                                     </div>
                                     <div className="text-right relative z-10">
                                         <span className="text-4xl font-black italic">{calculateProfit(formData.wholesale_price).margin.toFixed(1)}%</span>
@@ -353,14 +347,8 @@ export default function NewProductPage() {
                                         <h4 className="text-3xl font-black">${calculateProfit(formData.price).net.toLocaleString('de-DE')}</h4>
                                         <div className="flex items-center gap-2 mt-2">
                                             <div className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-                                            <p className="text-[8px] font-bold text-gray-400 uppercase">Bayup (3.5%): -${calculateProfit(formData.price).bayupFee.toLocaleString('de-DE')}</p>
+                                            <p className="text-[8px] font-bold text-gray-400 uppercase">Bayup: -${calculateProfit(formData.price).bayupFee.toLocaleString('de-DE')}</p>
                                         </div>
-                                        {!formData.add_gateway_fee && (
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-                                                <p className="text-[8px] font-bold text-gray-400 uppercase">Wompi (2.85%): -${calculateProfit(formData.price).wompiFee.toLocaleString('de-DE')}</p>
-                                            </div>
-                                        )}
                                     </div>
                                     <div className="text-right relative z-10">
                                         <span className="text-4xl font-black italic">{calculateProfit(formData.price).margin.toFixed(1)}%</span>
@@ -371,20 +359,34 @@ export default function NewProductPage() {
 
                             {/* FILA 4: OPCIONES */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                                <button onClick={() => setFormData({...formData, add_gateway_fee: !formData.add_gateway_fee})} className="flex items-center justify-between p-8 bg-white border-2 border-gray-200 rounded-[2rem] shadow-sm group hover:border-[#004D4D]/20 transition-all">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`h-10 w-10 rounded-xl transition-all flex items-center justify-center ${formData.add_gateway_fee ? 'bg-[#004D4D] text-white' : 'bg-gray-100 text-gray-400'}`}>
-                                            <Zap size={20} />
+                                <div className="relative group/wompi">
+                                    <button onClick={() => setFormData({...formData, add_gateway_fee: !formData.add_gateway_fee})} className="w-full flex items-center justify-between p-8 bg-white border-2 border-gray-200 rounded-[2rem] shadow-sm hover:border-[#004D4D]/20 transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`h-10 w-10 rounded-xl transition-all flex items-center justify-center ${formData.add_gateway_fee ? 'bg-[#004D4D] text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                                <Zap size={20} />
+                                            </div>
+                                            <div className="text-left">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <p className="text-[9px] font-black text-[#004D4D] uppercase tracking-widest leading-none">Pasarela Wompi</p>
+                                                    <div className="p-1 rounded-full bg-gray-100 text-gray-400 hover:bg-[#004D4D] hover:text-white transition-colors cursor-help">
+                                                        <HelpCircle size={10} />
+                                                    </div>
+                                                </div>
+                                                <p className="text-[8px] font-bold text-gray-400 uppercase">¿Quién asume el costo?</p>
+                                            </div>
                                         </div>
-                                        <div className="text-left">
-                                            <p className="text-[9px] font-black text-[#004D4D] uppercase tracking-widest leading-none mb-1">Pasarela Wompi (2.85%)</p>
-                                            <p className="text-[8px] font-bold text-gray-400 uppercase">¿Quién asume el costo?</p>
+                                        <div className={`px-4 py-2 rounded-full text-[8px] font-black uppercase transition-all ${formData.add_gateway_fee ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                                            {formData.add_gateway_fee ? 'Cliente' : 'Empresa'}
                                         </div>
+                                    </button>
+                                    
+                                    {/* Tooltip */}
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-64 p-4 bg-gray-900 text-white text-[10px] rounded-2xl opacity-0 group-hover/wompi:opacity-100 pointer-events-none transition-opacity shadow-2xl z-[100]">
+                                        <p className="font-bold text-cyan-400 mb-1 uppercase tracking-widest">Información de Pasarela</p>
+                                        <p className="text-gray-300 leading-relaxed">Wompi cobra una comisión por cada transacción exitosa. Aquí puedes elegir si ese costo lo descuentas de tu ganancia o se le suma al precio final del cliente.</p>
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900" />
                                     </div>
-                                    <div className={`px-4 py-2 rounded-full text-[8px] font-black uppercase transition-all ${formData.add_gateway_fee ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                                        {formData.add_gateway_fee ? 'Cliente' : 'Empresa'}
-                                    </div>
-                                </button>
+                                </div>
                                 <div className="flex items-center justify-between p-8 bg-gray-50/50 border-2 border-gray-100 rounded-[2rem] shadow-sm">
                                     <div className="space-y-1">
                                         <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Soporte Financiero</p>
