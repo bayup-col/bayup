@@ -204,9 +204,7 @@ export default function NewProductPage() {
                         </motion.div>
                     )}
 
-                    {activeTab === 'financial' && (() => {
                         const commissionRate = userPlan?.commission_rate || 0.035;
-                        const [fixedCosts, setFixedCosts] = useState({ payroll: 0, rent: 0, services: 0, others: 0 });
                         const totalStock = variants.reduce((acc, v) => acc + (Number(v.stock) || 0), 0) || 1; // Avoid div by zero
 
                         const calculateProfit = (price: number) => {
