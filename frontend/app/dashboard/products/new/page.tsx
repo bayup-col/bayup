@@ -541,8 +541,14 @@ export default function NewProductPage() {
                                             </div>
                                         );
                                     })}
-                                    <button onClick={() => setIsNewVariantModalOpen(true)} className="w-full py-8 border-2 border-dashed border-gray-100 rounded-[3rem] text-[10px] font-black text-gray-400 uppercase hover:text-[#004D4D] hover:bg-gray-50 transition-all flex flex-col items-center justify-center gap-2">
-                                        <Plus size={24}/><span className="tracking-widest">Añadir Atributo</span>
+                                    <button onClick={() => { setEditingMasterName(null); setTempVariantName(""); setTempSubVariants([{ id: '1', spec: '', stock: 0 }]); setIsNewVariantModalOpen(true); }} className="w-full py-12 border-2 border-dashed border-[#00F2FF]/40 bg-[#00F2FF]/5 rounded-[3rem] text-[10px] font-black text-[#004D4D] uppercase hover:bg-[#00F2FF]/10 hover:border-[#00F2FF] transition-all flex flex-col items-center justify-center gap-4 group">
+                                        <div className="h-14 w-14 rounded-2xl bg-white shadow-xl flex items-center justify-center group-hover:scale-110 transition-all">
+                                            <Plus size={24} className="text-[#004D4D]"/>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="tracking-[0.2em] block">Añadir Atributo</span>
+                                            <span className="text-[8px] font-bold opacity-40">Talla, color o material</span>
+                                        </div>
                                     </button>
                                 </div>
                             </div>
