@@ -624,17 +624,19 @@ export default function NewProductPage() {
                                             </div>
                                         </div>
                                         <div className="bg-gray-50 p-8 rounded-[2rem] space-y-3 border-2 border-transparent">
-                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">PUNTO DE EQUILIBRIO</p>
+                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">UNIDADES EQUILIBRIO</p>
                                             <div className="flex items-center gap-4">
                                                 <BarChart3 size={20} className="text-cyan-400"/> 
                                                 <span className="text-2xl font-black text-slate-900">
                                                     {(() => {
                                                         const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
-                                                        const price = formData.price || 1;
+                                                        // Usar el precio retail sugerido para el equilibrio si el precio actual es 0
+                                                        const price = formData.price || recommendedRetail() || 1;
                                                         const gatewayFee = formData.add_gateway_fee ? 0 : (price * wompiRate);
-                                                        const unitProfit = price - (formData.cost || 0) - (price * bayupRate) - gatewayFee;
-                                                        if (unitProfit <= 0) return "∞";
-                                                        return Math.ceil(totalFixed / unitProfit);
+                                                        const unitContribution = price - (formData.cost || 0) - (price * bayupRate) - gatewayFee;
+                                                        
+                                                        if (unitContribution <= 0) return "—";
+                                                        return Math.ceil(totalFixed / unitContribution);
                                                     })()} <span className="text-[10px] text-gray-400 uppercase">Uds</span>
                                                 </span>
                                             </div>
