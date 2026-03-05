@@ -46,7 +46,7 @@ export default function BayupFamilyLogin() {
                 }
 
                 // Forzamos el estado global para el dueño o staff global
-                login(data.access_token, user.email, user.role, user.permissions, user.plan, true, user.shop_slug, user.name);
+                login(data.access_token, user.email, user.role, user.permissions, user.plan, true, user.shop_slug, user.name, user.logo_url || "");
                 showToast("Bienvenido a la Torre de Control, Comandante.", "success");
                 router.push('/dashboard/super-admin');
             } else {

@@ -73,11 +73,11 @@ export default function LoginPage() {
           return;
       }
       
-      const userPermissions = userData.permissions || {};
       const userPlan = userData.plan || null;
       const shopSlug = userData.shop_slug || "";
+      const userLogo = userData.logo_url || "";
       
-      login(data.access_token, email, userRole, userPermissions, userPlan, isGlobalStaff, shopSlug);
+      login(data.access_token, email, userRole, userPermissions, userPlan, isGlobalStaff, shopSlug, userData.full_name || "", userLogo);
       
       let targetPath = '/dashboard';
       if (isGlobalStaff) targetPath = '/dashboard/super-admin';
