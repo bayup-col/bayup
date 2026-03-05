@@ -353,10 +353,10 @@ export default function NewProductPage() {
                                 </div>
                             </div>
 
-                            {/* FILA 3: RETAIL */}
+                            {/* FILA 3: FINAL */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-end">
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">PRECIO RETAIL</label>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">PRECIO FINAL (UNIDAD)</label>
                                     <div className="relative h-[110px]">
                                         <span className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">$</span>
                                         <input 
@@ -372,15 +372,15 @@ export default function NewProductPage() {
                                 </div>
                                 <div className="bg-[#001515] h-[110px] px-10 rounded-[2rem] text-white flex justify-between items-center shadow-2xl relative overflow-hidden group">
                                     <div className="relative z-10">
-                                        <p className="text-[8px] font-black text-cyan-400 uppercase tracking-widest mb-1">UTILIDAD RETAIL</p>
-                                        <h4 className="text-2xl font-black leading-none">${calculateProfit(formData.price).net.toLocaleString('de-DE')}</h4>
+                                        <p className="text-[8px] font-black text-cyan-400 uppercase tracking-widest mb-1">UTILIDAD FINAL</p>
+                                        <h4 className="text-4xl font-black leading-none">${calculateProfit(formData.price).net.toLocaleString('de-DE')}</h4>
                                         <div className="flex items-center gap-2 mt-2">
                                             <div className="h-1 w-1 rounded-full bg-cyan-400" />
                                             <p className="text-[8px] font-bold text-gray-400 uppercase">Bayup: -${calculateProfit(formData.price).bayupFee.toLocaleString('de-DE')}</p>
                                         </div>
                                     </div>
                                     <div className="text-right relative z-10">
-                                        <span className="text-4xl font-black italic">{calculateProfit(formData.price).margin.toFixed(1)}%</span>
+                                        <span className="text-xl font-black italic opacity-80">{calculateProfit(formData.price).margin.toFixed(1)}%</span>
                                     </div>
                                     <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform"><TrendingUp size={80}/></div>
                                 </div>
