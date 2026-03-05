@@ -230,7 +230,15 @@ export default function NewProductPage() {
                     {activeTab === 'info' && (
                         <motion.div key="info" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-10">
                             <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">TÍTULO</label><input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl outline-none font-bold" /></div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">TÍTULO</label>
+                                    <input 
+                                        value={formData.name} 
+                                        onChange={e => setFormData({...formData, name: e.target.value})} 
+                                        className="w-full p-5 bg-gray-50 rounded-2xl outline-none font-bold placeholder:text-gray-300 transition-all focus:bg-white" 
+                                        placeholder="Ej: Camiseta Oversize de Algodón Premium"
+                                    />
+                                </div>
                                 <div className="grid grid-cols-2 gap-8">
                                     <div className="space-y-2 relative"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Categoría</label><button onClick={() => setIsCategoryOpen(!isCategoryOpen)} className="w-full p-5 bg-gray-50 rounded-2xl text-left text-sm font-bold flex items-center justify-between"><span>{formData.category || "Seleccionar..."}</span><ChevronDown size={16} /></button>
                                         <AnimatePresence>{isCategoryOpen && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border z-[110] p-2">
@@ -239,7 +247,16 @@ export default function NewProductPage() {
                                     </div>
                                     <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Estado</label><div className="flex bg-gray-50 p-1 rounded-2xl h-[60px]"><button onClick={() => setFormData({...formData, status: 'active'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase ${formData.status === 'active' ? 'bg-[#004D4D] text-white' : 'text-gray-400'}`}>Activo</button><button onClick={() => setFormData({...formData, status: 'draft'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase ${formData.status === 'draft' ? 'bg-[#004D4D] text-white' : 'text-gray-400'}`}>Borrador</button></div></div>
                                 </div>
-                                <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Descripción</label><textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows={5} className="w-full p-6 bg-gray-50 rounded-[2.5rem] outline-none text-sm font-medium resize-none" /></div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Descripción</label>
+                                    <textarea 
+                                        value={formData.description} 
+                                        onChange={e => setFormData({...formData, description: e.target.value})} 
+                                        rows={5} 
+                                        className="w-full p-6 bg-gray-50 rounded-[2.5rem] outline-none text-sm font-medium resize-none placeholder:text-gray-300 transition-all focus:bg-white" 
+                                        placeholder="Describe los materiales, la talla que usa el modelo y los detalles que hacen único a este producto..."
+                                    />
+                                </div>
                             </div>
                             <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
                                 <div className="flex items-center justify-between">
@@ -254,9 +271,12 @@ export default function NewProductPage() {
                                         </Reorder.Item>
                                     ))}
                                     {media.length < 5 && (
-                                        <label className="h-32 w-32 rounded-3xl border-2 border-dashed border-[#004D4D]/10 bg-gray-50/50 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#00F2FF] group transition-all">
+                                        <label className="h-32 w-32 rounded-3xl border-2 border-dashed border-[#00F2FF]/40 bg-[#00F2FF]/5 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#00F2FF] hover:bg-[#00F2FF]/10 group transition-all">
                                             <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-all"><Plus size={20} className="text-[#004D4D]"/></div>
-                                            <div className="text-center"><span className="text-[8px] font-black text-gray-400 uppercase block">Subir</span><span className="text-[7px] font-bold text-gray-300 uppercase">Máx. 5 archivos</span></div>
+                                            <div className="text-center">
+                                                <span className="text-[8px] font-black text-[#004D4D] uppercase block">Subir</span>
+                                                <span className="text-[7px] font-bold text-[#004D4D]/40 uppercase">Máx. 5 archivos</span>
+                                            </div>
                                             <input type="file" className="hidden" multiple onChange={handleFileUpload} />
                                         </label>
                                     )}
