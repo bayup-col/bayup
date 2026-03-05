@@ -141,9 +141,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <MenuItem href="/dashboard/invoicing" label={<><FileText size={18} /> Facturación</>} id="facturacion" />
             <MenuItem href="/dashboard/orders" label={<><Package size={18} /> Pedidos Web</>} id="pedidos" />
             <MenuItem href="/dashboard/products" label={<><Store size={18} /> Productos</>} id="productos" />
-            <MenuItem href="/dashboard/shipping" label={<><Truck size={18} /> Envíos</>} id="envios" />
+            <MenuItem href="/dashboard/envios" label={<><Truck size={18} /> Envíos</>} id="envios" />
             <MenuItem href="/dashboard/chats" label={<><MessageSquare size={18} /> Mensajes Web</>} id="mensajes" />
-            
+
+            {(authRole === 'SUPER_ADMIN' || isGlobalStaff) && (
+              <div className="pt-4 border-t border-gray-100 mt-4">
+                <MenuItem href="/dashboard/super-admin" label={<><ShieldCheck size={18} className="text-cyan" /> Panel Admin</>} id="super-admin" />
+              </div>
+            )}
+
             {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Configuración</p>}
             <MenuItem href="/dashboard/settings/general" label={<><Settings size={18} /> Config Tienda</>} id="settings" />
           </nav>
