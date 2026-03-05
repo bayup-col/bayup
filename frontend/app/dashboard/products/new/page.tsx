@@ -85,7 +85,8 @@ export default function NewProductPage() {
     const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
 
     const totalStock = variants.reduce((acc, v) => acc + (Number(v.stock) || 0), 0) || 1;
-    const commissionRate = userPlan?.commission_rate || 0.035;
+    const bayupRate = 0.035; // 3.5% fija
+    const wompiRate = 0.0285; // 2.85% Wompi
 
     const formatNumber = (val: number) => {
         if (!val && val !== 0) return "";
@@ -101,6 +102,44 @@ export default function NewProductPage() {
         } else {
             setFormData(prev => ({ ...prev, [field]: numValue }));
         }
+    };
+
+    const calculateProfit = (price: number) => {
+        if (!price) return { net: 0, margin: 0, bayupFee: 0, wompiFee: 0 };
+        const bayupFee = price * bayupRate;
+        const wompiFee = price * wompiRate;
+        
+        // Si add_gateway_fee es true, el cliente paga (no se descuenta del comercio)
+        const net = price - (formData.cost || 0) - bayupFee - (formData.add_gateway_fee ? 0 : wompiFee);
+        const margin = price > 0 ? (net / price) * 100 : 0;
+        
+        return { net, margin, bayupFee, wompiFee: formData.add_gateway_fee ? 0 : wompiFee };
+    };
+
+    const recommendedRetail = () => {
+        const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
+        const units = simulationUnits || 1;
+        const costPerUnit = (formData.cost || 0) + (totalFixed / units);
+        
+        const marginDecimal = simulationRetailMargin / 100;
+        const gatewayDecimal = formData.add_gateway_fee ? 0 : wompiRate;
+        const divisor = 1 - marginDecimal - bayupRate - gatewayDecimal;
+        
+        if (divisor <= 0) return 0;
+        return Math.ceil((costPerUnit / divisor) / 100) * 100;
+    };
+
+    const recommendedWholesale = () => {
+        const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
+        const units = simulationUnits || 1;
+        const costPerUnit = (formData.cost || 0) + (totalFixed / units);
+        
+        const marginDecimal = simulationWholesaleMargin / 100;
+        const gatewayDecimal = formData.add_gateway_fee ? 0 : wompiRate;
+        const divisor = 1 - marginDecimal - bayupRate - gatewayDecimal;
+        
+        if (divisor <= 0) return 0;
+        return Math.ceil((costPerUnit / divisor) / 100) * 100;
     };
 
     const colorMap: { [key: string]: string } = {
@@ -171,42 +210,6 @@ export default function NewProductPage() {
         setIsNewVariantModalOpen(false);
         setTempVariantName("");
         setTempSubVariants([{ id: '1', spec: '', stock: 0 }]);
-    };
-
-    const calculateProfit = (price: number) => {
-        if (!price) return { net: 0, margin: 0, fee: 0 };
-        const fee = formData.add_gateway_fee ? 0 : (price * commissionRate);
-        const net = price - (formData.cost || 0) - fee;
-        const margin = price > 0 ? (net / price) * 100 : 0;
-        return { net, margin, fee };
-    };
-
-    const recommendedRetail = () => {
-        const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
-        const units = simulationUnits || 1;
-        const costPerUnit = (formData.cost || 0) + (totalFixed / units);
-        
-        // Fórmula para obtener X% de margen neto DESPUÉS de 3.5% de comisión:
-        // Precio = Costo / (1 - Margen - Comisión)
-        const marginDecimal = simulationRetailMargin / 100;
-        const commissionDecimal = 0.035;
-        const divisor = 1 - marginDecimal - commissionDecimal;
-        
-        if (divisor <= 0) return 0;
-        return Math.ceil((costPerUnit / divisor) / 100) * 100;
-    };
-
-    const recommendedWholesale = () => {
-        const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
-        const units = simulationUnits || 1;
-        const costPerUnit = (formData.cost || 0) + (totalFixed / units);
-        
-        const marginDecimal = simulationWholesaleMargin / 100;
-        const commissionDecimal = 0.035;
-        const divisor = 1 - marginDecimal - commissionDecimal;
-        
-        if (divisor <= 0) return 0;
-        return Math.ceil((costPerUnit / divisor) / 100) * 100;
     };
 
     return (
@@ -311,8 +314,14 @@ export default function NewProductPage() {
                                         <h4 className="text-3xl font-black">${calculateProfit(formData.wholesale_price).net.toLocaleString('de-DE')}</h4>
                                         <div className="flex items-center gap-2 mt-2">
                                             <div className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-                                            <p className="text-[8px] font-bold text-gray-400 uppercase">Tarifas Bayup: -${calculateProfit(formData.wholesale_price).fee.toLocaleString('de-DE')}</p>
+                                            <p className="text-[8px] font-bold text-gray-400 uppercase">Bayup (3.5%): -${calculateProfit(formData.wholesale_price).bayupFee.toLocaleString('de-DE')}</p>
                                         </div>
+                                        {!formData.add_gateway_fee && (
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                                                <p className="text-[8px] font-bold text-gray-400 uppercase">Wompi (2.85%): -${calculateProfit(formData.wholesale_price).wompiFee.toLocaleString('de-DE')}</p>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="text-right relative z-10">
                                         <span className="text-4xl font-black italic">{calculateProfit(formData.wholesale_price).margin.toFixed(1)}%</span>
@@ -344,8 +353,14 @@ export default function NewProductPage() {
                                         <h4 className="text-3xl font-black">${calculateProfit(formData.price).net.toLocaleString('de-DE')}</h4>
                                         <div className="flex items-center gap-2 mt-2">
                                             <div className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-                                            <p className="text-[8px] font-bold text-gray-400 uppercase">Tarifas Bayup: -${calculateProfit(formData.price).fee.toLocaleString('de-DE')}</p>
+                                            <p className="text-[8px] font-bold text-gray-400 uppercase">Bayup (3.5%): -${calculateProfit(formData.price).bayupFee.toLocaleString('de-DE')}</p>
                                         </div>
+                                        {!formData.add_gateway_fee && (
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                                                <p className="text-[8px] font-bold text-gray-400 uppercase">Wompi (2.85%): -${calculateProfit(formData.price).wompiFee.toLocaleString('de-DE')}</p>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="text-right relative z-10">
                                         <span className="text-4xl font-black italic">{calculateProfit(formData.price).margin.toFixed(1)}%</span>
@@ -356,16 +371,21 @@ export default function NewProductPage() {
 
                             {/* FILA 4: OPCIONES */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                                <button onClick={() => setFormData({...formData, add_gateway_fee: !formData.add_gateway_fee})} className="flex items-center justify-between p-8 bg-white border border-gray-100 rounded-[2rem] shadow-sm group">
+                                <button onClick={() => setFormData({...formData, add_gateway_fee: !formData.add_gateway_fee})} className="flex items-center justify-between p-8 bg-white border-2 border-gray-200 rounded-[2rem] shadow-sm group hover:border-[#004D4D]/20 transition-all">
                                     <div className="flex items-center gap-4">
-                                        <div className={`h-6 w-6 rounded-md border-2 transition-all flex items-center justify-center ${formData.add_gateway_fee ? 'bg-[#004D4D] border-[#004D4D]' : 'border-gray-200'}`}>
-                                            {formData.add_gateway_fee && <X size={14} className="text-white rotate-45" />}
+                                        <div className={`h-10 w-10 rounded-xl transition-all flex items-center justify-center ${formData.add_gateway_fee ? 'bg-[#004D4D] text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                            <Zap size={20} />
                                         </div>
-                                        <span className="text-[9px] font-black text-[#004D4D] uppercase tracking-widest">Comisión Pasarela</span>
+                                        <div className="text-left">
+                                            <p className="text-[9px] font-black text-[#004D4D] uppercase tracking-widest leading-none mb-1">Pasarela Wompi (2.85%)</p>
+                                            <p className="text-[8px] font-bold text-gray-400 uppercase">¿Quién asume el costo?</p>
+                                        </div>
                                     </div>
-                                    <Info size={14} className="text-gray-300" />
+                                    <div className={`px-4 py-2 rounded-full text-[8px] font-black uppercase transition-all ${formData.add_gateway_fee ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                                        {formData.add_gateway_fee ? 'Cliente' : 'Empresa'}
+                                    </div>
                                 </button>
-                                <div className="flex items-center justify-between p-8 bg-gray-50/50 border border-gray-100 rounded-[2rem] shadow-sm">
+                                <div className="flex items-center justify-between p-8 bg-gray-50/50 border-2 border-gray-100 rounded-[2rem] shadow-sm">
                                     <div className="space-y-1">
                                         <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Soporte Financiero</p>
                                         <p className="text-[10px] font-black text-[#004D4D]">FEE: 10%</p>
@@ -375,12 +395,12 @@ export default function NewProductPage() {
                             </div>
 
                             {/* ASISTENTE BUTTON */}
-                            <button onClick={() => setIsAssistantOpen(true)} className="w-full p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm flex items-center justify-between group hover:border-[#00F2FF]/30 transition-all">
+                            <button onClick={() => setIsAssistantOpen(true)} className="w-full p-10 bg-white rounded-[3rem] border-2 border-gray-200 shadow-sm flex items-center justify-between group hover:border-[#00F2FF]/30 transition-all">
                                 <div className="flex items-center gap-6">
                                     <div className="h-14 w-14 rounded-2xl bg-[#00F2FF]/10 flex items-center justify-center text-[#004D4D] group-hover:scale-110 transition-all"><Bot size={28}/></div>
                                     <div className="text-left">
                                         <h4 className="text-sm font-black text-[#004D4D] uppercase tracking-widest">¿Dudas con tus precios?</h4>
-                                        <p className="text-[9px] font-bold text-gray-400 uppercase mt-1">Usa el asistente Bayt para calcular rentabilidad real</p>
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase mt-1">Usa el asistente Bayt para calcular rentabilidad y punto de equilibrio</p>
                                     </div>
                                 </div>
                                 <ChevronRight size={20} className="text-gray-300"/>
@@ -404,7 +424,7 @@ export default function NewProductPage() {
                                                         <div className="h-10 w-10 rounded-2xl bg-[#004D4D] flex items-center justify-center text-white font-black text-xs">{mIdx + 1}</div>
                                                         <h4 className="text-lg font-black text-[#004D4D] italic uppercase tracking-tighter">{master}</h4>
                                                     </div>
-                                                    <div className="flex flex-wrap gap-3">
+                                                    <div className="flex wrap gap-3">
                                                         {subs.map((s, sIdx) => {
                                                             const detail = s.name.includes('/') ? s.name.split('/')[1].trim() : s.name;
                                                             return (
@@ -556,7 +576,8 @@ export default function NewProductPage() {
                                                     {(() => {
                                                         const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
                                                         const price = formData.price || 1;
-                                                        const unitProfit = price - (formData.cost || 0) - (price * 0.035);
+                                                        const gatewayFee = formData.add_gateway_fee ? 0 : (price * wompiRate);
+                                                        const unitProfit = price - (formData.cost || 0) - (price * bayupRate) - gatewayFee;
                                                         if (unitProfit <= 0) return "∞";
                                                         return Math.ceil(totalFixed / unitProfit);
                                                     })()} <span className="text-[10px] text-gray-400 uppercase">Uds</span>
@@ -594,7 +615,7 @@ export default function NewProductPage() {
                                     </div>
 
                                     {/* Sugerido Mayorista */}
-                                    <div className="bg-[#004D4D]/10 p-10 rounded-[3rem] border border-[#004D4D]/10 flex justify-between items-center group relative overflow-hidden transition-all">
+                                    <div className="bg-[#004D4D]/10 p-10 rounded-[3rem] border-2 border-gray-200 flex justify-between items-center group relative overflow-hidden transition-all">
                                         <div className="space-y-1 relative z-10">
                                             <p className="text-[8px] font-black text-gray-400 group-hover:text-cyan-400 uppercase tracking-widest transition-colors">SUGERIDO MAYORISTA</p>
                                             <h4 className="text-4xl font-black group-hover:text-white transition-colors">${recommendedWholesale().toLocaleString('de-DE')}</h4>
