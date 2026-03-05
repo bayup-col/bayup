@@ -63,6 +63,7 @@ export default function NewProductPage() {
 
     const [isAssistantOpen, setIsAssistantOpen] = useState(false);
     const [fixedCosts, setFixedCosts] = useState({ payroll: 0, rent: 0, services: 0, others: 0 });
+    const [simulationUnits, setSimulationUnits] = useState(1);
 
     const [formData, setFormData] = useState({
         name: '',
