@@ -64,6 +64,8 @@ export default function NewProductPage() {
     const [isAssistantOpen, setIsAssistantOpen] = useState(false);
     const [fixedCosts, setFixedCosts] = useState({ payroll: 0, rent: 0, services: 0, others: 0 });
     const [simulationUnits, setSimulationUnits] = useState(1);
+    const [simulationRetailMargin, setSimulationRetailMargin] = useState(30);
+    const [simulationWholesaleMargin, setSimulationWholesaleMargin] = useState(15);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -181,14 +183,18 @@ export default function NewProductPage() {
 
     const recommendedRetail = () => {
         const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
-        const costPerUnit = formData.cost + (totalFixed / totalStock);
-        return Math.ceil((costPerUnit * 1.5) / 100) * 100; // 50% margin retail
+        const units = simulationUnits || 1;
+        const costPerUnit = formData.cost + (totalFixed / units);
+        const marginMultiplier = 1 + (simulationRetailMargin / 100);
+        return Math.ceil((costPerUnit * marginMultiplier) / 100) * 100;
     };
 
     const recommendedWholesale = () => {
         const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
-        const costPerUnit = formData.cost + (totalFixed / totalStock);
-        return Math.ceil((costPerUnit * 1.25) / 100) * 100; // 25% margin wholesale
+        const units = simulationUnits || 1;
+        const costPerUnit = formData.cost + (totalFixed / units);
+        const marginMultiplier = 1 + (simulationWholesaleMargin / 100);
+        return Math.ceil((costPerUnit * marginMultiplier) / 100) * 100;
     };
 
     return (
@@ -489,9 +495,23 @@ export default function NewProductPage() {
                                     <h3 className="text-4xl font-black italic uppercase tracking-tighter leading-none">Simulación de <span className="text-cyan-400">Rentabilidad</span></h3>
                                     
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                                        <div className="bg-gray-50 p-8 rounded-[2rem] space-y-3">
+                                        <div className="bg-gray-50 p-8 rounded-[2rem] space-y-3 border-2 border-transparent focus-within:border-[#00F2FF]/20 transition-all">
                                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">UNIDADES (VOLUMEN)</p>
-                                            <div className="flex items-center gap-4 text-2xl font-black"><Box size={20} className="text-gray-300"/> <span>{totalStock}</span></div>
+                                            <div className="flex items-center gap-4">
+                                                <Box size={20} className="text-gray-300"/> 
+                                                <input 
+                                                    type="text" 
+                                                    value={formatNumber(simulationUnits)} 
+                                                    onChange={e => {
+                                                        const val = e.target.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+                                                        setSimulationUnits(val === '' ? 0 : parseInt(val, 10));
+                                                    }}
+                                                    onFocus={() => { if(simulationUnits === 0) setSimulationUnits('' as any) }}
+                                                    onBlur={() => { if(!simulationUnits) setSimulationUnits(1) }}
+                                                    className="bg-transparent border-none outline-none text-2xl font-black w-full"
+                                                    placeholder="1"
+                                                />
+                                            </div>
                                         </div>
                                         <div className="bg-gray-50 p-8 rounded-[2rem] space-y-3">
                                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">TICKET PROMEDIO</p>
@@ -503,26 +523,44 @@ export default function NewProductPage() {
                                     <div className="bg-[#002D2D] p-10 lg:p-12 rounded-[3.5rem] text-white space-y-8 shadow-2xl relative overflow-hidden group">
                                         <div className="flex justify-between items-start relative z-10">
                                             <p className="text-[9px] font-black text-cyan-400 uppercase tracking-[0.3em]">SUGERIDO RETAIL</p>
-                                            <span className="text-4xl font-black italic">30%</span>
+                                            <div className="flex items-center gap-1">
+                                                <input 
+                                                    type="text"
+                                                    value={simulationRetailMargin}
+                                                    onChange={e => setSimulationRetailMargin(Number(e.target.value.replace(/[^0-9]/g, '')))}
+                                                    className="bg-white/10 border-none outline-none text-4xl font-black italic w-20 text-right rounded-lg px-2"
+                                                />
+                                                <span className="text-4xl font-black italic">%</span>
+                                            </div>
                                         </div>
                                         <h3 className="text-5xl lg:text-6xl font-black tracking-tighter text-cyan-400 relative z-10">${recommendedRetail().toLocaleString('de-DE')}</h3>
                                         <div className="pt-8 border-t border-white/5 space-y-2 relative z-10">
-                                            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: '30%' }} className="h-full bg-cyan-400" /></div>
-                                            <div className="flex justify-between text-[8px] font-black text-gray-400 uppercase tracking-widest"><span>Margen Final</span> <span>Seguridad Retail: ${(recommendedRetail() * 0.3).toLocaleString('de-DE')} / Unidad</span></div>
+                                            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: `${simulationRetailMargin}%` }} className="h-full bg-cyan-400" /></div>
+                                            <div className="flex justify-between text-[8px] font-black text-gray-400 uppercase tracking-widest"><span>Margen Final</span> <span>Seguridad Retail: ${(recommendedRetail() - (formData.cost + (fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others)/(simulationUnits || 1))).toLocaleString('de-DE')} / Unidad</span></div>
                                         </div>
                                         <button onClick={() => { setFormData({...formData, price: recommendedRetail()}); setIsAssistantOpen(false); }} className="w-full py-5 bg-white text-[#004D4D] rounded-full font-black text-[9px] uppercase tracking-widest hover:scale-105 transition-transform relative z-10">APLICAR PRECIO</button>
                                         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform"><TrendingUp size={120}/></div>
                                     </div>
 
                                     {/* Sugerido Mayorista */}
-                                    <div onClick={() => { setFormData({...formData, wholesale_price: recommendedWholesale()}); setIsAssistantOpen(false); }} className="bg-[#004D4D]/10 p-10 rounded-[3rem] border border-[#004D4D]/10 flex justify-between items-center group cursor-pointer hover:bg-[#004D4D] hover:text-white transition-all">
-                                        <div className="space-y-1">
-                                            <p className="text-[8px] font-black text-gray-400 group-hover:text-cyan-400 uppercase tracking-widest">SUGERIDO MAYORISTA</p>
-                                            <h4 className="text-4xl font-black">${recommendedWholesale().toLocaleString('de-DE')}</h4>
+                                    <div className="bg-[#004D4D]/10 p-10 rounded-[3rem] border border-[#004D4D]/10 flex justify-between items-center group relative overflow-hidden transition-all">
+                                        <div className="space-y-1 relative z-10">
+                                            <p className="text-[8px] font-black text-gray-400 group-hover:text-cyan-400 uppercase tracking-widest transition-colors">SUGERIDO MAYORISTA</p>
+                                            <h4 className="text-4xl font-black group-hover:text-white transition-colors">${recommendedWholesale().toLocaleString('de-DE')}</h4>
+                                            <button onClick={() => { setFormData({...formData, wholesale_price: recommendedWholesale()}); setIsAssistantOpen(false); }} className="mt-4 px-6 py-2 bg-[#004D4D] text-white rounded-full text-[8px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all hover:scale-105">Aplicar Mayorista</button>
                                         </div>
-                                        <div className="text-right">
-                                            <span className="text-3xl font-black italic opacity-20 group-hover:opacity-100">15%</span>
+                                        <div className="text-right relative z-10">
+                                            <div className="flex items-center gap-1">
+                                                <input 
+                                                    type="text"
+                                                    value={simulationWholesaleMargin}
+                                                    onChange={e => setSimulationWholesaleMargin(Number(e.target.value.replace(/[^0-9]/g, '')))}
+                                                    className="bg-black/5 group-hover:bg-white/10 border-none outline-none text-3xl font-black italic w-16 text-right rounded-lg px-2 group-hover:text-white transition-all"
+                                                />
+                                                <span className="text-3xl font-black italic opacity-20 group-hover:opacity-100 group-hover:text-white transition-all">%</span>
+                                            </div>
                                         </div>
+                                        <div className="absolute inset-0 bg-[#004D4D] translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-0" />
                                     </div>
                                 </div>
                             </div>
