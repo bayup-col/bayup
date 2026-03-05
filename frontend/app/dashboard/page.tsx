@@ -179,7 +179,7 @@ export default function DashboardPage() {
 
   const kpis = [
     { 
-        label: 'Ventas de hoy', value: realStats.revenue, icon: <Activity size={24}/>, color: "text-emerald-500", bg: "bg-emerald-500/10", trend: "Live", isCurrency: true,
+        label: 'Ventas de hoy', value: realStats.revenue, icon: <Activity size={24}/>, color: "text-emerald-500", bg: "bg-emerald-500/10", trend: "En vivo", isCurrency: true,
         details: [
             { l: 'EFECTIVO', v: `$ ${realStats.cash.toLocaleString()}`, icon: <DollarSign size={10}/> },
             { l: 'TRANSF.', v: `$ ${realStats.transfer.toLocaleString()}`, icon: <CreditCard size={10}/> },
@@ -315,7 +315,7 @@ export default function DashboardPage() {
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
                     <h2 className="text-8xl font-black text-white italic tracking-tighter leading-none mb-4 flex items-center gap-4">
                         <AnimatedNumber value={realStats.online_now} type="simple" />
-                        <span className="text-2xl text-cyan not-italic tracking-normal">Online</span>
+                        <span className="text-2xl text-cyan not-italic tracking-normal">En línea</span>
                     </h2>
                     <p className="text-gray-400 text-base font-medium italic">Personas navegando tu tienda ahora</p>
                 </div>
@@ -330,7 +330,7 @@ export default function DashboardPage() {
                     <div className={`flex items-center justify-between border-b pb-6 ${theme === 'dark' ? 'border-white/5' : 'border-gray-100'}`}>
                         <div className="flex items-center gap-3">
                             <Activity size={20} className="text-cyan"/>
-                            <h4 className={`text-xs font-black tracking-widest ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Actividad Live</h4>
+                            <h4 className={`text-xs font-black tracking-widest ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Actividad En vivo</h4>
                         </div>
                     </div>
                     <div className="space-y-6">

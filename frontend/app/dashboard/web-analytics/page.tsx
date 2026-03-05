@@ -120,9 +120,9 @@ export default function WebAnalyticsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[ 
-                    { id: 'ventas', label: 'Ventas Hoy', val: 0, trend: 'Live', up: true, icon: <DollarSign/>, color: 'text-[#004d4d]' }, 
+                    { id: 'ventas', label: 'Ventas Hoy', val: 0, trend: 'En vivo', up: true, icon: <DollarSign/>, color: 'text-[#004d4d]' }, 
                     { id: 'ticket', label: 'Ticket Promedio', val: 0, trend: 'N/A', up: true, icon: <ShoppingCart/>, color: 'text-purple-500' }, 
-                    { id: 'pedidos', label: 'Pedidos Hoy', val: 0, trend: 'Live', up: true, icon: <Package/>, color: 'text-blue-500' }, 
+                    { id: 'pedidos', label: 'Pedidos Hoy', val: 0, trend: 'En vivo', up: true, icon: <Package/>, color: 'text-blue-500' }, 
                     { id: 'conversion', label: 'Tasa Conversión', val: '0%', trend: 'N/A', up: true, icon: <Target/>, color: 'text-emerald-500' }, 
                 ].map((kpi, i) => (
                     <TiltCard key={i} onClick={() => setSelectedKPI(kpi.id)}>
@@ -175,7 +175,7 @@ export default function WebAnalyticsPage() {
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Intelligence & Analytics v2.0</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#004d4d]/60 italic">Intelligence & Analytics</span>
                         </div>
                         <div className="flex items-center gap-6">
                             <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-[#001A1A]">
@@ -189,7 +189,7 @@ export default function WebAnalyticsPage() {
                 </div>
                 <div className="flex items-center gap-4 relative">
                     <button onClick={() => setIsRadarModalOpen(true)} className="h-20 bg-white/60 backdrop-blur-xl px-10 rounded-[2rem] font-black text-[10px] uppercase tracking-widest border border-white/80 shadow-sm flex items-center gap-4 hover:border-[#00f2ff]/30 transition-all group">
-                        <Radar size={22} className="text-[#004d4d] group-hover:rotate-90 transition-transform" /> Mapa Live
+                        <Radar size={22} className="text-[#004d4d] group-hover:rotate-90 transition-transform" /> Mapa En vivo
                     </button>
                     
                     <div className="relative">
