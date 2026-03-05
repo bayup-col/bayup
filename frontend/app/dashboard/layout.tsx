@@ -96,19 +96,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         animate={{ width: isSidebarCollapsed ? 85 : 280 }}
         className={`relative m-4 rounded-[2.8rem] overflow-hidden flex-shrink-0 shadow-2xl border transition-colors ${isSuperAdminZone ? 'bg-[#001A1A] border-white/5' : 'bg-white border-white'}`}
       >
-        {/* BOTÓN PARA RETRAER EL MENÚ */}
-        <button 
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className={`absolute top-1/2 -right-3 -translate-y-1/2 z-50 h-8 w-8 rounded-full border shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-90 ${
-                isSuperAdminZone 
-                ? 'bg-cyan text-[#004D4D] border-cyan/20' 
-                : 'bg-[#004D4D] text-white border-white/10'
-            }`}
-        >
-            {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-        </button>
-
         <aside className="w-full h-full flex flex-col p-4 overflow-y-auto no-scrollbar">
+          {/* BOTÓN PARA RETRAER EL MENÚ - AHORA ARRIBA A LA DERECHA */}
+          <button 
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className={`absolute top-10 right-6 z-50 h-8 w-8 rounded-full border shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-90 ${
+                  isSuperAdminZone 
+                  ? 'bg-cyan text-[#004D4D] border-cyan/20' 
+                  : 'bg-[#004D4D] text-white border-white/10'
+              }`}
+          >
+              {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          </button>
+
           <div className="p-4 mb-6">
               <div className={`backdrop-blur-md p-6 rounded-[2.2rem] border border-gray-100 flex flex-col items-center text-center ${isSuperAdminZone ? 'bg-[#004D4D] text-white' : 'bg-gray-50/30'}`}>
                   {!isSidebarCollapsed && (

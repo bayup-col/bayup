@@ -29,7 +29,8 @@ import {
     Filter,
     BarChart3,
     Layers,
-    Activity as ActivityIcon
+    Activity as ActivityIcon,
+    Headset
 } from 'lucide-react';
 import { motion, AnimatePresence, useSpring, useTransform } from "framer-motion";
 import SuperAdminMetricModal from "@/components/dashboard/SuperAdminMetricModal";
