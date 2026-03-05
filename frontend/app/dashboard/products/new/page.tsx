@@ -292,7 +292,7 @@ export default function NewProductPage() {
                             </div>
 
                             {/* FILA 2: MAYORISTA */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-end">
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">PRECIO MAYORISTA</label>
                                     <div className="relative">
@@ -308,24 +308,24 @@ export default function NewProductPage() {
                                         />
                                     </div>
                                 </div>
-                                <div className="bg-[#002D2D] p-10 rounded-[2.5rem] text-white flex justify-between items-center shadow-2xl relative overflow-hidden group">
+                                <div className="bg-[#002D2D] py-8 px-10 rounded-[2.5rem] text-white flex justify-between items-center shadow-2xl relative overflow-hidden group min-h-[108px]">
                                     <div className="relative z-10">
                                         <p className="text-[8px] font-black text-cyan-400 uppercase tracking-widest mb-1">UTILIDAD MAYORISTA</p>
-                                        <h4 className="text-3xl font-black">${calculateProfit(formData.wholesale_price).net.toLocaleString('de-DE')}</h4>
-                                        <div className="flex items-center gap-2 mt-2">
-                                            <div className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+                                        <h4 className="text-2xl font-black">${calculateProfit(formData.wholesale_price).net.toLocaleString('de-DE')}</h4>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <div className="h-1 w-1 rounded-full bg-cyan-400" />
                                             <p className="text-[8px] font-bold text-gray-400 uppercase">Bayup: -${calculateProfit(formData.wholesale_price).bayupFee.toLocaleString('de-DE')}</p>
                                         </div>
                                     </div>
                                     <div className="text-right relative z-10">
-                                        <span className="text-4xl font-black italic">{calculateProfit(formData.wholesale_price).margin.toFixed(1)}%</span>
+                                        <span className="text-3xl font-black italic">{calculateProfit(formData.wholesale_price).margin.toFixed(1)}%</span>
                                     </div>
-                                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform"><TrendingUp size={100}/></div>
+                                    <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform"><TrendingUp size={80}/></div>
                                 </div>
                             </div>
 
                             {/* FILA 3: RETAIL */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-end">
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">PRECIO RETAIL</label>
                                     <div className="relative">
@@ -341,19 +341,19 @@ export default function NewProductPage() {
                                         />
                                     </div>
                                 </div>
-                                <div className="bg-[#001515] p-10 rounded-[2.5rem] text-white flex justify-between items-center shadow-2xl relative overflow-hidden group">
+                                <div className="bg-[#001515] py-8 px-10 rounded-[2.5rem] text-white flex justify-between items-center shadow-2xl relative overflow-hidden group min-h-[108px]">
                                     <div className="relative z-10">
                                         <p className="text-[8px] font-black text-cyan-400 uppercase tracking-widest mb-1">UTILIDAD RETAIL</p>
-                                        <h4 className="text-3xl font-black">${calculateProfit(formData.price).net.toLocaleString('de-DE')}</h4>
-                                        <div className="flex items-center gap-2 mt-2">
-                                            <div className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+                                        <h4 className="text-2xl font-black">${calculateProfit(formData.price).net.toLocaleString('de-DE')}</h4>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <div className="h-1 w-1 rounded-full bg-cyan-400" />
                                             <p className="text-[8px] font-bold text-gray-400 uppercase">Bayup: -${calculateProfit(formData.price).bayupFee.toLocaleString('de-DE')}</p>
                                         </div>
                                     </div>
                                     <div className="text-right relative z-10">
-                                        <span className="text-4xl font-black italic">{calculateProfit(formData.price).margin.toFixed(1)}%</span>
+                                        <span className="text-3xl font-black italic">{calculateProfit(formData.price).margin.toFixed(1)}%</span>
                                     </div>
-                                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform"><TrendingUp size={100}/></div>
+                                    <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform"><TrendingUp size={80}/></div>
                                 </div>
                             </div>
 
