@@ -214,21 +214,48 @@ export default function NewProductPage() {
         if (!formData.name.trim()) return showToast("Nombre obligatorio", "error");
         setIsSubmitting(true);
         try {
-            const finalImageUrls: string[] = [];
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            for (const item of media) {
+            
+            // Subir todas las imágenes en paralelo para máxima velocidad
+            const uploadPromises = media.map(async (item) => {
                 if (item.file) {
-                    const fd = new FormData(); fd.append('file', item.file);
-                    const res = await fetch(`${apiUrl}/admin/upload-image`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
-                    if (res.ok) { const d = await res.json(); finalImageUrls.push(d.url); }
+                    const fd = new FormData();
+                    fd.append('file', item.file);
+                    const res = await fetch(`${apiUrl}/admin/upload-image`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: fd
+                    });
+                    if (res.ok) {
+                        const d = await res.json();
+                        return d.url;
+                    }
                 }
-            }
-            const payload = { ...formData, image_url: finalImageUrls, variants: variants.map(v => ({ name: v.name, sku: v.sku || '', stock: Number(v.stock) || 0 })) };
+                return null;
+            });
+
+            const uploadedUrls = await Promise.all(uploadPromises);
+            const finalImageUrls = uploadedUrls.filter(url => url !== null);
+
+            const payload = { 
+                ...formData, 
+                image_url: finalImageUrls, 
+                variants: variants.map(v => ({ 
+                    name: v.name, 
+                    sku: v.sku || '', 
+                    stock: Number(v.stock) || 0 
+                })) 
+            };
+
             await apiRequest('/products', { method: 'POST', token, body: JSON.stringify(payload) });
             window.dispatchEvent(new CustomEvent('bayup_product_update'));
             showToast("Producto creado ✨", "success");
             router.push('/dashboard/products');
-        } catch (err) { showToast("Error al guardar", "error"); } finally { setIsSubmitting(false); }
+        } catch (err) { 
+            showToast("Error al guardar", "error"); 
+        } finally { 
+            setIsSubmitting(false); 
+        }
     };
 
     const [editingMasterName, setEditingMasterName] = useState<string | null>(null);
