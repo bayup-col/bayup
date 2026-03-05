@@ -204,19 +204,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 </>
             )}
           </nav>
-
-          <div className="mt-auto pt-10 pb-4 flex flex-col items-center">
-              <div className="flex flex-col items-center relative group">
-                  <div className="text-3xl font-black italic tracking-tighter flex items-baseline relative z-10">
-                      <span className={`${isSuperAdminZone ? 'text-white' : 'text-black'}`}>BAY</span>
-                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-black via-[#00b2bd] to-[#00f2ff]">UP.</span>
-                  </div>
-                  <div className="h-[2px] w-0 bg-[#00f2ff] group-hover:w-full transition-all duration-500 mt-1" />
-              </div>
-              <p className="text-[8px] font-bold text-gray-300 uppercase tracking-[0.4em] mt-4">Core Engine v4.2</p>
-          </div>
-        </aside>
-      </motion.div>
+{/* LOGOTIPO BAYUP OFICIAL */}
+<div className="mt-auto pt-10 pb-4 flex flex-col items-center">
+    <div className="flex flex-col items-center relative group">
+        <div className="text-3xl font-black italic tracking-tighter flex items-baseline relative z-10">
+            <span className={`${isSuperAdminZone ? 'text-white' : 'text-black'}`}>BAY</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-black via-[#00b2bd] to-[#00f2ff]">UP.</span>
+        </div>
+        <div className="h-[2px] w-0 bg-[#00f2ff] group-hover:w-full transition-all duration-500 mt-1" />
+    </div>
+</div>
+</aside>
+</motion.div>
 
       <div className="flex-1 flex flex-col min-w-0 relative">
         <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
