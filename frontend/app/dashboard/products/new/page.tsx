@@ -387,12 +387,21 @@ export default function NewProductPage() {
                                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900" />
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-between p-8 bg-gray-50/50 border-2 border-gray-100 rounded-[2rem] shadow-sm">
+                                <div className="flex items-center justify-between p-8 bg-[#00F2FF]/5 border-2 border-[#00F2FF]/20 rounded-[2rem] shadow-sm">
                                     <div className="space-y-1">
-                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Soporte Financiero</p>
-                                        <p className="text-[10px] font-black text-[#004D4D]">FEE: 10%</p>
+                                        <p className="text-[8px] font-black text-[#004D4D] uppercase tracking-widest">Retorno de Inversión (ROI)</p>
+                                        <h4 className="text-xl font-black text-[#004D4D]">
+                                            {(() => {
+                                                const profit = calculateProfit(formData.price);
+                                                const cost = formData.cost || 1;
+                                                const roi = (profit.net / cost) * 100;
+                                                return roi > 0 ? roi.toFixed(1) : 0;
+                                            })()}%
+                                        </h4>
                                     </div>
-                                    <ShieldCheck size={20} className="text-gray-200" />
+                                    <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center text-cyan-500 shadow-sm">
+                                        <TrendingUp size={20} />
+                                    </div>
                                 </div>
                             </div>
 
