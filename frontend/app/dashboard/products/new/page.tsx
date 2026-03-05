@@ -658,6 +658,12 @@ export default function NewProductPage() {
                         <div className="space-y-6">
                             <div className="flex justify-between items-start"><div className="space-y-1"><p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">{formData.category || 'Categoría'}</p><h3 className="text-2xl font-black text-gray-900 tracking-tighter leading-tight">{formData.name || 'Sin nombre'}</h3></div><div className="text-right"><p className="text-[9px] font-black text-gray-300 uppercase">Precio</p><p className="text-2xl font-black text-[#004D4D] tracking-tighter">${formData.price.toLocaleString('de-DE')}</p></div></div>
                             
+                            {formData.description && (
+                                <p className="text-[10px] text-gray-400 font-medium leading-relaxed border-t border-gray-50 pt-4 line-clamp-3">
+                                    {formData.description}
+                                </p>
+                            )}
+
                             {variants.length > 0 && (
                                 <div className="space-y-4 pt-4 border-t border-gray-50">
                                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Variantes y Stock</p>
