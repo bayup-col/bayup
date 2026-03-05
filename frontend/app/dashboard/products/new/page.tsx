@@ -204,16 +204,12 @@ export default function NewProductPage() {
                         </motion.div>
                     )}
 
+                    {activeTab === 'financial' && (() => {
                         const commissionRate = userPlan?.commission_rate || 0.035;
-                        const totalStock = variants.reduce((acc, v) => acc + (Number(v.stock) || 0), 0) || 1; // Avoid div by zero
+                        const totalStock = variants.reduce((acc, v) => acc + (Number(v.stock) || 0), 0) || 1;
 
                         const calculateProfit = (price: number) => {
                             if (!price || !formData.cost) return { net: 0, margin: 0 };
-                            const fee = formData.add_gateway_fee ? 0 : (price * commissionRate); // If fee added to customer, merchant pays 0 (customer pays price + fee) - logic check
-                            // Standard logic: If merchant absorbs fee: Net = Price - Cost - Fee. If customer pays fee: Net = Price - Cost.
-                            // However, typically platforms charge the merchant on the total transaction. 
-                            // Let's stick to simple: If merchant absorbs, fee is deducted. If passed to customer, price increases but merchant gets the base price.
-                            // Simplified for UI:
                             const effectiveFee = formData.add_gateway_fee ? 0 : (price * commissionRate); 
                             const net = price - formData.cost - effectiveFee;
                             const margin = (net / price) * 100;
@@ -223,13 +219,11 @@ export default function NewProductPage() {
                         const recommendedPrice = () => {
                             const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
                             const costPerUnit = formData.cost + (totalFixed / totalStock);
-                            return Math.ceil((costPerUnit * 1.3) / 100) * 100; // +30% margin approx, rounded
+                            return Math.ceil((costPerUnit * 1.3) / 100) * 100;
                         };
 
                         return (
                             <motion.div key="financial" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-12 pb-20">
-                                
-                                {/* FILA 1: COSTO */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                                     <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Package size={14} className="text-[#004D4D]"/> Costo Unitario del Producto</label>
@@ -247,7 +241,6 @@ export default function NewProductPage() {
                                     </div>
                                 </div>
 
-                                {/* FILA 2: PRECIO MAYORISTA */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                                     <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Layers size={14} className="text-[#004D4D]"/> Precio Mayorista</label>
@@ -271,7 +264,6 @@ export default function NewProductPage() {
                                     </div>
                                 </div>
 
-                                {/* FILA 3: PRECIO RETAIL */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                                     <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2"><DollarSign size={14} className="text-[#004D4D]"/> Precio Retail (Unidad)</label>
@@ -295,7 +287,6 @@ export default function NewProductPage() {
                                     </div>
                                 </div>
 
-                                {/* FILA 4: INTERRUPTOR PASARELA */}
                                 <div className="bg-gray-50 p-6 rounded-[2rem] flex items-center justify-between border border-gray-100">
                                     <div className="flex items-center gap-4">
                                         <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-[#004D4D]"><Zap size={18}/></div>
@@ -309,7 +300,6 @@ export default function NewProductPage() {
                                     </button>
                                 </div>
 
-                                {/* FILA 5: ANÁLISIS BAYUP (COSTOS FIJOS) */}
                                 <section className="pt-10 border-t border-gray-100 space-y-8">
                                     <div className="flex items-center gap-3">
                                         <div className="h-8 w-8 rounded-full bg-[#00F2FF] flex items-center justify-center text-[#004D4D]"><Bot size={16}/></div>
@@ -336,10 +326,11 @@ export default function NewProductPage() {
                                         </div>
                                     </div>
                                 </section>
-
                             </motion.div>
                         );
-                    })()}                    {activeTab === 'variants' && (
+                    })()}
+
+                    {activeTab === 'variants' && (
                         <motion.div key="variants" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10 pb-20">
                             <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
                                 <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><Layers size={18} /> Atributos Maestro</h3>
