@@ -11,7 +11,7 @@ import { BaytAssistant } from '@/components/dashboard/BaytAssistant';
 import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, FileText, Package, Store, Truck, MessageSquare, Settings, 
-  LogOut, ChevronDown, Eye
+  LogOut, ChevronDown, Eye, ShieldCheck
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
