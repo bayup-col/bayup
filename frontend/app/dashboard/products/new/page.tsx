@@ -397,15 +397,15 @@ export default function NewProductPage() {
                 {isAssistantOpen && (
                     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-12">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAssistantOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-xl" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="relative w-full max-w-6xl bg-white rounded-[4rem] shadow-3xl overflow-hidden flex flex-col lg:flex-row h-[85vh]">
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="relative w-full max-w-6xl bg-white rounded-[4rem] shadow-3xl overflow-hidden flex flex-col lg:flex-row h-[90vh] lg:h-[85vh]">
                             
                             {/* Lado Izquierdo: Gastos */}
-                            <div className="w-full lg:w-[45%] bg-gray-50 p-16 space-y-12 border-r">
+                            <div className="w-full lg:w-[45%] bg-gray-50 p-10 lg:p-16 space-y-12 border-r overflow-y-auto custom-scrollbar">
                                 <div className="flex items-center gap-6">
-                                    <div className="h-16 w-16 bg-[#004D4D] rounded-3xl flex items-center justify-center text-white"><Zap size={28}/></div>
+                                    <div className="h-16 w-16 bg-[#004D4D] rounded-3xl flex items-center justify-center text-white shrink-0"><Zap size={28}/></div>
                                     <div>
-                                        <h3 className="text-3xl font-black italic uppercase tracking-tighter">Asistente <span className="text-[#004D4D]">Pricing Pro</span></h3>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Calculando el punto óptimo de venta</p>
+                                        <h3 className="text-3xl font-black italic uppercase tracking-tighter leading-none">Asistente <span className="text-[#004D4D]">Pricing Pro</span></h3>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2">Calculando el punto óptimo de venta</p>
                                     </div>
                                 </div>
 
@@ -420,7 +420,7 @@ export default function NewProductPage() {
                                                 </label>
                                                 <div className="relative">
                                                     <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 font-bold">$</span>
-                                                    <input type="number" value={fixedCosts[key]} onChange={e => setFixedCosts({...fixedCosts, [key]: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-white rounded-2xl outline-none font-bold text-sm border border-transparent focus:border-[#00F2FF]/20" />
+                                                    <input type="number" value={fixedCosts[key] || ''} onChange={e => setFixedCosts({...fixedCosts, [key]: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-white rounded-2xl outline-none font-bold text-sm border border-transparent focus:border-[#00F2FF]/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" placeholder="0" />
                                                 </div>
                                             </div>
                                         ))}
@@ -429,17 +429,17 @@ export default function NewProductPage() {
                                         <Bot size={18}/> Consultar a Bayt
                                     </button>
                                 </div>
-                                <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100"><p className="text-[8px] font-bold text-amber-700 uppercase text-center leading-relaxed">Recuerda que los precios no incluyen envíos ni pauta.</p></div>
+                                <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100"><p className="text-[8px] font-bold text-amber-700 uppercase text-center leading-relaxed">Recuerda que los precios no incluyen envíos ni pauta publicitaria.</p></div>
                             </div>
 
                             {/* Lado Derecho: Simulación */}
-                            <div className="flex-1 p-16 space-y-12 bg-white relative">
-                                <button onClick={() => setIsAssistantOpen(false)} className="absolute top-10 right-10 h-10 w-10 flex items-center justify-center text-gray-300 hover:text-black"><X size={24}/></button>
+                            <div className="flex-1 p-10 lg:p-16 space-y-12 bg-white relative overflow-y-auto custom-scrollbar">
+                                <button onClick={() => setIsAssistantOpen(false)} className="absolute top-10 right-10 h-10 w-10 flex items-center justify-center text-gray-300 hover:text-black z-20"><X size={24}/></button>
                                 
                                 <div className="space-y-8">
-                                    <h3 className="text-4xl font-black italic uppercase tracking-tighter">Simulación de <span className="text-cyan-400">Rentabilidad</span></h3>
+                                    <h3 className="text-4xl font-black italic uppercase tracking-tighter leading-none">Simulación de <span className="text-cyan-400">Rentabilidad</span></h3>
                                     
-                                    <div className="grid grid-cols-2 gap-8">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                                         <div className="bg-gray-50 p-8 rounded-[2rem] space-y-3">
                                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">UNIDADES (VOLUMEN)</p>
                                             <div className="flex items-center gap-4 text-2xl font-black"><Box size={20} className="text-gray-300"/> <span>{totalStock}</span></div>
@@ -451,21 +451,22 @@ export default function NewProductPage() {
                                     </div>
 
                                     {/* Sugerido Retail */}
-                                    <div className="bg-[#002D2D] p-12 rounded-[3.5rem] text-white space-y-8 shadow-2xl relative overflow-hidden group">
+                                    <div className="bg-[#002D2D] p-10 lg:p-12 rounded-[3.5rem] text-white space-y-8 shadow-2xl relative overflow-hidden group">
                                         <div className="flex justify-between items-start relative z-10">
                                             <p className="text-[9px] font-black text-cyan-400 uppercase tracking-[0.3em]">SUGERIDO RETAIL</p>
                                             <span className="text-4xl font-black italic">30%</span>
                                         </div>
-                                        <h3 className="text-6xl font-black tracking-tighter text-cyan-400 relative z-10">${recommendedRetail().toLocaleString('de-DE')}</h3>
+                                        <h3 className="text-5xl lg:text-6xl font-black tracking-tighter text-cyan-400 relative z-10">${recommendedRetail().toLocaleString('de-DE')}</h3>
                                         <div className="pt-8 border-t border-white/5 space-y-2 relative z-10">
                                             <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: '30%' }} className="h-full bg-cyan-400" /></div>
                                             <div className="flex justify-between text-[8px] font-black text-gray-400 uppercase tracking-widest"><span>Margen Final</span> <span>Seguridad Retail: ${(recommendedRetail() * 0.3).toLocaleString('de-DE')} / Unidad</span></div>
                                         </div>
-                                        <button onClick={() => { setFormData({...formData, price: recommendedRetail()}); setIsAssistantOpen(false); }} className="w-full py-4 bg-white text-[#004D4D] rounded-full font-black text-[9px] uppercase tracking-widest hover:scale-105 transition-transform">APLICAR PRECIO</button>
+                                        <button onClick={() => { setFormData({...formData, price: recommendedRetail()}); setIsAssistantOpen(false); }} className="w-full py-5 bg-white text-[#004D4D] rounded-full font-black text-[9px] uppercase tracking-widest hover:scale-105 transition-transform relative z-10">APLICAR PRECIO</button>
+                                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform"><TrendingUp size={120}/></div>
                                     </div>
 
                                     {/* Sugerido Mayorista */}
-                                    <div className="bg-[#004D4D]/10 p-10 rounded-[3rem] border border-[#004D4D]/10 flex justify-between items-center group cursor-pointer hover:bg-[#004D4D] hover:text-white transition-all">
+                                    <div onClick={() => { setFormData({...formData, wholesale_price: recommendedWholesale()}); setIsAssistantOpen(false); }} className="bg-[#004D4D]/10 p-10 rounded-[3rem] border border-[#004D4D]/10 flex justify-between items-center group cursor-pointer hover:bg-[#004D4D] hover:text-white transition-all">
                                         <div className="space-y-1">
                                             <p className="text-[8px] font-black text-gray-400 group-hover:text-cyan-400 uppercase tracking-widest">SUGERIDO MAYORISTA</p>
                                             <h4 className="text-4xl font-black">${recommendedWholesale().toLocaleString('de-DE')}</h4>
