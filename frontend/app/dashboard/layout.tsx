@@ -155,7 +155,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 </>
             ) : (
                 <>
-                    {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-4">Operación Maestro</p>}
+                    {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-4">Operación</p>}
                     <MenuItem href="/dashboard" label="Inicio" id="inicio" icon={<LayoutDashboard size={18} />} />
                     <MenuItem href="/dashboard/invoicing" label="Facturación" id="facturacion" icon={<FileText size={18} />} />
                     <MenuItem href="/dashboard/orders" label="Pedidos Web" id="pedidos" icon={<Package size={18} />} />
