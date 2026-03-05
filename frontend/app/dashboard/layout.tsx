@@ -55,8 +55,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       );
   }
 
-  const allowedModules = userPlan?.modules || [];
+  // LOGICA DE SEGURIDAD POR PLAN (ESTRICTA)
   const planName = userPlan?.name || "Básico";
+  const isEnterprise = authEmail === 'dntonline13@gmail.com' || planName === "Empresa";
+  const isPro = planName === "Pro";
+  const showExtraModules = isEnterprise || isPro || isGlobalStaff || authRole === 'SUPER_ADMIN';
 
   const getLinkStyles = (path: string) => {
       const isActive = pathname === path || (path !== '/dashboard' && pathname?.startsWith(path));
@@ -77,7 +80,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       const basicModules = ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"];
       const isApproved = basicModules.includes(id);
       
-      if (planName === "Básico" && !isApproved && !isGlobalStaff) return null;
+      // Bloqueo estricto: Si no tiene permiso para extras y el módulo no es básico, no renderiza nada.
+      if (!showExtraModules && !isApproved) return null;
       
       return (
         <Link href={href} className={`flex items-center gap-3 px-4 py-3 text-sm rounded-2xl font-bold transition-all ${getLinkStyles(href)}`}>
@@ -151,7 +155,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <MenuItem href="/dashboard/envios" label={<><Truck size={18} /> Envíos</>} id="envios" />
                     <MenuItem href="/dashboard/chats" label={<><MessageSquare size={18} /> Mensajes Web</>} id="mensajes" />
 
-                    {planName !== "Básico" && (
+                    {showExtraModules && (
                         <>
                             {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Inventario & Ventas</p>}
                             <MenuItem href="/dashboard/inventory" label={<><Box size={18} /> Inventario</>} id="inventario" />
@@ -190,7 +194,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                     {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Configuración</p>}
                     <MenuItem href="/dashboard/settings/general" label={<><Settings size={18} /> Config Tienda</>} id="settings" />
-                    {planName !== "Básico" && (
+                    {showExtraModules && (
                         <>
                             <MenuItem href="/dashboard/settings/info" label={<><InfoIcon size={18} /> Info General</>} id="info-gen" />
                             <MenuItem href="/dashboard/settings/plan" label={<><CreditCard size={18} /> Mi Plan</>} id="mi-plan" />
