@@ -74,27 +74,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           );
       }
 
-      // Lógica de visibilidad por Plan
       const basicModules = ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"];
       const isApproved = basicModules.includes(id);
       
-      // Si es Básico, solo ve los aprobados. Si es Pro/Empresa/GlobalStaff, ve lo que el plan permita o todo.
       if (planName === "Básico" && !isApproved && !isGlobalStaff) return null;
-      if (planName !== "Básico" && !isApproved && !allowedModules.includes(id) && !isGlobalStaff && id !== "super-admin") {
-          // Si el módulo no está en el JSON de módulos del plan, no se muestra (a menos que sea staff global)
-          // Pero para el Plan Empresa habilitaremos visualmente todos los que el usuario pidió
-          const enterpriseModules = [
-            "inventario", "catalogos", "separados", "cotizaciones", "bodegas", "multiventa",
-            "clientes", "garantias", "estadisticas", "marketing", "loyalty", "discounts", "automations",
-            "asistente-ia", "payroll", "reports-gen", "compras", "sucursales", "vendedores", "cuentas", "gastos",
-            "info-gen", "mi-plan", "staff"
-          ];
-          if (planName === "Empresa" && enterpriseModules.includes(id)) {
-              // Permitir
-          } else if (!isGlobalStaff) {
-              return null;
-          }
-      }
       
       return (
         <Link href={href} className={`flex items-center gap-3 px-4 py-3 text-sm rounded-2xl font-bold transition-all ${getLinkStyles(href)}`}>
@@ -165,7 +148,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <MenuItem href="/dashboard/invoicing" label={<><FileText size={18} /> Facturación</>} id="facturacion" />
                     <MenuItem href="/dashboard/orders" label={<><Package size={18} /> Pedidos Web</>} id="pedidos" />
                     <MenuItem href="/dashboard/products" label={<><Store size={18} /> Productos</>} id="productos" />
-                    <MenuItem href="/dashboard/shipping" label={<><Truck size={18} /> Envíos</>} id="envios" />
+                    <MenuItem href="/dashboard/envios" label={<><Truck size={18} /> Envíos</>} id="envios" />
                     <MenuItem href="/dashboard/chats" label={<><MessageSquare size={18} /> Mensajes Web</>} id="mensajes" />
 
                     {planName !== "Básico" && (
