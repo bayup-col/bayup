@@ -68,11 +68,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         : (theme === 'dark' ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:bg-gray-50');
   };
 
-  const MenuItem = ({ href, label, id }: { href: string, label: any, id: string }) => {
+  const MenuItem = ({ href, label, id, icon }: { href: string, label: string, id: string, icon: any }) => {
       if (isSuperAdminZone) {
           return (
             <Link href={href} className={`flex items-center gap-3 px-4 py-3 text-sm rounded-2xl font-bold transition-all ${getLinkStyles(href)}`}>
-                {label}
+                <div className="shrink-0">{icon}</div>
+                {!isSidebarCollapsed && <span className="truncate">{label}</span>}
             </Link>
           );
       }
@@ -80,12 +81,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       const basicModules = ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"];
       const isApproved = basicModules.includes(id);
       
-      // Bloqueo estricto: Si no tiene permiso para extras y el módulo no es básico, no renderiza nada.
       if (!showExtraModules && !isApproved) return null;
       
       return (
-        <Link href={href} className={`flex items-center gap-3 px-4 py-3 text-sm rounded-2xl font-bold transition-all ${getLinkStyles(href)}`}>
-            {label}
+        <Link href={href} title={isSidebarCollapsed ? label : ""} className={`flex items-center gap-3 px-4 py-3 text-sm rounded-2xl font-bold transition-all ${getLinkStyles(href)}`}>
+            <div className="shrink-0">{icon}</div>
+            {!isSidebarCollapsed && <span className="truncate">{label}</span>}
         </Link>
       );
   };
@@ -93,136 +94,130 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className={`h-screen w-full flex overflow-hidden ${theme === 'dark' ? 'bg-[#001212]' : 'bg-[#FAFAFA]'}`}>
       <motion.div 
-        animate={{ width: isSidebarCollapsed ? 85 : 280 }}
+        animate={{ width: isSidebarCollapsed ? 100 : 280 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className={`relative m-4 rounded-[2.8rem] overflow-hidden flex-shrink-0 shadow-2xl border transition-colors ${isSuperAdminZone ? 'bg-[#001A1A] border-white/5' : 'bg-white border-white'}`}
       >
-        <aside className="w-full h-full flex flex-col p-4 overflow-y-auto no-scrollbar relative">
+        <aside className="w-full h-full flex flex-col p-4 no-scrollbar relative overflow-x-hidden">
           
-          {/* BOTÓN PARA RETRAER EL MENÚ - MÁS TRANSPARENTE Y ARRIBA A LA DERECHA */}
           <button 
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className={`absolute top-10 right-6 z-50 h-8 w-8 rounded-full border shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-90 opacity-40 hover:opacity-100 ${
-                  isSuperAdminZone 
-                  ? 'bg-white/10 text-cyan border-white/10' 
-                  : 'bg-[#004D4D]/10 text-[#004D4D] border-[#004D4D]/10'
+              className={`absolute top-10 right-4 z-50 h-8 w-8 rounded-full border shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-90 opacity-40 hover:opacity-100 ${
+                  isSuperAdminZone ? 'bg-white/10 text-cyan border-white/10' : 'bg-[#004D4D]/10 text-[#004D4D] border-[#004D4D]/10'
               }`}
           >
               {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
 
-          <div className="p-4 mb-6">
-              <div className={`backdrop-blur-md p-6 rounded-[2.2rem] border border-gray-100 flex flex-col items-center text-center ${isSuperAdminZone ? 'bg-[#004D4D] text-white' : 'bg-gray-50/30'}`}>
-                  {!isSidebarCollapsed && (
+          <div className="p-2 mb-6">
+              <div className={`backdrop-blur-md p-4 rounded-[2.2rem] border border-gray-100 flex flex-col items-center text-center transition-all ${isSuperAdminZone ? 'bg-[#004D4D] text-white' : 'bg-gray-50/30'} ${isSidebarCollapsed ? 'aspect-square justify-center' : ''}`}>
+                  {!isSidebarCollapsed ? (
                       <>
                         <span className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isSuperAdminZone ? 'text-cyan' : 'text-gray-400'}`}>
                             {isSuperAdminZone ? 'Torre de Control' : 'Empresa'}
                         </span>
-                        <span className={`text-base font-black italic truncate max-w-full mb-4 ${isSuperAdminZone ? 'text-white' : 'text-[#004d4d]'}`}>
-                            {isSuperAdminZone ? 'Global Master' : (authName || 'Bayup')}
-                        </span>
-
+                        <span className="text-base font-black italic truncate max-w-full mb-4">{isSuperAdminZone ? 'Global Master' : (authName || 'Bayup')}</span>
                         {isSuperAdminZone ? (
-                            <button onClick={() => router.push('/dashboard')} className="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"><ChevronLeft size={12} /> Volver a mi tienda</button>
+                            <button onClick={() => router.push('/dashboard')} className="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"><ChevronLeft size={12} /> Volver</button>
                         ) : (
                             <motion.button onClick={() => window.open(`${window.location.origin}/shop/${authSlug || 'mi-tienda'}`, '_blank')} whileHover="hover" whileTap={{ scale: 0.98 }} className="relative w-full h-12 flex items-center justify-center p-[2px] overflow-hidden rounded-[1.2rem] group">
                                 <motion.div variants={{ hover: { rotate: [0, 360], scale: 1.5 } }} transition={{ rotate: { duration: 3, repeat: Infinity, ease: "linear" }, scale: { duration: 0.4 } }} className="absolute inset-0 bg-[conic-gradient(from_0deg,rgb(170,185,207)_0%,rgb(0,255,135)_35%,rgb(0,97,255)_92%,rgb(170,185,207)_100%)] opacity-80" />
                                 <div className="relative w-full h-full bg-[#000F26] rounded-[1.1rem] flex items-center justify-center gap-2 px-4 transition-colors group-hover:bg-[#001529]">
                                     <Eye size={14} className="text-[#00FF87] group-hover:scale-110 transition-transform" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-white">Ver mi tienda</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-white">Tienda</span>
                                 </div>
                             </motion.button>
                         )}
                       </>
-                  )}
-                  {isSidebarCollapsed && (
-                      <button onClick={() => setIsSidebarCollapsed(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                  ) : (
+                      <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center shadow-inner">
                           {isSuperAdminZone ? <ShieldCheck size={20} className="text-white" /> : <Store size={20} className="text-[#004d4d]" />}
-                      </button>
+                      </div>
                   )}
               </div>
           </div>
 
-          <nav className="flex-1 space-y-1 pb-10">
+          <nav className="flex-1 space-y-2 pb-10">
             {isSuperAdminZone ? (
                 <>
                     {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-4">Gestión Global</p>}
-                    <MenuItem href="/dashboard/super-admin" label={<><LayoutDashboard size={18} /> Dashboard</>} id="sa-dash" />
-                    <MenuItem href="/dashboard/super-admin/empresas" label={<><Building2 size={18} /> Empresas</>} id="sa-stores" />
-                    <MenuItem href="/dashboard/super-admin/users" label={<><Users size={18} /> Usuarios</>} id="sa-users" />
-                    <MenuItem href="/dashboard/super-admin/tesoreria" label={<><Wallet size={18} /> Tesorería</>} id="sa-money" />
-                    <MenuItem href="/dashboard/super-admin/soporte" label={<><Headset size={18} /> Soporte</>} id="sa-support" />
-                    <MenuItem href="/dashboard/super-admin/web-templates" label={<><Layout size={18} /> Plantillas Web</>} id="sa-tpl" />
+                    <MenuItem href="/dashboard/super-admin" label="Dashboard" id="sa-dash" icon={<LayoutDashboard size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/empresas" label="Empresas" id="sa-stores" icon={<Building2 size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/users" label="Usuarios" id="sa-users" icon={<Users size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/tesoreria" label="Tesorería" id="sa-money" icon={<Wallet size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/soporte" label="Soporte" id="sa-support" icon={<Headset size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/web-templates" label="Plantillas Web" id="sa-tpl" icon={<Layout size={18} />} />
                     {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Infraestructura</p>}
-                    <MenuItem href="/dashboard/super-admin/apis" label={<><Code size={18} /> APIs & Core</>} id="sa-api" />
-                    <MenuItem href="/dashboard/super-admin/observability" label={<><Activity size={18} /> Sistemas</>} id="sa-sys" />
-                    <MenuItem href="/dashboard/super-admin/reports" label={<><BarChart3 size={18} /> Reportes</>} id="sa-rep" />
-                    <MenuItem href="/dashboard/super-admin/settings" label={<><Settings size={18} /> Config Global</>} id="sa-conf" />
+                    <MenuItem href="/dashboard/super-admin/apis" label="APIs & Core" id="sa-api" icon={<Code size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/observability" label="Sistemas" id="sa-sys" icon={<Activity size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/reports" label="Reportes" id="sa-rep" icon={<BarChart3 size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/settings" label="Config Global" id="sa-conf" icon={<Settings size={18} />} />
                 </>
             ) : (
                 <>
                     {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-4">Operación Maestro</p>}
-                    <MenuItem href="/dashboard" label={<><LayoutDashboard size={18} /> Inicio</>} id="inicio" />
-                    <MenuItem href="/dashboard/invoicing" label={<><FileText size={18} /> Facturación</>} id="facturacion" />
-                    <MenuItem href="/dashboard/orders" label={<><Package size={18} /> Pedidos Web</>} id="pedidos" />
-                    <MenuItem href="/dashboard/products" label={<><Store size={18} /> Productos</>} id="productos" />
-                    <MenuItem href="/dashboard/shipping" label={<><Truck size={18} /> Envíos</>} id="envios" />
-                    <MenuItem href="/dashboard/chats" label={<><MessageSquare size={18} /> Mensajes Web</>} id="mensajes" />
+                    <MenuItem href="/dashboard" label="Inicio" id="inicio" icon={<LayoutDashboard size={18} />} />
+                    <MenuItem href="/dashboard/invoicing" label="Facturación" id="facturacion" icon={<FileText size={18} />} />
+                    <MenuItem href="/dashboard/orders" label="Pedidos Web" id="pedidos" icon={<Package size={18} />} />
+                    <MenuItem href="/dashboard/products" label="Productos" id="productos" icon={<Store size={18} />} />
+                    <MenuItem href="/dashboard/shipping" label="Envíos" id="envios" icon={<Truck size={18} />} />
+                    <MenuItem href="/dashboard/chats" label="Mensajes Web" id="mensajes" icon={<MessageSquare size={18} />} />
 
                     {showExtraModules && (
                         <>
                             {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Inventario & Ventas</p>}
-                            <MenuItem href="/dashboard/inventory" label={<><Box size={18} /> Inventario</>} id="inventario" />
-                            <MenuItem href="/dashboard/catalogs" label={<><Share2 size={18} /> Catálogo WhatsApp</>} id="catalogos" />
-                            <MenuItem href="/dashboard/inventory/separados" label={<><Bot size={18} /> Separados IA</>} id="separados" />
-                            <MenuItem href="/dashboard/products/cotizaciones" label={<><ClipboardList size={18} /> Cotizaciones</>} id="cotizaciones" />
-                            <MenuItem href="/dashboard/products/bodegas" label={<><Database size={18} /> Bodega y Stock</>} id="bodegas" />
-                            <MenuItem href="/dashboard/multiventa" label={<><Zap size={18} /> Multiventa</>} id="multiventa" />
+                            <MenuItem href="/dashboard/inventory" label="Inventario" id="inventario" icon={<Box size={18} />} />
+                            <MenuItem href="/dashboard/catalogs" label="Catálogo WA" id="catalogos" icon={<Share2 size={18} />} />
+                            <MenuItem href="/dashboard/inventory/separados" label="Separados IA" id="separados" icon={<Bot size={18} />} />
+                            <MenuItem href="/dashboard/products/cotizaciones" label="Cotizaciones" id="cotizaciones" icon={<ClipboardList size={18} />} />
+                            <MenuItem href="/dashboard/products/bodegas" label="Bodega y Stock" id="bodegas" icon={<Database size={18} />} />
+                            <MenuItem href="/dashboard/multiventa" label="Multiventa" id="multiventa" icon={<Zap size={18} />} />
 
                             {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Marketing & Lealtad</p>}
-                            <MenuItem href="/dashboard/customers" label={<><UserCheck size={18} /> Clientes</>} id="clientes" />
-                            <MenuItem href="/dashboard/returns" label={<><ShieldCheck size={18} /> Garantías</>} id="garantias" />
-                            <MenuItem href="/dashboard/web-analytics" label={<><BarChart3 size={18} /> Estadísticas Web</>} id="estadisticas" />
-                            <MenuItem href="/dashboard/marketing" label={<><Target size={18} /> Marketing</>} id="marketing" />
-                            <MenuItem href="/dashboard/loyalty" label={<><Heart size={18} /> Club de Puntos</>} id="loyalty" />
-                            <MenuItem href="/dashboard/discounts" label={<><Sparkles size={18} /> Descuentos</>} id="discounts" />
-                            <MenuItem href="/dashboard/automations" label={<><Zap size={18} /> Automatizaciones</>} id="automations" />
+                            <MenuItem href="/dashboard/customers" label="Clientes" id="clientes" icon={<UserCheck size={18} />} />
+                            <MenuItem href="/dashboard/returns" label="Garantías" id="garantias" icon={<ShieldCheck size={18} />} />
+                            <MenuItem href="/dashboard/web-analytics" label="Estadísticas" id="estadisticas" icon={<BarChart3 size={18} />} />
+                            <MenuItem href="/dashboard/marketing" label="Marketing" id="marketing" icon={<Target size={18} />} />
+                            <MenuItem href="/dashboard/loyalty" label="Club de Puntos" id="loyalty" icon={<Heart size={18} />} />
+                            <MenuItem href="/dashboard/discounts" label="Descuentos" id="discounts" icon={<Sparkles size={18} />} />
+                            <MenuItem href="/dashboard/automations" label="Automatizaciones" id="automations" icon={<Zap size={18} />} />
 
-                            {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Administración & Finanzas</p>}
-                            <MenuItem href="/dashboard/ai-assistants" label={<><Bot size={18} /> Asistente IA</>} id="asistente-ia" />
-                            <MenuItem href="/dashboard/payroll" label={<><Receipt size={18} /> Nómina</>} id="payroll" />
-                            <MenuItem href="/dashboard/reports" label={<><PieChart size={18} /> Análisis General</>} id="reports-gen" />
-                            <MenuItem href="/dashboard/inventory/purchase-orders" label={<><ShoppingCart size={18} /> Órdenes Compra</>} id="compras" />
-                            <MenuItem href="/dashboard/settings/branches" label={<><MapPin size={18} /> Sucursales</>} id="sucursales" />
-                            <MenuItem href="/dashboard/reports/vendedores" label={<><Users size={18} /> Vendedores</>} id="vendedores" />
-                            <MenuItem href="/dashboard/invoicing/cuentas-cobro" label={<><FileText size={18} /> Cuentas de Cobro</>} id="cuentas" />
-                            <MenuItem href="/dashboard/payroll/gastos" label={<><Coins size={18} /> Control Gastos</>} id="gastos" />
+                            {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Finanzas</p>}
+                            <MenuItem href="/dashboard/ai-assistants" label="Asistente IA" id="asistente-ia" icon={<Bot size={18} />} />
+                            <MenuItem href="/dashboard/payroll" label="Nómina" id="payroll" icon={<Receipt size={18} />} />
+                            <MenuItem href="/dashboard/reports" label="Análisis General" id="reports-gen" icon={<PieChart size={18} />} />
+                            <MenuItem href="/dashboard/inventory/purchase-orders" label="Compras" id="compras" icon={<ShoppingCart size={18} />} />
+                            <MenuItem href="/dashboard/settings/branches" label="Sucursales" id="sucursales" icon={<MapPin size={18} />} />
+                            <MenuItem href="/dashboard/reports/vendedores" label="Vendedores" id="vendedores" icon={<Users size={18} />} />
+                            <MenuItem href="/dashboard/invoicing/cuentas-cobro" label="Cuentas" id="cuentas" icon={<FileText size={18} />} />
+                            <MenuItem href="/dashboard/payroll/gastos" label="Gastos" id="gastos" icon={<Coins size={18} />} />
                         </>
                     )}
 
                     {(authRole === 'SUPER_ADMIN' || isGlobalStaff) && (
                       <div className="pt-4 border-t border-gray-100 mt-4">
-                        <MenuItem href="/dashboard/super-admin" label={<><ShieldCheck size={18} className="text-cyan" /> Panel Admin</>} id="super-admin" />
+                        <MenuItem href="/dashboard/super-admin" label="Panel Admin" id="super-admin" icon={<ShieldCheck size={18} className="text-cyan" />} />
                       </div>
                     )}
 
                     {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Configuración</p>}
-                    <MenuItem href="/dashboard/settings/general" label={<><Settings size={18} /> Config Tienda</>} id="settings" />
+                    <MenuItem href="/dashboard/settings/general" label="Config Tienda" id="settings" icon={<Settings size={18} />} />
                     {showExtraModules && (
                         <>
-                            <MenuItem href="/dashboard/settings/info" label={<><InfoIcon size={18} /> Info General</>} id="info-gen" />
-                            <MenuItem href="/dashboard/settings/plan" label={<><CreditCard size={18} /> Mi Plan</>} id="mi-plan" />
-                            <MenuItem href="/dashboard/settings/users" label={<><Users2 size={18} /> Staff</>} id="staff" />
+                            <MenuItem href="/dashboard/settings/info" label="Info General" id="info-gen" icon={<InfoIcon size={18} />} />
+                            <MenuItem href="/dashboard/settings/plan" label="Mi Plan" id="mi-plan" icon={<CreditCard size={18} />} />
+                            <MenuItem href="/dashboard/settings/users" label="Staff" id="staff" icon={<Users2 size={18} />} />
                         </>
                     )}
                 </>
             )}
           </nav>
 
-          <div className="mt-auto pt-10 pb-4 flex flex-col items-center">
+          <div className={`mt-auto pt-10 pb-4 flex flex-col items-center transition-all ${isSidebarCollapsed ? 'scale-75 origin-bottom' : ''}`}>
               <div className="flex flex-col items-center relative group">
                   <div className="text-3xl font-black italic tracking-tighter flex items-baseline relative z-10">
                       <span className={`${isSuperAdminZone ? 'text-white' : 'text-black'}`}>BAY</span>
-                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-black via-[#00b2bd] to-[#00f2ff]">UP.</span>
+                      {!isSidebarCollapsed && <span className="text-transparent bg-clip-text bg-gradient-to-r from-black via-[#00b2bd] to-[#00f2ff]">UP.</span>}
                   </div>
                   <div className="h-[2px] w-0 bg-[#00f2ff] group-hover:w-full transition-all duration-500 mt-1" />
               </div>
