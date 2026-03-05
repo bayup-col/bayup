@@ -13,7 +13,7 @@ import {
   LayoutDashboard, FileText, Package, Store, Truck, MessageSquare, Settings, 
   LogOut, ChevronDown, Eye, ShieldCheck, Building2, Users, Wallet, Headset, 
   Layout, BarChart3, Code, Activity, Globe, Link as LinkIcon, Scale, AlertTriangle, 
-  ChevronLeft, Zap, Box, ShoppingBag, ClipboardList, Database, Share2, 
+  ChevronLeft, ChevronRight, Zap, Box, ShoppingBag, ClipboardList, Database, Share2, 
   UserCheck, Heart, Target, Sparkles, Bot, Receipt, BarChart, ShoppingCart, 
   MapPin, UserPlus, Coins, PieChart, Info as InfoIcon, CreditCard, Users2
 } from 'lucide-react';
@@ -96,14 +96,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         animate={{ width: isSidebarCollapsed ? 85 : 280 }}
         className={`relative m-4 rounded-[2.8rem] overflow-hidden flex-shrink-0 shadow-2xl border transition-colors ${isSuperAdminZone ? 'bg-[#001A1A] border-white/5' : 'bg-white border-white'}`}
       >
-        <aside className="w-full h-full flex flex-col p-4 overflow-y-auto no-scrollbar">
-          {/* BOTÓN PARA RETRAER EL MENÚ - AHORA ARRIBA A LA DERECHA */}
+        <aside className="w-full h-full flex flex-col p-4 overflow-y-auto no-scrollbar relative">
+          
+          {/* BOTÓN PARA RETRAER EL MENÚ - MÁS TRANSPARENTE Y ARRIBA A LA DERECHA */}
           <button 
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className={`absolute top-10 right-6 z-50 h-8 w-8 rounded-full border shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-90 ${
+              className={`absolute top-10 right-6 z-50 h-8 w-8 rounded-full border shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-90 opacity-40 hover:opacity-100 ${
                   isSuperAdminZone 
-                  ? 'bg-cyan text-[#004D4D] border-cyan/20' 
-                  : 'bg-[#004D4D] text-white border-white/10'
+                  ? 'bg-white/10 text-cyan border-white/10' 
+                  : 'bg-[#004D4D]/10 text-[#004D4D] border-[#004D4D]/10'
               }`}
           >
               {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
@@ -134,7 +135,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       </>
                   )}
                   {isSidebarCollapsed && (
-                      <button onClick={() => setIsSidebarCollapsed(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                      <button onClick={() => setIsSidebarCollapsed(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                           {isSuperAdminZone ? <ShieldCheck size={20} className="text-white" /> : <Store size={20} className="text-[#004d4d]" />}
                       </button>
                   )}
@@ -216,18 +217,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 </>
             )}
           </nav>
-{/* LOGOTIPO BAYUP OFICIAL */}
-<div className="mt-auto pt-10 pb-4 flex flex-col items-center">
-    <div className="flex flex-col items-center relative group">
-        <div className="text-3xl font-black italic tracking-tighter flex items-baseline relative z-10">
-            <span className={`${isSuperAdminZone ? 'text-white' : 'text-black'}`}>BAY</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-black via-[#00b2bd] to-[#00f2ff]">UP.</span>
-        </div>
-        <div className="h-[2px] w-0 bg-[#00f2ff] group-hover:w-full transition-all duration-500 mt-1" />
-    </div>
-</div>
-</aside>
-</motion.div>
+
+          <div className="mt-auto pt-10 pb-4 flex flex-col items-center">
+              <div className="flex flex-col items-center relative group">
+                  <div className="text-3xl font-black italic tracking-tighter flex items-baseline relative z-10">
+                      <span className={`${isSuperAdminZone ? 'text-white' : 'text-black'}`}>BAY</span>
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-black via-[#00b2bd] to-[#00f2ff]">UP.</span>
+                  </div>
+                  <div className="h-[2px] w-0 bg-[#00f2ff] group-hover:w-full transition-all duration-500 mt-1" />
+              </div>
+          </div>
+        </aside>
+      </motion.div>
 
       <div className="flex-1 flex flex-col min-w-0 relative">
         <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
