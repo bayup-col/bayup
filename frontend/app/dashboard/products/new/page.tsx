@@ -480,7 +480,17 @@ export default function NewProductPage() {
 
                 <div className="pt-10 flex items-center justify-between border-t border-gray-100 pb-20">
                     <button onClick={() => router.back()} className="px-10 py-5 text-[10px] font-black uppercase text-gray-400">Descartar</button>
-                    <button onClick={handleSave} disabled={isSubmitting} className="px-14 py-5 bg-[#004D4D] text-white rounded-[1.8rem] font-black text-[10px] uppercase shadow-2xl hover:bg-black transition-all">{isSubmitting ? 'Guardando...' : 'Publicar Catálogo'}</button>
+                    <button 
+                        onClick={() => {
+                            if (activeTab === 'info') setActiveTab('financial');
+                            else if (activeTab === 'financial') setActiveTab('variants');
+                            else handleSave();
+                        }} 
+                        disabled={isSubmitting} 
+                        className="px-14 py-5 bg-[#004D4D] text-white rounded-[1.8rem] font-black text-[10px] uppercase shadow-2xl hover:bg-black transition-all"
+                    >
+                        {isSubmitting ? 'Guardando...' : (activeTab === 'variants' ? 'Publicar Catálogo' : 'Siguiente')}
+                    </button>
                 </div>
             </div>
 
