@@ -216,26 +216,36 @@ export default function NewProductPage() {
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
             
-            // Subir todas las imágenes en paralelo para máxima velocidad
+            // Subir todas las imágenes en paralelo con validación estricta
             const uploadPromises = media.map(async (item) => {
                 if (item.file) {
                     const fd = new FormData();
                     fd.append('file', item.file);
-                    const res = await fetch(`${apiUrl}/admin/upload-image`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${token}` },
-                        body: fd
-                    });
-                    if (res.ok) {
-                        const d = await res.json();
-                        return d.url;
+                    try {
+                        const res = await fetch(`${apiUrl}/admin/upload-image`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` },
+                            body: fd
+                        });
+                        if (res.ok) {
+                            const d = await res.json();
+                            return d.url;
+                        }
+                    } catch (e) {
+                        console.error("Error subiendo imagen:", e);
                     }
                 }
                 return null;
             });
 
             const uploadedUrls = await Promise.all(uploadPromises);
-            const finalImageUrls = uploadedUrls.filter(url => url !== null);
+            const finalImageUrls = uploadedUrls.filter((url): url is string => url !== null && url !== undefined);
+
+            if (media.length > 0 && finalImageUrls.length === 0) {
+                showToast("Error al procesar las imágenes", "error");
+                setIsSubmitting(false);
+                return;
+            }
 
             const payload = { 
                 ...formData, 
@@ -252,7 +262,7 @@ export default function NewProductPage() {
             showToast("Producto creado ✨", "success");
             router.push('/dashboard/products');
         } catch (err) { 
-            showToast("Error al guardar", "error"); 
+            showToast("Error al guardar el producto", "error"); 
         } finally { 
             setIsSubmitting(false); 
         }

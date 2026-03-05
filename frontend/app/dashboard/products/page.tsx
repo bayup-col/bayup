@@ -595,13 +595,17 @@ export default function ProductsPage() {
                                 <tbody className="divide-y divide-gray-100/50">
                                     {loading ? (<tr><td colSpan={5} className="py-20 text-center"><div className="h-12 w-12 border-4 border-[#004d4d] border-t-cyan rounded-full animate-spin mx-auto" /></td></tr>) : filteredProducts.length === 0 ? (<tr><td colSpan={5} className="py-20 text-center text-gray-300 font-black text-[10px]">Sin artículos</td></tr>) : (
                                         filteredProducts.map((p) => {
-                                            const displayImage = Array.isArray(p.image_url) && p.image_url.length > 0 
-                                                ? p.image_url[0] 
-                                                : (typeof p.image_url === 'string' ? p.image_url : null);
+                                            // Lógica robusta para detectar la imagen principal
+                                            let displayImage = null;
+                                            if (Array.isArray(p.image_url) && p.image_url.length > 0) {
+                                                displayImage = p.image_url.find(url => url && typeof url === 'string' && url.startsWith('http'));
+                                            } else if (typeof p.image_url === 'string' && p.image_url.startsWith('http')) {
+                                                displayImage = p.image_url;
+                                            }
 
                                             return (
                                                 <tr key={p.id} className="hover:bg-white/60 transition-all cursor-pointer group">
-                                                    <td className="px-10 py-8"><div className="flex items-center justify-center gap-4"><div className="h-14 w-14 rounded-2xl bg-gray-900 overflow-hidden shadow-lg group-hover:scale-110 transition-transform">{displayImage ? <img src={displayImage} className="h-full w-full object-cover" /> : <div className="h-full w-full flex items-center justify-center text-white/20"><ImageIcon size={20}/></div>}</div><div className="text-left"><p className="text-sm font-black text-gray-900">{p.name}</p><p className="text-[9px] font-bold text-[#004D4D] italic">{p.collection?.title || 'General'}</p></div></div></td>
+                                                    <td className="px-10 py-8"><div className="flex items-center justify-center gap-4"><div className="h-14 w-14 rounded-2xl bg-gray-900 overflow-hidden shadow-lg group-hover:scale-110 transition-transform">{displayImage ? <img src={displayImage} className="h-full w-full object-cover" onError={(e) => { (e.target as any).src = ''; (e.target as any).style.display = 'none'; }} /> : <div className="h-full w-full flex items-center justify-center text-white/20"><ImageIcon size={20}/></div>}</div><div className="text-left"><p className="text-sm font-black text-gray-900">{p.name}</p><p className="text-[9px] font-bold text-[#004D4D] italic">{p.collection?.title || 'General'}</p></div></div></td>
                                                     <td className="px-10 py-8"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest ${p.status === 'active' ? 'bg-[#004D4D] text-white' : 'bg-gray-100 text-gray-400'}`}>{p.status === 'active' ? 'Activo' : 'Borrador'}</span></td>
                                                     <td className="px-10 py-8 font-black text-slate-900"><div className="flex flex-col items-center"><span className={p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) <= 5 ? 'text-rose-500' : ''}>{p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0}</span><span className="text-[8px] text-gray-400">unidades</span></div></td>
                                                     <td className="px-10 py-8 font-black text-[#004D4D] text-base"><AnimatedNumber value={p.price} /></td>
