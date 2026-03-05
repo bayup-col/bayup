@@ -398,6 +398,8 @@ export default function GeneralSettings() {
                                                 if (res.ok) {
                                                     const data = await res.json();
                                                     setIdentity({...identity, logo: data.url});
+                                                    // Actualizar contexto global inmediatamente para feedback visual
+                                                    updateUser({ logo: data.url });
                                                     showToast("Logo subido correctamente", "success");
                                                 } else {
                                                     showToast("Error al subir imagen", "error");

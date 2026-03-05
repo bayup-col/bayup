@@ -30,7 +30,7 @@ export const DashboardHeader = ({
     setIsBaytOpen
 }: HeaderProps) => {
     const { theme, toggleTheme } = useTheme();
-    const { token, userPlan, isGlobalStaff } = useAuth();
+    const { token, userPlan, isGlobalStaff, userLogo } = useAuth();
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [isHoveringUser, setIsHoveringUser] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
@@ -159,9 +159,9 @@ export const DashboardHeader = ({
                                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                                     className="h-10 w-10 rounded-2xl bg-gradient-to-br from-white to-gray-100 shadow-lg border border-[#004d4d]/5 flex items-center justify-center text-[#004d4d] hover:scale-105 transition-all relative group overflow-hidden"
                                 >
-                                    {useAuth().userLogo ? (
+                                    {userLogo ? (
                                         <img 
-                                            src={useAuth().userLogo || ""} 
+                                            src={userLogo} 
                                             alt="Logo Tienda" 
                                             className="w-full h-full object-cover"
                                         />
