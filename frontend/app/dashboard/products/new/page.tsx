@@ -298,10 +298,10 @@ export default function NewProductPage() {
                         <motion.div key="financial" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-12 pb-20">
                             
                             {/* FILA 1: COSTO */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-end">
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">COSTO</label>
-                                    <div className="relative">
+                                    <div className="relative h-[110px]">
                                         <span className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">$</span>
                                         <input 
                                             type="text" 
@@ -309,14 +309,30 @@ export default function NewProductPage() {
                                             onChange={e => handleNumberChange(e.target.value, 'cost')} 
                                             onFocus={() => { if(formData.cost === 0) setFormData({...formData, cost: '' as any}) }}
                                             onBlur={() => { if(!formData.cost) setFormData({...formData, cost: 0}) }}
-                                            className="w-full pl-14 pr-10 py-8 bg-gray-50 border-2 border-gray-200 rounded-[2rem] focus:bg-white focus:border-[#004D4D]/20 outline-none font-black text-xl transition-all" 
+                                            className="w-full h-full pl-14 pr-10 bg-gray-50 border-2 border-gray-200 rounded-[2rem] focus:bg-white focus:border-[#004D4D]/20 outline-none font-black text-xl transition-all" 
                                             placeholder="0" 
                                         />
                                     </div>
                                 </div>
-                                <div className="bg-emerald-50/50 p-8 rounded-[2.5rem] border border-emerald-100/50 flex items-center gap-4">
-                                    <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600"><ShieldCheck size={20}/></div>
-                                    <p className="text-[10px] font-bold text-emerald-700/60 uppercase tracking-widest">Valor base de inversión real.</p>
+                                <div className="relative group/cost">
+                                    <div className="bg-emerald-50/50 h-[110px] p-8 rounded-[2rem] border-2 border-emerald-100/50 flex items-center gap-4 transition-all hover:bg-emerald-100/30">
+                                        <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                                            <ShieldCheck size={20}/>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-[10px] font-bold text-emerald-700/60 uppercase tracking-widest">Valor base de inversión real.</p>
+                                            <div className="p-1 rounded-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors cursor-help">
+                                                <HelpCircle size={10} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Tooltip Costo */}
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-64 p-4 bg-gray-900 text-white text-[10px] rounded-2xl opacity-0 group-hover/cost:opacity-100 pointer-events-none transition-opacity shadow-2xl z-[100]">
+                                        <p className="font-bold text-emerald-400 mb-1 uppercase tracking-widest">¿Qué es el Costo?</p>
+                                        <p className="text-gray-300 leading-relaxed">Es el monto neto que te cuesta adquirir o fabricar una unidad. Es la base para calcular cuánto debes cobrar para tener ganancias.</p>
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900" />
+                                    </div>
                                 </div>
                             </div>
 
