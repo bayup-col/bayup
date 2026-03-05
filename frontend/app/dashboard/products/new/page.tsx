@@ -510,7 +510,14 @@ export default function NewProductPage() {
                                         const subs = variants.filter(v => v.name.startsWith(master));
                                         return (
                                             <div key={mIdx} className="p-10 bg-white rounded-[3.5rem] border border-gray-100 shadow-2xl relative overflow-hidden group">
-                                                <button onClick={() => setVariants(prev => prev.filter(v => !v.name.startsWith(master)))} className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-rose-500"><Trash2 size={16}/></button>
+                                                <div className="absolute top-6 right-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => handleEditAttribute(master)} className="p-2 rounded-full bg-gray-50 text-[#004D4D] hover:bg-[#004D4D] hover:text-white transition-all shadow-sm">
+                                                        <Zap size={14}/>
+                                                    </button>
+                                                    <button onClick={() => setVariants(prev => prev.filter(v => !v.name.startsWith(master)))} className="p-2 rounded-full bg-gray-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm">
+                                                        <Trash2 size={14}/>
+                                                    </button>
+                                                </div>
                                                 <div className="space-y-6">
                                                     <div className="flex items-center gap-4">
                                                         <div className="h-10 w-10 rounded-2xl bg-[#004D4D] flex items-center justify-center text-white font-black text-xs">{mIdx + 1}</div>
