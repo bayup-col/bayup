@@ -178,6 +178,30 @@ export default function NewProductPage() {
         fetchInitial();
     }, [token]);
 
+    const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState("");
+
+    const handleCreateCategory = async () => {
+        if (!newCategoryName.trim()) return;
+        try {
+            const res = await apiRequest<any>('/collections', {
+                method: 'POST',
+                token,
+                body: JSON.stringify({ title: newCategoryName, description: 'Creada desde producto' })
+            });
+            if (res) {
+                setCategoriesList(prev => [...prev, res]);
+                setFormData({ ...formData, category: res.title, collection_id: res.id });
+                setIsNewCategoryModalOpen(false);
+                setNewCategoryName("");
+                setIsCategoryOpen(false);
+                showToast("Categoría creada", "success");
+            }
+        } catch (e) {
+            showToast("Error al crear categoría", "error");
+        }
+    };
+
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (media.length >= 5) return showToast("Límite de 5 imágenes", "info");
