@@ -548,10 +548,26 @@ export default function NewProductPage() {
                                                 />
                                             </div>
                                         </div>
-                                        <div className="bg-gray-50 p-8 rounded-[2rem] space-y-3">
-                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">TICKET PROMEDIO</p>
-                                            <div className="flex items-center gap-4 text-2xl font-black text-[#004D4D]"><Calculator size={20} className="text-gray-300"/> <span>${(formData.price || 0).toLocaleString('de-DE')}</span></div>
+                                        <div className="bg-gray-50 p-8 rounded-[2rem] space-y-3 border-2 border-transparent">
+                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">PUNTO DE EQUILIBRIO</p>
+                                            <div className="flex items-center gap-4">
+                                                <BarChart3 size={20} className="text-cyan-400"/> 
+                                                <span className="text-2xl font-black text-slate-900">
+                                                    {(() => {
+                                                        const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
+                                                        const price = formData.price || 1;
+                                                        const unitProfit = price - (formData.cost || 0) - (price * 0.035);
+                                                        if (unitProfit <= 0) return "∞";
+                                                        return Math.ceil(totalFixed / unitProfit);
+                                                    })()} <span className="text-[10px] text-gray-400 uppercase">Uds</span>
+                                                </span>
+                                            </div>
                                         </div>
+                                    </div>
+
+                                    <div className="bg-gray-50 p-8 rounded-[2rem] space-y-3">
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">TICKET PROMEDIO ACTUAL</p>
+                                        <div className="flex items-center gap-4 text-2xl font-black text-[#004D4D]"><Calculator size={20} className="text-gray-300"/> <span>${(formData.price || 0).toLocaleString('de-DE')}</span></div>
                                     </div>
 
                                     {/* Sugerido Retail */}
