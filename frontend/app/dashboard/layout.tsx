@@ -213,13 +213,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             )}
           </nav>
 
-          <div className={`mt-auto pt-10 pb-4 flex flex-col items-center transition-all ${isSidebarCollapsed ? 'scale-75 origin-bottom' : ''}`}>
+          <div className={`mt-auto pt-10 pb-8 flex flex-col items-center transition-all duration-500 ${isSidebarCollapsed ? 'px-2' : ''}`}>
               <div className="flex flex-col items-center relative group">
-                  <div className="text-3xl font-black italic tracking-tighter flex items-baseline relative z-10">
+                  <div className={`font-black italic tracking-tighter flex items-baseline relative z-10 transition-all duration-500 ${isSidebarCollapsed ? 'text-2xl' : 'text-3xl'}`}>
                       <span className={`${isSuperAdminZone ? 'text-white' : 'text-black'}`}>BAY</span>
                       {!isSidebarCollapsed && <span className="text-transparent bg-clip-text bg-gradient-to-r from-black via-[#00b2bd] to-[#00f2ff]">UP.</span>}
                   </div>
-                  <div className="h-[2px] w-0 bg-[#00f2ff] group-hover:w-full transition-all duration-500 mt-1" />
+                  <div className={`h-[2px] bg-[#00f2ff] transition-all duration-500 mt-1 ${isSidebarCollapsed ? 'w-8' : 'w-0 group-hover:w-full'}`} />
               </div>
           </div>
         </aside>
