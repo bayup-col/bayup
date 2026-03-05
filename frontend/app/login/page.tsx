@@ -64,14 +64,15 @@ export default function LoginPage() {
       const data = await response.json();
       const userData = data.user;
       const isGlobalStaff = userData.is_global_staff || false;
+      const userRole = userData.role || 'admin_tienda';
 
-      if (isGlobalStaff && !window.location.pathname.includes('bayup-family')) {
-          setError("Acceso Restringido: Por favor usa la entrada exclusiva en /bayup-family");
+      // BLOQUEO MAESTRO: Los Super Admin NO entran por /login
+      if ((isGlobalStaff || userRole?.toUpperCase() === 'SUPER_ADMIN') && !window.location.pathname.includes('bayup-family')) {
+          setError("Acceso Restringido: Esta entrada es para tiendas. Por favor usa el portal administrativo en /bayup-family.");
           setIsLoading(false);
           return;
       }
       
-      const userRole = userData.role || 'admin_tienda';
       const userPermissions = userData.permissions || {};
       const userPlan = userData.plan || null;
       const shopSlug = userData.shop_slug || "";
