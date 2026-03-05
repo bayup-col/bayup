@@ -109,11 +109,20 @@ export default function NewProductPage() {
         const bayupFee = price * bayupRate;
         const wompiFee = price * wompiRate;
         
-        // Si add_gateway_fee es true, el cliente paga (no se descuenta del comercio)
-        const net = price - (formData.cost || 0) - bayupFee - (formData.add_gateway_fee ? 0 : wompiFee);
+        // Calcular el impacto de los gastos fijos por unidad
+        const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
+        const distributedFixed = totalFixed / (simulationUnits || 1);
+        
+        // Utilidad Neta = Precio - Costo Producto - Gastos Fijos por Unidad - Comisiones
+        const net = price - (formData.cost || 0) - distributedFixed - bayupFee - (formData.add_gateway_fee ? 0 : wompiFee);
         const margin = price > 0 ? (net / price) * 100 : 0;
         
-        return { net, margin, bayupFee, wompiFee: formData.add_gateway_fee ? 0 : wompiFee };
+        return { 
+            net: Math.round(net), 
+            margin, 
+            bayupFee: Math.round(bayupFee), 
+            wompiFee: Math.round(formData.add_gateway_fee ? 0 : wompiFee) 
+        };
     };
 
     const recommendedRetail = () => {
