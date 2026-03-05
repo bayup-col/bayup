@@ -343,8 +343,8 @@ export default function ProductsPage() {
         const avgPrice = total > 0 ? products.reduce((acc, p) => acc + (p.price || 0), 0) / total : 0;
 
         return [
-            { 
-                id: 'total', label: 'Total productos', value: total, icon: <Package size={24}/>, color: 'text-[#004d4d]', bg: 'bg-[#004d4d]/5', trend: 'Live', isSimple: true,
+            {
+                id: 'total', label: 'Total productos', value: total, icon: <Package size={24}/>, color: 'text-[#004d4d]', bg: 'bg-[#004d4d]/5', trend: 'Actualizado', isSimple: true,
                 details: [
                     { l: "ACTIVOS", v: `${active}`, icon: <CheckCircle2 size={10}/> },
                     { l: "BORRADORES", v: `${draft}`, icon: <Edit3 size={10}/> },
@@ -352,8 +352,8 @@ export default function ProductsPage() {
                 ],
                 advice: "Tu catálogo es la vitrina de tu marca. Mantener al menos 10 productos activos aumenta la confianza de tus compradores web."
             },
-            { 
-                id: 'active', label: 'Items activos', value: active, icon: <Zap size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: 'Online', isSimple: true,
+            {
+                id: 'active', label: 'Items activos', value: active, icon: <Zap size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: 'En línea', isSimple: true,
                 details: [
                     { l: "EN WEB", v: `${active}`, icon: <Globe size={10}/> },
                     { l: "CON FOTOS", v: `${products.filter(p => p.image_url?.length > 0).length}`, icon: <ImageIcon size={10}/> },
@@ -361,19 +361,19 @@ export default function ProductsPage() {
                 ],
                 advice: "¡Excelente! Todos tus productos activos son visibles. Asegúrate de que las descripciones tengan palabras clave para SEO."
             },
-            { 
+            {
                 id: 'stock', label: 'Stock crítico', value: lowStock, icon: <AlertCircle size={24}/>, color: 'text-rose-600', bg: 'bg-rose-50', trend: 'Revisar', isSimple: true,
                 details: [
                     { l: "CRÍTICO", v: `${lowStock}`, icon: <AlertCircle size={10}/> },
                     { l: "PREVENTIVO", v: `${warningStock}`, icon: <Zap size={10}/> },
                     { l: "SANO", v: `${healthyStock}`, icon: <CheckCircle2 size={10}/> }
                 ],
-                advice: lowStock > 0 
+                advice: lowStock > 0
                     ? `Tienes ${lowStock} productos en alerta roja. Repón pronto para no perder ventas web.`
                     : "Tu inventario está bajo control. Sigue así para garantizar despachos rápidos."
             },
-            { 
-                id: 'average', label: 'Valor promedio', value: avgPrice, icon: <ShoppingBag size={24}/>, color: 'text-blue-600', bg: 'bg-blue-50', trend: 'Market ok',
+            {
+                id: 'average', label: 'Valor promedio', value: avgPrice, icon: <ShoppingBag size={24}/>, color: 'text-blue-600', bg: 'bg-blue-50', trend: 'Mercado OK',
                 details: [
                     { l: "PRECIO PROM", v: `$ ${avgPrice.toLocaleString()}`, icon: <DollarSign size={10}/> },
                     { l: "MÁS CARO", v: `$ ${Math.max(...products.map(p => p.price || 0), 0).toLocaleString()}`, icon: <TrendingUp size={10}/> },
@@ -381,8 +381,7 @@ export default function ProductsPage() {
                 ],
                 advice: "El valor promedio de tu catálogo define tu posicionamiento. Considera productos 'gancho' para atraer tráfico."
             }
-        ];
-    }, [products]);
+        ];    }, [products]);
 
     const handleExport = async () => {
         if (products.length === 0) {
