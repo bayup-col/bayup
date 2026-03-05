@@ -497,9 +497,13 @@ export default function NewProductPage() {
                                                     <div className="flex wrap gap-3">
                                                         {subs.map((s, sIdx) => {
                                                             const detail = s.name.includes('/') ? s.name.split('/')[1].trim() : s.name;
+                                                            const hasColor = detail.includes(': #');
+                                                            const colorHex = hasColor ? detail.split(': #')[1] : null;
+                                                            const cleanDetail = hasColor ? detail.split(':')[0] : detail;
                                                             return (
                                                                 <div key={sIdx} className="px-4 py-2 bg-gray-50 rounded-2xl text-[10px] font-bold border flex items-center gap-2">
-                                                                    <span>{detail}: {s.stock} uds</span>
+                                                                    {hasColor && <div className="w-3 h-3 rounded-full border border-white shadow-sm" style={{ backgroundColor: `#${colorHex}` }} />}
+                                                                    <span>{cleanDetail}: {s.stock} uds</span>
                                                                 </div>
                                                             );
                                                         })}
