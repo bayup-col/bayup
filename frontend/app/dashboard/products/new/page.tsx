@@ -84,6 +84,22 @@ export default function NewProductPage() {
     const totalStock = variants.reduce((acc, v) => acc + (Number(v.stock) || 0), 0) || 1;
     const commissionRate = userPlan?.commission_rate || 0.035;
 
+    const formatNumber = (val: number) => {
+        if (!val && val !== 0) return "";
+        return new Intl.NumberFormat('de-DE').format(val);
+    };
+
+    const handleNumberChange = (val: string, field: string, isFixedCost: boolean = false) => {
+        const rawValue = val.replace(/\./g, '').replace(/[^0-9]/g, '');
+        const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
+        
+        if (isFixedCost) {
+            setFixedCosts(prev => ({ ...prev, [field]: numValue }));
+        } else {
+            setFormData(prev => ({ ...prev, [field]: numValue }));
+        }
+    };
+
     const colorMap: { [key: string]: string } = {
         'rojo': '#FF0000', 'red': '#FF0000', 'azul': '#0000FF', 'blue': '#0000FF',
         'verde': '#008000', 'green': '#008000', 'negro': '#000000', 'black': '#000000',
@@ -235,8 +251,16 @@ export default function NewProductPage() {
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">COSTO</label>
                                     <div className="relative">
-                                        <span className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                                        <input type="number" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} className="w-full pl-14 pr-10 py-8 bg-gray-50 rounded-[2rem] outline-none font-black text-xl" placeholder="0" />
+                                        <span className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">$</span>
+                                        <input 
+                                            type="text" 
+                                            value={formatNumber(formData.cost)} 
+                                            onChange={e => handleNumberChange(e.target.value, 'cost')} 
+                                            onFocus={() => { if(formData.cost === 0) setFormData({...formData, cost: '' as any}) }}
+                                            onBlur={() => { if(!formData.cost) setFormData({...formData, cost: 0}) }}
+                                            className="w-full pl-14 pr-10 py-8 bg-gray-50 border-2 border-gray-200 rounded-[2rem] focus:bg-white focus:border-[#004D4D]/20 outline-none font-black text-xl transition-all" 
+                                            placeholder="0" 
+                                        />
                                     </div>
                                 </div>
                                 <div className="bg-emerald-50/50 p-8 rounded-[2.5rem] border border-emerald-100/50 flex items-center gap-4">
@@ -250,8 +274,16 @@ export default function NewProductPage() {
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">PRECIO MAYORISTA</label>
                                     <div className="relative">
-                                        <span className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                                        <input type="number" value={formData.wholesale_price} onChange={e => setFormData({...formData, wholesale_price: Number(e.target.value)})} className="w-full pl-14 pr-10 py-8 bg-gray-50 rounded-[2rem] outline-none font-black text-xl" placeholder="0" />
+                                        <span className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">$</span>
+                                        <input 
+                                            type="text" 
+                                            value={formatNumber(formData.wholesale_price)} 
+                                            onChange={e => handleNumberChange(e.target.value, 'wholesale_price')} 
+                                            onFocus={() => { if(formData.wholesale_price === 0) setFormData({...formData, wholesale_price: '' as any}) }}
+                                            onBlur={() => { if(!formData.wholesale_price) setFormData({...formData, wholesale_price: 0}) }}
+                                            className="w-full pl-14 pr-10 py-8 bg-gray-50 border-2 border-gray-200 rounded-[2rem] focus:bg-white focus:border-[#004D4D]/20 outline-none font-black text-xl transition-all" 
+                                            placeholder="0" 
+                                        />
                                     </div>
                                 </div>
                                 <div className="bg-[#002D2D] p-10 rounded-[2.5rem] text-white flex justify-between items-center shadow-2xl relative overflow-hidden group">
@@ -275,8 +307,16 @@ export default function NewProductPage() {
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">PRECIO RETAIL</label>
                                     <div className="relative">
-                                        <span className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                                        <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full pl-14 pr-10 py-8 bg-gray-50 rounded-[2rem] outline-none font-black text-xl" placeholder="0" />
+                                        <span className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">$</span>
+                                        <input 
+                                            type="text" 
+                                            value={formatNumber(formData.price)} 
+                                            onChange={e => handleNumberChange(e.target.value, 'price')} 
+                                            onFocus={() => { if(formData.price === 0) setFormData({...formData, price: '' as any}) }}
+                                            onBlur={() => { if(!formData.price) setFormData({...formData, price: 0}) }}
+                                            className="w-full pl-14 pr-10 py-8 bg-gray-50 border-2 border-gray-200 rounded-[2rem] focus:bg-white focus:border-[#004D4D]/20 outline-none font-black text-xl transition-all" 
+                                            placeholder="0" 
+                                        />
                                     </div>
                                 </div>
                                 <div className="bg-[#001515] p-10 rounded-[2.5rem] text-white flex justify-between items-center shadow-2xl relative overflow-hidden group">
@@ -420,7 +460,15 @@ export default function NewProductPage() {
                                                 </label>
                                                 <div className="relative">
                                                     <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 font-bold">$</span>
-                                                    <input type="number" value={fixedCosts[key] || ''} onChange={e => setFixedCosts({...fixedCosts, [key]: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-white rounded-2xl outline-none font-bold text-sm border border-transparent focus:border-[#00F2FF]/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" placeholder="0" />
+                                                    <input 
+                                                        type="text" 
+                                                        value={formatNumber(fixedCosts[key])} 
+                                                        onChange={e => handleNumberChange(e.target.value, key, true)} 
+                                                        onFocus={() => { if(fixedCosts[key] === 0) setFixedCosts({...fixedCosts, [key]: '' as any}) }}
+                                                        onBlur={() => { if(!fixedCosts[key]) setFixedCosts({...fixedCosts, [key]: 0}) }}
+                                                        className="w-full pl-10 pr-6 py-5 bg-white border-2 border-gray-200 rounded-2xl outline-none font-bold text-sm focus:border-[#00F2FF]/20 transition-all" 
+                                                        placeholder="0" 
+                                                    />
                                                 </div>
                                             </div>
                                         ))}
