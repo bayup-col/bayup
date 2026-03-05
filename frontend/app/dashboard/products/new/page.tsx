@@ -407,20 +407,34 @@ export default function NewProductPage() {
                                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900" />
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-between p-8 bg-[#00F2FF]/5 border-2 border-[#00F2FF]/20 rounded-[2rem] shadow-sm">
-                                    <div className="space-y-1">
-                                        <p className="text-[8px] font-black text-[#004D4D] uppercase tracking-widest">Retorno de Inversión (ROI)</p>
-                                        <h4 className="text-xl font-black text-[#004D4D]">
-                                            {(() => {
-                                                const profit = calculateProfit(formData.price);
-                                                const cost = formData.cost || 1;
-                                                const roi = (profit.net / cost) * 100;
-                                                return roi > 0 ? roi.toFixed(1) : 0;
-                                            })()}%
-                                        </h4>
+                                <div className="relative group/roi">
+                                    <div className="flex items-center justify-between p-8 bg-[#00F2FF]/5 border-2 border-[#00F2FF]/20 rounded-[2rem] shadow-sm transition-all hover:bg-[#00F2FF]/10">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-[8px] font-black text-[#004D4D] uppercase tracking-widest">Retorno de Inversión (ROI)</p>
+                                                <div className="p-1 rounded-full bg-[#004D4D]/5 text-gray-400 hover:bg-[#004D4D] hover:text-white transition-colors cursor-help">
+                                                    <HelpCircle size={10} />
+                                                </div>
+                                            </div>
+                                            <h4 className="text-xl font-black text-[#004D4D]">
+                                                {(() => {
+                                                    const profit = calculateProfit(formData.price);
+                                                    const cost = formData.cost || 1;
+                                                    const roi = (profit.net / cost) * 100;
+                                                    return roi > 0 ? roi.toFixed(1) : 0;
+                                                })()}%
+                                            </h4>
+                                        </div>
+                                        <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center text-cyan-500 shadow-sm">
+                                            <TrendingUp size={20} />
+                                        </div>
                                     </div>
-                                    <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center text-cyan-500 shadow-sm">
-                                        <TrendingUp size={20} />
+
+                                    {/* Tooltip ROI */}
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-64 p-4 bg-gray-900 text-white text-[10px] rounded-2xl opacity-0 group-hover/roi:opacity-100 pointer-events-none transition-opacity shadow-2xl z-[100]">
+                                        <p className="font-bold text-[#00F2FF] mb-1 uppercase tracking-widest">¿Qué es el ROI?</p>
+                                        <p className="text-gray-300 leading-relaxed">Indica cuánto ganas por cada peso que invertiste en comprar el producto. Un ROI del 100% significa que ganaste el doble de lo que te costó.</p>
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900" />
                                     </div>
                                 </div>
                             </div>
