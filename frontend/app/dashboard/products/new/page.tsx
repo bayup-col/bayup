@@ -855,6 +855,39 @@ export default function NewProductPage() {
                 )}
             </AnimatePresence>
 
+            {/* MODAL CREAR CATEGORÍA (RESTAURADO) */}
+            <AnimatePresence>
+                {isNewCategoryModalOpen && (
+                    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNewCategoryModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-xl" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="relative w-full max-w-md bg-white rounded-[3.5rem] shadow-3xl overflow-hidden border border-white/20 z-[10001] p-12 space-y-10">
+                            <div className="flex justify-between items-center">
+                                <div className="space-y-1">
+                                    <h3 className="text-2xl font-black italic uppercase text-[#004D4D]">Nueva Categoría</h3>
+                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Organiza tu inventario</p>
+                                </div>
+                                <button onClick={() => setIsNewCategoryModalOpen(false)} className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-rose-500 transition-all"><X size={18}/></button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest ml-2">Nombre de la Categoría</label>
+                                <input 
+                                    value={newCategoryName} 
+                                    onChange={e => setNewCategoryName(e.target.value)} 
+                                    placeholder="Ej: Accesorios, Colección Invierno..." 
+                                    className="w-full bg-gray-50 border-2 border-transparent focus:border-[#00F2FF]/20 rounded-3xl px-8 py-6 text-sm font-bold outline-none shadow-inner transition-all" 
+                                />
+                            </div>
+
+                            <div className="flex gap-4 pt-4">
+                                <button onClick={() => setIsNewCategoryModalOpen(false)} className="flex-1 py-5 text-[10px] font-black uppercase text-gray-400">Cancelar</button>
+                                <button onClick={handleCreateCategory} className="flex-[2] py-5 bg-[#004D4D] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl hover:bg-black transition-all">Guardar Categoría</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             <style jsx global>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 10px; }
