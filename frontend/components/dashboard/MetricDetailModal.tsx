@@ -77,32 +77,31 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
                     </div>
                     <div>
                         <h2 className="text-xl font-black italic tracking-tighter text-[#004d4d]">{metric.label}</h2>
-                        <p className="text-[9px] font-black text-gray-400 tracking-widest">Análisis táctico live</p>
+                        <p className="text-[9px] font-black text-gray-400 tracking-widest uppercase">Análisis táctico en vivo</p>
                     </div>
-                </div>
-                <button 
+                    </div>
+                    <button
                     onClick={onClose}
-                    className="h-10 w-10 rounded-full bg-gray-100 hover:bg-rose-50 hover:text-rose-500 transition-all flex items-center justify-center text-gray-400"
-                >
+                    className="h-10 w-10 rounded-full bg-gray-50 hover:bg-rose-50 hover:text-rose-500 transition-all flex items-center justify-center text-gray-400"
+                    >
                     <X size={20} />
-                </button>
-            </div>
+                    </button>
+                    </div>
 
-            {/* Content Body */}
-            <div className="p-8 pt-4 space-y-8">
-                
-                {/* Main Metric Section */}
-                <div className="flex items-end justify-between gap-10">
+                    {/* Content Body */}
+                    <div className="p-8 pt-4 space-y-8">
+
+                    {/* Main Metric Section */}
+                    <div className="flex items-end justify-between gap-10">
                     <div className="space-y-1">
                         <span className="text-5xl font-black text-gray-900 tracking-tighter italic">
                             {metric.isCurrency && "$ "}{metric.value.toLocaleString()}
                             {metric.isPercentage && "%"}
                         </span>
-                        <div className="flex items-center gap-2 text-emerald-600 text-[10px] font-black tracking-tighter">
-                            <ArrowUpRight size={14} /> {metric.trend} <span className="text-gray-300 ml-1">v2.0</span>
+                        <div className="flex items-center gap-2 text-emerald-600 text-[10px] font-black tracking-widest uppercase">
+                            <ArrowUpRight size={14} /> {metric.trend}
                         </div>
-                    </div>
-                    {/* Sparkline minimalista */}
+                    </div>                    {/* Sparkline minimalista */}
                     <div className="flex-1 h-20 max-w-[200px] opacity-60">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={MOCK_CHART_DATA}>
