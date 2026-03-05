@@ -204,79 +204,139 @@ export default function NewProductPage() {
 
                     {activeTab === 'financial' && (() => {
                         const commissionRate = userPlan?.commission_rate || 0.035;
-                        const calculateMargin = (price: number) => {
-                            if (!price || !formData.cost || price === 0) return "0";
-                            const utility = price - formData.cost - (price * commissionRate);
-                            return ((utility / price) * 100).toFixed(1);
+                        const [fixedCosts, setFixedCosts] = useState({ payroll: 0, rent: 0, services: 0, others: 0 });
+                        const totalStock = variants.reduce((acc, v) => acc + (Number(v.stock) || 0), 0) || 1; // Avoid div by zero
+
+                        const calculateProfit = (price: number) => {
+                            if (!price || !formData.cost) return { net: 0, margin: 0 };
+                            const fee = formData.add_gateway_fee ? 0 : (price * commissionRate); // If fee added to customer, merchant pays 0 (customer pays price + fee) - logic check
+                            // Standard logic: If merchant absorbs fee: Net = Price - Cost - Fee. If customer pays fee: Net = Price - Cost.
+                            // However, typically platforms charge the merchant on the total transaction. 
+                            // Let's stick to simple: If merchant absorbs, fee is deducted. If passed to customer, price increases but merchant gets the base price.
+                            // Simplified for UI:
+                            const effectiveFee = formData.add_gateway_fee ? 0 : (price * commissionRate); 
+                            const net = price - formData.cost - effectiveFee;
+                            const margin = (net / price) * 100;
+                            return { net, margin };
+                        };
+
+                        const recommendedPrice = () => {
+                            const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
+                            const costPerUnit = formData.cost + (totalFixed / totalStock);
+                            return Math.ceil((costPerUnit * 1.3) / 100) * 100; // +30% margin approx, rounded
                         };
 
                         return (
-                            <motion.div key="financial" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-10">
-                                <div className="max-w-4xl mx-auto space-y-10">
-                                    {/* SECCIÓN DE COSTOS - ARRIBA */}
-                                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                        <div className="flex items-center justify-between text-slate-900">
-                                            <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><Package size={18} /> Costos Base</h3>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Costo Unitario del Producto</label>
-                                            <div className="relative">
-                                                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                                                <input type="number" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" placeholder="0" />
-                                            </div>
+                            <motion.div key="financial" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-12 pb-20">
+                                
+                                {/* FILA 1: COSTO */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Package size={14} className="text-[#004D4D]"/> Costo Unitario del Producto</label>
+                                        <div className="relative">
+                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">$</span>
+                                            <input type="number" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} className="w-full pl-12 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-xl font-black text-gray-900 shadow-inner transition-all" placeholder="0" />
                                         </div>
                                     </div>
-
-                                    {/* SECCIÓN DE PRECIOS - ABAJO */}
-                                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                        <div className="flex items-center justify-between text-slate-900">
-                                            <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><DollarSign size={18} /> Precios de Venta</h3>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                            {/* PRECIO MAYORISTA */}
-                                            <div className="space-y-2">
-                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio Mayorista</label>
-                                                <div className="flex gap-4">
-                                                    <div className="relative flex-1">
-                                                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                                                        <input type="number" value={formData.wholesale_price} onChange={e => setFormData({...formData, wholesale_price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" placeholder="0" />
-                                                    </div>
-                                                    <div className="px-6 py-2 bg-gray-900 text-white rounded-2xl flex flex-col justify-center items-center min-w-[100px] border border-gray-800 shadow-xl">
-                                                        <span className="text-[12px] font-black">{calculateMargin(formData.wholesale_price)}%</span>
-                                                        <span className="text-[7px] font-bold text-cyan-400 uppercase tracking-widest">Utilidad</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* PRECIO RETAIL */}
-                                            <div className="space-y-2">
-                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio Retail (Público Final)</label>
-                                                <div className="flex gap-4">
-                                                    <div className="relative flex-1">
-                                                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                                                        <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full pl-10 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-black shadow-inner" placeholder="0" />
-                                                    </div>
-                                                    <div className="px-6 py-2 bg-gray-900 text-white rounded-2xl flex flex-col justify-center items-center min-w-[100px] border border-gray-800 shadow-xl">
-                                                        <span className="text-[12px] font-black">{calculateMargin(formData.price)}%</span>
-                                                        <span className="text-[7px] font-bold text-cyan-400 uppercase tracking-widest">Utilidad</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm flex items-center justify-between group">
-                                            <div className="flex items-center gap-4">
-                                                <div className="h-14 w-14 rounded-2xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D] group-hover:scale-110 transition-all"><HelpCircle size={24}/></div>
-                                                <div>
-                                                    <p className="text-xs font-black text-[#004D4D] uppercase tracking-widest leading-none">¿Dudas con tus precios?</p>
-                                                    <p className="text-[9px] font-bold text-gray-400 uppercase mt-2">Usa el asistente Bayt en el dashboard</p>
-                                                </div>
-                                            </div>
-                                            <ChevronRight size={20} className="text-gray-300"/>
+                                    <div className="bg-[#004D4D]/5 p-8 rounded-[2.5rem] border border-[#004D4D]/10 flex items-center gap-6">
+                                        <div className="h-12 w-12 rounded-full bg-[#004D4D] flex items-center justify-center text-white shrink-0"><Info size={20}/></div>
+                                        <div>
+                                            <h4 className="text-sm font-black text-[#004D4D] uppercase mb-1">¿Qué es el Costo Base?</h4>
+                                            <p className="text-xs font-medium text-gray-600 leading-relaxed">Es el valor exacto que te cuesta adquirir o fabricar cada unidad. No incluyas envíos ni publicidad aquí.</p>
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* FILA 2: PRECIO MAYORISTA */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Layers size={14} className="text-[#004D4D]"/> Precio Mayorista</label>
+                                        <div className="relative">
+                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">$</span>
+                                            <input type="number" value={formData.wholesale_price} onChange={e => setFormData({...formData, wholesale_price: Number(e.target.value)})} className="w-full pl-12 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-xl font-black text-gray-900 shadow-inner transition-all" placeholder="0" />
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                                        <div className="absolute top-0 right-0 p-6 opacity-5"><TrendingUp size={80}/></div>
+                                        <div className="relative z-10 flex justify-between items-end">
+                                            <div>
+                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Tu Ganancia Real (aprox)</p>
+                                                <h4 className={`text-3xl font-black tracking-tighter ${calculateProfit(formData.wholesale_price).net > 0 ? 'text-[#004D4D]' : 'text-gray-300'}`}>${calculateProfit(formData.wholesale_price).net.toLocaleString('de-DE')}</h4>
+                                                <p className="text-[9px] font-bold text-gray-400 mt-1">Descontando {formData.add_gateway_fee ? '0%' : '3.5%'} comisión</p>
+                                            </div>
+                                            <div className={`px-4 py-2 rounded-xl border ${calculateProfit(formData.wholesale_price).margin >= 30 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                                <span className="text-xs font-black">{calculateProfit(formData.wholesale_price).margin.toFixed(1)}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* FILA 3: PRECIO RETAIL */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2"><DollarSign size={14} className="text-[#004D4D]"/> Precio Retail (Unidad)</label>
+                                        <div className="relative">
+                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">$</span>
+                                            <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full pl-12 pr-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-xl font-black text-gray-900 shadow-inner transition-all" placeholder="0" />
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                                        <div className="absolute top-0 right-0 p-6 opacity-5"><TrendingUp size={80}/></div>
+                                        <div className="relative z-10 flex justify-between items-end">
+                                            <div>
+                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Tu Ganancia Real (aprox)</p>
+                                                <h4 className={`text-3xl font-black tracking-tighter ${calculateProfit(formData.price).net > 0 ? 'text-[#004D4D]' : 'text-gray-300'}`}>${calculateProfit(formData.price).net.toLocaleString('de-DE')}</h4>
+                                                <p className="text-[9px] font-bold text-gray-400 mt-1">Descontando {formData.add_gateway_fee ? '0%' : '3.5%'} comisión</p>
+                                            </div>
+                                            <div className={`px-4 py-2 rounded-xl border ${calculateProfit(formData.price).margin >= 30 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                                <span className="text-xs font-black">{calculateProfit(formData.price).margin.toFixed(1)}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* FILA 4: INTERRUPTOR PASARELA */}
+                                <div className="bg-gray-50 p-6 rounded-[2rem] flex items-center justify-between border border-gray-100">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-[#004D4D]"><Zap size={18}/></div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Cobrar comisión al cliente</p>
+                                            <p className="text-[9px] font-bold text-gray-400">Si activas esto, el precio final aumentará un 3.5% para el comprador.</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setFormData({...formData, add_gateway_fee: !formData.add_gateway_fee})} className={`w-14 h-8 rounded-full transition-all relative ${formData.add_gateway_fee ? 'bg-[#004D4D]' : 'bg-gray-200'}`}>
+                                        <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-md ${formData.add_gateway_fee ? 'left-7' : 'left-1'}`} />
+                                    </button>
+                                </div>
+
+                                {/* FILA 5: ANÁLISIS BAYUP (COSTOS FIJOS) */}
+                                <section className="pt-10 border-t border-gray-100 space-y-8">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-8 w-8 rounded-full bg-[#00F2FF] flex items-center justify-center text-[#004D4D]"><Bot size={16}/></div>
+                                        <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest">Análisis Inteligente de Precios</h3>
+                                    </div>
+                                    
+                                    <div className="bg-[#004D4D] text-white p-10 rounded-[3rem] shadow-2xl relative overflow-hidden">
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 relative z-10">
+                                            <div className="space-y-6">
+                                                <p className="text-[10px] font-bold text-cyan-300 uppercase tracking-widest">Calculadora de Costos Fijos Mensuales</p>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-1"><label className="text-[8px] font-bold uppercase opacity-70">Nómina</label><input type="number" value={fixedCosts.payroll} onChange={e => setFixedCosts({...fixedCosts, payroll: Number(e.target.value)})} className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:bg-white/20 transition-all" placeholder="$0" /></div>
+                                                    <div className="space-y-1"><label className="text-[8px] font-bold uppercase opacity-70">Arriendo</label><input type="number" value={fixedCosts.rent} onChange={e => setFixedCosts({...fixedCosts, rent: Number(e.target.value)})} className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:bg-white/20 transition-all" placeholder="$0" /></div>
+                                                    <div className="space-y-1"><label className="text-[8px] font-bold uppercase opacity-70">Servicios</label><input type="number" value={fixedCosts.services} onChange={e => setFixedCosts({...fixedCosts, services: Number(e.target.value)})} className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:bg-white/20 transition-all" placeholder="$0" /></div>
+                                                    <div className="space-y-1"><label className="text-[8px] font-bold uppercase opacity-70">Otros</label><input type="number" value={fixedCosts.others} onChange={e => setFixedCosts({...fixedCosts, others: Number(e.target.value)})} className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:bg-white/20 transition-all" placeholder="$0" /></div>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col justify-center items-center text-center space-y-4 border-l border-white/10 pl-10">
+                                                <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">Precio Sugerido (Min. +30%)</p>
+                                                <h3 className="text-5xl font-black tracking-tighter text-[#00F2FF]">${recommendedPrice().toLocaleString('de-DE')}</h3>
+                                                <p className="text-[9px] font-medium text-gray-400 max-w-[200px]">Basado en tus costos fijos distribuidos en el stock actual ({totalStock} uds) y margen saludable.</p>
+                                                <button onClick={() => setFormData({...formData, price: recommendedPrice()})} className="px-6 py-2 bg-white text-[#004D4D] rounded-full text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-transform">Aplicar Precio</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+
                             </motion.div>
                         );
                     })()}                    {activeTab === 'variants' && (
