@@ -207,18 +207,40 @@ export default function NewProductPage() {
         } catch (err) { showToast("Error al guardar", "error"); } finally { setIsSubmitting(false); }
     };
 
+    const [editingMasterName, setEditingMasterName] = useState<string | null>(null);
+
+    const handleEditAttribute = (masterName: string) => {
+        setEditingMasterName(masterName);
+        const masterVariants = variants.filter(v => v.name.startsWith(masterName));
+        setTempVariantName(masterName);
+        setTempSubVariants(masterVariants.map(v => ({
+            id: v.id || Math.random().toString(36).substr(2, 9),
+            spec: v.name.split('/')[1]?.trim() || v.name,
+            stock: v.stock
+        })));
+        setIsNewVariantModalOpen(true);
+    };
+
     const handleSaveMatrixAttributes = () => {
         if (!tempVariantName.trim()) return;
+        
+        // Si estábamos editando, removemos los antiguos primero
+        let newVariants = editingMasterName 
+            ? variants.filter(v => !v.name.startsWith(editingMasterName))
+            : [...variants];
+
         const newCombs = tempSubVariants.filter(sv => sv.spec.trim() !== '').map(sv => ({
-            id: Math.random().toString(36).substr(2, 9),
+            id: sv.id,
             name: `${tempVariantName} / ${sv.spec}`,
             sku: '',
             stock: sv.stock
         }));
-        setVariants([...variants, ...newCombs]);
+
+        setVariants([...newVariants, ...newCombs]);
         setIsNewVariantModalOpen(false);
         setTempVariantName("");
         setTempSubVariants([{ id: '1', spec: '', stock: 0 }]);
+        setEditingMasterName(null);
     };
 
     return (
