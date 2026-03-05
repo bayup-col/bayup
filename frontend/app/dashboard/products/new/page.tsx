@@ -174,27 +174,39 @@ export default function NewProductPage() {
     };
 
     const calculateProfit = (price: number) => {
-        if (!price || !formData.cost) return { net: 0, margin: 0, fee: 0 };
+        if (!price) return { net: 0, margin: 0, fee: 0 };
         const fee = formData.add_gateway_fee ? 0 : (price * commissionRate);
-        const net = price - formData.cost - fee;
-        const margin = (net / price) * 100;
+        const net = price - (formData.cost || 0) - fee;
+        const margin = price > 0 ? (net / price) * 100 : 0;
         return { net, margin, fee };
     };
 
     const recommendedRetail = () => {
         const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
         const units = simulationUnits || 1;
-        const costPerUnit = formData.cost + (totalFixed / units);
-        const marginMultiplier = 1 + (simulationRetailMargin / 100);
-        return Math.ceil((costPerUnit * marginMultiplier) / 100) * 100;
+        const costPerUnit = (formData.cost || 0) + (totalFixed / units);
+        
+        // Fórmula para obtener X% de margen neto DESPUÉS de 3.5% de comisión:
+        // Precio = Costo / (1 - Margen - Comisión)
+        const marginDecimal = simulationRetailMargin / 100;
+        const commissionDecimal = 0.035;
+        const divisor = 1 - marginDecimal - commissionDecimal;
+        
+        if (divisor <= 0) return 0;
+        return Math.ceil((costPerUnit / divisor) / 100) * 100;
     };
 
     const recommendedWholesale = () => {
         const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
         const units = simulationUnits || 1;
-        const costPerUnit = formData.cost + (totalFixed / units);
-        const marginMultiplier = 1 + (simulationWholesaleMargin / 100);
-        return Math.ceil((costPerUnit * marginMultiplier) / 100) * 100;
+        const costPerUnit = (formData.cost || 0) + (totalFixed / units);
+        
+        const marginDecimal = simulationWholesaleMargin / 100;
+        const commissionDecimal = 0.035;
+        const divisor = 1 - marginDecimal - commissionDecimal;
+        
+        if (divisor <= 0) return 0;
+        return Math.ceil((costPerUnit / divisor) / 100) * 100;
     };
 
     return (
