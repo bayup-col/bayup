@@ -8,12 +8,13 @@ interface AuthContextType {
   userEmail: string | null;
   userName: string | null;
   userRole: string | null;
+  userLogo: string | null;
   userPermissions: Record<string, boolean> | null;
   userPlan: any | null;
   shopSlug: string | null;
   isGlobalStaff: boolean;
-  login: (token: string, email: string, role: string, permissions?: any, plan?: any, isGlobal?: boolean, shopSlug?: string, name?: string) => void;
-  updateUser: (data: { name?: string, slug?: string }) => void;
+  login: (token: string, email: string, role: string, permissions?: any, plan?: any, isGlobal?: boolean, shopSlug?: string, name?: string, logo?: string) => void;
+  updateUser: (data: { name?: string, slug?: string, logo?: string }) => void;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -26,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userLogo, setUserLogo] = useState<string | null>(null);
   const [userPermissions, setUserPermissions] = useState<Record<string, boolean> | null>(null);
   const [userPlan, setUserPlan] = useState<any | null>(null);
   const [shopSlug, setShopSlug] = useState<string | null>(null);
@@ -44,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserEmail(storedEmail);
           setUserName(localStorage.getItem('userName'));
           setUserRole(localStorage.getItem('userRole'));
+          setUserLogo(localStorage.getItem('userLogo'));
           setShopSlug(localStorage.getItem('shopSlug'));
           
           const storedPerms = localStorage.getItem('userPermissions');
@@ -63,11 +66,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadStorage();
   }, []);
 
-  const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "") => {
+  const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "", logo: string = "") => {
     setToken(newToken);
     setUserEmail(email);
     setUserName(name);
     setUserRole(role);
+    setUserLogo(logo);
     setUserPermissions(permissions);
     setUserPlan(plan);
     setIsGlobalStaff(isGlobal);
@@ -77,13 +81,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('userEmail', email);
     localStorage.setItem('userName', name);
     localStorage.setItem('userRole', role);
+    localStorage.setItem('userLogo', logo);
     localStorage.setItem('userPermissions', JSON.stringify(permissions));
     localStorage.setItem('isGlobalStaff', isGlobal ? 'true' : 'false');
     localStorage.setItem('shopSlug', slug);
     if (plan) localStorage.setItem('userPlan', JSON.stringify(plan));
   }, []);
 
-  const updateUser = useCallback((data: { name?: string, slug?: string }) => {
+  const updateUser = useCallback((data: { name?: string, slug?: string, logo?: string }) => {
     if (data.name) {
       setUserName(data.name);
       localStorage.setItem('userName', data.name);
@@ -92,6 +97,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setShopSlug(data.slug);
       localStorage.setItem('shopSlug', data.slug);
     }
+    if (data.logo !== undefined) {
+      setUserLogo(data.logo);
+      if (data.logo) {
+          localStorage.setItem('userLogo', data.logo);
+      } else {
+          localStorage.removeItem('userLogo');
+      }
+    }
   }, []);
 
   const logout = useCallback(() => {
@@ -99,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserEmail(null);
     setUserName(null);
     setUserRole(null);
+    setUserLogo(null);
     setUserPermissions(null);
     setUserPlan(null);
     setShopSlug(null);
@@ -114,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userEmail,
     userName,
     userRole,
+    userLogo,
     userPermissions,
     userPlan,
     shopSlug,
@@ -123,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     isAuthenticated,
     isLoading
-  }), [token, userEmail, userName, userRole, userPermissions, userPlan, shopSlug, isGlobalStaff, login, updateUser, logout, isAuthenticated, isLoading]);
+  }), [token, userEmail, userName, userRole, userLogo, userPermissions, userPlan, shopSlug, isGlobalStaff, login, updateUser, logout, isAuthenticated, isLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>

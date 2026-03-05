@@ -250,7 +250,8 @@ export default function GeneralSettings() {
             // Actualizar contexto global para reflejo inmediato en Sidebar y otros módulos
             updateUser({
                 name: identity.name,
-                slug: contact.shop_slug
+                slug: contact.shop_slug,
+                logo: identity.logo || ""
             });
 
             window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: identity.name }));

@@ -154,13 +154,21 @@ export const DashboardHeader = ({
                         <div className="h-6 w-px bg-[#004d4d]/10"></div>
 
                             <div className="flex items-center gap-3">
-                                {/* Botón de Usuario Manual (Bayup Style) */}
+                                {/* Botón de Usuario Manual (Bayup Style) con Logo Real */}
                                 <button 
                                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                    className="h-10 w-10 rounded-2xl bg-gradient-to-br from-white to-gray-100 shadow-lg border border-[#004d4d]/5 flex items-center justify-center text-[#004d4d] hover:scale-105 transition-all relative group"
+                                    className="h-10 w-10 rounded-2xl bg-gradient-to-br from-white to-gray-100 shadow-lg border border-[#004d4d]/5 flex items-center justify-center text-[#004d4d] hover:scale-105 transition-all relative group overflow-hidden"
                                 >
-                                    <UserIcon size={18} />
-                                    <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-emerald-500 border-2 border-white rounded-full"></div>
+                                    {useAuth().userLogo ? (
+                                        <img 
+                                            src={useAuth().userLogo || ""} 
+                                            alt="Logo Tienda" 
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <UserIcon size={18} />
+                                    )}
+                                    <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-emerald-500 border-2 border-white rounded-full z-10"></div>
                                 </button>
                             </div>
                     </div>
