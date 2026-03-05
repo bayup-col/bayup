@@ -469,28 +469,51 @@ export default function NewProductPage() {
                                 </div>
 
                                 <div className="space-y-10">
-                                    <h4 className="text-[10px] font-black text-[#004D4D] uppercase tracking-[0.3em]">GASTOS MENSUALES</h4>
                                     <div className="space-y-6">
-                                        {(['payroll', 'rent', 'services', 'others'] as const).map(key => (
-                                            <div key={key} className="space-y-2">
-                                                <label className="text-[9px] font-black text-gray-400 uppercase ml-2 flex items-center gap-2">
-                                                    {key === 'payroll' && <User size={10}/>} {key === 'rent' && <Layout size={10}/>} {key === 'services' && <Zap size={10}/>} {key === 'others' && <Plus size={10}/>} 
-                                                    {key === 'payroll' ? 'NÓMINA' : key === 'rent' ? 'ARRIENDO' : key === 'services' ? 'SERVICIOS' : 'OTROS GASTOS'}
-                                                </label>
-                                                <div className="relative">
-                                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 font-bold">$</span>
-                                                    <input 
-                                                        type="text" 
-                                                        value={formatNumber(fixedCosts[key])} 
-                                                        onChange={e => handleNumberChange(e.target.value, key, true)} 
-                                                        onFocus={() => { if(fixedCosts[key] === 0) setFixedCosts({...fixedCosts, [key]: '' as any}) }}
-                                                        onBlur={() => { if(!fixedCosts[key]) setFixedCosts({...fixedCosts, [key]: 0}) }}
-                                                        className="w-full pl-10 pr-6 py-5 bg-white border-2 border-gray-200 rounded-2xl outline-none font-bold text-sm focus:border-[#00F2FF]/20 transition-all" 
-                                                        placeholder="0" 
-                                                    />
-                                                </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-[#004D4D] uppercase ml-2 flex items-center gap-2">
+                                                <Package size={10}/> COSTO UNITARIO DEL PRODUCTO
+                                            </label>
+                                            <div className="relative">
+                                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 font-bold">$</span>
+                                                <input 
+                                                    type="text" 
+                                                    value={formatNumber(formData.cost)} 
+                                                    onChange={e => handleNumberChange(e.target.value, 'cost')} 
+                                                    onFocus={() => { if(formData.cost === 0) setFormData({...formData, cost: '' as any}) }}
+                                                    onBlur={() => { if(!formData.cost) setFormData({...formData, cost: 0}) }}
+                                                    className="w-full pl-10 pr-6 py-5 bg-white border-2 border-[#004D4D]/20 rounded-2xl outline-none font-bold text-sm focus:border-[#00F2FF]/40 transition-all shadow-sm" 
+                                                    placeholder="0" 
+                                                />
                                             </div>
-                                        ))}
+                                            <p className="text-[8px] font-bold text-gray-400 uppercase ml-2">Este es el valor base de tu inversión.</p>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-gray-100">
+                                            <h4 className="text-[10px] font-black text-[#004D4D] uppercase tracking-[0.3em] mb-6">GASTOS OPERATIVOS (MENSUALES)</h4>
+                                            <div className="space-y-6">
+                                                {(['payroll', 'rent', 'services', 'others'] as const).map(key => (
+                                                    <div key={key} className="space-y-2">
+                                                        <label className="text-[9px] font-black text-gray-400 uppercase ml-2 flex items-center gap-2">
+                                                            {key === 'payroll' && <User size={10}/>} {key === 'rent' && <Layout size={10}/>} {key === 'services' && <Zap size={10}/>} {key === 'others' && <Plus size={10}/>} 
+                                                            {key === 'payroll' ? 'NÓMINA' : key === 'rent' ? 'ARRIENDO' : key === 'services' ? 'SERVICIOS' : 'OTROS GASTOS'}
+                                                        </label>
+                                                        <div className="relative">
+                                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 font-bold">$</span>
+                                                            <input 
+                                                                type="text" 
+                                                                value={formatNumber(fixedCosts[key])} 
+                                                                onChange={e => handleNumberChange(e.target.value, key, true)} 
+                                                                onFocus={() => { if(fixedCosts[key] === 0) setFixedCosts({...fixedCosts, [key]: '' as any}) }}
+                                                                onBlur={() => { if(!fixedCosts[key]) setFixedCosts({...fixedCosts, [key]: 0}) }}
+                                                                className="w-full pl-10 pr-6 py-5 bg-white border-2 border-gray-200 rounded-2xl outline-none font-bold text-sm focus:border-[#00F2FF]/20 transition-all" 
+                                                                placeholder="0" 
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                     <button className="w-full py-6 bg-[#004D4D] text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3">
                                         <Bot size={18}/> Consultar a Bayt
