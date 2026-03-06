@@ -43,22 +43,26 @@ async def lifespan(app: FastAPI):
     safe_db_init()
     yield
 
-app = FastAPI(title="Bayup OS - Full Production Core", lifespan=lifespan)
+app = FastAPI(title="Bayup OS - Full Production Core v4", lifespan=lifespan)
 
-# --- CORS ---
+# --- CORS DEFINITIVO ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://www.bayup.com.co",
+        "https://bayup.com.co",
+        "https://bayup-interactive.vercel.app",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- AUTH & ACCOUNT ---
+# --- ENDPOINTS DE AUTENTICACIÓN ---
 
 @app.post("/auth/register", response_model=schemas.User)
 def register_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
-    """Registra una nueva tienda en la plataforma."""
     if crud.get_user_by_email(db, email=user_in.email):
         raise HTTPException(status_code=400, detail="El email ya está registrado")
     return crud.create_user(db, user_in)
@@ -94,7 +98,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
 def me(current_user: models.User = Depends(security.get_current_user)):
     return current_user
 
-# --- PRODUCTOS & CATÁLOGO ---
+# --- ENDPOINTS ADMINISTRATIVOS (RESTAURADOS) ---
 
 @app.get("/products")
 def read_products(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
@@ -112,64 +116,34 @@ def create_product(product_in: schemas.ProductCreate, db: Session = Depends(get_
     db.commit(); db.refresh(db_product)
     return db_product
 
-@app.delete("/products/{product_id}")
-def delete_product(product_id: uuid.UUID, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
-    product = db.query(models.Product).filter(models.Product.id == product_id, models.Product.owner_id == tenant_id).first()
-    if not product: raise HTTPException(status_code=404)
-    db.delete(product); db.commit(); return {"status": "success"}
-
-# --- ÓRDENES & LOGÍSTICA ---
-
 @app.get("/orders")
 def get_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
     return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).all()
 
 @app.post("/orders", response_model=schemas.Order)
-def create_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+def create_manual_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
     db_order = models.Order(**order_data.model_dump(exclude={"items"}), status="completed", id=uuid.uuid4(), tenant_id=tenant_id)
     db.add(db_order); db.flush()
     for item in order_data.items:
         db_item = models.OrderItem(**item.model_dump(), order_id=db_order.id, id=uuid.uuid4())
         db.add(db_item)
-        # Descuento de inventario automático
+        # Descuento de stock
         variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.product_variant_id).first()
         if variant: variant.stock = max(0, variant.stock - item.quantity)
     db.commit(); db.refresh(db_order)
     return db_order
 
-@app.get("/admin/shipments")
-def get_shipments(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
-    return db.query(models.Shipment).filter(models.Shipment.tenant_id == tenant_id).all()
-
-# --- STAFF & ADMINISTRACIÓN ---
-
-@app.get("/admin/users", response_model=List[schemas.User])
-def get_staff(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
-    return db.query(models.User).filter(models.User.owner_id == tenant_id).all()
-
-@app.put("/admin/update-profile")
-def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    for k, v in profile_data.model_dump(exclude_unset=True).items(): setattr(current_user, k, v)
-    db.commit(); return {"status": "success"}
-
-@app.post("/admin/upload-image")
-async def upload_image(file: UploadFile = File(...), current_user: models.User = Depends(security.get_current_user)):
-    file_name = f"{uuid.uuid4()}.{file.filename.split('.')[-1]}"
-    fpath = os.path.join(UPLOAD_DIR, file_name)
-    with open(fpath, "wb") as buffer: shutil.copyfileobj(file.file, buffer)
-    domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "localhost:8080")
-    url = f"https://{domain}/uploads/{file_name}" if "railway" in domain else f"http://{domain}/uploads/{file_name}"
-    return {"url": url}
-
 @app.get("/admin/logs")
 def get_logs(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
     return db.query(models.ActivityLog).filter(models.ActivityLog.tenant_id == tenant_id).limit(50).all()
+
+@app.get("/admin/messages")
+def get_messages(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.StoreMessage).filter(models.StoreMessage.tenant_id == tenant_id).all()
 
 @app.get("/notifications")
 def get_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
@@ -180,55 +154,15 @@ def get_notifications(db: Session = Depends(get_db), current_user: models.User =
 
 @app.get("/super-admin/stats")
 def get_super_admin_stats(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    """Métricas globales exclusivas para el dueño de Bayup."""
     if not current_user.is_global_staff and current_user.email != "basicobayup@yopmail.com":
-        raise HTTPException(status_code=403, detail="Acceso denegado a la Torre de Control")
-    
-    return {
-        "total_revenue": 0.0,
-        "total_commission": 0.0,
-        "active_companies": db.query(models.User).filter(models.User.owner_id == None).count(),
-        "active_affiliates": db.query(models.User).filter(models.User.role == "afiliado").count(),
-        "top_companies": [],
-        "recent_alerts": []
-    }
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    return {"status": "operational", "active_companies": db.query(models.User).count()}
 
-# --- PÚBLICO (TIENDA ONLINE) ---
-
-@app.get("/public/shop/{shop_slug}")
-def get_public_shop(shop_slug: str, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.shop_slug == shop_slug).first()
-    if not user: raise HTTPException(status_code=404, detail="Tienda no encontrada")
-    return {"id": user.id, "full_name": user.full_name, "logo_url": user.logo_url}
-
-@app.post("/public/orders", response_model=schemas.Order)
-def create_public_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db)):
-    db_order = models.Order(**order_data.model_dump(exclude={"items"}), status="pending", id=uuid.uuid4())
-    db.add(db_order); db.flush()
-    for item in order_data.items:
-        db_item = models.OrderItem(**item.model_dump(), order_id=db_order.id, id=uuid.uuid4())
-        db.add(db_item)
-        variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.product_variant_id).first()
-        if variant: variant.stock = max(0, variant.stock - item.quantity)
-    db.commit(); db.refresh(db_order)
-    return db_order
+# --- OTROS ---
 
 @app.get("/health")
-def health(): return {"status": "full_core_operational"}
+def health(): return {"status": "operational", "version": "1.0.8-full"}
 
-@app.get("/admin/fix-db-force")
-def fix_db_force():
-    results = []
-    with engine.connect() as conn:
-        for col in ["nit", "address"]:
-            try:
-                conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} TEXT;"))
-                conn.commit()
-                results.append(f"✅ {col} creada.")
-            except Exception as e: results.append(f"❌ {col} falló.")
-    return {"status": "completed", "details": results}
-
-# --- MONTAR CARPETA DE IMÁGENES ---
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 if __name__ == "__main__":
