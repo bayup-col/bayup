@@ -49,8 +49,8 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     full_name = Column(String)
     logo_url = Column(String, nullable=True) # Logo de la tienda
-    # nit = Column(String, nullable=True) # Temporalmente deshabilitado para restaurar login
-    # address = Column(String, nullable=True) # Temporalmente deshabilitado para restaurar login
+    nit = Column(String, nullable=True) # NIT / Identificación Fiscal
+    address = Column(String, nullable=True) # Dirección de la tienda
     nickname = Column(String)
     phone = Column(String, nullable=True) # Pilar 2: Para el botón de WhatsApp
     hashed_password = Column(String)

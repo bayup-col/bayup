@@ -10,12 +10,14 @@ interface AuthContextType {
   userName: string | null;
   userRole: string | null;
   userLogo: string | null;
+  userNit: string | null;
+  userAddress: string | null;
   userPermissions: Record<string, boolean> | null;
   userPlan: any | null;
   shopSlug: string | null;
   isGlobalStaff: boolean;
-  login: (token: string, email: string, role: string, permissions?: any, plan?: any, isGlobal?: boolean, shopSlug?: string, name?: string, logo?: string) => void;
-  updateUser: (data: { name?: string, slug?: string, logo?: string }) => void;
+  login: (token: string, email: string, role: string, permissions?: any, plan?: any, isGlobal?: boolean, shopSlug?: string, name?: string, logo?: string, nit?: string, address?: string) => void;
+  updateUser: (data: { name?: string, slug?: string, logo?: string, nit?: string, address?: string }) => void;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -29,6 +31,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userName, setUserName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userLogo, setUserLogo] = useState<string | null>(null);
+  const [userNit, setUserNit] = useState<string | null>(null);
+  const [userAddress, setUserAddress] = useState<string | null>(null);
   const [userPermissions, setUserPermissions] = useState<Record<string, boolean> | null>(null);
   const [userPlan, setUserPlan] = useState<any | null>(null);
   const [shopSlug, setShopSlug] = useState<string | null>(null);
@@ -53,6 +57,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setShopSlug(data.shop_slug);
           localStorage.setItem('shopSlug', data.shop_slug);
         }
+        if (data.nit) {
+          setUserNit(data.nit);
+          localStorage.setItem('userNit', data.nit);
+        }
+        if (data.address) {
+          setUserAddress(data.address);
+          localStorage.setItem('userAddress', data.address);
+        }
       }
     } catch (e) {
       console.error("Error syncing profile", e);
@@ -71,6 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserName(localStorage.getItem('userName'));
           setUserRole(localStorage.getItem('userRole'));
           setUserLogo(localStorage.getItem('userLogo'));
+          setUserNit(localStorage.getItem('userNit'));
+          setUserAddress(localStorage.getItem('userAddress'));
           setShopSlug(localStorage.getItem('shopSlug'));
           
           const storedPerms = localStorage.getItem('userPermissions');
@@ -81,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (storedPlan) setUserPlan(JSON.parse(storedPlan));
           if (storedIsGlobal) setIsGlobalStaff(storedIsGlobal === 'true');
 
-          // Sincronización proactiva con el servidor para asegurar que el logo esté actualizado
+          // Sincronización proactiva con el servidor
           syncProfile(storedToken);
         }
       } catch (e) {
@@ -93,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadStorage();
   }, [syncProfile]);
 
-  const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "", logo: string = "") => {
+  const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "", logo: string = "", nit: string = "", address: string = "") => {
     setToken(newToken);
     setUserEmail(email);
     setUserName(name);
@@ -102,6 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserPlan(plan);
     setIsGlobalStaff(isGlobal);
     setShopSlug(slug);
+    setUserNit(nit);
+    setUserAddress(address);
 
     localStorage.setItem('token', newToken);
     localStorage.setItem('userEmail', email);
@@ -110,26 +126,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('userPermissions', JSON.stringify(permissions));
     localStorage.setItem('isGlobalStaff', isGlobal ? 'true' : 'false');
     localStorage.setItem('shopSlug', slug);
+    localStorage.setItem('userNit', nit);
+    localStorage.setItem('userAddress', address);
     if (plan) localStorage.setItem('userPlan', JSON.stringify(plan));
 
-    // Lógica inteligente para el logo: No sobreescribir con vacío si ya tenemos uno guardado
     if (logo) {
       setUserLogo(logo);
       localStorage.setItem('userLogo', logo);
-    } else {
-      const existingLogo = localStorage.getItem('userLogo');
-      if (existingLogo) {
-        setUserLogo(existingLogo);
-      } else {
-        setUserLogo(null);
-      }
     }
 
     // Disparar sincronización inmediata post-login
     syncProfile(newToken);
   }, [syncProfile]);
 
-  const updateUser = useCallback((data: { name?: string, slug?: string, logo?: string }) => {
+  const updateUser = useCallback((data: { name?: string, slug?: string, logo?: string, nit?: string, address?: string }) => {
     if (data.name) {
       setUserName(data.name);
       localStorage.setItem('userName', data.name);
@@ -140,11 +150,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     if (data.logo !== undefined) {
       setUserLogo(data.logo);
-      if (data.logo) {
-          localStorage.setItem('userLogo', data.logo);
-      } else {
-          localStorage.removeItem('userLogo');
-      }
+      if (data.logo) localStorage.setItem('userLogo', data.logo);
+      else localStorage.removeItem('userLogo');
+    }
+    if (data.nit !== undefined) {
+      setUserNit(data.nit || null);
+      if (data.nit) localStorage.setItem('userNit', data.nit);
+      else localStorage.removeItem('userNit');
+    }
+    if (data.address !== undefined) {
+      setUserAddress(data.address || null);
+      if (data.address) localStorage.setItem('userAddress', data.address);
+      else localStorage.removeItem('userAddress');
     }
   }, []);
 
@@ -154,6 +171,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserName(null);
     setUserRole(null);
     setUserLogo(null);
+    setUserNit(null);
+    setUserAddress(null);
     setUserPermissions(null);
     setUserPlan(null);
     setShopSlug(null);
@@ -170,6 +189,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userName,
     userRole,
     userLogo,
+    userNit,
+    userAddress,
     userPermissions,
     userPlan,
     shopSlug,
@@ -179,7 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     isAuthenticated,
     isLoading
-  }), [token, userEmail, userName, userRole, userLogo, userPermissions, userPlan, shopSlug, isGlobalStaff, login, updateUser, logout, isAuthenticated, isLoading]);
+  }), [token, userEmail, userName, userRole, userLogo, userNit, userAddress, userPermissions, userPlan, shopSlug, isGlobalStaff, login, updateUser, logout, isAuthenticated, isLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>

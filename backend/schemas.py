@@ -26,6 +26,8 @@ class UserBase(BaseModel):
     email: str
     full_name: str | None = None
     logo_url: str | None = None
+    nit: str | None = None
+    address: str | None = None
     nickname: str | None = None
     phone: str | None = None
     city: str | None = None
@@ -42,6 +44,8 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     logo_url: Optional[str] = None
+    nit: Optional[str] = None
+    address: Optional[str] = None
     phone: Optional[str] = None
     shop_slug: Optional[str] = None
     bank_accounts: Optional[List[dict]] = None
