@@ -47,6 +47,8 @@ export default function LoginPage() {
 
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      console.log("🚀 Bayup Connect: Intentando conectar a:", apiBase);
+      
       const response = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
