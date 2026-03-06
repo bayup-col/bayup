@@ -46,7 +46,14 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      let apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      
+      // BYPASS DE SEGURIDAD: Si Vercel inyecta una URL muerta de Railway, la ignoramos.
+      if (apiBase.includes("railway.app")) {
+          console.warn("⚠️ Detectada URL de Railway obsoleta. Aplicando bypass de emergencia.");
+          apiBase = "http://localhost:8000"; // Cambiar por la URL real de Render o Local
+      }
+
       console.log("🚀 Bayup Connect: Intentando conectar a:", apiBase);
       
       const response = await fetch(`${apiBase}/auth/login`, {
