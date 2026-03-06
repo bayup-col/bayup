@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from '@/context/toast-context';
+import { apiRequest, userService } from '@/lib/api';
 
 // --- ICONO TIKTOK SVG ---
 const TikTokIcon = ({ size = 20 }: { size?: number }) => (
@@ -168,25 +169,24 @@ export default function GeneralSettings() {
         const fetchStoreData = async () => {
             if (!token) return;
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                const res = await fetch(`${apiUrl}/auth/me`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    console.log("DEBUG: Perfil cargado desde servidor:", data.full_name, "Logo:", data.logo_url);
+                // REFACTORIZADO: Uso de userService blindado para ignorar URLs tóxicas
+                const data = await userService.getMe(token);
+                if (data) {
+                    console.log("DEBUG: Perfil cargado desde servidor seguro:", data.full_name);
                     
                     setIdentity(prev => ({ 
                         ...prev, 
                         name: data.full_name || prev.name,
-                        logo: data.logo_url || "" // Usar URL real del servidor
+                        logo: data.logo_url || "" 
                     }));
                     
                     setContact(prev => ({ 
                         ...prev, 
                         email: data.email, 
                         phone: data.phone || prev.phone,
-                        shop_slug: data.shop_slug || "" 
+                        shop_slug: data.shop_slug || "",
+                        nit: data.nit || prev.nit,
+                        address: data.address || prev.address
                     }));
                     
                     if (data.bank_accounts) setAccounts(data.bank_accounts);
@@ -224,30 +224,23 @@ export default function GeneralSettings() {
         if (!validatePhone(contact.phone)) { showToast("Teléfono de 10 dígitos requerido", "error"); return; }
         setIsSaving(true);
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            const response = await fetch(`${apiUrl}/admin/update-profile`, {
+            // REFACTORIZADO: Uso de apiRequest blindado
+            await apiRequest('/admin/update-profile', {
                 method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                token,
                 body: JSON.stringify({
                     full_name: identity.name,
-                    logo_url: identity.logo, // Enviamos la URL ya subida
+                    logo_url: identity.logo,
                     phone: contact.phone,
                     shop_slug: contact.shop_slug,
+                    nit: contact.nit,
+                    address: contact.address,
                     bank_accounts: accounts,
                     social_links: socialLinks,
                     whatsapp_lines: whatsappLines
                 }),
             });
 
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.detail || "Error al actualizar en el servidor");
-            }
-
-            // Actualizar contexto global para reflejo inmediato en Sidebar y otros módulos
             updateUser({
                 name: identity.name,
                 slug: contact.shop_slug,
@@ -256,7 +249,6 @@ export default function GeneralSettings() {
 
             window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: identity.name }));
             
-            // Persistir localmente para reflejo inmediato en Dashboard
             const settingsToSave = {
                 identity: identity,
                 contact: contact,
@@ -389,24 +381,21 @@ export default function GeneralSettings() {
                                             try {
                                                 const formData = new FormData();
                                                 formData.append('file', f);
-                                                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                                                const res = await fetch(`${apiUrl}/admin/upload-image`, {
+                                                // REFACTORIZADO: Uso de apiRequest blindado para subida de imagen
+                                                const data = await apiRequest<any>('/admin/upload-image', {
                                                     method: 'POST',
-                                                    headers: { 'Authorization': `Bearer ${token}` },
-                                                    body: formData
+                                                    token,
+                                                    body: formData,
+                                                    headers: {} // Dejamos que el navegador ponga el Content-Type para FormData
                                                 });
-                                                if (res.ok) {
-                                                    const data = await res.json();
+                                                if (data.url) {
                                                     setIdentity({...identity, logo: data.url});
-                                                    // Actualizar contexto global inmediatamente para feedback visual
                                                     updateUser({ logo: data.url });
                                                     showToast("Logo subido correctamente", "success");
-                                                } else {
-                                                    showToast("Error al subir imagen", "error");
                                                 }
                                             } catch (err) {
                                                 console.error(err);
-                                                showToast("Error de conexión al subir", "error");
+                                                showToast("Error al subir imagen", "error");
                                             } finally {
                                                 setIsSaving(false);
                                             }
