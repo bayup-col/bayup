@@ -87,10 +87,9 @@ export default function MensajesPage() {
   const fetchChats = useCallback(async () => {
       if (!token) return;
       try {
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-          const res = await fetch(`${apiBase}/admin/messages`, { headers: { 'Authorization': `Bearer ${token}` } });
-          if (res.ok) {
-              const data = await res.json();
+          // REFACTORIZADO: Uso de apiRequest blindado para ignorar URLs tóxicas de Vercel
+          const data = await apiRequest<any[]>('/admin/messages', { token });
+          if (data) {
               const mapped = data.map((m: any) => ({
                   id: m.id, name: m.customer_name, email: m.customer_email, phone: m.customer_phone,
                   lastMsg: m.message, time: new Date(m.created_at).toLocaleDateString(),
@@ -98,7 +97,7 @@ export default function MensajesPage() {
               }));
               setChats(mapped);
           }
-      } catch (e) { console.error(e); }
+      } catch (e) { console.error("Error al cargar chats:", e); }
   }, [token]);
 
   useEffect(() => { fetchChats(); }, [fetchChats]);
@@ -108,18 +107,19 @@ export default function MensajesPage() {
           if (!selectedChatId || !token) return;
           setIsMessagesLoading(true);
           try {
-              const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-              const res = await fetch(`${apiBase}/admin/messages/${selectedChatId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-              if (res.ok) {
-                  const data = await res.json();
+              // REFACTORIZADO: Uso de apiRequest para sincronización robusta
+              const data = await apiRequest<any[]>(`/admin/messages/${selectedChatId}`, { token });
+              if (data) {
                   setChatMessages(data.map((m: any) => ({
                       id: m.id, body: m.message, fromMe: m.sender_type === 'admin',
                       time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                   })));
-                  await fetch(`${apiBase}/admin/messages/${selectedChatId}?status=read`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
+                  
+                  // Marcar como leído usando el motor centralizado
+                  await apiRequest(`/admin/messages/${selectedChatId}?status=read`, { method: 'PUT', token });
                   setChats(prev => prev.map(c => c.id === selectedChatId ? {...c, unread: 0} : c));
               }
-          } catch (e) { console.error(e); } finally { setIsMessagesLoading(false); }
+          } catch (e) { console.error("Error en conversación:", e); } finally { setIsMessagesLoading(false); }
       };
       fetchConversation();
   }, [selectedChatId, token]);
@@ -133,11 +133,11 @@ export default function MensajesPage() {
       setChatMessages(prev => [...prev, { id: tempId, body: text, fromMe: true, time: 'ahora' }]);
       setMessage("");
       try {
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
           const currentChat = chats.find(c => c.id === selectedChatId);
-          await fetch(`${apiBase}/admin/messages`, {
+          // REFACTORIZADO: Envío seguro via apiRequest
+          await apiRequest('/admin/messages', {
               method: 'POST',
-              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              token,
               body: JSON.stringify({
                   customer_name: currentChat?.name, customer_email: currentChat?.email,
                   customer_phone: currentChat?.phone, message: text, sender_type: 'admin', status: 'read'
@@ -147,11 +147,7 @@ export default function MensajesPage() {
   };
 
   const kpis = useMemo(() => {
-    // Cálculo de tiempo de respuesta promedio (Simulado con data real si existe)
     const responseTime = chats.length > 0 ? 0 : 0; 
-    
-    // Cálculo de conversión web (Pedidos / Consultas)
-    // Nota: Aquí lo ideal es traer el conteo de órdenes, por ahora lo dejamos en 0 si no hay chats
     const conversionRate = chats.length > 0 ? 0 : 0;
 
     return [
