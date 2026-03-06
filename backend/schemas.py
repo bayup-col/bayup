@@ -182,3 +182,29 @@ class ActivityLogBase(BaseModel):
 class ActivityLog(ActivityLogBase):
     id: uuid.UUID
     model_config = ConfigDict(from_attributes=True)
+
+# --- Message & Notification Schemas ---
+class StoreMessageBase(BaseModel):
+    customer_name: str
+    customer_email: Optional[str] = None
+    customer_phone: Optional[str] = None
+    message: str
+    status: str = "unread"
+
+class StoreMessage(StoreMessageBase):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class NotificationBase(BaseModel):
+    title: str
+    message: str
+    type: str = "info"
+    is_read: bool = False
+
+class Notification(NotificationBase):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
