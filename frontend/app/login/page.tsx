@@ -46,15 +46,46 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      let apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      
-      // BYPASS DE SEGURIDAD: Si Vercel inyecta una URL muerta de Railway, la ignoramos.
-      if (apiBase.includes("railway.app")) {
-          console.warn("⚠️ Detectada URL de Railway obsoleta. Aplicando bypass de emergencia.");
-          apiBase = "http://localhost:8000"; // Cambiar por la URL real de Render o Local
+      // MECANISMO DE AUTO-DESCUBRIMIENTO (SINGULARITY BYPASS)
+      const possibleBases = [
+        process.env.NEXT_PUBLIC_API_URL,
+        "https://bayup-backend.onrender.com",
+        "https://bayup-api.onrender.com",
+        "http://localhost:8000"
+      ].filter(Boolean) as string[];
+
+      let apiBase = "";
+      let lastError = "";
+
+      console.log("🔍 Bayup Auto-Discovery: Buscando servidor activo...");
+
+      for (const base of possibleBases) {
+        if (base.includes("railway.app")) continue; // Ignorar Railway muerto
+        
+        try {
+          console.log(`📡 Probando conexión con: ${base}`);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000); // Timeout rápido
+          
+          const check = await fetch(`${base}/health`, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          
+          if (check.ok) {
+            apiBase = base;
+            console.log(`✅ Servidor encontrado en: ${apiBase}`);
+            break;
+          }
+        } catch (e) {
+          console.log(`❌ ${base} no responde.`);
+        }
       }
 
-      console.log("🚀 Bayup Connect: Intentando conectar a:", apiBase);
+      if (!apiBase) {
+        console.error("🚨 CRÍTICO: No se encontró ningún servidor activo. Usando fallback de Vercel.");
+        apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      }
+
+      console.log("🚀 Bayup Connect: Intentando login en:", apiBase);
       
       const response = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
