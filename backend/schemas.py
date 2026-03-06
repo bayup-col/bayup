@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict
 import uuid
 from datetime import datetime
 from typing import List, Optional, Dict, Any
@@ -111,7 +111,69 @@ class Order(OrderBase):
     items: List[OrderItem] = []
     model_config = ConfigDict(from_attributes=True)
 
-# --- Otros ---
+# --- Finance Schemas ---
+class IncomeBase(BaseModel):
+    amount: float
+    description: str
+    category: Optional[str] = "Ventas"
+
+class IncomeCreate(IncomeBase):
+    pass
+
+class Income(IncomeBase):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+# --- Collection Schemas ---
+class CollectionBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    status: str = "active"
+
+class CollectionCreate(CollectionBase):
+    pass
+
+class Collection(CollectionBase):
+    id: uuid.UUID
+    owner_id: uuid.UUID
+    model_config = ConfigDict(from_attributes=True)
+
+# --- Shipment Schemas ---
+class ShipmentBase(BaseModel):
+    order_id: uuid.UUID
+    recipient_name: str
+    recipient_phone: Optional[str] = None
+    destination_address: str
+    status: str = "pending_packing"
+    carrier: Optional[str] = None
+    tracking_number: Optional[str] = None
+
+class ShipmentCreate(ShipmentBase):
+    pass
+
+class Shipment(ShipmentBase):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+# --- Role Schemas ---
+class CustomRoleBase(BaseModel):
+    name: str
+    permissions: Dict[str, bool] = {}
+
+class CustomRoleCreate(CustomRoleBase):
+    pass
+
+class CustomRole(CustomRoleBase):
+    id: uuid.UUID
+    owner_id: uuid.UUID
+    model_config = ConfigDict(from_attributes=True)
+
+# --- Log Schemas ---
 class ActivityLogBase(BaseModel):
     action: str
     detail: str
