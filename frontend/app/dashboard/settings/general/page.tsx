@@ -446,7 +446,7 @@ export default function GeneralSettings() {
                                 <div className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
                                     <div className="flex items-center gap-3 mb-4"><div className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><Mail size={20}/></div><h4 className="text-sm font-black tracking-widest uppercase">Atención al cliente</h4></div>
                                     <div className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-black text-gray-400 tracking-widest ml-2 uppercase">Email de soporte</label>
                                                 <input value={contact.email} onChange={e => setContact({...contact, email: e.target.value})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validateEmail(contact.email) ? 'border-transparent' : 'border-rose-200'}`} />
@@ -455,12 +455,11 @@ export default function GeneralSettings() {
                                                 <label className="text-[10px] font-black text-gray-400 tracking-widest ml-2 uppercase">Teléfono público</label>
                                                 <input maxLength={10} value={contact.phone} onChange={e => setContact({...contact, phone: e.target.value.replace(/\D/g, '')})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validatePhone(contact.phone) ? 'border-transparent' : 'border-rose-200'}`} />
                                             </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 tracking-widest ml-2 uppercase">NIT / Identificación</label>
-                                                <input value={contact.nit} onChange={e => setContact({...contact, nit: e.target.value})} placeholder="900.000.000-1" className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                            </div>
                                         </div>
-                                        
+                                        <div className="space-y-2 max-w-md">
+                                            <label className="text-[10px] font-black text-gray-400 tracking-widest ml-2 uppercase">NIT / Identificación Fiscal</label>
+                                            <input value={contact.nit} onChange={e => setContact({...contact, nit: e.target.value})} placeholder="900.000.000-1" className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                                        </div>
                                         <div className="space-y-4 pt-6 border-t border-gray-100">
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-black text-[#004d4d] tracking-widest ml-2 flex items-center gap-2 uppercase">

@@ -19,27 +19,35 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
         headers,
     };
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
-    if (!response.ok) {
-        const errorClone = response.clone();
-        let errorMsg = `Error ${response.status}`;
-        try {
-            const errorData = await errorClone.json();
-            errorMsg = errorData.detail || errorMsg;
-        } catch (e) {
-            errorMsg = await response.text() || errorMsg;
+        if (!response.ok) {
+            if (response.status === 401) {
+                console.warn(`[API] Sesión no autorizada en ${endpoint}. Deteniendo peticiones.`);
+                localStorage.removeItem('token');
+            }
+            
+            let errorMsg = `Error ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMsg = errorData.detail || errorMsg;
+            } catch (e) {
+                // Si no es JSON, intentamos texto
+                try { errorMsg = await response.text() || errorMsg; } catch(t_e) {}
+            }
+            throw new Error(errorMsg);
         }
 
-        if (response.status === 401) {
-            console.warn(`Sesión no autorizada en ${endpoint}.`);
-            localStorage.removeItem('token');
+        return await response.json();
+    } catch (error: any) {
+        if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+            console.error(`[API] Error de red: El servidor en ${API_BASE_URL} no responde o hay un bloqueo de CORS.`);
+        } else {
+            console.error(`[API] Fallo en ${endpoint}:`, error.message);
         }
-        
-        throw new Error(errorMsg);
+        throw error;
     }
-
-    return response.json();
 }
 
 // SERVICES
