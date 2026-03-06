@@ -377,9 +377,9 @@ export default function ProductsPage() {
             {
                 id: 'average', label: 'Valor promedio', value: avgPrice, icon: <ShoppingBag size={24}/>, color: 'text-blue-600', bg: 'bg-blue-50', trend: 'Mercado OK',
                 details: [
-                    { l: "PRECIO PROM", v: `$ ${avgPrice.toLocaleString()}`, icon: <DollarSign size={10}/> },
-                    { l: "MÁS CARO", v: `$ ${Math.max(...products.map(p => p.price || 0), 0).toLocaleString()}`, icon: <TrendingUp size={10}/> },
-                    { l: "MÁS BARATO", v: `$ ${Math.min(...products.map(p => p.price || 0), products.length > 0 ? products[0].price : 0).toLocaleString()}`, icon: <ArrowDownRight size={10}/> }
+                    { l: "PRECIO PROM", v: `$ ${(avgPrice || 0).toLocaleString()}`, icon: <DollarSign size={10}/> },
+                    { l: "MÁS CARO", v: `$ ${(Math.max(...products.map(p => p.price || 0), 0) || 0).toLocaleString()}`, icon: <TrendingUp size={10}/> },
+                    { l: "MÁS BARATO", v: `$ ${(Math.min(...products.map(p => p.price || 0), products.length > 0 ? products[0].price : 0) || 0).toLocaleString()}`, icon: <ArrowDownRight size={10}/> }
                 ],
                 advice: "El valor promedio de tu catálogo define tu posicionamiento. Considera productos 'gancho' para atraer tráfico."
             }
@@ -971,7 +971,7 @@ export default function ProductsPage() {
                                         <p className="text-[9px] font-black text-white/40 tracking-widest mb-4">MÉTRICAS DEL ACTIVO</p>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="p-4 rounded-3xl bg-white/5 border border-white/5"><p className="text-[8px] font-black text-white/30 mb-1 uppercase">Stock total</p><span className="text-xl font-black italic">{selectedProduct.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0}</span></div>
-                                            <div className="p-4 rounded-3xl bg-white/5 border border-white/5"><p className="text-[8px] font-black text-white/30 mb-1 uppercase">Precio</p><span className="text-lg font-black italic">${selectedProduct.price.toLocaleString()}</span></div>
+                                            <div className="p-4 rounded-3xl bg-white/5 border border-white/5"><p className="text-[8px] font-black text-white/30 mb-1 uppercase">Precio</p><span className="text-lg font-black italic">${(selectedProduct.price || 0).toLocaleString()}</span></div>
                                         </div>
                                     </div>
                                 </div>
