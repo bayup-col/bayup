@@ -113,7 +113,7 @@ class ProductVariant(Base):
     product_id = Column(GUID(), ForeignKey("products.id"))
     name = Column(String)
     sku = Column(String, index=True)
-    price_adjustment = Column(Float, default=0.0)
+    price = Column(Float, default=0.0) # Sincronizado con schemas
     stock = Column(Integer, default=0)
     image_url = Column(String)
     attributes = Column(JSON)
