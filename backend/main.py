@@ -34,9 +34,13 @@ def safe_db_init():
                 ("users", "logo_url", "TEXT"), ("users", "phone", "TEXT"),
                 ("users", "shop_slug", "TEXT"), ("users", "is_global_staff", "BOOLEAN DEFAULT FALSE"),
                 ("users", "permissions", "JSONB"), ("users", "owner_id", "UUID"),
+                ("users", "custom_commission_rate", "FLOAT"),
                 ("orders", "customer_city", "TEXT"), ("orders", "shipping_address", "TEXT"),
                 ("orders", "source", "TEXT DEFAULT 'pos'"), ("orders", "payment_method", "TEXT DEFAULT 'cash'"),
-                ("products", "category", "TEXT"), ("product_variants", "price", "FLOAT DEFAULT 0.0")
+                ("orders", "commission_amount", "FLOAT DEFAULT 0.0"),
+                ("orders", "commission_rate_snapshot", "FLOAT DEFAULT 0.0"),
+                ("products", "category", "TEXT"), ("product_variants", "price", "FLOAT DEFAULT 0.0"),
+                ("activity_logs", "tenant_id", "UUID")
             ]
             for table, col, dtype in schema_updates:
                 try: 
@@ -191,6 +195,11 @@ def public_process_sale(order_in: schemas.OrderCreate, db: Session = Depends(get
     return db_order
 
 # --- [MODULO] ADMINISTRACIÓN ---
+
+@app.get("/admin/logs", response_model=List[schemas.ActivityLog])
+def read_logs(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tid = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.ActivityLog).filter(models.ActivityLog.tenant_id == tid).order_by(models.ActivityLog.created_at.desc()).limit(50).all()
 
 @app.put("/admin/update-profile")
 def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
