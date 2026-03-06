@@ -600,27 +600,22 @@ export default function ProductsPage() {
                                     {loading ? (<tr><td colSpan={5} className="py-20 text-center"><div className="h-12 w-12 border-4 border-[#004d4d] border-t-cyan rounded-full animate-spin mx-auto" /></td></tr>) : filteredProducts.length === 0 ? (<tr><td colSpan={5} className="py-20 text-center text-gray-300 font-black text-[10px]">Sin artículos</td></tr>) : (
                                         filteredProducts.map((p) => {
                                             // Lógica Maestra Ultra-Resistente para extraer la imagen
-                                            let displayImage = null;
-                                            
                                             const extractUrl = (raw: any): string | null => {
                                                 if (!raw) return null;
-                                                if (typeof raw === 'string') {
-                                                    if (raw.startsWith('[') && raw.endsWith(']')) {
-                                                        try {
-                                                            const parsed = JSON.parse(raw);
-                                                            return Array.isArray(parsed) ? parsed[0] : parsed;
-                                                        } catch (e) { return raw; }
+                                                try {
+                                                    let value = raw;
+                                                    if (typeof value === 'string' && value.startsWith('[') && value.endsWith(']')) {
+                                                        try { value = JSON.parse(value); } catch (e) { return value; }
                                                     }
-                                                    return raw;
-                                                }
-                                                if (Array.isArray(raw)) return raw[0];
+                                                    if (Array.isArray(value)) return value.length > 0 ? value[0] : null;
+                                                    if (typeof value === 'object' && value !== null) return value.url || value.uri || null;
+                                                    if (typeof value === 'string' && value.length > 5) return value;
+                                                } catch (e) { return null; }
                                                 return null;
                                             };
 
-                                            displayImage = extractUrl(p.image_url);
-
-                                            // Si no hay imagen principal, buscamos en las variantes
-                                            if (!displayImage && p.variants && p.variants.length > 0) {
+                                            let displayImage = extractUrl(p.image_url);
+                                            if (!displayImage && p.variants?.length > 0) {
                                                 for (const v of p.variants) {
                                                     const vImg = extractUrl(v.image_url);
                                                     if (vImg) { displayImage = vImg; break; }
@@ -1008,26 +1003,38 @@ export default function ProductsPage() {
                             {/* SECCIÓN IMAGEN Y RESUMEN (LADO IZQ COMPACTO) */}
                             <div className="w-full md:w-80 p-10 flex flex-col shrink-0 border-r border-gray-100/50">
                                 <div className="space-y-8">
-                                    <div className="aspect-square w-full rounded-[2.5rem] bg-gray-50 overflow-hidden border border-gray-100 shadow-inner relative group">
+                                    <div className="aspect-square w-full rounded-[2.5rem] bg-gray-50 overflow-hidden border border-gray-100 shadow-inner relative group flex items-center justify-center">
                                         {/* Lógica de imagen ultra-resistente integrada */}
                                         {(() => {
-                                            let displayImage = null;
                                             const extractUrl = (raw: any): string | null => {
                                                 if (!raw) return null;
-                                                if (typeof raw === 'string') {
-                                                    if (raw.startsWith('[') && raw.endsWith(']')) {
-                                                        try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed[0] : parsed; } catch (e) { return raw; }
+                                                try {
+                                                    let value = raw;
+                                                    if (typeof value === 'string' && value.startsWith('[') && value.endsWith(']')) {
+                                                        try { value = JSON.parse(value); } catch (e) { return value; }
                                                     }
-                                                    return raw;
-                                                }
-                                                if (Array.isArray(raw)) return raw[0];
+                                                    if (Array.isArray(value)) return value.length > 0 ? value[0] : null;
+                                                    if (typeof value === 'object' && value !== null) return value.url || value.uri || null;
+                                                    if (typeof value === 'string' && value.length > 5) return value;
+                                                } catch (e) { return null; }
                                                 return null;
                                             };
-                                            displayImage = extractUrl(selectedProduct.image_url);
-                                            if (!displayImage && selectedProduct.variants?.[0]) displayImage = extractUrl(selectedProduct.variants[0].image_url);
+                                            
+                                            let displayImage = extractUrl(selectedProduct.image_url);
+                                            if (!displayImage && selectedProduct.variants?.length > 0) {
+                                                for (const v of selectedProduct.variants) {
+                                                    const vImg = extractUrl(v.image_url);
+                                                    if (vImg) { displayImage = vImg; break; }
+                                                }
+                                            }
                                             
                                             return displayImage ? (
-                                                <img src={displayImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={selectedProduct.name} />
+                                                <img 
+                                                    src={displayImage} 
+                                                    className="w-full h-full object-cover absolute inset-0 group-hover:scale-105 transition-transform duration-700" 
+                                                    alt={selectedProduct.name} 
+                                                    onError={(e) => { (e.target as any).style.display = 'none'; }}
+                                                />
                                             ) : (
                                                 <div className="h-full w-full flex items-center justify-center text-slate-200"><ImageIcon size={40} /></div>
                                             );
