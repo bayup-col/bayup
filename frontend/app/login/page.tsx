@@ -46,40 +46,40 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // URL MAESTRA DE PRODUCCIÓN (SUPABASE EDGE)
-      const SUPABASE_BACKEND = "https://jtctgahddafohgskgxha.supabase.co/functions/v1/main";
+      // URL MAESTRA DE PRODUCCIÓN (RENDER API - CONFIRMADA)
+      const MASTER_BACKEND = "https://bayup-os-api.onrender.com";
       
       const possibleBases = [
-        SUPABASE_BACKEND,
+        MASTER_BACKEND,
         process.env.NEXT_PUBLIC_API_URL,
         "http://localhost:8000"
       ].filter(Boolean) as string[];
 
       let apiBase = "";
-      console.log("🔍 Bayup Final Connect: Buscando servidor maestro...");
+      console.log("🔍 Bayup Final Connect: Sincronizando con Servidor Maestro...");
 
       for (const base of possibleBases) {
-        if (base.includes("railway.app")) continue;
+        if (base.includes("railway.app") || base.includes("supabase.co")) continue; // Ignorar fallidos
         
         try {
-          console.log(`📡 Verificando: ${base}`);
+          console.log(`📡 Verificando Latencia en: ${base}`);
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2500);
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
           
           const check = await fetch(`${base}/health`, { signal: controller.signal });
           clearTimeout(timeoutId);
           
           if (check.ok) {
             apiBase = base;
-            console.log(`✅ Conectado a Producción: ${apiBase}`);
+            console.log(`✅ Bayup OS Online: ${apiBase}`);
             break;
           }
         } catch (e) {}
       }
 
-      if (!apiBase) apiBase = SUPABASE_BACKEND; // Forzar Supabase si nada responde
+      if (!apiBase) apiBase = MASTER_BACKEND; 
 
-      console.log("🚀 Bayup Connect: Iniciando sesión en:", apiBase);
+      console.log("🚀 Accediendo a Bayup Core via:", apiBase);
       
       const response = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
@@ -169,7 +169,7 @@ export default function LoginPage() {
                       <AnimatePresence mode="wait">
                         {isSuccess ? <motion.div key="ghost" animate={{ y: [0, -80, 0], opacity: 1, scale: [0.5, 1.5, 1] }} onAnimationComplete={() => { setTimeout(() => { if (redirectUrl) router.push(redirectUrl); }, 300); }} className="text-white"><Ghost size={38} strokeWidth={2.5} /></motion.div> 
                         : isLoading ? <Loader2 className="w-6 h-6 animate-spin text-[#00F2FF]" /> 
-                        : <span className="font-black text-[11px] uppercase tracking-[0.3em] text-white">Iniciar</span>}
+                        : <span className="font-black text-[11px] uppercase tracking-[0.3em] text-white">Acceder al Sistema</span>}
                       </AnimatePresence>
                     </div>
                   </motion.div>
