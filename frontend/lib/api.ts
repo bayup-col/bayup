@@ -1,5 +1,20 @@
 // Centralized API Client
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const getApiBaseUrl = () => {
+    const envUrl = process.env.NEXT_PUBLIC_API_URL || "";
+    // URL MAESTRA CONFIRMADA (MARZO 2026)
+    const PRODUCTION_URL = "https://exciting-optimism-production-4624.up.railway.app";
+    
+    // Si estamos en Vercel/Producción y la URL inyectada es de Railway pero no es la correcta, forzamos la buena.
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+        if (!envUrl || (envUrl.includes("railway.app") && !envUrl.includes("exciting-optimism"))) {
+            return PRODUCTION_URL;
+        }
+    }
+    
+    return envUrl || 'http://localhost:8000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 interface RequestOptions extends RequestInit {
     token?: string | null;

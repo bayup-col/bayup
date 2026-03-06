@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { userService } from '@/lib/api';
 
 interface AuthContextType {
   token: string | null;
@@ -38,12 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Función para cargar perfil desde el servidor y sincronizar
   const syncProfile = useCallback(async (authToken: string) => {
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${apiBase}/auth/me`, {
-        headers: { Authorization: `Bearer ${authToken}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const data = await userService.getMe(authToken);
+      if (data) {
         if (data.logo_url) {
           setUserLogo(data.logo_url);
           localStorage.setItem('userLogo', data.logo_url);
