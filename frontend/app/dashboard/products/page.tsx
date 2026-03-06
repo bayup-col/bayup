@@ -40,7 +40,9 @@ import {
   ShieldCheck,
   CheckCircle2,
   DollarSign,
-  ArrowDownRight
+  ArrowDownRight,
+  Box,
+  Hash
 } from 'lucide-react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
