@@ -7,6 +7,7 @@ import os
 import shutil
 from dotenv import load_dotenv
 from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 
 load_dotenv()
 
@@ -18,96 +19,40 @@ import security
 import schemas
 
 def safe_db_init():
-    """Repara el esquema sin tocar los datos existentes. Blindado contra colapsos."""
+    """Repara el esquema sin tocar los datos existentes."""
     print("🛠️ Verificando base de datos persistente...")
     try:
-        # Crea las tablas solo si NO existen
         models.Base.metadata.create_all(bind=engine)
-        
-        # Inyección segura de columnas (ALTER TABLE)
         required_cols = [
             ("logo_url", "TEXT"), ("phone", "TEXT"), ("shop_slug", "TEXT"),
-            ("nit", "TEXT"), ("address", "TEXT"),
             ("custom_domain", "TEXT"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
             ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSONB")
         ]
-        
         with engine.connect() as conn:
             for c_n, c_t in required_cols:
                 try:
                     conn.execute(text(f"ALTER TABLE users ADD COLUMN {c_n} {c_t};"))
                     conn.commit()
-                    print(f"✅ Columna inyectada: {c_n}")
-                except Exception:
-                    pass # Ya existe o error de permisos
+                except Exception: pass
+    except Exception as e: print(f"❌ Error init: {e}")
 
-    except Exception as global_e:
-        print(f"❌ Error en safe_db_init: {global_e}")
-
-    # Asegurar Datos Maestros
-    db = SessionLocal()
-    try:
-        plan = db.query(models.Plan).filter(models.Plan.name == "Básico").first()
-        if not plan:
-            plan = models.Plan(
-                id=uuid.uuid4(), name="Básico", 
-                commission_rate=3.5, monthly_fee=0.0,
-                modules=["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"],
-                is_default=True
-            )
-            db.add(plan); db.commit(); db.refresh(plan)
-
-        for email in ["basicobayup@yopmail.com", "basicobayup@yopmail.co"]:
-            if not db.query(models.User).filter(models.User.email == email).first():
-                user = models.User(
-                    id=uuid.uuid4(), email=email, full_name="Sebastián Bayup",
-                    hashed_password=security.get_password_hash("123456"),
-                    role="admin_tienda", status="Activo", plan_id=plan.id, shop_slug="mi-tienda"
-                )
-                db.add(user); db.commit()
-                print(f"✨ Usuario maestro {email} creado.")
-    except Exception as e:
-        print(f"⚠️ Aviso en post-init: {e}")
-    finally:
-        db.close()
-
-from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     safe_db_init()
     yield
 
-app = FastAPI(title="Bayup OS - Production - Force Rebuild v2", lifespan=lifespan)
+app = FastAPI(title="Bayup OS - Full Core", lifespan=lifespan)
 
-# --- CORS DEFINITIVO (PARA PRODUCCIÓN) ---
+# --- CORS ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://www.bayup.com.co",
-        "https://bayup.com.co",
-        "https://bayup-interactive.vercel.app",
-        "http://localhost:3000"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get("/health")
-def health(): return {"status": "connected_and_persistent"}
-
-@app.get("/admin/fix-db-force")
-def fix_db_force():
-    results = []
-    with engine.connect() as conn:
-        for col in ["nit", "address"]:
-            try:
-                conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} TEXT;"))
-                conn.commit()
-                results.append(f"✅ {col} creada.")
-            except Exception as e:
-                results.append(f"❌ {col} falló: {str(e)}")
-    return {"status": "completed", "details": results}
+# --- AUTH & LOGIN ---
 
 @app.post("/auth/login")
 async def login(request: Request, db: Session = Depends(get_db)):
@@ -118,39 +63,114 @@ async def login(request: Request, db: Session = Depends(get_db)):
             body = {"username": form.get("username"), "password": form.get("password")}
         
         u, p = body.get("username"), body.get("password")
-        if not u or not p: raise HTTPException(status_code=400, detail="Credenciales requeridas")
-
-        user = crud.get_user_by_email(db, email=u.lower().strip())
+        user = crud.get_user_by_email(db, email=u.lower().strip() if u else "")
         if not user or not security.verify_password(p, user.hashed_password):
             raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos")
         
         token = security.create_access_token(data={"sub": user.email})
-        
-        # Fallback de plan seguro
-        plan_name = user.plan.name if user.plan else "Básico"
-        modules = user.plan.modules if user.plan else ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]
-
+        plan = user.plan if user.plan else None
         return {
             "access_token": token, "token_type": "bearer",
             "user": {
                 "email": user.email, "full_name": user.full_name, "role": user.role, "shop_slug": user.shop_slug,
-                "plan": {"name": plan_name, "modules": modules}
+                "plan": {"name": plan.name if plan else "Básico", "modules": plan.modules if plan else ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]}
             }
         }
     except HTTPException as he: raise he
-    except Exception as e: 
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
-
-# ... (resto de endpoints administrativos omitidos por brevedad pero preservados localmente)
+    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/auth/me", response_model=schemas.User)
 def me(current_user: models.User = Depends(security.get_current_user)):
     return current_user
 
+# --- PRODUCTOS ---
+
+@app.get("/products")
+def read_products(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.Product).filter(models.Product.owner_id == tenant_id).all()
+
+@app.post("/products")
+def create_product(product_in: schemas.ProductCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    db_product = models.Product(**product_in.dict(exclude={"variants"}), owner_id=tenant_id, id=uuid.uuid4())
+    db.add(db_product); db.flush()
+    for v in product_in.variants:
+        db_v = models.ProductVariant(**v.dict(), product_id=db_product.id, id=uuid.uuid4())
+        db.add(db_v)
+    db.commit(); db.refresh(db_product)
+    return db_product
+
+# --- ÓRDENES & VENTAS ---
+
+@app.get("/orders")
+def get_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).all()
+
+@app.post("/orders")
+def create_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    db_order = models.Order(**order_data.dict(exclude={"items"}), status="completed", id=uuid.uuid4(), tenant_id=tenant_id)
+    db.add(db_order); db.flush()
+    for item in order_data.items:
+        db_item = models.OrderItem(**item.dict(), order_id=db_order.id, id=uuid.uuid4())
+        db.add(db_item)
+        # Descuento stock
+        variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.product_variant_id).first()
+        if variant: variant.stock = max(0, variant.stock - item.quantity)
+    db.commit(); db.refresh(db_order)
+    return db_order
+
+# --- ADMINISTRACIÓN & CONFIG ---
+
+@app.put("/admin/update-profile")
+def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    for k, v in profile_data.dict(exclude_unset=True).items(): setattr(current_user, k, v)
+    db.commit(); return {"status": "success"}
+
+@app.post("/admin/upload-image")
+async def upload_image(file: UploadFile = File(...), current_user: models.User = Depends(security.get_current_user)):
+    if not os.path.exists("uploads"): os.makedirs("uploads")
+    file_name = f"{uuid.uuid4()}.{file.filename.split('.')[-1]}"
+    with open(f"uploads/{file_name}", "wb") as buffer: shutil.copyfileobj(file.file, buffer)
+    domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "localhost:8080")
+    url = f"https://{domain}/uploads/{file_name}" if "railway" in domain else f"http://{domain}/uploads/{file_name}"
+    return {"url": url}
+
+@app.get("/admin/logs")
+def get_logs(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.ActivityLog).filter(models.ActivityLog.tenant_id == tenant_id).limit(50).all()
+
 @app.get("/notifications")
 def get_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
     return db.query(models.Notification).filter(models.Notification.tenant_id == tenant_id).order_by(models.Notification.created_at.desc()).limit(20).all()
+
+# --- PÚBLICO ---
+
+@app.get("/public/shop/{shop_slug}")
+def get_public_shop(shop_slug: str, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.shop_slug == shop_slug).first()
+    if not user: raise HTTPException(status_code=404)
+    return {"id": user.id, "full_name": user.full_name, "logo_url": user.logo_url}
+
+@app.post("/public/orders")
+def create_public_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db)):
+    db_order = models.Order(**order_data.dict(exclude={"items"}), status="pending", id=uuid.uuid4())
+    db.add(db_order); db.flush()
+    for item in order_data.items:
+        db_item = models.OrderItem(**item.dict(), order_id=db_order.id, id=uuid.uuid4())
+        db.add(db_item)
+        variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.product_variant_id).first()
+        if variant: variant.stock = max(0, variant.stock - item.quantity)
+    db.commit(); return db_order
+
+@app.get("/health")
+def health(): return {"status": "connected"}
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 if __name__ == "__main__":
     import uvicorn
