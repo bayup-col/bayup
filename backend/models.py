@@ -39,7 +39,7 @@ class Plan(Base):
     description = Column(String)
     commission_rate = Column(Float)
     monthly_fee = Column(Float)
-    modules = Column(JSON, default=[]) # Lista de módulos permitidos (ej: ["products", "orders"])
+    modules = Column(JSON, default=[]) # Lista de módulos permitidos
     is_default = Column(Boolean, default=False)
     users = relationship("User", back_populates="plan")
 
@@ -49,8 +49,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     full_name = Column(String)
     logo_url = Column(String, nullable=True) # Logo de la tienda
-    # nit = Column(String, nullable=True) # Temporalmente deshabilitado para producción
-    # address = Column(String, nullable=True) # Temporalmente deshabilitado para producción
+    # nit y address ELIMINADOS DE RAÍZ PARA RESTAURAR LOGIN
     nickname = Column(String)
     phone = Column(String, nullable=True) # Pilar 2: Para el botón de WhatsApp
     hashed_password = Column(String)
@@ -65,14 +64,14 @@ class User(Base):
     whatsapp_lines = Column(JSON, default=[])
     permissions = Column(JSON, default={})
     
-    # --- Gestión de Comisiones Bayup (Escala Dinámica) ---
-    custom_commission_rate = Column(Float, nullable=True) # % Manual (ej: 1.2)
-    commission_is_fixed = Column(Boolean, default=False) # Si es True, no varía por ventas
-    commission_fixed_until = Column(DateTime, nullable=True) # Fecha límite del acuerdo manual
-    last_month_revenue = Column(Float, default=0.0) # Ventas totales del mes anterior
-    referred_by_id = Column(GUID(), ForeignKey("users.id"), nullable=True) # ID del Afiliado
+    # --- Gestión de Comisiones Bayup ---
+    custom_commission_rate = Column(Float, nullable=True)
+    commission_is_fixed = Column(Boolean, default=False)
+    commission_fixed_until = Column(DateTime, nullable=True)
+    last_month_revenue = Column(Float, default=0.0)
+    referred_by_id = Column(GUID(), ForeignKey("users.id"), nullable=True)
     
-    # Multi-tenancy: Who owns this user account/staff
+    # Multi-tenancy
     owner_id = Column(GUID(), ForeignKey("users.id"), nullable=True)
     
     # Loyalty and Customer Stats
@@ -80,9 +79,9 @@ class User(Base):
     total_spent = Column(Float, default=0.0)
     last_purchase_date = Column(DateTime, nullable=True)
     last_purchase_summary = Column(String, nullable=True)
-    customer_type = Column(String, default="final") # final, mayorista
-    acquisition_channel = Column(String, nullable=True) # web, redes, tienda, whatsapp
-    city = Column(String, nullable=True) # Nueva columna para ubicación
+    customer_type = Column(String, default="final")
+    acquisition_channel = Column(String, nullable=True)
+    city = Column(String, nullable=True)
     
     plan_id = Column(GUID(), ForeignKey("plans.id"))
     plan = relationship("Plan", back_populates="users")
@@ -100,7 +99,7 @@ class Product(Base):
     sku = Column(String, index=True)
     status = Column(String, default="active")
     add_gateway_fee = Column(Boolean, default=False)
-    image_url = Column(JSON, default=[]) # Cambiado a JSON para soportar galería de imágenes
+    image_url = Column(JSON, default=[])
     owner_id = Column(GUID(), ForeignKey("users.id"))
     product_type_id = Column(GUID(), ForeignKey("product_types.id"), nullable=True)
     collection_id = Column(GUID(), ForeignKey("collections.id"), nullable=True)
@@ -289,12 +288,12 @@ class CustomRole(Base):
 class ActivityLog(Base):
     __tablename__ = "activity_logs"
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
-    user_id = Column(GUID(), ForeignKey("users.id")) # Who did the action
-    action = Column(String) # e.g., "DELETE_USER", "CREATE_USER"
-    target_id = Column(String, nullable=True) # ID of the affected user/role
-    detail = Column(String) # Human readable description
+    user_id = Column(GUID(), ForeignKey("users.id"))
+    action = Column(String)
+    target_id = Column(String, nullable=True)
+    detail = Column(String)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    tenant_id = Column(GUID(), ForeignKey("users.id")) # Which store this belongs to
+    tenant_id = Column(GUID(), ForeignKey("users.id"))
 
 class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
@@ -327,7 +326,7 @@ class Shipment(Base):
     tenant_id = Column(GUID(), ForeignKey("users.id"))
     status = Column(String, default="pending_packing")
     recipient_name = Column(String)
-    recipient_phone = Column(String, nullable=True) # Teléfono de contacto logístico
+    recipient_phone = Column(String, nullable=True)
     destination_address = Column(String)
     carrier = Column(String, nullable=True)
     tracking_number = Column(String, nullable=True)
@@ -339,7 +338,7 @@ class Notification(Base):
     tenant_id = Column(GUID(), ForeignKey("users.id"))
     title = Column(String)
     message = Column(String)
-    type = Column(String, default="info") # info, success, warning, error
+    type = Column(String, default="info")
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -347,41 +346,29 @@ class ChannelConnection(Base):
     __tablename__ = "channel_connections"
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     user_id = Column(GUID(), ForeignKey("users.id"))
-    channel_type = Column(String) # whatsapp, instagram, facebook, tiktok, meli
-    status = Column(String, default="linked") # linked, disconnected
+    channel_type = Column(String)
+    status = Column(String, default="linked")
     account_id = Column(String, nullable=True) 
     access_token = Column(String, nullable=True) 
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 class WebTemplate(Base):
-
     __tablename__ = "web_templates"
-
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
-
     name = Column(String, index=True)
-
     description = Column(String)
-
     preview_url = Column(String, nullable=True)
-
     schema_data = Column(JSON)
-
     active_plans = Column(JSON, default=[])
-
     is_active = Column(Boolean, default=True)
-
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
-
-
 
 class ShopPage(Base):
     __tablename__ = "shop_pages"
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     tenant_id = Column(GUID(), ForeignKey("users.id"))
-    page_key = Column(String) # home, catalog, product, about, etc
+    page_key = Column(String)
     schema_data = Column(JSON)
     is_published = Column(Boolean, default=False)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
@@ -394,5 +381,5 @@ class StoreMessage(Base):
     customer_email = Column(String)
     customer_phone = Column(String, nullable=True)
     message = Column(String)
-    status = Column(String, default="unread") # unread, read, replied
+    status = Column(String, default="unread")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
