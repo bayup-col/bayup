@@ -96,6 +96,7 @@ class Product(Base):
     price = Column(Float)
     wholesale_price = Column(Float, default=0.0)
     cost = Column(Float, default=0.0)
+    category = Column(String, nullable=True) # Campo de categoría simple
     sku = Column(String, index=True)
     status = Column(String, default="active")
     add_gateway_fee = Column(Boolean, default=False)
