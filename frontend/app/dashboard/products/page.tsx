@@ -355,7 +355,7 @@ export default function ProductsPage() {
                 advice: "Tu catálogo es la vitrina de tu marca. Mantener al menos 10 productos activos aumenta la confianza de tus compradores web."
             },
             {
-                id: 'active', label: 'Items activos', value: active, icon: <Zap size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: 'En línea', isSimple: true,
+                id: 'active', label: 'Productos activos', icon: <Zap size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: 'En línea', isSimple: true,
                 details: [
                     { l: "EN WEB", v: `${active}`, icon: <Globe size={10}/> },
                     { l: "CON FOTOS", v: `${products.filter(p => p.image_url?.length > 0).length}`, icon: <ImageIcon size={10}/> },
