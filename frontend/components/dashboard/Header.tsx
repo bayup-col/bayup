@@ -40,18 +40,29 @@ export const DashboardHeader = ({
 
     // Polling de Notificaciones Reales
     useEffect(() => {
+        let intervalId: any = null;
+
         const fetchNotifications = async () => {
-            if (!token) return;
+            if (!token) {
+                if (intervalId) clearInterval(intervalId);
+                return;
+            }
             try {
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
                 const res = await fetch(`${apiUrl}/notifications`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+
+                if (res.status === 401) {
+                    console.warn("Sesión expirada en Header. Deteniendo sincronización.");
+                    if (intervalId) clearInterval(intervalId);
+                    return;
+                }
+
                 if (res.ok) {
                     const data = await res.json();
                     const unread = data.filter((n: any) => !n.is_read).length;
                     
-                    // Sonido si hay algo nuevo
                     if (unread > lastCountRef.current) {
                         try {
                             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
@@ -61,12 +72,15 @@ export const DashboardHeader = ({
                     lastCountRef.current = unread;
                     setNotifications(data);
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) { 
+                // Si hay un error de red masivo, detenemos el intervalo para no saturar
+                console.error("Error de red en notificaciones:", err);
+            }
         };
 
         fetchNotifications();
-        const interval = setInterval(fetchNotifications, 30000);
-        return () => clearInterval(interval);
+        intervalId = setInterval(fetchNotifications, 30000);
+        return () => { if (intervalId) clearInterval(intervalId); };
     }, [token]);
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
