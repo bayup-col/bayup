@@ -385,8 +385,7 @@ export default function GeneralSettings() {
                                                 const data = await apiRequest<any>('/admin/upload-image', {
                                                     method: 'POST',
                                                     token,
-                                                    body: formData,
-                                                    headers: {} // Dejamos que el navegador ponga el Content-Type para FormData
+                                                    body: formData
                                                 });
                                                 if (data.url) {
                                                     setIdentity({...identity, logo: data.url});
