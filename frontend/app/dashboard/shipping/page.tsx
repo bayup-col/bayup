@@ -146,25 +146,28 @@ export default function ShippingPage() {
     if (!token) return;
     setLoading(true);
     try {
-        const data = await apiRequest<any[]>('/admin/shipments', { token });
+        // En el Plan Básico, los envíos son pedidos que requieren logística
+        const data = await apiRequest<any[]>('/orders', { token });
         if (data) {
-            const mapped = data.map(s => ({
-                id: s.id,
-                tracking_number: s.tracking_number || 'S/N',
-                order_id: s.order_id,
-                carrier: s.carrier || 'Por asignar',
-                status: s.status as ShippingStatus,
+            const mapped = data.map(o => ({
+                id: o.id.slice(0, 8).toUpperCase(),
+                tracking_number: o.tracking_number || 'PENDIENTE',
+                order_id: o.id,
+                carrier: o.carrier || 'Por definir',
+                status: (o.status === 'pending' ? 'label_generated' : 
+                         o.status === 'processing' ? 'in_transit' :
+                         o.status === 'completed' ? 'delivered' : 'incident') as ShippingStatus,
                 customer: { 
-                    name: s.recipient_name || 'Cliente', 
-                    city: s.destination_address || 'Sin dirección',
-                    phone: s.recipient_phone || '' 
+                    name: o.customer_name || 'Cliente', 
+                    city: o.shipping_address || 'Sin dirección',
+                    phone: o.customer_phone || '' 
                 },
-                last_update: s.updated_at
+                last_update: o.updated_at || new Date().toISOString()
             }));
             setShipments(mapped);
         }
     } catch (e) {
-        showToast("Error al cargar envíos", "error");
+        showToast("Error al cargar logística", "error");
     } finally {
         setLoading(false);
     }
@@ -172,16 +175,20 @@ export default function ShippingPage() {
 
   const handleUpdateStatus = async (shipmentId: string, newStatus: ShippingStatus) => {
     try {
-        await apiRequest(`/admin/shipments/${shipmentId}/status`, {
-            method: 'PATCH',
+        // Mapeamos el estado de envío de vuelta al estado del pedido
+        const orderStatus = newStatus === 'delivered' ? 'completed' : 
+                           newStatus === 'label_generated' ? 'pending' : 'processing';
+
+        await apiRequest(`/orders/${selectedShipment?.order_id}`, {
+            method: 'PUT',
             token,
-            body: JSON.stringify({ status: newStatus })
+            body: JSON.stringify({ status: orderStatus })
         });
-        showToast("Estado actualizado ✨", "success");
+        
+        showToast("Estado logístico actualizado ✨", "success");
         fetchShipments();
-        // Si hay uno seleccionado, actualizarlo también
-        if (selectedShipment?.id === shipmentId) {
-            setSelectedShipment(prev => prev ? { ...prev, status: newStatus } : null);
+        if (selectedShipment) {
+            setSelectedShipment(null);
         }
     } catch (e) {
         showToast("Error al actualizar", "error");

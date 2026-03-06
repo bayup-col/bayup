@@ -130,17 +130,31 @@ function ShopContent() {
 
         try {
             const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            
+            // BUSCAMOS EL VARIANT_ID CORRECTO
+            // Para el Plan Básico, si no hay variantes seleccionadas, enviamos la primera disponible
+            const itemsWithVariants = await Promise.all(cart.map(async (item) => {
+                const prod = shopData.products.find((p: any) => p.id === item.id);
+                const variantId = (prod?.variants && prod.variants.length > 0) 
+                    ? prod.variants[0].id 
+                    : item.id; // Fallback
+                return {
+                    product_variant_id: variantId,
+                    quantity: item.quantity,
+                    price_at_purchase: item.price
+                };
+            }));
+
             const payload = {
                 customer_name: customerData.name,
                 customer_phone: customerData.phone,
                 customer_email: customerData.email,
                 shipping_address: `${customerData.address}, ${customerData.city}`,
-                tenant_id: shopData.owner_id,
-                items: cart.map(item => ({
-                    product_id: item.id,
-                    quantity: item.quantity,
-                    price: item.price
-                }))
+                tenant_id: shopData.id,
+                total_price: cartTotal,
+                payment_method: "WhatsApp",
+                source: "web",
+                items: itemsWithVariants
             };
 
             const res = await fetch(`${apiBase}/public/orders`, {
@@ -151,21 +165,19 @@ function ShopContent() {
 
             if (res.ok) {
                 const orderData = await res.json();
-                const orderId = orderData.id.slice(-4).toUpperCase();
+                const orderId = orderData.id.slice(0, 8).toUpperCase();
                 setLastOrderNum(orderId);
                 
-                // REDIRECCIÓN A WHATSAPP DEL DUEÑO (Para confirmar)
-                const shopPhone = shopData.phone || "3000000000"; // Fallback si no hay
-                const message = encodeURIComponent(`¡Hola! Acabo de realizar un pedido en tu tienda ${shopData.store_name} 🚀\n\n🆔 Pedido: #${orderId}\n👤 Nombre: ${customerData.name}\n💰 Total: $${cartTotal.toLocaleString()}\n📍 Dirección: ${customerData.address}, ${customerData.city}\n\nQuedo atento a la confirmación. ✨`);
+                const shopPhone = shopData.phone || "3000000000"; 
+                const message = encodeURIComponent(`¡Hola! Acabo de realizar un pedido en tu tienda ${shopData.full_name} 🚀\n\n🆔 Pedido: #${orderId}\n👤 Nombre: ${customerData.name}\n💰 Total: $${cartTotal.toLocaleString()}\n📍 Dirección: ${customerData.address}, ${customerData.city}\n\nQuedo atento a la confirmación. ✨`);
                 
                 clearCart();
                 setIsCheckoutOpen(false);
                 setIsOrderSuccess(true);
                 
-                // Pequeño delay para dejar ver el modal de éxito antes de abrir WhatsApp
                 setTimeout(() => {
                     window.open(`https://wa.me/57${shopPhone.replace(/\D/g, '')}?text=${message}`, '_blank');
-                }, 2500);
+                }, 3000);
 
             } else {
                 const err = await res.json();
