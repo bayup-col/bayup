@@ -987,102 +987,112 @@ export default function ProductsPage() {
                 )}
             </AnimatePresence>
 
-            {/* MODAL DE ATRIBUTOS (DISEÑO FULL - FLOTANTE) */}
+            {/* MODAL DE ATRIBUTOS (RED DISEÑO: MINIMALISTA & ELITE) */}
             <AnimatePresence>
                 {selectedProduct && (
-                    <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 md:p-8">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedProduct(null)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-2xl" />
-                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 40 }} className="relative bg-white w-full max-w-5xl rounded-[4rem] shadow-3xl overflow-hidden border border-white/20 flex flex-col md:flex-row text-slate-900">
+                    <div className="fixed inset-0 z-[1500] flex items-center justify-center p-6">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedProduct(null)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" />
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative bg-white/80 backdrop-blur-2xl w-full max-w-4xl h-fit max-h-[85vh] rounded-[3.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.1)] border border-white overflow-hidden flex flex-col md:flex-row text-slate-900">
                             
-                            {/* LADO IZQUIERDO: PRODUCTO MASTER */}
-                            <div className="w-full md:w-96 bg-[#004D4D] p-12 text-white flex flex-col justify-between shrink-0 relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none"><div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-[#00f2ff] rounded-full blur-[80px]" /></div>
-                                <div className="relative z-10 space-y-8">
-                                    <div className="h-64 w-full rounded-[2.5rem] bg-white/10 overflow-hidden border border-white/10 shadow-2xl relative group">
-                                        {selectedProduct.image_url ? (
-                                            <img src={Array.isArray(selectedProduct.image_url) ? selectedProduct.image_url[0] : selectedProduct.image_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                                        ) : (
-                                            <div className="h-full w-full flex items-center justify-center text-white/20"><ImageIcon size={48} /></div>
-                                        )}
-                                        <div className="absolute bottom-4 right-4 h-10 w-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10"><Box size={20} /></div>
+                            {/* SECCIÓN IMAGEN Y RESUMEN (LADO IZQ COMPACTO) */}
+                            <div className="w-full md:w-80 p-10 flex flex-col shrink-0 border-r border-gray-100/50">
+                                <div className="space-y-8">
+                                    <div className="aspect-square w-full rounded-[2.5rem] bg-gray-50 overflow-hidden border border-gray-100 shadow-inner relative group">
+                                        {/* Lógica de imagen ultra-resistente integrada */}
+                                        {(() => {
+                                            let displayImage = null;
+                                            const extractUrl = (raw: any): string | null => {
+                                                if (!raw) return null;
+                                                if (typeof raw === 'string') {
+                                                    if (raw.startsWith('[') && raw.endsWith(']')) {
+                                                        try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed[0] : parsed; } catch (e) { return raw; }
+                                                    }
+                                                    return raw;
+                                                }
+                                                if (Array.isArray(raw)) return raw[0];
+                                                return null;
+                                            };
+                                            displayImage = extractUrl(selectedProduct.image_url);
+                                            if (!displayImage && selectedProduct.variants?.[0]) displayImage = extractUrl(selectedProduct.variants[0].image_url);
+                                            
+                                            return displayImage ? (
+                                                <img src={displayImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={selectedProduct.name} />
+                                            ) : (
+                                                <div className="h-full w-full flex items-center justify-center text-slate-200"><ImageIcon size={40} /></div>
+                                            );
+                                        })()}
                                     </div>
-                                    <div className="space-y-2">
-                                        <h3 className="text-3xl font-black italic tracking-tighter leading-none">{selectedProduct.name}</h3>
-                                        <p className="text-cyan text-[10px] font-black tracking-[0.3em] uppercase">{selectedProduct.collection?.title || 'GENERAL'}</p>
-                                    </div>
-                                    <div className="pt-6 border-t border-white/10">
-                                        <p className="text-[9px] font-black text-white/40 tracking-widest mb-4">MÉTRICAS DEL ACTIVO</p>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="p-4 rounded-3xl bg-white/5 border border-white/5"><p className="text-[8px] font-black text-white/30 mb-1 uppercase">Stock total</p><span className="text-xl font-black italic">{selectedProduct.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0}</span></div>
-                                            <div className="p-4 rounded-3xl bg-white/5 border border-white/5"><p className="text-[8px] font-black text-white/30 mb-1 uppercase">Precio</p><span className="text-lg font-black italic">${(selectedProduct.price || 0).toLocaleString()}</span></div>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-cyan animate-pulse" />
+                                            <p className="text-[#004D4D] text-[9px] font-black tracking-[0.3em] uppercase">{selectedProduct.collection?.title || 'GENERAL'}</p>
                                         </div>
+                                        <h3 className="text-2xl font-black italic tracking-tighter text-[#001A1A] leading-tight">{selectedProduct.name}</h3>
+                                        <p className="text-3xl font-black text-[#004D4D] tracking-tighter">${(selectedProduct.price || 0).toLocaleString()}</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-3 pt-4 border-t border-gray-100">
+                                        <div className="flex justify-between items-center"><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Stock Total</span><span className="text-sm font-black italic">{selectedProduct.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0} uds</span></div>
+                                        <div className="flex justify-between items-center"><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Estado</span><span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full ${selectedProduct.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-50 text-gray-400'}`}>{selectedProduct.status === 'active' ? 'Activo' : 'Borrador'}</span></div>
                                     </div>
                                 </div>
-                                <div className="relative z-10 space-y-4">
-                                    <button onClick={() => { router.push(`/dashboard/products/${selectedProduct.id}/edit`); setSelectedProduct(null); }} className="w-full py-5 rounded-[2rem] bg-cyan text-[#004D4D] font-black text-[10px] tracking-widest transition-all flex items-center justify-center gap-3 shadow-xl">
-                                        <Edit3 size={18}/> Editar información
-                                    </button>
-                                    <button onClick={() => setSelectedProduct(null)} className="w-full py-5 bg-white/5 text-white/60 border border-white/10 rounded-[2rem] font-black text-[10px] tracking-widest hover:bg-white/10 transition-all">Regresar</button>
+                                <div className="mt-auto pt-8 space-y-3">
+                                    <button onClick={() => { router.push(`/dashboard/products/${selectedProduct.id}/edit`); setSelectedProduct(null); }} className="w-full py-4 rounded-2xl bg-[#004D4D] text-white font-black text-[10px] tracking-widest transition-all shadow-xl hover:bg-black">Editar Activo</button>
+                                    <button onClick={() => setSelectedProduct(null)} className="w-full py-4 text-gray-400 font-black text-[10px] tracking-widest hover:text-[#004D4D] transition-all">Regresar</button>
                                 </div>
                             </div>
 
-                            {/* LADO DERECHO: MATRIZ DE VARIANTES */}
-                            <div className="flex-1 overflow-y-auto p-12 lg:p-16 bg-[#FAFAFA] custom-scrollbar">
-                                <div className="space-y-12">
-                                    <div className="flex justify-between items-end">
+                            {/* CONTENIDO PRINCIPAL: MATRIZ DE VARIANTES (ESTILO CLEAN) */}
+                            <div className="flex-1 overflow-y-auto p-10 lg:p-12 custom-scrollbar">
+                                <div className="space-y-10">
+                                    <div className="flex justify-between items-center">
                                         <div className="space-y-1">
-                                            <h4 className="text-4xl font-black italic text-[#001A1A] tracking-tighter">Matriz de <span className="text-[#004D4D]">Atributos</span></h4>
-                                            <p className="text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase">Control individual de inventario</p>
+                                            <h4 className="text-2xl font-black italic text-[#001A1A] tracking-tighter">Matriz de <span className="text-cyan">Atributos</span></h4>
+                                            <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase">Desglose de inventario individual</p>
                                         </div>
-                                        <div className="h-14 w-14 rounded-3xl bg-white border border-gray-100 flex items-center justify-center text-[#004D4D] shadow-xl"><Layers size={24}/></div>
+                                        <div className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-[#004D4D] border border-gray-100"><Layers size={18}/></div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 gap-6">
+                                    <div className="space-y-2">
                                         {selectedProduct.variants && selectedProduct.variants.length > 0 ? (
                                             selectedProduct.variants.map((v: any, i: number) => (
-                                                <div key={i} className="bg-white p-8 rounded-[3rem] border border-white shadow-sm flex items-center justify-between group hover:shadow-2xl transition-all">
-                                                    <div className="flex items-center gap-6">
-                                                        <div className="h-14 w-14 rounded-2xl bg-gray-50 flex items-center justify-center text-[#004D4D] font-black text-xs border border-gray-100">{i + 1}</div>
+                                                <div key={i} className="flex items-center justify-between p-5 rounded-3xl hover:bg-white hover:shadow-xl hover:shadow-gray-100/50 transition-all border border-transparent hover:border-gray-100 group">
+                                                    <div className="flex items-center gap-5">
+                                                        <div className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-[#004D4D] font-black text-[10px] border border-gray-100 group-hover:bg-white">{i + 1}</div>
                                                         <div>
-                                                            <p className="text-xl font-black text-[#001A1A] italic uppercase tracking-tighter">{v.name}</p>
-                                                            <p className="text-[10px] font-bold text-gray-400 uppercase mt-1 flex items-center gap-2">
-                                                                <Hash size={12}/> SKU: <span className="text-slate-900">{v.sku || 'SIN ASIGNAR'}</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-10">
-                                                        <div className="text-right">
-                                                            <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-1">Disponibilidad</p>
-                                                            <div className="flex items-center gap-3">
-                                                                <div className={`h-2 w-2 rounded-full ${v.stock <= 5 ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)] animate-pulse' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'}`} />
-                                                                <span className={`text-2xl font-black italic tracking-tighter ${v.stock <= 5 ? 'text-rose-500' : 'text-[#004D4D]'}`}>{v.stock} <span className="text-[10px] uppercase opacity-40">uds</span></span>
+                                                            <p className="text-sm font-black text-[#001A1A] uppercase tracking-tighter">{v.name}</p>
+                                                            <div className="flex items-center gap-3 mt-0.5">
+                                                                <p className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1.5"><Hash size={10}/> {v.sku || 'SIN SKU'}</p>
                                                             </div>
                                                         </div>
-                                                        <div className="h-12 w-px bg-gray-100" />
-                                                        <button onClick={() => { router.push(`/dashboard/products/${selectedProduct.id}/edit`); setSelectedProduct(null); }} className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-300 hover:text-[#004D4D] hover:bg-white transition-all flex items-center justify-center"><ArrowUpRight size={20}/></button>
+                                                    </div>
+                                                    <div className="flex items-center gap-8">
+                                                        <div className="flex items-center gap-3 bg-gray-50/50 px-4 py-2 rounded-2xl border border-gray-100">
+                                                            <div className={`h-1.5 w-1.5 rounded-full ${v.stock <= 5 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
+                                                            <span className={`text-sm font-black italic ${v.stock <= 5 ? 'text-rose-500' : 'text-[#004D4D]'}`}>{v.stock} <span className="text-[9px] uppercase opacity-40">uds</span></span>
+                                                        </div>
+                                                        <button onClick={() => { router.push(`/dashboard/products/${selectedProduct.id}/edit`); setSelectedProduct(null); }} className="h-10 w-10 rounded-xl bg-gray-50 text-gray-300 hover:text-[#004D4D] hover:bg-white transition-all flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100"><ArrowUpRight size={16}/></button>
                                                     </div>
                                                 </div>
                                             ))
                                         ) : (
-                                            <div className="py-20 text-center space-y-4 bg-white rounded-[3rem] border border-dashed border-gray-200">
-                                                <div className="h-16 w-16 rounded-full bg-gray-50 flex items-center justify-center mx-auto text-gray-200"><AlertCircle size={32}/></div>
-                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Este producto no tiene atributos configurados</p>
-                                                <button onClick={() => { router.push(`/dashboard/products/${selectedProduct.id}/edit`); setSelectedProduct(null); }} className="px-8 py-3 bg-[#004D4D] text-white rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-lg">Configurar variantes</button>
+                                            <div className="py-16 text-center space-y-4 border-2 border-dashed border-gray-100 rounded-[3rem]">
+                                                <div className="h-12 w-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto text-gray-300"><AlertCircle size={24}/></div>
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sin atributos configurados</p>
                                             </div>
                                         )}
                                     </div>
 
-                                    {/* SECCIÓN DE CONSEJO ESTRATÉGICO */}
-                                    <div className="bg-[#001A1A] p-10 rounded-[3.5rem] text-white relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 p-10 opacity-5 -rotate-12 group-hover:scale-110 transition-transform"><Bot size={150}/></div>
-                                        <div className="relative z-10 space-y-6">
-                                            <div className="flex items-center gap-4">
-                                                <div className="h-10 w-10 rounded-xl bg-cyan flex items-center justify-center text-[#001A1A] shadow-[0_0_15px_rgba(0,242,255,0.3)]"><Bot size={20}/></div>
-                                                <h4 className="text-[10px] font-black tracking-[0.3em] text-cyan uppercase">Estrategia Bayt AI</h4>
+                                    {/* CONSEJO AI (COMPACTO) */}
+                                    <div className="bg-[#001A1A] p-8 rounded-[2.5rem] text-white relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 p-6 opacity-5 -rotate-12"><Bot size={100}/></div>
+                                        <div className="relative z-10 flex items-center gap-6">
+                                            <div className="h-12 w-12 rounded-2xl bg-cyan/10 flex items-center justify-center text-cyan border border-cyan/20 shrink-0"><Bot size={24}/></div>
+                                            <div>
+                                                <h4 className="text-[9px] font-black tracking-[0.3em] text-cyan uppercase mb-1">Estrategia Bayt AI</h4>
+                                                <p className="text-sm font-bold italic leading-snug opacity-90">
+                                                    &quot;Tener stock en todas las tallas principales reduce la tasa de abandono un 22%.&quot;
+                                                </p>
                                             </div>
-                                            <p className="text-lg font-bold italic leading-tight text-white/90">
-                                                &quot;Los productos con <span className="text-cyan">variantes organizadas</span> tienen una tasa de abandono de carrito un 22% menor. Asegúrate de tener stock en todas las tallas principales.&quot;
-                                            </p>
                                         </div>
                                     </div>
                                 </div>
