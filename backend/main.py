@@ -176,6 +176,23 @@ def get_notifications(db: Session = Depends(get_db), current_user: models.User =
     tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
     return db.query(models.Notification).filter(models.Notification.tenant_id == tenant_id).order_by(models.Notification.created_at.desc()).limit(20).all()
 
+# --- SUPER ADMIN (TORRE DE CONTROL) ---
+
+@app.get("/super-admin/stats")
+def get_super_admin_stats(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Métricas globales exclusivas para el dueño de Bayup."""
+    if not current_user.is_global_staff and current_user.email != "basicobayup@yopmail.com":
+        raise HTTPException(status_code=403, detail="Acceso denegado a la Torre de Control")
+    
+    return {
+        "total_revenue": 0.0,
+        "total_commission": 0.0,
+        "active_companies": db.query(models.User).filter(models.User.owner_id == None).count(),
+        "active_affiliates": db.query(models.User).filter(models.User.role == "afiliado").count(),
+        "top_companies": [],
+        "recent_alerts": []
+    }
+
 # --- PÚBLICO (TIENDA ONLINE) ---
 
 @app.get("/public/shop/{shop_slug}")
