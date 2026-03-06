@@ -532,8 +532,9 @@ export default function InvoicingPage() {
                                         )}
                                         <div className="space-y-1">
                                             <p className="text-[11px] font-black text-gray-900 uppercase">{companyData?.full_name || 'EMPRESA REGISTRADA'}</p>
-                                            <p className="text-[10px] font-bold text-gray-500">NIT: 900.000.000-1</p>
+                                            <p className="text-[10px] font-bold text-gray-500">NIT: {companyData?.nit || '900.000.000-1'}</p>
                                             <p className="text-[10px] font-bold text-gray-500">{companyData?.address || 'Dirección de operación principal'}</p>
+                                            <p className="text-[10px] font-bold text-gray-500">Email: {companyData?.email || authEmail}</p>
                                             <p className="text-[10px] font-bold text-gray-500">WhatsApp: {companyData?.phone || 'Sin contacto'}</p>
                                         </div>
                                     </div>
