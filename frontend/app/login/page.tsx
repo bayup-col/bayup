@@ -46,10 +46,10 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // URL MAESTRA FINAL (RAILWAY RECOVERY - CONFIRMADA)
-      const apiBase = "https://bayup-backend-production.up.railway.app";
+      // URL MAESTRA DEFINITIVA (RAILWAY OS - CONFIRMADA)
+      const apiBase = "https://bayup-os-production.up.railway.app";
       
-      console.log("🚀 Bayup Singularity: Conectando al Núcleo en:", apiBase);
+      console.log("🚀 Bayup Core: Accediendo al sistema en:", apiBase);
       
       const response = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
