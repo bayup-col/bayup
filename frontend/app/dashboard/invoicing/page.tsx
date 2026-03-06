@@ -519,8 +519,8 @@ export default function InvoicingPage() {
                             </div>
                         </div>
 
-                        <div className="flex-1 bg-[#F3F4F6] p-8 lg:p-12 flex items-center justify-center relative overflow-y-auto custom-scrollbar">
-                            <div className="w-full max-w-3xl bg-white shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] rounded-[1.5rem] flex flex-col min-h-[90vh] overflow-hidden relative border border-gray-200 animate-in zoom-in-95 duration-700 z-10 p-12 space-y-10">
+                        <div className="flex-1 bg-[#F3F4F6] p-8 lg:p-12 flex justify-center items-start relative overflow-y-auto custom-scrollbar">
+                            <div className="w-full max-w-3xl bg-white shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] rounded-[1.5rem] flex flex-col min-h-fit overflow-hidden relative border border-gray-200 animate-in zoom-in-95 duration-700 z-10 p-12 space-y-10 my-8">
                                 
                                 {/* HEADER: EMISOR Y DATOS DE FACTURA */}
                                 <div className="flex justify-between items-start border-b-2 border-gray-900 pb-8">
