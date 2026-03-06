@@ -146,25 +146,28 @@ export default function ShippingPage() {
     if (!token) return;
     setLoading(true);
     try {
-        const data = await apiRequest<any[]>('/admin/shipments', { token });
+        // En el Plan Básico, los envíos son pedidos que requieren logística
+        const data = await apiRequest<any[]>('/orders', { token });
         if (data) {
-            const mapped = data.map(s => ({
-                id: s.id,
-                tracking_number: s.tracking_number || 'S/N',
-                order_id: s.order_id,
-                carrier: s.carrier || 'Por asignar',
-                status: s.status as ShippingStatus,
+            const mapped = data.map(o => ({
+                id: o.id.slice(0, 8).toUpperCase(),
+                tracking_number: o.tracking_number || 'PENDIENTE',
+                order_id: o.id,
+                carrier: o.carrier || 'Por definir',
+                status: (o.status === 'pending' ? 'label_generated' : 
+                         o.status === 'processing' ? 'in_transit' :
+                         o.status === 'completed' ? 'delivered' : 'incident') as ShippingStatus,
                 customer: { 
-                    name: s.recipient_name || 'Cliente', 
-                    city: s.destination_address || 'Sin dirección',
-                    phone: s.recipient_phone || '' 
+                    name: o.customer_name || 'Cliente', 
+                    city: o.shipping_address || 'Sin dirección',
+                    phone: o.customer_phone || '' 
                 },
-                last_update: s.updated_at
+                last_update: o.updated_at || new Date().toISOString()
             }));
             setShipments(mapped);
         }
     } catch (e) {
-        showToast("Error al cargar envíos", "error");
+        showToast("Error al cargar logística", "error");
     } finally {
         setLoading(false);
     }
@@ -172,16 +175,20 @@ export default function ShippingPage() {
 
   const handleUpdateStatus = async (shipmentId: string, newStatus: ShippingStatus) => {
     try {
-        await apiRequest(`/admin/shipments/${shipmentId}/status`, {
-            method: 'PATCH',
+        // Mapeamos el estado de envío de vuelta al estado del pedido
+        const orderStatus = newStatus === 'delivered' ? 'completed' : 
+                           newStatus === 'label_generated' ? 'pending' : 'processing';
+
+        await apiRequest(`/orders/${selectedShipment?.order_id}`, {
+            method: 'PUT',
             token,
-            body: JSON.stringify({ status: newStatus })
+            body: JSON.stringify({ status: orderStatus })
         });
-        showToast("Estado actualizado ✨", "success");
+        
+        showToast("Estado logístico actualizado ✨", "success");
         fetchShipments();
-        // Si hay uno seleccionado, actualizarlo también
-        if (selectedShipment?.id === shipmentId) {
-            setSelectedShipment(prev => prev ? { ...prev, status: newStatus } : null);
+        if (selectedShipment) {
+            setSelectedShipment(null);
         }
     } catch (e) {
         showToast("Error al actualizar", "error");
@@ -218,7 +225,7 @@ export default function ShippingPage() {
           icon: <Package size={24}/>, 
           color: 'text-[#004d4d]', 
           bg: 'bg-[#004d4d]/5', 
-          trend: 'Live', 
+          trend: 'En vivo',
           description: 'Volumen total de paquetes bajo gestión logística.',
           details: [
               { l: 'BODEGA', v: `${shipments.filter(s => s.status === 'label_generated').length}`, icon: <Box size={10}/> },
@@ -250,7 +257,7 @@ export default function ShippingPage() {
           icon: <CheckCircle2 size={24}/>, 
           color: 'text-emerald-600', 
           bg: 'bg-emerald-50', 
-          trend: 'Excellent', 
+          trend: 'Excelente', 
           description: 'Ventas finalizadas con entrega exitosa confirmada.',
           details: [
               { l: 'SATISFACCIÓN', v: '4.9/5', icon: <Sparkles size={10}/> },
@@ -455,7 +462,7 @@ export default function ShippingPage() {
                               <motion.div key={activeGuideTab} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-12">
                                   <div className="space-y-6"><div className="flex items-center gap-4 text-slate-900"><div className={`h-16 w-16 rounded-[1.8rem] flex items-center justify-center ${guideContent[activeGuideTab as keyof typeof guideContent].color} bg-white shadow-xl border border-gray-50`}>{guideContent[activeGuideTab as keyof typeof guideContent].icon}</div><div><h2 className="text-4xl font-black text-gray-900 tracking-tighter italic">{guideContent[activeGuideTab as keyof typeof guideContent].title}</h2><p className="text-gray-400 text-xs font-bold tracking-widest mt-1 text-slate-900">Excelencia en operaciones</p></div></div><p className="text-lg font-medium text-gray-600 leading-relaxed max-w-3xl italic text-slate-900">&quot;{guideContent[activeGuideTab as keyof typeof guideContent].description}&quot;</p></div>
                                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"><div className="bg-gray-50 p-8 rounded-[2.5rem] border border-gray-100 flex flex-col justify-between group"><div className="text-slate-900"><h4 className="text-[10px] font-black text-gray-400 tracking-widest mb-6 flex items-center gap-2"><Activity size={12} className="text-[#004D4D]" /> Objetivo estratégico</h4><div className="flex items-end gap-4"><span className="text-6xl font-black italic text-gray-900 tracking-tighter">{guideContent[activeGuideTab as keyof typeof guideContent].kpi.val}</span><div className="mb-2 h-10 w-px bg-gray-200" /><p className="text-[10px] font-bold text-[#004D4D] leading-tight mb-2">{guideContent[activeGuideTab as keyof typeof guideContent].kpi.label}</p></div></div><div className="mt-8 h-2 w-full bg-white rounded-full overflow-hidden border border-gray-100 shadow-inner"><motion.div initial={{ width: 0 }} animate={{ width: '90%' }} className="h-full bg-gradient-to-r from-[#004D4D] to-cyan rounded-full" /></div></div><div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-4"><h4 className="text-[10px] font-black text-gray-400 tracking-widest flex items-center gap-2"><Target size={14} className="text-rose-500" /> ¿Por qué es vital?</h4><p className="text-sm font-medium text-gray-600 leading-relaxed text-slate-900">{guideContent[activeGuideTab as keyof typeof guideContent].whyImportant}</p></div></div>
-                                  <div className="bg-[#001A1A] p-10 rounded-[3rem] text-white relative overflow-hidden isolate"><div className="absolute top-0 right-0 p-8 opacity-5 -z-10 rotate-12"><Bot size={150}/></div><div className="flex items-center gap-4 mb-6"><div className="h-10 w-10 rounded-xl bg-cyan flex items-center justify-center text-[#001A1A] shadow-[0_0_15px_rgba(0,242,255,0.3)]"><Bot size={20} /></div><h4 className="text-xs font-black tracking-[0.2em] text-cyan">Estrategia Bayt AI</h4></div><p className="text-lg font-bold italic leading-tight text-white/90">&quot;{guideContent[activeGuideTab as keyof typeof guideContent].baytTip}&quot;</p><div className="mt-8 flex items-center gap-3"><div className="h-1.5 w-1.5 rounded-full bg-cyan animate-pulse" /><span className="text-[9px] font-black tracking-[0.2em] text-cyan/60">Análisis predictivo de logística v2.0</span></div></div>
+                                  <div className="bg-[#001A1A] p-10 rounded-[3rem] text-white relative overflow-hidden isolate"><div className="absolute top-0 right-0 p-8 opacity-5 -z-10 rotate-12"><Bot size={150}/></div><div className="flex items-center gap-4 mb-6"><div className="h-10 w-10 rounded-xl bg-cyan flex items-center justify-center text-[#001A1A] shadow-[0_0_15px_rgba(0,242,255,0.3)]"><Bot size={20} /></div><h4 className="text-xs font-black tracking-[0.2em] text-cyan">Estrategia Bayt AI</h4></div><p className="text-lg font-bold italic leading-tight text-white/90">&quot;{guideContent[activeGuideTab as keyof typeof guideContent].baytTip}&quot;</p><div className="mt-8 flex items-center gap-3"><div className="h-1.5 w-1.5 rounded-full bg-cyan animate-pulse" /><span className="text-[9px] font-black tracking-[0.2em] text-cyan/60">Análisis predictivo de logística</span></div></div>
                               </motion.div>
                           </AnimatePresence>
                       </div>

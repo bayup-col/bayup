@@ -39,31 +39,33 @@ import {
   Bot,
   FileText,
   ShoppingCart,
-  HelpCircle
+  HelpCircle,
+  Calculator
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { apiRequest } from '@/lib/api';
-import { InteractiveUP } from '@/components/landing/InteractiveUP';
 
 export default function NewProductPage() {
-    const { token, userEmail } = useAuth();
+    const { token, userPlan } = useAuth();
     const { showToast } = useToast();
     const router = useRouter();
     
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [activeTab, setActiveTab] = useState<'info' | 'financial' | 'variants'>('info');
     
-    // Estados para Categorías y Guía
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-    const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
-    const [newCategoryName, setNewCategoryName] = useState("");
     const [categoriesList, setCategoriesList] = useState<any[]>([]);
     
-    // Estados para Tooltips
-    const [showWholesaleTip, setShowWholesaleTip] = useState(false);
-    const [showRetailTip, setShowRetailTip] = useState(false);
-    const [showGatewayTip, setShowGatewayTip] = useState(false);
+    const [isNewVariantModalOpen, setIsNewVariantModalOpen] = useState(false);
+    const [tempVariantName, setTempVariantName] = useState("");
+    const [tempSubVariants, setTempSubVariants] = useState([{ id: '1', spec: '', stock: 0 }]);
+
+    const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+    const [fixedCosts, setFixedCosts] = useState({ payroll: 0, rent: 0, services: 0, others: 0 });
+    const [simulationUnits, setSimulationUnits] = useState(1);
+    const [simulationRetailMargin, setSimulationRetailMargin] = useState(30);
+    const [simulationWholesaleMargin, setSimulationWholesaleMargin] = useState(15);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -78,193 +80,83 @@ export default function NewProductPage() {
         add_gateway_fee: false
     });
 
-    const [variants, setVariants] = useState([
-        { id: Math.random().toString(36).substr(2, 9), name: 'Estándar', sku: '', stock: 0, price_adjustment: 0 }
-    ]);
-
-    const [media, setMedia] = useState<{file?: File, preview: string, type: 'image' | 'video', isMuted: boolean}[]>([]);
+    const [variants, setVariants] = useState<any[]>([]);
+    const [media, setMedia] = useState<{file?: File, preview: string, type: 'image' | 'video'}[]>([]);
     const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
 
-    const [isPriceAssistantOpen, setIsPriceAssistantOpen] = useState(false);
-    const [isAnalyzingBayt, setIsAnalyzingBayt] = useState(false);
-    const [isBaytReportOpen, setIsReportOpen] = useState(false);
-    const [assistantExpenses, setAssistantExpenses] = useState({ payroll: 0, rent: 0, utilities: 0, ops: 0 });
-    const [calcQuantity, setCalcQuantity] = useState(1);
-    const [calcMargin, setCalcMargin] = useState(30);
-    const [calcWholesaleMargin, setCalcWholesaleMargin] = useState(15);
-    const [hasAnalyzed, setHasAnalyzed] = useState(false);
-    const [isNoDataModalOpen, setIsNoDataModalOpen] = useState(false);
-    const [avgTicket, setAvgTicket] = useState(125000);
-    const [platformCommission, setPlatformCommission] = useState(2.5);
+    const totalStock = variants.reduce((acc, v) => acc + (Number(v.stock) || 0), 0) || 1;
+    const bayupRate = 0.035; // 3.5% fija
+    const wompiRate = 0.0285; // 2.85% Wompi
 
-    const handleBaytAnalysis = async () => {
-        if (!token) return;
-        setIsAnalyzingBayt(true);
-        try {
-            const [expenses, orders] = await Promise.all([
-                apiRequest<any[]>('/expenses', { token }).catch(() => []),
-                apiRequest<any[]>('/orders', { token }).catch(() => [])
-            ]);
-            const totals = { payroll: 0, rent: 0, utilities: 0, ops: 0 };
-            const hasRealData = (expenses && expenses.length > 0) || (orders && orders.length > 0);
-            if (!hasRealData) { setIsNoDataModalOpen(true); setIsAnalyzingBayt(false); return; }
-            if (expenses) {
-                expenses.forEach(exp => {
-                    const desc = exp.description?.toLowerCase() || "";
-                    const amount = exp.amount || 0;
-                    if (desc.includes('nómina')) totals.payroll += amount;
-                    else if (desc.includes('arriendo')) totals.rent += amount;
-                    else if (desc.includes('servicio')) totals.utilities += amount;
-                    else totals.ops += amount;
-                });
-            }
-            if (orders && orders.length > 0) {
-                const totalSales = orders.reduce((acc, order) => acc + (order.total_price || 0), 0);
-                setAvgTicket(totalSales / orders.length);
-            }
-            setAssistantExpenses(totals);
-            showToast("Auditoría de Bayt completada ✨", "success");
-            setHasAnalyzed(true);
-        } catch (err) { setIsNoDataModalOpen(true); } finally { setIsAnalyzingBayt(false); }
+    const formatNumber = (val: number) => {
+        if (!val && val !== 0) return "";
+        return new Intl.NumberFormat('de-DE').format(val);
     };
 
-    useEffect(() => {
-        const fetchInitial = async () => {
-            if (!token) return;
-            try {
-                const [cats, userData] = await Promise.all([
-                    apiRequest<any[]>('/collections', { token }),
-                    apiRequest<any>('/auth/me', { token })
-                ]);
-                if (cats) setCategoriesList(cats);
-                if (userData?.plan) setPlatformCommission(userData.plan.commission_rate * 100);
-            } catch (e) {}
+    const handleNumberChange = (val: string, field: string, isFixedCost: boolean = false) => {
+        const rawValue = val.replace(/\./g, '').replace(/[^0-9]/g, '');
+        const numValue = rawValue === '' ? 0 : parseInt(rawValue, 10);
+        
+        if (isFixedCost) {
+            setFixedCosts(prev => ({ ...prev, [field]: numValue }));
+        } else {
+            setFormData(prev => ({ ...prev, [field]: numValue }));
+        }
+    };
+
+    const calculateProfit = (price: number) => {
+        if (!price) return { net: 0, margin: 0, bayupFee: 0, wompiFee: 0 };
+        const bayupFee = price * bayupRate;
+        const wompiFee = price * wompiRate;
+        
+        // Calcular el impacto de los gastos fijos por unidad
+        const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
+        const distributedFixed = totalFixed / (simulationUnits || 1);
+        
+        // Utilidad Neta = Precio - Costo Producto - Gastos Fijos por Unidad - Comisiones
+        const net = price - (formData.cost || 0) - distributedFixed - bayupFee - (formData.add_gateway_fee ? 0 : wompiFee);
+        const margin = price > 0 ? (net / price) * 100 : 0;
+        
+        return { 
+            net: Math.round(net), 
+            margin, 
+            bayupFee: Math.round(bayupFee), 
+            wompiFee: Math.round(formData.add_gateway_fee ? 0 : wompiFee) 
         };
-        fetchInitial();
-    }, [token]);
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        const totalAfterAdding = media.length + files.length;
-
-        if (media.length >= 5) {
-            showToast("Límite de 5 imágenes alcanzado (Plan Básico)", "info");
-            return;
-        }
-
-        if (totalAfterAdding > 5) {
-            showToast("Solo se añadirán las primeras 5 imágenes permitidas", "info");
-        }
-
-        const allowedFiles = files.slice(0, 5 - media.length);
-
-        for (const file of allowedFiles) {
-            setMedia(prev => [...prev, { 
-                file, preview: URL.createObjectURL(file),
-                type: file.type.startsWith('video') ? 'video' : 'image', isMuted: true
-            }]);
-        }
     };
 
-    const handleSave = async () => {
-        if (!formData.name.trim()) return showToast("Nombre obligatorio", "error");
-        setIsSubmitting(true);
-        try {
-            const finalImageUrls: string[] = [];
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-            for (const item of media) {
-                if (item.file) {
-                    const fd = new FormData();
-                    fd.append('file', item.file);
-                    const res = await fetch(`${apiUrl}/admin/upload-image`, {
-                        method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd
-                    });
-                    if (res.ok) { const d = await res.json(); finalImageUrls.push(d.url); }
-                }
-            }
-
-            const payload = {
-                name: formData.name,
-                description: formData.description,
-                price: formData.price,
-                wholesale_price: formData.wholesale_price,
-                cost: formData.cost,
-                collection_id: formData.collection_id,
-                sku: formData.sku,
-                status: formData.status,
-                add_gateway_fee: formData.add_gateway_fee,
-                image_url: finalImageUrls,
-                variants: variants.map(v => ({ 
-                    name: v.name || 'Estándar', 
-                    sku: v.sku, 
-                    stock: Number(v.stock) || 0, 
-                    price_adjustment: Number(v.price_adjustment) || 0 
-                }))
-            };
-
-            await apiRequest('/products', { method: 'POST', token, body: JSON.stringify(payload) });
-            showToast("¡Producto creado con éxito! ✨", "success");
-            router.push('/dashboard/products');
-        } catch (err) { showToast("Error al guardar", "error"); } finally { setIsSubmitting(false); }
+    const recommendedRetail = () => {
+        const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
+        const units = simulationUnits || 1;
+        const costPerUnit = (formData.cost || 0) + (totalFixed / units);
+        
+        const marginDecimal = simulationRetailMargin / 100;
+        const gatewayDecimal = formData.add_gateway_fee ? 0 : wompiRate;
+        const divisor = 1 - marginDecimal - bayupRate - gatewayDecimal;
+        
+        if (divisor <= 0) return 0;
+        return Math.ceil((costPerUnit / divisor) / 100) * 100;
     };
 
-    const handleCreateCategory = async () => {
-        if (!newCategoryName.trim() || !token) return;
-        try {
-            const data = await apiRequest<any>('/collections', {
-                method: 'POST', token,
-                body: JSON.stringify({ title: newCategoryName.trim(), description: "Creada desde el editor", status: 'active' })
-            });
-            if (data) {
-                setCategoriesList(prev => [...prev, data]);
-                setFormData(prev => ({...prev, category: data.title, collection_id: data.id}));
-                setNewCategoryName("");
-                setIsNewCategoryModalOpen(false);
-                setIsCategoryOpen(false);
-                showToast("Categoría creada con éxito", "success");
-            }
-        } catch (err) { showToast("Error al crear categoría", "error"); }
+    const recommendedWholesale = () => {
+        const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
+        const units = simulationUnits || 1;
+        const costPerUnit = (formData.cost || 0) + (totalFixed / units);
+        
+        const marginDecimal = simulationWholesaleMargin / 100;
+        const gatewayDecimal = formData.add_gateway_fee ? 0 : wompiRate;
+        const divisor = 1 - marginDecimal - bayupRate - gatewayDecimal;
+        
+        if (divisor <= 0) return 0;
+        return Math.ceil((costPerUnit / divisor) / 100) * 100;
     };
 
-    // Helpers de Secuencia de Variantes
-    const getNextVariantValue = (currentValue: string) => {
-        const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
-        const currentSize = currentValue?.toUpperCase() || "";
-        const sizeIndex = sizes.indexOf(currentSize);
-        if (sizeIndex !== -1 && sizeIndex < sizes.length - 1) return sizes[sizeIndex + 1];
-        const num = parseInt(currentValue);
-        if (!isNaN(num)) return String(num + 1);
-        return "";
-    };
-
-    const addSequentialVariant = (index: number) => {
-        const source = variants[index];
-        const nextValue = getNextVariantValue(source.sku);
-        const newVariant = {
-            id: Math.random().toString(36).substr(2, 9),
-            name: source.name,
-            sku: nextValue,
-            stock: 0,
-            price_adjustment: 0
-        };
-        const newVariants = [...variants];
-        newVariants.splice(index + 1, 0, newVariant);
-        setVariants(newVariants);
-    };
-
-    // Mapeo de colores para reconocimiento automático
     const colorMap: { [key: string]: string } = {
-        'rojo': '#FF0000', 'red': '#FF0000',
-        'azul': '#0000FF', 'blue': '#0000FF',
-        'verde': '#008000', 'green': '#008000',
-        'negro': '#000000', 'black': '#000000',
-        'blanco': '#FFFFFF', 'white': '#FFFFFF',
-        'amarillo': '#FFFF00', 'yellow': '#FFFFFF',
-        'gris': '#808080', 'gray': '#808080',
-        'naranja': '#FFA500', 'orange': '#FFA500',
-        'morado': '#800080', 'purple': '#800080',
-        'rosa': '#FFC0CB', 'pink': '#FFC0CB',
+        'rojo': '#FF0000', 'red': '#FF0000', 'azul': '#0000FF', 'blue': '#0000FF',
+        'verde': '#008000', 'green': '#008000', 'negro': '#000000', 'black': '#000000',
+        'blanco': '#FFFFFF', 'white': '#FFFFFF', 'amarillo': '#FFFF00', 'yellow': '#FFFFFF',
+        'gris': '#808080', 'gray': '#808080', 'naranja': '#FFA500', 'orange': '#FFA500',
+        'morado': '#800080', 'purple': '#800080', 'rosa': '#FFC0CB', 'pink': '#FFC0CB',
         'cian': '#00FFFF', 'cyan': '#00F2FF'
     };
 
@@ -272,58 +164,156 @@ export default function NewProductPage() {
         const lower = val?.toLowerCase().trim() || "";
         if (colorMap[lower]) return colorMap[lower];
         if (/^#[0-9A-F]{6}$/i.test(lower)) return lower;
-        return '#000000'; // Default
+        return '#000000';
     };
 
-    // Cálculos Financieros
-    const platformFeeRate = 0.025; // 2.5% fijo para Plan Básico
-    const gatewayFeeRate = 0.035; // 3.5% si el usuario activa el traslado al cliente
+    useEffect(() => {
+        const fetchInitial = async () => {
+            if (!token) return;
+            try {
+                const cats = await apiRequest<any[]>('/collections', { token });
+                if (cats) setCategoriesList(cats);
+            } catch (e) {}
+        };
+        fetchInitial();
+    }, [token]);
 
-    const platformDeductionUser = formData.price * platformFeeRate;
-    const gatewayDeductionUser = formData.add_gateway_fee ? 0 : (formData.price * gatewayFeeRate);
-    const profitUser = formData.price - formData.cost - platformDeductionUser - gatewayDeductionUser;
-    const marginUser = formData.price > 0 ? (profitUser / formData.price) * 100 : 0;
+    const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState("");
 
-    const platformDeductionWholesale = formData.wholesale_price * platformFeeRate;
-    const gatewayDeductionWholesale = formData.add_gateway_fee ? 0 : (formData.wholesale_price * gatewayFeeRate);
-    const profitWholesale = formData.wholesale_price - formData.cost - platformDeductionWholesale - gatewayDeductionWholesale;
-    const marginWholesale = formData.wholesale_price > 0 ? (profitWholesale / formData.wholesale_price) * 100 : 0;
-
-    const formatValue = (val: number | string) => {
-        const num = String(val).replace(/\D/g, "");
-        return new Intl.NumberFormat("de-DE").format(Number(num));
+    const handleCreateCategory = async () => {
+        if (!newCategoryName.trim()) return;
+        try {
+            const res = await apiRequest<any>('/collections', {
+                method: 'POST',
+                token,
+                body: JSON.stringify({ title: newCategoryName, description: 'Creada desde producto' })
+            });
+            if (res) {
+                setCategoriesList(prev => [...prev, res]);
+                setFormData({ ...formData, category: res.title, collection_id: res.id });
+                setIsNewCategoryModalOpen(false);
+                setNewCategoryName("");
+                setIsCategoryOpen(false);
+                showToast("Categoría creada", "success");
+            }
+        } catch (e) {
+            showToast("Error al crear categoría", "error");
+        }
     };
 
-    const parseValue = (val: string) => {
-        const cleaned = String(val).replace(/\./g, "");
-        return cleaned === "" ? 0 : Number(cleaned);
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (media.length >= 5) return showToast("Límite de 5 imágenes", "info");
+        for (const file of files.slice(0, 5 - media.length)) {
+            setMedia(prev => [...prev, { file, preview: URL.createObjectURL(file), type: 'image' }]);
+        }
     };
 
-    // Lógica de Cálculo Asistente
-    const currentGatewayRate = 0.035; // 3.5%
-    const totalFixedExpenses = assistantExpenses.payroll + assistantExpenses.rent + assistantExpenses.utilities + assistantExpenses.ops;
-    const expensePerUnit = calcQuantity > 0 ? totalFixedExpenses / calcQuantity : 0;
-    const totalUnitCost = formData.cost + expensePerUnit;
-    
-    const suggestedPrice = totalUnitCost / (1 - (calcMargin / 100) - (platformCommission / 100) - (formData.add_gateway_fee ? 0 : currentGatewayRate));
-    const profitPerUnit = suggestedPrice - totalUnitCost - (suggestedPrice * (platformCommission / 100)) - (formData.add_gateway_fee ? 0 : suggestedPrice * currentGatewayRate);
-    
-    const suggestedWholesale = totalUnitCost / (1 - (calcWholesaleMargin / 100) - (platformCommission / 100) - (formData.add_gateway_fee ? 0 : currentGatewayRate));
-    const profitWholesalePerUnit = suggestedWholesale - totalUnitCost - (suggestedWholesale * (platformCommission / 100)) - (formData.add_gateway_fee ? 0 : suggestedWholesale * currentGatewayRate);
-    
-    const marginPerUnit = suggestedPrice - formData.cost - (suggestedPrice * (platformCommission / 100)) - (formData.add_gateway_fee ? 0 : suggestedPrice * currentGatewayRate);
-    const breakEvenUnits = marginPerUnit > 0 ? Math.ceil(totalFixedExpenses / marginPerUnit) : 0;
+    const handleSave = async () => {
+        if (!formData.name.trim()) return showToast("Nombre obligatorio", "error");
+        setIsSubmitting(true);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            
+            // Subir todas las imágenes en paralelo con validación estricta
+            const uploadPromises = media.map(async (item) => {
+                if (item.file) {
+                    const fd = new FormData();
+                    fd.append('file', item.file);
+                    try {
+                        const res = await fetch(`${apiUrl}/admin/upload-image`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` },
+                            body: fd
+                        });
+                        if (res.ok) {
+                            const d = await res.json();
+                            return d.url;
+                        }
+                    } catch (e) {
+                        console.error("Error subiendo imagen:", e);
+                    }
+                }
+                return null;
+            });
+
+            const uploadedUrls = await Promise.all(uploadPromises);
+            const finalImageUrls = uploadedUrls.filter((url): url is string => url !== null && url !== undefined);
+
+            if (media.length > 0 && finalImageUrls.length === 0) {
+                showToast("Error al procesar las imágenes", "error");
+                setIsSubmitting(false);
+                return;
+            }
+
+            const payload = { 
+                ...formData, 
+                image_url: finalImageUrls, 
+                variants: variants.map(v => ({ 
+                    name: v.name, 
+                    sku: v.sku || '', 
+                    stock: Number(v.stock) || 0 
+                })) 
+            };
+
+            await apiRequest('/products', { method: 'POST', token, body: JSON.stringify(payload) });
+            window.dispatchEvent(new CustomEvent('bayup_product_update'));
+            showToast("Producto creado ✨", "success");
+            router.push('/dashboard/products');
+        } catch (err) { 
+            showToast("Error al guardar el producto", "error"); 
+        } finally { 
+            setIsSubmitting(false); 
+        }
+    };
+
+    const [editingMasterName, setEditingMasterName] = useState<string | null>(null);
+
+    const handleEditAttribute = (masterName: string) => {
+        setEditingMasterName(masterName);
+        const masterVariants = variants.filter(v => v.name.startsWith(masterName));
+        setTempVariantName(masterName);
+        setTempSubVariants(masterVariants.map(v => ({
+            id: v.id || Math.random().toString(36).substr(2, 9),
+            spec: v.name.split('/')[1]?.trim() || v.name,
+            stock: v.stock
+        })));
+        setIsNewVariantModalOpen(true);
+    };
+
+    const handleSaveMatrixAttributes = () => {
+        if (!tempVariantName.trim()) return;
+        
+        // Si estábamos editando, removemos los antiguos primero
+        let newVariants = editingMasterName 
+            ? variants.filter(v => !v.name.startsWith(editingMasterName))
+            : [...variants];
+
+        const newCombs = tempSubVariants.filter(sv => sv.spec.trim() !== '').map(sv => ({
+            id: sv.id,
+            name: `${tempVariantName} / ${sv.spec}`,
+            sku: '',
+            stock: sv.stock
+        }));
+
+        setVariants([...newVariants, ...newCombs]);
+        setIsNewVariantModalOpen(false);
+        setTempVariantName("");
+        setTempSubVariants([{ id: '1', spec: '', stock: 0 }]);
+        setEditingMasterName(null);
+    };
 
     return (
-        <div className="fixed inset-0 z-[1000] bg-white flex flex-col lg:flex-row overflow-hidden text-slate-900">
-            <motion.button whileHover={{ scale: 1.1, rotate: 90 }} onClick={() => router.back()} className="absolute top-8 right-8 z-[1010] h-12 w-12 flex items-center justify-center rounded-full bg-gray-900/10 backdrop-blur-md border border-white/20 text-gray-500 hover:text-rose-500 shadow-lg"><X size={20} /></motion.button>
+        <div className="fixed inset-0 z-[1000] bg-white flex flex-col lg:flex-row overflow-hidden text-slate-900 font-sans">
+            <motion.button whileHover={{ scale: 1.1, rotate: 90 }} onClick={() => router.back()} className="absolute top-8 right-8 z-[1010] h-12 w-12 flex items-center justify-center rounded-full bg-gray-900/10 backdrop-blur-md text-gray-500 shadow-lg"><X size={20} /></motion.button>
 
-            <motion.div initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="w-full lg:w-[55%] h-full flex flex-col bg-[#FAFAFA] border-r border-gray-100 overflow-y-auto custom-scrollbar p-12 lg:p-20 space-y-12 text-slate-900">
+            <div className="w-full lg:w-[55%] h-full flex flex-col bg-[#FAFAFA] border-r border-gray-100 overflow-y-auto custom-scrollbar p-12 lg:p-20 space-y-12">
                 <header className="flex flex-col md:flex-row items-center justify-between gap-8">
-                    <div><h2 className="text-4xl font-black italic uppercase text-[#001A1A] tracking-tighter leading-none">Crear <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF]">Producto</span></h2></div>
+                    <h2 className="text-4xl font-black italic uppercase tracking-tighter">Crear <span className="text-[#004D4D]">Producto</span></h2>
                     <div className="flex gap-2 p-1 bg-white border border-gray-100 rounded-full shadow-lg">
                         {(['info', 'financial', 'variants'] as const).map((tab) => (
-                            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-[#004D4D] text-white shadow-md' : 'text-gray-400 hover:text-[#004D4D]'}`}>{tab === 'info' ? 'Información' : tab === 'financial' ? 'Finanzas' : 'Variantes'}</button>
+                            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-[#004D4D] text-white' : 'text-gray-400 hover:text-[#004D4D]'}`}>{tab === 'info' ? 'Información' : tab === 'financial' ? 'Finanzas' : 'Variantes'}</button>
                         ))}
                     </div>
                 </header>
@@ -331,440 +321,620 @@ export default function NewProductPage() {
                 <AnimatePresence mode="wait">
                     {activeTab === 'info' && (
                         <motion.div key="info" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-10">
-                            <section className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                <div className="space-y-6">
-                                    <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">TÍTULO DEL PRODUCTO</label><input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Ej: Camiseta Urban" className="w-full px-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner" /></div>
-                                    <div className="grid grid-cols-2 gap-8">
-                                        <div className="space-y-2 relative"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Categoría</label><button type="button" onClick={() => setIsCategoryOpen(!isCategoryOpen)} className="w-full px-6 py-5 bg-gray-50 rounded-2xl text-left text-sm font-bold shadow-inner flex items-center justify-between"><span className={formData.category ? "text-[#004D4D]" : "text-gray-300"}>{formData.category || "Seleccionar..."}</span><ChevronDown size={16} /></button>
-                                            <AnimatePresence>
-                                                {isCategoryOpen && (
-                                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border z-[110] p-2 text-slate-900">
-                                                        <div className="max-h-[200px] overflow-y-auto no-scrollbar">
-                                                            {categoriesList.map(cat => (
-                                                                <button 
-                                                                    key={cat.id} 
-                                                                    type="button"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setFormData({...formData, category: cat.title, collection_id: cat.id}); 
-                                                                        setIsCategoryOpen(false); 
-                                                                    }} 
-                                                                    className="w-full text-left px-5 py-3 rounded-xl text-xs font-black uppercase text-slate-500 hover:bg-slate-50 transition-all"
-                                                                >
-                                                                    {cat.title}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setIsNewCategoryModalOpen(true);
-                                                                setIsCategoryOpen(false);
-                                                            }} 
-                                                            className="w-full mt-2 py-3 bg-[#004D4D]/5 text-[#004D4D] rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#004D4D] hover:text-white transition-all shadow-sm"
-                                                        >
-                                                            + Nueva Categoría
-                                                        </button>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </div>
-                                        <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Estado</label><div className="flex bg-gray-50 p-1 rounded-2xl shadow-inner h-[60px]"><button onClick={() => setFormData({...formData, status: 'active'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase transition-all ${formData.status === 'active' ? 'bg-[#004D4D] text-white shadow-md' : 'text-gray-400'}`}>Activo</button><button onClick={() => setFormData({...formData, status: 'draft'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase transition-all ${formData.status === 'draft' ? 'bg-[#004D4D] text-white shadow-md' : 'text-gray-400'}`}>Borrador</button></div></div>
-                                    </div>
-                                    <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Descripción</label><textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows={5} placeholder="Describe tu activo comercial..." className="w-full px-6 py-6 bg-gray-50 border border-transparent rounded-[2.5rem] outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-medium shadow-inner transition-all resize-none" /></div>
+                            <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">TÍTULO</label>
+                                    <input 
+                                        value={formData.name} 
+                                        onChange={e => setFormData({...formData, name: e.target.value})} 
+                                        className="w-full p-5 bg-gray-50 rounded-2xl outline-none font-bold placeholder:text-gray-300 transition-all focus:bg-white" 
+                                        placeholder="Ej: Camiseta Oversize de Algodón Premium"
+                                    />
                                 </div>
-                            </section>
-                            <section className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                <div className="flex items-center justify-between text-slate-900"><h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><ImageIcon size={18} /> Galería Multimedia</h3><span className="text-[9px] font-black text-gray-400 uppercase bg-gray-50 px-3 py-1 rounded-lg">Arrastra para ordenar</span></div>
-                                <Reorder.Group axis="x" values={media} onReorder={setMedia} className="flex flex-wrap gap-4 text-slate-900">
+                                <div className="grid grid-cols-2 gap-8">
+                                    <div className="space-y-2 relative"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Categoría</label><button onClick={() => setIsCategoryOpen(!isCategoryOpen)} className="w-full p-5 bg-gray-50 rounded-2xl text-left text-sm font-bold flex items-center justify-between"><span>{formData.category || "Seleccionar..."}</span><ChevronDown size={16} /></button>
+                                        <AnimatePresence>
+                                            {isCategoryOpen && (
+                                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border z-[110] p-2 overflow-hidden">
+                                                    <div className="max-h-[250px] overflow-y-auto no-scrollbar">
+                                                        {categoriesList.map(cat => (
+                                                            <button key={cat.id} onClick={() => { setFormData({...formData, category: cat.title, collection_id: cat.id}); setIsCategoryOpen(false); }} className="w-full text-left px-5 py-3 rounded-xl text-[9px] font-black uppercase text-slate-500 hover:bg-slate-50 hover:text-[#004D4D] transition-colors">
+                                                                {cat.title}
+                                                            </button>
+                                                        ))}
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); setIsNewCategoryModalOpen(true); setIsCategoryOpen(false); }}
+                                                            className="w-full text-left px-5 py-4 mt-2 rounded-xl text-[9px] font-black uppercase bg-[#004D4D]/5 text-[#004D4D] border border-dashed border-[#004D4D]/20 hover:bg-[#004D4D] hover:text-white transition-all flex items-center gap-2"
+                                                        >
+                                                            <Plus size={12}/> Crear nueva categoría
+                                                        </button>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                    <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Estado</label><div className="flex bg-gray-50 p-1 rounded-2xl h-[60px]"><button onClick={() => setFormData({...formData, status: 'active'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase ${formData.status === 'active' ? 'bg-[#004D4D] text-white' : 'text-gray-400'}`}>Activo</button><button onClick={() => setFormData({...formData, status: 'draft'})} className={`flex-1 rounded-xl text-[9px] font-black uppercase ${formData.status === 'draft' ? 'bg-[#004D4D] text-white' : 'text-gray-400'}`}>Borrador</button></div></div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Descripción</label>
+                                    <textarea 
+                                        value={formData.description} 
+                                        onChange={e => setFormData({...formData, description: e.target.value})} 
+                                        rows={5} 
+                                        className="w-full p-6 bg-gray-50 rounded-[2.5rem] outline-none text-sm font-medium resize-none placeholder:text-gray-300 transition-all focus:bg-white" 
+                                        placeholder="Describe los materiales, la talla que usa el modelo y los detalles que hacen único a este producto..."
+                                    />
+                                </div>
+                            </div>
+                            <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1"><h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><ImageIcon size={18} /> Multimedia</h3><p className="text-[9px] font-bold text-gray-400 uppercase ml-8">Capacidad: <span className="text-[#004D4D]">{media.length} / 5</span> archivos</p></div>
+                                </div>
+                                <Reorder.Group axis="x" values={media} onReorder={setMedia} className="flex flex-wrap gap-4">
                                     {media.map((item, i) => (
-                                        <Reorder.Item key={item.preview} value={item} whileDrag={{ scale: 1.05 }} className="group relative h-32 w-32 rounded-2xl overflow-hidden bg-gray-100 border shadow-sm cursor-grab active:cursor-grabbing">
-                                            <img src={item.preview} className="w-full h-full object-cover pointer-events-none" alt="Preview" />
-                                            {i === 0 && <div className="absolute top-2 left-2 px-2 py-0.5 bg-[#4fffcb] text-[#004D4D] text-[7px] font-black uppercase rounded-md shadow-sm z-10">Principal</div>}
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20"><button type="button" onClick={() => setMedia(media.filter((_, idx) => idx !== i))} className="h-8 w-8 bg-rose-500 text-white rounded-xl flex items-center justify-center shadow-lg"><Trash2 size={14}/></button></div>
-                                            <div className="absolute bottom-2 right-2 h-6 w-6 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center text-white/60"><GripVertical size={12} /></div>
+                                        <Reorder.Item key={item.preview} value={item} className="group relative h-32 w-32 rounded-3xl overflow-hidden border-2 border-white shadow-xl cursor-grab">
+                                            <img src={item.preview} className="w-full h-full object-cover" />
+                                            <button onClick={() => setMedia(media.filter((_, idx) => idx !== i))} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><Trash2 size={16}/></button>
+                                            {i === 0 && <div className="absolute top-2 left-2 px-2 py-1 bg-[#00F2FF] text-[#004D4D] text-[7px] font-black uppercase rounded-lg shadow-lg">Principal</div>}
                                         </Reorder.Item>
                                     ))}
                                     {media.length < 5 && (
-                                        <label className="h-40 w-40 rounded-3xl border-2 border-dashed border-[#004D4D]/10 bg-gray-50/50 flex flex-col items-center justify-center gap-3 hover:border-[#00F2FF] hover:bg-white hover:shadow-2xl hover:shadow-cyan/10 cursor-pointer transition-all group relative overflow-hidden">
-                                            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-[#00F2FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            <div className="h-12 w-12 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center group-hover:scale-110 group-hover:bg-[#004D4D] group-hover:text-white transition-all duration-500">
-                                                <Plus size={24} className="group-hover:rotate-90 transition-transform duration-500"/>
-                                            </div>
-                                            <div className="flex flex-col items-center">
-                                                <span className="text-[10px] font-black text-gray-400 group-hover:text-[#004D4D] tracking-widest uppercase transition-colors">Añadir Foto</span>
-                                                <span className="text-[8px] font-bold text-gray-300 group-hover:text-cyan tracking-widest uppercase transition-colors">Máx. 5 MB</span>
+                                        <label className="h-32 w-32 rounded-3xl border-2 border-dashed border-[#00F2FF]/40 bg-[#00F2FF]/5 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#00F2FF] hover:bg-[#00F2FF]/10 group transition-all">
+                                            <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-all"><Plus size={20} className="text-[#004D4D]"/></div>
+                                            <div className="text-center">
+                                                <span className="text-[8px] font-black text-[#004D4D] uppercase block">Subir</span>
+                                                <span className="text-[7px] font-bold text-[#004D4D]/40 uppercase">Máx. 5 archivos</span>
                                             </div>
                                             <input type="file" className="hidden" multiple onChange={handleFileUpload} />
                                         </label>
                                     )}
                                 </Reorder.Group>
-                            </section>
+                            </div>
                         </motion.div>
                     )}
 
                     {activeTab === 'financial' && (
-                        <motion.div key="financial" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-8">
-                            <section className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                                    <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Costo</label><div className="relative"><span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 font-bold">$</span><input type="text" value={formatValue(formData.cost)} onChange={e => setFormData({...formData, cost: Number(e.target.value.replace(/\D/g, ''))})} className="w-full pl-12 pr-6 py-5 bg-gray-50 rounded-2xl outline-none text-base font-black border border-transparent focus:border-[#004D4D]/20 focus:bg-white" /></div></div>
-                                    <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center gap-4 text-emerald-800 text-[9px] font-medium leading-tight h-[110px] mt-6"><ShieldCheck size={16}/> ¿Cuánto te cuesta a ti el producto?</div>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio Mayorista</label>
-                                            <div className="relative">
-                                                <HelpCircle 
-                                                    size={14} 
-                                                    className="text-gray-300 cursor-help hover:text-[#004D4D] transition-colors"
-                                                    onMouseEnter={() => setShowWholesaleTip(true)}
-                                                    onMouseLeave={() => setShowWholesaleTip(false)}
-                                                />
-                                                <AnimatePresence>
-                                                    {showWholesaleTip && (
-                                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute bottom-full left-0 mb-2 w-48 p-3 bg-gray-900 text-white text-[9px] font-bold rounded-xl shadow-2xl z-50 uppercase leading-relaxed">
-                                                            ¿En cuánto se lo venderás a un mayorista?
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                            </div>
-                                        </div>
-                                        <div className="relative"><span className="absolute left-6 top-1/2 -translate-y-1/2 text-cyan-600 font-black">$</span><input type="text" value={formatValue(formData.wholesale_price)} onChange={e => setFormData({...formData, wholesale_price: Number(e.target.value.replace(/\D/g, ''))})} className="w-full pl-12 pr-6 py-5 bg-cyan-50/30 rounded-2xl outline-none text-xl font-black text-cyan-700 border border-transparent focus:border-cyan-200" /></div>
-                                    </div>
-                                    <motion.div layout className="bg-[#004D4D] rounded-[2.5rem] p-8 text-white relative overflow-hidden h-[110px] mt-6 flex flex-col justify-center border border-white/5 shadow-lg">
-                                        <div className="absolute top-6 right-8"><span className="text-xl font-black text-white">{marginWholesale.toFixed(1)}%</span></div>
-                                        <p className="text-[7px] font-black text-cyan-400 uppercase mb-1">Utilidad Mayorista</p>
-                                        <span className="text-2xl font-black leading-none">${Math.round(profitWholesale).toLocaleString('de-DE')}</span>
-                                        <div className="mt-2 flex items-center gap-2 text-white">
-                                            <div className="h-1 w-1 rounded-full bg-[#00F2FF] animate-pulse"></div>
-                                            <span className="text-[8px] font-bold text-cyan-300 uppercase tracking-widest text-white">Comisión Bayup: -${Math.round(platformDeductionWholesale).toLocaleString()}</span>
-                                        </div>
-                                    </motion.div>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio Usuario Final</label>
-                                            <div className="relative">
-                                                <HelpCircle 
-                                                    size={14} 
-                                                    className="text-gray-300 cursor-help hover:text-[#004D4D] transition-colors"
-                                                    onMouseEnter={() => setShowRetailTip(true)}
-                                                    onMouseLeave={() => setShowRetailTip(false)}
-                                                />
-                                                <AnimatePresence>
-                                                    {showRetailTip && (
-                                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute bottom-full left-0 mb-2 w-48 p-3 bg-gray-900 text-white text-[9px] font-bold rounded-xl shadow-2xl z-50 uppercase leading-relaxed">
-                                                            ¿En cuánto se lo venderás a tus clientes en general?
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                            </div>
-                                        </div>
-                                        <div className="relative"><span className="absolute left-6 top-1/2 -translate-y-1/2 text-[#004D4D] font-black">$</span><input type="text" value={formatValue(formData.price)} onChange={e => setFormData({...formData, price: Number(e.target.value.replace(/\D/g, ''))})} className="w-full pl-12 pr-6 py-5 bg-[#004D4D]/5 rounded-2xl outline-none text-2xl font-black text-[#004D4D] border border-transparent focus:border-[#004D4D]/20" /></div>
-                                    </div>
-                                    <motion.div layout className="bg-[#001A1A] rounded-[2.5rem] p-8 text-white relative overflow-hidden border border-white/5 shadow-2xl h-[110px] mt-6 flex flex-col justify-center text-white">
-                                        <div className="absolute top-6 right-8"><span className="text-xl font-black text-white">{marginUser.toFixed(1)}%</span></div>
-                                        <div className="relative z-10 text-white">
-                                            <p className="text-[7px] font-black text-[#00F2FF] uppercase mb-1">Utilidad Final</p>
-                                            <span className="text-2xl font-black leading-none">${Math.round(profitUser).toLocaleString('de-DE')}</span>
-                                            <div className="mt-2 flex items-center gap-2 text-white">
-                                                <div className="h-1 w-1 rounded-full bg-[#00F2FF]"></div>
-                                                <span className="text-[8px] font-bold text-[#00F2FF] uppercase tracking-widest text-white">Comisión Bayup: -${Math.round(platformDeductionUser).toLocaleString()}</span>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                </div>
-                                <div className="pt-8 border-t border-gray-100 space-y-8">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center text-slate-900">
-                                        <label className="flex items-center gap-4 p-6 bg-gray-50 rounded-[2rem] cursor-pointer transition-all hover:bg-white border border-transparent hover:border-[#004D4D]/10 group relative isolate">
-                                            <div className="relative h-6 w-11 bg-gray-200 rounded-full transition-colors group-has-[:checked]:bg-[#004D4D] flex items-center px-1">
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={formData.add_gateway_fee} 
-                                                    onChange={e => setFormData({...formData, add_gateway_fee: e.target.checked})} 
-                                                    className="peer hidden" 
-                                                />
-                                                <motion.div 
-                                                    animate={{ x: formData.add_gateway_fee ? 20 : 0 }}
-                                                    className="h-4 w-4 bg-white rounded-full shadow-sm"
-                                                />
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] font-black uppercase text-[#004D4D] tracking-widest">Sumar costo de recaudo digital</span>
-                                                <span className="text-[8px] font-bold text-gray-400 uppercase">Traslada el costo financiero al cliente</span>
-                                            </div>
-                                            <div className="relative ml-auto">
-                                                <HelpCircle 
-                                                    size={14} 
-                                                    className="text-gray-300 cursor-help hover:text-[#004D4D] transition-colors"
-                                                    onMouseEnter={() => setShowGatewayTip(true)}
-                                                    onMouseLeave={() => setShowGatewayTip(false)}
-                                                />
-                                                <AnimatePresence>
-                                                    {showGatewayTip && (
-                                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute bottom-full right-0 mb-2 w-64 p-4 bg-gray-900 text-white text-[9px] font-bold rounded-2xl shadow-2xl z-50 uppercase leading-relaxed text-right">
-                                                            Este es el costo que cobran los bancos y plataformas por procesar pagos con tarjeta o transferencias (3.5% + $900). Si lo activas, el cliente pagará este valor adicional.
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                            </div>
-                                        </label>
-                                        <div className="flex items-center justify-between px-8 py-6 bg-[#004D4D]/5 rounded-[2rem] border border-[#004D4D]/10">
-                                            <div className="flex flex-col">
-                                                <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Soporte Financiero</span>
-                                                <span className="text-[10px] font-black text-[#004D4D] uppercase">Operación Verificada</span>
-                                            </div>
-                                            <ShieldCheck size={20} className="text-[#004D4D]/30" />
-                                        </div>
-                                    </div>
-                                    <div className="p-10 bg-[#004D4D]/5 rounded-[3rem] border border-dashed border-[#004D4D]/20 flex justify-between items-center text-slate-900">
-                                        <div className="space-y-1"><p className="text-sm font-black text-[#004D4D] uppercase">¿Necesitas ayuda con el precio?</p><p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Bayt AI calcula el valor perfecto.</p></div>
-                                        <button type="button" onClick={() => setIsPriceAssistantOpen(true)} className="px-10 py-4 bg-[#004D4D] text-[#4fffcb] rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl">Encontrar mi precio</button>
+                        <motion.div key="financial" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-12 pb-20">
+                            
+                            {/* FILA 1: COSTO */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-end">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">COSTO</label>
+                                    <div className="relative h-[110px]">
+                                        <span className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">$</span>
+                                        <input 
+                                            type="text" 
+                                            value={formatNumber(formData.cost)} 
+                                            onChange={e => handleNumberChange(e.target.value, 'cost')} 
+                                            onFocus={() => { if(formData.cost === 0) setFormData({...formData, cost: '' as any}) }}
+                                            onBlur={() => { if(!formData.cost) setFormData({...formData, cost: 0}) }}
+                                            className="w-full h-full pl-14 pr-10 bg-gray-50 border-2 border-gray-200 rounded-[2rem] focus:bg-white focus:border-[#004D4D]/20 outline-none font-black text-xl transition-all" 
+                                            placeholder="0" 
+                                        />
                                     </div>
                                 </div>
-                            </section>
+                                <div className="relative group/cost">
+                                    <div className="bg-emerald-50/50 h-[110px] p-8 rounded-[2rem] border-2 border-emerald-100/50 flex items-center gap-4 transition-all hover:bg-emerald-100/30">
+                                        <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                                            <ShieldCheck size={20}/>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-[10px] font-bold text-emerald-700/60 uppercase tracking-widest">Valor base de inversión real.</p>
+                                            <div className="p-1 rounded-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors cursor-help">
+                                                <HelpCircle size={10} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Tooltip Costo */}
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-64 p-4 bg-gray-900 text-white text-[10px] rounded-2xl opacity-0 group-hover/cost:opacity-100 pointer-events-none transition-opacity shadow-2xl z-[100]">
+                                        <p className="font-bold text-emerald-400 mb-1 uppercase tracking-widest">¿Qué es el Costo?</p>
+                                        <p className="text-gray-300 leading-relaxed">Es el monto neto que te cuesta adquirir o fabricar una unidad. Es la base para calcular cuánto debes cobrar para tener ganancias.</p>
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* FILA 2: MAYORISTA */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-end">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">PRECIO MAYORISTA</label>
+                                    <div className="relative h-[110px]">
+                                        <span className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">$</span>
+                                        <input 
+                                            type="text" 
+                                            value={formatNumber(formData.wholesale_price)} 
+                                            onChange={e => handleNumberChange(e.target.value, 'wholesale_price')} 
+                                            onFocus={() => { if(formData.wholesale_price === 0) setFormData({...formData, wholesale_price: '' as any}) }}
+                                            onBlur={() => { if(!formData.wholesale_price) setFormData({...formData, wholesale_price: 0}) }}
+                                            className="w-full h-full pl-14 pr-10 bg-gray-50 border-2 border-gray-200 rounded-[2rem] focus:bg-white focus:border-[#004D4D]/20 outline-none font-black text-xl transition-all" 
+                                            placeholder="0" 
+                                        />
+                                    </div>
+                                </div>
+                                <div className="bg-[#002D2D] h-[110px] px-10 rounded-[2rem] text-white flex justify-between items-center shadow-2xl relative overflow-hidden group">
+                                    <div className="relative z-10">
+                                        <p className="text-[8px] font-black text-cyan-400 uppercase tracking-widest mb-1">UTILIDAD MAYORISTA</p>
+                                        <h4 className="text-4xl font-black leading-none">${calculateProfit(formData.wholesale_price).net.toLocaleString('de-DE')}</h4>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <div className="h-1 w-1 rounded-full bg-cyan-400" />
+                                            <p className="text-[8px] font-bold text-gray-400 uppercase">Bayup: -${calculateProfit(formData.wholesale_price).bayupFee.toLocaleString('de-DE')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right relative z-10">
+                                        <span className="text-xl font-black italic opacity-80">{calculateProfit(formData.wholesale_price).margin.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform"><TrendingUp size={80}/></div>
+                                </div>
+                            </div>
+
+                            {/* FILA 3: FINAL */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-end">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">PRECIO FINAL (UNIDAD)</label>
+                                    <div className="relative h-[110px]">
+                                        <span className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xl">$</span>
+                                        <input 
+                                            type="text" 
+                                            value={formatNumber(formData.price)} 
+                                            onChange={e => handleNumberChange(e.target.value, 'price')} 
+                                            onFocus={() => { if(formData.price === 0) setFormData({...formData, price: '' as any}) }}
+                                            onBlur={() => { if(!formData.price) setFormData({...formData, price: 0}) }}
+                                            className="w-full h-full pl-14 pr-10 bg-gray-50 border-2 border-gray-200 rounded-[2rem] focus:bg-white focus:border-[#004D4D]/20 outline-none font-black text-xl transition-all" 
+                                            placeholder="0" 
+                                        />
+                                    </div>
+                                </div>
+                                <div className="bg-[#001515] h-[110px] px-10 rounded-[2rem] text-white flex justify-between items-center shadow-2xl relative overflow-hidden group">
+                                    <div className="relative z-10">
+                                        <p className="text-[8px] font-black text-cyan-400 uppercase tracking-widest mb-1">UTILIDAD FINAL</p>
+                                        <h4 className="text-4xl font-black leading-none">${calculateProfit(formData.price).net.toLocaleString('de-DE')}</h4>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <div className="h-1 w-1 rounded-full bg-cyan-400" />
+                                            <p className="text-[8px] font-bold text-gray-400 uppercase">Bayup: -${calculateProfit(formData.price).bayupFee.toLocaleString('de-DE')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right relative z-10">
+                                        <span className="text-xl font-black italic opacity-80">{calculateProfit(formData.price).margin.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform"><TrendingUp size={80}/></div>
+                                </div>
+                            </div>
+
+                            {/* FILA 4: OPCIONES */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                                <div className="relative group/wompi">
+                                    <button onClick={() => setFormData({...formData, add_gateway_fee: !formData.add_gateway_fee})} className="w-full flex items-center justify-between p-8 bg-white border-2 border-gray-200 rounded-[2rem] shadow-sm hover:border-[#004D4D]/20 transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`h-10 w-10 rounded-xl transition-all flex items-center justify-center ${formData.add_gateway_fee ? 'bg-[#004D4D] text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                                <Zap size={20} />
+                                            </div>
+                                            <div className="text-left">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <p className="text-[9px] font-black text-[#004D4D] uppercase tracking-widest leading-none">Pasarela Wompi</p>
+                                                    <div className="p-1 rounded-full bg-gray-100 text-gray-400 hover:bg-[#004D4D] hover:text-white transition-colors cursor-help">
+                                                        <HelpCircle size={10} />
+                                                    </div>
+                                                </div>
+                                                <p className="text-[8px] font-bold text-gray-400 uppercase">¿Quién asume el costo?</p>
+                                            </div>
+                                        </div>
+                                        <div className={`px-4 py-2 rounded-full text-[8px] font-black uppercase transition-all ${formData.add_gateway_fee ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                                            {formData.add_gateway_fee ? 'Cliente' : 'Empresa'}
+                                        </div>
+                                    </button>
+                                    
+                                    {/* Tooltip */}
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-64 p-4 bg-gray-900 text-white text-[10px] rounded-2xl opacity-0 group-hover/wompi:opacity-100 pointer-events-none transition-opacity shadow-2xl z-[100]">
+                                        <p className="font-bold text-cyan-400 mb-1 uppercase tracking-widest">Información de Pasarela</p>
+                                        <p className="text-gray-300 leading-relaxed">Wompi cobra una comisión por cada transacción exitosa. Aquí puedes elegir si ese costo lo descuentas de tu ganancia o se le suma al precio final del cliente.</p>
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900" />
+                                    </div>
+                                </div>
+                                <div className="relative group/roi">
+                                    <div className="flex items-center justify-between p-8 bg-[#00F2FF]/5 border-2 border-[#00F2FF]/20 rounded-[2rem] shadow-sm transition-all hover:bg-[#00F2FF]/10">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-[8px] font-black text-[#004D4D] uppercase tracking-widest">Retorno de Inversión (ROI)</p>
+                                                <div className="p-1 rounded-full bg-[#004D4D]/5 text-gray-400 hover:bg-[#004D4D] hover:text-white transition-colors cursor-help">
+                                                    <HelpCircle size={10} />
+                                                </div>
+                                            </div>
+                                            <h4 className="text-xl font-black text-[#004D4D]">
+                                                {(() => {
+                                                    const profit = calculateProfit(formData.price);
+                                                    const cost = formData.cost || 1;
+                                                    const roi = (profit.net / cost) * 100;
+                                                    return roi > 0 ? roi.toFixed(1) : 0;
+                                                })()}%
+                                            </h4>
+                                        </div>
+                                        <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center text-cyan-500 shadow-sm">
+                                            <TrendingUp size={20} />
+                                        </div>
+                                    </div>
+
+                                    {/* Tooltip ROI */}
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-64 p-4 bg-gray-900 text-white text-[10px] rounded-2xl opacity-0 group-hover/roi:opacity-100 pointer-events-none transition-opacity shadow-2xl z-[100]">
+                                        <p className="font-bold text-[#00F2FF] mb-1 uppercase tracking-widest">¿Qué es el ROI?</p>
+                                        <p className="text-gray-300 leading-relaxed">Indica cuánto ganas por cada peso que invertiste en comprar el producto. Un ROI del 100% significa que ganaste el doble de lo que te costó.</p>
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ASISTENTE BUTTON */}
+                            <button onClick={() => setIsAssistantOpen(true)} className="w-full p-10 bg-white rounded-[3rem] border-2 border-gray-200 shadow-sm flex items-center justify-between group hover:border-[#00F2FF]/30 transition-all">
+                                <div className="flex items-center gap-6">
+                                    <div className="h-14 w-14 rounded-2xl bg-[#00F2FF]/10 flex items-center justify-center text-[#004D4D] group-hover:scale-110 transition-all"><Bot size={28}/></div>
+                                    <div className="text-left">
+                                        <h4 className="text-sm font-black text-[#004D4D] uppercase tracking-widest">¿Dudas con tus precios?</h4>
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase mt-1">Usa el asistente Bayt para calcular rentabilidad y punto de equilibrio</p>
+                                    </div>
+                                </div>
+                                <ChevronRight size={20} className="text-gray-300"/>
+                            </button>
+
                         </motion.div>
                     )}
 
                     {activeTab === 'variants' && (
-                        <motion.div key="variants" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-10 text-slate-900">
-                            {Array.from(new Set(variants.map(v => v.name || 'Sin Atributo'))).map((groupName, groupIdx) => {
-                                const groupVariants = variants.filter(v => (v.name || 'Sin Atributo') === groupName);
-                                return (
-                                    <div key={`family-${groupIdx}`} className="p-10 bg-gray-50 rounded-[3rem] border border-transparent hover:border-[#004D4D]/10 transition-all">
-                                        <div className="flex gap-6 mb-4 px-2">
-                                            <div className="flex-1"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Atributo</label></div>
-                                            <div className="flex-1"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Especificación</label></div>
-                                            <div className="w-32 text-center"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Stock</label></div>
-                                            <div className="w-11"></div>
-                                        </div>
-                                        <div className="space-y-4">
-                                                {groupVariants.map((variant) => (
-                                                    <div key={variant.id} className="flex gap-6 items-center group/row animate-in fade-in slide-in-from-top-2 duration-300">
-                                                        <div className="flex-1">
-                                                            <input 
-                                                                value={variant.name} 
-                                                                onChange={e => {
-                                                                    const newName = e.target.value;
-                                                                    const idsInFamily = groupVariants.map(gv => gv.id);
-                                                                    setVariants(prev => prev.map(v => idsInFamily.includes(v.id) ? { ...v, name: newName } : v));
-                                                                }} 
-                                                                placeholder="Ej: Talla o Color" 
-                                                                className="w-full bg-white border border-gray-100 rounded-xl px-4 py-3 outline-none text-xs font-bold text-slate-900 shadow-sm focus:border-[#00F2FF]/30" 
-                                                            />
-                                                        </div>
-                                                        <div className="flex-1 relative flex items-center">
-                                                            {variant.name.toLowerCase().includes('color') && (
-                                                                <div className="absolute left-3">
-                                                                    <input 
-                                                                        type="color" 
-                                                                        value={resolveColor(variant.sku)} 
-                                                                        onChange={e => setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, sku: e.target.value } : v))} 
-                                                                        className="w-5 h-5 rounded-full border-none cursor-pointer bg-transparent" 
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                            <input 
-                                                                value={variant.sku} 
-                                                                onChange={e => setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, sku: e.target.value } : v))} 
-                                                                placeholder={variant.name.toLowerCase().includes('color') ? "Ej: Rojo o #Hex" : "Ej: S, XL, 40..."}
-                                                                className={`w-full bg-white border border-gray-100 rounded-xl py-3 outline-none text-xs font-bold text-slate-900 focus:border-[#00F2FF]/30 shadow-sm ${variant.name.toLowerCase().includes('color') ? 'pl-10' : 'px-4'}`} 
-                                                            />
-                                                        </div>
-                                                        <div className="w-32"><input type="number" value={variant.stock} onChange={e => setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, stock: Number(e.target.value) } : v))} className="w-full bg-white border border-gray-100 rounded-xl px-4 py-3 outline-none text-xs font-black text-center text-slate-900 shadow-sm" /></div>
-                                                        <button onClick={() => setVariants(prev => prev.filter(v => v.id !== variant.id))} className="h-11 w-11 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover/row:opacity-100"><X size={18} /></button>
+                        <motion.div key="variants" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10 pb-20">
+                            <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                                <h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><Layers size={18} /> Atributos Maestro</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    {Array.from(new Set(variants.map(v => v.name.split('/')[0].trim()))).map((master, mIdx) => {
+                                        const subs = variants.filter(v => v.name.startsWith(master));
+                                        return (
+                                            <div key={mIdx} className="p-10 bg-white rounded-[3.5rem] border border-gray-100 shadow-2xl relative overflow-hidden group">
+                                                <div className="absolute top-6 right-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => handleEditAttribute(master)} className="p-2 rounded-full bg-gray-50 text-[#004D4D] hover:bg-[#004D4D] hover:text-white transition-all shadow-sm">
+                                                        <Zap size={14}/>
+                                                    </button>
+                                                    <button onClick={() => setVariants(prev => prev.filter(v => !v.name.startsWith(master)))} className="p-2 rounded-full bg-gray-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm">
+                                                        <Trash2 size={14}/>
+                                                    </button>
+                                                </div>
+                                                <div className="space-y-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="h-10 w-10 rounded-2xl bg-[#004D4D] flex items-center justify-center text-white font-black text-xs">{mIdx + 1}</div>
+                                                        <h4 className="text-lg font-black text-[#004D4D] italic uppercase tracking-tighter">{master}</h4>
                                                     </div>
-                                                ))}
+                                                    <div className="flex wrap gap-3">
+                                                        {subs.map((s, sIdx) => {
+                                                            const detail = s.name.includes('/') ? s.name.split('/')[1].trim() : s.name;
+                                                            const hasColor = detail.includes(': #');
+                                                            const colorHex = hasColor ? detail.split(': #')[1] : null;
+                                                            const cleanDetail = hasColor ? detail.split(':')[0] : detail;
+                                                            return (
+                                                                <div key={sIdx} className="px-4 py-2 bg-gray-50 rounded-2xl text-[10px] font-bold border flex items-center gap-2">
+                                                                    {hasColor && <div className="w-3 h-3 rounded-full border border-white shadow-sm" style={{ backgroundColor: `#${colorHex}` }} />}
+                                                                    <span>{cleanDetail}: {s.stock} uds</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    <button onClick={() => { setEditingMasterName(null); setTempVariantName(""); setTempSubVariants([{ id: '1', spec: '', stock: 0 }]); setIsNewVariantModalOpen(true); }} className="w-full py-12 border-2 border-dashed border-[#00F2FF]/40 bg-[#00F2FF]/5 rounded-[3rem] text-[10px] font-black text-[#004D4D] uppercase hover:bg-[#00F2FF]/10 hover:border-[#00F2FF] transition-all flex flex-col items-center justify-center gap-4 group">
+                                        <div className="h-14 w-14 rounded-2xl bg-white shadow-xl flex items-center justify-center group-hover:scale-110 transition-all">
+                                            <Plus size={24} className="text-[#004D4D]"/>
                                         </div>
-                                        <button onClick={() => addSequentialVariant(variants.indexOf(groupVariants[groupVariants.length - 1]))} className="mt-6 text-[10px] font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3 transition-all"><Plus size={14} /> Agregar otra {groupName}</button>
-                                    </div>
-                                );
-                            })}
-                            <button onClick={() => setVariants([...variants, { id: Math.random().toString(36).substr(2, 9), name: '', sku: '', stock: 0, price_adjustment: 0 }])} className="w-full py-6 border-2 border-dashed border-gray-200 rounded-[3rem] text-[10px] font-black text-gray-400 uppercase tracking-widest hover:border-[#004D4D]/20 hover:text-[#004D4D] transition-all flex items-center justify-center gap-3 shadow-sm"><Plus size={16} /> Nueva Familia de Atributos</button>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                <div className="pt-10 flex items-center justify-between border-t border-gray-100 pb-20">
-                    <button onClick={() => router.back()} className="px-10 py-5 text-[10px] font-black uppercase text-gray-400">Descartar</button>
-                    <div className="flex gap-4">
-                        <button type="button" onClick={() => { setFormData({...formData, status: 'draft'}); handleSave(); }} className="px-10 py-5 bg-white border border-gray-100 text-[#004D4D] rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest shadow-sm hover:shadow-lg transition-all">Guardar Borrador</button>
-                        {activeTab !== 'variants' ? (
-                            <button onClick={() => setActiveTab(activeTab === 'info' ? 'financial' : 'variants')} className="px-14 py-5 bg-[#004D4D] text-white rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl hover:bg-black transition-all">Siguiente</button>
-                        ) : (
-                            <button onClick={handleSave} disabled={isSubmitting} className="px-14 py-5 bg-[#004D4D] text-white rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl hover:bg-black transition-all">
-                                {isSubmitting ? 'Publicando...' : 'Publicar Catálogo'}
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </motion.div>
-
-            <motion.div initial={{ y: 200, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="w-full lg:w-[45%] h-full bg-[#E5E7EB] p-12 lg:p-20 flex items-center justify-center relative text-slate-900">
-                <div className="w-full max-w-lg bg-white shadow-2xl rounded-[3.5rem] flex flex-col h-[calc(100vh-160px)] overflow-hidden border border-white relative group">
-                    <div className="bg-[#004D4D] p-10 text-white flex justify-between items-start shrink-0 z-20">
-                        <div className="flex items-center gap-6">
-                            <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-                                <Box size={24} className="text-[#004D4D]" />
-                            </div>
-                            <div>
-                                <h4 className="text-xl font-black uppercase leading-none">Previsualización</h4>
-                                <p className="text-[9px] font-black text-[#00F2FF] uppercase mt-1">RÉPLICA DIGITAL DEL PRODUCTO</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar bg-white p-10 space-y-10 text-slate-900">
-                        <div className="space-y-6">
-                            <div className="aspect-square w-full rounded-[2.5rem] bg-gray-50 border border-gray-100 overflow-hidden shadow-inner flex items-center justify-center relative group/img">
-                                {media.length > 0 ? <img src={media[selectedPreviewIndex]?.preview} className="w-full h-full object-cover" alt="Preview" /> : <ImageIcon size={40} className="text-gray-200" />}
-                            </div>
-                            {media.length > 1 && (
-                                <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-                                    {media.map((item, i) => (
-                                        <button key={i} onClick={() => setSelectedPreviewIndex(i)} className={`h-16 w-16 rounded-2xl overflow-hidden flex-shrink-0 border-2 transition-all ${selectedPreviewIndex === i ? 'border-[#004D4D]' : 'border-transparent opacity-60'}`}>
-                                            <img src={item.preview} className="w-full h-full object-cover" alt={`Thumb ${i}`} />
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <div className="space-y-6 text-slate-900">
-                            <div className="flex justify-between items-start"><div className="space-y-1"><p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">{formData.category || 'Categoría'}</p><h3 className="text-2xl font-black text-gray-900 tracking-tighter leading-tight">{formData.name || 'Sin nombre'}</h3></div><div className="text-right"><p className="text-[9px] font-black text-gray-300 uppercase">Precio</p><p className="text-2xl font-black text-[#004D4D] tracking-tighter">${formData.price.toLocaleString('de-DE')}</p></div></div>
-                            <div className="p-8 bg-gray-50 rounded-[2rem] border border-gray-100 text-slate-900"><p className="text-xs text-gray-500 font-medium leading-relaxed italic">{formData.description || 'Sin descripción disponible...'}</p></div>
-                            {variants.some(v => v.name && v.sku) && (
-                                <div className="space-y-4 pt-4 border-t border-gray-50 text-slate-900">
-                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Variantes Configuradas</p>
-                                    <div className="flex flex-wrap gap-2">{variants.filter(v => v.name && v.sku).map((v, i) => (<div key={i} className="px-3 py-1.5 bg-gray-50 rounded-lg border text-[10px] font-bold text-gray-600">{v.name}: {v.sku}</div>))}</div>
-                                </div>
-                            )}
-                            <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-50 text-slate-900"><div className="space-y-2"><p className="text-[9px] font-black text-gray-300 uppercase">SKU Maestro</p><p className="text-sm font-black text-gray-900 uppercase tracking-widest">{formData.sku || 'PENDIENTE'}</p></div><div className="space-y-2 text-right"><p className="text-[9px] font-black text-gray-300 uppercase">Stock Total</p><p className="text-sm font-black text-gray-900 uppercase tracking-widest">{variants.reduce((acc, v) => acc + (v.stock || 0), 0)} UNIDADES</p></div></div>
-                        </div>
-                    </div>
-                </div>
-            </motion.div>
-
-            {/* MODAL NO DATA */}
-            <AnimatePresence>{isNoDataModalOpen && (
-                <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNoDataModalOpen(false)} className="absolute inset-0 bg-[#001A1A]/80 backdrop-blur-xl" />
-                    <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative bg-white w-full max-w-xl rounded-[4rem] shadow-2xl p-12 text-center space-y-8 text-slate-900">
-                        <div className="flex justify-center"><div className="h-24 w-24 rounded-[2.5rem] bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D] relative"><Bot size={48} className="animate-bounce" /><div className="absolute -top-2 -right-2 h-8 w-8 bg-rose-500 text-white rounded-full flex items-center justify-center border-4 border-white"><AlertCircle size={16} /></div></div></div>
-                        <div className="space-y-3"><h3 className="text-3xl font-black italic uppercase tracking-tighter text-[#001A1A]">Faltan <span className="text-rose-600">Datos Clave</span></h3><p className="text-sm font-medium text-slate-500 max-w-md mx-auto">Bayt necesita registros financieros para darte una estrategia infalible. Registra tus gastos y ventas para desbloquear el análisis profundo.</p></div>
-                        <button onClick={() => setIsNoDataModalOpen(false)} className="w-full py-5 bg-[#004D4D] text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-xl">Entendido</button>
-                    </motion.div>
-                </div>
-            )}</AnimatePresence>
-
-            {/* ASISTENTE DE PRECIOS ESTRATÉGICOS (PLATINUM PLUS) */}
-            <AnimatePresence>{isPriceAssistantOpen && (
-                <div className="fixed inset-0 z-[5500] flex items-center justify-center p-4 md:p-10">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPriceAssistantOpen(false)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-2xl" />
-                    <motion.div initial={{ opacity: 0, scale: 0.9, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 40 }} className="relative bg-white w-full max-w-6xl h-[85vh] rounded-[4rem] shadow-2xl overflow-hidden border border-white flex flex-col md:flex-row text-slate-900">
-                        
-                        {/* IZQUIERDA: AUDITORÍA DE GASTOS */}
-                        <div className="w-full md:w-96 bg-gray-50 border-r border-gray-100 p-10 overflow-y-auto custom-scrollbar flex flex-col justify-between shrink-0">
-                            <div className="space-y-10">
-                                <div className="flex items-center gap-4"><div className="h-12 w-12 rounded-2xl bg-[#004D4D] flex items-center justify-center text-white shadow-lg"><Zap size={24} /></div><div><h3 className="text-xl font-black text-gray-900 uppercase italic">Asistente</h3><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Pricing Strategy</p></div></div>
-                                
-                                <div className="space-y-6">
-                                    <div className="border-b border-gray-100 pb-2"><h4 className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Gastos Mensuales</h4></div>
-                                    {[{ label: 'Nómina', key: 'payroll', icon: <User size={14}/> }, { label: 'Arriendo', key: 'rent', icon: <Box size={14}/> }, { label: 'Servicios', key: 'utilities', icon: <Zap size={14}/> }, { label: 'Otros Gastos', key: 'ops', icon: <Smartphone size={14}/> }].map((field) => (
-                                        <div key={field.key} className="space-y-1.5"><label className="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2">{field.icon} {field.label}</label><div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 text-xs">$</span><input type="text" value={formatValue(assistantExpenses[field.key as keyof typeof assistantExpenses])} onChange={(e) => setAssistantExpenses({...assistantExpenses, [field.key]: Number(e.target.value.replace(/\D/g, ''))})} className="w-full pl-8 pr-4 py-3 bg-white border border-gray-100 rounded-xl text-xs font-bold focus:border-[#004D4D]/20 outline-none transition-all shadow-sm" /></div></div>
-                                    ))}
-                                    <button onClick={handleBaytAnalysis} disabled={isAnalyzingBayt} className={`w-full py-5 rounded-2xl flex items-center justify-center gap-4 transition-all relative overflow-hidden border-2 ${isAnalyzingBayt ? 'bg-slate-100' : 'bg-[#001A1A] text-white shadow-2xl'}`}>
-                                        {!isAnalyzingBayt ? (<><Bot size={24} /><div className="flex flex-col items-start"><span className="text-[10px] font-black uppercase">Consultar a Bayt</span><span className="text-[7px] font-bold text-white/40 uppercase">Análisis Automático</span></div></>) : (<Bot size={32} className="animate-spin" />)}
+                                        <div className="text-center">
+                                            <span className="tracking-[0.2em] block">Añadir Atributo</span>
+                                            <span className="text-[8px] font-bold opacity-40">Talla, color o material</span>
+                                        </div>
                                     </button>
                                 </div>
                             </div>
-                            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 mt-8 text-amber-800 text-[8px] font-bold uppercase leading-relaxed tracking-wider">Bayt prorratea tus costos fijos sobre el volumen de unidades para asegurar tu margen neto.</div>
-                        </div>
 
-                        {/* DERECHA: SIMULACIÓN DE RENTABILIDAD */}
-                        <div className="flex-1 p-12 bg-white flex flex-col justify-between overflow-y-auto custom-scrollbar">
-                            <div className="space-y-10">
-                                <div className="flex justify-between items-start">
-                                    <div className="space-y-1">
-                                        <h2 className="text-3xl font-black italic uppercase text-[#001A1A] tracking-tighter">Simulación de <span className="text-[#004D4D]">Rentabilidad</span></h2>
-                                        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Precio sugerido basado en costos operativos</p>
-                                    </div>
-                                    <button onClick={() => setIsPriceAssistantOpen(false)} className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-rose-500 transition-all"><X size={20}/></button>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <div className="space-y-6">
-                                        <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 space-y-6">
-                                            <div className="space-y-2"><label className="text-[9px] font-black text-[#004D4D] uppercase tracking-widest ml-1">Unidades (Volumen Estimado)</label><div className="relative"><Box size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"/><input type="number" value={calcQuantity} onChange={(e) => setCalcQuantity(Number(e.target.value))} className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl outline-none text-sm font-black shadow-inner" /></div></div>
-                                            <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1 flex justify-between">Margen Final Deseado <span>{calcMargin}%</span></label><input type="range" min="10" max="80" value={calcMargin} onChange={(e) => setCalcMargin(Number(e.target.value))} className="w-full h-1.5 bg-gray-200 rounded-full appearance-none accent-[#004D4D] cursor-pointer" /></div>
-                                            <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1 flex justify-between">Margen Mayorista Deseado <span>{calcWholesaleMargin}%</span></label><input type="range" min="5" max="50" value={calcWholesaleMargin} onChange={(e) => setCalcWholesaleMargin(Number(e.target.value))} className="w-full h-1.5 bg-gray-200 rounded-full appearance-none accent-cyan-500 cursor-pointer" /></div>
-                                        </div>
-                                        <div className="p-8 bg-[#004D4D]/5 rounded-[2.5rem] border border-[#004D4D]/10 space-y-2">
-                                            <div className="flex items-center gap-3"><ShieldCheck size={18} className="text-[#004D4D]"/><h4 className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Punto de Equilibrio</h4></div>
-                                            <p className="text-xs font-medium text-gray-600 leading-relaxed italic">Debes vender al menos <span className="font-bold text-gray-900">{breakEvenUnits} unidades</span> para cubrir tus gastos fijos registrados.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-6">
-                                        <div className="bg-[#001A1A] p-8 rounded-[3rem] text-white relative overflow-hidden group shadow-2xl min-h-[200px] flex flex-col justify-center">
-                                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform"><Bot size={150} /></div>
-                                            <p className="text-[8px] font-black text-cyan uppercase tracking-[0.3em] mb-2">Sugerido Usuario Final</p>
-                                            <h5 className="text-5xl font-black italic tracking-tighter text-[#4fffcb] leading-none">${Math.round(suggestedPrice).toLocaleString('de-DE')}</h5>
-                                            <div className="mt-4 flex items-center gap-3"><span className="text-[9px] font-black text-white/40 uppercase">Utilidad Neta / Unidad:</span><span className="text-lg font-black italic text-white">${Math.round(profitPerUnit).toLocaleString()}</span></div>
-                                        </div>
-                                        <div className="bg-gray-100 p-8 rounded-[3rem] text-slate-900 relative overflow-hidden group shadow-lg min-h-[200px] flex flex-col justify-center border border-gray-200">
-                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2">Sugerido Mayorista</p>
-                                            <h5 className="text-5xl font-black italic tracking-tighter text-[#004D4D] leading-none">${Math.round(suggestedWholesale).toLocaleString('de-DE')}</h5>
-                                            <div className="mt-4 flex items-center gap-3"><span className="text-[9px] font-black text-gray-400 uppercase">Utilidad Neta / Unidad:</span><span className="text-lg font-black italic text-[#004D4D]">${Math.round(profitWholesalePerUnit).toLocaleString()}</span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-4 pt-10 border-t border-gray-100">
-                                <button onClick={() => setIsPriceAssistantOpen(false)} className="flex-1 py-5 rounded-[1.8rem] bg-gray-50 text-gray-400 font-black text-[10px] uppercase tracking-widest hover:bg-gray-100">Cerrar</button>
-                                <button onClick={() => { setFormData({...formData, price: Math.round(suggestedPrice), wholesale_price: Math.round(suggestedWholesale)}); setIsPriceAssistantOpen(false); showToast("Estrategia aplicada ✨", "success"); }} className="flex-[2] py-5 bg-[#004D4D] text-white rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl hover:bg-black transition-all">Aplicar Precios Sugeridos</button>
-                            </div>
-                        </div>
-                    </motion.div>
-                                </div>
-                            )}</AnimatePresence>
-                
-                            {/* MODAL NUEVA CATEGORÍA (RESTAURADO) */}
                             <AnimatePresence>
-                                {isNewCategoryModalOpen && (
-                                    <div className="fixed inset-0 z-[7000] flex items-center justify-center p-4">
-                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNewCategoryModalOpen(false)} className="absolute inset-0 bg-[#001A1A]/80 backdrop-blur-xl" />
-                                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative bg-white w-full max-w-md rounded-[3rem] shadow-2xl p-10 border border-white text-slate-900">
-                                            <div className="flex items-center gap-4 mb-8 text-slate-900">
-                                                <div className="h-12 w-12 rounded-2xl bg-[#004D4D]/5 flex items-center justify-center text-[#004D4D]"><Layers size={24}/></div>
-                                                <div>
-                                                    <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tighter">Nueva Categoría</h3>
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Creación Rápida</p>
+                                {isNewVariantModalOpen && (
+                                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6">
+                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNewVariantModalOpen(false)} className="fixed inset-0 bg-gray-900/90 backdrop-blur-3xl" />
+                                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-2xl bg-white rounded-[4rem] shadow-3xl overflow-hidden border border-white/20 flex flex-col z-[10000]">
+                                            <div className="bg-gray-50 p-12 border-b flex justify-between items-center"><div className="space-y-1"><h3 className="text-2xl font-black italic uppercase text-[#004D4D]">Personalizar Atributo</h3><p className="text-[9px] font-black text-gray-400 uppercase">Talla, color y stock juntos</p></div><button onClick={() => setIsNewVariantModalOpen(false)} className="h-12 w-12 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-400 hover:text-rose-500 transition-all"><X size={20}/></button></div>
+                                            <div className="p-12 space-y-10 overflow-y-auto max-h-[50vh] custom-scrollbar">
+                                                <div className="space-y-4"><label className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Nombre Atributo (Ej: Talla S)</label><input value={tempVariantName} onChange={e => setTempVariantName(e.target.value)} placeholder="Escribe el nombre maestro..." className="w-full bg-gray-50 border-2 border-transparent focus:border-cyan-400/30 rounded-3xl px-8 py-6 text-sm font-bold outline-none shadow-inner transition-all" /></div>
+                                                <div className="space-y-6"><label className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest">Sub-variantes</label>
+                                                    <div className="space-y-4">
+                                                        {tempSubVariants.map(sv => (
+                                                            <div key={sv.id} className="flex gap-4 items-center">
+                                                                <div className="flex-1 relative flex items-center">
+                                                                    {sv.spec.toLowerCase().includes('color') && (<div className="absolute left-4 z-10"><input type="color" value={resolveColor(sv.spec.split(':').pop() || '')} onChange={e => { const base = sv.spec.includes(':') ? sv.spec.split(':')[0] : sv.spec; setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: `${base.trim()}: ${e.target.value}` } : item)); }} className="w-6 h-6 rounded-full border-2 border-white shadow-sm cursor-pointer bg-transparent" /></div>)}
+                                                                    <input value={sv.spec.includes(': #') ? sv.spec.split(':')[0] : sv.spec} onChange={e => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, spec: e.target.value } : item))} placeholder="Especificación..." className={`flex-1 bg-gray-50 rounded-2xl py-4 text-xs font-bold outline-none ${sv.spec.toLowerCase().includes('color') ? 'pl-14' : 'px-6'}`} />
+                                                                </div>
+                                                                <input type="number" value={sv.stock} onChange={e => setTempSubVariants(prev => prev.map(item => item.id === sv.id ? { ...item, stock: Number(e.target.value) } : item))} className="w-24 bg-[#004D4D]/5 rounded-2xl px-4 py-4 text-center text-xs font-black text-[#004D4D]" />
+                                                                <button onClick={() => setTempSubVariants(prev => prev.filter(item => item.id !== sv.id))} className="text-gray-300 hover:text-rose-500"><Trash2 size={16}/></button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <button onClick={() => setTempSubVariants([...tempSubVariants, { id: Math.random().toString(36).substr(2, 9), spec: '', stock: 0 }])} className="text-[9px] font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-2"><Plus size={14}/> Añadir Especificación</button>
                                                 </div>
                                             </div>
-                                            <div className="space-y-6 text-slate-900">
-                                                <div className="space-y-2 text-slate-900">
-                                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre de la Familia</label>
-                                                    <input 
-                                                        autoFocus 
-                                                        value={newCategoryName} 
-                                                        onChange={(e) => setNewCategoryName(e.target.value)} 
-                                                        placeholder="Ej: Nueva Colección" 
-                                                        className="w-full px-6 py-5 bg-gray-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#004D4D]/20 text-sm font-bold shadow-inner transition-all text-slate-900" 
-                                                    />
-                                                </div>
-                                                <div className="flex gap-3 pt-4 text-slate-900">
-                                                    <button type="button" onClick={() => setIsNewCategoryModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors text-slate-900">Cancelar</button>
-                                                    <button type="button" disabled={!newCategoryName.trim()} onClick={handleCreateCategory} className="flex-[2] py-4 bg-[#004D4D] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[#004D4D]/20 disabled:opacity-50">Crear Categoría</button>
-                                                </div>
+                                            <div className="p-12 bg-gray-50 flex gap-4 mt-auto">
+                                                <button onClick={() => setIsNewVariantModalOpen(false)} className="flex-1 py-6 text-[10px] font-black uppercase text-gray-400">Cancelar</button>
+                                                <button onClick={handleSaveMatrixAttributes} className="flex-[2] py-6 bg-[#004D4D] text-white rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-2xl hover:bg-black transition-all">Guardar Atributos</button>
                                             </div>
                                         </motion.div>
                                     </div>
                                 )}
                             </AnimatePresence>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <div className="pt-10 flex items-center justify-between border-t border-gray-100 pb-20">
+                    <button onClick={() => router.back()} className="px-10 py-5 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 transition-colors">Descartar</button>
+                    <button 
+                        onClick={() => {
+                            if (activeTab === 'info') setActiveTab('financial');
+                            else if (activeTab === 'financial') setActiveTab('variants');
+                            else handleSave();
+                        }} 
+                        disabled={isSubmitting} 
+                        className="px-14 py-5 bg-[#004D4D] text-white rounded-[1.8rem] font-black text-[10px] uppercase shadow-2xl hover:bg-black transition-all"
+                    >
+                        {isSubmitting ? 'Guardando...' : (activeTab === 'variants' ? 'Publicar Catálogo' : 'Siguiente')}
+                    </button>
+                </div>
+            </div>
+
+            {/* PREVIEW RIGHT SIDE */}
+            <motion.div className="flex-1 bg-gray-100 p-12 lg:p-20 flex items-center justify-center relative">
+                <div className="w-full max-w-lg bg-white shadow-2xl rounded-[3.5rem] flex flex-col h-[calc(100vh-160px)] overflow-hidden border border-white">
+                    <div className="bg-[#004D4D] p-10 text-white flex justify-between items-start shrink-0">
+                        <div className="flex items-center gap-6"><div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center"><Box size={24} className="text-[#004D4D]" /></div><div><h4 className="text-xl font-black uppercase leading-none">Previsualización</h4><p className="text-[9px] font-black text-[#00F2FF] uppercase mt-1">RÉPLICA DIGITAL</p></div></div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar bg-white p-10 space-y-10">
+                        <div className="aspect-square w-full rounded-[2.5rem] bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center relative">
+                            {media.length > 0 ? <img src={media[selectedPreviewIndex]?.preview} className="w-full h-full object-cover" /> : <ImageIcon size={40} className="text-gray-200" />}
                         </div>
-                    );
-                }
-                
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-start"><div className="space-y-1"><p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">{formData.category || 'Categoría'}</p><h3 className="text-2xl font-black text-gray-900 tracking-tighter leading-tight">{formData.name || 'Sin nombre'}</h3></div><div className="text-right"><p className="text-[9px] font-black text-gray-300 uppercase">Precio</p><p className="text-2xl font-black text-[#004D4D] tracking-tighter">${formData.price.toLocaleString('de-DE')}</p></div></div>
+                            
+                            {formData.description && (
+                                <p className="text-[10px] text-gray-400 font-medium leading-relaxed border-t border-gray-50 pt-4 line-clamp-3">
+                                    {formData.description}
+                                </p>
+                            )}
+
+                            {variants.length > 0 && (
+                                <div className="space-y-4 pt-4 border-t border-gray-50">
+                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Variantes y Stock</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {variants.map((v, i) => {
+                                            const hasColor = v.name.includes(': #');
+                                            const colorHex = hasColor ? v.name.split(': #')[1] : null;
+                                            const cleanName = hasColor ? v.name.split(':')[0] : v.name;
+                                            return (
+                                                <div key={i} className="px-3 py-1.5 bg-gray-50 rounded-lg border text-[10px] font-bold text-gray-600 flex items-center gap-2">
+                                                    {hasColor && <div className="w-2 h-2 rounded-full border border-white shadow-sm" style={{ backgroundColor: `#${colorHex}` }} />}
+                                                    <span>{cleanName}: {v.stock}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-50"><div className="space-y-2"><p className="text-[9px] font-black text-gray-300 uppercase">Stock Total</p><p className="text-sm font-black text-gray-900 uppercase tracking-widest">{variants.reduce((acc, v) => acc + (v.stock || 0), 0)} UNIDADES</p></div></div>
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* MODAL ASISTENTE (RESTAURADO) */}
+            <AnimatePresence>
+                {isAssistantOpen && (
+                    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-12">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAssistantOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-xl" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="relative w-full max-w-6xl bg-white rounded-[4rem] shadow-3xl overflow-hidden flex flex-col lg:flex-row h-[90vh] lg:h-[85vh]">
+                            
+                            {/* Lado Izquierdo: Gastos */}
+                            <div className="w-full lg:w-[45%] bg-gray-50 p-10 lg:p-16 space-y-12 border-r overflow-y-auto custom-scrollbar">
+                                <div className="flex items-center gap-6">
+                                    <div className="h-16 w-16 bg-[#004D4D] rounded-3xl flex items-center justify-center text-white shrink-0"><Zap size={28}/></div>
+                                    <div>
+                                        <h3 className="text-3xl font-black italic uppercase tracking-tighter leading-none">Asistente <span className="text-[#004D4D]">Pricing Pro</span></h3>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2">Calculando el punto óptimo de venta</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-10">
+                                    <div className="space-y-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-[#004D4D] uppercase ml-2 flex items-center gap-2">
+                                                <Package size={10}/> COSTO UNITARIO DEL PRODUCTO
+                                            </label>
+                                            <div className="relative">
+                                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 font-bold">$</span>
+                                                <input 
+                                                    type="text" 
+                                                    value={formatNumber(formData.cost)} 
+                                                    onChange={e => handleNumberChange(e.target.value, 'cost')} 
+                                                    onFocus={() => { if(formData.cost === 0) setFormData({...formData, cost: '' as any}) }}
+                                                    onBlur={() => { if(!formData.cost) setFormData({...formData, cost: 0}) }}
+                                                    className="w-full pl-10 pr-6 py-5 bg-white border-2 border-[#004D4D]/20 rounded-2xl outline-none font-bold text-sm focus:border-[#00F2FF]/40 transition-all shadow-sm" 
+                                                    placeholder="0" 
+                                                />
+                                            </div>
+                                            <p className="text-[8px] font-bold text-gray-400 uppercase ml-2">Este es el valor base de tu inversión.</p>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-gray-100">
+                                            <h4 className="text-[10px] font-black text-[#004D4D] uppercase tracking-[0.3em] mb-6">GASTOS OPERATIVOS (MENSUALES)</h4>
+                                            <div className="space-y-6">
+                                                {(['payroll', 'rent', 'services', 'others'] as const).map(key => (
+                                                    <div key={key} className="space-y-2">
+                                                        <label className="text-[9px] font-black text-gray-400 uppercase ml-2 flex items-center gap-2">
+                                                            {key === 'payroll' && <User size={10}/>} {key === 'rent' && <Layout size={10}/>} {key === 'services' && <Zap size={10}/>} {key === 'others' && <Plus size={10}/>} 
+                                                            {key === 'payroll' ? 'NÓMINA' : key === 'rent' ? 'ARRIENDO' : key === 'services' ? 'SERVICIOS' : 'OTROS GASTOS'}
+                                                        </label>
+                                                        <div className="relative">
+                                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 font-bold">$</span>
+                                                            <input 
+                                                                type="text" 
+                                                                value={formatNumber(fixedCosts[key])} 
+                                                                onChange={e => handleNumberChange(e.target.value, key, true)} 
+                                                                onFocus={() => { if(fixedCosts[key] === 0) setFixedCosts({...fixedCosts, [key]: '' as any}) }}
+                                                                onBlur={() => { if(!fixedCosts[key]) setFixedCosts({...fixedCosts, [key]: 0}) }}
+                                                                className="w-full pl-10 pr-6 py-5 bg-white border-2 border-gray-200 rounded-2xl outline-none font-bold text-sm focus:border-[#00F2FF]/20 transition-all" 
+                                                                placeholder="0" 
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button className="w-full py-6 bg-[#004D4D] text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3">
+                                        <Bot size={18}/> Consultar a Bayt
+                                    </button>
+                                </div>
+                                <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100"><p className="text-[8px] font-bold text-amber-700 uppercase text-center leading-relaxed">Recuerda que los precios no incluyen envíos ni pauta publicitaria.</p></div>
+                            </div>
+
+                            {/* Lado Derecho: Simulación */}
+                            <div className="flex-1 p-10 lg:p-16 space-y-12 bg-white relative overflow-y-auto custom-scrollbar">
+                                <button onClick={() => setIsAssistantOpen(false)} className="absolute top-10 right-10 h-10 w-10 flex items-center justify-center text-gray-300 hover:text-black z-20"><X size={24}/></button>
+                                
+                                <div className="space-y-8">
+                                    <h3 className="text-4xl font-black italic uppercase tracking-tighter leading-none">Simulación de <span className="text-cyan-400">Rentabilidad</span></h3>
+                                    
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                        <div className="bg-gray-50 p-8 rounded-[2rem] space-y-3 border-2 border-transparent focus-within:border-[#00F2FF]/20 transition-all">
+                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">UNIDADES (VOLUMEN)</p>
+                                            <div className="flex items-center gap-4">
+                                                <Box size={20} className="text-gray-300"/> 
+                                                <input 
+                                                    type="text" 
+                                                    value={formatNumber(simulationUnits)} 
+                                                    onChange={e => {
+                                                        const val = e.target.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+                                                        setSimulationUnits(val === '' ? 0 : parseInt(val, 10));
+                                                    }}
+                                                    onFocus={() => { if(simulationUnits === 0) setSimulationUnits('' as any) }}
+                                                    onBlur={() => { if(!simulationUnits) setSimulationUnits(1) }}
+                                                    className="bg-transparent border-none outline-none text-2xl font-black w-full"
+                                                    placeholder="1"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="bg-gray-50 p-8 rounded-[2rem] space-y-3 border-2 border-transparent">
+                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">UNIDADES EQUILIBRIO</p>
+                                            <div className="flex items-center gap-4">
+                                                <BarChart3 size={20} className="text-cyan-400"/> 
+                                                <span className="text-2xl font-black text-slate-900">
+                                                    {(() => {
+                                                        const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
+                                                        // Usar el precio retail sugerido para el equilibrio si el precio actual es 0
+                                                        const price = formData.price || recommendedRetail() || 1;
+                                                        const gatewayFee = formData.add_gateway_fee ? 0 : (price * wompiRate);
+                                                        const unitContribution = price - (formData.cost || 0) - (price * bayupRate) - gatewayFee;
+                                                        
+                                                        if (unitContribution <= 0) return "—";
+                                                        return Math.ceil(totalFixed / unitContribution);
+                                                    })()} <span className="text-[10px] text-gray-400 uppercase">Uds</span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-gray-50 p-8 rounded-[2rem] space-y-3">
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">TICKET PROMEDIO ACTUAL</p>
+                                        <div className="flex items-center gap-4 text-2xl font-black text-[#004D4D]"><Calculator size={20} className="text-gray-300"/> <span>${(formData.price || 0).toLocaleString('de-DE')}</span></div>
+                                    </div>
+
+                                    {/* Sugerido Retail */}
+                                    <div className="bg-[#002D2D] p-10 lg:p-12 rounded-[3.5rem] text-white space-y-8 shadow-2xl relative overflow-hidden group">
+                                        <div className="flex justify-between items-start relative z-10">
+                                            <p className="text-[9px] font-black text-cyan-400 uppercase tracking-[0.3em]">SUGERIDO RETAIL</p>
+                                            <div className="flex items-center gap-1">
+                                                <input 
+                                                    type="text"
+                                                    value={simulationRetailMargin}
+                                                    onChange={e => setSimulationRetailMargin(Number(e.target.value.replace(/[^0-9]/g, '')))}
+                                                    className="bg-white/10 border-none outline-none text-4xl font-black italic w-20 text-right rounded-lg px-2"
+                                                />
+                                                <span className="text-4xl font-black italic">%</span>
+                                            </div>
+                                        </div>
+                                        <h3 className="text-5xl lg:text-6xl font-black tracking-tighter text-cyan-400 relative z-10">${recommendedRetail().toLocaleString('de-DE')}</h3>
+                                        <div className="pt-8 border-t border-white/5 space-y-2 relative z-10">
+                                            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: `${simulationRetailMargin}%` }} className="h-full bg-cyan-400" /></div>
+                                            <div className="flex justify-between text-[8px] font-black text-gray-400 uppercase tracking-widest"><span>Margen Final</span> <span>Seguridad Retail: ${(recommendedRetail() - (formData.cost + (fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others)/(simulationUnits || 1))).toLocaleString('de-DE')} / Unidad</span></div>
+                                        </div>
+                                        <button onClick={() => { setFormData({...formData, price: recommendedRetail()}); setIsAssistantOpen(false); }} className="w-full py-5 bg-white text-[#004D4D] rounded-full font-black text-[9px] uppercase tracking-widest hover:scale-105 transition-transform relative z-10">APLICAR PRECIO</button>
+                                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform"><TrendingUp size={120}/></div>
+                                    </div>
+
+                                    {/* Sugerido Mayorista */}
+                                    <div className="bg-[#004D4D]/10 p-10 rounded-[3rem] border-2 border-gray-200 flex justify-between items-center group relative overflow-hidden transition-all">
+                                        <div className="space-y-1 relative z-10">
+                                            <p className="text-[8px] font-black text-gray-400 group-hover:text-cyan-400 uppercase tracking-widest transition-colors">SUGERIDO MAYORISTA</p>
+                                            <h4 className="text-4xl font-black group-hover:text-white transition-colors">${recommendedWholesale().toLocaleString('de-DE')}</h4>
+                                            <button onClick={() => { setFormData({...formData, wholesale_price: recommendedWholesale()}); setIsAssistantOpen(false); }} className="mt-4 px-6 py-2 bg-[#004D4D] text-white rounded-full text-[8px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all hover:scale-105">Aplicar Mayorista</button>
+                                        </div>
+                                        <div className="text-right relative z-10">
+                                            <div className="flex items-center gap-1">
+                                                <input 
+                                                    type="text"
+                                                    value={simulationWholesaleMargin}
+                                                    onChange={e => setSimulationWholesaleMargin(Number(e.target.value.replace(/[^0-9]/g, '')))}
+                                                    className="bg-black/5 group-hover:bg-white/10 border-none outline-none text-3xl font-black italic w-16 text-right rounded-lg px-2 group-hover:text-white transition-all"
+                                                />
+                                                <span className="text-3xl font-black italic opacity-20 group-hover:opacity-100 group-hover:text-white transition-all">%</span>
+                                            </div>
+                                        </div>
+                                        <div className="absolute inset-0 bg-[#004D4D] translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-0" />
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* MODAL CREAR CATEGORÍA (RESTAURADO) */}
+            <AnimatePresence>
+                {isNewCategoryModalOpen && (
+                    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsNewCategoryModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-xl" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="relative w-full max-w-md bg-white rounded-[3.5rem] shadow-3xl overflow-hidden border border-white/20 z-[10001] p-12 space-y-10">
+                            <div className="flex justify-between items-center">
+                                <div className="space-y-1">
+                                    <h3 className="text-2xl font-black italic uppercase text-[#004D4D]">Nueva Categoría</h3>
+                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Organiza tu inventario</p>
+                                </div>
+                                <button onClick={() => setIsNewCategoryModalOpen(false)} className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-rose-500 transition-all"><X size={18}/></button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest ml-2">Nombre de la Categoría</label>
+                                <input 
+                                    value={newCategoryName} 
+                                    onChange={e => setNewCategoryName(e.target.value)} 
+                                    placeholder="Ej: Accesorios, Colección Invierno..." 
+                                    className="w-full bg-gray-50 border-2 border-transparent focus:border-[#00F2FF]/20 rounded-3xl px-8 py-6 text-sm font-bold outline-none shadow-inner transition-all" 
+                                />
+                            </div>
+
+                            <div className="flex gap-4 pt-4">
+                                <button onClick={() => setIsNewCategoryModalOpen(false)} className="flex-1 py-5 text-[10px] font-black uppercase text-gray-400">Cancelar</button>
+                                <button onClick={handleCreateCategory} className="flex-[2] py-5 bg-[#004D4D] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl hover:bg-black transition-all">Guardar Categoría</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <style jsx global>{`
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 10px; }
+            `}</style>
+        </div>
+    );
+}

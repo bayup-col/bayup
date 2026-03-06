@@ -139,7 +139,7 @@ export default function SeguridadPage() {
               <div className="flex-1 space-y-6">
                 <h3 className="text-4xl font-black italic uppercase tracking-tighter">Monitoreo en tiempo real</h3>
                 <p className="text-white/60 text-lg font-medium leading-relaxed italic">
-                  "Nuestro centro de operaciones monitorea la salud del sistema 24/7, detectando y mitigando anomalías antes de que afecten tu tienda."
+                  &quot;Nuestro centro de operaciones monitorea la salud del sistema 24/7, detectando y mitigando anomalías antes de que afecten tu tienda.&quot;
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-8">

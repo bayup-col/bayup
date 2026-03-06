@@ -1,17 +1,17 @@
 # backend/database.py
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import StaticPool, QueuePool
 import os
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde .env
 load_dotenv()
 
-# Priorizar DATABASE_URL de entorno (para producción en Railway/Vercel)
+# Priorizar DATABASE_URL de entorno (para producción en Railway/Supabase)
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
 
-# For SQLite, we need specific connect_args
+# Configuración de Engine optimizada
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
         DATABASE_URL,
@@ -19,7 +19,16 @@ if DATABASE_URL.startswith("sqlite"):
         poolclass=StaticPool,
     )
 else:
-    engine = create_engine(DATABASE_URL)
+    # Configuración para PostgreSQL (Supabase con Pooler)
+    # Se optimiza para Transaction Mode del Pooler de Supabase
+    engine = create_engine(
+        DATABASE_URL,
+        pool_size=20,
+        max_overflow=0,
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

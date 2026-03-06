@@ -49,6 +49,8 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     full_name = Column(String)
     logo_url = Column(String, nullable=True) # Logo de la tienda
+    nit = Column(String, nullable=True) # NIT / Identificación Fiscal
+    address = Column(String, nullable=True) # Dirección de la tienda
     nickname = Column(String)
     phone = Column(String, nullable=True) # Pilar 2: Para el botón de WhatsApp
     hashed_password = Column(String)
@@ -132,6 +134,8 @@ class Order(Base):
     customer_name = Column(String)
     customer_email = Column(String)
     customer_phone = Column(String)
+    customer_city = Column(String, nullable=True)
+    shipping_address = Column(String, nullable=True)
     customer_type = Column(String, default="final")
     source = Column(String, default="pos")
     payment_method = Column(String, default="cash")
@@ -392,11 +396,3 @@ class StoreMessage(Base):
     message = Column(String)
     status = Column(String, default="unread") # unread, read, replied
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-
-    tenant_id = Column(GUID(), ForeignKey("users.id"))
-
-    page_key = Column(String, index=True) # e.g., 'home', 'about'
-
-    schema_data = Column(JSON)
-
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

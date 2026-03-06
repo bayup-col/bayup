@@ -22,50 +22,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                const originalWarn = console.warn;
-                const originalError = console.error;
-                
-                // Silenciar errores de red de Clerk para que no rompan la carga de videos
-                window.addEventListener('unhandledrejection', function(event) {
-                  if (event.reason && event.reasons?.message?.includes('clerk')) {
-                    event.preventDefault();
-                  }
-                });
-
-                console.warn = function() {
-                  const msg = arguments[0];
-                  if (msg && typeof msg === 'string' && (
-                    msg.includes('feature_collector') || 
-                    msg.includes('deprecated parameters') ||
-                    msg.includes('Invalid scope') ||
-                    msg.includes('THREE')
-                  )) {
-                    return;
-                  }
-                  originalWarn.apply(console, arguments);
-                };
-
-                console.error = function() {
-                  const msg = arguments[0];
-                  if (msg && typeof msg === 'string' && (
-                    msg.includes('feature_collector') ||
-                    msg.includes('THREE.WebGLRenderer') ||
-                    msg.includes('WebGL context')
-                  )) {
-                    return;
-                  }
-                  originalError.apply(console, arguments);
-                };
-              })();
-            `,
-          }}
-        />
-      </head>
       <body>
         <Providers>
           {children}

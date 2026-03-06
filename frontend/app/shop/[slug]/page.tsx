@@ -130,17 +130,31 @@ function ShopContent() {
 
         try {
             const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            
+            // BUSCAMOS EL VARIANT_ID CORRECTO
+            // Para el Plan Básico, si no hay variantes seleccionadas, enviamos la primera disponible
+            const itemsWithVariants = await Promise.all(cart.map(async (item) => {
+                const prod = shopData.products.find((p: any) => p.id === item.id);
+                const variantId = (prod?.variants && prod.variants.length > 0) 
+                    ? prod.variants[0].id 
+                    : item.id; // Fallback
+                return {
+                    product_variant_id: variantId,
+                    quantity: item.quantity,
+                    price_at_purchase: item.price
+                };
+            }));
+
             const payload = {
                 customer_name: customerData.name,
                 customer_phone: customerData.phone,
                 customer_email: customerData.email,
                 shipping_address: `${customerData.address}, ${customerData.city}`,
-                tenant_id: shopData.owner_id,
-                items: cart.map(item => ({
-                    product_id: item.id,
-                    quantity: item.quantity,
-                    price: item.price
-                }))
+                tenant_id: shopData.id,
+                total_price: cartTotal,
+                payment_method: "WhatsApp",
+                source: "web",
+                items: itemsWithVariants
             };
 
             const res = await fetch(`${apiBase}/public/orders`, {
@@ -151,21 +165,19 @@ function ShopContent() {
 
             if (res.ok) {
                 const orderData = await res.json();
-                const orderId = orderData.id.slice(-4).toUpperCase();
+                const orderId = orderData.id.slice(0, 8).toUpperCase();
                 setLastOrderNum(orderId);
                 
-                // REDIRECCIÓN A WHATSAPP DEL DUEÑO (Para confirmar)
-                const shopPhone = shopData.phone || "3000000000"; // Fallback si no hay
-                const message = encodeURIComponent(`¡Hola! Acabo de realizar un pedido en tu tienda ${shopData.store_name} 🚀\n\n🆔 Pedido: #${orderId}\n👤 Nombre: ${customerData.name}\n💰 Total: $${cartTotal.toLocaleString()}\n📍 Dirección: ${customerData.address}, ${customerData.city}\n\nQuedo atento a la confirmación. ✨`);
+                const shopPhone = shopData.phone || "3000000000"; 
+                const message = encodeURIComponent(`¡Hola! Acabo de realizar un pedido en tu tienda ${shopData.full_name} 🚀\n\n🆔 Pedido: #${orderId}\n👤 Nombre: ${customerData.name}\n💰 Total: $${cartTotal.toLocaleString()}\n📍 Dirección: ${customerData.address}, ${customerData.city}\n\nQuedo atento a la confirmación. ✨`);
                 
                 clearCart();
                 setIsCheckoutOpen(false);
                 setIsOrderSuccess(true);
                 
-                // Pequeño delay para dejar ver el modal de éxito antes de abrir WhatsApp
                 setTimeout(() => {
                     window.open(`https://wa.me/57${shopPhone.replace(/\D/g, '')}?text=${message}`, '_blank');
-                }, 2500);
+                }, 3000);
 
             } else {
                 const err = await res.json();
@@ -189,23 +201,22 @@ function ShopContent() {
                 if (res.ok) {
                     const data = await res.json();
                     
-                    // 2. Cargamos el diseño publicado para la VISTA ACTUAL
+                    // 2. Cargamos productos reales de esta tienda
                     try {
-                        const pageRes = await fetch(`${apiBase}/public/shop-pages/${data.owner_id}/${view}`);
+                        const prodRes = await fetch(`${apiBase}/public/stores/${data.id}/products`);
+                        if (prodRes.ok) {
+                            data.products = await prodRes.json();
+                        }
+                    } catch (e) { console.error("Error cargando productos", e); }
+
+                    // 3. Cargamos el diseño publicado para la VISTA ACTUAL
+                    try {
+                        const pageRes = await fetch(`${apiBase}/public/stores/${data.id}/pages/${view}`);
                         if (pageRes.ok) {
                             const pageData = await pageRes.json();
                             if (pageData && pageData.schema_data) {
                                 data.custom_schema = pageData.schema_data;
                             }
-                        } else {
-                            // FALLBACK: Intentar cargar desde archivos locales (public/templates/clients/[slug]/[view].json)
-                            try {
-                                const localRes = await fetch(`/templates/clients/${slug}/${view}.json`);
-                                if (localRes.ok) {
-                                    const localData = await localRes.json();
-                                    data.custom_schema = localData;
-                                }
-                            } catch(e) {}
                         }
                     } catch (e) {
                         console.warn(`Diseño para vista ${view} no publicado.`);
@@ -245,8 +256,8 @@ function ShopContent() {
                 <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
                     <div className="flex items-center gap-10">
                         <div onClick={() => router.push(`/shop/${slug}`)} className="flex items-center gap-3 cursor-pointer">
-                            <div className="h-10 w-10 bg-[#004d4d] rounded-xl flex items-center justify-center text-[#00f2ff] font-black">{shopData.store_name.charAt(0)}</div>
-                            <h1 className="text-xl font-black italic uppercase tracking-tighter">{shopData.store_name}</h1>
+                            <div className="h-10 w-10 bg-[#004d4d] rounded-xl flex items-center justify-center text-[#00f2ff] font-black">{shopData.full_name?.charAt(0) || 'B'}</div>
+                            <h1 className="text-xl font-black italic uppercase tracking-tighter">{shopData.full_name}</h1>
                         </div>
                         <nav className="hidden lg:flex items-center gap-8">
                             <button onClick={() => router.push(`/shop/${slug}?view=home`)} className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${view === 'home' ? 'text-[#004d4d]' : 'text-gray-400 hover:text-black'}`}>Inicio</button>
@@ -375,7 +386,7 @@ function ShopContent() {
                             {cart.length > 0 && (
                                 <div className="p-8 border-t bg-gray-50/50 space-y-6">
                                     <div className="flex justify-between items-end"><p className="text-[10px] font-black text-gray-400 uppercase">Total Estimado</p><p className="text-3xl font-black text-gray-900 tracking-tighter">${cartTotal.toLocaleString()}</p></div>
-                                    <button onClick={() => { setIsCartOpen(false); router.push('/checkout'); }} className="w-full py-6 bg-gray-900 text-[#00f2ff] rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Finalizar Compra</button>
+                                    <button onClick={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }} className="w-full py-6 bg-gray-900 text-[#00f2ff] rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Finalizar Compra</button>
                                 </div>
                             )}
                         </motion.div>

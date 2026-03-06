@@ -20,13 +20,14 @@ class Plan(PlanBase):
     id: uuid.UUID
     class Config:
         from_attributes = True
-        orm_mode = True
 
 # --- User Schemas ---
 class UserBase(BaseModel):
     email: str
     full_name: str | None = None
     logo_url: str | None = None
+    nit: str | None = None
+    address: str | None = None
     nickname: str | None = None
     phone: str | None = None
     city: str | None = None
@@ -39,6 +40,17 @@ class UserCreate(UserBase):
     role: str | None = "admin_tienda"
     permissions: Optional[Dict[str, bool]] = {}
     plan_id: Optional[uuid.UUID] = None
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    logo_url: Optional[str] = None
+    nit: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    shop_slug: Optional[str] = None
+    bank_accounts: Optional[List[dict]] = None
+    social_links: Optional[dict] = None
+    whatsapp_lines: Optional[List[dict]] = None
 
 class User(UserBase):
     id: uuid.UUID
@@ -60,7 +72,6 @@ class User(UserBase):
 
     class Config:
         from_attributes = True
-        orm_mode = True
         populate_by_name = True
 
 class CustomerSync(BaseModel):
@@ -97,7 +108,6 @@ class Collection(CollectionBase):
     product_count: int = 0
     class Config:
         from_attributes = True
-        orm_mode = True
 
 # --- Product Schemas ---
 class ProductVariantBase(BaseModel):
@@ -116,7 +126,6 @@ class ProductVariant(ProductVariantBase):
     product_id: uuid.UUID
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class ProductBase(BaseModel):
     name: str
@@ -134,6 +143,21 @@ class ProductBase(BaseModel):
 class ProductCreate(ProductBase):
     variants: List[ProductVariantCreate]
 
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    price: Optional[float] = None
+    wholesale_price: Optional[float] = None
+    cost: Optional[float] = None
+    sku: Optional[str] = None
+    status: Optional[str] = None
+    add_gateway_fee: Optional[bool] = None
+    image_url: Optional[List[str]] = None
+    product_type_id: Optional[uuid.UUID] = None
+    collection_id: Optional[uuid.UUID] = None
+    variants: Optional[List[ProductVariantCreate]] = None
+
 class Product(ProductBase):
     id: uuid.UUID
     owner_id: uuid.UUID
@@ -141,7 +165,6 @@ class Product(ProductBase):
     collection: Optional[Collection] = None
     class Config:
         from_attributes = True
-        orm_mode = True
 
 # --- Order Schemas ---
 class OrderItemBase(BaseModel):
@@ -157,7 +180,6 @@ class OrderItem(OrderItemBase):
     product_variant: Optional[ProductVariant] = None
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class OrderBase(BaseModel):
     customer_name: Optional[str] = None
@@ -171,6 +193,9 @@ class OrderBase(BaseModel):
 class OrderCreate(OrderBase):
     items: List[OrderItemCreate]
 
+class OrderStatusUpdate(BaseModel):
+    status: str
+
 class Order(OrderBase):
     id: uuid.UUID
     customer_id: uuid.UUID 
@@ -180,7 +205,6 @@ class Order(OrderBase):
     items: List[OrderItem] = []
     class Config:
         from_attributes = True
-        orm_mode = True
 
 # --- Shipment Schemas ---
 class ShipmentBase(BaseModel):
@@ -201,7 +225,6 @@ class Shipment(ShipmentBase):
     tenant_id: uuid.UUID
     class Config:
         from_attributes = True
-        orm_mode = True
 
 # --- Finance Schemas ---
 class ExpenseBase(BaseModel):
@@ -222,7 +245,6 @@ class Expense(ExpenseBase):
     tenant_id: uuid.UUID
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class ReceivableBase(BaseModel):
     client_name: str
@@ -241,7 +263,6 @@ class Receivable(ReceivableBase):
     tenant_id: uuid.UUID
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class PayrollEmployeeBase(BaseModel):
     name: str
@@ -256,7 +277,6 @@ class PayrollEmployee(PayrollEmployeeBase):
     tenant_id: uuid.UUID
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class IncomeBase(BaseModel):
     description: str
@@ -272,7 +292,6 @@ class Income(IncomeBase):
     tenant_id: uuid.UUID
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class ClerkLoginRequest(BaseModel):
     clerk_token: str
@@ -295,7 +314,6 @@ class Page(PageBase):
     owner_id: uuid.UUID
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class TaxRateBase(BaseModel):
     name: str
@@ -315,7 +333,6 @@ class TaxRate(TaxRateBase):
     owner_id: uuid.UUID
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class ShippingOptionBase(BaseModel):
     name: str
@@ -335,7 +352,6 @@ class ShippingOption(ShippingOptionBase):
     owner_id: uuid.UUID
     class Config:
         from_attributes = True
-        orm_mode = True
 
 # --- ProductType Schemas ---
 class ProductAttributeBase(BaseModel):
@@ -351,7 +367,6 @@ class ProductAttribute(ProductAttributeBase):
     product_type_id: uuid.UUID
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class ProductTypeBase(BaseModel):
     name: str
@@ -365,7 +380,6 @@ class ProductType(ProductTypeBase):
     attributes: List[ProductAttribute] = []
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class AIAssistantBase(BaseModel):
     name: str
@@ -387,7 +401,6 @@ class AIAssistant(AIAssistantBase):
     last_run: datetime | None = None
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class CustomRoleCreate(BaseModel):
     name: str
@@ -398,7 +411,6 @@ class CustomRole(CustomRoleCreate):
     owner_id: uuid.UUID
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class PurchaseOrderBase(BaseModel):
     product_name: str
@@ -419,7 +431,6 @@ class PurchaseOrder(PurchaseOrderBase):
     tenant_id: uuid.UUID
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class ProviderCreate(BaseModel):
     name: str
@@ -433,7 +444,6 @@ class Provider(ProviderCreate):
     tenant_id: uuid.UUID
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class ActivityLogBase(BaseModel):
     action: str
@@ -449,7 +459,6 @@ class ActivityLog(ActivityLogBase):
 
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class SuperAdminStats(BaseModel):
     total_revenue: float
@@ -492,8 +501,6 @@ class StoreMessage(StoreMessageBase):
     created_at: datetime
     class Config:
         from_attributes = True
-        from_attributes = True
-        orm_mode = True
 
 # --- Web Template Schemas ---
 class WebTemplateBase(BaseModel):
@@ -513,4 +520,3 @@ class WebTemplate(WebTemplateBase):
     updated_at: datetime
     class Config:
         from_attributes = True
-        orm_mode = True

@@ -5,8 +5,7 @@ import { Bell, Bot, LogOut, User as UserIcon, Truck, Sparkles, Moon, Sun, Dollar
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
-
-import { UserButton } from "@clerk/nextjs";
+import { apiRequest } from '@/lib/api';
 
 interface HeaderProps {
     pathname: string;
@@ -32,7 +31,7 @@ export const DashboardHeader = ({
     setIsBaytOpen
 }: HeaderProps) => {
     const { theme, toggleTheme } = useTheme();
-    const { token, userPlan, isGlobalStaff } = useAuth();
+    const { token, userPlan, isGlobalStaff, userLogo } = useAuth();
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [isHoveringUser, setIsHoveringUser] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
@@ -42,18 +41,18 @@ export const DashboardHeader = ({
 
     // Polling de Notificaciones Reales
     useEffect(() => {
+        let intervalId: any = null;
+
         const fetchNotifications = async () => {
-            if (!token) return;
+            if (!token) {
+                if (intervalId) clearInterval(intervalId);
+                return;
+            }
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                const res = await fetch(`${apiUrl}/notifications`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
+                const data = await apiRequest<any[]>('/notifications', { token });
+                if (data) {
                     const unread = data.filter((n: any) => !n.is_read).length;
                     
-                    // Sonido si hay algo nuevo
                     if (unread > lastCountRef.current) {
                         try {
                             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
@@ -63,12 +62,18 @@ export const DashboardHeader = ({
                     lastCountRef.current = unread;
                     setNotifications(data);
                 }
-            } catch (err) { console.error(err); }
+            } catch (err: any) { 
+                // Si detectamos un 401 (Sesión no autorizada), detenemos el polling
+                if (err?.message?.includes('401')) {
+                    console.warn("[API] Sesión expirada. Deteniendo notificaciones.");
+                    if (intervalId) clearInterval(intervalId);
+                }
+            }
         };
 
         fetchNotifications();
-        const interval = setInterval(fetchNotifications, 30000);
-        return () => clearInterval(interval);
+        intervalId = setInterval(fetchNotifications, 30000);
+        return () => { if (intervalId) clearInterval(intervalId); };
     }, [token]);
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -155,29 +160,24 @@ export const DashboardHeader = ({
 
                         <div className="h-6 w-px bg-[#004d4d]/10"></div>
 
-                        <div className="flex items-center gap-3">
-                            {/* Botón de Usuario Manual (Bayup Style) */}
-                            <button 
-                                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                className="h-10 w-10 rounded-2xl bg-gradient-to-br from-white to-gray-100 shadow-lg border border-[#004d4d]/5 flex items-center justify-center text-[#004d4d] hover:scale-105 transition-all relative group"
-                            >
-                                <UserIcon size={18} />
-                                <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-emerald-500 border-2 border-white rounded-full"></div>
-                            </button>
-
-                            {/* Clerk UserButton (Oculto si no carga, pero presente para el futuro) */}
-                            <div className="hidden">
-                                <UserButton 
-                                    afterSignOutUrl="/login"
-                                    appearance={{
-                                        elements: {
-                                            userButtonAvatarBox: "h-10 w-10 rounded-2xl border border-white/10 shadow-lg",
-                                            userButtonTrigger: "focus:shadow-none focus:outline-none"
-                                        }
-                                    }}
-                                />
+                            <div className="flex items-center gap-3">
+                                {/* Botón de Usuario Manual (Bayup Style) con Logo Real */}
+                                <button 
+                                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                                    className="h-10 w-10 rounded-2xl bg-gradient-to-br from-white to-gray-100 shadow-lg border border-[#004d4d]/5 flex items-center justify-center text-[#004d4d] hover:scale-105 transition-all relative group overflow-hidden"
+                                >
+                                    {userLogo ? (
+                                        <img 
+                                            src={userLogo} 
+                                            alt="Logo Tienda" 
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <UserIcon size={18} />
+                                    )}
+                                    <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-emerald-500 border-2 border-white rounded-full z-10"></div>
+                                </button>
                             </div>
-                        </div>
                     </div>
                 </div>
             </div>

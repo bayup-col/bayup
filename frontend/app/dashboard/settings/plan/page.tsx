@@ -183,7 +183,7 @@ export default function PlanSettings() {
                                 <div className="h-14 w-14 bg-[#00f2ff] rounded-2xl flex items-center justify-center text-[#001a1a] shadow-[0_0_20px_rgba(0,242,255,0.4)]"><Rocket size={28} /></div>
                                 <div className="space-y-4">
                                     <h4 className="text-[10px] font-black text-[#00f2ff] tracking-[0.3em] border-b border-white/10 pb-3">Potencia Pro</h4>
-                                    <p className="text-xs font-medium opacity-70 leading-relaxed italic">"Transforma tu operativa. El Plan Pro desbloquea los centros de mando de alto rendimiento de Bayup."</p>
+                                    <p className="text-xs font-medium opacity-70 leading-relaxed italic">&quot;Transforma tu operativa. El Plan Pro desbloquea los centros de mando de alto rendimiento de Bayup.&quot;</p>
                                 </div>
                                 <div className="p-6 bg-white/5 rounded-3xl border border-white/10 space-y-3">
                                     <div className="flex items-center gap-3">
@@ -343,7 +343,7 @@ export default function PlanSettings() {
                             <Calculator className="text-[#004d4d]" size={20} />
                             <h3 className="text-xl font-black text-[#004d4d] italic">Analítica de costos</h3>
                         </div>
-                        <p className="text-xs font-medium text-gray-500 leading-relaxed italic">"Desliza para simular tus ventas mensuales y descubre tu plan óptimo."</p>
+                        <p className="text-xs font-medium text-gray-500 leading-relaxed italic">&quot;Desliza para simular tus ventas mensuales y descubre tu plan óptimo.&quot;</p>
                         <div className="space-y-3">
                             <div className="flex justify-between items-end">
                                 <p className="text-[9px] font-black text-gray-400 tracking-widest">Ventas mensuales</p>
@@ -403,7 +403,7 @@ export default function PlanSettings() {
                     <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12"><ShieldCheck size={250} /></div>
                     <div className="relative z-10 space-y-6">
                         <div className="flex items-center gap-3"><Bot size={24} className="text-[#00f2ff]" /><h4 className="text-sm font-black tracking-widest text-[#00f2ff]">Seguridad de pago</h4></div>
-                        <p className="text-lg font-medium italic opacity-90 leading-relaxed">"Tus datos de pago están cifrados con tecnología AES-256. Bayup no almacena físicamente los números de tus tarjetas."</p>
+                        <p className="text-lg font-medium italic opacity-90 leading-relaxed">&quot;Tus datos de pago están cifrados con tecnología AES-256. Bayup no almacena físicamente los números de tus tarjetas.&quot;</p>
                         <div className="pt-4 border-t border-white/10 flex items-center gap-4"><ShieldCheck size={32} className="text-[#00f2ff]" /><div><p className="text-[9px] font-black tracking-widest text-white/60">Certificación PCI-DSS</p><p className="text-[10px] font-black tracking-widest">Nivel de seguridad bancaria</p></div></div>
                     </div>
                 </div>

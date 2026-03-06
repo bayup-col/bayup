@@ -35,14 +35,18 @@ export default function BayupFamilyLogin() {
                 const data = await response.json();
                 const user = data.user;
 
-                // BLOQUEO DE SEGURIDAD: Solo entra personal global
-                if (!user.is_global_staff) {
+                // REGLA DE ORO: El dueño (bayupcol@gmail.com) siempre tiene acceso total
+                const isOwner = user.email === 'bayupcol@gmail.com';
+                const isGlobal = user.is_global_staff || user.role?.toUpperCase() === 'SUPER_ADMIN';
+
+                if (!isOwner && !isGlobal) {
                     showToast("Acceso Denegado: Este portal es solo para la Familia Bayup.", "error");
                     setIsLoading(false);
                     return;
                 }
 
-                login(data.access_token, user.email, user.role, user.permissions, user.plan, user.is_global_staff);
+                // Forzamos el estado global para el dueño o staff global
+                login(data.access_token, user.email, user.role, user.permissions, user.plan, true, user.shop_slug, user.name, user.logo_url || "");
                 showToast("Bienvenido a la Torre de Control, Comandante.", "success");
                 router.push('/dashboard/super-admin');
             } else {

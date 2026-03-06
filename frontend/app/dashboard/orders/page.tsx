@@ -169,6 +169,21 @@ export default function OrdersPage() {
         exportOrdersToExcel(filteredOrders, "Auditoria_Pedidos");
     };
 
+    const updateOrderStatus = async (orderId: string, newStatus: string) => {
+        try {
+            await apiRequest(`/orders/${orderId}`, {
+                method: 'PUT',
+                token,
+                body: JSON.stringify({ status: newStatus })
+            });
+            showToast(`Estado actualizado a ${newStatus.toUpperCase()}`, "success");
+            fetchOrders();
+            setSelectedOrder(prev => prev ? { ...prev, status: newStatus } : null);
+        } catch (e) {
+            showToast("Error al actualizar estado", "error");
+        }
+    };
+
     return (
         <div className="max-w-[1600px] mx-auto space-y-10 pb-20 animate-in fade-in duration-1000">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-4">
@@ -252,12 +267,12 @@ export default function OrdersPage() {
                         </thead>
                         <tbody className="divide-y divide-gray-100/50">
                             {loading ? (<tr><td colSpan={5} className="py-20 text-center"><div className="h-12 w-12 border-4 border-[#004d4d] border-t-cyan rounded-full animate-spin mx-auto" /></td></tr>) : filteredOrders.length === 0 ? (<tr><td colSpan={5} className="py-20 text-center text-gray-300 font-black text-[10px] uppercase">Sin movimientos registrados</td></tr>) : filteredOrders.map((o) => (
-                                <tr key={o.id} className="hover:bg-white/60 transition-all cursor-pointer group">
+                                <tr key={o.id} className="hover:bg-white/60 transition-all cursor-pointer group" onClick={() => setSelectedOrder(o)}>
                                     <td className="px-10 py-8 font-black text-gray-900">#{o.id.slice(0, 8).toUpperCase()}</td>
                                     <td className="px-10 py-8"><p className="text-sm font-black text-gray-900">{o.customer_name}</p><p className="text-[9px] font-bold text-gray-400 uppercase">{o.source || 'Tienda'}</p></td>
-                                    <td className="px-10 py-8"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${o.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : o.status === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>{o.status === 'pending' ? 'Por Facturar' : o.status === 'processing' ? 'Proceso' : 'Exitoso'}</span></td>
+                                    <td className="px-10 py-8"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${o.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : o.status === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>{o.status === 'pending' ? 'Pendiente' : o.status === 'processing' ? 'Proceso' : o.status === 'completed' ? 'Exitoso' : 'Cancelado'}</span></td>
                                     <td className="px-10 py-8 font-black text-[#004D4D] text-base"><AnimatedNumber value={o.total_price} /></td>
-                                    <td className="px-10 py-8"><button onClick={() => setSelectedOrder(o)} className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-[#004D4D] hover:bg-white transition-all shadow-sm flex items-center justify-center m-auto"><Eye size={16}/></button></td>
+                                    <td className="px-10 py-8"><button className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-[#004D4D] hover:bg-white transition-all shadow-sm flex items-center justify-center m-auto"><Eye size={16}/></button></td>
                                 </tr>
                             ))}
                         </tbody>
@@ -266,6 +281,70 @@ export default function OrdersPage() {
             </div>
 
             <MetricDetailModal isOpen={!!selectedMetric} onClose={() => setSelectedMetric(null)} metric={selectedMetric} />
+
+            {/* MODAL DE DETALLE DE PEDIDO */}
+            <AnimatePresence>
+                {selectedOrder && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedOrder(null)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-2xl" />
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative bg-white w-full max-w-2xl max-h-[90vh] rounded-[4rem] shadow-3xl overflow-hidden border border-white/20 flex flex-col">
+                            <div className="p-12 border-b bg-white flex justify-between items-center shrink-0">
+                                <div>
+                                    <p className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest mb-1">Detalle del Pedido</p>
+                                    <h2 className="text-3xl font-black italic tracking-tighter text-[#001A1A]">#{selectedOrder.id.slice(0, 8).toUpperCase()}</h2>
+                                </div>
+                                <button onClick={() => setSelectedOrder(null)} className="h-12 w-12 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center hover:bg-rose-50 hover:text-rose-500 transition-all"><X size={20}/></button>
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto p-12 space-y-10 custom-scrollbar">
+                                <div className="grid grid-cols-2 gap-10">
+                                    <div className="space-y-4">
+                                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Información del Cliente</p>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-3"><div className="h-8 w-8 bg-[#004D4D]/5 rounded-xl flex items-center justify-center text-[#004D4D]"><User size={14}/></div><p className="text-sm font-black text-gray-900">{selectedOrder.customer_name}</p></div>
+                                            <div className="flex items-center gap-3"><div className="h-8 w-8 bg-[#004D4D]/5 rounded-xl flex items-center justify-center text-[#004D4D]"><Smartphone size={14}/></div><p className="text-sm font-bold text-gray-500">{selectedOrder.customer_phone || 'N/A'}</p></div>
+                                            <div className="flex items-center gap-3"><div className="h-8 w-8 bg-[#004D4D]/5 rounded-xl flex items-center justify-center text-[#004D4D]"><MapPin size={14}/></div><p className="text-sm font-bold text-gray-500">{selectedOrder.customer_city || 'N/A'}</p></div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Estado y Pago</p>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-3"><div className="h-8 w-8 bg-[#004D4D]/5 rounded-xl flex items-center justify-center text-[#004D4D]"><Activity size={14}/></div><span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${selectedOrder.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>{selectedOrder.status}</span></div>
+                                            <div className="flex items-center gap-3"><div className="h-8 w-8 bg-[#004D4D]/5 rounded-xl flex items-center justify-center text-[#004D4D]"><CreditCard size={14}/></div><p className="text-sm font-bold text-gray-500 uppercase">{selectedOrder.payment_method || 'WhatsApp'}</p></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Productos Solicitados</p>
+                                    <div className="space-y-3">
+                                        {selectedOrder.items?.map((item: any, i: number) => (
+                                            <div key={i} className="flex items-center gap-4 p-4 bg-gray-50 rounded-[2rem] border border-gray-100">
+                                                <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center text-[#004D4D] shrink-0 shadow-sm"><Package size={20}/></div>
+                                                <div className="flex-1"><p className="text-xs font-black text-gray-900">{item.product_variant?.product?.name || 'Producto'}</p><p className="text-[9px] font-bold text-gray-400">SKU: {item.product_variant?.sku || 'N/A'}</p></div>
+                                                <div className="text-right"><p className="text-xs font-black text-[#004D4D]">x{item.quantity}</p><p className="text-[10px] font-bold text-gray-400">${(item.price_at_purchase * item.quantity).toLocaleString()}</p></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-12 bg-gray-50 border-t space-y-8">
+                                <div className="flex justify-between items-center"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones de gestión</p><div className="flex gap-2">
+                                    {['pending', 'processing', 'completed', 'cancelled'].map(st => (
+                                        <button key={st} onClick={() => updateOrderStatus(selectedOrder.id, st)} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${selectedOrder.status === st ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100 hover:border-[#004D4D]/20'}`}>{st === 'pending' ? 'Pendiente' : st === 'processing' ? 'Proceso' : st === 'completed' ? 'Éxito' : 'Anular'}</button>
+                                    ))}
+                                </div></div>
+                                <div className="flex gap-4">
+                                    <button onClick={() => window.open(`https://wa.me/57${selectedOrder.customer_phone?.replace(/\D/g, '')}`, '_blank')} className="flex-1 h-14 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"><MessageSquare size={16}/> WhatsApp</button>
+                                    <button onClick={() => setSelectedOrder(null)} className="flex-1 h-14 bg-white border border-gray-200 text-gray-400 rounded-2xl font-black text-[10px] uppercase hover:bg-gray-100 transition-all">Cerrar</button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+            <style jsx global>{`.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.05); border-radius: 10px; }`}</style>
         </div>
     );
 }

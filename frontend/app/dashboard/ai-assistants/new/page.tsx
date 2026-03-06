@@ -181,19 +181,19 @@ export default function NewAIAgentPage() {
                 <motion.div whileHover={{ y: -10 }} onClick={() => handleSwitchStep('n8n_link')} className="bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm cursor-pointer group hover:shadow-2xl transition-all">
                     <div className="h-16 w-16 bg-gray-900 text-white rounded-2xl flex items-center justify-center mb-8"><Link2 size={32}/></div>
                     <h3 className="text-2xl font-black text-gray-900 uppercase italic">Pegar Link n8n</h3>
-                    <p className="text-xs text-gray-400 mt-4 italic leading-relaxed">"Importa un flujo técnico externo desde tu servidor."</p>
+                    <p className="text-xs text-gray-400 mt-4 italic leading-relaxed">&quot;Importa un flujo técnico externo desde tu servidor.&quot;</p>
                 </motion.div>
 
                 <motion.div whileHover={{ y: -10 }} onClick={() => handleSwitchStep('canvas')} className="bg-[#001a1a] p-10 rounded-[4rem] border border-white/10 shadow-2xl cursor-pointer group ring-4 ring-[#00f2ff]/5 scale-105 z-10 transition-all">
                     <div className="h-16 w-16 bg-[#00f2ff] text-[#001a1a] rounded-2xl flex items-center justify-center mb-8 shadow-xl"><BrainCircuit size={32}/></div>
                     <h3 className="text-2xl font-black text-white uppercase italic">Lienzo Neural</h3>
-                    <p className="text-xs text-gray-400 mt-4 italic leading-relaxed">"Crea flujos complejos en lenguaje humano. La IA dibuja tu idea."</p>
+                    <p className="text-xs text-gray-400 mt-4 italic leading-relaxed">&quot;Crea flujos complejos en lenguaje humano. La IA dibuja tu idea.&quot;</p>
                 </motion.div>
 
                 <motion.div whileHover={{ y: -10 }} onClick={() => handleSwitchStep('templates')} className="bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm cursor-pointer group hover:shadow-2xl transition-all">
                     <div className="h-16 w-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-8"><Rocket size={32}/></div>
                     <h3 className="text-2xl font-black text-gray-900 uppercase italic">Recetas Élite</h3>
-                    <p className="text-xs text-gray-400 mt-4 italic leading-relaxed">"Activa automatizaciones probadas para ventas y stock."</p>
+                    <p className="text-xs text-gray-400 mt-4 italic leading-relaxed">&quot;Activa automatizaciones probadas para ventas y stock.&quot;</p>
                 </motion.div>
             </div>
         </motion.div>
@@ -283,7 +283,7 @@ export default function NewAIAgentPage() {
                                             <GripVertical size={20} className="text-white/10" />
                                         </div>
                                         <h4 className="text-white font-black uppercase italic tracking-tight text-lg leading-none">{node.label}</h4>
-                                        <p className="text-[10px] text-white/40 mt-3 font-medium italic line-clamp-2">"{node.desc}"</p>
+                                        <p className="text-[10px] text-white/40 mt-3 font-medium italic line-clamp-2">&quot;{node.desc}&quot;</p>
                                     </div>
                                 </motion.div>
                             ))}

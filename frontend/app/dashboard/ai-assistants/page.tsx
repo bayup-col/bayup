@@ -152,7 +152,7 @@ export default function FlowMarketPage() {
                 <div>
                     <h3 className="text-2xl font-black text-gray-900 tracking-tight italic uppercase leading-tight">{flow.name}</h3>
                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-2">{flow.category} · {flow.setupTime} setup</p>
-                    <p className="text-sm font-medium text-gray-500 mt-4 leading-relaxed italic">"{flow.description}"</p>
+                    <p className="text-sm font-medium text-gray-500 mt-4 leading-relaxed italic">&quot;{flow.description}&quot;</p>
                 </div>
 
                 {flow.revenueImpact && (

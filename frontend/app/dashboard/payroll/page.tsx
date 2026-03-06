@@ -479,7 +479,7 @@ export default function PayrollPage() {
                                         <h3 className="text-4xl font-black uppercase italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-[#00f2ff]">Eficiencia del Capital Humano</h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed text-white/40">El asistente Bayt analizará el desempeño de tu equipo a medida que registres ventas.</p></div>
-                                            <div className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">"Tu costo de nómina ha bajado un 2.1% respecto al mes anterior. El ROI de personal está en su punto máximo."</p></div>
+                                            <div className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">&quot;Tu costo de nómina ha bajado un 2.1% respecto al mes anterior. El ROI de personal está en su punto máximo.&quot;</p></div>
                                         </div>
                                     </div>
                                 </div>

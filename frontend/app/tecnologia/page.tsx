@@ -44,7 +44,7 @@ const TechBlock = ({ icon: Icon, title, highlight, description, tags }: { icon: 
     </div>
     <div className="lg:col-span-3 p-10 md:p-14 rounded-[4rem] bg-white border border-gray-100 shadow-xl hover:shadow-2xl transition-all duration-700">
       <p className="text-gray-500 text-lg font-medium leading-relaxed italic italic">
-        "{description}"
+        &quot;{description}&quot;
       </p>
     </div>
   </motion.div>

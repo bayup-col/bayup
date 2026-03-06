@@ -5,393 +5,236 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/context/theme-context';
-import { userService } from '@/lib/api';
 import { DashboardHeader } from '@/components/dashboard/Header';
 import UserSettingsModal from '@/components/dashboard/UserSettingsModal';
 import { BaytAssistant } from '@/components/dashboard/BaytAssistant';
-import { InteractiveUP } from '@/components/landing/InteractiveUP';
-import { motion, AnimatePresence } from 'framer-motion';
-import { getModulesByPlan } from '@/lib/plan-configs';
+import { motion } from 'framer-motion';
 import { 
-  LayoutDashboard, 
-  Bot, 
-  FileText, 
-  Package, 
-  Truck, 
-  Globe, 
-  MessageSquare, 
-  Link2, 
-  Users, 
-  ShieldCheck, 
-  TrendingUp, 
-  Gem, 
-  Tag, 
-  Settings,
-  Users2,
-  BarChart3,
-  Store,
-  ChevronDown,
-  Pencil,
-  User,
-  Lock,
-  Bell,
-  Globe2,
-  Camera,
-  X,
-  Ghost,
-  ExternalLink,
-  LogOut,
-  Eye,
-  Sparkles,
-  Activity,
-  Target
+  LayoutDashboard, FileText, Package, Store, Truck, MessageSquare, Settings, 
+  LogOut, ChevronDown, Eye, ShieldCheck, Building2, Users, Wallet, Headset, 
+  Layout, BarChart3, Code, Activity, Globe, Link as LinkIcon, Scale, AlertTriangle, 
+  ChevronLeft, ChevronRight, Zap, Box, ShoppingBag, ClipboardList, Database, Share2, 
+  UserCheck, Heart, Target, Sparkles, Bot, Receipt, BarChart, ShoppingCart, 
+  MapPin, UserPlus, Coins, PieChart, Info as InfoIcon, CreditCard, Users2
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { userEmail: authEmail, userRole: authRole, token, logout, userPlan, isGlobalStaff } = useAuth();
+  const { 
+    userEmail: authEmail, 
+    userRole: authRole, 
+    userName: authName,
+    shopSlug: authSlug,
+    token, 
+    logout, 
+    userPlan, 
+    isGlobalStaff, 
+    isAuthenticated, 
+    isLoading 
+  } = useAuth();
   const { theme } = useTheme();
-  
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [productsOpen, setProductsOpen] = useState(true);
-  const [reportsOpen, setReportsOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [isBaytOpen, setIsBaytOpen] = useState(false);
-  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'prefs'>('profile');
-  const [companyName, setCompanyName] = useState('Mi Tienda Bayup');
-
-  // NORMALIZACIÓN DE PLAN PARA EVITAR FUGAS
-  const rawPlanName = userPlan?.name || 'Básico';
-  const planNameNormalized = rawPlanName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const allowedModules = getModulesByPlan(rawPlanName);
-  
   const router = useRouter();
   const pathname = usePathname();
 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isBaytOpen, setIsBaytOpen] = useState(false);
+  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
+
+  const isSuperAdminZone = pathname?.startsWith('/dashboard/super-admin');
+
+  // Sincronización total con el contexto global
   useEffect(() => {
-    const fetchCompanyName = async () => {
-      if (!token) return;
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${apiUrl}/auth/me`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.full_name) setCompanyName(data.full_name);
-        }
-      } catch (e) { console.error("Error al cargar nombre de empresa", e); }
-    };
-    fetchCompanyName();
+      if (!isLoading && !isAuthenticated) router.replace('/login');
+  }, [isAuthenticated, isLoading, router]);
 
-    const handleNameUpdate = (e: any) => { if (e.detail) setCompanyName(e.detail); };
-    window.addEventListener('bayup_name_update', handleNameUpdate);
-    return () => window.removeEventListener('bayup_name_update', handleNameUpdate);
-  }, [token]);
-
-  const userEmail = authEmail || 'usuario@ejemplo.com';
-  const userRole = authRole || 'admin';
-
-  const getLinkStyles = (path: string, type: 'admin' | 'super' = 'admin', isSub = false) => {
-      const isActive = pathname === path || (path !== '/dashboard' && pathname?.startsWith(path));
-      const base = `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300  `;
-      const subBase = `flex items-center gap-3 px-4 py-2 ml-9 rounded-xl text-xs font-bold transition-all duration-300  `;
-      
-      if (type === 'super') {
-        return (isSub ? subBase : base) + (isActive 
-          ? (theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF] shadow-[0_0_15px_rgba(0,242,255,0.1)]' : 'bg-[#f0f9f9] text-[#004d4d] shadow-sm')
-          : (theme === 'dark' ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'));
-      }
-      
-      return (isSub ? subBase : base) + (isActive 
-        ? (theme === 'dark' 
-            ? 'backdrop-blur-md bg-[#00F2FF]/10 border border-[#00F2FF]/20 text-[#00F2FF] shadow-[0_8px_32px_-4px_rgba(0,242,255,0.2)] scale-[1.02]'
-            : 'backdrop-blur-md bg-white/20 border border-white/30 text-[#004d4d] shadow-[0_8px_16px_-4px_rgba(0,77,77,0.15)] scale-[1.02]')
-        : (theme === 'dark'
-            ? 'text-slate-400 hover:bg-white/5 hover:text-[#00F2FF]'
-            : 'text-gray-500 hover:bg-[#004d4d]/5 hover:text-[#004d4d]'));
-  };
-  
-  const MenuItem = ({ href, label, id, isSub = false }: { href: string, label: ReactNode, id: string, isSub?: boolean }) => {
-      // SOLO EL SUPER ADMIN VE TODO EN SU PROPIA RUTA
-      if (isGlobalStaff === true && pathname?.includes('/super-admin')) return (
-        <div className="relative group">
-          <Link href={href} className={getLinkStyles(href, 'admin', isSub)}>
-            <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
-                {label}
-            </div>
-          </Link>
+  if (isLoading || !isAuthenticated) {
+      return (
+        <div className="h-screen w-screen flex items-center justify-center bg-[#FAFAFA]">
+            <div className="text-3xl font-black italic tracking-tighter text-[#004d4d] animate-pulse">BAYUP</div>
         </div>
       );
+  }
 
-      const moduleKey = id.replace('m_', '').replace('s_', '');
-      const isAllowedByPlan = (allowedModules as any[]).includes(moduleKey);
+  // LOGICA DE SEGURIDAD POR PLAN (ESTRICTA)
+  const planName = userPlan?.name || "Básico";
+  const isEnterprise = authEmail === 'dntonline13@gmail.com' || planName === "Empresa";
+  const isPro = planName === "Pro";
+  const showExtraModules = isEnterprise || isPro || isGlobalStaff || authRole === 'SUPER_ADMIN';
 
-      if (!isAllowedByPlan && !pathname?.includes('/super-admin')) return null;
+  const getLinkStyles = (path: string) => {
+      const isActive = pathname === path || (path !== '/dashboard' && pathname?.startsWith(path));
+      return isActive 
+        ? (theme === 'dark' ? 'bg-[#00F2FF]/10 text-[#00F2FF]' : 'bg-[#f0f9f9] text-[#004d4d]')
+        : (theme === 'dark' ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:bg-gray-50');
+  };
+
+  const MenuItem = ({ href, label, id, icon }: { href: string, label: string, id: string, icon: any }) => {
+      if (isSuperAdminZone) {
+          return (
+            <Link href={href} className={`flex items-center gap-3 px-4 py-3 text-sm rounded-2xl font-bold transition-all ${getLinkStyles(href)}`}>
+                <div className="shrink-0">{icon}</div>
+                {!isSidebarCollapsed && <span className="truncate">{label}</span>}
+            </Link>
+          );
+      }
+
+      const basicModules = ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"];
+      const isApproved = basicModules.includes(id);
+      
+      if (!showExtraModules && !isApproved) return null;
       
       return (
-        <div className="relative group">
-          <Link href={href} className={getLinkStyles(href, 'admin', isSub)}>
-            <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3'}`}>
-                {label}
-            </div>
-          </Link>
-        </div>
+        <Link href={href} title={isSidebarCollapsed ? label : ""} className={`flex items-center gap-3 px-4 py-3 text-sm rounded-2xl font-bold transition-all ${getLinkStyles(href)}`}>
+            <div className="shrink-0">{icon}</div>
+            {!isSidebarCollapsed && <span className="truncate">{label}</span>}
+        </Link>
       );
-  };
-
-  const hasVisibleModules = (moduleIds: string[]) => {
-      // En dashboard normal, respetamos el plan incluso para admins
-      return moduleIds.some(id => (allowedModules as any[]).includes(id.replace('m_', '').replace('s_', '')));
-  };
-
-  const renderSidebar = () => {
-    if (isGlobalStaff === true && pathname?.includes('/super-admin')) {
-        return (
-            <>
-              <div className="p-6 border-b border-white/10">
-                <Link href="/dashboard/super-admin" className="text-2xl font-black bg-gradient-to-r from-[#004d4d] to-[#008080] bg-clip-text text-transparent italic tracking-tighter">
-                  Bayup <span className="text-[10px] uppercase tracking-[0.3em] font-black text-cyan">Master</span>
-                </Link>
-              </div>
-              <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-                <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">Administración</p>
-                <MenuItem href="/dashboard/super-admin" label={<><LayoutDashboard size={16} /> Dashboard</>} id="m_inicio" />
-                <MenuItem href="/dashboard/super-admin/empresas" label={<><Store size={16} /> Directorio Empresas</>} id="m_empresas" />
-                <MenuItem href="/dashboard/super-admin/afiliados" label={<><Users2 size={16} /> Red Afiliados</>} id="m_afiliados" />
-                <MenuItem href="/dashboard/super-admin/tesoreria" label={<><Gem size={16} /> Tesorería (3.5%)</>} id="m_tesoreria" />
-                <div className="my-4 border-t border-white/5"></div>
-                <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">Creatividad & Equipo</p>
-                <MenuItem href="/dashboard/super-admin/web-templates" label={<><Globe size={16} /> Fábrica de Diseño</>} id="m_web_templates" />
-                <MenuItem href="/dashboard/super-admin/users" label={<><Users size={16} /> Equipo Bayup</>} id="m_staff" />
-              </nav>
-            </>
-        );
-    }
-
-    return (
-      <>
-          <div className="p-4 border-b border-white/10 relative">
-              <div className={`backdrop-blur-md p-6 rounded-[2.5rem] border shadow-sm flex flex-col items-center text-center transition-all duration-500 ${theme === 'dark' ? 'bg-[#002626]/40 border-[#00F2FF]/10' : 'bg-white/10 border-white/30'}`}>
-                  <div className="flex flex-col items-center">
-                      <span className={`text-base font-black leading-tight tracking-tighter transition-colors duration-500 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                          {companyName}
-                      </span>
-                      <div className="flex items-center gap-1.5 mt-1.5">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>
-                          <span className={`text-[9px] font-black tracking-widest transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]/60' : 'text-[#004d4d]'}`}>En línea</span>
-                      </div>
-                  </div>
-                  <button 
-                      onClick={() => {
-                        const origin = window.location.origin;
-                        const savedSettings = localStorage.getItem('bayup_general_settings');
-                        let slug = 'preview';
-                        if (savedSettings) {
-                            try {
-                                const parsed = JSON.parse(savedSettings);
-                                if (parsed.identity?.slug) slug = parsed.identity.slug;
-                            } catch(e){}
-                        }
-                        window.open(`${origin}/shop/${slug}`, '_blank');
-                      }}
-                      className="mt-4 group/conic relative w-full p-[1.5px] overflow-hidden rounded-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(0,242,255,0.2)]"
-                  >
-                      <div className="absolute inset-[-200%] bg-[conic-gradient(from_0deg,#00F2FF_0deg,#004d4d_90deg,#9333EA_180deg,#004d4d_270deg,#00F2FF_360deg)] animate-[spin_4s_linear_infinite] opacity-100 group-hover/conic:animate-[spin_2s_linear_infinite]" />
-                      <div className={`relative flex items-center justify-center w-full py-4 px-6 backdrop-blur-2xl rounded-[calc(1rem-1.5px)] transition-all duration-500 ${theme === 'dark' ? 'bg-[#001a1a]/90 group-hover/conic:bg-[#001a1a]' : 'bg-white/80 group-hover/conic:bg-white/95'}`}>
-                          <span className={`relative z-10 text-[10px] font-black tracking-[0.1em] flex items-center gap-2 transition-colors ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-[#004d4d]'}`}>
-                              <Eye size={14} className="opacity-80" /> Ver tienda online
-                          </span>
-                      </div>
-                  </button>
-              </div>
-          </div>
-          <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar">
-                {/* SECCIÓN OPERACIÓN */}
-                <div>
-                    <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">
-                        {(planNameNormalized === 'basico' || planNameNormalized === 'free') ? 'Operación' : planNameNormalized === 'pro' ? 'Operación Plus' : 'Operación Maestro'}
-                    </p>
-                    <div className="space-y-1">
-                        <MenuItem href="/dashboard" label={<><LayoutDashboard size={16} className="mr-2" /> Inicio</>} id="m_inicio" />
-                        <MenuItem href="/dashboard/invoicing" label={<><FileText size={16} className="mr-2" /> Facturación</>} id="m_facturacion" />
-                        <MenuItem href="/dashboard/orders" label={<><Package size={16} className="mr-2" /> Pedidos Web</>} id="m_pedidos" />
-                        
-                        {/* GESTIÓN DE PRODUCTOS DINÁMICA */}
-                        {allowedModules.includes('productos') && (
-                            <div className="w-full">
-                                { (planNameNormalized === 'basico' || planNameNormalized === 'free') ? (
-                                    <MenuItem href="/dashboard/products" label={<><Store size={16} className="mr-2" /> Productos</>} id="m_productos" />
-                                ) : (
-                                    <div className="space-y-1">
-                                        <button onClick={() => setProductsOpen(!productsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/products')}`}>
-                                            <span className="flex items-center gap-2 text-sm font-medium"><Store size={16} /> Productos</span>
-                                            <ChevronDown size={14} className={`transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} />
-                                        </button>
-                                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                            <div className="space-y-1">
-                                                <MenuItem href="/dashboard/products" label="Todos los productos" id="s_products_all" isSub />
-                                                <MenuItem href="/dashboard/inventory" label="Inventario Pro" id="s_inventory" isSub />
-                                                <MenuItem href="/dashboard/catalogs" label="Catálogos WhatsApp" id="s_catalogs" isSub />
-                                                <MenuItem href="/dashboard/products/separados" label="Separados (IA)" id="s_separados" isSub />
-                                                <MenuItem href="/dashboard/products/cotizaciones" label="Cotizaciones" id="s_cotizaciones" isSub />
-                                                <MenuItem href="/dashboard/products/bodegas" label="Bodegas & Stock" id="s_bodegas" isSub />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        <MenuItem href="/dashboard/chats" label={<><MessageSquare size={16} className="mr-2" /> Mensajes Web</>} id="m_mensajes" />
-                        <MenuItem href="/dashboard/shipping" label={<><Truck size={16} className="mr-2" /> Envíos</>} id="m_envios" />
-                        <MenuItem href="/dashboard/customers" label={<><Users size={16} className="mr-2" /> Clientes</>} id="m_clientes" />
-                        <MenuItem href="/dashboard/returns" label={<><ShieldCheck size={16} className="mr-2" /> Garantías</>} id="m_garantias" />
-                    </div>
-                </div>
-
-                {/* SECCIÓN CRECIMIENTO */}
-                {hasVisibleModules(['m_web_analytics', 'm_marketing', 'm_loyalty', 'm_discounts']) && (
-                    <div>
-                        <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Crecimiento</p>
-                        <div className="space-y-1">
-                            <MenuItem href="/dashboard/web-analytics" label={<><BarChart3 size={16} className="mr-2" /> ROI & Analytics</>} id="m_web_analytics" />
-                            <MenuItem href="/dashboard/marketing" label={<><TrendingUp size={16} className="mr-2" /> Marketing</>} id="m_marketing" />
-                            <MenuItem href="/dashboard/loyalty" label={<><Gem size={16} className="mr-2" /> Club de Puntos</>} id="m_loyalty" />
-                            <MenuItem href="/dashboard/discounts" label={<><Tag size={16} className="mr-2" /> Descuentos</>} id="m_discounts" />
-                        </div>
-                    </div>
-                )}
-
-                {/* SECCIÓN INTELIGENCIA */}
-                {hasVisibleModules(['m_automations', 'm_ai_assistants', 'm_reports']) && (
-                    <div>
-                        <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Inteligencia</p>
-                        <div className="space-y-1">
-                            <MenuItem href="/dashboard/automations" label={<><Settings size={16} className="mr-2" /> Automatización</>} id="m_automations" />
-                            <MenuItem href="/dashboard/ai-assistants" label={<><Bot size={16} className="mr-2" /> Asistentes AI</>} id="m_ai_assistants" />
-                            <MenuItem href="/dashboard/multiventa" label={<><Globe size={16} className="mr-2" /> Multiventa Hub</>} id="m_multiventa" />
-                            
-                            {/* INFORMES AVANZADOS */}
-                            {allowedModules.includes('reports') && (
-                                <div className="mt-1">
-                                    <button onClick={() => setReportsOpen(!reportsOpen)} className={`w-full flex items-center justify-between text-left ${getLinkStyles('/dashboard/reports')}`}>
-                                        <span className="flex items-center gap-2 text-sm font-bold"><BarChart3 size={16} /> Informes Pro</span>
-                                        <ChevronDown size={14} className={`transition-transform duration-200 ${reportsOpen ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${reportsOpen ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                        <div className="space-y-1">
-                                            <MenuItem href="/dashboard/reports" label="Análisis General" id="s_reports_gen" isSub />
-                                            <MenuItem href="/dashboard/reports?tab=nomina" label="Gestión de Nómina" id="s_reports_payroll" isSub />
-                                            <MenuItem href="/dashboard/reports/purchase-orders" label="Órdenes de Compra" id="s_purchase_orders" isSub />
-                                            <MenuItem href="/dashboard/reports/sucursales" label="Sucursales" id="s_sucursales" isSub />
-                                            <MenuItem href="/dashboard/reports/vendedores" label="Vendedores" id="s_vendedores" isSub />
-                                            <MenuItem href="/dashboard/reports/cuentas" label="Cuentas y Cartera" id="s_cuentas" isSub />
-                                            <MenuItem href="/dashboard/reports/gastos" label="Control de Gastos" id="s_gastos" isSub />
-                                            <MenuItem href="/dashboard/reports/comisiones" label="Liquidación 0.5%" id="s_comisiones" isSub />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* GESTIÓN DE CUENTA */}
-                <div>
-                    <p className="px-4 text-[11px] font-black text-gray-400 tracking-tight mb-3 uppercase">Gestión</p>
-                    <div className="space-y-1">
-                        <MenuItem href="/dashboard/settings/general" label={<><Settings size={16} className="mr-2" /> Perfil de Tienda</>} id="s_settings_general" />
-                        <MenuItem href="/dashboard/settings/users" label={<><Users size={16} className="mr-2" /> Equipo Staff</>} id="s_settings_users" />
-                    </div>
-                </div>
-          </nav>
-      </>
-    );
   };
 
   return (
-    <div className={`h-screen w-full flex overflow-hidden transition-colors duration-500 ${theme === 'dark' ? 'bg-[#001212]' : 'bg-[#FAFAFA]'}`}>
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: ${theme === 'dark' ? 'rgba(0, 242, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: ${theme === 'dark' ? 'rgba(0, 242, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}; }
-      `}</style>
-      
+    <div className={`h-screen w-full flex overflow-hidden ${theme === 'dark' ? 'bg-[#001212]' : 'bg-[#FAFAFA]'}`}>
       <motion.div 
-        animate={{ width: isSidebarCollapsed ? 80 : 256 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className={`relative group m-4 p-[2px] rounded-[2.5rem] overflow-hidden isolate flex-shrink-0 shadow-2xl transition-all duration-500 ${theme === 'dark' ? 'shadow-black/40 border border-white/5' : 'shadow-[0_20px_50px_rgba(0,77,77,0.05)]'}`}
+        animate={{ width: isSidebarCollapsed ? 100 : 280 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className={`relative m-4 rounded-[2.8rem] overflow-hidden flex-shrink-0 shadow-2xl border transition-colors ${isSuperAdminZone ? 'bg-[#001A1A] border-white/5' : 'bg-white border-white'}`}
       >
-        <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden -z-10">
-          <motion.div 
-            animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-            className="absolute top-1/2 left-1/2 w-[300%] aspect-square"
-            style={{
-              background: theme === 'dark' 
-                ? `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #002626 360deg)`
-                : `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)`,
-              x: "-50%",
-              y: "-50%",
-              willChange: 'transform'
-            }}
-          />
-          <div className={`absolute inset-[1px] rounded-[2.45rem] backdrop-blur-3xl transition-colors duration-500 ${theme === 'dark' ? 'bg-[#001a1a]/90' : 'bg-white/90'}`} />
-        </div>
-        
-        <aside className={`w-full h-full flex flex-col overflow-y-auto custom-scrollbar z-0 transition-all duration-500 ${theme === 'dark' ? 'hover:bg-white/5 text-slate-300' : 'hover:bg-white/30 text-gray-600'}`}>
-          <div className={`${isSidebarCollapsed ? 'hidden' : 'block'}`}>
-            <div className="relative">
-                <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="absolute top-8 right-3 z-50 flex items-center justify-center text-gray-300 hover:text-[#004d4d] transition-all active:scale-90 group/btn">
-                    <ChevronDown className="rotate-90 transition-transform group-hover/btn:scale-110" size={20}/>
-                </button>
-                {renderSidebar()}
-            </div>
+        <aside className="w-full h-full flex flex-col p-4 no-scrollbar relative overflow-x-hidden">
+          
+          <button 
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className={`absolute top-10 right-4 z-50 h-8 w-8 rounded-full border shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-90 opacity-40 hover:opacity-100 ${
+                  isSuperAdminZone ? 'bg-white/10 text-cyan border-white/10' : 'bg-[#004D4D]/10 text-[#004D4D] border-[#004D4D]/10'
+              }`}
+          >
+              {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          </button>
+
+          <div className="p-2 mb-6">
+              <div className={`backdrop-blur-md p-4 rounded-[2.2rem] border border-gray-100 flex flex-col items-center text-center transition-all ${isSuperAdminZone ? 'bg-[#004D4D] text-white' : 'bg-gray-50/30'} ${isSidebarCollapsed ? 'aspect-square justify-center' : ''}`}>
+                  {!isSidebarCollapsed ? (
+                      <>
+                        <span className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isSuperAdminZone ? 'text-cyan' : 'text-gray-400'}`}>
+                            {isSuperAdminZone ? 'Torre de Control' : 'Empresa'}
+                        </span>
+                        <span className="text-base font-black italic truncate max-w-full mb-4">{isSuperAdminZone ? 'Global Master' : (authName || 'Bayup')}</span>
+                        {isSuperAdminZone ? (
+                            <button onClick={() => router.push('/dashboard')} className="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"><ChevronLeft size={12} /> Volver</button>
+                        ) : (
+                            <motion.button onClick={() => window.open(`${window.location.origin}/shop/${authSlug || 'mi-tienda'}`, '_blank')} whileHover="hover" whileTap={{ scale: 0.98 }} className="relative w-full h-12 flex items-center justify-center p-[2px] overflow-hidden rounded-[1.2rem] group">
+                                <motion.div variants={{ hover: { rotate: [0, 360], scale: 1.5 } }} transition={{ rotate: { duration: 3, repeat: Infinity, ease: "linear" }, scale: { duration: 0.4 } }} className="absolute inset-0 bg-[conic-gradient(from_0deg,rgb(170,185,207)_0%,rgb(0,255,135)_35%,rgb(0,97,255)_92%,rgb(170,185,207)_100%)] opacity-80" />
+                                <div className="relative w-full h-full bg-[#000F26] rounded-[1.1rem] flex items-center justify-center gap-2 px-4 transition-colors group-hover:bg-[#001529]">
+                                    <Eye size={14} className="text-[#00FF87] group-hover:scale-110 transition-transform" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-white">Tienda</span>
+                                </div>
+                            </motion.button>
+                        )}
+                      </>
+                  ) : (
+                      <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center shadow-inner">
+                          {isSuperAdminZone ? <ShieldCheck size={20} className="text-white" /> : <Store size={20} className="text-[#004d4d]" />}
+                      </div>
+                  )}
+              </div>
           </div>
-          {isSidebarCollapsed && (
-            <div className="flex-1 flex flex-col items-center py-6 space-y-8 overflow-y-auto no-scrollbar relative">
-                <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="flex items-center justify-center text-gray-300 hover:text-[#004d4d] transition-all active:scale-90 mb-4 group/btn">
-                    <ChevronDown className="-rotate-90 transition-transform group-hover/btn:scale-110" size={24}/>
-                </button>
-                <div className="space-y-4 w-full px-2">
-                    <MenuItem href="/dashboard" label={<LayoutDashboard size={20} />} id="m_inicio" />
-                    <MenuItem href="/dashboard/invoicing" label={<FileText size={20} />} id="m_facturacion" />
-                    <MenuItem href="/dashboard/orders" label={<Package size={20} />} id="m_pedidos" />
-                    <MenuItem href="/dashboard/products" label={<Store size={20} />} id="m_productos" />
-                    <MenuItem href="/dashboard/chats" label={<MessageSquare size={20} />} id="m_mensajes" />
-                    <MenuItem href="/dashboard/shipping" label={<Truck size={20} />} id="m_envios" />
-                </div>
-            </div>
-          )}
-          <div className={`p-6 mt-auto flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} border-t border-white/10 bg-transparent relative`}>
-            <div onClick={() => {}} className={`${isSidebarCollapsed ? 'hidden' : 'block'} text-2xl font-black italic tracking-tighter cursor-pointer w-fit relative group/logo transition-colors duration-500 ${theme === 'dark' ? 'text-[#00F2FF]' : 'text-black'}`}>
-              <span>BAY</span><InteractiveUP />
-            </div>
+
+          <nav className="flex-1 space-y-2 pb-10">
+            {isSuperAdminZone ? (
+                <>
+                    {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-4">Gestión Global</p>}
+                    <MenuItem href="/dashboard/super-admin" label="Dashboard" id="sa-dash" icon={<LayoutDashboard size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/empresas" label="Empresas" id="sa-stores" icon={<Building2 size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/users" label="Usuarios" id="sa-users" icon={<Users size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/tesoreria" label="Tesorería" id="sa-money" icon={<Wallet size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/soporte" label="Soporte" id="sa-support" icon={<Headset size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/web-templates" label="Plantillas Web" id="sa-tpl" icon={<Layout size={18} />} />
+                    {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Infraestructura</p>}
+                    <MenuItem href="/dashboard/super-admin/apis" label="APIs & Core" id="sa-api" icon={<Code size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/observability" label="Sistemas" id="sa-sys" icon={<Activity size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/reports" label="Reportes" id="sa-rep" icon={<BarChart3 size={18} />} />
+                    <MenuItem href="/dashboard/super-admin/settings" label="Config Global" id="sa-conf" icon={<Settings size={18} />} />
+                </>
+            ) : (
+                <>
+                    {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-4">Operación</p>}
+                    <MenuItem href="/dashboard" label="Inicio" id="inicio" icon={<LayoutDashboard size={18} />} />
+                    <MenuItem href="/dashboard/invoicing" label="Facturación" id="facturacion" icon={<FileText size={18} />} />
+                    <MenuItem href="/dashboard/orders" label="Pedidos Web" id="pedidos" icon={<Package size={18} />} />
+                    <MenuItem href="/dashboard/products" label="Productos" id="productos" icon={<Store size={18} />} />
+                    <MenuItem href="/dashboard/shipping" label="Envíos" id="envios" icon={<Truck size={18} />} />
+                    <MenuItem href="/dashboard/chats" label="Mensajes Web" id="mensajes" icon={<MessageSquare size={18} />} />
+
+                    {showExtraModules && (
+                        <>
+                            {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Inventario & Ventas</p>}
+                            <MenuItem href="/dashboard/inventory" label="Inventario" id="inventario" icon={<Box size={18} />} />
+                            <MenuItem href="/dashboard/catalogs" label="Catálogo WA" id="catalogos" icon={<Share2 size={18} />} />
+                            <MenuItem href="/dashboard/inventory/separados" label="Separados IA" id="separados" icon={<Bot size={18} />} />
+                            <MenuItem href="/dashboard/products/cotizaciones" label="Cotizaciones" id="cotizaciones" icon={<ClipboardList size={18} />} />
+                            <MenuItem href="/dashboard/products/bodegas" label="Bodega y Stock" id="bodegas" icon={<Database size={18} />} />
+                            <MenuItem href="/dashboard/multiventa" label="Multiventa" id="multiventa" icon={<Zap size={18} />} />
+
+                            {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Marketing & Lealtad</p>}
+                            <MenuItem href="/dashboard/customers" label="Clientes" id="clientes" icon={<UserCheck size={18} />} />
+                            <MenuItem href="/dashboard/returns" label="Garantías" id="garantias" icon={<ShieldCheck size={18} />} />
+                            <MenuItem href="/dashboard/web-analytics" label="Estadísticas" id="estadisticas" icon={<BarChart3 size={18} />} />
+                            <MenuItem href="/dashboard/marketing" label="Marketing" id="marketing" icon={<Target size={18} />} />
+                            <MenuItem href="/dashboard/loyalty" label="Club de Puntos" id="loyalty" icon={<Heart size={18} />} />
+                            <MenuItem href="/dashboard/discounts" label="Descuentos" id="discounts" icon={<Sparkles size={18} />} />
+                            <MenuItem href="/dashboard/automations" label="Automatizaciones" id="automations" icon={<Zap size={18} />} />
+
+                            {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Finanzas</p>}
+                            <MenuItem href="/dashboard/ai-assistants" label="Asistente IA" id="asistente-ia" icon={<Bot size={18} />} />
+                            <MenuItem href="/dashboard/payroll" label="Nómina" id="payroll" icon={<Receipt size={18} />} />
+                            <MenuItem href="/dashboard/reports" label="Análisis General" id="reports-gen" icon={<PieChart size={18} />} />
+                            <MenuItem href="/dashboard/inventory/purchase-orders" label="Compras" id="compras" icon={<ShoppingCart size={18} />} />
+                            <MenuItem href="/dashboard/settings/branches" label="Sucursales" id="sucursales" icon={<MapPin size={18} />} />
+                            <MenuItem href="/dashboard/reports/vendedores" label="Vendedores" id="vendedores" icon={<Users size={18} />} />
+                            <MenuItem href="/dashboard/invoicing/cuentas-cobro" label="Cuentas" id="cuentas" icon={<FileText size={18} />} />
+                            <MenuItem href="/dashboard/payroll/gastos" label="Gastos" id="gastos" icon={<Coins size={18} />} />
+                        </>
+                    )}
+
+                    {(authRole === 'SUPER_ADMIN' || isGlobalStaff) && (
+                      <div className="pt-4 border-t border-gray-100 mt-4">
+                        <MenuItem href="/dashboard/super-admin" label="Panel Admin" id="super-admin" icon={<ShieldCheck size={18} className="text-cyan" />} />
+                      </div>
+                    )}
+
+                    {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Configuración</p>}
+                    <MenuItem href="/dashboard/settings/general" label="Config Tienda" id="settings" icon={<Settings size={18} />} />
+                    {showExtraModules && (
+                        <>
+                            <MenuItem href="/dashboard/settings/info" label="Info General" id="info-gen" icon={<InfoIcon size={18} />} />
+                            <MenuItem href="/dashboard/settings/plan" label="Mi Plan" id="mi-plan" icon={<CreditCard size={18} />} />
+                            <MenuItem href="/dashboard/settings/users" label="Staff" id="staff" icon={<Users2 size={18} />} />
+                        </>
+                    )}
+                </>
+            )}
+          </nav>
+
+          <div className={`mt-auto pt-10 pb-8 flex flex-col items-center transition-all duration-500 ${isSidebarCollapsed ? 'px-2' : ''}`}>
+              <div className="flex flex-col items-center relative group">
+                  <div className={`font-black italic tracking-tighter flex items-baseline relative z-10 transition-all duration-500 ${isSidebarCollapsed ? 'text-2xl' : 'text-3xl'}`}>
+                      <span className={`${isSuperAdminZone ? 'text-white' : 'text-black'}`}>BAY</span>
+                      {!isSidebarCollapsed && <span className="text-transparent bg-clip-text bg-gradient-to-r from-black via-[#00b2bd] to-[#00f2ff]">UP.</span>}
+                  </div>
+                  <div className={`h-[2px] bg-[#00f2ff] transition-all duration-500 mt-1 ${isSidebarCollapsed ? 'w-8' : 'w-0 group-hover:w-full'}`} />
+              </div>
           </div>
         </aside>
       </motion.div>
 
       <div className="flex-1 flex flex-col min-w-0 relative">
-        <DashboardHeader pathname={pathname} userEmail={userEmail} userRole={userRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
-        <div className={`absolute inset-0 -z-10 transition-all duration-500 ${theme === 'dark' ? 'opacity-20' : 'opacity-5'}`}>
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
-        </div>
-        <main className="flex-1 overflow-y-auto py-8 px-8 custom-scrollbar bg-transparent relative scroll-smooth">
-            <div className="pt-4">{children}</div>
+        <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
+        <main className={`flex-1 overflow-y-auto p-8 relative ${isSuperAdminZone ? 'bg-[#001212]' : ''}`}>
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02] pointer-events-none"></div>
+            <div className="max-w-[1600px] mx-auto">{children}</div>
         </main>
-        
-        {(planNameNormalized === 'empresa' || isGlobalStaff) && (
-          <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />
-        )}
-
-        <UserSettingsModal 
-          isOpen={isUserSettingsOpen} 
-          onClose={() => setIsUserSettingsOpen(false)} 
-        />
       </div>
+
+      <UserSettingsModal isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} />
+      {isGlobalStaff && !isSuperAdminZone && <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />}
     </div>
   );
 }

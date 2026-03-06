@@ -640,9 +640,9 @@ export default function MarketingPage() {
                             <div className="bg-gray-900 p-8 rounded-[3rem] text-white relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:rotate-12 transition-transform"><Sparkles size={100} /></div>
                                 <p className="text-sm font-medium italic opacity-90 leading-relaxed">
-                                    "{c.roas > 4 
+                                    &quot;{c.roas > 4 
                                         ? `La campaña ${c.name} está superando el ROAS objetivo por un 22%. Mantener activa y considerar un aumento del 10% en el presupuesto diario para maximizar el cierre de ventas.` 
-                                        : `El rendimiento es estable pero el CPA ha subido ligeramente. Sugiero optimizar los copies antes de aumentar la inversión.`}"
+                                        : `El rendimiento es estable pero el CPA ha subido ligeramente. Sugiero optimizar los copies antes de aumentar la inversión.`}&quot;
                                 </p>
                             </div>
                         </div>
@@ -799,11 +799,11 @@ export default function MarketingPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                             <div className="flex items-start gap-4 bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10">
                                 <Sparkles size={24} className="text-[#00f2ff] shrink-0" />
-                                <p className="text-sm font-medium italic opacity-90 leading-relaxed">"Lanza una campaña para el **Reloj Cronógrafo Gold**. Tiene una tasa de conversión del 12% pero el tráfico ha bajado un 40%."</p>
+                                <p className="text-sm font-medium italic opacity-90 leading-relaxed">&quot;Lanza una campaña para el **Reloj Cronógrafo Gold**. Tiene una tasa de conversión del 12% pero el tráfico ha bajado un 40%.&quot;</p>
                             </div>
                             <div className="flex items-start gap-4 bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10">
                                 <TrendingUp size={24} className="text-[#00f2ff] shrink-0" />
-                                <p className="text-sm font-medium italic opacity-90 leading-relaxed">"Tu canal de WhatsApp es un 22% más rentable que Instagram en las últimas 48 horas. Mueve el 15% del presupuesto allí."</p>
+                                <p className="text-sm font-medium italic opacity-90 leading-relaxed">&quot;Tu canal de WhatsApp es un 22% más rentable que Instagram en las últimas 48 horas. Mueve el 15% del presupuesto allí.&quot;</p>
                             </div>
                         </div>
                     </div>

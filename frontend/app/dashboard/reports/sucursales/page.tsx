@@ -472,11 +472,11 @@ export default function SucursalesPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10 space-y-4">
                                 <div className="flex items-center gap-3"><Truck className="text-[#00f2ff]" size={20}/><p className="text-[10px] font-black uppercase tracking-widest text-[#00f2ff]">Logística Inteligente</p></div>
-                                <p className="text-sm font-medium italic leading-relaxed">"La **Sucursal Norte** tiene exceso de stock en calzado, mientras la **Tienda Principal** está en crítico. Sugiero transferencia inmediata de 45 pares para capturar la demanda del fin de semana."</p>
+                                <p className="text-sm font-medium italic leading-relaxed">&quot;La **Sucursal Norte** tiene exceso de stock en calzado, mientras la **Tienda Principal** está en crítico. Sugiero transferencia inmediata de 45 pares para capturar la demanda del fin de semana.&quot;</p>
                             </div>
                             <div className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10 space-y-4">
                                 <div className="flex items-center gap-3"><TrendingUp className="text-emerald-400" size={20}/><p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Oportunidad de Expansión</p></div>
-                                <p className="text-sm font-medium italic leading-relaxed">"El 22% de tus pedidos web en Cali son recogidos en punto físico. El **Showroom Sur** tiene potencial para convertirse en centro de distribución 'Dark Store' para reducir costos de envío."</p>
+                                <p className="text-sm font-medium italic leading-relaxed">&quot;El 22% de tus pedidos web en Cali son recogidos en punto físico. El **Showroom Sur** tiene potencial para convertirse en centro de distribución &apos;Dark Store&apos; para reducir costos de envío.&quot;</p>
                             </div>
                         </div>
                     </div>

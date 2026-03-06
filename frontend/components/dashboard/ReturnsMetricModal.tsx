@@ -75,7 +75,7 @@ export default function ReturnsMetricModal({ isOpen, onClose, metric }: ReturnsM
                     </h4>
                     <div className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 shadow-inner">
                         <p className="text-sm font-medium text-gray-600 leading-relaxed italic">
-                            "Este indicador es crítico para la salud de tu inventario. Un valor de {metric.value} sugiere que el 98% de tus despachos cumplen con el estándar de calidad prometido."
+                            &quot;Este indicador es crítico para la salud de tu inventario. Un valor de {metric.value} sugiere que el 98% de tus despachos cumplen con el estándar de calidad prometido.&quot;
                         </p>
                     </div>
                 </section>

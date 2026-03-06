@@ -483,7 +483,7 @@ export default function CatalogsPage() {
                                             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
                                                 <CreditCard size={14} /> Política de Precios
                                             </div>
-                                            <p className="text-xs font-medium leading-relaxed italic">"Solo los productos con Precio Mayorista activo serán visibles en esta plataforma."</p>
+                                            <p className="text-xs font-medium leading-relaxed italic">&quot;Solo los productos con Precio Mayorista activo serán visibles en esta plataforma.&quot;</p>
                                             <button className="w-full py-3 bg-white/20 hover:bg-white/30 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">Configurar Márgenes</button>
                                         </div>
                                     </div>

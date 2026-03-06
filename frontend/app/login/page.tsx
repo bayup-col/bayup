@@ -46,12 +46,17 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      // URL MAESTRA ÚNICA (CONFIRMADA POR RADAR)
+      const apiBase = "https://exciting-optimism-production-4624.up.railway.app";
+      
+      console.log("🚀 Bayup Core: Accediendo a Producción en:", apiBase);
+      
       const response = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ username: email, password: password }),
       });
+
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -64,19 +69,21 @@ export default function LoginPage() {
       const data = await response.json();
       const userData = data.user;
       const isGlobalStaff = userData.is_global_staff || false;
+      const userRole = userData.role || 'admin_tienda';
 
-      if (isGlobalStaff && !window.location.pathname.includes('bayup-family')) {
-          setError("Acceso Restringido: Por favor usa la entrada exclusiva en /bayup-family");
+      // BLOQUEO MAESTRO: Los Super Admin NO entran por /login
+      if ((isGlobalStaff || userRole?.toUpperCase() === 'SUPER_ADMIN') && !window.location.pathname.includes('bayup-family')) {
+          setError("Acceso Restringido: Esta entrada es para tiendas. Por favor usa el portal administrativo en /bayup-family.");
           setIsLoading(false);
           return;
       }
       
-      const userRole = userData.role || 'admin_tienda';
       const userPermissions = userData.permissions || {};
       const userPlan = userData.plan || null;
       const shopSlug = userData.shop_slug || "";
+      const userLogo = userData.logo_url || "";
       
-      login(data.access_token, email, userRole, userPermissions, userPlan, isGlobalStaff, shopSlug);
+      login(data.access_token, email, userRole, userPermissions, userPlan, isGlobalStaff, shopSlug, userData.full_name || "", userLogo);
       
       let targetPath = '/dashboard';
       if (isGlobalStaff) targetPath = '/dashboard/super-admin';
@@ -133,7 +140,7 @@ export default function LoginPage() {
                       <AnimatePresence mode="wait">
                         {isSuccess ? <motion.div key="ghost" animate={{ y: [0, -80, 0], opacity: 1, scale: [0.5, 1.5, 1] }} onAnimationComplete={() => { setTimeout(() => { if (redirectUrl) router.push(redirectUrl); }, 300); }} className="text-white"><Ghost size={38} strokeWidth={2.5} /></motion.div> 
                         : isLoading ? <Loader2 className="w-6 h-6 animate-spin text-[#00F2FF]" /> 
-                        : <span className="font-black text-[11px] uppercase tracking-[0.3em] text-white">Iniciar</span>}
+                        : <span className="font-black text-[11px] uppercase tracking-[0.3em] text-white">Acceder al Sistema</span>}
                       </AnimatePresence>
                     </div>
                   </motion.div>

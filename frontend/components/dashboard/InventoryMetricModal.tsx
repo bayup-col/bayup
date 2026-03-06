@@ -95,7 +95,7 @@ const InventoryMetricModal = ({ isOpen, onClose, metric }: InventoryMetricModalP
                 <span className="absolute text-2xl font-black italic">74%</span>
               </div>
             </div>
-            <p className="text-[10px] font-medium text-slate-500 italic text-center">"Tu inventario rota cada 12 días en promedio. Estás por encima del 15% del sector."</p>
+            <p className="text-[10px] font-medium text-slate-500 italic text-center">&quot;Tu inventario rota cada 12 días en promedio. Estás por encima del 15% del sector.&quot;</p>
           </div>
         );
       case 'incoming_stock':
@@ -112,7 +112,7 @@ const InventoryMetricModal = ({ isOpen, onClose, metric }: InventoryMetricModalP
                 ))}
               </div>
             </div>
-            <p className="text-[10px] font-medium text-slate-500 italic text-center">"Stock valorado en $ 42.5M en proceso de tránsito."</p>
+            <p className="text-[10px] font-medium text-slate-500 italic text-center">&quot;Stock valorado en $ 42.5M en proceso de tránsito.&quot;</p>
           </div>
         );
       case 'dead_stock':
@@ -158,7 +158,7 @@ const InventoryMetricModal = ({ isOpen, onClose, metric }: InventoryMetricModalP
               <div className="relative z-10">
                 <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Estado de Confianza</p>
                 <h4 className="text-2xl font-black text-indigo-900 italic mt-1">Audit Score A+</h4>
-                <p className="text-xs font-medium text-indigo-700 mt-4 leading-relaxed">"Solo se detectó un descuadre de 12 unidades sobre un universo de 14,250 en la última auditoría."</p>
+                <p className="text-xs font-medium text-indigo-700 mt-4 leading-relaxed">&quot;Solo se detectó un descuadre de 12 unidades sobre un universo de 14,250 en la última auditoría.&quot;</p>
               </div>
             </div>
             <button className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] shadow-xl">Solicitar Nueva Auditoría</button>

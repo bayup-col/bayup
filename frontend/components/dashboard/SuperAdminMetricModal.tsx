@@ -108,7 +108,7 @@ export default function SuperAdminMetricModal({ isOpen, onClose, type, data }: S
             <div className="p-6 bg-gray-900 rounded-[2rem] text-white relative overflow-hidden group">
               <div className="relative z-10">
                 <p className="text-[8px] font-black text-cyan uppercase tracking-[0.2em] mb-2">Estado de Red</p>
-                <p className="text-sm font-bold italic opacity-90">"Operación estable. El flujo de datos es óptimo."</p>
+                <p className="text-sm font-bold italic opacity-90">&quot;Operación estable. El flujo de datos es óptimo.&quot;</p>
               </div>
               <Activity size={80} className="absolute -bottom-4 -right-4 opacity-10 group-hover:scale-110 transition-transform duration-700" />
             </div>

@@ -6,9 +6,6 @@ import { ToastProvider } from "@/context/toast-context";
 import { ThemeProvider } from "@/context/theme-context";
 import { CartProvider } from "@/context/cart-context";
 
-import { ClerkProvider } from "@clerk/nextjs";
-import { esES } from "@clerk/localizations";
-
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Limpieza de URLs temporales colgadas
@@ -22,19 +19,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "pk_test_ZW5hYmxlZC1maW5jaC0yMi5jbGVyay5hY2NvdW50cy5kZXYk";
-
   return (
-    <ClerkProvider localization={esES} publishableKey={publishableKey}>
-      <AuthProvider>
-        <ThemeProvider>
-          <ToastProvider>
-            <CartProvider>
-              {children}
-            </CartProvider>
-          </ToastProvider>
-        </ThemeProvider>
-      </AuthProvider>
-    </ClerkProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <CartProvider>
+            {children}
+          </CartProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }

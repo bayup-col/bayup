@@ -87,10 +87,9 @@ export default function MensajesPage() {
   const fetchChats = useCallback(async () => {
       if (!token) return;
       try {
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-          const res = await fetch(`${apiBase}/admin/messages`, { headers: { 'Authorization': `Bearer ${token}` } });
-          if (res.ok) {
-              const data = await res.json();
+          // REFACTORIZADO: Uso de apiRequest blindado para ignorar URLs tóxicas de Vercel
+          const data = await apiRequest<any[]>('/admin/messages', { token });
+          if (data) {
               const mapped = data.map((m: any) => ({
                   id: m.id, name: m.customer_name, email: m.customer_email, phone: m.customer_phone,
                   lastMsg: m.message, time: new Date(m.created_at).toLocaleDateString(),
@@ -98,7 +97,7 @@ export default function MensajesPage() {
               }));
               setChats(mapped);
           }
-      } catch (e) { console.error(e); }
+      } catch (e) { console.error("Error al cargar chats:", e); }
   }, [token]);
 
   useEffect(() => { fetchChats(); }, [fetchChats]);
@@ -108,18 +107,19 @@ export default function MensajesPage() {
           if (!selectedChatId || !token) return;
           setIsMessagesLoading(true);
           try {
-              const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-              const res = await fetch(`${apiBase}/admin/messages/${selectedChatId}`, { headers: { 'Authorization': `Bearer ${token}` } });
-              if (res.ok) {
-                  const data = await res.json();
+              // REFACTORIZADO: Uso de apiRequest para sincronización robusta
+              const data = await apiRequest<any[]>(`/admin/messages/${selectedChatId}`, { token });
+              if (data) {
                   setChatMessages(data.map((m: any) => ({
                       id: m.id, body: m.message, fromMe: m.sender_type === 'admin',
                       time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                   })));
-                  await fetch(`${apiBase}/admin/messages/${selectedChatId}?status=read`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
+                  
+                  // Marcar como leído usando el motor centralizado
+                  await apiRequest(`/admin/messages/${selectedChatId}?status=read`, { method: 'PUT', token });
                   setChats(prev => prev.map(c => c.id === selectedChatId ? {...c, unread: 0} : c));
               }
-          } catch (e) { console.error(e); } finally { setIsMessagesLoading(false); }
+          } catch (e) { console.error("Error en conversación:", e); } finally { setIsMessagesLoading(false); }
       };
       fetchConversation();
   }, [selectedChatId, token]);
@@ -133,11 +133,11 @@ export default function MensajesPage() {
       setChatMessages(prev => [...prev, { id: tempId, body: text, fromMe: true, time: 'ahora' }]);
       setMessage("");
       try {
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
           const currentChat = chats.find(c => c.id === selectedChatId);
-          await fetch(`${apiBase}/admin/messages`, {
+          // REFACTORIZADO: Envío seguro via apiRequest
+          await apiRequest('/admin/messages', {
               method: 'POST',
-              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              token,
               body: JSON.stringify({
                   customer_name: currentChat?.name, customer_email: currentChat?.email,
                   customer_phone: currentChat?.phone, message: text, sender_type: 'admin', status: 'read'
@@ -146,12 +146,17 @@ export default function MensajesPage() {
       } catch (e) { showToast("Error al enviar", "error"); }
   };
 
-  const kpis = [
-    { label: "Consultas Web", value: chats.length, icon: <Activity size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Buzón", details: [{ l: 'LEÍDOS', v: `${chats.filter(c => c.unread === 0).length}`, icon: <UserCheck size={10}/> }, { l: 'SIN LEER', v: `${chats.filter(c => c.unread > 0).length}`, icon: <Zap size={10}/> }, { l: 'CANAL', v: 'ACTIVO', icon: <Globe size={10}/> }], advice: 'Tus clientes web prefieren preguntar antes de comprar. Mantener el buzón en cero aumenta tu conversión un 25%.' },
-    { label: "Tiempo respuesta", value: 12, icon: <Clock size={24}/>, color: "text-amber-600", bg: "bg-amber-50", trend: "V1.0", type: 'time', details: [{ l: 'BOGOTÁ', v: '8m', icon: <TrendingUp size={10}/> }, { l: 'MEDELLÍN', v: '15m', icon: <TrendingUp size={10}/> }, { l: 'META', v: '5m', icon: <Target size={10}/> }], advice: 'Responder en menos de 5 minutos multiplica por 3 las probabilidades de cerrar la venta.' },
-    { label: "Conversión Web", value: 18, icon: <Target size={24}/>, color: "text-emerald-600", bg: "bg-emerald-50", trend: "Good", type: 'percentage', details: [{ l: 'VENTAS', v: '12', icon: <ShoppingBag size={10}/> }, { l: 'VALOR', v: '$450k', icon: <DollarSign size={10}/> }, { l: 'ROI', v: '4.2x', icon: <TrendingUp size={10}/> }], advice: 'Tu tasa de conversión de chat es alta. Sugiero crear un cupón exclusivo para cerrar chats indecisos.' },
-    { label: "Tickets hoy", value: chats.filter(c => c.unread > 0).length, icon: <Zap size={24}/>, color: "text-[#00f2ff]", bg: "bg-cyan-50", trend: "Pendientes", details: [{ l: 'URGENTE', v: '2', icon: <AlertCircle size={10}/> }, { l: 'SOPORTE', v: '1', icon: <MessageSquare size={10}/> }, { l: 'PREVENTA', v: `${chats.filter(c => c.unread > 0).length}`, icon: <Zap size={10}/> }], advice: 'Tienes mensajes pendientes. Un retraso largo se percibe como falta de seriedad en la marca.' }
-  ];
+  const kpis = useMemo(() => {
+    const responseTime = chats.length > 0 ? 0 : 0; 
+    const conversionRate = chats.length > 0 ? 0 : 0;
+
+    return [
+      { label: "Consultas Web", value: chats.length, icon: <Activity size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Buzón", details: [{ l: 'LEÍDOS', v: `${chats.filter(c => c.unread === 0).length}`, icon: <UserCheck size={10}/> }, { l: 'SIN LEER', v: `${chats.filter(c => c.unread > 0).length}`, icon: <Zap size={10}/> }, { l: 'CANAL', v: 'ACTIVO', icon: <Globe size={10}/> }], advice: 'Tus clientes web prefieren preguntar antes de comprar. Mantener el buzón en cero aumenta tu conversión un 25%.' },
+      { label: "Tiempo respuesta", value: responseTime, icon: <Clock size={24}/>, color: "text-amber-600", bg: "bg-amber-50", trend: "Real", type: 'time', details: [{ l: 'PROM.', v: `${responseTime}m`, icon: <TrendingUp size={10}/> }], advice: 'Responder en menos de 5 minutos multiplica por 3 las probabilidades de cerrar la venta.' },
+      { label: "Conversión Web", value: conversionRate, icon: <Target size={24}/>, color: "text-emerald-600", bg: "bg-emerald-50", trend: "Canal Web", type: 'percentage', details: [{ l: 'TASA', v: `${conversionRate}%`, icon: <Target size={10}/> }], advice: 'Esta métrica compara tus chats con tus ventas reales. Mejora tu speech de venta para subir este número.' },
+      { label: "Tickets hoy", value: chats.filter(c => c.unread > 0).length, icon: <Zap size={24}/>, color: "text-[#00f2ff]", bg: "bg-cyan-50", trend: "Pendientes", details: [{ l: 'SIN LEER', v: `${chats.filter(c => c.unread > 0).length}`, icon: <Zap size={10}/> }], advice: 'Tienes mensajes pendientes. Un retraso largo se percibe como falta de seriedad en la marca.' }
+    ];
+  }, [chats]);
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-10 pb-20 animate-in fade-in duration-1000">

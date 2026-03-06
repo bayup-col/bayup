@@ -40,7 +40,9 @@ import {
   ShieldCheck,
   CheckCircle2,
   DollarSign,
-  ArrowDownRight
+  ArrowDownRight,
+  Box,
+  Hash
 } from 'lucide-react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -237,8 +239,10 @@ export default function ProductsPage() {
     const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
     const [isDeletingCategory, setIsDeletingCategory] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<any>(null);
+    const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [productToDelete, setProductToDelete] = useState<any>(null);
     const [isDeletingProduct, setIsDeletingProduct] = useState(false);
+
     const [isFilterHovered, setIsFilterHovered] = useState(false);
     const [isExportHovered, setIsExportHovered] = useState(false);
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
@@ -299,6 +303,16 @@ export default function ProductsPage() {
 
     useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
+    // ESCUCHA ACTIVA DE ACTUALIZACIONES (Para refrescar al guardar cambios)
+    useEffect(() => {
+        const handleRefresh = () => {
+            console.log("♻️ Refresco forzado por actualización...");
+            setTimeout(() => fetchProducts(), 500); // Pequeño delay para dejar que Supabase asiente los datos
+        };
+        window.addEventListener('bayup_product_update', handleRefresh);
+        return () => window.removeEventListener('bayup_product_update', handleRefresh);
+    }, [fetchProducts]);
+
     const handleDeleteProduct = async () => {
         if (!token || !productToDelete) return;
         setIsDeletingProduct(true);
@@ -333,8 +347,8 @@ export default function ProductsPage() {
         const avgPrice = total > 0 ? products.reduce((acc, p) => acc + (p.price || 0), 0) / total : 0;
 
         return [
-            { 
-                id: 'total', label: 'Total productos', value: total, icon: <Package size={24}/>, color: 'text-[#004d4d]', bg: 'bg-[#004d4d]/5', trend: 'Live', isSimple: true,
+            {
+                id: 'total', label: 'Total productos', value: total, icon: <Package size={24}/>, color: 'text-[#004d4d]', bg: 'bg-[#004d4d]/5', trend: 'Actualizado', isSimple: true,
                 details: [
                     { l: "ACTIVOS", v: `${active}`, icon: <CheckCircle2 size={10}/> },
                     { l: "BORRADORES", v: `${draft}`, icon: <Edit3 size={10}/> },
@@ -342,8 +356,8 @@ export default function ProductsPage() {
                 ],
                 advice: "Tu catálogo es la vitrina de tu marca. Mantener al menos 10 productos activos aumenta la confianza de tus compradores web."
             },
-            { 
-                id: 'active', label: 'Items activos', value: active, icon: <Zap size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: 'Online', isSimple: true,
+            {
+                id: 'active', label: 'Productos activos', value: active, icon: <Zap size={24}/>, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: 'En línea', isSimple: true,
                 details: [
                     { l: "EN WEB", v: `${active}`, icon: <Globe size={10}/> },
                     { l: "CON FOTOS", v: `${products.filter(p => p.image_url?.length > 0).length}`, icon: <ImageIcon size={10}/> },
@@ -351,28 +365,27 @@ export default function ProductsPage() {
                 ],
                 advice: "¡Excelente! Todos tus productos activos son visibles. Asegúrate de que las descripciones tengan palabras clave para SEO."
             },
-            { 
+            {
                 id: 'stock', label: 'Stock crítico', value: lowStock, icon: <AlertCircle size={24}/>, color: 'text-rose-600', bg: 'bg-rose-50', trend: 'Revisar', isSimple: true,
                 details: [
                     { l: "CRÍTICO", v: `${lowStock}`, icon: <AlertCircle size={10}/> },
                     { l: "PREVENTIVO", v: `${warningStock}`, icon: <Zap size={10}/> },
                     { l: "SANO", v: `${healthyStock}`, icon: <CheckCircle2 size={10}/> }
                 ],
-                advice: lowStock > 0 
+                advice: lowStock > 0
                     ? `Tienes ${lowStock} productos en alerta roja. Repón pronto para no perder ventas web.`
                     : "Tu inventario está bajo control. Sigue así para garantizar despachos rápidos."
             },
-            { 
-                id: 'average', label: 'Valor promedio', value: avgPrice, icon: <ShoppingBag size={24}/>, color: 'text-blue-600', bg: 'bg-blue-50', trend: 'Market ok',
+            {
+                id: 'average', label: 'Valor promedio', value: avgPrice, icon: <ShoppingBag size={24}/>, color: 'text-blue-600', bg: 'bg-blue-50', trend: 'Mercado OK',
                 details: [
-                    { l: "PRECIO PROM", v: `$ ${avgPrice.toLocaleString()}`, icon: <DollarSign size={10}/> },
-                    { l: "MÁS CARO", v: `$ ${Math.max(...products.map(p => p.price || 0), 0).toLocaleString()}`, icon: <TrendingUp size={10}/> },
-                    { l: "MÁS BARATO", v: `$ ${Math.min(...products.map(p => p.price || 0), products.length > 0 ? products[0].price : 0).toLocaleString()}`, icon: <ArrowDownRight size={10}/> }
+                    { l: "PRECIO PROM", v: `$ ${(avgPrice || 0).toLocaleString()}`, icon: <DollarSign size={10}/> },
+                    { l: "MÁS CARO", v: `$ ${(Math.max(...products.map(p => p.price || 0), 0) || 0).toLocaleString()}`, icon: <TrendingUp size={10}/> },
+                    { l: "MÁS BARATO", v: `$ ${(Math.min(...products.map(p => p.price || 0), products.length > 0 ? products[0].price : 0) || 0).toLocaleString()}`, icon: <ArrowDownRight size={10}/> }
                 ],
                 advice: "El valor promedio de tu catálogo define tu posicionamiento. Considera productos 'gancho' para atraer tráfico."
             }
-        ];
-    }, [products]);
+        ];    }, [products]);
 
     const handleExport = async () => {
         if (products.length === 0) {
@@ -586,13 +599,53 @@ export default function ProductsPage() {
                                 <tbody className="divide-y divide-gray-100/50">
                                     {loading ? (<tr><td colSpan={5} className="py-20 text-center"><div className="h-12 w-12 border-4 border-[#004d4d] border-t-cyan rounded-full animate-spin mx-auto" /></td></tr>) : filteredProducts.length === 0 ? (<tr><td colSpan={5} className="py-20 text-center text-gray-300 font-black text-[10px]">Sin artículos</td></tr>) : (
                                         filteredProducts.map((p) => {
-                                            const displayImage = Array.isArray(p.image_url) && p.image_url.length > 0 
-                                                ? p.image_url[0] 
-                                                : (typeof p.image_url === 'string' ? p.image_url : null);
+                                            // Lógica Maestra Ultra-Resistente para extraer la imagen
+                                            const extractUrl = (raw: any): string | null => {
+                                                if (!raw) return null;
+                                                try {
+                                                    let value = raw;
+                                                    if (typeof value === 'string' && value.startsWith('[') && value.endsWith(']')) {
+                                                        try { value = JSON.parse(value); } catch (e) { return value; }
+                                                    }
+                                                    if (Array.isArray(value)) return value.length > 0 ? value[0] : null;
+                                                    if (typeof value === 'object' && value !== null) return value.url || value.uri || null;
+                                                    if (typeof value === 'string' && value.length > 5) return value;
+                                                } catch (e) { return null; }
+                                                return null;
+                                            };
+
+                                            let displayImage = extractUrl(p.image_url);
+                                            if (!displayImage && p.variants?.length > 0) {
+                                                for (const v of p.variants) {
+                                                    const vImg = extractUrl(v.image_url);
+                                                    if (vImg) { displayImage = vImg; break; }
+                                                }
+                                            }
 
                                             return (
-                                                <tr key={p.id} className="hover:bg-white/60 transition-all cursor-pointer group">
-                                                    <td className="px-10 py-8"><div className="flex items-center justify-center gap-4"><div className="h-14 w-14 rounded-2xl bg-gray-900 overflow-hidden shadow-lg group-hover:scale-110 transition-transform">{displayImage ? <img src={displayImage} className="h-full w-full object-cover" /> : <div className="h-full w-full flex items-center justify-center text-white/20"><ImageIcon size={20}/></div>}</div><div className="text-left"><p className="text-sm font-black text-gray-900">{p.name}</p><p className="text-[9px] font-bold text-[#004D4D] italic">{p.collection?.title || 'General'}</p></div></div></td>
+                                                <tr key={p.id} className="hover:bg-white/60 transition-all cursor-pointer group" onClick={() => setSelectedProduct(p)}>
+                                                    <td className="px-10 py-8">
+                                                        <div className="flex items-center justify-center gap-4">
+                                                            <div className="h-14 w-14 rounded-2xl bg-slate-50 overflow-hidden shadow-sm group-hover:scale-110 transition-transform border border-slate-100 flex items-center justify-center relative">
+                                                                {displayImage ? (
+                                                                    <img 
+                                                                        src={displayImage} 
+                                                                        className="h-full w-full object-cover absolute inset-0" 
+                                                                        alt={p.name}
+                                                                        onError={(e) => { 
+                                                                            (e.target as any).style.display = 'none'; 
+                                                                        }} 
+                                                                    />
+                                                                ) : (
+                                                                    <ImageIcon size={20} className="text-slate-300" />
+                                                                )}
+                                                            </div>
+                                                            <div className="text-left">
+                                                                <p className="text-sm font-black text-gray-900">{p.name}</p>
+                                                                <p className="text-[9px] font-bold text-[#004D4D] italic">{p.collection?.title || 'General'}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
                                                     <td className="px-10 py-8"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest ${p.status === 'active' ? 'bg-[#004D4D] text-white' : 'bg-gray-100 text-gray-400'}`}>{p.status === 'active' ? 'Activo' : 'Borrador'}</span></td>
                                                     <td className="px-10 py-8 font-black text-slate-900"><div className="flex flex-col items-center"><span className={p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) <= 5 ? 'text-rose-500' : ''}>{p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0}</span><span className="text-[8px] text-gray-400">unidades</span></div></td>
                                                     <td className="px-10 py-8 font-black text-[#004D4D] text-base"><AnimatedNumber value={p.price} /></td>
@@ -923,6 +976,144 @@ export default function ProductsPage() {
                                 >
                                     {isImporting ? <Loader2 className="animate-spin" size={20}/> : <><Rocket size={20}/> Iniciar Importación</>}
                                 </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* MODAL DE ATRIBUTOS (RED DISEÑO: MINIMALISTA & ELITE) */}
+            <AnimatePresence>
+                {selectedProduct && (
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6">
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }} 
+                            onClick={() => setSelectedProduct(null)} 
+                            className="fixed inset-0 bg-[#001A1A]/60 backdrop-blur-xl" 
+                        />
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+                            animate={{ opacity: 1, scale: 1, y: 0 }} 
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }} 
+                            className="relative bg-white/90 backdrop-blur-2xl w-full max-w-4xl h-fit max-h-[90vh] rounded-[3.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.3)] border border-white overflow-hidden flex flex-col md:flex-row text-slate-900 z-10"
+                        >
+                            
+                            {/* SECCIÓN IMAGEN Y RESUMEN (LADO IZQ COMPACTO) */}
+                            <div className="w-full md:w-80 p-10 flex flex-col shrink-0 border-r border-gray-100/50">
+                                <div className="space-y-8">
+                                    <div className="aspect-square w-full rounded-[2.5rem] bg-gray-50 overflow-hidden border border-gray-100 shadow-inner relative group flex items-center justify-center">
+                                        {/* Lógica de imagen ultra-resistente integrada */}
+                                        {(() => {
+                                            const extractUrl = (raw: any): string | null => {
+                                                if (!raw) return null;
+                                                try {
+                                                    let value = raw;
+                                                    if (typeof value === 'string' && value.startsWith('[') && value.endsWith(']')) {
+                                                        try { value = JSON.parse(value); } catch (e) { return value; }
+                                                    }
+                                                    if (Array.isArray(value)) return value.length > 0 ? value[0] : null;
+                                                    if (typeof value === 'object' && value !== null) return value.url || value.uri || null;
+                                                    if (typeof value === 'string' && value.length > 5) return value;
+                                                } catch (e) { return null; }
+                                                return null;
+                                            };
+                                            
+                                            let displayImage = extractUrl(selectedProduct.image_url);
+                                            if (!displayImage && selectedProduct.variants?.length > 0) {
+                                                for (const v of selectedProduct.variants) {
+                                                    const vImg = extractUrl(v.image_url);
+                                                    if (vImg) { displayImage = vImg; break; }
+                                                }
+                                            }
+                                            
+                                            return displayImage ? (
+                                                <img 
+                                                    src={displayImage} 
+                                                    className="w-full h-full object-cover absolute inset-0 group-hover:scale-105 transition-transform duration-700" 
+                                                    alt={selectedProduct.name} 
+                                                    onError={(e) => { (e.target as any).style.display = 'none'; }}
+                                                />
+                                            ) : (
+                                                <div className="h-full w-full flex items-center justify-center text-slate-200"><ImageIcon size={40} /></div>
+                                            );
+                                        })()}
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-cyan animate-pulse" />
+                                            <p className="text-[#004D4D] text-[9px] font-black tracking-[0.3em] uppercase">{selectedProduct.collection?.title || 'GENERAL'}</p>
+                                        </div>
+                                        <h3 className="text-2xl font-black italic tracking-tighter text-[#001A1A] leading-tight">{selectedProduct.name}</h3>
+                                        <p className="text-3xl font-black text-[#004D4D] tracking-tighter">${(selectedProduct.price || 0).toLocaleString()}</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-3 pt-4 border-t border-gray-100">
+                                        <div className="flex justify-between items-center"><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Stock Total</span><span className="text-sm font-black italic">{selectedProduct.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0} uds</span></div>
+                                        <div className="flex justify-between items-center"><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Estado</span><span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full ${selectedProduct.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-50 text-gray-400'}`}>{selectedProduct.status === 'active' ? 'Activo' : 'Borrador'}</span></div>
+                                    </div>
+                                </div>
+                                <div className="mt-auto pt-8 space-y-3">
+                                    <button onClick={() => { router.push(`/dashboard/products/${selectedProduct.id}/edit`); setSelectedProduct(null); }} className="w-full py-4 rounded-2xl bg-[#004D4D] text-white font-black text-[10px] tracking-widest transition-all shadow-xl hover:bg-black">Editar Activo</button>
+                                    <button onClick={() => setSelectedProduct(null)} className="w-full py-4 text-gray-400 font-black text-[10px] tracking-widest hover:text-[#004D4D] transition-all">Regresar</button>
+                                </div>
+                            </div>
+
+                            {/* CONTENIDO PRINCIPAL: MATRIZ DE VARIANTES (ESTILO CLEAN) */}
+                            <div className="flex-1 overflow-y-auto p-10 lg:p-12 custom-scrollbar">
+                                <div className="space-y-10">
+                                    <div className="flex justify-between items-center">
+                                        <div className="space-y-1">
+                                            <h4 className="text-2xl font-black italic text-[#001A1A] tracking-tighter">Matriz de <span className="text-cyan">Atributos</span></h4>
+                                            <p className="text-[9px] font-bold text-gray-400 tracking-widest uppercase">Desglose de inventario individual</p>
+                                        </div>
+                                        <div className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-[#004D4D] border border-gray-100"><Layers size={18}/></div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        {selectedProduct.variants && selectedProduct.variants.length > 0 ? (
+                                            selectedProduct.variants.map((v: any, i: number) => (
+                                                <div key={i} className="flex items-center justify-between p-5 rounded-3xl hover:bg-white hover:shadow-xl hover:shadow-gray-100/50 transition-all border border-transparent hover:border-gray-100 group">
+                                                    <div className="flex items-center gap-5">
+                                                        <div className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-[#004D4D] font-black text-[10px] border border-gray-100 group-hover:bg-white">{i + 1}</div>
+                                                        <div>
+                                                            <p className="text-sm font-black text-[#001A1A] uppercase tracking-tighter">{v.name}</p>
+                                                            <div className="flex items-center gap-3 mt-0.5">
+                                                                <p className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1.5"><Hash size={10}/> {v.sku || 'SIN SKU'}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-8">
+                                                        <div className="flex items-center gap-3 bg-gray-50/50 px-4 py-2 rounded-2xl border border-gray-100">
+                                                            <div className={`h-1.5 w-1.5 rounded-full ${v.stock <= 5 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
+                                                            <span className={`text-sm font-black italic ${v.stock <= 5 ? 'text-rose-500' : 'text-[#004D4D]'}`}>{v.stock} <span className="text-[9px] uppercase opacity-40">uds</span></span>
+                                                        </div>
+                                                        <button onClick={() => { router.push(`/dashboard/products/${selectedProduct.id}/edit`); setSelectedProduct(null); }} className="h-10 w-10 rounded-xl bg-gray-50 text-gray-300 hover:text-[#004D4D] hover:bg-white transition-all flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100"><ArrowUpRight size={16}/></button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="py-16 text-center space-y-4 border-2 border-dashed border-gray-100 rounded-[3rem]">
+                                                <div className="h-12 w-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto text-gray-300"><AlertCircle size={24}/></div>
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sin atributos configurados</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* CONSEJO AI (COMPACTO) */}
+                                    <div className="bg-[#001A1A] p-8 rounded-[2.5rem] text-white relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 p-6 opacity-5 -rotate-12"><Bot size={100}/></div>
+                                        <div className="relative z-10 flex items-center gap-6">
+                                            <div className="h-12 w-12 rounded-2xl bg-cyan/10 flex items-center justify-center text-cyan border border-cyan/20 shrink-0"><Bot size={24}/></div>
+                                            <div>
+                                                <h4 className="text-[9px] font-black tracking-[0.3em] text-cyan uppercase mb-1">Estrategia Bayt AI</h4>
+                                                <p className="text-sm font-bold italic leading-snug opacity-90">
+                                                    &quot;Tener stock en todas las tallas principales reduce la tasa de abandono un 22%.&quot;
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </motion.div>
                     </div>

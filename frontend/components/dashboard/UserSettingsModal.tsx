@@ -348,7 +348,7 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                                             <ShieldCheck size={14}/> Protección de Cuenta
                                         </h4>
                                         <p className="text-sm font-medium leading-relaxed opacity-80 italic">
-                                            "La seguridad de tu negocio comienza con la protección de tu acceso maestro. Mantén tus credenciales actualizadas."
+                                            &quot;La seguridad de tu negocio comienza con la protección de tu acceso maestro. Mantén tus credenciales actualizadas.&quot;
                                         </p>
                                     </div>
                                 </div>
@@ -496,7 +496,7 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                                         <h3 className="text-2xl font-black text-gray-900 tracking-tighter uppercase italic leading-none mb-2">Próximamente</h3>
                                         <div className="h-1 w-12 bg-[#00f2ff] rounded-full mb-6"></div>
                                         <p className="text-sm font-bold text-gray-800 leading-relaxed italic mb-8">
-                                            "Estamos afinando los algoritmos de personalización para que Bayup se adapte exactamente a tu ritmo de trabajo."
+                                            &quot;Estamos afinando los algoritmos de personalización para que Bayup se adapte exactamente a tu ritmo de trabajo.&quot;
                                         </p>
                                         <div className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-[#00f2ff] rounded-full">
                                             <div className="h-1.5 w-1.5 rounded-full bg-[#00f2ff] animate-ping"></div>

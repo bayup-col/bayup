@@ -101,7 +101,7 @@ export default function PrivacidadPage() {
 
           <div className="p-16 rounded-[4rem] bg-white border border-gray-100 shadow-inner space-y-8 text-center">
             <p className="text-gray-400 text-sm font-medium leading-relaxed max-w-3xl mx-auto italic">
-              "Nuestra política cumple con los estándares internacionales de protección de datos personales (GDPR y equivalentes locales), asegurando que tu expansión global sea legalmente segura."
+              &quot;Nuestra política cumple con los estándares internacionales de protección de datos personales (GDPR y equivalentes locales), asegurando que tu expansión global sea legalmente segura.&quot;
             </p>
             <div className="flex justify-center gap-4">
               <span className="text-[9px] font-black uppercase tracking-[0.4em] text-petroleum/40 italic">Actualizado: Febrero 2026</span>

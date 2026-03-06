@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from '@/context/toast-context';
+import { apiRequest, userService } from '@/lib/api';
 
 // --- ICONO TIKTOK SVG ---
 const TikTokIcon = ({ size = 20 }: { size?: number }) => (
@@ -39,7 +40,7 @@ interface WhatsAppLine {
 }
 
 export default function GeneralSettings() {
-    const { token } = useAuth();
+    const { token, updateUser } = useAuth();
     const { showToast } = useToast();
     
     const [activeTab, setActiveTab] = useState<'perfil' | 'finanzas' | 'canales'>('perfil');
@@ -168,25 +169,24 @@ export default function GeneralSettings() {
         const fetchStoreData = async () => {
             if (!token) return;
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                const res = await fetch(`${apiUrl}/auth/me`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    console.log("DEBUG: Perfil cargado desde servidor:", data.full_name, "Logo:", data.logo_url);
+                // REFACTORIZADO: Uso de userService blindado para ignorar URLs tóxicas
+                const data = await userService.getMe(token);
+                if (data) {
+                    console.log("DEBUG: Perfil cargado desde servidor seguro:", data.full_name);
                     
                     setIdentity(prev => ({ 
                         ...prev, 
                         name: data.full_name || prev.name,
-                        logo: data.logo_url || "" // Usar URL real del servidor
+                        logo: data.logo_url || "" 
                     }));
                     
                     setContact(prev => ({ 
                         ...prev, 
                         email: data.email, 
                         phone: data.phone || prev.phone,
-                        shop_slug: data.shop_slug || "" 
+                        shop_slug: data.shop_slug || "",
+                        nit: data.nit || prev.nit,
+                        address: data.address || prev.address
                     }));
                     
                     if (data.bank_accounts) setAccounts(data.bank_accounts);
@@ -224,32 +224,31 @@ export default function GeneralSettings() {
         if (!validatePhone(contact.phone)) { showToast("Teléfono de 10 dígitos requerido", "error"); return; }
         setIsSaving(true);
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            const response = await fetch(`${apiUrl}/admin/update-profile`, {
+            // REFACTORIZADO: Uso de apiRequest blindado
+            await apiRequest('/admin/update-profile', {
                 method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                token,
                 body: JSON.stringify({
                     full_name: identity.name,
-                    logo_url: identity.logo, // Enviamos la URL ya subida
+                    logo_url: identity.logo,
                     phone: contact.phone,
                     shop_slug: contact.shop_slug,
+                    nit: contact.nit,
+                    address: contact.address,
                     bank_accounts: accounts,
                     social_links: socialLinks,
                     whatsapp_lines: whatsappLines
                 }),
             });
 
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.detail || "Error al actualizar en el servidor");
-            }
+            updateUser({
+                name: identity.name,
+                slug: contact.shop_slug,
+                logo: identity.logo || ""
+            });
 
             window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: identity.name }));
             
-            // Persistir localmente para reflejo inmediato en Dashboard
             const settingsToSave = {
                 identity: identity,
                 contact: contact,
@@ -382,22 +381,20 @@ export default function GeneralSettings() {
                                             try {
                                                 const formData = new FormData();
                                                 formData.append('file', f);
-                                                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                                                const res = await fetch(`${apiUrl}/admin/upload-image`, {
+                                                // REFACTORIZADO: Uso de apiRequest blindado para subida de imagen
+                                                const data = await apiRequest<any>('/admin/upload-image', {
                                                     method: 'POST',
-                                                    headers: { 'Authorization': `Bearer ${token}` },
+                                                    token,
                                                     body: formData
                                                 });
-                                                if (res.ok) {
-                                                    const data = await res.json();
+                                                if (data.url) {
                                                     setIdentity({...identity, logo: data.url});
+                                                    updateUser({ logo: data.url });
                                                     showToast("Logo subido correctamente", "success");
-                                                } else {
-                                                    showToast("Error al subir imagen", "error");
                                                 }
                                             } catch (err) {
                                                 console.error(err);
-                                                showToast("Error de conexión al subir", "error");
+                                                showToast("Error al subir imagen", "error");
                                             } finally {
                                                 setIsSaving(false);
                                             }
@@ -447,7 +444,10 @@ export default function GeneralSettings() {
                                                 <input maxLength={10} value={contact.phone} onChange={e => setContact({...contact, phone: e.target.value.replace(/\D/g, '')})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validatePhone(contact.phone) ? 'border-transparent' : 'border-rose-200'}`} />
                                             </div>
                                         </div>
-                                        
+                                        <div className="space-y-2 max-w-md">
+                                            <label className="text-[10px] font-black text-gray-400 tracking-widest ml-2 uppercase">NIT / Identificación Fiscal</label>
+                                            <input value={contact.nit} onChange={e => setContact({...contact, nit: e.target.value})} placeholder="900.000.000-1" className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
+                                        </div>
                                         <div className="space-y-4 pt-6 border-t border-gray-100">
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-black text-[#004d4d] tracking-widest ml-2 flex items-center gap-2 uppercase">
@@ -598,7 +598,7 @@ export default function GeneralSettings() {
                                 </div>
                                 <div className="p-6 bg-[#004d4d]/5 rounded-[2.5rem] border border-[#004d4d]/10">
                                     <div className="flex items-center gap-3 mb-2"><Zap size={14} className="text-[#004d4d]"/> <span className="text-[9px] font-black tracking-widest uppercase text-[#004d4d]">Propósito</span></div>
-                                    <p className="text-[10px] font-medium text-gray-500 leading-relaxed italic">"Tu perfil no es solo datos, es la base de tu confianza digital para cerrar ventas."</p>
+                                    <p className="text-[10px] font-medium text-gray-500 leading-relaxed italic">&quot;Tu perfil no es solo datos, es la base de tu confianza digital para cerrar ventas.&quot;</p>
                                 </div>
                             </div>
 
@@ -628,7 +628,7 @@ export default function GeneralSettings() {
                                             <div className="h-20 w-20 bg-gradient-to-br from-[#00f2ff] to-[#004d4d] rounded-[2rem] flex items-center justify-center shadow-2xl shrink-0"><Bot size={40} className="text-white animate-pulse" /></div>
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-3"><span className="h-1.5 w-1.5 rounded-full bg-[#00f2ff] shadow-[0_0_10px_#00f2ff] animate-pulse"></span><span className="text-[10px] font-black tracking-widest uppercase text-[#00f2ff]">Estrategia de Bayt AI</span></div>
-                                                <p className="text-lg font-bold italic leading-tight text-white/90">"{guideSteps[activeGuideStep].baytTip}"</p>
+                                                <p className="text-lg font-bold italic leading-tight text-white/90">&quot;{guideSteps[activeGuideStep].baytTip}&quot;</p>
                                             </div>
                                         </div>
                                     </div>
