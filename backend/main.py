@@ -26,6 +26,7 @@ def safe_db_init():
         # Sincronizado exactamente con models.py y optimizado para Postgres
         required_cols = [
             ("logo_url", "TEXT"), ("phone", "TEXT"), ("shop_slug", "TEXT"),
+            ("nit", "TEXT"), ("address", "TEXT"),
             ("custom_domain", "TEXT"), ("onboarding_completed", "BOOLEAN DEFAULT FALSE"),
             ("is_global_staff", "BOOLEAN DEFAULT FALSE"), ("permissions", "JSONB"),
             ("bank_accounts", "JSONB"), ("social_links", "JSONB"), ("whatsapp_lines", "JSONB"),
