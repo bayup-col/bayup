@@ -599,25 +599,45 @@ export default function ProductsPage() {
                                 <tbody className="divide-y divide-gray-100/50">
                                     {loading ? (<tr><td colSpan={5} className="py-20 text-center"><div className="h-12 w-12 border-4 border-[#004d4d] border-t-cyan rounded-full animate-spin mx-auto" /></td></tr>) : filteredProducts.length === 0 ? (<tr><td colSpan={5} className="py-20 text-center text-gray-300 font-black text-[10px]">Sin artículos</td></tr>) : (
                                         filteredProducts.map((p) => {
-                                            // Lógica maestra para detectar la imagen principal
+                                            // Lógica Maestra Ultra-Resistente para extraer la imagen
                                             let displayImage = null;
-                                            if (Array.isArray(p.image_url) && p.image_url.length > 0) {
-                                                displayImage = p.image_url.find(url => url && typeof url === 'string' && url.length > 5);
-                                            } else if (typeof p.image_url === 'string' && p.image_url.length > 5) {
-                                                displayImage = p.image_url;
+                                            
+                                            const extractUrl = (raw: any): string | null => {
+                                                if (!raw) return null;
+                                                if (typeof raw === 'string') {
+                                                    if (raw.startsWith('[') && raw.endsWith(']')) {
+                                                        try {
+                                                            const parsed = JSON.parse(raw);
+                                                            return Array.isArray(parsed) ? parsed[0] : parsed;
+                                                        } catch (e) { return raw; }
+                                                    }
+                                                    return raw;
+                                                }
+                                                if (Array.isArray(raw)) return raw[0];
+                                                return null;
+                                            };
+
+                                            displayImage = extractUrl(p.image_url);
+
+                                            // Si no hay imagen principal, buscamos en las variantes
+                                            if (!displayImage && p.variants && p.variants.length > 0) {
+                                                for (const v of p.variants) {
+                                                    const vImg = extractUrl(v.image_url);
+                                                    if (vImg) { displayImage = vImg; break; }
+                                                }
                                             }
 
                                             return (
                                                 <tr key={p.id} className="hover:bg-white/60 transition-all cursor-pointer group" onClick={() => setSelectedProduct(p)}>
                                                     <td className="px-10 py-8">
                                                         <div className="flex items-center justify-center gap-4">
-                                                            <div className="h-14 w-14 rounded-2xl bg-slate-50 overflow-hidden shadow-sm group-hover:scale-110 transition-transform border border-slate-100 flex items-center justify-center">
+                                                            <div className="h-14 w-14 rounded-2xl bg-slate-50 overflow-hidden shadow-sm group-hover:scale-110 transition-transform border border-slate-100 flex items-center justify-center relative">
                                                                 {displayImage ? (
                                                                     <img 
                                                                         src={displayImage} 
-                                                                        className="h-full w-full object-cover" 
+                                                                        className="h-full w-full object-cover absolute inset-0" 
+                                                                        alt={p.name}
                                                                         onError={(e) => { 
-                                                                            (e.target as any).src = ''; 
                                                                             (e.target as any).style.display = 'none'; 
                                                                         }} 
                                                                     />
