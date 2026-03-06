@@ -46,46 +46,40 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // MECANISMO DE AUTO-DESCUBRIMIENTO (SINGULARITY BYPASS)
+      // URL MAESTRA DE PRODUCCIÓN (SUPABASE EDGE)
+      const SUPABASE_BACKEND = "https://jtctgahddafohgskgxha.supabase.co/functions/v1/main";
+      
       const possibleBases = [
+        SUPABASE_BACKEND,
         process.env.NEXT_PUBLIC_API_URL,
-        "https://bayup-backend.onrender.com",
-        "https://bayup-api.onrender.com",
         "http://localhost:8000"
       ].filter(Boolean) as string[];
 
       let apiBase = "";
-      let lastError = "";
-
-      console.log("🔍 Bayup Auto-Discovery: Buscando servidor activo...");
+      console.log("🔍 Bayup Final Connect: Buscando servidor maestro...");
 
       for (const base of possibleBases) {
-        if (base.includes("railway.app")) continue; // Ignorar Railway muerto
+        if (base.includes("railway.app")) continue;
         
         try {
-          console.log(`📡 Probando conexión con: ${base}`);
+          console.log(`📡 Verificando: ${base}`);
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000); // Timeout rápido
+          const timeoutId = setTimeout(() => controller.abort(), 2500);
           
           const check = await fetch(`${base}/health`, { signal: controller.signal });
           clearTimeout(timeoutId);
           
           if (check.ok) {
             apiBase = base;
-            console.log(`✅ Servidor encontrado en: ${apiBase}`);
+            console.log(`✅ Conectado a Producción: ${apiBase}`);
             break;
           }
-        } catch (e) {
-          console.log(`❌ ${base} no responde.`);
-        }
+        } catch (e) {}
       }
 
-      if (!apiBase) {
-        console.error("🚨 CRÍTICO: No se encontró ningún servidor activo. Usando fallback de Vercel.");
-        apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      }
+      if (!apiBase) apiBase = SUPABASE_BACKEND; // Forzar Supabase si nada responde
 
-      console.log("🚀 Bayup Connect: Intentando login en:", apiBase);
+      console.log("🚀 Bayup Connect: Iniciando sesión en:", apiBase);
       
       const response = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
