@@ -5,6 +5,7 @@ import { Bell, Bot, LogOut, User as UserIcon, Truck, Sparkles, Moon, Sun, Dollar
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
+import { apiRequest } from '@/lib/api';
 
 interface HeaderProps {
     pathname: string;
@@ -38,10 +39,6 @@ export const DashboardHeader = ({
 
     const isEmpresaPlan = userPlan?.name === 'Empresa' || isGlobalStaff;
 
-import { apiRequest } from '@/lib/api';
-
-// ... (dentro del componente DashboardHeader)
-
     // Polling de Notificaciones Reales
     useEffect(() => {
         let intervalId: any = null;
@@ -67,7 +64,7 @@ import { apiRequest } from '@/lib/api';
                 }
             } catch (err: any) { 
                 // Si detectamos un 401 (Sesión no autorizada), detenemos el polling
-                if (err.message.includes('401')) {
+                if (err?.message?.includes('401')) {
                     console.warn("[API] Sesión expirada. Deteniendo notificaciones.");
                     if (intervalId) clearInterval(intervalId);
                 }
