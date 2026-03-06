@@ -38,6 +38,10 @@ export const DashboardHeader = ({
 
     const isEmpresaPlan = userPlan?.name === 'Empresa' || isGlobalStaff;
 
+import { apiRequest } from '@/lib/api';
+
+// ... (dentro del componente DashboardHeader)
+
     // Polling de Notificaciones Reales
     useEffect(() => {
         let intervalId: any = null;
@@ -48,19 +52,8 @@ export const DashboardHeader = ({
                 return;
             }
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                const res = await fetch(`${apiUrl}/notifications`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (res.status === 401) {
-                    console.warn("Sesión expirada en Header. Deteniendo sincronización.");
-                    if (intervalId) clearInterval(intervalId);
-                    return;
-                }
-
-                if (res.ok) {
-                    const data = await res.json();
+                const data = await apiRequest<any[]>('/notifications', { token });
+                if (data) {
                     const unread = data.filter((n: any) => !n.is_read).length;
                     
                     if (unread > lastCountRef.current) {
@@ -72,9 +65,12 @@ export const DashboardHeader = ({
                     lastCountRef.current = unread;
                     setNotifications(data);
                 }
-            } catch (err) { 
-                // Si hay un error de red masivo, detenemos el intervalo para no saturar
-                console.error("Error de red en notificaciones:", err);
+            } catch (err: any) { 
+                // Si detectamos un 401 (Sesión no autorizada), detenemos el polling
+                if (err.message.includes('401')) {
+                    console.warn("[API] Sesión expirada. Deteniendo notificaciones.");
+                    if (intervalId) clearInterval(intervalId);
+                }
             }
         };
 

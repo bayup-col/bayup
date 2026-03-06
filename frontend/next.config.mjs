@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     env: {
-        APP_VERSION: '1.0.6-RECOVERY', // Gatillo para limpiar error de clonacion en Vercel
-        NEXT_PUBLIC_API_URL: 'https://exciting-optimism-production-4624.up.railway.app' // URL MASTER DEFINITIVA
+        APP_VERSION: '1.0.7-FIX-NET', 
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
     },
     images: {
         unoptimized: true, 
