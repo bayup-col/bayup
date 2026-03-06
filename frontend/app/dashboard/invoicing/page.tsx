@@ -519,47 +519,133 @@ export default function InvoicingPage() {
                             </div>
                         </div>
 
-                        <div className="flex-1 bg-[#F3F4F6] p-8 lg:p-16 flex items-center justify-center relative">
-                            <div className="absolute top-0 right-0 p-20 opacity-[0.03] rotate-12 -z-0"><Zap size={600} fill="#004D4D"/></div>
-                            <div className="w-full max-w-2xl bg-white shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] rounded-[4rem] flex flex-col h-full overflow-hidden relative border border-white animate-in zoom-in-95 duration-700 z-10">
-                                <div className="bg-white p-12 flex justify-between items-center shrink-0 border-b border-gray-50"><div className="space-y-1"><div className="flex items-center gap-2 mb-3"><div className="h-1.5 w-1.5 rounded-full bg-[#00F2FF] animate-ping"/><span className="text-[10px] font-black tracking-[0.3em] text-[#004D4D]">Documento oficial de venta</span></div>{companyData?.logo_url ? <img src={companyData.logo_url} className="h-12 w-auto object-contain" /> : <h2 className="text-3xl font-black italic tracking-tighter leading-none text-[#001A1A]">{companyData?.full_name || authEmail?.split('@')[0]}</h2>}</div><div className="text-right"><p className="text-[9px] font-black text-gray-300">Comprobante</p><p className="text-lg font-black text-[#004D4D]">#{String(history.length + 1).padStart(4, '0')}</p></div></div>
-                                <div className="flex-1 overflow-y-auto custom-scrollbar bg-white p-12 space-y-12">
-                                    <div className="grid grid-cols-2 gap-12 text-slate-900">
-                                        <div className="space-y-4"><p className="text-[8px] font-black text-gray-300 tracking-[0.2em] bg-gray-50 w-fit px-3 py-1 rounded-full">Datos del cliente</p><h4 className="text-xl font-black italic text-gray-900 leading-tight">{customerInfo.name || 'Cliente particular'}</h4><div className="flex flex-col gap-2"><div className="flex items-center gap-2 text-[10px] font-bold text-gray-400"><Mail size={12} className="text-[#004D4D]"/> {customerInfo.email || 'Sin correo'}</div><div className="flex items-center gap-2 text-[10px] font-bold text-gray-400"><Smartphone size={12} className="text-[#004D4D]"/> {customerInfo.phone || 'Sin número'}</div><div className="flex items-center gap-2 text-[10px] font-bold text-gray-400"><MapPin size={12} className="text-[#004D4D]"/> {customerInfo.city || 'Sin ciudad'}</div></div></div>
-                                        <div className="text-right space-y-4"><p className="text-[8px] font-black text-gray-300 tracking-[0.2em] bg-gray-50 w-fit px-3 py-1 rounded-full ml-auto">Datos del vendedor</p><h4 className="text-sm font-black text-[#004D4D]">{companyData?.full_name}</h4><div className="flex flex-col items-end gap-2"><div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 justify-end">{companyData?.email || authEmail} <Mail size={12} className="text-[#004D4D]"/></div><div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 justify-end">{companyData?.phone || 'Sin WhatsApp'} <Smartphone size={12} className="text-[#004D4D]"/></div><div className="flex items-center gap-2 text-[9px] font-black text-emerald-500 mt-2"><ShieldCheck size={12}/> Operación verificada</div></div></div>
+                        <div className="flex-1 bg-[#F3F4F6] p-8 lg:p-12 flex items-center justify-center relative overflow-y-auto custom-scrollbar">
+                            <div className="w-full max-w-3xl bg-white shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] rounded-[1.5rem] flex flex-col min-h-[90vh] overflow-hidden relative border border-gray-200 animate-in zoom-in-95 duration-700 z-10 p-12 space-y-10">
+                                
+                                {/* HEADER: EMISOR Y DATOS DE FACTURA */}
+                                <div className="flex justify-between items-start border-b-2 border-gray-900 pb-8">
+                                    <div className="space-y-4 max-w-[60%]">
+                                        {companyData?.logo_url ? (
+                                            <img src={companyData.logo_url} className="h-16 w-auto object-contain mb-4" />
+                                        ) : (
+                                            <div className="text-3xl font-black italic tracking-tighter text-[#001A1A] mb-2">{companyData?.full_name || authEmail?.split('@')[0]}</div>
+                                        )}
+                                        <div className="space-y-1">
+                                            <p className="text-[11px] font-black text-gray-900 uppercase">{companyData?.full_name || 'EMPRESA REGISTRADA'}</p>
+                                            <p className="text-[10px] font-bold text-gray-500">NIT: 900.000.000-1</p>
+                                            <p className="text-[10px] font-bold text-gray-500">{companyData?.address || 'Dirección de operación principal'}</p>
+                                            <p className="text-[10px] font-bold text-gray-500">WhatsApp: {companyData?.phone || 'Sin contacto'}</p>
+                                        </div>
                                     </div>
-                                    <div className="space-y-6"><div className="flex items-center text-[8px] font-black text-gray-300 tracking-[0.3em] px-4"><span className="flex-1">Descripción del activo</span><span className="w-16 text-center">Qty</span><span className="w-28 text-right">Subtotal</span></div><div className="space-y-2">{invoiceItems.map((item, i) => (
-                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={i} className="flex items-center px-6 py-5 bg-gray-50/50 rounded-3xl group"><div className="flex-1 min-w-0"><p className="text-xs font-black text-gray-900 truncate">{item.name}</p><p className="text-[7px] font-bold text-[#004D4D]">Ref: {item.sku}</p></div><div className="w-16 flex items-center justify-center gap-2"><button onClick={() => {const ni = [...invoiceItems]; if(ni[i].quantity > 1) ni[i].quantity--; setInvoiceItems(ni);}} className="h-5 w-5 bg-white border rounded">-</button><span className="text-xs font-black text-gray-900">{item.quantity}</span><button onClick={() => {const ni = [...invoiceItems]; ni[i].quantity++; setInvoiceItems(ni);}} className="h-5 w-5 bg-white border rounded">+</button></div><div className="w-28 text-right font-black text-xs text-[#004D4D]">${(item.price * item.quantity).toLocaleString()}</div><button onClick={() => setInvoiceItems(invoiceItems.filter((_, idx) => idx !== i))} className="ml-4 text-rose-200 hover:text-rose-500"><Trash2 size={14}/></button></motion.div>))}</div></div>
-                                                                    <div className="pt-10 mt-auto">
-                                                                        <div className="bg-gray-900 p-10 rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden group border border-white/5">
-                                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                                                                                <div className="space-y-4">
-                                                                                    <div className="flex items-center gap-3">
-                                                                                        <div className="h-1.5 w-1.5 rounded-full bg-[#00F2FF]"/>
-                                                                                        <p className="text-[10px] font-black text-white/40 tracking-widest">Resumen de liquidación</p>
-                                                                                    </div>
-                                                                                                                                    <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2">
-                                                                                                                                        <div className="flex justify-between items-center">
-                                                                                                                                            <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Subtotal</span>
-                                                                                                                                            <span className="text-sm font-black text-white">${calculateSubtotal().toLocaleString()}</span>
-                                                                                                                                        </div>
-                                                                                                                                        <div className="flex justify-between items-center text-[#00F2FF]">
-                                                                                                                                            <span className="text-[9px] font-black uppercase tracking-widest">Comisión Bayup (Venta POS)</span>
-                                                                                                                                            <span className="text-sm font-black">$0 (¡Regalo Bayup!)</span>
-                                                                                                                                        </div>
-                                                                                                                                        <p className="text-[8px] font-medium text-white/30 italic leading-tight pt-2 border-t border-white/5">
-                                                                                                                                            Bayup te regala la gestión de inventario y facturación para tus ventas físicas. ¡Solo cobramos el 3.5% en ventas web!
-                                                                                                                                        </p>
-                                                                                                                                    </div>                                                                                </div>
-                                                                                <div className="space-y-6 flex flex-col items-center justify-center text-center px-2">
-                                                                                    <p className="text-[8px] font-black text-white/40 mb-2 tracking-[0.2em]">Total neto a cobrar</p>
-                                                                                    <h3 className="text-4xl font-black tracking-tighter text-white truncate"><AnimatedNumber value={calculateSubtotal()} /></h3>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
+                                    <div className="text-right space-y-2">
+                                        <div className="border-2 border-gray-900 p-4 rounded-xl inline-block bg-gray-50 min-w-[220px]">
+                                            <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest border-b border-gray-200 pb-2 mb-2">Factura de Venta</p>
+                                            <p className="text-2xl font-black text-[#004D4D]">#{String(history.length + 1).padStart(4, '0')}</p>
+                                            <div className="mt-3 space-y-1 text-left">
+                                                <div className="flex justify-between gap-4"><span className="text-[8px] font-black text-gray-400 uppercase">Fecha:</span><span className="text-[9px] font-bold text-gray-900">{new Date().toLocaleDateString()}</span></div>
+                                                <div className="flex justify-between gap-4"><span className="text-[8px] font-black text-gray-400 uppercase">Medio:</span><span className="text-[9px] font-bold text-gray-900 capitalize">{paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'}</span></div>
+                                                <div className="flex justify-between gap-4"><span className="text-[8px] font-black text-gray-400 uppercase">Vendedor:</span><span className="text-[9px] font-bold text-gray-900 truncate">{companyData?.full_name?.split(' ')[0]}</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="p-10 bg-gray-50 border-t flex gap-4 shrink-0"><button type="button" onClick={() => showToast("Descargando...", "info")} className="flex-1 h-16 bg-white border border-gray-200 text-gray-400 rounded-2xl font-black text-[10px] hover:text-[#004D4D] transition-all flex items-center justify-center gap-3 shadow-sm"><Download size={18}/> Descargar</button><button onClick={handleFinalize} disabled={isProcessing || invoiceItems.length === 0} className="flex-[2] h-16 bg-[#001A1A] text-white rounded-2xl font-black text-[11px] shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-30">{isProcessing ? <Loader2 className="animate-spin" size={18}/> : <CheckCircle2 size={18}/>} Facturar</button></div>
+
+                                {/* DATOS DEL CLIENTE */}
+                                <div className="grid grid-cols-2 gap-8 bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                                    <div className="space-y-3">
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Adquiriente</p>
+                                        <div>
+                                            <h4 className="text-lg font-black text-gray-900 uppercase leading-none mb-2">{customerInfo.name || 'CLIENTE MOSTRADOR'}</h4>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-bold text-gray-500 flex items-center gap-2"><Smartphone size={10}/> {customerInfo.phone || 'Sin número'}</p>
+                                                <p className="text-[10px] font-bold text-gray-500 flex items-center gap-2"><Mail size={10}/> {customerInfo.email || 'Sin correo'}</p>
+                                                <p className="text-[10px] font-bold text-gray-500 flex items-center gap-2"><MapPin size={10}/> {customerInfo.city || 'Ciudad'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col justify-end items-end">
+                                        <div className="h-20 w-20 border-2 border-gray-900/10 p-1 rounded-lg opacity-40 grayscale group-hover:grayscale-0 transition-all">
+                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=BAYUP-VALIDATION" className="w-full h-full object-contain" />
+                                        </div>
+                                        <p className="text-[7px] font-black text-gray-300 mt-2 uppercase tracking-tighter">Validación Bayup Core</p>
+                                    </div>
+                                </div>
+
+                                {/* TABLA DE ITEMS PROFESIONAL */}
+                                <div className="flex-1">
+                                    <div className="border border-gray-900 rounded-xl overflow-hidden">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-gray-900 text-white">
+                                                <tr>
+                                                    <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest">Descripción del Activo / SKU</th>
+                                                    <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-center w-20">Cant.</th>
+                                                    <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-right w-32">V. Unitario</th>
+                                                    <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-right w-36">Subtotal</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {invoiceItems.length === 0 ? (
+                                                    <tr><td colSpan={4} className="px-6 py-20 text-center text-[10px] font-black text-gray-300 uppercase italic tracking-widest">Esperando ingreso de activos...</td></tr>
+                                                ) : invoiceItems.map((item, i) => (
+                                                    <tr key={i} className="group hover:bg-gray-50/50 transition-all relative">
+                                                        <td className="px-6 py-5">
+                                                            <p className="text-xs font-black text-gray-900 uppercase">{item.name}</p>
+                                                            <p className="text-[8px] font-bold text-[#004D4D] tracking-widest">SKU: {item.sku}</p>
+                                                        </td>
+                                                        <td className="px-4 py-5">
+                                                            <div className="flex items-center justify-center gap-3">
+                                                                <button onClick={() => {const ni = [...invoiceItems]; if(ni[i].quantity > 1) ni[i].quantity--; setInvoiceItems(ni);}} className="h-6 w-6 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-100 transition-all opacity-0 group-hover:opacity-100">-</button>
+                                                                <span className="text-xs font-black text-gray-900">{item.quantity}</span>
+                                                                <button onClick={() => {const ni = [...invoiceItems]; ni[i].quantity++; setInvoiceItems(ni);}} className="h-6 w-6 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:text-emerald-500 hover:border-emerald-100 transition-all opacity-0 group-hover:opacity-100">+</button>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-5 text-right font-bold text-gray-500 text-xs">${item.price.toLocaleString()}</td>
+                                                        <td className="px-6 py-5 text-right font-black text-[#004D4D] text-xs">
+                                                            ${(item.price * item.quantity).toLocaleString()}
+                                                            <button onClick={() => setInvoiceItems(invoiceItems.filter((_, idx) => idx !== i))} className="absolute right-2 top-1/2 -translate-y-1/2 text-rose-200 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={14}/></button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* TOTALES Y LIQUIDACIÓN (ESTILO PROFESIONAL) */}
+                                <div className="pt-6">
+                                    <div className="flex flex-col md:flex-row gap-8 items-start">
+                                        <div className="flex-1 space-y-4">
+                                            <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100 italic space-y-2">
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Observaciones Legales</p>
+                                                <p className="text-[9px] text-gray-500 font-medium leading-relaxed uppercase">
+                                                    Representación gráfica de factura electrónica. Los activos aquí descritos han sido verificados bajo los protocolos de inventario de Bayup. 
+                                                    Garantía sujeta a términos del emisor.
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-emerald-600">
+                                                <ShieldCheck size={14}/>
+                                                <span className="text-[9px] font-black uppercase tracking-widest">Documento Protegido por Bayup Core v4.2</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="w-full md:w-80 space-y-3">
+                                            <div className="flex justify-between items-center px-4"><span className="text-[10px] font-black text-gray-400 uppercase">Subtotal Bruto</span><span className="text-sm font-black text-gray-900">${calculateSubtotal().toLocaleString()}</span></div>
+                                            <div className="flex justify-between items-center px-4"><span className="text-[10px] font-black text-gray-400 uppercase">Impuesto IVA (0%)</span><span className="text-sm font-black text-gray-900">$0</span></div>
+                                            <div className="flex justify-between items-center px-4 text-[#004D4D]"><span className="text-[10px] font-black uppercase">Comisión Bayup</span><span className="text-[9px] font-black italic">¡BONIFICADO!</span></div>
+                                            <div className="h-px bg-gray-900 my-2" />
+                                            <div className="flex justify-between items-center p-4 bg-gray-900 rounded-2xl text-white shadow-xl">
+                                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Total Neto</span>
+                                                <h3 className="text-2xl font-black tracking-tighter italic"><AnimatedNumber value={calculateSubtotal()} /></h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* FOOTER DE ACCIONES */}
+                                <div className="pt-10 flex gap-4 shrink-0">
+                                    <button type="button" onClick={() => showToast("Preparando descarga profesional...", "info")} className="flex-1 h-16 bg-white border-2 border-gray-100 text-gray-400 rounded-2xl font-black text-[10px] uppercase hover:text-[#004D4D] hover:border-[#004D4D]/20 transition-all flex items-center justify-center gap-3 shadow-sm active:scale-95"><Download size={18}/> Descargar Comprobante</button>
+                                    <button onClick={handleFinalize} disabled={isProcessing || invoiceItems.length === 0} className="flex-[2] h-16 bg-[#001A1A] text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] shadow-[0_20px_50px_rgba(0,26,26,0.3)] hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-30 active:scale-[0.98]">{isProcessing ? <Loader2 className="animate-spin" size={18}/> : <CheckCircle2 size={18}/>} Confirmar y Facturar</button>
+                                </div>
                             </div>
                         </div>
                     </motion.div>
