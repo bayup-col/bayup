@@ -84,7 +84,7 @@ class User(Base):
     city = Column(String, nullable=True)
     
     plan_id = Column(GUID(), ForeignKey("plans.id"))
-    plan = relationship("Plan", back_populates="users")
+    plan = relationship("Plan", back_populates="users", lazy="joined")
     products = relationship("Product", back_populates="owner")
     orders = relationship("Order", back_populates="customer", foreign_keys="[Order.customer_id]")
 
@@ -125,6 +125,8 @@ class Order(Base):
     customer_id = Column(GUID(), ForeignKey("users.id"))
     tenant_id = Column(GUID(), ForeignKey("users.id"))
     total_price = Column(Float)
+    commission_amount = Column(Float, default=0.0) # Comisión para Bayup
+    commission_rate_snapshot = Column(Float, default=0.0) # Tasa aplicada en ese momento
     status = Column(String, default="pending")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     tax_rate_id = Column(GUID(), nullable=True)
@@ -137,7 +139,7 @@ class Order(Base):
     customer_city = Column(String, nullable=True)
     shipping_address = Column(String, nullable=True)
     customer_type = Column(String, default="final")
-    source = Column(String, default="pos")
+    source = Column(String, default="pos") # 'pos' o 'web'
     payment_method = Column(String, default="cash")
     seller_name = Column(String)
     customer = relationship("User", back_populates="orders", foreign_keys=[customer_id])

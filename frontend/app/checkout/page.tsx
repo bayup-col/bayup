@@ -88,10 +88,13 @@ export default function CheckoutPage() {
         if (transaction.status === 'APPROVED') {
           // 3. Registrar la orden oficialmente en nuestro Backend (Público)
           try {
-            // Extraer el owner_id de la tienda (esto lo obtenemos del contexto o de la URL del shop)
-            // Para el MVP, si no viene en el carrito, intentamos obtenerlo de los metadatos o config.
-            const tenant_id = items[0]?.owner_id || items[0]?.tenant_id || "79523a4a-4aad-4c95-a7eb-674af0271f34";
+            // Extraer el owner_id/tenant_id de la tienda desde los items del carrito
+            const tenant_id = items[0]?.tenant_id || items[0]?.owner_id;
             
+            if (!tenant_id) {
+                throw new Error("No se pudo identificar la tienda propietaria de los productos");
+            }
+
             await fetch(`${apiUrl}/public/orders`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -101,13 +104,14 @@ export default function CheckoutPage() {
                 customer_email: customerData.email,
                 customer_phone: customerData.phone,
                 items: items.map(i => ({
-                  product_id: i.id,
+                  product_variant_id: i.id, // En el checkout el id suele ser el del variant o fallback
                   quantity: i.quantity,
-                  price: i.price,
-                  variant_info: i.variant || ""
+                  price_at_purchase: i.price
                 })),
                 payment_status: "paid",
-                payment_method: "wompi"
+                payment_method: "wompi",
+                total_price: currentTotal,
+                source: "web"
               })
             });
             

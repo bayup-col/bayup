@@ -93,6 +93,8 @@ class OrderItem(OrderItemBase):
 class OrderBase(BaseModel):
     tenant_id: uuid.UUID
     total_price: float
+    commission_amount: Optional[float] = 0.0
+    commission_rate_snapshot: Optional[float] = 0.0
     customer_name: str
     customer_email: Optional[str] = None
     customer_phone: Optional[str] = None

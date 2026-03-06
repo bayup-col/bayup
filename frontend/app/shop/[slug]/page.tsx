@@ -116,7 +116,9 @@ function ShopContent() {
             title: product.name,
             price: product.price,
             image: Array.isArray(product.image_url) ? product.image_url[0] : (product.image_url || ''),
-            quantity: 1
+            quantity: 1,
+            tenant_id: shopData.id,
+            owner_id: shopData.owner_id
         });
     };
 
