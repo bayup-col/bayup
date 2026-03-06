@@ -94,11 +94,11 @@ app = FastAPI(title="Bayup OS - Persistent", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://www.bayup.com.co", 
-        "https://bayup.com.co", 
-        "https://bayup-interactive.vercel.app", 
+        "https://www.bayup.com.co",
+        "https://bayup.com.co",
+        "https://bayup-interactive.vercel.app",
         "http://localhost:3000",
-        "https://exciting-optimism-production-4624.up.railway.app"
+        "http://localhost:8000"
     ],
     allow_credentials=True,
     allow_methods=["*"],
