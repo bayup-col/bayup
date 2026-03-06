@@ -531,7 +531,7 @@ def get_public_shop_data(shop_slug: str, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.shop_slug == shop_slug).first()
     if not user:
         raise HTTPException(status_code=404, detail="Tienda no encontrada")
-    
+
     return {
         "id": user.id,
         "full_name": user.full_name,
@@ -548,6 +548,70 @@ def get_public_products(tenant_id: uuid.UUID, db: Session = Depends(get_db)):
         models.Product.owner_id == tenant_id,
         models.Product.status == "active"
     ).all()
+
+@app.post("/public/orders")
+def create_public_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db)):
+    """Crea un pedido real desde la tienda pública."""
+    try:
+        # 1. Crear el pedido
+        db_order = models.Order(
+            **order_data.dict(),
+            status="pending",
+            id=uuid.uuid4()
+        )
+        db.add(db_order)
+        
+        # 2. Notificar al dueño de la tienda (tenant_id)
+        notification = models.Notification(
+            id=uuid.uuid4(),
+            tenant_id=order_data.tenant_id,
+            title="¡Nueva Venta Web! 🚀",
+            message=f"Has recibido un pedido de {order_data.customer_name} por {order_data.total_amount} COP.",
+            type="success",
+            is_read=False
+        )
+        db.add(notification)
+        
+        db.commit()
+        db.refresh(db_order)
+        return db_order
+    except Exception as e:
+        db.rollback()
+        print(f"Error creando pedido público: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/orders/{order_id}")
+def update_order_status(
+    order_id: uuid.UUID,
+    status_data: schemas.OrderStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Actualiza el estado de un pedido (ej: de 'pending' a 'completed')."""
+    db_order = db.query(models.Order).filter(
+        models.Order.id == order_id,
+        models.Order.tenant_id == current_user.id
+    ).first()
+
+    if not db_order:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+
+    db_order.status = status_data.status
+
+    # Notificación interna del cambio de estado
+    notification = models.Notification(
+        id=uuid.uuid4(),
+        tenant_id=current_user.id,
+        title="Pedido Actualizado 📦",
+        message=f"El pedido de {db_order.customer_name} ha cambiado a {status_data.status.upper()}.",
+        type="info",
+        is_read=False
+    )
+    db.add(notification)
+
+    db.commit()
+    db.refresh(db_order)
+    return db_order
 
 @app.get("/public/stores/{tenant_id}/pages/{slug}")
 def get_public_page(tenant_id: uuid.UUID, slug: str, db: Session = Depends(get_db)):

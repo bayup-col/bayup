@@ -189,23 +189,22 @@ function ShopContent() {
                 if (res.ok) {
                     const data = await res.json();
                     
-                    // 2. Cargamos el diseño publicado para la VISTA ACTUAL
+                    // 2. Cargamos productos reales de esta tienda
                     try {
-                        const pageRes = await fetch(`${apiBase}/public/shop-pages/${data.owner_id}/${view}`);
+                        const prodRes = await fetch(`${apiBase}/public/stores/${data.id}/products`);
+                        if (prodRes.ok) {
+                            data.products = await prodRes.json();
+                        }
+                    } catch (e) { console.error("Error cargando productos", e); }
+
+                    // 3. Cargamos el diseño publicado para la VISTA ACTUAL
+                    try {
+                        const pageRes = await fetch(`${apiBase}/public/stores/${data.id}/pages/${view}`);
                         if (pageRes.ok) {
                             const pageData = await pageRes.json();
                             if (pageData && pageData.schema_data) {
                                 data.custom_schema = pageData.schema_data;
                             }
-                        } else {
-                            // FALLBACK: Intentar cargar desde archivos locales (public/templates/clients/[slug]/[view].json)
-                            try {
-                                const localRes = await fetch(`/templates/clients/${slug}/${view}.json`);
-                                if (localRes.ok) {
-                                    const localData = await localRes.json();
-                                    data.custom_schema = localData;
-                                }
-                            } catch(e) {}
                         }
                     } catch (e) {
                         console.warn(`Diseño para vista ${view} no publicado.`);
@@ -245,8 +244,8 @@ function ShopContent() {
                 <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
                     <div className="flex items-center gap-10">
                         <div onClick={() => router.push(`/shop/${slug}`)} className="flex items-center gap-3 cursor-pointer">
-                            <div className="h-10 w-10 bg-[#004d4d] rounded-xl flex items-center justify-center text-[#00f2ff] font-black">{shopData.store_name.charAt(0)}</div>
-                            <h1 className="text-xl font-black italic uppercase tracking-tighter">{shopData.store_name}</h1>
+                            <div className="h-10 w-10 bg-[#004d4d] rounded-xl flex items-center justify-center text-[#00f2ff] font-black">{shopData.full_name?.charAt(0) || 'B'}</div>
+                            <h1 className="text-xl font-black italic uppercase tracking-tighter">{shopData.full_name}</h1>
                         </div>
                         <nav className="hidden lg:flex items-center gap-8">
                             <button onClick={() => router.push(`/shop/${slug}?view=home`)} className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${view === 'home' ? 'text-[#004d4d]' : 'text-gray-400 hover:text-black'}`}>Inicio</button>
@@ -375,7 +374,7 @@ function ShopContent() {
                             {cart.length > 0 && (
                                 <div className="p-8 border-t bg-gray-50/50 space-y-6">
                                     <div className="flex justify-between items-end"><p className="text-[10px] font-black text-gray-400 uppercase">Total Estimado</p><p className="text-3xl font-black text-gray-900 tracking-tighter">${cartTotal.toLocaleString()}</p></div>
-                                    <button onClick={() => { setIsCartOpen(false); router.push('/checkout'); }} className="w-full py-6 bg-gray-900 text-[#00f2ff] rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Finalizar Compra</button>
+                                    <button onClick={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }} className="w-full py-6 bg-gray-900 text-[#00f2ff] rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Finalizar Compra</button>
                                 </div>
                             )}
                         </motion.div>

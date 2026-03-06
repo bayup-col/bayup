@@ -189,6 +189,9 @@ class OrderBase(BaseModel):
 class OrderCreate(OrderBase):
     items: List[OrderItemCreate]
 
+class OrderStatusUpdate(BaseModel):
+    status: str
+
 class Order(OrderBase):
     id: uuid.UUID
     customer_id: uuid.UUID 
