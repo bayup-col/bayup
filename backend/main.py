@@ -77,7 +77,7 @@ async def lifespan(app: FastAPI):
     safe_db_init()
     yield
 
-app = FastAPI(title="Bayup OS - Production", lifespan=lifespan)
+app = FastAPI(title="Bayup OS - Production - Force Rebuild v2", lifespan=lifespan)
 
 # --- CORS DEFINITIVO (PARA PRODUCCIÓN) ---
 app.add_middleware(
