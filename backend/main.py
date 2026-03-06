@@ -657,6 +657,20 @@ def get_store_messages(db: Session = Depends(get_db), current_user: models.User 
 @app.get("/health")
 def health(): return {"status": "connected_and_persistent"}
 
+@app.get("/admin/fix-db-force")
+def fix_db_force():
+    """Gatillo manual para inyectar columnas si el arranque automático falla."""
+    results = []
+    with engine.connect() as conn:
+        for col in ["nit", "address"]:
+            try:
+                conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} TEXT;"))
+                conn.commit()
+                results.append(f"✅ {col} creada.")
+            except Exception as e:
+                results.append(f"❌ {col} falló (probablemente ya existe).")
+    return {"status": "process_completed", "details": results}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
