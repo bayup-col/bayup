@@ -12,7 +12,7 @@ from typing import List
 
 load_dotenv()
 
-# --- ASEGURAR DIRECTORIO DE CARGAS ---
+# --- REPARACIÓN DE INICIO (ASEGURAR DIRECTORIOS) ---
 UPLOAD_DIR = "uploads"
 if not os.path.exists(UPLOAD_DIR):
     try: os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -26,7 +26,6 @@ def safe_db_init():
     try:
         models.Base.metadata.create_all(bind=engine)
         with engine.connect() as conn:
-            # Sincronización básica de columnas
             for col, dtype in [("logo_url", "TEXT"), ("phone", "TEXT"), ("shop_slug", "TEXT")]:
                 try: conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {dtype};")); conn.commit()
                 except: pass
@@ -37,7 +36,7 @@ async def lifespan(app: FastAPI):
     safe_db_init()
     yield
 
-app = FastAPI(title="Bayup OS - Core", lifespan=lifespan)
+app = FastAPI(title="Bayup OS - Final Stable", lifespan=lifespan)
 
 # --- CORS ---
 app.add_middleware(
@@ -52,13 +51,13 @@ app.add_middleware(
 
 @app.post("/auth/register", response_model=schemas.User)
 def register_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
-    if crud.get_user_by_email(db, email=user_in.email):
+    db_user = crud.get_user_by_email(db, email=user_in.email)
+    if db_user:
         raise HTTPException(status_code=400, detail="Email ya registrado")
     return crud.create_user(db, user_in)
 
 @app.post("/auth/login")
 async def login(request: Request, db: Session = Depends(get_db)):
-    # Soporte tanto para JSON como para Form Data (Pytest usa Form Data a veces)
     try:
         body = await request.json()
         u, p = body.get("username"), body.get("password")
@@ -71,6 +70,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
         
     user = crud.get_user_by_email(db, email=u.lower().strip())
     if not user or not security.verify_password(p, user.hashed_password):
+        # ERROR 401: El estándar que Pytest espera.
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     
     token = security.create_access_token(data={"sub": user.email})
@@ -119,7 +119,7 @@ def get_super_admin_stats(db: Session = Depends(get_db), current_user: models.Us
 # --- UTILIDADES ---
 
 @app.get("/health")
-def health(): return {"status": "operational"}
+def health(): return {"status": "stable"}
 
 try:
     app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")

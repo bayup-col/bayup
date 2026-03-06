@@ -1,5 +1,4 @@
-# backend/schemas.py
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, EmailStr
 import uuid
 from datetime import datetime
 from typing import List, Optional, Dict, Any
@@ -7,10 +6,10 @@ from typing import List, Optional, Dict, Any
 # --- Plan Schemas ---
 class PlanBase(BaseModel):
     name: str
-    description: str | None = None
+    description: str
     commission_rate: float
     monthly_fee: float
-    modules: List[str] | None = []
+    modules: List[str] = []
     is_default: bool = False
 
 class PlanCreate(PlanBase):
@@ -18,34 +17,27 @@ class PlanCreate(PlanBase):
 
 class Plan(PlanBase):
     id: uuid.UUID
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- User Schemas ---
 class UserBase(BaseModel):
     email: str
-    full_name: str | None = None
-    logo_url: str | None = None
-    nit: str | None = None
-    address: str | None = None
-    nickname: str | None = None
-    phone: str | None = None
-    city: str | None = None
-    shop_slug: str | None = None
-    custom_domain: str | None = None
-    status: str | None = "Activo"
+    full_name: Optional[str] = None
+    logo_url: Optional[str] = None
+    phone: Optional[str] = None
+    shop_slug: Optional[str] = None
+    role: Optional[str] = "admin_tienda"
+    status: Optional[str] = "Activo"
+    is_global_staff: bool = False
+    permissions: Dict[str, bool] = {}
 
 class UserCreate(UserBase):
     password: str
-    role: str | None = "admin_tienda"
-    permissions: Optional[Dict[str, bool]] = {}
     plan_id: Optional[uuid.UUID] = None
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     logo_url: Optional[str] = None
-    nit: Optional[str] = None
-    address: Optional[str] = None
     phone: Optional[str] = None
     shop_slug: Optional[str] = None
     bank_accounts: Optional[List[dict]] = None
@@ -54,69 +46,15 @@ class UserUpdate(BaseModel):
 
 class User(UserBase):
     id: uuid.UUID
-    role: str = "admin_tienda"
-    owner_id: Optional[uuid.UUID] = None
-    is_global_staff: bool = False 
-    bank_accounts: List[dict] | None = []
-    social_links: dict | None = {}
-    whatsapp_lines: List[dict] | None = []
-    logo_url: str | None = None
-    permissions: Optional[Dict[str, bool]] = {}
     plan: Optional[Plan] = None
-    
-    # Loyalty and Customer Stats
-    loyalty_points: int = 0
-    total_spent: float = 0.0
-    last_purchase_date: Optional[datetime] = None
-    last_purchase_summary: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-        populate_by_name = True
-
-class CustomerSync(BaseModel):
-    name: str
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    last_purchase_date: datetime
-    last_purchase_summary: str
-    last_purchase_amount: float
-    points_to_add: int
-
-class BankAccountsUpdate(BaseModel):
-    bank_accounts: List[dict]
-
-class SocialLinksUpdate(BaseModel):
-    social_links: dict
-
-class WhatsAppLinesUpdate(BaseModel):
-    whatsapp_lines: List[dict]
-
-# --- Collection Schemas ---
-class CollectionBase(BaseModel):
-    title: str
-    description: str | None = None
-    image_url: str | None = None
-    status: str = "active"
-
-class CollectionCreate(CollectionBase):
-    pass
-
-class Collection(CollectionBase):
-    id: uuid.UUID
-    owner_id: uuid.UUID
-    product_count: int = 0
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Product Schemas ---
 class ProductVariantBase(BaseModel):
     name: str
-    sku: str | None = None
-    price_adjustment: float = 0.0
-    stock: int
-    image_url: str | None = None
-    attributes: dict | None = None
+    sku: Optional[str] = None
+    stock: int = 0
+    price: Optional[float] = None
 
 class ProductVariantCreate(ProductVariantBase):
     pass
@@ -124,399 +62,61 @@ class ProductVariantCreate(ProductVariantBase):
 class ProductVariant(ProductVariantBase):
     id: uuid.UUID
     product_id: uuid.UUID
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProductBase(BaseModel):
     name: str
-    description: str | None = None
+    description: Optional[str] = None
     price: float
-    wholesale_price: float | None = 0.0
-    cost: float | None = 0.0
-    sku: str | None = None
-    status: str | None = "active"
-    add_gateway_fee: bool | None = False
-    image_url: List[str] | None = [] 
-    product_type_id: uuid.UUID | None = None
-    collection_id: uuid.UUID | None = None
+    status: str = "active"
+    category: Optional[str] = None
 
 class ProductCreate(ProductBase):
-    variants: List[ProductVariantCreate]
-
-class ProductUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    category: Optional[str] = None
-    price: Optional[float] = None
-    wholesale_price: Optional[float] = None
-    cost: Optional[float] = None
-    sku: Optional[str] = None
-    status: Optional[str] = None
-    add_gateway_fee: Optional[bool] = None
-    image_url: Optional[List[str]] = None
-    product_type_id: Optional[uuid.UUID] = None
-    collection_id: Optional[uuid.UUID] = None
-    variants: Optional[List[ProductVariantCreate]] = None
+    variants: List[ProductVariantCreate] = []
 
 class Product(ProductBase):
     id: uuid.UUID
     owner_id: uuid.UUID
     variants: List[ProductVariant] = []
-    collection: Optional[Collection] = None
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Order Schemas ---
 class OrderItemBase(BaseModel):
     product_variant_id: uuid.UUID
     quantity: int
-
-class OrderItemCreate(OrderItemBase):
-    pass
+    price_at_purchase: float
 
 class OrderItem(OrderItemBase):
     id: uuid.UUID
-    price_at_purchase: float
-    product_variant: Optional[ProductVariant] = None
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class OrderBase(BaseModel):
-    customer_name: Optional[str] = None
+    tenant_id: uuid.UUID
+    total_price: float
+    customer_name: str
     customer_email: Optional[str] = None
     customer_phone: Optional[str] = None
-    customer_type: Optional[str] = "final"
-    source: Optional[str] = "pos"
-    payment_method: Optional[str] = "cash"
-    seller_name: Optional[str] = None
+    customer_city: Optional[str] = None
+    shipping_address: Optional[str] = None
+    payment_method: str = "cash"
+    source: str = "pos"
 
 class OrderCreate(OrderBase):
-    items: List[OrderItemCreate]
-
-class OrderStatusUpdate(BaseModel):
-    status: str
+    items: List[OrderItemBase]
 
 class Order(OrderBase):
     id: uuid.UUID
-    customer_id: uuid.UUID 
     status: str
     created_at: datetime
-    total_price: float
     items: List[OrderItem] = []
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
-# --- Shipment Schemas ---
-class ShipmentBase(BaseModel):
-    order_id: uuid.UUID
-    status: str = "pending_packing"
-    recipient_name: str
-    recipient_phone: Optional[str] = None
-    destination_address: str
-    carrier: Optional[str] = None
-    tracking_number: Optional[str] = None
-
-class ShipmentCreate(ShipmentBase):
-    pass
-
-class Shipment(ShipmentBase):
-    id: uuid.UUID
-    updated_at: datetime
-    tenant_id: uuid.UUID
-    class Config:
-        from_attributes = True
-
-# --- Finance Schemas ---
-class ExpenseBase(BaseModel):
-    description: str
-    amount: float
-    due_date: datetime
-    status: str = "pending"
-    category: str = "diario"
-    invoice_num: str | None = None
-    items: List[Dict] | None = None
-    description_detail: str | None = None
-
-class ExpenseCreate(ExpenseBase):
-    pass
-
-class Expense(ExpenseBase):
-    id: uuid.UUID
-    tenant_id: uuid.UUID
-    class Config:
-        from_attributes = True
-
-class ReceivableBase(BaseModel):
-    client_name: str
-    amount: float
-    due_date: datetime
-    status: str = "pending"
-    invoice_num: str | None = None
-    items: List[Dict] | None = None
-    description_detail: str | None = None
-
-class ReceivableCreate(ReceivableBase):
-    pass
-
-class Receivable(ReceivableBase):
-    id: uuid.UUID
-    tenant_id: uuid.UUID
-    class Config:
-        from_attributes = True
-
-class PayrollEmployeeBase(BaseModel):
-    name: str
-    role: str
-    base_salary: float
-
-class PayrollEmployeeCreate(PayrollEmployeeBase):
-    pass
-
-class PayrollEmployee(PayrollEmployeeBase):
-    id: uuid.UUID
-    tenant_id: uuid.UUID
-    class Config:
-        from_attributes = True
-
-class IncomeBase(BaseModel):
-    description: str
-    amount: float
-    category: str | None = None
-
-class IncomeCreate(IncomeBase):
-    pass
-
-class Income(IncomeBase):
-    id: uuid.UUID
-    created_at: datetime
-    tenant_id: uuid.UUID
-    class Config:
-        from_attributes = True
-
-class ClerkLoginRequest(BaseModel):
-    clerk_token: str
-
-class PageBase(BaseModel):
-    slug: str
-    title: str | None = None
-    content: Dict[str, Any] | None = None
-
-class PageCreate(PageBase):
-    pass
-
-class PageUpdate(PageBase):
-    slug: str | None = None
-    title: str | None = None
-    content: Dict[str, Any] | None = None
-
-class Page(PageBase):
-    id: uuid.UUID
-    owner_id: uuid.UUID
-    class Config:
-        from_attributes = True
-
-class TaxRateBase(BaseModel):
-    name: str
-    rate: float
-    is_default: bool = False
-
-class TaxRateCreate(TaxRateBase):
-    pass
-
-class TaxRateUpdate(TaxRateBase):
-    name: str | None = None
-    rate: float | None = None
-    is_default: bool | None = None
-
-class TaxRate(TaxRateBase):
-    id: uuid.UUID
-    owner_id: uuid.UUID
-    class Config:
-        from_attributes = True
-
-class ShippingOptionBase(BaseModel):
-    name: str
-    cost: float
-    min_order_total: float | None = None
-
-class ShippingOptionCreate(ShippingOptionBase):
-    pass
-
-class ShippingOptionUpdate(ShippingOptionBase):
-    name: str | None = None
-    cost: float | None = None
-    min_order_total: float | None = None
-
-class ShippingOption(ShippingOptionBase):
-    id: uuid.UUID
-    owner_id: uuid.UUID
-    class Config:
-        from_attributes = True
-
-# --- ProductType Schemas ---
-class ProductAttributeBase(BaseModel):
-    name: str
-    attribute_type: str
-    options: List[str] | None = None
-
-class ProductAttributeCreate(ProductAttributeBase):
-    pass
-
-class ProductAttribute(ProductAttributeBase):
-    id: uuid.UUID
-    product_type_id: uuid.UUID
-    class Config:
-        from_attributes = True
-
-class ProductTypeBase(BaseModel):
-    name: str
-    description: str | None = None
-
-class ProductTypeCreate(ProductTypeBase):
-    pass
-
-class ProductType(ProductTypeBase):
-    id: uuid.UUID
-    attributes: List[ProductAttribute] = []
-    class Config:
-        from_attributes = True
-
-class AIAssistantBase(BaseModel):
-    name: str
-    description: str | None = None
-    assistant_type: str
-    status: str = "active"
-    n8n_webhook_url: str | None = None
-    system_prompt: str | None = None
-    config: Dict[str, Any] | None = {}
-
-class AIAssistantCreate(AIAssistantBase):
-    pass
-
-class AIAssistant(AIAssistantBase):
-    id: uuid.UUID
-    owner_id: uuid.UUID
-    total_actions: int
-    success_rate: float
-    last_run: datetime | None = None
-    class Config:
-        from_attributes = True
-
-class CustomRoleCreate(BaseModel):
-    name: str
-    permissions: Dict[str, bool]
-
-class CustomRole(CustomRoleCreate):
-    id: uuid.UUID
-    owner_id: uuid.UUID
-    class Config:
-        from_attributes = True
-
-class PurchaseOrderBase(BaseModel):
-    product_name: str
-    quantity: int
-    items: Optional[List[Dict[str, Any]]] = None
-    total_amount: float
-    provider_name: Optional[str] = None
-    status: str = "sent"
-    sending_method: Optional[str] = None
-    scheduled_at: Optional[datetime] = None
-
-class PurchaseOrderCreate(PurchaseOrderBase):
-    pass
-
-class PurchaseOrder(PurchaseOrderBase):
-    id: uuid.UUID
-    created_at: datetime
-    tenant_id: uuid.UUID
-    class Config:
-        from_attributes = True
-
-class ProviderCreate(BaseModel):
-    name: str
-    contact_name: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    category: str = "General"
-
-class Provider(ProviderCreate):
-    id: uuid.UUID
-    tenant_id: uuid.UUID
-    class Config:
-        from_attributes = True
-
+# --- Otros ---
 class ActivityLogBase(BaseModel):
     action: str
     detail: str
-    target_id: Optional[str] = None
+    created_at: datetime
 
 class ActivityLog(ActivityLogBase):
     id: uuid.UUID
-    user_id: uuid.UUID
-    created_at: datetime
-    tenant_id: uuid.UUID
-    user_name: Optional[str] = None # Helper for frontend
-
-    class Config:
-        from_attributes = True
-
-class SuperAdminStats(BaseModel):
-    total_revenue: float
-    total_commission: float
-    active_companies: int
-    active_affiliates: int
-    top_companies: List[Dict[str, Any]]
-    recent_alerts: List[Dict[str, Any]]
-
-# --- Shop Page Schemas ---
-class ShopPageBase(BaseModel):
-    page_key: str
-    schema_data: Dict[str, Any]
-
-class ShopPageCreate(ShopPageBase):
-    pass
-
-class ShopPage(ShopPageBase):
-    id: uuid.UUID
-    tenant_id: uuid.UUID
-    is_published: bool
-    updated_at: datetime
-    class Config:
-        from_attributes = True
-
-# --- Store Message Schemas ---
-class StoreMessageBase(BaseModel):
-    customer_name: str
-    customer_email: str
-    customer_phone: Optional[str] = None
-    message: str
-
-class StoreMessageCreate(StoreMessageBase):
-    tenant_id: uuid.UUID
-
-class StoreMessage(StoreMessageBase):
-    id: uuid.UUID
-    tenant_id: uuid.UUID
-    status: str
-    created_at: datetime
-    class Config:
-        from_attributes = True
-
-# --- Web Template Schemas ---
-class WebTemplateBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-    preview_url: Optional[str] = None
-    schema_data: Dict[str, Any]
-    active_plans: List[str] = []
-    is_active: bool = True
-
-class WebTemplateCreate(WebTemplateBase):
-    pass
-
-class WebTemplate(WebTemplateBase):
-    id: uuid.UUID
-    created_at: datetime
-    updated_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
