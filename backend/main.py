@@ -566,7 +566,7 @@ def create_public_order(order_data: schemas.OrderCreate, db: Session = Depends(g
             id=uuid.uuid4(),
             tenant_id=order_data.tenant_id,
             title="¡Nueva Venta Web! 🚀",
-            message=f"Has recibido un pedido de {order_data.customer_name} por {order_data.total_amount} COP.",
+            message=f"Has recibido un pedido de {order_data.customer_name} por {order_data.total_price} COP.",
             type="success",
             is_read=False
         )

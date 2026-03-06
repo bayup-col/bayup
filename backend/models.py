@@ -392,11 +392,3 @@ class StoreMessage(Base):
     message = Column(String)
     status = Column(String, default="unread") # unread, read, replied
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-
-    tenant_id = Column(GUID(), ForeignKey("users.id"))
-
-    page_key = Column(String, index=True) # e.g., 'home', 'about'
-
-    schema_data = Column(JSON)
-
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

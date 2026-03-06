@@ -236,6 +236,7 @@ export default function ProductsPage() {
     const [isCreatingCategory, setIsCreatingCategory] = useState(false);
     const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
     const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<any>(null);
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [productToDelete, setProductToDelete] = useState<any>(null);
     const [isDeletingProduct, setIsDeletingProduct] = useState(false);
