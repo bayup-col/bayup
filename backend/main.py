@@ -67,7 +67,7 @@ def safe_db_init():
             db.add(plan); db.commit(); db.refresh(plan)
 
         # 2. Asegurar Usuario (Si no existe, se crea; si existe, NO SE TOCA)
-        email = "basicobayup@yopmail.com"
+        email = "basicobayup@yopmail.co"
         if not db.query(models.User).filter(models.User.email == email).first():
             user = models.User(
                 id=uuid.uuid4(), email=email, full_name="Sebastián Bayup",
@@ -75,7 +75,7 @@ def safe_db_init():
                 role="admin_tienda", status="Activo", plan_id=plan.id, shop_slug="mi-tienda"
             )
             db.add(user); db.commit()
-            print("✨ Usuario maestro creado.")
+            print(f"✨ Usuario maestro {email} creado.")
     except Exception as e:
         print(f"⚠️ Aviso en post-init: {e}")
     finally:
@@ -127,20 +127,34 @@ async def login(request: Request, db: Session = Depends(get_db)):
             body = {"username": form.get("username"), "password": form.get("password")}
         
         u, p = body.get("username"), body.get("password")
-        user = crud.get_user_by_email(db, email=u.lower().strip() if u else "")
+        if not u or not p:
+            raise HTTPException(status_code=400, detail="Faltan credenciales")
+
+        user = crud.get_user_by_email(db, email=u.lower().strip())
+        
         if not user or not security.verify_password(p, user.hashed_password):
-            raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+            raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos")
         
         token = security.create_access_token(data={"sub": user.email})
+        
+        # Plan seguro
+        plan_name = "Básico"
+        modules = ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]
+        if user.plan:
+            plan_name = user.plan.name
+            modules = user.plan.modules
+
         return {
             "access_token": token, "token_type": "bearer",
             "user": {
                 "email": user.email, "full_name": user.full_name, "role": user.role, "shop_slug": user.shop_slug,
-                "plan": {"name": user.plan.name if user.plan else "Básico", "modules": user.plan.modules if user.plan else []}
+                "plan": {"name": plan_name, "modules": modules}
             }
         }
     except HTTPException as he: raise he
-    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e: 
+        print(f"🔥 Error interno en Login: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor")
 
 from fastapi import Depends, FastAPI, HTTPException, status, Request, File, UploadFile
 import shutil
