@@ -46,33 +46,11 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // SCANNER DE RESCATE TOTAL (PROBANDO TODAS LAS IDENTIDADES CONOCIDAS)
-      const possibleBases = [
-        "https://exciting-optimism-production-4624.up.railway.app",
-        "https://gallant-education-production-8b4a.up.railway.app",
-        "https://bayup-os-production.up.railway.app",
-        "https://bayup-backend-production.up.railway.app",
-        process.env.NEXT_PUBLIC_API_URL,
-        "http://localhost:8000"
-      ].filter(Boolean) as string[];
-
-      let apiBase = "";
-      console.log("🕵️‍♂️ Bayup Radar: Escaneando infraestructura...");
-
-      // Probar todas en paralelo para máxima velocidad
-      const results = await Promise.all(possibleBases.map(async (url) => {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000);
-          const resp = await fetch(`${url}/health`, { signal: controller.signal });
-          return resp.ok ? url : null;
-        } catch (e) { return null; }
-      }));
-
-      apiBase = results.find(r => r !== null) || "https://exciting-optimism-production-4624.up.railway.app";
-
-      console.log("🎯 Bayup Radar: Servidor detectado en:", apiBase);
-
+      // URL MAESTRA ÚNICA (CONFIRMADA POR RADAR)
+      const apiBase = "https://exciting-optimism-production-4624.up.railway.app";
+      
+      console.log("🚀 Bayup Core: Accediendo a Producción en:", apiBase);
+      
       const response = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
