@@ -11,6 +11,12 @@ from contextlib import asynccontextmanager
 
 load_dotenv()
 
+# --- ASEGURAR DIRECTORIO DE CARGAS (REPARACIÓN CRÍTICA RAILWAY) ---
+UPLOAD_DIR = "uploads"
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
+    print(f"✅ Directorio '{UPLOAD_DIR}' creado para persistencia.")
+
 # --- CONEXIÓN A DB REAL ---
 from database import SessionLocal, engine, get_db
 import models
@@ -116,7 +122,6 @@ def create_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db),
     for item in order_data.items:
         db_item = models.OrderItem(**item.dict(), order_id=db_order.id, id=uuid.uuid4())
         db.add(db_item)
-        # Descuento stock
         variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.product_variant_id).first()
         if variant: variant.stock = max(0, variant.stock - item.quantity)
     db.commit(); db.refresh(db_order)
@@ -131,9 +136,11 @@ def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_d
 
 @app.post("/admin/upload-image")
 async def upload_image(file: UploadFile = File(...), current_user: models.User = Depends(security.get_current_user)):
-    if not os.path.exists("uploads"): os.makedirs("uploads")
-    file_name = f"{uuid.uuid4()}.{file.filename.split('.')[-1]}"
-    with open(f"uploads/{file_name}", "wb") as buffer: shutil.copyfileobj(file.file, buffer)
+    file_extension = file.filename.split('.')[-1]
+    file_name = f"{uuid.uuid4()}.{file_extension}"
+    file_path = os.path.join(UPLOAD_DIR, file_name)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
     domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "localhost:8080")
     url = f"https://{domain}/uploads/{file_name}" if "railway" in domain else f"http://{domain}/uploads/{file_name}"
     return {"url": url}
@@ -159,6 +166,7 @@ def get_public_shop(shop_slug: str, db: Session = Depends(get_db)):
 @app.post("/public/orders")
 def create_public_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db)):
     db_order = models.Order(**order_data.dict(exclude={"items"}), status="pending", id=uuid.uuid4())
+    db_order.customer_id = order_data.tenant_id # Fallback
     db.add(db_order); db.flush()
     for item in order_data.items:
         db_item = models.OrderItem(**item.dict(), order_id=db_order.id, id=uuid.uuid4())
@@ -170,7 +178,8 @@ def create_public_order(order_data: schemas.OrderCreate, db: Session = Depends(g
 @app.get("/health")
 def health(): return {"status": "connected"}
 
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+# Montaje de estáticos (Asegurando que el directorio existe)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 if __name__ == "__main__":
     import uvicorn
