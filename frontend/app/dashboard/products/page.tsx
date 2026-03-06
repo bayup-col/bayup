@@ -990,9 +990,20 @@ export default function ProductsPage() {
             {/* MODAL DE ATRIBUTOS (RED DISEÑO: MINIMALISTA & ELITE) */}
             <AnimatePresence>
                 {selectedProduct && (
-                    <div className="fixed inset-0 z-[1500] flex items-center justify-center p-6">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedProduct(null)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" />
-                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative bg-white/80 backdrop-blur-2xl w-full max-w-4xl h-fit max-h-[85vh] rounded-[3.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.1)] border border-white overflow-hidden flex flex-col md:flex-row text-slate-900">
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6">
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }} 
+                            onClick={() => setSelectedProduct(null)} 
+                            className="fixed inset-0 bg-[#001A1A]/60 backdrop-blur-xl" 
+                        />
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+                            animate={{ opacity: 1, scale: 1, y: 0 }} 
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }} 
+                            className="relative bg-white/90 backdrop-blur-2xl w-full max-w-4xl h-fit max-h-[90vh] rounded-[3.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.3)] border border-white overflow-hidden flex flex-col md:flex-row text-slate-900 z-10"
+                        >
                             
                             {/* SECCIÓN IMAGEN Y RESUMEN (LADO IZQ COMPACTO) */}
                             <div className="w-full md:w-80 p-10 flex flex-col shrink-0 border-r border-gray-100/50">
