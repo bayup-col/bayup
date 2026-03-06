@@ -46,42 +46,16 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // URL MAESTRA DE PRODUCCIÓN (RENDER API - CONFIRMADA)
-      const MASTER_BACKEND = "https://bayup-os-api.onrender.com";
+      // URL MAESTRA FINAL (RAILWAY RECOVERY - CONFIRMADA)
+      const apiBase = "https://bayup-backend-production.up.railway.app";
       
-      const possibleBases = [
-        MASTER_BACKEND,
-        process.env.NEXT_PUBLIC_API_URL,
-        "http://localhost:8000"
-      ].filter(Boolean) as string[];
-
-      let apiBase = "";
-      console.log("🔍 Bayup Final Connect: Sincronizando con Servidor Maestro...");
-
-      for (const base of possibleBases) {
-        if (base.includes("railway.app") || base.includes("supabase.co")) continue; // Ignorar fallidos
-        
-        try {
-          console.log(`📡 Verificando Latencia en: ${base}`);
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3000);
-          
-          const check = await fetch(`${base}/health`, { signal: controller.signal });
-          clearTimeout(timeoutId);
-          
-          if (check.ok) {
-            apiBase = base;
-            console.log(`✅ Bayup OS Online: ${apiBase}`);
-            break;
-          }
-        } catch (e) {}
-      }
-
-      if (!apiBase) apiBase = MASTER_BACKEND; 
-
-      console.log("🚀 Accediendo a Bayup Core via:", apiBase);
+      console.log("🚀 Bayup Singularity: Conectando al Núcleo en:", apiBase);
       
       const response = await fetch(`${apiBase}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ username: email, password: password }),
+      });
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ username: email, password: password }),
