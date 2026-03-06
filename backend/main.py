@@ -178,7 +178,13 @@ def get_super_admin_stats(db: Session = Depends(get_db), current_user: models.Us
 @app.get("/health")
 def health(): return {"status": "stable", "v": "1.0.9"}
 
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+# --- MONTAR CARPETA DE IMÁGENES (CON PROTECCIÓN) ---
+try:
+    if not os.path.exists(UPLOAD_DIR):
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+except Exception as e:
+    print(f"⚠️ Warning: No se pudo montar la carpeta de cargas: {e}")
 
 if __name__ == "__main__":
     import uvicorn
