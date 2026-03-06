@@ -35,8 +35,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
 
+  // Función para cargar perfil desde el servidor y sincronizar
+  const syncProfile = useCallback(async (authToken: string) => {
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiBase}/auth/me`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.logo_url) {
+          setUserLogo(data.logo_url);
+          localStorage.setItem('userLogo', data.logo_url);
+        }
+        if (data.full_name) {
+          setUserName(data.full_name);
+          localStorage.setItem('userName', data.full_name);
+        }
+        if (data.shop_slug) {
+          setShopSlug(data.shop_slug);
+          localStorage.setItem('shopSlug', data.shop_slug);
+        }
+      }
+    } catch (e) {
+      console.error("Error syncing profile", e);
+    }
+  }, []);
+
   useEffect(() => {
-    const loadStorage = () => {
+    const loadStorage = async () => {
       try {
         const storedToken = localStorage.getItem('token');
         const storedEmail = localStorage.getItem('userEmail');
@@ -56,6 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (storedPerms) setUserPermissions(JSON.parse(storedPerms));
           if (storedPlan) setUserPlan(JSON.parse(storedPlan));
           if (storedIsGlobal) setIsGlobalStaff(storedIsGlobal === 'true');
+
+          // Sincronización proactiva con el servidor para asegurar que el logo esté actualizado
+          syncProfile(storedToken);
         }
       } catch (e) {
         console.error("Error loading auth storage", e);
@@ -64,14 +94,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
     loadStorage();
-  }, []);
+  }, [syncProfile]);
 
   const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "", logo: string = "") => {
     setToken(newToken);
     setUserEmail(email);
     setUserName(name);
     setUserRole(role);
-    setUserLogo(logo);
     setUserPermissions(permissions);
     setUserPlan(plan);
     setIsGlobalStaff(isGlobal);
@@ -81,12 +110,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('userEmail', email);
     localStorage.setItem('userName', name);
     localStorage.setItem('userRole', role);
-    localStorage.setItem('userLogo', logo);
     localStorage.setItem('userPermissions', JSON.stringify(permissions));
     localStorage.setItem('isGlobalStaff', isGlobal ? 'true' : 'false');
     localStorage.setItem('shopSlug', slug);
     if (plan) localStorage.setItem('userPlan', JSON.stringify(plan));
-  }, []);
+
+    // Lógica inteligente para el logo: No sobreescribir con vacío si ya tenemos uno guardado
+    if (logo) {
+      setUserLogo(logo);
+      localStorage.setItem('userLogo', logo);
+    } else {
+      const existingLogo = localStorage.getItem('userLogo');
+      if (existingLogo) {
+        setUserLogo(existingLogo);
+      } else {
+        setUserLogo(null);
+      }
+    }
+
+    // Disparar sincronización inmediata post-login
+    syncProfile(newToken);
+  }, [syncProfile]);
 
   const updateUser = useCallback((data: { name?: string, slug?: string, logo?: string }) => {
     if (data.name) {
