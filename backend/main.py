@@ -153,8 +153,11 @@ async def login(request: Request, db: Session = Depends(get_db)):
         }
     except HTTPException as he: raise he
     except Exception as e: 
-        print(f"🔥 Error interno en Login: {e}")
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor")
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"🔥 ERROR CRÍTICO EN LOGIN:\n{error_details}")
+        # DEVOLVEMOS EL ERROR REAL PARA DIAGNÓSTICO (Temporal)
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 from fastapi import Depends, FastAPI, HTTPException, status, Request, File, UploadFile
 import shutil
