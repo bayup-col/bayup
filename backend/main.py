@@ -203,16 +203,19 @@ async def upload_image(
             shutil.copyfileobj(file.file, buffer)
             
         # URL DINÁMICA: Detecta si estamos en Railway o Local
-        base_url = os.getenv("RAILWAY_PUBLIC_DOMAIN", "localhost:8080")
-        protocol = "https" if "railway" in base_url else "http"
+        domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "localhost:8080")
         
-        # Si base_url no tiene el protocolo, se lo añadimos
-        if not base_url.startswith("http"):
-            base_url = f"{protocol}://{base_url}"
+        # Si estamos en producción (Railway), forzamos HTTPS
+        if "railway" in domain:
+            full_url = f"https://{domain}/uploads/{file_name}"
+        else:
+            full_url = f"http://{domain}/uploads/{file_name}"
             
-        return {"url": f"{base_url}/uploads/{file_name}"}
+        print(f"📸 Imagen subida con éxito: {full_url}")
+        return {"url": full_url}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al subir imagen: {str(e)}")
+        print(f"❌ Error subiendo imagen: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al procesar archivo: {str(e)}")
 
 from fastapi.staticfiles import StaticFiles
 # Montar carpeta de uploads para servir imágenes estáticas
@@ -531,6 +534,58 @@ def get_orders(db: Session = Depends(get_db), current_user: models.User = Depend
         print(f"Error en /orders: {e}")
         return []
 
+@app.post("/orders")
+def create_manual_order(
+    order_data: schemas.OrderCreate, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Crea una venta manual (POS), descuenta inventario y registra el ingreso."""
+    tenant_id = current_user.owner_id if current_user.owner_id else current_user.id
+    try:
+        # 1. Crear el pedido
+        db_order = models.Order(
+            **order_data.dict(exclude={"items"}),
+            status="completed", # Venta manual se asume completada
+            id=uuid.uuid4(),
+            tenant_id=tenant_id,
+            seller_name=current_user.full_name
+        )
+        db.add(db_order)
+        
+        # 2. Descontar stock
+        for item in order_data.items:
+            variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.product_variant_id).first()
+            if variant:
+                variant.stock = max(0, variant.stock - item.quantity)
+                db_item = models.OrderItem(
+                    id=uuid.uuid4(),
+                    order_id=db_order.id,
+                    product_variant_id=item.product_variant_id,
+                    quantity=item.quantity,
+                    price_at_purchase=item.price_at_purchase
+                )
+                db.add(db_item)
+
+        # 3. Notificación de éxito
+        notification = models.Notification(
+            id=uuid.uuid4(),
+            tenant_id=tenant_id,
+            title="Venta Manual Registrada 💵",
+            message=f"Se ha facturado ${order_data.total_price:,.0f} COP a {order_data.customer_name}.",
+            type="success",
+            is_read=False
+        )
+        db.add(notification)
+        
+        db.commit()
+        db.refresh(db_order)
+        return db_order
+    except Exception as e:
+        db.rollback()
+        print(f"Error en venta POS: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # --- NOTIFICACIONES ---
 
 @app.get("/notifications")
@@ -569,22 +624,43 @@ def get_public_products(tenant_id: uuid.UUID, db: Session = Depends(get_db)):
 
 @app.post("/public/orders")
 def create_public_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db)):
-    """Crea un pedido real desde la tienda pública."""
+    """Crea un pedido real, descuenta inventario y notifica al dueño."""
     try:
-        # 1. Crear el pedido
+        # 1. Crear el pedido maestro
         db_order = models.Order(
-            **order_data.dict(),
+            **order_data.dict(exclude={"items"}),
             status="pending",
             id=uuid.uuid4()
         )
         db.add(db_order)
         
-        # 2. Notificar al dueño de la tienda (tenant_id)
+        # 2. Procesar items y DESCONTAR INVENTARIO
+        for item in order_data.items:
+            # Buscar la variante
+            variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.product_variant_id).first()
+            if variant:
+                if variant.stock < item.quantity:
+                    print(f"⚠️ Stock insuficiente para {variant.name}. Disponibles: {variant.stock}")
+                
+                # Descuento real
+                variant.stock = max(0, variant.stock - item.quantity)
+                
+                # Crear el registro del item en la orden
+                db_item = models.OrderItem(
+                    id=uuid.uuid4(),
+                    order_id=db_order.id,
+                    product_variant_id=item.product_variant_id,
+                    quantity=item.quantity,
+                    price_at_purchase=item.price_at_purchase
+                )
+                db.add(db_item)
+
+        # 3. Notificar al dueño de la tienda
         notification = models.Notification(
             id=uuid.uuid4(),
             tenant_id=order_data.tenant_id,
             title="¡Nueva Venta Web! 🚀",
-            message=f"Has recibido un pedido de {order_data.customer_name} por {order_data.total_price} COP.",
+            message=f"Pedido de {order_data.customer_name} por ${order_data.total_price:,.0f} COP.",
             type="success",
             is_read=False
         )
@@ -595,7 +671,7 @@ def create_public_order(order_data: schemas.OrderCreate, db: Session = Depends(g
         return db_order
     except Exception as e:
         db.rollback()
-        print(f"Error creando pedido público: {e}")
+        print(f"❌ Error creando pedido público: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.put("/orders/{order_id}")

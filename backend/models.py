@@ -134,6 +134,8 @@ class Order(Base):
     customer_name = Column(String)
     customer_email = Column(String)
     customer_phone = Column(String)
+    customer_city = Column(String, nullable=True)
+    shipping_address = Column(String, nullable=True)
     customer_type = Column(String, default="final")
     source = Column(String, default="pos")
     payment_method = Column(String, default="cash")
