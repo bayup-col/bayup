@@ -65,6 +65,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserAddress(data.address);
           localStorage.setItem('userAddress', data.address);
         }
+        // DEEP SYNC: Plan y Permisos
+        if (data.plan) {
+            setUserPlan(data.plan);
+            localStorage.setItem('userPlan', JSON.stringify(data.plan));
+        }
+        if (data.permissions) {
+            setUserPermissions(data.permissions);
+            localStorage.setItem('userPermissions', JSON.stringify(data.permissions));
+        }
+        if (data.is_global_staff !== undefined) {
+            setIsGlobalStaff(data.is_global_staff);
+            localStorage.setItem('isGlobalStaff', String(data.is_global_staff));
+        }
       }
     } catch (e) {
       console.error("Error syncing profile", e);

@@ -9,45 +9,50 @@ import traceback
 from dotenv import load_dotenv
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
-from typing import List
+from typing import List, Optional
 
 load_dotenv()
 
-# --- ASEGURAR DIRECTORIO DE CARGAS ---
+# --- INFRAESTRUCTURA SEGURA ---
 UPLOAD_DIR = "uploads"
 if not os.path.exists(UPLOAD_DIR):
     try: os.makedirs(UPLOAD_DIR, exist_ok=True)
     except: pass
 
-# --- CONEXIÓN A DB ---
+# --- CONEXIÓN A DATOS ---
 from database import SessionLocal, engine, get_db
 import models, crud, security, schemas
 
 def safe_db_init():
+    """Reparación automática del esquema en cada reinicio."""
     try:
         models.Base.metadata.create_all(bind=engine)
         with engine.connect() as conn:
-            # Sincronización de columnas críticas
-            cols = [
-                ("users", "logo_url", "TEXT"), ("users", "phone", "TEXT"), ("users", "shop_slug", "TEXT"),
-                ("users", "is_global_staff", "BOOLEAN DEFAULT FALSE"), ("users", "permissions", "JSONB"),
+            # Sincronización masiva de columnas (Plan Básico + Pro + Empresa)
+            schema_updates = [
+                ("users", "nit", "TEXT"), ("users", "address", "TEXT"),
+                ("users", "logo_url", "TEXT"), ("users", "phone", "TEXT"),
+                ("users", "shop_slug", "TEXT"), ("users", "is_global_staff", "BOOLEAN DEFAULT FALSE"),
+                ("users", "permissions", "JSONB"), ("users", "owner_id", "UUID"),
                 ("orders", "customer_city", "TEXT"), ("orders", "shipping_address", "TEXT"),
                 ("orders", "source", "TEXT DEFAULT 'pos'"), ("orders", "payment_method", "TEXT DEFAULT 'cash'"),
-                ("products", "category", "TEXT")
+                ("products", "category", "TEXT"), ("product_variants", "price", "FLOAT DEFAULT 0.0")
             ]
-            for table, col, dtype in cols:
-                try: conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {dtype};")); conn.commit()
+            for table, col, dtype in schema_updates:
+                try: 
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {dtype};"))
+                    conn.commit()
                 except: pass
-    except: pass
+    except Exception as e: print(f"⚠️ DB Sync Warning: {e}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     safe_db_init()
     yield
 
-app = FastAPI(title="Bayup OS - Unified Core", lifespan=lifespan)
+app = FastAPI(title="Bayup OS - Platinum Core v1.2", lifespan=lifespan)
 
-# --- CORS ---
+# --- ESCUDO DE SEGURIDAD (CORS) ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -56,12 +61,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- AUTH ---
+# --- [MODULO] AUTENTICACIÓN & PERFIL ---
 
 @app.post("/auth/register", response_model=schemas.User)
 def register_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     if crud.get_user_by_email(db, email=user_in.email):
-        raise HTTPException(status_code=400, detail="Email ya registrado")
+        raise HTTPException(status_code=400, detail="El email ya existe")
     return crud.create_user(db, user_in)
 
 @app.post("/auth/login")
@@ -72,30 +77,33 @@ async def login(request: Request, db: Session = Depends(get_db)):
             form = await request.form()
             body = {"username": form.get("username"), "password": form.get("password")}
         
-        user = crud.get_user_by_email(db, email=body.get("username", "").lower().strip())
-        if not user or not security.verify_password(body.get("password", ""), user.hashed_password):
+        u, p = body.get("username", ""), body.get("password", "")
+        user = crud.get_user_by_email(db, email=u.lower().strip())
+        
+        if not user or not security.verify_password(p, user.hashed_password):
             raise HTTPException(status_code=401, detail="Credenciales incorrectas")
         
         token = security.create_access_token(data={"sub": user.email})
-        p = user.plan
+        plan = user.plan
         return {
             "access_token": token, "token_type": "bearer",
             "user": {
-                "email": user.email, "full_name": user.full_name, "role": user.role, "shop_slug": user.shop_slug,
-                "plan": {"name": p.name if p else "Básico", "modules": p.modules if p else ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]}
+                "id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, 
+                "shop_slug": user.shop_slug, "logo_url": user.logo_url, "nit": user.nit, "address": user.address,
+                "plan": {"name": plan.name if plan else "Básico", "modules": plan.modules if plan else ["inicio", "facturacion", "pedidos", "productos", "settings"]}
             }
         }
     except HTTPException as he: raise he
-    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e: raise HTTPException(status_code=500, detail="Error interno en login")
 
 @app.get("/auth/me", response_model=schemas.User)
-def read_users_me(current_user: models.User = Depends(security.get_current_user)):
+def read_me(current_user: models.User = Depends(security.get_current_user)):
     return current_user
 
-# --- PRODUCTOS ---
+# --- [MODULO] PRODUCTOS & STOCK ---
 
 @app.get("/products", response_model=List[schemas.Product])
-def read_products(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+def get_products(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tid = current_user.owner_id if current_user.owner_id else current_user.id
     return db.query(models.Product).filter(models.Product.owner_id == tid).all()
 
@@ -110,35 +118,28 @@ def create_product(product_in: schemas.ProductCreate, db: Session = Depends(get_
     db.commit(); db.refresh(db_product)
     return db_product
 
-# --- COLECCIONES ---
-
-@app.get("/collections", response_model=List[schemas.Collection])
-def get_collections(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    tid = current_user.owner_id if current_user.owner_id else current_user.id
-    return db.query(models.Collection).filter(models.Collection.owner_id == tid).all()
-
-@app.post("/collections", response_model=schemas.Collection)
-def create_collection(col_in: schemas.CollectionCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    tid = current_user.owner_id if current_user.owner_id else current_user.id
-    db_col = models.Collection(**col_in.model_dump(), owner_id=tid, id=uuid.uuid4())
-    db.add(db_col); db.commit(); db.refresh(db_col)
-    return db_col
-
-# --- ÓRDENES ---
+# --- [MODULO] ÓRDENES & POS ---
 
 @app.get("/orders", response_model=List[schemas.Order])
-def get_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+def read_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tid = current_user.owner_id if current_user.owner_id else current_user.id
-    try:
-        return db.query(models.Order).filter(models.Order.tenant_id == tid).all()
-    except: return []
+    return db.query(models.Order).filter(models.Order.tenant_id == tid).all()
 
 @app.post("/orders", response_model=schemas.Order)
-def create_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+def process_sale(order_in: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """Ventas POS (Manuales): Siempre 0% Comisión."""
     tid = current_user.owner_id if current_user.owner_id else current_user.id
-    db_order = models.Order(**order_data.model_dump(exclude={"items"}), status="completed", id=uuid.uuid4(), tenant_id=tid)
+    db_order = models.Order(
+        **order_in.model_dump(exclude={"items"}), 
+        status="completed", 
+        id=uuid.uuid4(), 
+        tenant_id=tid,
+        commission_amount=0.0,
+        commission_rate_snapshot=0.0,
+        source="pos"
+    )
     db.add(db_order); db.flush()
-    for item in order_data.items:
+    for item in order_in.items:
         db_item = models.OrderItem(**item.model_dump(), order_id=db_order.id, id=uuid.uuid4())
         db.add(db_item)
         variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.product_variant_id).first()
@@ -146,14 +147,50 @@ def create_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db),
     db.commit(); db.refresh(db_order)
     return db_order
 
-# --- MENSAJES ---
+@app.post("/public/orders", response_model=schemas.Order)
+def public_process_sale(order_in: schemas.OrderCreate, db: Session = Depends(get_db)):
+    """Ventas WEB (Checkout): Comisión según Plan (Básico 3.5%)."""
+    # 1. Obtener el tenant y su plan para calcular comisión
+    tenant = db.query(models.User).filter(models.User.id == order_in.tenant_id).first()
+    if not tenant: raise HTTPException(status_code=404, detail="Tienda no encontrada")
+    
+    # Prioridad: Comisión custom > Comisión del Plan > 3.5% (Fallback Básico)
+    rate = 3.5
+    if tenant.custom_commission_rate is not None:
+        rate = tenant.custom_commission_rate
+    elif tenant.plan:
+        rate = tenant.plan.commission_rate
+    
+    comm_amount = (order_in.total_price * rate) / 100
+    
+    db_order = models.Order(
+        **order_in.model_dump(exclude={"items"}), 
+        status="paid" if order_in.payment_method != "cash" else "pending", 
+        id=uuid.uuid4(),
+        commission_amount=comm_amount,
+        commission_rate_snapshot=rate,
+        source="web"
+    )
+    db.add(db_order); db.flush()
+    for item in order_in.items:
+        db_item = models.OrderItem(**item.model_dump(), order_id=db_order.id, id=uuid.uuid4())
+        db.add(db_item)
+        variant = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.product_variant_id).first()
+        if variant: variant.stock = max(0, variant.stock - item.quantity)
+    
+    # 2. Registrar Notificación para el dueño de la tienda
+    notif = models.Notification(
+        tenant_id=tenant.id,
+        title="¡Nueva Venta Web! 🚀",
+        message=f"Has recibido un pedido de {order_in.customer_name} por ${order_in.total_price:,.0f}",
+        type="success"
+    )
+    db.add(notif)
+    
+    db.commit(); db.refresh(db_order)
+    return db_order
 
-@app.get("/admin/messages", response_model=List[schemas.StoreMessage])
-def get_messages(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    tid = current_user.owner_id if current_user.owner_id else current_user.id
-    return db.query(models.StoreMessage).filter(models.StoreMessage.tenant_id == tid).all()
-
-# --- ADMIN & CONFIG ---
+# --- [MODULO] ADMINISTRACIÓN ---
 
 @app.put("/admin/update-profile")
 def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
@@ -168,27 +205,24 @@ async def upload_image(file: UploadFile = File(...), current_user: models.User =
     dom = os.getenv("RAILWAY_PUBLIC_DOMAIN", "localhost:8080")
     return {"url": f"https://{dom}/uploads/{fname}" if "railway" in dom else f"http://{dom}/uploads/{fname}"}
 
-@app.get("/admin/logs", response_model=List[schemas.ActivityLog])
-def get_logs(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    tid = current_user.owner_id if current_user.owner_id else current_user.id
-    return db.query(models.ActivityLog).filter(models.ActivityLog.tenant_id == tid).limit(50).all()
-
 @app.get("/notifications")
 def get_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tid = current_user.owner_id if current_user.owner_id else current_user.id
     return db.query(models.Notification).filter(models.Notification.tenant_id == tid).order_by(models.Notification.created_at.desc()).limit(20).all()
 
+# --- [MODULO] SUPER ADMIN ---
+
 @app.get("/super-admin/stats")
-def get_super_admin_stats(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+def get_global_stats(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     if not current_user.is_global_staff and current_user.email != "basicobayup@yopmail.com":
-        raise HTTPException(status_code=403)
-    return {"status": "ok"}
+        raise HTTPException(status_code=403, detail="Torre de Control Restringida")
+    return {"status": "online", "total_users": db.query(models.User).count()}
 
 @app.get("/health")
-def health(): return {"status": "online"}
+def health(): return {"status": "ok", "version": "1.2.0-diamond"}
 
-try:
-    app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+# MONTAJE DE ESTÁTICOS PROTEGIDO
+try: app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 except: pass
 
 if __name__ == "__main__":
