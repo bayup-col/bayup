@@ -173,8 +173,24 @@ export default function EditProductPage() {
                         add_gateway_fee: prod.add_gateway_fee || false
                     });
                     setVariants(prod.variants || []);
+                    
+                    // Lógica Maestra Ultra-Resistente para extraer imágenes iniciales
+                    const extractUrls = (raw: any): string[] => {
+                        if (!raw) return [];
+                        try {
+                            let value = raw;
+                            if (typeof value === 'string' && value.startsWith('[') && value.endsWith(']')) {
+                                try { value = JSON.parse(value); } catch (e) { return [value]; }
+                            }
+                            if (Array.isArray(value)) return value.filter(v => typeof v === 'string' && v.length > 5);
+                            if (typeof value === 'object' && value !== null) return [value.url || value.uri].filter(Boolean);
+                            if (typeof value === 'string' && value.length > 5) return [value];
+                        } catch (e) { return []; }
+                        return [];
+                    };
+
                     if (prod.image_url) {
-                        const urls = Array.isArray(prod.image_url) ? prod.image_url : [prod.image_url];
+                        const urls = extractUrls(prod.image_url);
                         setMedia(urls.map(url => ({ preview: url, type: 'image', isExisting: true })));
                     }
                 }
@@ -303,7 +319,18 @@ export default function EditProductPage() {
                             <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
                                 <div className="flex items-center justify-between"><div className="space-y-1"><h3 className="text-sm font-black text-[#004D4D] uppercase tracking-widest flex items-center gap-3"><ImageIcon size={18} /> Multimedia</h3><p className="text-[9px] font-bold text-gray-400 uppercase ml-8">Capacidad: <span className="text-[#004D4D]">{media.length} / 5</span> archivos</p></div></div>
                                 <Reorder.Group axis="x" values={media} onReorder={setMedia} className="flex flex-wrap gap-4">
-                                    {media.map((item, i) => (<Reorder.Item key={item.preview} value={item} className="group relative h-32 w-32 rounded-3xl overflow-hidden border-2 border-white shadow-xl cursor-grab"><img src={item.preview} className="w-full h-full object-cover" /><button onClick={() => setMedia(media.filter((_, idx) => idx !== i))} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><Trash2 size={16}/></button>{i === 0 && <div className="absolute top-2 left-2 px-2 py-1 bg-[#00F2FF] text-[#004D4D] text-[7px] font-black uppercase rounded-lg shadow-lg">Principal</div>}</Reorder.Item>))}
+                                    {media.map((item, i) => (
+                                        <Reorder.Item key={item.preview} value={item} className="group relative h-32 w-32 rounded-3xl overflow-hidden border-2 border-white shadow-xl cursor-grab bg-slate-50 flex items-center justify-center">
+                                            <img 
+                                                src={item.preview} 
+                                                className="w-full h-full object-cover absolute inset-0" 
+                                                onError={(e) => { (e.target as any).style.display = 'none'; }}
+                                            />
+                                            <ImageIcon size={24} className="text-slate-200" />
+                                            <button onClick={() => setMedia(media.filter((_, idx) => idx !== i))} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white z-20"><Trash2 size={16}/></button>
+                                            {i === 0 && <div className="absolute top-2 left-2 px-2 py-1 bg-[#00F2FF] text-[#004D4D] text-[7px] font-black uppercase rounded-lg shadow-lg z-30">Principal</div>}
+                                        </Reorder.Item>
+                                    ))}
                                     {media.length < 5 && (<label className="h-32 w-32 rounded-3xl border-2 border-dashed border-[#00F2FF]/40 bg-[#00F2FF]/5 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#00F2FF] hover:bg-[#00F2FF]/10 group transition-all"><div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-all"><Plus size={20} className="text-[#004D4D]"/></div><div className="text-center"><span className="text-[8px] font-black text-[#004D4D] uppercase block">Subir</span><span className="text-[7px] font-bold text-[#004D4D]/40 uppercase">Máx. 5 archivos</span></div><input type="file" className="hidden" multiple onChange={handleFileUpload} /></label>)}
                                 </Reorder.Group>
                             </div>
