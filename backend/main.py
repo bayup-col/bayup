@@ -331,23 +331,31 @@ def read_logs(db: Session = Depends(get_db), current_user: models.User = Depends
 @app.put("/admin/update-profile")
 def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     try:
-        # FUSIÓN ATÓMICA: Obligamos a SQLAlchemy a aceptar este objeto en la sesión actual
-        # sin importar de dónde venga (evita el error 'not persistent')
-        user_to_update = db.merge(current_user)
+        # RE-CARGA DE SEGURIDAD: Obtenemos al usuario fresco de la sesión actual
+        db_user = db.query(models.User).filter(models.User.id == current_user.id).first()
+        if not db_user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        # FILTRADO TÉCNICO: Solo actualizamos campos que existen en el modelo de DB
+        # Esto evita que campos extra del frontend rompan el guardado
+        data = profile_data.model_dump(exclude_unset=True)
+        valid_columns = [column.key for column in models.User.__table__.columns]
         
-        # Aplicamos los cambios directamente sobre el objeto fusionado
-        update_data = profile_data.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(user_to_update, key, value)
+        for key, value in data.items():
+            if key in valid_columns:
+                setattr(db_user, key, value)
+            else:
+                print(f"⚠️ Campo ignorado por no existir en DB: {key}")
             
         db.commit()
+        db.refresh(db_user)
         return {"status": "success"}
     except Exception as e:
         db.rollback()
-        print(f"❌ Error Crítico actualizando perfil: {e}")
-        # Log del traceback completo para debug interno
+        error_msg = str(e)
+        print(f"❌ Error Blindado en Perfil: {error_msg}")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error de persistencia: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Fallo de persistencia: {error_msg}")
 
 @app.post("/admin/upload-image")
 async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
