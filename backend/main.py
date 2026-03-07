@@ -84,7 +84,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
         # Lectura de campos extra con fallback
         extra = {}
         try:
-            ex_sql = text("SELECT shop_slug, logo_url, phone, nit, address, customer_city, hours, category FROM users WHERE id = :uid")
+            ex_sql = text("SELECT shop_slug, logo_url, phone, nit, address, customer_city, hours, category, story FROM users WHERE id = :uid")
             ex_res = db.execute(ex_sql, {"uid": result['id']}).mappings().first()
             if ex_res: extra = dict(ex_res)
         except: pass
@@ -105,6 +105,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
                 "customer_city": extra.get('customer_city') or "",
                 "hours": extra.get('hours') or "",
                 "category": extra.get('category') or "",
+                "story": extra.get('story') or "",
                 "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]}
             }
         }
@@ -216,14 +217,16 @@ def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_d
         sql = text("""
             UPDATE users SET 
                 full_name = :n, phone = :p, nit = :nit, address = :a, 
-                customer_city = :c, shop_slug = :s, hours = :h, category = :cat 
+                customer_city = :c, shop_slug = :s, hours = :h, 
+                category = :cat, story = :story
             WHERE id = :uid
         """)
         db.execute(sql, {
             "n": profile_data.full_name, "p": profile_data.phone, "nit": profile_data.nit,
             "a": profile_data.address, "c": profile_data.customer_city, 
             "s": profile_data.shop_slug, "h": profile_data.hours, 
-            "cat": profile_data.category, "uid": str(current_user.id)
+            "cat": profile_data.category, "story": profile_data.story,
+            "uid": str(current_user.id)
         })
         
         # 2. ORM para campos JSON y logo
