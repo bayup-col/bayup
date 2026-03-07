@@ -341,25 +341,46 @@ def read_logs(db: Session = Depends(get_db), current_user: models.User = Depends
 @app.put("/admin/update-profile")
 def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     try:
-        # RE-CARGA DE SEGURIDAD: Obtenemos al usuario fresco de la sesión actual
+        # 1. REPARACIÓN JIT (JUST-IN-TIME): Verificar y crear columnas antes de guardar
+        # Esto asegura que si la migración de inicio falló, el guardado lo arregle.
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS hours TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS category TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS nit TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS customer_city TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS shop_slug TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_url TEXT"))
+                conn.commit()
+        except Exception as mig_err:
+            print(f"⚠️ JIT Migration Warning: {mig_err}")
+
+        # 2. RE-CARGA DE SEGURIDAD
         db_user = db.query(models.User).filter(models.User.id == current_user.id).first()
         if not db_user:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-        # FILTRADO TÉCNICO: Solo actualizamos campos que existen en el modelo de DB
-        # Esto evita que campos extra del frontend rompan el guardado
+        # 3. GUARDADO BLINDADO
         data = profile_data.model_dump(exclude_unset=True)
-        valid_columns = [column.key for column in models.User.__table__.columns]
+        # Forzamos mapeo manual para campos críticos que a veces Pydantic ignora si son null
+        if profile_data.hours is not None: db_user.hours = profile_data.hours
+        if profile_data.category is not None: db_user.category = profile_data.category
+        if profile_data.nit is not None: db_user.nit = profile_data.nit
+        if profile_data.phone is not None: db_user.phone = profile_data.phone
+        if profile_data.address is not None: db_user.address = profile_data.address
+        if profile_data.customer_city is not None: db_user.customer_city = profile_data.customer_city
+        if profile_data.shop_slug is not None: db_user.shop_slug = profile_data.shop_slug
         
+        # Mapeo genérico para el resto
         for key, value in data.items():
-            if key in valid_columns:
+            if hasattr(db_user, key):
                 setattr(db_user, key, value)
-            else:
-                print(f"⚠️ Campo ignorado por no existir en DB: {key}")
             
         db.commit()
         db.refresh(db_user)
-        return {"status": "success"}
+        return {"status": "success", "user": {"hours": db_user.hours, "category": db_user.category}}
     except Exception as e:
         db.rollback()
         error_msg = str(e)
