@@ -117,7 +117,7 @@ def read_me(current_user: models.User = Depends(security.get_current_user), db: 
     try:
         # Refrescamos datos manualmente para evitar caché
         uid = current_user.id
-        ex_sql = text("SELECT shop_slug, logo_url, phone, nit, address, customer_city, hours, category FROM users WHERE id = :uid")
+        ex_sql = text("SELECT shop_slug, logo_url, phone, nit, address, customer_city, hours, category, story FROM users WHERE id = :uid")
         extra = db.execute(ex_sql, {"uid": uid}).mappings().first()
         ed = dict(extra) if extra else {}
 
@@ -134,6 +134,7 @@ def read_me(current_user: models.User = Depends(security.get_current_user), db: 
             "customer_city": ed.get('customer_city') or "",
             "hours": ed.get('hours') or "",
             "category": ed.get('category') or "",
+            "story": ed.get('story') or "",
             "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]},
             "social_links": getattr(current_user, 'social_links', {}) or {},
             "whatsapp_lines": getattr(current_user, 'whatsapp_lines', []) or [],
