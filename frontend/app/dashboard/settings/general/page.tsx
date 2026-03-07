@@ -249,7 +249,8 @@ export default function GeneralSettings() {
             const payload = {
                 full_name: identity.name,
                 logo_url: identity.logo,
-                category: identity.category, // NICHO
+                category: identity.category,
+                story: identity.story, // BIOGRAFÍA CORPORATIVA
                 email: contact.email,
                 phone: contact.phone,
                 shop_slug: contact.shop_slug,
@@ -257,7 +258,7 @@ export default function GeneralSettings() {
                 address: contact.address,
                 customer_city: contact.city,
                 country: contact.country,
-                hours: contact.hours, // HORARIO
+                hours: contact.hours,
                 social_links: socialLinks
             };
 

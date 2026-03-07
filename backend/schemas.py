@@ -29,7 +29,8 @@ class UserBase(BaseModel):
     address: Optional[str] = None
     customer_city: Optional[str] = None
     shop_slug: Optional[str] = None
-    category: Optional[str] = "Moda & Accesorios" # Campo de Nicho de Mercado
+    category: Optional[str] = "Moda & Accesorios"
+    story: Optional[str] = None # Campo para biografía
     role: Optional[str] = "admin_tienda"
     status: Optional[str] = "Activo"
     is_global_staff: bool = False
@@ -41,7 +42,7 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
-    email: Optional[str] = None # Email de soporte
+    email: Optional[str] = None
     logo_url: Optional[str] = None
     phone: Optional[str] = None
     nit: Optional[str] = None
@@ -49,6 +50,7 @@ class UserUpdate(BaseModel):
     customer_city: Optional[str] = None
     shop_slug: Optional[str] = None
     category: Optional[str] = None
+    story: Optional[str] = None # Permitir actualización de biografía
     hours: Optional[str] = None
     bank_accounts: Optional[List[dict]] = None
     social_links: Optional[dict] = None

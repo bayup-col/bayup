@@ -27,11 +27,11 @@ def safe_db_init():
     try:
         models.Base.metadata.create_all(bind=engine)
         with engine.connect() as conn:
-            # Lista maestra de columnas críticas para el Plan Básico
             cols = [
                 ("users", "hours", "TEXT"), ("users", "category", "TEXT"), 
                 ("users", "nit", "TEXT"), ("users", "address", "TEXT"), 
                 ("users", "customer_city", "TEXT"), ("users", "shop_slug", "TEXT"),
+                ("users", "story", "TEXT"), # <--- NUEVA COLUMNA BIOGRAFÍA
                 ("users", "social_links", "JSONB"), ("users", "whatsapp_lines", "JSONB"),
                 ("users", "bank_accounts", "JSONB")
             ]
