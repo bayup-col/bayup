@@ -91,6 +91,26 @@ export default function GeneralSettings() {
     const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
     const [whatsappFormData, setWhatsappFormData] = useState({ name: '', number: '' });
 
+    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+    const [scheduleConfig, setScheduleConfig] = useState({
+        range: 'Lun - Vie',
+        openTime: '08:00',
+        closeTime: '18:00'
+    });
+
+    const scheduleRanges = ['Lun - Vie', 'Lun - Sáb', 'Todos los días', 'Fines de semana'];
+    const hoursOptions = Array.from({ length: 24 }, (_, i) => {
+        const hour = i % 12 || 12;
+        const ampm = i < 12 ? 'am' : 'pm';
+        return { id: `${i.toString().padStart(2, '0')}:00`, label: `${hour}:00 ${ampm}` };
+    });
+
+    const updateScheduleString = () => {
+        const newHours = `${scheduleConfig.range}: ${scheduleConfig.openTime} - ${scheduleConfig.closeTime}`;
+        setContact(prev => ({ ...prev, hours: newHours }));
+        setIsScheduleModalOpen(false);
+    };
+
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [activeGuideStep, setActiveGuideStep] = useState(0);
 
@@ -496,19 +516,79 @@ export default function GeneralSettings() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="relative z-10 mt-8 p-6 bg-white/5 rounded-[2.5rem] border border-white/10">
+                                    <button 
+                                        onClick={() => setIsScheduleModalOpen(true)}
+                                        className="relative z-10 mt-8 p-6 bg-white/5 rounded-[2.5rem] border border-white/10 w-full text-left hover:bg-white/10 transition-all group"
+                                    >
                                         <div className="flex items-center gap-4">
-                                            <div className="h-12 w-12 bg-[#00f2ff]/20 text-[#00f2ff] rounded-2xl flex items-center justify-center shrink-0"><Clock size={20}/></div>
-                                            <div>
+                                            <div className="h-12 w-12 bg-[#00f2ff]/20 text-[#00f2ff] rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><Clock size={20}/></div>
+                                            <div className="flex-1">
                                                 <h5 className="text-[10px] font-black tracking-widest uppercase text-white/60">Horario de operación</h5>
-                                                <input value={contact.hours} onChange={e => setContact({...contact, hours: e.target.value})} className="bg-transparent border-none outline-none text-sm font-bold w-full p-0" />
+                                                <p className="text-sm font-bold text-white mt-0.5">{contact.hours || 'Configurar horario...'}</p>
                                             </div>
+                                            <ChevronRight size={16} className="text-white/20 group-hover:text-[#00f2ff] group-hover:translate-x-1 transition-all" />
                                         </div>
-                                    </div>
+                                    </button>
                                 </div>
                             </div>
                         </motion.div>
                     )}
+
+                    {/* MODAL SELECTOR DE HORARIOS PREMIUM */}
+                    <AnimatePresence>
+                        {isScheduleModalOpen && (
+                            <div className="fixed inset-0 z-[2500] flex items-center justify-center p-4">
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsScheduleModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+                                <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-md rounded-[3.5rem] shadow-3xl p-10 relative z-10 border border-white overflow-visible">
+                                    <div className="space-y-8">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-2xl font-black text-gray-900 italic">Horario de trabajo</h3>
+                                            <button onClick={() => setIsScheduleModalOpen(false)} className="h-10 w-10 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-all"><X size={18}/></button>
+                                        </div>
+
+                                        <div className="space-y-6 overflow-visible">
+                                            <PremiumSelect 
+                                                label="DÍAS DE ATENCIÓN" 
+                                                value={scheduleConfig.range} 
+                                                onChange={(v:any) => setScheduleConfig({...scheduleConfig, range: v})} 
+                                                options={scheduleRanges.map(r => ({ id: r, label: r, icon: <Clock size={14}/> }))} 
+                                                icon={Clock} 
+                                            />
+
+                                            <div className="grid grid-cols-2 gap-6 overflow-visible">
+                                                <PremiumSelect 
+                                                    label="APERTURA" 
+                                                    value={scheduleConfig.openTime} 
+                                                    onChange={(v:any) => setScheduleConfig({...scheduleConfig, openTime: v})} 
+                                                    options={hoursOptions.map(h => ({ id: h.id, label: h.label, icon: <Sparkles size={14}/> }))} 
+                                                    icon={Clock} 
+                                                />
+                                                <PremiumSelect 
+                                                    label="CIERRE" 
+                                                    value={scheduleConfig.closeTime} 
+                                                    onChange={(v:any) => setScheduleConfig({...scheduleConfig, closeTime: v})} 
+                                                    options={hoursOptions.map(h => ({ id: h.id, label: h.label, icon: <Moon size={14}/> }))} 
+                                                    icon={Clock} 
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="p-6 bg-[#004d4d]/5 rounded-[2rem] border border-[#004d4d]/10 text-center">
+                                            <p className="text-[10px] font-black text-[#004d4d] uppercase tracking-widest mb-1">Vista previa</p>
+                                            <p className="text-sm font-bold text-gray-700">{scheduleConfig.range}: {scheduleConfig.openTime} - {scheduleConfig.closeTime}</p>
+                                        </div>
+
+                                        <button 
+                                            onClick={updateScheduleString}
+                                            className="w-full py-5 bg-[#004d4d] text-white rounded-2xl font-black text-[10px] tracking-widest shadow-xl hover:bg-black transition-all uppercase"
+                                        >
+                                            Confirmar horario
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>
 
                     {activeTab === 'finanzas' && (
                         <motion.div key="fin" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-8">
