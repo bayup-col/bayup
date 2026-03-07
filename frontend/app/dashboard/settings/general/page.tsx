@@ -243,39 +243,46 @@ export default function GeneralSettings() {
     const validatePhone = (phone: string) => phone.length === 10 && /^\d+$/.test(phone);
 
     const handleSaveMain = async () => {
-        if (!validateEmail(contact.email)) { showToast("Email inválido", "error"); return; }
-        if (!validatePhone(contact.phone)) { showToast("Teléfono de 10 dígitos requerido", "error"); return; }
-        
+        // Quitamos validaciones bloqueantes para permitir la primera configuración fluida
         setIsSaving(true);
         try {
-            // Persistencia en Base de Datos (Railway/Supabase) con todos los campos detectados
+            const payload = {
+                full_name: identity.name,
+                logo_url: identity.logo,
+                category: identity.category, // NICHO
+                email: contact.email,
+                phone: contact.phone,
+                shop_slug: contact.shop_slug,
+                nit: contact.nit,
+                address: contact.address,
+                customer_city: contact.city,
+                country: contact.country,
+                hours: contact.hours, // HORARIO
+                social_links: socialLinks
+            };
+
+            console.log("Enviando Sincronización Platinum:", payload);
+
+            // Persistencia en Base de Datos (Railway/Supabase)
             await apiRequest('/admin/update-profile', {
                 method: 'PUT',
                 token,
-                body: JSON.stringify({
-                    full_name: identity.name,
-                    logo_url: identity.logo,
-                    email: contact.email, // Sincronizamos el email de soporte
-                    phone: contact.phone,
-                    shop_slug: contact.shop_slug,
-                    nit: contact.nit,
-                    address: contact.address,
-                    customer_city: contact.city,
-                    country: contact.country,
-                    hours: contact.hours, // Guardamos el horario seleccionado
-                    social_links: socialLinks
-                }),
+                body: JSON.stringify(payload),
             });
 
-            // Sincronización de Estado Global
+            // Sincronización de Estado Global (Header/Sidebar/Context)
+            // Actualizamos el objeto de usuario completo en el contexto
             updateUser({
                 name: identity.name,
                 slug: contact.shop_slug,
-                logo: identity.logo || ""
-            });
+                logo: identity.logo || "",
+                // Inyectamos el resto de campos en el contexto de sesión
+                ...payload
+            } as any);
 
             showToast("¡Configuración guardada y publicada! 🚀", "success");
         } catch (e: any) { 
+            console.error("Error en sincronización:", e);
             showToast(e.message || "Error al sincronizar con el servidor", "error"); 
         } finally { setIsSaving(false); }
     };

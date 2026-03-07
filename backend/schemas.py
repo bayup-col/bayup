@@ -41,13 +41,15 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
+    email: Optional[str] = None # Email de soporte
     logo_url: Optional[str] = None
     phone: Optional[str] = None
     nit: Optional[str] = None
     address: Optional[str] = None
     customer_city: Optional[str] = None
     shop_slug: Optional[str] = None
-    category: Optional[str] = None # Permitir actualización de Nicho
+    category: Optional[str] = None
+    hours: Optional[str] = None
     bank_accounts: Optional[List[dict]] = None
     social_links: Optional[dict] = None
     whatsapp_lines: Optional[List[dict]] = None
