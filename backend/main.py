@@ -38,7 +38,8 @@ def safe_db_init():
                 ("users", "logo_url", "TEXT"), 
                 ("users", "phone", "TEXT"),
                 ("users", "shop_slug", "TEXT"), 
-                ("users", "category", "TEXT"), # <--- COLUMNA PARA NICHO DE MERCADO
+                ("users", "category", "TEXT"),
+                ("users", "hours", "TEXT"), # <--- ESTA ES LA COLUMNA QUE FALTA
                 ("users", "is_global_staff", "BOOLEAN DEFAULT FALSE"),
                 ("users", "permissions", "JSONB"), 
                 ("users", "owner_id", "UUID"),
