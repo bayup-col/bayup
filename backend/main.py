@@ -29,7 +29,6 @@ def safe_db_init():
     try:
         models.Base.metadata.create_all(bind=engine)
         with engine.connect() as conn:
-            print("🔧 Ejecutando Auto-Migración de Emergencia...")
             schema_updates = [
                 ("users", "nit", "TEXT"), 
                 ("users", "address", "TEXT"),
@@ -39,34 +38,17 @@ def safe_db_init():
                 ("users", "shop_slug", "TEXT"), 
                 ("users", "category", "TEXT"),
                 ("users", "hours", "TEXT"),
-                ("users", "is_global_staff", "BOOLEAN DEFAULT FALSE"),
-                ("users", "permissions", "JSONB"), 
-                ("users", "owner_id", "UUID"),
-                ("users", "plan_id", "UUID"),
-                ("users", "custom_commission_rate", "FLOAT"),
                 ("users", "social_links", "JSONB"),
                 ("users", "whatsapp_lines", "JSONB"),
-                ("users", "bank_accounts", "JSONB"),
-                ("orders", "customer_city", "TEXT"), 
-                ("orders", "shipping_address", "TEXT"),
-                ("orders", "source", "TEXT DEFAULT 'pos'"), 
-                ("orders", "payment_method", "TEXT DEFAULT 'cash'"),
-                ("orders", "commission_amount", "FLOAT DEFAULT 0.0"),
-                ("orders", "commission_rate_snapshot", "FLOAT DEFAULT 0.0"),
-                ("products", "category", "TEXT"), 
-                ("product_variants", "price", "FLOAT DEFAULT 0.0"),
-                ("activity_logs", "tenant_id", "UUID"),
-                ("store_messages", "tenant_id", "UUID")
+                ("users", "bank_accounts", "JSONB")
             ]
             for table, col, dtype in schema_updates:
                 try: 
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {dtype};"))
                     conn.commit()
-                except Exception as ex: 
-                    print(f"⚠️ Warning migración {col}: {ex}")
+                except: 
                     conn.rollback()
-            print("✅ Auto-Migración Completada.")
-    except Exception as e: print(f"⚠️ DB Sync Warning: {e}")
+    except: pass
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -85,12 +67,6 @@ app.add_middleware(
     expose_headers=["*"]
 )
 
-@app.post("/auth/register", response_model=schemas.User)
-def register_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
-    if crud.get_user_by_email(db, email=user_in.email):
-        raise HTTPException(status_code=400, detail="El email ya existe")
-    return crud.create_user(db, user_in)
-
 @app.post("/auth/login")
 async def login(request: Request, db: Session = Depends(get_db)):
     try:
@@ -107,54 +83,43 @@ async def login(request: Request, db: Session = Depends(get_db)):
         
         token = security.create_access_token(data={"sub": user.email})
         
-        # LOGIN RESISTENTE: No refrescamos para evitar errores de columna inexistente
-        # Devolvemos un objeto seguro con fallbacks
+        # LOGIN ULTRA-SEGURO: Sin refresh y con capturadores de error para campos nuevos
+        user_data = {
+            "id": str(user.id), 
+            "email": user.email, 
+            "full_name": getattr(user, 'full_name', "Usuario") or "Usuario",
+            "role": getattr(user, 'role', "admin_tienda")
+        }
+        
+        # Campos de tienda con fallback seguro
+        for field in ['shop_slug', 'logo_url', 'phone', 'nit', 'address', 'customer_city', 'hours', 'category']:
+            try: user_data[field] = getattr(user, field, "") or ""
+            except: user_data[field] = ""
+
         return {
             "access_token": token, 
             "token_type": "bearer",
-            "user": {
-                "id": str(user.id), 
-                "email": user.email, 
-                "full_name": getattr(user, 'full_name', "Usuario Bayup") or "Usuario Bayup", 
-                "role": getattr(user, 'role', "admin_tienda"), 
-                "shop_slug": getattr(user, 'shop_slug', "") or "", 
-                "logo_url": getattr(user, 'logo_url', "") or "",
-                "phone": getattr(user, 'phone', "") or "",
-                "nit": getattr(user, 'nit', "") or "",
-                "address": getattr(user, 'address', "") or "",
-                "customer_city": getattr(user, 'customer_city', "") or "",
-                "hours": getattr(user, 'hours', "") or "",
-                "category": getattr(user, 'category', "") or "",
-                "country": "Colombia",
-                "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]}
-            }
+            "user": {**user_data, "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]}}
         }
     except Exception as e: 
-        print(f"❌ Error en Login: {e}")
-        # DEBUG: Devolvemos el error real para identificar el fallo en Railway
-        raise HTTPException(status_code=500, detail=f"Error técnico: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error en login: {str(e)}")
 
 @app.get("/auth/me")
 def read_me(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
     try:
-        db.refresh(current_user)
-        return {
+        user_data = {
             "id": str(current_user.id),
             "email": current_user.email,
-            "full_name": current_user.full_name,
-            "role": current_user.role,
-            "shop_slug": getattr(current_user, 'shop_slug', ""),
-            "logo_url": getattr(current_user, 'logo_url', ""),
-            "phone": getattr(current_user, 'phone', ""),
-            "nit": getattr(current_user, 'nit', ""),
-            "address": getattr(current_user, 'address', ""),
-            "customer_city": getattr(current_user, 'customer_city', ""),
-            "hours": getattr(current_user, 'hours', ""),
-            "category": getattr(current_user, 'category', ""),
-            "country": "Colombia",
+            "full_name": getattr(current_user, 'full_name', "Usuario") or "Usuario",
+            "role": getattr(current_user, 'role', "admin_tienda")
+        }
+        for field in ['shop_slug', 'logo_url', 'phone', 'nit', 'address', 'customer_city', 'hours', 'category']:
+            try: user_data[field] = getattr(current_user, field, "") or ""
+            except: user_data[field] = ""
+            
+        return {
+            **user_data,
             "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]},
-            "is_global_staff": getattr(current_user, 'is_global_staff', False),
-            "permissions": getattr(current_user, 'permissions', {}),
             "social_links": getattr(current_user, 'social_links', {}),
             "whatsapp_lines": getattr(current_user, 'whatsapp_lines', []),
             "bank_accounts": getattr(current_user, 'bank_accounts', [])
@@ -186,35 +151,6 @@ def get_products(db: Session = Depends(get_db), current_user: models.User = Depe
             })
         return output
     except: return []
-
-@app.post("/products", response_model=schemas.Product)
-def create_product(product_in: schemas.ProductCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    tid = current_user.owner_id if current_user.owner_id else current_user.id
-    db_product = models.Product(**product_in.model_dump(exclude={"variants"}), owner_id=tid, id=uuid.uuid4())
-    db.add(db_product); db.flush()
-    for v in product_in.variants:
-        db_v = models.ProductVariant(**v.model_dump(), product_id=db_product.id, id=uuid.uuid4())
-        db.add(db_v)
-    db.commit(); db.refresh(db_product)
-    return db_product
-
-@app.get("/orders", response_model=List[schemas.Order])
-def read_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    tid = current_user.owner_id if current_user.owner_id else current_user.id
-    return db.query(models.Order).filter(models.Order.tenant_id == tid).all()
-
-@app.post("/orders", response_model=schemas.Order)
-def process_sale(order_in: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    tid = current_user.owner_id if current_user.owner_id else current_user.id
-    db_order = models.Order(**order_in.model_dump(exclude={"items"}), status="completed", id=uuid.uuid4(), tenant_id=tid, commission_amount=0.0, commission_rate_snapshot=0.0, source="pos")
-    db.add(db_order); db.flush()
-    for item in order_in.items:
-        db_item = models.OrderItem(**item.model_dump(), order_id=db_order.id, id=uuid.uuid4())
-        db.add(db_item)
-        v = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.product_variant_id).first()
-        if v: v.stock = max(0, v.stock - item.quantity)
-    db.commit(); db.refresh(db_order)
-    return db_order
 
 @app.put("/admin/update-profile")
 def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
