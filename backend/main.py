@@ -69,10 +69,16 @@ app = FastAPI(title="Bayup OS - Platinum Core v1.2.1", lifespan=lifespan)
 # --- ESCUDO DE SEGURIDAD (CORS) ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://www.bayup.com.co", 
+        "https://bayup.com.co", 
+        "http://localhost:3000",
+        "https://exciting-optimism-production-4624.up.railway.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # --- [MODULO] AUTENTICACIÓN & PERFIL ---
