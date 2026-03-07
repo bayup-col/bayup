@@ -207,6 +207,21 @@ export default function GeneralSettings() {
         fetchStoreData();
     }, [token]);
 
+    const formatCurrency = (val: string | number) => {
+        try {
+            const num = typeof val === 'string' ? parseInt(val.replace(/\D/g, '') || '0') : val;
+            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num);
+        } catch (e) { return "$ " + val; }
+    };
+
+    const formatDots = (val: string | number) => {
+        const num = typeof val === 'string' ? val.replace(/\D/g, '') : val.toString();
+        return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    };
+
+    const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.(com|co|col|net|org|me)$/.test(email);
+    const validatePhone = (phone: string) => phone.length === 10 && /^\d+$/.test(phone);
+
     const handleSaveMain = async () => {
         if (!validateEmail(contact.email)) { showToast("Email inválido", "error"); return; }
         if (!validatePhone(contact.phone)) { showToast("Teléfono de 10 dígitos requerido", "error"); return; }
