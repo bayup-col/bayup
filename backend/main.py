@@ -102,6 +102,9 @@ async def login(request: Request, db: Session = Depends(get_db)):
                 "role": user.role or "admin_tienda", 
                 "shop_slug": user.shop_slug or "mi-tienda", 
                 "logo_url": user.logo_url,
+                "phone": user.phone,
+                "nit": user.nit,
+                "address": user.address,
                 "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]}
             }
         }
@@ -110,7 +113,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/auth/me")
 def read_me(current_user: models.User = Depends(security.get_current_user)):
-    # Devolvemos un objeto plano para evitar errores de carga de relaciones en la DB
+    # Devolvemos un objeto plano con todos los campos de contacto para persistencia
     return {
         "id": str(current_user.id),
         "email": current_user.email,
@@ -118,6 +121,9 @@ def read_me(current_user: models.User = Depends(security.get_current_user)):
         "role": current_user.role or "admin_tienda",
         "shop_slug": current_user.shop_slug or "mi-tienda",
         "logo_url": current_user.logo_url,
+        "phone": current_user.phone,
+        "nit": current_user.nit,
+        "address": current_user.address,
         "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]},
         "is_global_staff": current_user.is_global_staff or False,
         "permissions": current_user.permissions or {}
