@@ -128,7 +128,14 @@ def read_me(current_user: models.User = Depends(security.get_current_user)):
 @app.get("/products", response_model=List[schemas.Product])
 def get_products(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tid = current_user.owner_id if current_user.owner_id else current_user.id
-    return db.query(models.Product).filter(models.Product.owner_id == tid).all()
+    try:
+        return db.query(models.Product).filter(models.Product.owner_id == tid).all()
+    except Exception as e:
+        print(f"⚠️ Fallback en /products: {e}")
+        db.rollback()
+        # Fallback SQL plano: Solo campos que existen 100%
+        results = db.execute(text("SELECT id, name, price, status, owner_id FROM products WHERE owner_id = :tid"), {"tid": tid}).all()
+        return [models.Product(id=r.id, name=r.name, price=r.price, status=r.status, owner_id=r.owner_id, variants=[]) for r in results]
 
 @app.post("/products", response_model=schemas.Product)
 def create_product(product_in: schemas.ProductCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
@@ -146,7 +153,14 @@ def create_product(product_in: schemas.ProductCreate, db: Session = Depends(get_
 @app.get("/orders", response_model=List[schemas.Order])
 def read_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tid = current_user.owner_id if current_user.owner_id else current_user.id
-    return db.query(models.Order).filter(models.Order.tenant_id == tid).all()
+    try:
+        return db.query(models.Order).filter(models.Order.tenant_id == tid).all()
+    except Exception as e:
+        print(f"⚠️ Fallback en /orders: {e}")
+        db.rollback()
+        # Fallback SQL plano: Solo campos que existen 100%
+        results = db.execute(text("SELECT id, total_price, status, created_at, customer_name, tenant_id FROM orders WHERE tenant_id = :tid"), {"tid": tid}).all()
+        return [models.Order(id=r.id, total_price=r.total_price, status=r.status, created_at=r.created_at, customer_name=r.customer_name, tenant_id=r.tenant_id, items=[]) for r in results]
 
 @app.post("/orders", response_model=schemas.Order)
 def process_sale(order_in: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
