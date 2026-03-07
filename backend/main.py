@@ -1,6 +1,5 @@
 from fastapi import Depends, FastAPI, HTTPException, status, Request, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 import uuid
@@ -24,7 +23,31 @@ if not os.path.exists(UPLOAD_DIR):
 from database import SessionLocal, engine, get_db
 import models, crud, security, schemas
 
-app = FastAPI(title="Bayup OS - Emergency Mode v2.0")
+def safe_db_init():
+    try:
+        models.Base.metadata.create_all(bind=engine)
+        with engine.connect() as conn:
+            # Lista maestra de columnas críticas para el Plan Básico
+            cols = [
+                ("users", "hours", "TEXT"), ("users", "category", "TEXT"), 
+                ("users", "nit", "TEXT"), ("users", "address", "TEXT"), 
+                ("users", "customer_city", "TEXT"), ("users", "shop_slug", "TEXT"),
+                ("users", "social_links", "JSONB"), ("users", "whatsapp_lines", "JSONB"),
+                ("users", "bank_accounts", "JSONB")
+            ]
+            for table, col, dtype in cols:
+                try: 
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {dtype}"))
+                    conn.commit()
+                except: pass
+    except: pass
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    safe_db_init()
+    yield
+
+app = FastAPI(title="Bayup OS - Platinum Core v2.1", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,11 +59,11 @@ app.add_middleware(
     expose_headers=["*"]
 )
 
-# --- LOGIN DE EMERGENCIA (SQL PURO) ---
+# --- [MODULO] AUTENTICACIÓN (SQL BLINDADO) ---
+
 @app.post("/auth/login")
 async def login(request: Request, db: Session = Depends(get_db)):
     try:
-        # 1. Obtener credenciales
         try: body = await request.json()
         except: 
             form = await request.form()
@@ -49,31 +72,22 @@ async def login(request: Request, db: Session = Depends(get_db)):
         u = body.get("username", "").lower().strip()
         p = body.get("password", "")
 
-        # 2. Consulta SQL Directa (Evita error de columnas faltantes en ORM)
-        # Solo pedimos lo esencial para entrar
-        stmt = text("SELECT id, email, hashed_password, full_name, role FROM users WHERE email = :u")
-        result = db.execute(stmt, {"u": u}).mappings().first()
+        # Consulta SQL pura para evitar bloqueos de schema ORM
+        sql = text("SELECT id, email, hashed_password, full_name, role FROM users WHERE email = :u")
+        result = db.execute(sql, {"u": u}).mappings().first()
         
-        if not result:
-            raise HTTPException(status_code=401, detail="Usuario no encontrado")
-            
-        # 3. Validación de Password
-        if not security.verify_password(p, result['hashed_password']):
+        if not result or not security.verify_password(p, result['hashed_password']):
             raise HTTPException(status_code=401, detail="Credenciales incorrectas")
         
-        # 4. Generar Token
         token = security.create_access_token(data={"sub": result['email']})
         
-        # 5. Construir respuesta segura (Fallbacks para campos nuevos)
-        # Intentamos leer los otros campos, si fallan ponemos vacíos
-        extra_data = {}
+        # Lectura de campos extra con fallback
+        extra = {}
         try:
-            extra_query = text("SELECT shop_slug, logo_url, phone, nit, address, customer_city, hours, category FROM users WHERE id = :uid")
-            extra = db.execute(extra_query, {"uid": result['id']}).mappings().first()
-            if extra:
-                extra_data = dict(extra)
-        except: 
-            pass # Si falla por columna inexistente, extra_data queda vacío
+            ex_sql = text("SELECT shop_slug, logo_url, phone, nit, address, customer_city, hours, category FROM users WHERE id = :uid")
+            ex_res = db.execute(ex_sql, {"uid": result['id']}).mappings().first()
+            if ex_res: extra = dict(ex_res)
+        except: pass
 
         return {
             "access_token": token, 
@@ -83,50 +97,42 @@ async def login(request: Request, db: Session = Depends(get_db)):
                 "email": result['email'], 
                 "full_name": result['full_name'] or "Usuario Bayup",
                 "role": result['role'] or "admin_tienda",
-                "shop_slug": extra_data.get('shop_slug') or "",
-                "logo_url": extra_data.get('logo_url') or "",
-                "phone": extra_data.get('phone') or "",
-                "nit": extra_data.get('nit') or "",
-                "address": extra_data.get('address') or "",
-                "customer_city": extra_data.get('customer_city') or "",
-                "hours": extra_data.get('hours') or "",
-                "category": extra_data.get('category') or "",
-                "country": "Colombia",
+                "shop_slug": extra.get('shop_slug') or "",
+                "logo_url": extra.get('logo_url') or "",
+                "phone": extra.get('phone') or "",
+                "nit": extra.get('nit') or "",
+                "address": extra.get('address') or "",
+                "customer_city": extra.get('customer_city') or "",
+                "hours": extra.get('hours') or "",
+                "category": extra.get('category') or "",
                 "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]}
             }
         }
-    except HTTPException as he: raise he
     except Exception as e: 
-        print(f"❌ LOGIN CRITICAL ERROR: {e}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Error de sistema en login. Ver logs.")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
 @app.get("/auth/me")
 def read_me(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
-    # Fallback ultra-seguro para el perfil usando SQL
     try:
+        # Refrescamos datos manualmente para evitar caché
         uid = current_user.id
-        extra_data = {}
-        try:
-            extra_query = text("SELECT shop_slug, logo_url, phone, nit, address, customer_city, hours, category FROM users WHERE id = :uid")
-            extra = db.execute(extra_query, {"uid": uid}).mappings().first()
-            if extra: extra_data = dict(extra)
-        except: pass
+        ex_sql = text("SELECT shop_slug, logo_url, phone, nit, address, customer_city, hours, category FROM users WHERE id = :uid")
+        extra = db.execute(ex_sql, {"uid": uid}).mappings().first()
+        ed = dict(extra) if extra else {}
 
         return {
             "id": str(uid),
             "email": current_user.email,
-            "full_name": current_user.full_name,
+            "full_name": current_user.full_name or "Usuario",
             "role": current_user.role,
-            "shop_slug": extra_data.get('shop_slug') or "",
-            "logo_url": extra_data.get('logo_url') or "",
-            "phone": extra_data.get('phone') or "",
-            "nit": extra_data.get('nit') or "",
-            "address": extra_data.get('address') or "",
-            "customer_city": extra_data.get('customer_city') or "",
-            "hours": extra_data.get('hours') or "",
-            "category": extra_data.get('category') or "",
-            "country": "Colombia",
+            "shop_slug": ed.get('shop_slug') or "",
+            "logo_url": ed.get('logo_url') or "",
+            "phone": ed.get('phone') or "",
+            "nit": ed.get('nit') or "",
+            "address": ed.get('address') or "",
+            "customer_city": ed.get('customer_city') or "",
+            "hours": ed.get('hours') or "",
+            "category": ed.get('category') or "",
             "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]},
             "social_links": getattr(current_user, 'social_links', {}) or {},
             "whatsapp_lines": getattr(current_user, 'whatsapp_lines', []) or [],
@@ -134,93 +140,19 @@ def read_me(current_user: models.User = Depends(security.get_current_user), db: 
         }
     except: return {}
 
-# --- GUARDADO CON AUTO-REPARACIÓN (JIT) ---
-@app.put("/admin/update-profile")
-def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    try:
-        # Intentamos actualizar. Si falla por columna, reparamos y reintentamos.
-        uid = str(current_user.id)
-        
-        # Mapa de datos a actualizar
-        params = {
-            "n": profile_data.full_name, 
-            "p": profile_data.phone, 
-            "nit": profile_data.nit,
-            "a": profile_data.address, 
-            "c": profile_data.customer_city, 
-            "s": profile_data.shop_slug,
-            "h": profile_data.hours, 
-            "cat": profile_data.category,
-            "uid": uid
-        }
-        
-        sql = text("""
-            UPDATE users SET 
-                full_name = :n, 
-                phone = :p, 
-                nit = :nit, 
-                address = :a, 
-                customer_city = :c, 
-                shop_slug = :s, 
-                hours = :h, 
-                category = :cat 
-            WHERE id = :uid
-        """)
-        
-        if profile_data.logo_url:
-            sql = text("""
-                UPDATE users SET 
-                    full_name = :n, phone = :p, nit = :nit, address = :a, 
-                    customer_city = :c, shop_slug = :s, hours = :h, category = :cat, 
-                    logo_url = :logo 
-                WHERE id = :uid
-            """)
-            params["logo"] = profile_data.logo_url
-
-        try:
-            db.execute(sql, params)
-            db.commit()
-        except Exception as db_err:
-            # Si falla, asumimos que faltan columnas y ejecutamos reparación
-            print(f"⚠️ Fallo update ({db_err}), intentando reparación JIT...")
-            db.rollback()
-            with engine.connect() as conn:
-                for col in ["hours", "category", "nit", "address", "customer_city", "shop_slug", "phone", "logo_url"]:
-                    try: 
-                        conn.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} TEXT"))
-                        conn.commit()
-                    except: pass
-            
-            # Reintento final
-            db.execute(sql, params)
-            db.commit()
-        
-        # Actualizar campos JSON vía ORM (estos suelen ser seguros)
-        try:
-            db_user = db.query(models.User).filter(models.User.id == uid).first()
-            if profile_data.social_links: db_user.social_links = profile_data.social_links
-            if profile_data.bank_accounts: db_user.bank_accounts = profile_data.bank_accounts
-            if profile_data.whatsapp_lines: db_user.whatsapp_lines = profile_data.whatsapp_lines
-            db.commit()
-        except: pass
-
-        return {"status": "success"}
-    except Exception as e:
-        db.rollback()
-        print(f"❌ CRITICAL UPDATE ERROR: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# --- [MODULO] PRODUCTOS ---
 
 @app.get("/products", response_model=List[schemas.Product])
 def get_products(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tid = current_user.owner_id if current_user.owner_id else current_user.id
     try:
-        products = db.query(models.Product).filter(models.Product.owner_id == tid).all()
+        prods = db.query(models.Product).filter(models.Product.owner_id == tid).all()
         output = []
-        for p in products:
+        for p in prods:
             try:
-                variants = db.query(models.ProductVariant).filter(models.ProductVariant.product_id == p.id).all()
-                variant_list = [{"id": v.id, "name": v.name, "sku": v.sku, "stock": v.stock, "price": v.price, "product_id": p.id} for v in variants]
-            except: variant_list = []
+                vars = db.query(models.ProductVariant).filter(models.ProductVariant.product_id == p.id).all()
+                vlist = [{"id": v.id, "name": v.name, "sku": v.sku, "stock": v.stock, "price": v.price, "product_id": p.id} for v in vars]
+            except: vlist = []
             img = []
             try:
                 if p.image_url:
@@ -228,42 +160,70 @@ def get_products(db: Session = Depends(get_db), current_user: models.User = Depe
                     elif isinstance(p.image_url, str) and p.image_url.startswith('['): img = json.loads(p.image_url)
                     elif isinstance(p.image_url, str): img = [p.image_url]
             except: pass
-            output.append({
-                "id": p.id, "name": p.name, "price": p.price or 0, "status": p.status or "active",
-                "owner_id": p.owner_id, "description": p.description or "", "category": p.category or "General",
-                "variants": variant_list, "image_url": img
-            })
+            output.append({"id": p.id, "name": p.name, "price": p.price or 0, "status": p.status or "active", "owner_id": p.owner_id, "description": p.description or "", "category": p.category or "General", "variants": vlist, "image_url": img})
         return output
     except: return []
 
 @app.post("/products", response_model=schemas.Product)
 def create_product(product_in: schemas.ProductCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tid = current_user.owner_id if current_user.owner_id else current_user.id
-    db_product = models.Product(**product_in.model_dump(exclude={"variants"}), owner_id=tid, id=uuid.uuid4())
-    db.add(db_product); db.flush()
+    db_p = models.Product(**product_in.model_dump(exclude={"variants"}), owner_id=tid, id=uuid.uuid4())
+    db.add(db_p); db.flush()
     for v in product_in.variants:
-        db_v = models.ProductVariant(**v.model_dump(), product_id=db_product.id, id=uuid.uuid4())
-        db.add(db_v)
-    db.commit(); db.refresh(db_product)
-    return db_product
+        db.add(models.ProductVariant(**v.model_dump(), product_id=db_p.id, id=uuid.uuid4()))
+    db.commit(); db.refresh(db_p)
+    return db_p
+
+# --- [MODULO] ÓRDENES & DASHBOARD ---
 
 @app.get("/orders", response_model=List[schemas.Order])
 def read_orders(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tid = current_user.owner_id if current_user.owner_id else current_user.id
     return db.query(models.Order).filter(models.Order.tenant_id == tid).all()
 
-@app.post("/orders", response_model=schemas.Order)
-def process_sale(order_in: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+@app.get("/notifications")
+def get_notifs(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tid = current_user.owner_id if current_user.owner_id else current_user.id
-    db_order = models.Order(**order_in.model_dump(exclude={"items"}), status="completed", id=uuid.uuid4(), tenant_id=tid, commission_amount=0.0, commission_rate_snapshot=0.0, source="pos")
-    db.add(db_order); db.flush()
-    for item in order_in.items:
-        db_item = models.OrderItem(**item.model_dump(), order_id=db_order.id, id=uuid.uuid4())
-        db.add(db_item)
-        v = db.query(models.ProductVariant).filter(models.ProductVariant.id == item.product_variant_id).first()
-        if v: v.stock = max(0, v.stock - item.quantity)
-    db.commit(); db.refresh(db_order)
-    return db_order
+    return db.query(models.Notification).filter(models.Notification.tenant_id == tid).order_by(models.Notification.created_at.desc()).limit(20).all()
+
+@app.get("/admin/logs")
+def get_logs(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tid = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.ActivityLog).filter(models.ActivityLog.tenant_id == tid).order_by(models.ActivityLog.created_at.desc()).limit(50).all()
+
+@app.get("/admin/messages")
+def get_msgs(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tid = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.StoreMessage).filter(models.StoreMessage.tenant_id == tid).order_by(models.StoreMessage.created_at.desc()).all()
+
+# --- [MODULO] PERFIL & GUARDADO (REFORZADO) ---
+
+@app.put("/admin/update-profile")
+def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    try:
+        # 1. SQL Directo para campos de texto (Inmune a fallos de ORM)
+        sql = text("""
+            UPDATE users SET 
+                full_name = :n, phone = :p, nit = :nit, address = :a, 
+                customer_city = :c, shop_slug = :s, hours = :h, category = :cat 
+            WHERE id = :uid
+        """)
+        db.execute(sql, {
+            "n": profile_data.full_name, "p": profile_data.phone, "nit": profile_data.nit,
+            "a": profile_data.address, "c": profile_data.customer_city, 
+            "s": profile_data.shop_slug, "h": profile_data.hours, 
+            "cat": profile_data.category, "uid": str(current_user.id)
+        })
+        
+        # 2. ORM para campos JSON y logo
+        db_user = db.query(models.User).filter(models.User.id == current_user.id).first()
+        if profile_data.logo_url: db_user.logo_url = profile_data.logo_url
+        if profile_data.social_links: db_user.social_links = profile_data.social_links
+        db.commit()
+        return {"status": "success"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/admin/upload-image")
 async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
@@ -274,14 +234,12 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
     dom = os.getenv("RAILWAY_PUBLIC_DOMAIN", "localhost:8080")
     base_url = f"https://{dom}" if "railway" in dom else f"http://{dom}"
     final_url = f"{base_url}/uploads/{fname}"
-    db_user = db.query(models.User).filter(models.User.id == current_user.id).first()
-    if db_user: 
-        db_user.logo_url = final_url
-        db.commit()
+    db.execute(text("UPDATE users SET logo_url = :url WHERE id = :uid"), {"url": final_url, "uid": str(current_user.id)})
+    db.commit()
     return {"url": final_url}
 
 @app.get("/health")
-def health(): return {"status": "ok", "version": "emergency-2.0"}
+def health(): return {"status": "ok", "version": "platinum-final"}
 
 try: app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 except: pass
