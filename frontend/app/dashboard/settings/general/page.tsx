@@ -8,7 +8,7 @@ import {
   Camera, Loader2, ShieldCheck, Zap, X, CreditCard, 
   MapPin, Clock, Info, Activity, AlertCircle, LayoutGrid, 
   Briefcase, Sparkles, Settings2, Check, ArrowUpRight, 
-  Bot, ShoppingBag, ChevronRight, Hash, ExternalLink, ShoppingCart, Lock
+  Bot, ShoppingBag, ChevronRight, Hash, ExternalLink, ShoppingCart, Lock, Moon
 } from 'lucide-react';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from '@/context/toast-context';
