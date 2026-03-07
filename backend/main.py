@@ -108,9 +108,20 @@ async def login(request: Request, db: Session = Depends(get_db)):
     except HTTPException as he: raise he
     except Exception as e: raise HTTPException(status_code=500, detail="Error interno en login")
 
-@app.get("/auth/me", response_model=schemas.User)
+@app.get("/auth/me")
 def read_me(current_user: models.User = Depends(security.get_current_user)):
-    return current_user
+    # Devolvemos un objeto plano para evitar errores de carga de relaciones en la DB
+    return {
+        "id": str(current_user.id),
+        "email": current_user.email,
+        "full_name": current_user.full_name or "Usuario Bayup",
+        "role": current_user.role or "admin_tienda",
+        "shop_slug": current_user.shop_slug or "mi-tienda",
+        "logo_url": current_user.logo_url,
+        "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]},
+        "is_global_staff": current_user.is_global_staff or False,
+        "permissions": current_user.permissions or {}
+    }
 
 # --- [MODULO] PRODUCTOS & STOCK ---
 
