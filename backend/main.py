@@ -331,10 +331,17 @@ def read_logs(db: Session = Depends(get_db), current_user: models.User = Depends
 @app.put("/admin/update-profile")
 def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     try:
+        # RE-VINCULACIÓN CRÍTICA: Aseguramos que el usuario pertenezca a la sesión 'db' actual
+        db_user = db.query(models.User).filter(models.User.id == current_user.id).first()
+        if not db_user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        # Aplicamos los cambios de forma segura sobre el objeto persistente
         for k, v in profile_data.model_dump(exclude_unset=True).items():
-            setattr(current_user, k, v)
+            setattr(db_user, k, v)
+            
         db.commit()
-        db.refresh(current_user)
+        db.refresh(db_user)
         return {"status": "success"}
     except Exception as e:
         db.rollback()
