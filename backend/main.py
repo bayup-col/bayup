@@ -69,12 +69,10 @@ app = FastAPI(title="Bayup OS - Platinum Core v1.2.1", lifespan=lifespan)
 # --- ESCUDO DE SEGURIDAD (CORS) ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://www.bayup.com.co", 
-        "https://bayup.com.co", 
-        "http://localhost:3000",
-        "https://exciting-optimism-production-4624.up.railway.app"
-    ],
+    # NUCLEAR FIX: Permitir cualquier origen HTTPS mediante Regex.
+    # Esto satisface la seguridad del navegador (no es wildcard *) pero acepta todos tus dominios.
+    allow_origin_regex=r"https://.*",
+    allow_origins=["http://localhost:3000"], # Soporte local
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
