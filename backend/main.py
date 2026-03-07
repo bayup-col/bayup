@@ -98,29 +98,41 @@ async def login(request: Request, db: Session = Depends(get_db)):
             "user": {
                 "id": str(user.id), 
                 "email": user.email, 
-                "full_name": user.full_name or "Usuario Bayup", 
-                "role": user.role or "admin_tienda", 
-                "shop_slug": user.shop_slug or "mi-tienda", 
-                "logo_url": user.logo_url,
+                "full_name": getattr(user, 'full_name', "Usuario Bayup"), 
+                "role": getattr(user, 'role', "admin_tienda"), 
+                "shop_slug": getattr(user, 'shop_slug', "mi-tienda"), 
+                "logo_url": getattr(user, 'logo_url', None),
+                "phone": getattr(user, 'phone', None),
+                "nit": getattr(user, 'nit', None),
+                "address": getattr(user, 'address', None),
+                "city": getattr(user, 'customer_city', None),
+                "country": "Colombia",
                 "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]}
             }
         }
     except HTTPException as he: raise he
-    except Exception as e: raise HTTPException(status_code=500, detail="Error interno en login")
+    except Exception as e: 
+        print(f"❌ Error en Login: {e}")
+        raise HTTPException(status_code=500, detail="Error interno en login")
 
 @app.get("/auth/me")
 def read_me(current_user: models.User = Depends(security.get_current_user)):
-    # Devolvemos un objeto plano para evitar errores de carga de relaciones en la DB
+    # Devolvemos un objeto plano con todos los campos de contacto y ubicación de forma segura
     return {
         "id": str(current_user.id),
         "email": current_user.email,
-        "full_name": current_user.full_name or "Usuario Bayup",
-        "role": current_user.role or "admin_tienda",
-        "shop_slug": current_user.shop_slug or "mi-tienda",
-        "logo_url": current_user.logo_url,
+        "full_name": getattr(current_user, 'full_name', "Usuario Bayup"),
+        "role": getattr(current_user, 'role', "admin_tienda"),
+        "shop_slug": getattr(current_user, 'shop_slug', "mi-tienda"),
+        "logo_url": getattr(current_user, 'logo_url', None),
+        "phone": getattr(current_user, 'phone', None),
+        "nit": getattr(current_user, 'nit', None),
+        "address": getattr(current_user, 'address', None),
+        "city": getattr(current_user, 'customer_city', None),
+        "country": "Colombia",
         "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]},
-        "is_global_staff": current_user.is_global_staff or False,
-        "permissions": current_user.permissions or {}
+        "is_global_staff": getattr(current_user, 'is_global_staff', False),
+        "permissions": getattr(current_user, 'permissions', {})
     }
 
 # --- [MODULO] PRODUCTOS & STOCK ---
@@ -280,11 +292,36 @@ def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_d
 
 @app.post("/admin/upload-image")
 async def upload_image(file: UploadFile = File(...), current_user: models.User = Depends(security.get_current_user)):
-    fname = f"{uuid.uuid4()}.{file.filename.split('.')[-1]}"
+    # Generar nombre único
+    ext = file.filename.split('.')[-1]
+    fname = f"{uuid.uuid4()}.{ext}"
     fpath = os.path.join(UPLOAD_DIR, fname)
-    with open(fpath, "wb") as buf: shutil.copyfileobj(file.file, buf)
+    
+    # Guardar físicamente
+    with open(fpath, "wb") as buf:
+        shutil.copyfileobj(file.file, buf)
+    
+    # Construir URL absoluta según el entorno
     dom = os.getenv("RAILWAY_PUBLIC_DOMAIN", "localhost:8080")
-    return {"url": f"https://{dom}/uploads/{fname}" if "railway" in dom else f"http://{dom}/uploads/{fname}"}
+    # Si dom no tiene protocolo, se lo ponemos. En Railway suele ser https://...
+    base_url = f"https://{dom}" if "railway" in dom else f"http://{dom}"
+    final_url = f"{base_url}/uploads/{fname}"
+    
+    # AUTO-GUARDADO: Para evitar que el usuario olvide guardar, vinculamos el logo al perfil de inmediato
+    current_user.logo_url = final_url
+    # db = next(get_db()) # No es necesario si ya tenemos la sesión inyectada si fuera el caso, 
+    # pero aquí usaremos una sesión rápida para persistir.
+    from database import SessionLocal
+    db_session = SessionLocal()
+    try:
+        db_user = db_session.query(models.User).filter(models.User.id == current_user.id).first()
+        if db_user:
+            db_user.logo_url = final_url
+            db_session.commit()
+    finally:
+        db_session.close()
+
+    return {"url": final_url}
 
 @app.get("/notifications")
 def get_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
