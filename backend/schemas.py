@@ -25,6 +25,9 @@ class UserBase(BaseModel):
     full_name: Optional[str] = None
     logo_url: Optional[str] = None
     phone: Optional[str] = None
+    nit: Optional[str] = None
+    address: Optional[str] = None
+    customer_city: Optional[str] = None
     shop_slug: Optional[str] = None
     role: Optional[str] = "admin_tienda"
     status: Optional[str] = "Activo"
@@ -39,10 +42,14 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     logo_url: Optional[str] = None
     phone: Optional[str] = None
+    nit: Optional[str] = None
+    address: Optional[str] = None
+    customer_city: Optional[str] = None
     shop_slug: Optional[str] = None
     bank_accounts: Optional[List[dict]] = None
     social_links: Optional[dict] = None
     whatsapp_lines: Optional[List[dict]] = None
+    custom_commission_rate: Optional[float] = None
 
 class User(UserBase):
     id: uuid.UUID

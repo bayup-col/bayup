@@ -49,7 +49,9 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     full_name = Column(String)
     logo_url = Column(String, nullable=True) # Logo de la tienda
-    # nit y address ELIMINADOS DE RAÍZ PARA RESTAURAR LOGIN
+    nit = Column(String, nullable=True) # NIT / Identificación Fiscal
+    address = Column(String, nullable=True) # Dirección de la tienda
+    customer_city = Column(String, nullable=True) # Ciudad de la tienda
     nickname = Column(String)
     phone = Column(String, nullable=True) # Pilar 2: Para el botón de WhatsApp
     hashed_password = Column(String)
@@ -81,7 +83,7 @@ class User(Base):
     last_purchase_summary = Column(String, nullable=True)
     customer_type = Column(String, default="final")
     acquisition_channel = Column(String, nullable=True)
-    city = Column(String, nullable=True)
+    # Estandarizado arriba como customer_city para persistencia total
     
     plan_id = Column(GUID(), ForeignKey("plans.id"))
     plan = relationship("Plan", back_populates="users", lazy="joined")

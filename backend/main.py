@@ -28,20 +28,29 @@ def safe_db_init():
     try:
         models.Base.metadata.create_all(bind=engine)
         with engine.connect() as conn:
-            # Sincronización masiva de columnas (Plan Básico + Pro + Empresa)
+            # Sincronización masiva de columnas para asegurar persistencia total
             schema_updates = [
-                ("users", "nit", "TEXT"), ("users", "address", "TEXT"),
-                ("users", "logo_url", "TEXT"), ("users", "phone", "TEXT"),
-                ("users", "shop_slug", "TEXT"), ("users", "is_global_staff", "BOOLEAN DEFAULT FALSE"),
-                ("users", "permissions", "JSONB"), ("users", "owner_id", "UUID"),
+                ("users", "nit", "TEXT"), 
+                ("users", "address", "TEXT"),
+                ("users", "customer_city", "TEXT"),
+                ("users", "logo_url", "TEXT"), 
+                ("users", "phone", "TEXT"),
+                ("users", "shop_slug", "TEXT"), 
+                ("users", "is_global_staff", "BOOLEAN DEFAULT FALSE"),
+                ("users", "permissions", "JSONB"), 
+                ("users", "owner_id", "UUID"),
                 ("users", "plan_id", "UUID"),
                 ("users", "custom_commission_rate", "FLOAT"),
-                ("orders", "customer_city", "TEXT"), ("orders", "shipping_address", "TEXT"),
-                ("orders", "source", "TEXT DEFAULT 'pos'"), ("orders", "payment_method", "TEXT DEFAULT 'cash'"),
+                ("orders", "customer_city", "TEXT"), 
+                ("orders", "shipping_address", "TEXT"),
+                ("orders", "source", "TEXT DEFAULT 'pos'"), 
+                ("orders", "payment_method", "TEXT DEFAULT 'cash'"),
                 ("orders", "commission_amount", "FLOAT DEFAULT 0.0"),
                 ("orders", "commission_rate_snapshot", "FLOAT DEFAULT 0.0"),
-                ("products", "category", "TEXT"), ("product_variants", "price", "FLOAT DEFAULT 0.0"),
-                ("activity_logs", "tenant_id", "UUID")
+                ("products", "category", "TEXT"), 
+                ("product_variants", "price", "FLOAT DEFAULT 0.0"),
+                ("activity_logs", "tenant_id", "UUID"),
+                ("store_messages", "tenant_id", "UUID")
             ]
             for table, col, dtype in schema_updates:
                 try: 
@@ -55,7 +64,7 @@ async def lifespan(app: FastAPI):
     safe_db_init()
     yield
 
-app = FastAPI(title="Bayup OS - Platinum Core v1.2", lifespan=lifespan)
+app = FastAPI(title="Bayup OS - Platinum Core v1.2.1", lifespan=lifespan)
 
 # --- ESCUDO DE SEGURIDAD (CORS) ---
 app.add_middleware(
@@ -90,8 +99,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
         
         token = security.create_access_token(data={"sub": user.email})
         
-        # LOGIN BLINDADO: Ignoramos la DB para el objeto de respuesta del perfil
-        # Solo usamos la DB para validar el email y la contraseña arriba.
+        # LOGIN BLINDADO: Devolvemos todos los campos de persistencia
         return {
             "access_token": token, 
             "token_type": "bearer",
@@ -105,7 +113,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
                 "phone": getattr(user, 'phone', None),
                 "nit": getattr(user, 'nit', None),
                 "address": getattr(user, 'address', None),
-                "city": getattr(user, 'customer_city', None),
+                "customer_city": getattr(user, 'customer_city', None),
                 "country": "Colombia",
                 "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]}
             }
@@ -128,7 +136,7 @@ def read_me(current_user: models.User = Depends(security.get_current_user)):
         "phone": getattr(current_user, 'phone', None),
         "nit": getattr(current_user, 'nit', None),
         "address": getattr(current_user, 'address', None),
-        "city": getattr(current_user, 'customer_city', None),
+        "customer_city": getattr(current_user, 'customer_city', None),
         "country": "Colombia",
         "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]},
         "is_global_staff": getattr(current_user, 'is_global_staff', False),
@@ -143,15 +151,22 @@ def get_products(db: Session = Depends(get_db), current_user: models.User = Depe
     try:
         return db.query(models.Product).filter(models.Product.owner_id == tid).all()
     except Exception as e:
-        print(f"⚠️ Fallback Ultra en /products: {e}")
+        print(f"⚠️ Fallback Inteligente en /products: {e}")
         db.rollback()
-        # Seleccionamos solo lo que existe seguro y llenamos el resto para que Pydantic no explote
+        # Recuperamos datos base para que el frontend no rompa
         prods = db.execute(text("SELECT id, name, price, status, owner_id FROM products WHERE owner_id = :tid"), {"tid": tid}).all()
         output = []
         for p in prods:
+            # Intentamos recuperar variantes reales para mostrar STOCK REAL en Pedidos
+            try:
+                vars_raw = db.execute(text("SELECT id, name, sku, stock, price FROM product_variants WHERE product_id = :pid"), {"pid": p.id}).all()
+                variants = [{"id": v.id, "name": v.name, "sku": v.sku, "stock": v.stock, "price": v.price, "product_id": p.id} for v in vars_raw]
+            except:
+                variants = []
+            
             output.append({
                 "id": p.id, "name": p.name, "price": p.price, "status": p.status, "owner_id": p.owner_id,
-                "description": "", "category": "General", "variants": []
+                "description": "", "category": "General", "variants": variants
             })
         return output
 
@@ -230,7 +245,7 @@ def public_process_sale(order_in: schemas.OrderCreate, db: Session = Depends(get
     
     # Prioridad: Comisión custom > Comisión del Plan > 3.5% (Fallback Básico)
     rate = 3.5
-    if tenant.custom_commission_rate is not None:
+    if getattr(tenant, 'custom_commission_rate', None) is not None:
         rate = tenant.custom_commission_rate
     elif tenant.plan:
         rate = tenant.plan.commission_rate
@@ -287,8 +302,16 @@ def read_logs(db: Session = Depends(get_db), current_user: models.User = Depends
 
 @app.put("/admin/update-profile")
 def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    for k, v in profile_data.model_dump(exclude_unset=True).items(): setattr(current_user, k, v)
-    db.commit(); return {"status": "success"}
+    try:
+        for k, v in profile_data.model_dump(exclude_unset=True).items():
+            setattr(current_user, k, v)
+        db.commit()
+        db.refresh(current_user)
+        return {"status": "success"}
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error actualizando perfil: {e}")
+        raise HTTPException(status_code=500, detail=f"No se pudo actualizar el perfil: {e}")
 
 @app.post("/admin/upload-image")
 async def upload_image(file: UploadFile = File(...), current_user: models.User = Depends(security.get_current_user)):
@@ -307,10 +330,8 @@ async def upload_image(file: UploadFile = File(...), current_user: models.User =
     base_url = f"https://{dom}" if "railway" in dom else f"http://{dom}"
     final_url = f"{base_url}/uploads/{fname}"
     
-    # AUTO-GUARDADO: Para evitar que el usuario olvide guardar, vinculamos el logo al perfil de inmediato
+    # AUTO-GUARDADO: Vinculamos el logo al perfil de inmediato
     current_user.logo_url = final_url
-    # db = next(get_db()) # No es necesario si ya tenemos la sesión inyectada si fuera el caso, 
-    # pero aquí usaremos una sesión rápida para persistir.
     from database import SessionLocal
     db_session = SessionLocal()
     try:
@@ -326,7 +347,10 @@ async def upload_image(file: UploadFile = File(...), current_user: models.User =
 @app.get("/notifications")
 def get_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tid = current_user.owner_id if current_user.owner_id else current_user.id
-    return db.query(models.Notification).filter(models.Notification.tenant_id == tid).order_by(models.Notification.created_at.desc()).limit(20).all()
+    try:
+        return db.query(models.Notification).filter(models.Notification.tenant_id == tid).order_by(models.Notification.created_at.desc()).limit(20).all()
+    except:
+        return []
 
 # --- [MODULO] SUPER ADMIN ---
 
@@ -337,7 +361,7 @@ def get_global_stats(db: Session = Depends(get_db), current_user: models.User = 
     return {"status": "online", "total_users": db.query(models.User).count()}
 
 @app.get("/health")
-def health(): return {"status": "ok", "version": "1.2.0-diamond"}
+def health(): return {"status": "ok", "version": "1.2.1-diamond"}
 
 # MONTAJE DE ESTÁTICOS PROTEGIDO
 try: app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
@@ -346,3 +370,4 @@ except: pass
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+
