@@ -14,40 +14,26 @@ from typing import List, Optional
 
 load_dotenv()
 
-# --- INFRAESTRUCTURA SEGURA ---
+# --- INFRAESTRUCTURA ---
 UPLOAD_DIR = "uploads"
 if not os.path.exists(UPLOAD_DIR):
     try: os.makedirs(UPLOAD_DIR, exist_ok=True)
     except: pass
 
-# --- CONEXIÓN A DATOS ---
 from database import SessionLocal, engine, get_db
 import models, crud, security, schemas
 
 def safe_db_init():
-    """Reparación automática del esquema en cada reinicio."""
     try:
         models.Base.metadata.create_all(bind=engine)
         with engine.connect() as conn:
-            schema_updates = [
-                ("users", "nit", "TEXT"), 
-                ("users", "address", "TEXT"),
-                ("users", "customer_city", "TEXT"),
-                ("users", "logo_url", "TEXT"), 
-                ("users", "phone", "TEXT"),
-                ("users", "shop_slug", "TEXT"), 
-                ("users", "category", "TEXT"),
-                ("users", "hours", "TEXT"),
-                ("users", "social_links", "JSONB"),
-                ("users", "whatsapp_lines", "JSONB"),
-                ("users", "bank_accounts", "JSONB")
-            ]
-            for table, col, dtype in schema_updates:
+            # Intentamos crear columnas críticas una a una de forma segura
+            cols = [("hours", "TEXT"), ("category", "TEXT"), ("nit", "TEXT"), ("address", "TEXT"), ("customer_city", "TEXT"), ("shop_slug", "TEXT")]
+            for col, dtype in cols:
                 try: 
-                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {dtype};"))
+                    conn.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {dtype}"))
                     conn.commit()
-                except: 
-                    conn.rollback()
+                except: pass
     except: pass
 
 @asynccontextmanager
@@ -55,7 +41,7 @@ async def lifespan(app: FastAPI):
     safe_db_init()
     yield
 
-app = FastAPI(title="Bayup OS - Platinum Core v1.2.1", lifespan=lifespan)
+app = FastAPI(title="Bayup OS - Survivor Core", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -70,78 +56,52 @@ app.add_middleware(
 @app.post("/auth/login")
 async def login(request: Request, db: Session = Depends(get_db)):
     try:
-        # JIT MIGRATION: Reparación de emergencia antes de leer usuario
-        try:
-            with engine.connect() as conn:
-                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS hours TEXT"))
-                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS category TEXT"))
-                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS nit TEXT"))
-                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT"))
-                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS customer_city TEXT"))
-                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS shop_slug TEXT"))
-                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT"))
-                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_url TEXT"))
-                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS social_links JSONB"))
-                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_lines JSONB"))
-                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_accounts JSONB"))
-                conn.commit()
-        except: pass
-
+        # 1. PARSEO SEGURO
         try: body = await request.json()
         except: 
             form = await request.form()
             body = {"username": form.get("username"), "password": form.get("password")}
         
-        u, p = body.get("username", ""), body.get("password", "")
-        user = crud.get_user_by_email(db, email=u.lower().strip())
+        u = body.get("username", "").lower().strip()
+        p = body.get("password", "")
+
+        # 2. SQL PURO (INMUNE A ERRORES DE SCHEMA)
+        # Solo pedimos lo que sabemos que existe en la DB original
+        sql = text("SELECT id, email, hashed_password, full_name, role FROM users WHERE email = :u")
+        result = db.execute(sql, {"u": u}).first()
         
-        if not user or not security.verify_password(p, user.hashed_password):
+        if not result or not security.verify_password(p, result.hashed_password):
             raise HTTPException(status_code=401, detail="Credenciales incorrectas")
         
-        token = security.create_access_token(data={"sub": user.email})
+        token = security.create_access_token(data={"sub": result.email})
         
-        # LOGIN ULTRA-SEGURO: Sin refresh y con capturadores de error para campos nuevos
-        user_data = {
-            "id": str(user.id), 
-            "email": user.email, 
-            "full_name": getattr(user, 'full_name', "Usuario") or "Usuario",
-            "role": getattr(user, 'role', "admin_tienda")
-        }
-        
-        # Campos de tienda con fallback seguro
-        for field in ['shop_slug', 'logo_url', 'phone', 'nit', 'address', 'customer_city', 'hours', 'category']:
-            try: user_data[field] = getattr(user, field, "") or ""
-            except: user_data[field] = ""
-
+        # 3. RESPUESTA BLINDADA
         return {
             "access_token": token, 
             "token_type": "bearer",
-            "user": {**user_data, "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]}}
+            "user": {
+                "id": str(result.id), 
+                "email": result.email, 
+                "full_name": result.full_name or "Usuario Bayup",
+                "role": result.role or "admin_tienda",
+                "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]}
+            }
         }
+    except HTTPException as he: raise he
     except Exception as e: 
-        raise HTTPException(status_code=500, detail=f"Error en login: {str(e)}")
+        print(f"❌ Error Crítico Login: {e}")
+        raise HTTPException(status_code=500, detail="Error interno de acceso")
 
 @app.get("/auth/me")
-def read_me(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
-    try:
-        user_data = {
-            "id": str(current_user.id),
-            "email": current_user.email,
-            "full_name": getattr(current_user, 'full_name', "Usuario") or "Usuario",
-            "role": getattr(current_user, 'role', "admin_tienda")
-        }
-        for field in ['shop_slug', 'logo_url', 'phone', 'nit', 'address', 'customer_city', 'hours', 'category']:
-            try: user_data[field] = getattr(current_user, field, "") or ""
-            except: user_data[field] = ""
-            
-        return {
-            **user_data,
-            "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]},
-            "social_links": getattr(current_user, 'social_links', {}),
-            "whatsapp_lines": getattr(current_user, 'whatsapp_lines', []),
-            "bank_accounts": getattr(current_user, 'bank_accounts', [])
-        }
-    except: return {}
+def read_me(current_user: models.User = Depends(security.get_current_user)):
+    # Fallback ultra-seguro para el perfil
+    return {
+        "id": str(current_user.id),
+        "email": current_user.email,
+        "full_name": getattr(current_user, 'full_name', "Usuario"),
+        "role": getattr(current_user, 'role', "admin_tienda"),
+        "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]}
+    }
 
 @app.get("/products", response_model=List[schemas.Product])
 def get_products(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
@@ -150,21 +110,10 @@ def get_products(db: Session = Depends(get_db), current_user: models.User = Depe
         products = db.query(models.Product).filter(models.Product.owner_id == tid).all()
         output = []
         for p in products:
-            try:
-                variants = db.query(models.ProductVariant).filter(models.ProductVariant.product_id == p.id).all()
-                variant_list = [{"id": v.id, "name": v.name, "sku": v.sku, "stock": v.stock, "price": v.price, "product_id": p.id} for v in variants]
-            except: variant_list = []
-            img = []
-            try:
-                if p.image_url:
-                    if isinstance(p.image_url, list): img = p.image_url
-                    elif isinstance(p.image_url, str) and p.image_url.startswith('['): img = json.loads(p.image_url)
-                    elif isinstance(p.image_url, str): img = [p.image_url]
-            except: pass
             output.append({
                 "id": p.id, "name": p.name, "price": p.price or 0, "status": p.status or "active",
                 "owner_id": p.owner_id, "description": p.description or "", "category": p.category or "General",
-                "variants": variant_list, "image_url": img
+                "variants": [], "image_url": []
             })
         return output
     except: return []
@@ -172,34 +121,27 @@ def get_products(db: Session = Depends(get_db), current_user: models.User = Depe
 @app.put("/admin/update-profile")
 def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     try:
-        db_user = db.query(models.User).filter(models.User.id == current_user.id).first()
-        if not db_user: raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        update_dict = profile_data.model_dump(exclude_unset=True)
-        for key, value in update_dict.items():
-            if hasattr(db_user, key): setattr(db_user, key, value)
-        db.commit(); db.refresh(db_user)
+        # REPARACIÓN JIT SILENCIOSA (SQL PURO)
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS hours TEXT"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS category TEXT"))
+            conn.commit()
+        
+        # ACTUALIZACIÓN MANUAL (SQL PURO PARA EVITAR CACHÉ)
+        sql = text("UPDATE users SET full_name = :n, phone = :p, nit = :nit, address = :a, customer_city = :c, shop_slug = :s, hours = :h, category = :cat WHERE id = :id")
+        db.execute(sql, {
+            "n": profile_data.full_name, "p": profile_data.phone, "nit": profile_data.nit,
+            "a": profile_data.address, "c": profile_data.customer_city, "s": profile_data.shop_slug,
+            "h": profile_data.hours, "cat": profile_data.category, "id": current_user.id
+        })
+        db.commit()
         return {"status": "success"}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/admin/upload-image")
-async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
-    ext = file.filename.split('.')[-1]
-    fname = f"{uuid.uuid4()}.{ext}"
-    fpath = os.path.join(UPLOAD_DIR, fname)
-    with open(fpath, "wb") as buf: shutil.copyfileobj(file.file, buf)
-    dom = os.getenv("RAILWAY_PUBLIC_DOMAIN", "localhost:8080")
-    base_url = f"https://{dom}" if "railway" in dom else f"http://{dom}"
-    final_url = f"{base_url}/uploads/{fname}"
-    db_user = db.query(models.User).filter(models.User.id == current_user.id).first()
-    if db_user: 
-        db_user.logo_url = final_url
-        db.commit()
-    return {"url": final_url}
-
 @app.get("/health")
-def health(): return {"status": "ok", "version": "1.2.1-diamond"}
+def health(): return {"status": "ok", "version": "survivor-1.0"}
 
 try: app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 except: pass
