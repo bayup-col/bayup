@@ -54,6 +54,10 @@ class UserUpdate(BaseModel):
 class User(UserBase):
     id: uuid.UUID
     plan: Optional[Plan] = None
+    bank_accounts: List[dict] = []
+    social_links: dict = {}
+    whatsapp_lines: List[dict] = []
+    custom_commission_rate: Optional[float] = None
     model_config = ConfigDict(from_attributes=True)
 
 # --- Product Schemas ---

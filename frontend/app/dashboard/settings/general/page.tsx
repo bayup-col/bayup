@@ -155,76 +155,65 @@ export default function GeneralSettings() {
     ];
 
     useEffect(() => {
-        // Cargar datos locales primero para consistencia inmediata
-        const savedData = localStorage.getItem('bayup_general_settings');
-        if (savedData) {
-            try {
-                const parsed = JSON.parse(savedData);
-                if (parsed.identity) setIdentity(parsed.identity);
-                if (parsed.contact) setContact(parsed.contact);
-                if (parsed.social_links) setSocialLinks(parsed.social_links);
-            } catch (e) { console.error("Error al cargar datos locales", e); }
-        }
-
         const fetchStoreData = async () => {
             if (!token) return;
+            setLoading(true);
             try {
-                // REFACTORIZADO: Uso de userService blindado para ignorar URLs tóxicas
-                const data = await userService.getMe(token);
+                // Sincronización de Élite: Priorizamos el servidor seguro
+                const data = await apiRequest<any>('/auth/me', { token });
                 if (data) {
-                    console.log("DEBUG: Perfil cargado desde servidor seguro:", data.full_name);
+                    console.log("Sincronizando perfil Platinum...");
                     
-                    setIdentity(prev => ({ 
-                        ...prev, 
-                        name: data.full_name || prev.name,
-                        logo: data.logo_url || "" 
-                    }));
+                    setIdentity({ 
+                        name: data.full_name || "Mi Tienda Bayup",
+                        category: data.category || "Moda & Accesorios",
+                        story: data.story || "Nacimos con la idea de democratizar el lujo...",
+                        logo: data.logo_url || null 
+                    });
                     
-                    setContact(prev => ({ 
-                        ...prev, 
-                        email: data.email, 
-                        phone: data.phone || prev.phone,
+                    setContact({ 
+                        email: data.email || "", 
+                        phone: data.phone || "",
+                        address: data.address || "",
+                        city: data.customer_city || "Bogotá",
+                        country: data.country || "Colombia",
+                        hours: data.hours || "Lun - Vie: 8am - 6pm",
+                        website: data.website || "",
                         shop_slug: data.shop_slug || "",
-                        nit: data.nit || prev.nit,
-                        address: data.address || prev.address
-                    }));
+                        nit: data.nit || "",
+                        tax_regime: data.tax_regime || "Simplificado",
+                        legal_rep: data.legal_rep || ""
+                    });
                     
-                    if (data.bank_accounts) setAccounts(data.bank_accounts);
-                    if (data.whatsapp_lines) setWhatsappLines(data.whatsapp_lines);
                     if (data.social_links) setSocialLinks(prev => ({ ...prev, ...data.social_links }));
+                    
+                    // Persistencia local de respaldo
+                    localStorage.setItem('bayup_user_logo', data.logo_url || "");
+                    localStorage.setItem('bayup_user_name', data.full_name || "");
                 }
-            } catch (err) { console.error("Error al cargar perfil", err); }
+            } catch (err) { 
+                console.error("Error al sincronizar perfil:", err);
+                // Fallback a localStorage si el servidor falla
+                const saved = localStorage.getItem('bayup_general_settings');
+                if (saved) {
+                    const p = JSON.parse(saved);
+                    setIdentity(p.identity);
+                    setContact(p.contact);
+                }
+            } finally {
+                setLoading(false);
+            }
         };
         fetchStoreData();
-
-        const savedPlan = localStorage.getItem('bayup_user_plan');
-        if (savedPlan) {
-            setCurrentPlan(savedPlan as any);
-        }
-        setLoading(false);
     }, [token]);
-
-    const formatCurrency = (val: string | number) => {
-        try {
-            const num = typeof val === 'string' ? parseInt(val.replace(/\D/g, '') || '0') : val;
-            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num);
-        } catch (e) { return "$ " + val; }
-    };
-
-    const formatDots = (val: string | number) => {
-        const num = typeof val === 'string' ? val.replace(/\D/g, '') : val.toString();
-        return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    };
-
-    const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.(com|co|col|net|org|me)$/.test(email);
-    const validatePhone = (phone: string) => phone.length === 10 && /^\d+$/.test(phone);
 
     const handleSaveMain = async () => {
         if (!validateEmail(contact.email)) { showToast("Email inválido", "error"); return; }
         if (!validatePhone(contact.phone)) { showToast("Teléfono de 10 dígitos requerido", "error"); return; }
+        
         setIsSaving(true);
         try {
-            // REFACTORIZADO: Uso de apiRequest blindado
+            // Persistencia en Base de Datos (Railway/Supabase)
             await apiRequest('/admin/update-profile', {
                 method: 'PUT',
                 token,
@@ -235,30 +224,29 @@ export default function GeneralSettings() {
                     shop_slug: contact.shop_slug,
                     nit: contact.nit,
                     address: contact.address,
-                    bank_accounts: accounts,
-                    social_links: socialLinks,
-                    whatsapp_lines: whatsappLines
+                    customer_city: contact.city,
+                    social_links: socialLinks
                 }),
             });
 
+            // Sincronización de Estado Global (Header/Sidebar/Avatar)
             updateUser({
                 name: identity.name,
                 slug: contact.shop_slug,
                 logo: identity.logo || ""
             });
 
+            // Disparo de evento para componentes legacy
             window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: identity.name }));
+            window.dispatchEvent(new CustomEvent('bayup_logo_update', { detail: identity.logo }));
             
-            const settingsToSave = {
-                identity: identity,
-                contact: contact,
-                social_links: socialLinks
-            };
-            localStorage.setItem('bayup_general_settings', JSON.stringify(settingsToSave));
+            // Persistencia Local de Respaldo
+            localStorage.setItem('bayup_general_settings', JSON.stringify({ identity, contact, socialLinks }));
+            localStorage.setItem('bayup_user_logo', identity.logo || "");
             
-            showToast("Configuración sincronizada con éxito 🚀", "success");
+            showToast("¡Configuración guardada y publicada! 🚀", "success");
         } catch (e: any) { 
-            showToast(e.message || "Error al sincronizar", "error"); 
+            showToast(e.message || "Error al sincronizar con el servidor", "error"); 
         } finally { setIsSaving(false); }
     };
 

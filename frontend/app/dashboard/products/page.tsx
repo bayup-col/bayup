@@ -599,28 +599,35 @@ export default function ProductsPage() {
                                 <tbody className="divide-y divide-gray-100/50">
                                     {loading ? (<tr><td colSpan={5} className="py-20 text-center"><div className="h-12 w-12 border-4 border-[#004d4d] border-t-cyan rounded-full animate-spin mx-auto" /></td></tr>) : filteredProducts.length === 0 ? (<tr><td colSpan={5} className="py-20 text-center text-gray-300 font-black text-[10px]">Sin artículos</td></tr>) : (
                                         filteredProducts.map((p) => {
-                                            // Lógica Maestra Ultra-Resistente para extraer la imagen
+                                            // Lógica Maestra Ultra-Resistente de Bayup para extraer imágenes
                                             const extractUrl = (raw: any): string | null => {
                                                 if (!raw) return null;
+                                                // Si ya es una URL absoluta de Railway/Supabase
+                                                if (typeof raw === 'string' && raw.startsWith('http')) return raw;
+                                                // Si viene serializado como JSON
                                                 try {
                                                     let value = raw;
-                                                    if (typeof value === 'string' && value.startsWith('[') && value.endsWith(']')) {
+                                                    if (typeof value === 'string' && value.startsWith('[')) {
                                                         try { value = JSON.parse(value); } catch (e) { return value; }
                                                     }
                                                     if (Array.isArray(value)) return value.length > 0 ? value[0] : null;
                                                     if (typeof value === 'object' && value !== null) return value.url || value.uri || null;
-                                                    if (typeof value === 'string' && value.length > 5) return value;
                                                 } catch (e) { return null; }
                                                 return null;
                                             };
 
                                             let displayImage = extractUrl(p.image_url);
+                                            // Escaneo profundo de variantes si falla la principal
                                             if (!displayImage && p.variants?.length > 0) {
                                                 for (const v of p.variants) {
                                                     const vImg = extractUrl(v.image_url);
                                                     if (vImg) { displayImage = vImg; break; }
                                                 }
                                             }
+
+                                            // Cálculo de stock basado en la inyección JoinedLoad del backend
+                                            const totalUnits = p.variants?.reduce((acc: number, v: any) => acc + (v.stock || 0), 0) || 0;
+                                            const minPrice = p.price || (p.variants?.length > 0 ? Math.min(...p.variants.map((v:any) => v.price || 0)) : 0);
 
                                             return (
                                                 <tr key={p.id} className="hover:bg-white/60 transition-all cursor-pointer group" onClick={() => setSelectedProduct(p)}>
