@@ -331,25 +331,26 @@ def read_logs(db: Session = Depends(get_db), current_user: models.User = Depends
 @app.put("/admin/update-profile")
 def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     try:
-        # RE-VINCULACIÓN CRÍTICA: Aseguramos que el usuario pertenezca a la sesión 'db' actual
-        db_user = db.query(models.User).filter(models.User.id == current_user.id).first()
-        if not db_user:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-        # Aplicamos los cambios de forma segura sobre el objeto persistente
-        for k, v in profile_data.model_dump(exclude_unset=True).items():
-            setattr(db_user, k, v)
+        # FUSIÓN ATÓMICA: Obligamos a SQLAlchemy a aceptar este objeto en la sesión actual
+        # sin importar de dónde venga (evita el error 'not persistent')
+        user_to_update = db.merge(current_user)
+        
+        # Aplicamos los cambios directamente sobre el objeto fusionado
+        update_data = profile_data.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(user_to_update, key, value)
             
         db.commit()
-        db.refresh(db_user)
         return {"status": "success"}
     except Exception as e:
         db.rollback()
-        print(f"❌ Error actualizando perfil: {e}")
-        raise HTTPException(status_code=500, detail=f"No se pudo actualizar el perfil: {e}")
+        print(f"❌ Error Crítico actualizando perfil: {e}")
+        # Log del traceback completo para debug interno
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error de persistencia: {str(e)}")
 
 @app.post("/admin/upload-image")
-async def upload_image(file: UploadFile = File(...), current_user: models.User = Depends(security.get_current_user)):
+async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     # Generar nombre único
     ext = file.filename.split('.')[-1]
     fname = f"{uuid.uuid4()}.{ext}"
@@ -361,21 +362,17 @@ async def upload_image(file: UploadFile = File(...), current_user: models.User =
     
     # Construir URL absoluta según el entorno
     dom = os.getenv("RAILWAY_PUBLIC_DOMAIN", "localhost:8080")
-    # Si dom no tiene protocolo, se lo ponemos. En Railway suele ser https://...
     base_url = f"https://{dom}" if "railway" in dom else f"http://{dom}"
     final_url = f"{base_url}/uploads/{fname}"
     
-    # AUTO-GUARDADO: Vinculamos el logo al perfil de inmediato
-    current_user.logo_url = final_url
-    from database import SessionLocal
-    db_session = SessionLocal()
+    # AUTO-GUARDADO BLINDADO: Usamos la sesión 'db' de FastAPI
     try:
-        db_user = db_session.query(models.User).filter(models.User.id == current_user.id).first()
-        if db_user:
-            db_user.logo_url = final_url
-            db_session.commit()
-    finally:
-        db_session.close()
+        user_to_update = db.merge(current_user)
+        user_to_update.logo_url = final_url
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"⚠️ Error vinculando logo: {e}")
 
     return {"url": final_url}
 
