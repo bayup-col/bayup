@@ -29,6 +29,7 @@ class UserBase(BaseModel):
     address: Optional[str] = None
     customer_city: Optional[str] = None
     shop_slug: Optional[str] = None
+    category: Optional[str] = "Moda & Accesorios" # Campo de Nicho de Mercado
     role: Optional[str] = "admin_tienda"
     status: Optional[str] = "Activo"
     is_global_staff: bool = False
@@ -46,6 +47,7 @@ class UserUpdate(BaseModel):
     address: Optional[str] = None
     customer_city: Optional[str] = None
     shop_slug: Optional[str] = None
+    category: Optional[str] = None # Permitir actualización de Nicho
     bank_accounts: Optional[List[dict]] = None
     social_links: Optional[dict] = None
     whatsapp_lines: Optional[List[dict]] = None

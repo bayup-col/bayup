@@ -186,7 +186,7 @@ export default function GeneralSettings() {
                     
                     setIdentity({ 
                         name: data.full_name || "Mi Tienda Bayup",
-                        category: data.category || "Moda & Accesorios",
+                        category: data.category || "Moda & Accesorios", // CARGA DEL NICHO
                         story: data.story || "Nacimos con la idea de democratizar el lujo...",
                         logo: data.logo_url || null 
                     });

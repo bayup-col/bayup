@@ -34,10 +34,11 @@ def safe_db_init():
             schema_updates = [
                 ("users", "nit", "TEXT"), 
                 ("users", "address", "TEXT"),
-                ("users", "customer_city", "TEXT"), # <--- ESTA ES LA QUE FALTA
+                ("users", "customer_city", "TEXT"),
                 ("users", "logo_url", "TEXT"), 
                 ("users", "phone", "TEXT"),
                 ("users", "shop_slug", "TEXT"), 
+                ("users", "category", "TEXT"), # <--- COLUMNA PARA NICHO DE MERCADO
                 ("users", "is_global_staff", "BOOLEAN DEFAULT FALSE"),
                 ("users", "permissions", "JSONB"), 
                 ("users", "owner_id", "UUID"),
