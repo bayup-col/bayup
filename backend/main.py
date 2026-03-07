@@ -157,33 +157,46 @@ from sqlalchemy.orm import Session, joinedload
 def get_products(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tid = current_user.owner_id if current_user.owner_id else current_user.id
     try:
-        return db.query(models.Product).options(joinedload(models.Product.variants)).filter(models.Product.owner_id == tid).all()
-    except Exception as e:
-        print(f"⚠️ Fallback Inteligente en /products: {e}")
-        db.rollback()
-        # Fallback manual robusto con SQL raw
-        prods = db.execute(text("SELECT id, name, price, status, owner_id, image_url, category FROM products WHERE owner_id = :tid"), {"tid": tid}).all()
+        # Consulta Directa y Segura: Evitamos joinedload problemáticos
+        products = db.query(models.Product).filter(models.Product.owner_id == tid).all()
         output = []
-        for p in prods:
+        
+        for p in products:
+            # Recuperamos variantes de forma manual y segura
             try:
-                vars_raw = db.execute(text("SELECT id, name, sku, stock, price FROM product_variants WHERE product_id = :pid"), {"pid": p.id}).all()
-                variants = [{"id": v.id, "name": v.name, "sku": v.sku, "stock": v.stock, "price": v.price, "product_id": p.id} for v in vars_raw]
+                variants = db.query(models.ProductVariant).filter(models.ProductVariant.product_id == p.id).all()
+                variant_list = [{
+                    "id": v.id, "name": v.name, "sku": v.sku, 
+                    "stock": v.stock, "price": v.price, "product_id": p.id
+                } for v in variants]
             except:
-                variants = []
-            
-            # Procesar image_url que es JSON
+                variant_list = []
+
+            # Procesamiento de imagen ultra-seguro
             img = []
             try:
-                if isinstance(p.image_url, str): img = json.loads(p.image_url)
-                elif isinstance(p.image_url, list): img = p.image_url
+                if p.image_url:
+                    if isinstance(p.image_url, list): img = p.image_url
+                    elif isinstance(p.image_url, str) and p.image_url.startswith('['): img = json.loads(p.image_url)
+                    elif isinstance(p.image_url, str): img = [p.image_url]
             except: pass
 
             output.append({
-                "id": p.id, "name": p.name, "price": p.price, "status": p.status, "owner_id": p.owner_id,
-                "description": "", "category": p.category or "General", "variants": variants,
+                "id": p.id,
+                "name": p.name,
+                "price": p.price or 0,
+                "status": p.status or "active",
+                "owner_id": p.owner_id,
+                "description": p.description or "",
+                "category": p.category or "General",
+                "variants": variant_list,
                 "image_url": img
             })
         return output
+    except Exception as e:
+        print(f"❌ Error Crítico en /products: {e}")
+        db.rollback()
+        return []
 
 # --- [MODULO] COLECCIONES ---
 
