@@ -140,6 +140,17 @@ def read_me(current_user: models.User = Depends(security.get_current_user), db: 
         }
     except: return {}
 
+# --- [MODULO] COLECCIONES ---
+
+@app.get("/collections", response_model=List[schemas.Collection])
+def get_collections(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tid = current_user.owner_id if current_user.owner_id else current_user.id
+    try:
+        return db.query(models.Collection).filter(models.Collection.owner_id == tid).all()
+    except Exception:
+        db.rollback()
+        return []
+
 # --- [MODULO] PRODUCTOS ---
 
 @app.get("/products", response_model=List[schemas.Product])
