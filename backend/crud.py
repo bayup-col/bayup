@@ -16,9 +16,37 @@ def create_plan(db: Session, plan: schemas.PlanCreate) -> models.Plan:
     db.refresh(db_plan)
     return db_plan
 
+from sqlalchemy import text
+
 # --- User CRUD ---
 def get_user_by_email(db: Session, email: str) -> models.User | None:
-    return db.query(models.User).filter(models.User.email == email).first()
+    """Búsqueda ultra-segura mediante SQL plano para evitar fallos de JOIN por columnas faltantes."""
+    try:
+        # 1. Intentamos obtener solo los datos base del usuario sin relaciones
+        result = db.execute(
+            text("SELECT id, email, full_name, hashed_password, role, status, shop_slug, logo_url FROM users WHERE LOWER(email) = :email"),
+            {"email": email.lower().strip()}
+        ).first()
+        
+        if not result:
+            return None
+            
+        # 2. Mapeamos a un objeto de modelo huérfano para que FastAPI/Auth funcione
+        user = models.User(
+            id=result.id,
+            email=result.email,
+            full_name=result.full_name,
+            hashed_password=result.hashed_password,
+            role=result.role,
+            status=result.status,
+            shop_slug=result.shop_slug,
+            logo_url=result.logo_url
+        )
+        return user
+    except Exception as e:
+        print(f"⚠️ SQL Fallback Triggered for {email}: {e}")
+        # Si incluso el SQL plano falla, es que la tabla está corrupta o no existe
+        return None
 
 def get_user_by_slug(db: Session, slug: str) -> models.User | None:
     return db.query(models.User).filter(models.User.shop_slug == slug).first()
