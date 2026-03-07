@@ -29,11 +29,12 @@ def safe_db_init():
     try:
         models.Base.metadata.create_all(bind=engine)
         with engine.connect() as conn:
+            print("🔧 Ejecutando Auto-Migración de Emergencia...")
             # Sincronización masiva de columnas para asegurar persistencia total
             schema_updates = [
                 ("users", "nit", "TEXT"), 
                 ("users", "address", "TEXT"),
-                ("users", "customer_city", "TEXT"),
+                ("users", "customer_city", "TEXT"), # <--- ESTA ES LA QUE FALTA
                 ("users", "logo_url", "TEXT"), 
                 ("users", "phone", "TEXT"),
                 ("users", "shop_slug", "TEXT"), 
@@ -42,6 +43,9 @@ def safe_db_init():
                 ("users", "owner_id", "UUID"),
                 ("users", "plan_id", "UUID"),
                 ("users", "custom_commission_rate", "FLOAT"),
+                ("users", "social_links", "JSONB"),
+                ("users", "whatsapp_lines", "JSONB"),
+                ("users", "bank_accounts", "JSONB"),
                 ("orders", "customer_city", "TEXT"), 
                 ("orders", "shipping_address", "TEXT"),
                 ("orders", "source", "TEXT DEFAULT 'pos'"), 
@@ -55,9 +59,13 @@ def safe_db_init():
             ]
             for table, col, dtype in schema_updates:
                 try: 
-                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {dtype};"))
+                    # Intento agresivo de creación si no existe
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {dtype};"))
                     conn.commit()
-                except: pass
+                except Exception as ex: 
+                    print(f"⚠️ Warning migración {col}: {ex}")
+                    conn.rollback()
+            print("✅ Auto-Migración Completada.")
     except Exception as e: print(f"⚠️ DB Sync Warning: {e}")
 
 @asynccontextmanager
