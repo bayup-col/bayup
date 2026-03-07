@@ -131,11 +131,16 @@ def get_products(db: Session = Depends(get_db), current_user: models.User = Depe
     try:
         return db.query(models.Product).filter(models.Product.owner_id == tid).all()
     except Exception as e:
-        print(f"⚠️ Fallback en /products: {e}")
+        print(f"⚠️ Fallback avanzado en /products: {e}")
         db.rollback()
-        # Fallback SQL plano: Solo campos que existen 100%
-        results = db.execute(text("SELECT id, name, price, status, owner_id FROM products WHERE owner_id = :tid"), {"tid": tid}).all()
-        return [models.Product(id=r.id, name=r.name, price=r.price, status=r.status, owner_id=r.owner_id, variants=[]) for r in results]
+        # Fallback SQL plano recuperando variantes para poder FACTURAR
+        prods = db.execute(text("SELECT id, name, price, status, owner_id FROM products WHERE owner_id = :tid"), {"tid": tid}).all()
+        output = []
+        for p in prods:
+            vars_raw = db.execute(text("SELECT id, name, sku, stock, price FROM product_variants WHERE product_id = :pid"), {"pid": p.id}).all()
+            variants = [models.ProductVariant(id=v.id, name=v.name, sku=v.sku, stock=v.stock, price=v.price) for v in vars_raw]
+            output.append(models.Product(id=p.id, name=p.name, price=p.price, status=p.status, owner_id=p.owner_id, variants=variants))
+        return output
 
 @app.post("/products", response_model=schemas.Product)
 def create_product(product_in: schemas.ProductCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
@@ -156,11 +161,16 @@ def read_orders(db: Session = Depends(get_db), current_user: models.User = Depen
     try:
         return db.query(models.Order).filter(models.Order.tenant_id == tid).all()
     except Exception as e:
-        print(f"⚠️ Fallback en /orders: {e}")
+        print(f"⚠️ Fallback avanzado en /orders: {e}")
         db.rollback()
-        # Fallback SQL plano: Solo campos que existen 100%
-        results = db.execute(text("SELECT id, total_price, status, created_at, customer_name, tenant_id FROM orders WHERE tenant_id = :tid"), {"tid": tid}).all()
-        return [models.Order(id=r.id, total_price=r.total_price, status=r.status, created_at=r.created_at, customer_name=r.customer_name, tenant_id=r.tenant_id, items=[]) for r in results]
+        # Fallback SQL plano para ver el HISTORIAL de ventas
+        ords = db.execute(text("SELECT id, total_price, status, created_at, customer_name, tenant_id FROM orders WHERE tenant_id = :tid"), {"tid": tid}).all()
+        output = []
+        for o in ords:
+            items_raw = db.execute(text("SELECT id, product_variant_id, quantity, price_at_purchase FROM order_items WHERE order_id = :oid"), {"oid": o.id}).all()
+            items = [models.OrderItem(id=i.id, product_variant_id=i.product_variant_id, quantity=i.quantity, price_at_purchase=i.price_at_purchase) for i in items_raw]
+            output.append(models.Order(id=o.id, total_price=o.total_price, status=o.status, created_at=o.created_at, customer_name=o.customer_name, tenant_id=o.tenant_id, items=items))
+        return output
 
 @app.post("/orders", response_model=schemas.Order)
 def process_sale(order_in: schemas.OrderCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
