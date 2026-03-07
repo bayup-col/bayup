@@ -311,7 +311,12 @@ export default function GeneralSettings() {
                 </button>
                 <AnimatePresence>
                     {isOpen && (
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-gray-100 z-50 overflow-hidden p-2">
+                        <motion.div 
+                            initial={{ opacity: 0, y: 10 }} 
+                            animate={{ opacity: 1, y: 0 }} 
+                            exit={{ opacity: 0, y: 10 }} 
+                            className="absolute left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-gray-100 z-[3000] overflow-y-auto max-h-64 p-2 custom-scrollbar"
+                        >
                             {options.map((opt: any) => (
                                 <button key={opt.id} onClick={() => { onChange(opt.id); setIsOpen(false); }} className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all ${value === opt.id ? 'bg-[#004d4d] text-white' : 'hover:bg-gray-50 text-slate-600'}`}>
                                     {opt.icon} <span className="text-xs font-bold ">{opt.label}</span>
