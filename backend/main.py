@@ -34,6 +34,7 @@ def safe_db_init():
                 ("users", "logo_url", "TEXT"), ("users", "phone", "TEXT"),
                 ("users", "shop_slug", "TEXT"), ("users", "is_global_staff", "BOOLEAN DEFAULT FALSE"),
                 ("users", "permissions", "JSONB"), ("users", "owner_id", "UUID"),
+                ("users", "plan_id", "UUID"),
                 ("users", "custom_commission_rate", "FLOAT"),
                 ("orders", "customer_city", "TEXT"), ("orders", "shipping_address", "TEXT"),
                 ("orders", "source", "TEXT DEFAULT 'pos'"), ("orders", "payment_method", "TEXT DEFAULT 'cash'"),
@@ -88,13 +89,21 @@ async def login(request: Request, db: Session = Depends(get_db)):
             raise HTTPException(status_code=401, detail="Credenciales incorrectas")
         
         token = security.create_access_token(data={"sub": user.email})
-        plan = user.plan
+        
+        # Lógica de Plan Resiliente (Fallback Básico si falla la DB)
+        plan_data = {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "settings"]}
+        try:
+            if user.plan:
+                plan_data = {"name": user.plan.name, "modules": user.plan.modules}
+        except Exception:
+            print("⚠️ Advertencia: No se pudo cargar el plan del usuario. Usando fallback Básico.")
+
         return {
             "access_token": token, "token_type": "bearer",
             "user": {
                 "id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, 
                 "shop_slug": user.shop_slug, "logo_url": user.logo_url, "nit": user.nit, "address": user.address,
-                "plan": {"name": plan.name if plan else "Básico", "modules": plan.modules if plan else ["inicio", "facturacion", "pedidos", "productos", "settings"]}
+                "plan": plan_data
             }
         }
     except HTTPException as he: raise he
