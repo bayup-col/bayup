@@ -90,20 +90,17 @@ async def login(request: Request, db: Session = Depends(get_db)):
         
         token = security.create_access_token(data={"sub": user.email})
         
-        # Lógica de Plan Resiliente (Fallback Básico si falla la DB)
-        plan_data = {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "settings"]}
-        try:
-            if user.plan:
-                plan_data = {"name": user.plan.name, "modules": user.plan.modules}
-        except Exception:
-            print("⚠️ Advertencia: No se pudo cargar el plan del usuario. Usando fallback Básico.")
-
+        # Lógica de Plan Ultra-Resiliente
         return {
             "access_token": token, "token_type": "bearer",
             "user": {
-                "id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role, 
-                "shop_slug": user.shop_slug, "logo_url": user.logo_url, "nit": user.nit, "address": user.address,
-                "plan": plan_data
+                "id": str(user.id), 
+                "email": user.email, 
+                "full_name": user.full_name, 
+                "role": user.role, 
+                "shop_slug": user.shop_slug, 
+                "logo_url": user.logo_url,
+                "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "settings"]}
             }
         }
     except HTTPException as he: raise he
