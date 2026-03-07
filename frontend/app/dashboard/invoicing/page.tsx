@@ -219,34 +219,41 @@ export default function InvoicingPage() {
     };
 
     const addToCart = (product: Product, variantsMap?: Record<string, any>, customPrice?: number) => {
-        // 1. Si el producto no tiene variantes configuradas, usamos el ID del producto como fallback 
-        // pero lo ideal es que el backend maneje el caso de producto base.
-        // Por ahora, forzamos que si no hay variantes, se use una estructura compatible.
+        // 1. Unificamos todas las selecciones en un solo ítem coherente
         const selections = variantsMap && Object.keys(variantsMap).length > 0 
             ? Object.values(variantsMap) 
-            : (product.variants?.length ? [product.variants[0]] : [{ id: product.id, name: 'Base', sku: product.sku, price_adjustment: 0 }]);
+            : [];
 
-        selections.forEach((variant: any) => {
-            let finalPrice = customPrice !== undefined 
-                ? customPrice / selections.length 
-                : (customerInfo.type === 'mayorista' ? (product.wholesale_price || product.price) : product.price) + (variant.price_adjustment || 0);
-            
-            const mainImg = Array.isArray(product.image_url) && product.image_url.length > 0 
-                ? product.image_url[0] 
-                : (typeof product.image_url === 'string' ? product.image_url : null);
+        // Construimos descripción unificada: "Producto (Talla: XL, Color: #000)"
+        const variantDesc = selections.length > 0 
+            ? selections.map(v => `${v.name}: ${v.sku}`).join(' / ')
+            : 'Base';
 
-            setInvoiceItems(prev => [...prev, {
-                id: product.id, 
-                variant_id: variant.id, // Este es el product_variant_id que espera el backend
-                name: variant.name === 'Base' ? product.name : `${product.name} (${variant.name}: ${variant.sku})`,
-                price: finalPrice, 
-                quantity: 1, 
-                sku: variant.sku || product.sku, 
-                image: variant.image_url || mainImg
-            }]);
-        });
+        // El precio es el total, no se divide
+        const finalPrice = customPrice !== undefined 
+            ? customPrice 
+            : (customerInfo.type === 'mayorista' ? (product.wholesale_price || product.price) : product.price) 
+              + selections.reduce((acc, v) => acc + (v.price_adjustment || 0), 0);
+        
+        const mainImg = Array.isArray(product.image_url) && product.image_url.length > 0 
+            ? product.image_url[0] 
+            : (typeof product.image_url === 'string' ? product.image_url : null);
+
+        // Usamos el ID de la primera variante como referencia técnica para el backend
+        const primaryVariantId = selections.length > 0 ? selections[0].id : product.id;
+
+        setInvoiceItems(prev => [...prev, {
+            id: product.id, 
+            variant_id: primaryVariantId,
+            name: selections.length === 0 ? product.name : `${product.name} (${variantDesc})`,
+            price: finalPrice, 
+            quantity: 1, 
+            sku: selections.length > 0 ? selections.map(s => s.sku).join('-') : product.sku, 
+            image: selections.length > 0 ? (selections.find(s => s.image_url)?.image_url || mainImg) : mainImg
+        }]);
+
         setSelectedProductForVariant(null);
-        showToast("Añadido ✨", "success");
+        showToast("Producto unificado añadido ✨", "success");
     };
 
     const handleProductClick = (product: Product) => {
@@ -590,7 +597,27 @@ export default function InvoicingPage() {
                                                 ) : invoiceItems.map((item, i) => (
                                                     <tr key={i} className="group hover:bg-gray-50/50 transition-all relative">
                                                         <td className="px-6 py-5">
-                                                            <p className="text-xs font-black text-gray-900 uppercase">{item.name}</p>
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <p className="text-xs font-black text-gray-900 uppercase">{item.name.split('(')[0]}</p>
+                                                                {item.name.includes('(') && (
+                                                                    <div className="flex items-center gap-1.5 bg-gray-100 px-2 py-0.5 rounded-lg">
+                                                                        {item.name.match(/\(([^)]+)\)/)?.[1].split('/').map((part, idx) => {
+                                                                            const cleanPart = part.trim();
+                                                                            const isColor = cleanPart.includes('#');
+                                                                            if (isColor) {
+                                                                                const hex = cleanPart.match(/#[a-fA-F0-9]{6}|#[a-fA-F0-9]{3}/)?.[0];
+                                                                                return (
+                                                                                    <div key={idx} className="flex items-center gap-1">
+                                                                                        <div className="h-3 w-3 rounded-full border border-white shadow-sm" style={{ backgroundColor: hex }} />
+                                                                                        <span className="text-[8px] font-black text-gray-400 uppercase">{cleanPart.split(':')[0]}</span>
+                                                                                    </div>
+                                                                                );
+                                                                            }
+                                                                            return <span key={idx} className="text-[8px] font-black text-gray-500 uppercase">{cleanPart}</span>;
+                                                                        })}
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                             <p className="text-[8px] font-bold text-[#004D4D] tracking-widest">SKU: {item.sku}</p>
                                                         </td>
                                                         <td className="px-4 py-5">
