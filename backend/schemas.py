@@ -54,6 +54,11 @@ class UserUpdate(BaseModel):
 class User(UserBase):
     id: uuid.UUID
     plan: Optional[Plan] = None
+    nit: Optional[str] = None
+    address: Optional[str] = None
+    customer_city: Optional[str] = None
+    shop_slug: Optional[str] = None
+    hours: Optional[str] = None
     bank_accounts: List[dict] = []
     social_links: dict = {}
     whatsapp_lines: List[dict] = []
