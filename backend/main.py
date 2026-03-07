@@ -280,11 +280,36 @@ def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_d
 
 @app.post("/admin/upload-image")
 async def upload_image(file: UploadFile = File(...), current_user: models.User = Depends(security.get_current_user)):
-    fname = f"{uuid.uuid4()}.{file.filename.split('.')[-1]}"
+    # Generar nombre único
+    ext = file.filename.split('.')[-1]
+    fname = f"{uuid.uuid4()}.{ext}"
     fpath = os.path.join(UPLOAD_DIR, fname)
-    with open(fpath, "wb") as buf: shutil.copyfileobj(file.file, buf)
+    
+    # Guardar físicamente
+    with open(fpath, "wb") as buf:
+        shutil.copyfileobj(file.file, buf)
+    
+    # Construir URL absoluta según el entorno
     dom = os.getenv("RAILWAY_PUBLIC_DOMAIN", "localhost:8080")
-    return {"url": f"https://{dom}/uploads/{fname}" if "railway" in dom else f"http://{dom}/uploads/{fname}"}
+    # Si dom no tiene protocolo, se lo ponemos. En Railway suele ser https://...
+    base_url = f"https://{dom}" if "railway" in dom else f"http://{dom}"
+    final_url = f"{base_url}/uploads/{fname}"
+    
+    # AUTO-GUARDADO: Para evitar que el usuario olvide guardar, vinculamos el logo al perfil de inmediato
+    current_user.logo_url = final_url
+    # db = next(get_db()) # No es necesario si ya tenemos la sesión inyectada si fuera el caso, 
+    # pero aquí usaremos una sesión rápida para persistir.
+    from database import SessionLocal
+    db_session = SessionLocal()
+    try:
+        db_user = db_session.query(models.User).filter(models.User.id == current_user.id).first()
+        if db_user:
+            db_user.logo_url = final_url
+            db_session.commit()
+    finally:
+        db_session.close()
+
+    return {"url": final_url}
 
 @app.get("/notifications")
 def get_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
