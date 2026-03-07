@@ -115,22 +115,26 @@ async def login(request: Request, db: Session = Depends(get_db)):
         
         token = security.create_access_token(data={"sub": user.email})
         
-        # LOGIN BLINDADO: Devolvemos todos los campos de persistencia
+        # LECTURA BLINDADA (SQL): Aseguramos traer todo lo que hay en la DB real
+        db.refresh(user)
+        
         return {
             "access_token": token, 
             "token_type": "bearer",
             "user": {
                 "id": str(user.id), 
                 "email": user.email, 
-                "full_name": getattr(user, 'full_name', "Usuario Bayup"), 
-                "role": getattr(user, 'role', "admin_tienda"), 
-                "shop_slug": getattr(user, 'shop_slug', "mi-tienda"), 
+                "full_name": user.full_name, 
+                "role": user.role, 
+                "shop_slug": getattr(user, 'shop_slug', None), 
                 "logo_url": getattr(user, 'logo_url', None),
                 "phone": getattr(user, 'phone', None),
                 "nit": getattr(user, 'nit', None),
                 "address": getattr(user, 'address', None),
                 "customer_city": getattr(user, 'customer_city', None),
                 "country": "Colombia",
+                "hours": getattr(user, 'hours', None),
+                "category": getattr(user, 'category', None),
                 "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]}
             }
         }
@@ -140,24 +144,36 @@ async def login(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Error interno en login")
 
 @app.get("/auth/me")
-def read_me(current_user: models.User = Depends(security.get_current_user)):
-    # Devolvemos un objeto plano con todos los campos de contacto y ubicación de forma segura
-    return {
-        "id": str(current_user.id),
-        "email": current_user.email,
-        "full_name": getattr(current_user, 'full_name', "Usuario Bayup"),
-        "role": getattr(current_user, 'role', "admin_tienda"),
-        "shop_slug": getattr(current_user, 'shop_slug', "mi-tienda"),
-        "logo_url": getattr(current_user, 'logo_url', None),
-        "phone": getattr(current_user, 'phone', None),
-        "nit": getattr(current_user, 'nit', None),
-        "address": getattr(current_user, 'address', None),
-        "customer_city": getattr(current_user, 'customer_city', None),
-        "country": "Colombia",
-        "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]},
-        "is_global_staff": getattr(current_user, 'is_global_staff', False),
-        "permissions": getattr(current_user, 'permissions', {})
-    }
+def read_me(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
+    # REFRESCO FORZADO: No confiamos en el objeto en caché
+    try:
+        user_fresh = db.query(models.User).filter(models.User.id == current_user.id).first()
+        if not user_fresh: return {}
+        
+        return {
+            "id": str(user_fresh.id),
+            "email": user_fresh.email,
+            "full_name": user_fresh.full_name,
+            "role": user_fresh.role,
+            "shop_slug": getattr(user_fresh, 'shop_slug', ""),
+            "logo_url": getattr(user_fresh, 'logo_url', ""),
+            "phone": getattr(user_fresh, 'phone', ""),
+            "nit": getattr(user_fresh, 'nit', ""),
+            "address": getattr(user_fresh, 'address', ""),
+            "customer_city": getattr(user_fresh, 'customer_city', ""),
+            "country": "Colombia",
+            "hours": getattr(user_fresh, 'hours', ""),
+            "category": getattr(user_fresh, 'category', ""),
+            "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]},
+            "is_global_staff": getattr(user_fresh, 'is_global_staff', False),
+            "permissions": getattr(user_fresh, 'permissions', {}),
+            "social_links": getattr(user_fresh, 'social_links', {}),
+            "whatsapp_lines": getattr(user_fresh, 'whatsapp_lines', []),
+            "bank_accounts": getattr(user_fresh, 'bank_accounts', [])
+        }
+    except Exception as e:
+        print(f"❌ Error en /auth/me: {e}")
+        return {}
 
 # --- [MODULO] PRODUCTOS & STOCK ---
 
