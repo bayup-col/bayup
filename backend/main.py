@@ -90,17 +90,19 @@ async def login(request: Request, db: Session = Depends(get_db)):
         
         token = security.create_access_token(data={"sub": user.email})
         
-        # Lógica de Plan Ultra-Resiliente
+        # LOGIN BLINDADO: Ignoramos la DB para el objeto de respuesta del perfil
+        # Solo usamos la DB para validar el email y la contraseña arriba.
         return {
-            "access_token": token, "token_type": "bearer",
+            "access_token": token, 
+            "token_type": "bearer",
             "user": {
                 "id": str(user.id), 
                 "email": user.email, 
-                "full_name": user.full_name, 
-                "role": user.role, 
-                "shop_slug": user.shop_slug, 
+                "full_name": user.full_name or "Usuario Bayup", 
+                "role": user.role or "admin_tienda", 
+                "shop_slug": user.shop_slug or "mi-tienda", 
                 "logo_url": user.logo_url,
-                "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "settings"]}
+                "plan": {"name": "Básico", "modules": ["inicio", "facturacion", "pedidos", "productos", "envios", "mensajes", "settings"]}
             }
         }
     except HTTPException as he: raise he
