@@ -254,10 +254,24 @@ def public_process_sale(order_in: schemas.OrderCreate, db: Session = Depends(get
 
 # --- [MODULO] ADMINISTRACIÓN ---
 
+@app.get("/admin/messages", response_model=List[schemas.StoreMessage])
+def get_messages(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    tid = current_user.owner_id if current_user.owner_id else current_user.id
+    try:
+        return db.query(models.StoreMessage).filter(models.StoreMessage.tenant_id == tid).order_by(models.StoreMessage.created_at.desc()).all()
+    except Exception as e:
+        print(f"⚠️ Fallback en /admin/messages: {e}")
+        db.rollback()
+        return []
+
 @app.get("/admin/logs", response_model=List[schemas.ActivityLog])
 def read_logs(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     tid = current_user.owner_id if current_user.owner_id else current_user.id
-    return db.query(models.ActivityLog).filter(models.ActivityLog.tenant_id == tid).order_by(models.ActivityLog.created_at.desc()).limit(50).all()
+    try:
+        return db.query(models.ActivityLog).filter(models.ActivityLog.tenant_id == tid).order_by(models.ActivityLog.created_at.desc()).limit(50).all()
+    except Exception:
+        db.rollback()
+        return []
 
 @app.put("/admin/update-profile")
 def update_profile(profile_data: schemas.UserUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
