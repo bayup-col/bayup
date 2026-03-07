@@ -70,6 +70,23 @@ app.add_middleware(
 @app.post("/auth/login")
 async def login(request: Request, db: Session = Depends(get_db)):
     try:
+        # JIT MIGRATION: Reparación de emergencia antes de leer usuario
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS hours TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS category TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS nit TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS customer_city TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS shop_slug TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_url TEXT"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS social_links JSONB"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_lines JSONB"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_accounts JSONB"))
+                conn.commit()
+        except: pass
+
         try: body = await request.json()
         except: 
             form = await request.form()
