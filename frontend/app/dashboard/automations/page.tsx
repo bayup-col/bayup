@@ -87,7 +87,7 @@ const INITIAL_AUTOMATIONS: Automation[] = [
     },
 ];
 
-// Terminal Neural v4.2 - Bayup Interactive
+// Terminal Neural v4.2.1 - Bayup Interactive (Build Stable)
 export default function AutomationsPage() {
     const { showToast } = useToast();
 
