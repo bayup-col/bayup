@@ -66,47 +66,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bayup OS - Platinum Core v1.2.1", lifespan=lifespan)
 
-# --- ESCUDO DE SEGURIDAD (CORS - MANUAL & ROBUSTO) ---
-# Reemplazamos el middleware estándar por uno manual para garantizar headers en errores 500/502
-@app.middleware("http")
-async def add_cors_headers(request: Request, call_next):
-    # Manejo explícito de Preflight (OPTIONS)
-    if request.method == "OPTIONS":
-        response = Response(status_code=204) # No Content
-        origin = request.headers.get("origin")
-        if origin:
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-        else:
-            response.headers["Access-Control-Allow-Origin"] = "*"
-        
-        response.headers["Access-Control-Allow-Methods"] = "POST, GET, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "*"
-        response.headers["Access-Control-Max-Age"] = "86400"
-        return response
-
-    try:
-        response = await call_next(request)
-    except Exception as e:
-        # Si la app falla, capturamos el error pero inyectamos CORS igual
-        print(f"🔥 Error Crítico en Request: {e}")
-        response = Response(content="Internal Server Error", status_code=500)
-
-    origin = request.headers.get("origin")
-    if origin and ("bayup.com" in origin or "railway.app" in origin or "localhost" in origin):
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-    else:
-        # Fallback para desarrollo o herramientas
-        response.headers["Access-Control-Allow-Origin"] = "*"
-    
-    response.headers["Access-Control-Allow-Methods"] = "POST, GET, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    
-    return response
-
-# Eliminamos CORSMiddleware estándar para evitar conflictos
-# app.add_middleware(CORSMiddleware...) 
+# --- ESCUDO DE SEGURIDAD (CORS - STANDARD & FIX) ---
+# Usamos el middleware oficial que es más robusto, pero configurado con Regex para máxima compatibilidad
+app.add_middleware(
+    CORSMiddleware,
+    # Permite cualquier dominio que empiece por https:// (incluye www, railway, etc.)
+    allow_origin_regex="https://.*",
+    # Permite localhost explícitamente para desarrollo
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"]
+)
 
 # --- [MODULO] AUTENTICACIÓN & PERFIL ---
 
