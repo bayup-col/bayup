@@ -228,37 +228,32 @@ export default function GeneralSettings() {
         
         setIsSaving(true);
         try {
-            // Persistencia en Base de Datos (Railway/Supabase)
+            // Persistencia en Base de Datos (Railway/Supabase) con todos los campos detectados
             await apiRequest('/admin/update-profile', {
                 method: 'PUT',
                 token,
                 body: JSON.stringify({
                     full_name: identity.name,
                     logo_url: identity.logo,
+                    email: contact.email, // Sincronizamos el email de soporte
                     phone: contact.phone,
                     shop_slug: contact.shop_slug,
                     nit: contact.nit,
                     address: contact.address,
                     customer_city: contact.city,
+                    country: contact.country,
+                    hours: contact.hours, // Guardamos el horario seleccionado
                     social_links: socialLinks
                 }),
             });
 
-            // Sincronización de Estado Global (Header/Sidebar/Avatar)
+            // Sincronización de Estado Global
             updateUser({
                 name: identity.name,
                 slug: contact.shop_slug,
                 logo: identity.logo || ""
             });
 
-            // Disparo de evento para componentes legacy
-            window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: identity.name }));
-            window.dispatchEvent(new CustomEvent('bayup_logo_update', { detail: identity.logo }));
-            
-            // Persistencia Local de Respaldo
-            localStorage.setItem('bayup_general_settings', JSON.stringify({ identity, contact, socialLinks }));
-            localStorage.setItem('bayup_user_logo', identity.logo || "");
-            
             showToast("¡Configuración guardada y publicada! 🚀", "success");
         } catch (e: any) { 
             showToast(e.message || "Error al sincronizar con el servidor", "error"); 
