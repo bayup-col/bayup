@@ -92,33 +92,33 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className={`h-screen w-full flex overflow-hidden ${theme === 'dark' ? 'bg-[#001212]' : 'bg-[#FAFAFA]'}`}>
+    <div className={`h-screen w-full flex overflow-hidden transition-colors duration-700 ${isSuperAdminZone ? 'bg-[#001212]' : (theme === 'dark' ? 'bg-[#001212]' : 'bg-[#FAFAFA]')}`}>
       <motion.div 
         animate={{ width: isSidebarCollapsed ? 100 : 280 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className={`relative m-4 rounded-[2.8rem] overflow-hidden flex-shrink-0 shadow-2xl border transition-colors ${isSuperAdminZone ? 'bg-[#001A1A] border-white/5' : 'bg-white border-white'}`}
+        className={`relative m-4 rounded-[2.8rem] overflow-hidden flex-shrink-0 shadow-2xl border transition-all duration-500 ${isSuperAdminZone ? 'bg-[#001A1A] border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]' : 'bg-white border-white'}`}
       >
         <aside className="w-full h-full flex flex-col p-4 no-scrollbar relative overflow-x-hidden">
           
           <button 
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
               className={`absolute top-10 right-4 z-50 h-8 w-8 rounded-full border shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-90 opacity-40 hover:opacity-100 ${
-                  isSuperAdminZone ? 'bg-white/10 text-cyan border-white/10' : 'bg-[#004D4D]/10 text-[#004D4D] border-[#004D4D]/10'
+                  isSuperAdminZone ? 'bg-white/10 text-cyan border-white/10 hover:bg-white/20' : 'bg-[#004D4D]/10 text-[#004D4D] border-[#004D4D]/10'
               }`}
           >
               {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
 
           <div className="p-2 mb-6">
-              <div className={`backdrop-blur-md p-4 rounded-[2.2rem] border border-gray-100 flex flex-col items-center text-center transition-all ${isSuperAdminZone ? 'bg-[#004D4D] text-white' : 'bg-gray-50/30'} ${isSidebarCollapsed ? 'aspect-square justify-center' : ''}`}>
+              <div className={`backdrop-blur-md p-4 rounded-[2.2rem] border transition-all duration-500 flex flex-col items-center text-center ${isSuperAdminZone ? 'bg-[#004D4D] border-white/10 text-white shadow-xl' : 'bg-gray-50/30 border-gray-100'} ${isSidebarCollapsed ? 'aspect-square justify-center' : ''}`}>
                   {!isSidebarCollapsed ? (
                       <>
-                        <span className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isSuperAdminZone ? 'text-cyan' : 'text-gray-400'}`}>
+                        <span className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isSuperAdminZone ? 'text-cyan shadow-[0_0_10px_rgba(0,242,255,0.3)]' : 'text-gray-400'}`}>
                             {isSuperAdminZone ? 'Torre de Control' : 'Empresa'}
                         </span>
                         <span className="text-base font-black italic truncate max-w-full mb-4">{isSuperAdminZone ? 'Global Master' : (authName || 'Bayup')}</span>
                         {isSuperAdminZone ? (
-                            <button onClick={() => router.push('/dashboard')} className="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"><ChevronLeft size={12} /> Volver</button>
+                            <button onClick={() => router.push('/dashboard')} className="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 text-white"><ChevronLeft size={12} /> Volver</button>
                         ) : (
                             <motion.button onClick={() => window.open(`${window.location.origin}/shop/${authSlug || 'mi-tienda'}`, '_blank')} whileHover="hover" whileTap={{ scale: 0.98 }} className="relative w-full h-12 flex items-center justify-center p-[2px] overflow-hidden rounded-[1.2rem] group">
                                 <motion.div variants={{ hover: { rotate: [0, 360], scale: 1.5 } }} transition={{ rotate: { duration: 3, repeat: Infinity, ease: "linear" }, scale: { duration: 0.4 } }} className="absolute inset-0 bg-[conic-gradient(from_0deg,rgb(170,185,207)_0%,rgb(0,255,135)_35%,rgb(0,97,255)_92%,rgb(170,185,207)_100%)] opacity-80" />
@@ -130,7 +130,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         )}
                       </>
                   ) : (
-                      <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center shadow-inner">
+                      <div className={`h-10 w-10 rounded-xl flex items-center justify-center shadow-inner ${isSuperAdminZone ? 'bg-white/10' : 'bg-white'}`}>
                           {isSuperAdminZone ? <ShieldCheck size={20} className="text-white" /> : <Store size={20} className="text-[#004d4d]" />}
                       </div>
                   )}
@@ -140,14 +140,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <nav className="flex-1 space-y-2 pb-10">
             {isSuperAdminZone ? (
                 <>
-                    {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-4">Gestión Global</p>}
+                    {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-white/30 uppercase tracking-[0.3em] mb-2 mt-4 italic">Gestión Global</p>}
                     <MenuItem href="/dashboard/super-admin" label="Dashboard" id="sa-dash" icon={<LayoutDashboard size={18} />} />
                     <MenuItem href="/dashboard/super-admin/empresas" label="Empresas" id="sa-stores" icon={<Building2 size={18} />} />
                     <MenuItem href="/dashboard/super-admin/users" label="Usuarios" id="sa-users" icon={<Users size={18} />} />
                     <MenuItem href="/dashboard/super-admin/tesoreria" label="Tesorería" id="sa-money" icon={<Wallet size={18} />} />
                     <MenuItem href="/dashboard/super-admin/soporte" label="Soporte" id="sa-support" icon={<Headset size={18} />} />
                     <MenuItem href="/dashboard/super-admin/web-templates" label="Plantillas Web" id="sa-tpl" icon={<Layout size={18} />} />
-                    {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-8">Infraestructura</p>}
+                    {!isSidebarCollapsed && <p className="px-4 text-[9px] font-black text-white/30 uppercase tracking-[0.3em] mb-2 mt-8 italic">Infraestructura</p>}
                     <MenuItem href="/dashboard/super-admin/apis" label="APIs & Core" id="sa-api" icon={<Code size={18} />} />
                     <MenuItem href="/dashboard/super-admin/observability" label="Sistemas" id="sa-sys" icon={<Activity size={18} />} />
                     <MenuItem href="/dashboard/super-admin/reports" label="Reportes" id="sa-rep" icon={<BarChart3 size={18} />} />
@@ -225,11 +225,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </aside>
       </motion.div>
 
-      <div className="flex-1 flex flex-col min-w-0 relative">
+      <div className={`flex-1 flex flex-col min-w-0 relative transition-colors duration-700 ${isSuperAdminZone ? 'bg-[#001212]' : ''}`}>
         <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
-        <main className={`flex-1 overflow-y-auto p-8 relative ${isSuperAdminZone ? 'bg-[#001212]' : ''}`}>
+        <main className={`flex-1 overflow-y-auto p-8 relative transition-colors duration-700 ${isSuperAdminZone ? 'bg-[#001212]' : ''}`}>
+            {isSuperAdminZone && (
+                <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-[#00f2ff]/5 rounded-full blur-[150px]" />
+                    <div className="absolute bottom-0 left-0 w-[50%] h-[50%] bg-[#004d4d]/10 rounded-full blur-[150px]" />
+                </div>
+            )}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02] pointer-events-none"></div>
-            <div className="max-w-[1600px] mx-auto">{children}</div>
+            <div className="max-w-[1600px] mx-auto relative z-10">{children}</div>
         </main>
       </div>
 
