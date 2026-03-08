@@ -22,8 +22,8 @@ export default function BayupFamilyLogin() {
         setIsLoading(true);
 
         try {
-            // RED GLOBAL BLINDADA: Forzamos la URL de producción para evitar 404 de variables antiguas
-            const apiBase = "https://bayup-interactive-production.up.railway.app";
+            // NÚCLEO OPERATIVO BAYUP: Sincronización con el motor Platinum Real
+            const apiBase = "https://exciting-optimism-production-4624.up.railway.app";
             
             const formData = new FormData();
             formData.append('username', email.trim().toLowerCase());
