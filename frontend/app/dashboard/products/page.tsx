@@ -598,6 +598,7 @@ export default function ProductsPage() {
                                 <thead><tr className="bg-gray-50/50">{['Producto', 'Estado', 'Stock total', 'Precio unitario', 'Acciones'].map((h, i) => (<th key={i} className="px-10 py-6 text-center text-[10px] font-black text-[#004D4D] tracking-[0.2em]">{h}</th>))}</tr></thead>
                                 <tbody className="divide-y divide-gray-100/50">
                                     {loading ? (<tr><td colSpan={5} className="py-20 text-center"><div className="h-12 w-12 border-4 border-[#004d4d] border-t-cyan rounded-full animate-spin mx-auto" /></td></tr>) : filteredProducts.length === 0 ? (<tr><td colSpan={5} className="py-20 text-center text-gray-300 font-black text-[10px]">Sin artículos</td></tr>) : (
+                                        filteredProducts.map((p) => {
                                             // Lógica Maestra Ultra-Resistente de Bayup para extraer imágenes
                                             const extractUrl = (raw: any): string | null => {
                                                 if (!raw) return null;
@@ -656,7 +657,7 @@ export default function ProductsPage() {
                                                         </div>
                                                     </td>
                                                     <td className="px-10 py-8"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest ${p.status === 'active' ? 'bg-[#004D4D] text-white' : 'bg-gray-100 text-gray-400'}`}>{p.status === 'active' ? 'Activo' : 'Borrador'}</span></td>
-                                                    <td className="px-10 py-8 font-black text-slate-900"><div className="flex flex-col items-center"><span className={p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) <= 5 ? 'text-rose-500' : ''}>{p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0}</span><span className="text-[8px] text-gray-400">unidades</span></div></td>
+                                                    <td className="px-10 py-8 font-black text-slate-900"><div className="flex flex-col items-center"><span className={totalUnits <= 5 ? 'text-rose-500' : ''}>{totalUnits}</span><span className="text-[8px] text-gray-400">unidades</span></div></td>
                                                     <td className="px-10 py-8 font-black text-[#004D4D] text-base"><AnimatedNumber value={p.price} /></td>
                                                     <td className="px-10 py-8"><div className="flex justify-center gap-2"><button onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/products/${p.id}/edit`); }} className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-[#004D4D] hover:bg-white transition-all flex items-center justify-center"><Edit3 size={16}/></button><button onClick={(e) => { e.stopPropagation(); setProductToDelete(p); }} className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all flex items-center justify-center"><Trash2 size={16}/></button></div></td>
                                                 </tr>
