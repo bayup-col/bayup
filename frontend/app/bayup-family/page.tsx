@@ -22,8 +22,8 @@ export default function BayupFamilyLogin() {
         setIsLoading(true);
 
         try {
-            // Sincronización dinámica de la Red Global
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://bayup-interactive-production.up.railway.app";
+            // RED GLOBAL BLINDADA: Forzamos la URL de producción para evitar 404 de variables antiguas
+            const apiBase = "https://bayup-interactive-production.up.railway.app";
             
             const formData = new FormData();
             formData.append('username', email.trim().toLowerCase());
