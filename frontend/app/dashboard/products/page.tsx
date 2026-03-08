@@ -598,20 +598,22 @@ export default function ProductsPage() {
                                 <thead><tr className="bg-gray-50/50">{['Producto', 'Estado', 'Stock total', 'Precio unitario', 'Acciones'].map((h, i) => (<th key={i} className="px-10 py-6 text-center text-[10px] font-black text-[#004D4D] tracking-[0.2em]">{h}</th>))}</tr></thead>
                                 <tbody className="divide-y divide-gray-100/50">
                                     {loading ? (<tr><td colSpan={5} className="py-20 text-center"><div className="h-12 w-12 border-4 border-[#004d4d] border-t-cyan rounded-full animate-spin mx-auto" /></td></tr>) : filteredProducts.length === 0 ? (<tr><td colSpan={5} className="py-20 text-center text-gray-300 font-black text-[10px]">Sin artículos</td></tr>) : (
-                                        filteredProducts.map((p) => {
                                             // Lógica Maestra Ultra-Resistente de Bayup para extraer imágenes
                                             const extractUrl = (raw: any): string | null => {
                                                 if (!raw) return null;
-                                                // Si ya es una URL absoluta de Railway/Supabase
+                                                // 1. Caso: URL directa (string)
                                                 if (typeof raw === 'string' && raw.startsWith('http')) return raw;
-                                                // Si viene serializado como JSON
+                                                // 2. Caso: Array de imágenes
+                                                if (Array.isArray(raw) && raw.length > 0) return raw[0];
+                                                // 3. Caso: String JSON o texto sucio
                                                 try {
                                                     let value = raw;
-                                                    if (typeof value === 'string' && value.startsWith('[')) {
-                                                        try { value = JSON.parse(value); } catch (e) { return value; }
+                                                    if (typeof value === 'string' && (value.startsWith('[') || value.startsWith('{'))) {
+                                                        try { value = JSON.parse(value); } catch (e) { return null; }
                                                     }
-                                                    if (Array.isArray(value)) return value.length > 0 ? value[0] : null;
+                                                    if (Array.isArray(value) && value.length > 0) return value[0];
                                                     if (typeof value === 'object' && value !== null) return value.url || value.uri || null;
+                                                    if (typeof value === 'string' && value.length > 5) return value;
                                                 } catch (e) { return null; }
                                                 return null;
                                             };
