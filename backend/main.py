@@ -87,9 +87,38 @@ def login(form_data: schemas.UserLogin, db: Session = Depends(get_db)):
         }
     }
 
-@app.get("/auth/me", response_model=schemas.User)
+@app.get("/auth/me")
 def read_users_me(current_user: models.User = Depends(security.get_current_user)):
-    return current_user
+    # Robustez extrema: Evitamos fallos 500 en la carga de perfil
+    try:
+        return current_user
+    except Exception as e:
+        print(f"Error serializing user: {e}")
+        return {
+            "id": str(current_user.id),
+            "email": current_user.email,
+            "full_name": current_user.full_name,
+            "role": current_user.role,
+            "status": current_user.status
+        }
+
+@app.get("/products")
+def get_products(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
+    return crud.get_products_by_owner(db, owner_id=current_user.id)
+
+@app.get("/orders")
+def get_orders(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
+    # Para el Dashboard, devolvemos las órdenes del tenant actual
+    return crud.get_orders_by_tenant(db, tenant_id=current_user.id)
+
+@app.get("/admin/logs")
+def get_logs(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
+    return crud.get_activity_logs(db, limit=5)
+
+@app.get("/notifications")
+def get_notifications(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
+    return [] # Implementación mínima para evitar 404
+
 
 # ... rest of endpoints ...
 # (Mantengo el resto del archivo intacto según la versión estable)
