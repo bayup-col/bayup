@@ -46,38 +46,12 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // URL MAESTRA ÚNICA (CONFIRMADA POR RADAR)
-      const apiBase = "https://exciting-optimism-production-4624.up.railway.app";
-      
-      console.log("🚀 Bayup Core: Accediendo a Producción en:", apiBase);
-      
-      const response = await fetch(`${apiBase}/auth/login`, {
+      // USAMOS EL CLIENTE CENTRALIZADO (YA REPARADO) PARA EVITAR HARDCODEO
+      const data = await apiRequest<any>('/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email, password: password }),
       });
 
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        let detail = errorData.detail;
-        
-        // Manejo robusto de errores para evitar [object Object]
-        if (Array.isArray(detail)) {
-          detail = detail.map(d => d.msg).join(", ");
-        } else if (typeof detail === 'object') {
-          detail = JSON.stringify(detail);
-        }
-
-        if (detail === "Incorrect email or password" || detail === "Credenciales inválidas") {
-          detail = "Correo o contraseña incorrectos";
-        } else if (!detail) {
-          detail = "Error al iniciar sesión";
-        }
-        throw new Error(detail);
-      }
-
-      const data = await response.json();
       const userData = data.user;
       
       if (!userData) {

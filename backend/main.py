@@ -53,9 +53,10 @@ app = FastAPI(title="Bayup OS - Platinum Core v2.1", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False, # Requerido para permitir "*"
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # --- ENDPOINTS CORE ---
