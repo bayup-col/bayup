@@ -117,7 +117,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           
           <button 
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className={`absolute top-10 right-4 z-50 h-8 w-8 rounded-full border shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-90 opacity-40 hover:opacity-100 ${
+              className={`absolute top-10 right-4 z-50 h-8 w-8 rounded-full border shadow-lg flex items-center justify-center transition-all duration-700 hover:scale-110 active:scale-90 ${isAnyModalOpen ? 'opacity-0 pointer-events-none scale-0' : 'opacity-40 hover:opacity-100 scale-100'} ${
                   isSuperAdminZone ? 'bg-white/10 text-cyan border-white/10 hover:bg-white/20' : 'bg-[#004D4D]/10 text-[#004D4D] border-[#004D4D]/10'
               }`}
           >
