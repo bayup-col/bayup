@@ -77,7 +77,11 @@ def login(form_data: schemas.UserLogin, db: Session = Depends(get_db)):
             "role": user.role,
             "is_global_staff": user.is_global_staff,
             "permissions": user.permissions or {},
-            "plan": user.plan,
+            "plan": {
+                "id": str(user.plan.id),
+                "name": user.plan.name,
+                "commission_rate": user.plan.commission_rate
+            } if user.plan else None,
             "shop_slug": user.shop_slug,
             "logo_url": user.logo_url
         }
