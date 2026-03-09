@@ -9,6 +9,7 @@ import { Lock, Mail, Loader2, Ghost, Home, ArrowLeft, Send, Eye, EyeOff, CheckCi
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { apiRequest } from '@/lib/api';
 
 const FloatingParticlesBackground = dynamic(
   () => import("@/components/landing/FloatingParticlesBackground").then((mod) => mod.FloatingParticlesBackground),
