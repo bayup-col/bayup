@@ -107,13 +107,42 @@ def create_product(db: Session, product: schemas.ProductCreate, owner_id: uuid.U
     return db_product
 
 def update_product(db: Session, db_product: models.Product, product: schemas.ProductCreate) -> models.Product:
+    """
+    Actualización INTELIGENTE de productos para Bayup. 
+    Mantiene la integridad de variantes y asegura el guardado de cambios.
+    """
+    # 1. Actualizar campos base del producto
     update_data = product.dict(exclude={"variants"})
     for key, value in update_data.items():
         setattr(db_product, key, value)
-    db.query(models.ProductVariant).filter(models.ProductVariant.product_id == db_product.id).delete()
-    for v in product.variants:
-        db_variant = models.ProductVariant(**v.dict(), product_id=db_product.id)
-        db.add(db_variant)
+    
+    # 2. Gestión Inteligente de Variantes (UPSERT)
+    # Obtenemos los SKUs actuales para decidir qué actualizar y qué crear
+    existing_variants = {v.sku: v for v in db_product.variants if v.sku}
+    
+    # Procesar las variantes enviadas desde el frontend
+    new_variant_list = []
+    for v_schema in product.variants:
+        if v_schema.sku in existing_variants:
+            # Actualizar variante existente
+            db_v = existing_variants[v_schema.sku]
+            db_v.name = v_schema.name
+            db_v.stock = v_schema.stock
+            db_v.price = v_schema.price
+            db_v.image_url = v_schema.image_url
+            db_v.attributes = v_schema.attributes
+        else:
+            # Crear nueva variante si el SKU no existe
+            db_v = models.ProductVariant(
+                **v_schema.dict(), 
+                product_id=db_product.id,
+                id=uuid.uuid4()
+            )
+            db.add(db_v)
+            
+    # Opcional: Podríamos borrar variantes que ya no vienen en el schema, 
+    # pero por seguridad de historial de ventas en Bayup, las mantenemos o archivamos.
+    
     db.commit()
     db.refresh(db_product)
     return db_product
