@@ -213,10 +213,95 @@ def get_logs(db: Session = Depends(get_db), current_user: models.User = Depends(
     tid = current_user.owner_id if current_user.owner_id else current_user.id
     return db.query(models.ActivityLog).filter(models.ActivityLog.tenant_id == tid).order_by(models.ActivityLog.created_at.desc()).limit(50).all()
 
+import httpx # Para comunicación con el WhatsApp Bridge
+
+# --- [MODULO] MENSAJERÍA & CRM OMNICANAL ---
+
 @app.get("/admin/messages")
-def get_msgs(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+async def get_msgs(db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """
+    Lista los chats activos. Primero intenta traer los de WhatsApp real (Bridge), 
+    luego los mezcla con las consultas web locales.
+    """
     tid = current_user.owner_id if current_user.owner_id else current_user.id
-    return db.query(models.StoreMessage).filter(models.StoreMessage.tenant_id == tid).order_by(models.StoreMessage.created_at.desc()).all()
+    
+    # 1. Traer mensajes locales (Web)
+    local_msgs = db.query(models.StoreMessage).filter(models.StoreMessage.tenant_id == tid).order_by(models.StoreMessage.created_at.desc()).all()
+    
+    # 2. Intentar traer chats de WhatsApp si el bridge está arriba
+    # Nota: El bridge corre en el puerto 8001 (configurado en whatsapp-bridge/index.js)
+    # En producción usaríamos una URL interna de Railway/Docker.
+    whatsapp_chats = []
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get("http://localhost:8001/chats", timeout=2.0)
+            if resp.status_code == 200:
+                whatsapp_chats = resp.json()
+    except: pass # Bridge offline, solo mostramos web
+
+    return {
+        "web_inquiries": local_msgs,
+        "whatsapp_chats": whatsapp_chats
+    }
+
+@app.post("/admin/messages")
+async def create_msg(msg_in: schemas.StoreMessageCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """
+    Envía un mensaje. Si el destino es un número de WhatsApp, intenta enviarlo por el Bridge.
+    """
+    tid = current_user.owner_id if current_user.owner_id else current_user.id
+    
+    # 1. Guardar en Base de Datos Local (Historial Bayup)
+    db_msg = models.StoreMessage(
+        id=uuid.uuid4(),
+        tenant_id=tid,
+        customer_name=msg_in.customer_name,
+        customer_email=msg_in.customer_email,
+        customer_phone=msg_in.customer_phone,
+        message=msg_in.message,
+        status="read" if msg_in.sender_type == "admin" else "unread"
+    )
+    db.add(db_msg)
+    db.commit()
+    
+    # 2. Sinergia Omnicanal: Si es Admin respondiendo y hay teléfono, enviar a WhatsApp
+    if msg_in.sender_type == "admin" and msg_in.customer_phone:
+        try:
+            # Formatear número para WhatsApp (Colombia default +57 si no tiene)
+            phone = msg_in.customer_phone
+            if len(phone) == 10: phone = f"57{phone}"
+            whatsapp_id = f"{phone}@c.us"
+            
+            async with httpx.AsyncClient() as client:
+                await client.post("http://localhost:8001/send", json={
+                    "to": whatsapp_id,
+                    "body": msg_in.message
+                }, timeout=5.0)
+        except Exception as e:
+            print(f"⚠️ Error enviando a WhatsApp: {e}")
+
+    return db_msg
+
+@app.get("/admin/messages/{chat_id}")
+async def get_chat_history(chat_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+    """
+    Obtiene el historial detallado de una conversación específica.
+    """
+    # Si el chat_id contiene '@c.us', es de WhatsApp Real
+    if "@c.us" in chat_id:
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(f"http://localhost:8001/chats/{chat_id}/messages", timeout=5.0)
+                if resp.status_code == 200:
+                    return resp.json()
+        except: return []
+    
+    # De lo contrario, buscar en la base de datos local (Web Inquiries)
+    tid = current_user.owner_id if current_user.owner_id else current_user.id
+    return db.query(models.StoreMessage).filter(
+        models.StoreMessage.tenant_id == tid,
+        (models.StoreMessage.customer_email == chat_id) | (models.StoreMessage.customer_phone == chat_id)
+    ).order_by(models.StoreMessage.created_at.asc()).all()
 
 # --- [MODULO] PERFIL & GUARDADO (REFORZADO) ---
 

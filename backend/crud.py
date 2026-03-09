@@ -149,20 +149,52 @@ def delete_product(db: Session, product_id: uuid.UUID, owner_id: uuid.UUID) -> b
 
 # --- Order CRUD ---
 def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID, tenant_id: Optional[uuid.UUID] = None) -> models.Order:
+    """
+    Crea una orden con ATOMICIDAD de inventario y validación de Multitenancy.
+    Utiliza SELECT ... FOR UPDATE para evitar sobreventas.
+    """
     subtotal = 0
     items_to_create = []
     actual_tenant_id = tenant_id if tenant_id else customer_id
 
+    # 1. Validación de ítems y bloqueo de stock
     for item in order.items:
-        v = get_product_variant(db, item.product_variant_id)
+        # Bloqueamos la fila de la variante para asegurar que nadie más la toque durante esta transacción
+        v = db.query(models.ProductVariant).filter(
+            models.ProductVariant.id == item.product_variant_id
+        ).with_for_update().first()
+        
         if not v:
-            raise HTTPException(status_code=404, detail="Variante no encontrada")
-        price = v.product.price + v.price_adjustment
-        if order.customer_type == 'mayorista' and v.product.wholesale_price > 0:
-            price = v.product.wholesale_price + v.price_adjustment
+            db.rollback()
+            raise HTTPException(status_code=404, detail="Producto no encontrado")
+            
+        # Validación Quirúrgica de Multitenancy: ¿Esta variante pertenece al comercio actual?
+        product = db.query(models.Product).filter(
+            models.Product.id == v.product_id,
+            models.Product.owner_id == actual_tenant_id
+        ).first()
+        
+        if not product:
+            db.rollback()
+            raise HTTPException(status_code=403, detail="Acceso no autorizado al producto")
+
+        # Verificación de Stock (Protección contra sobreventa)
+        if v.stock < item.quantity:
+            db.rollback()
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Stock insuficiente para {product.name}. Disponible: {v.stock}"
+            )
+
+        # Cálculo de precio (Plan Básico / Mayorista)
+        price = product.price + v.price_adjustment
+        if order.customer_type == 'mayorista' and product.wholesale_price > 0:
+            price = product.wholesale_price + v.price_adjustment
+            
         subtotal += price * item.quantity
-        items_to_create.append({"variant": v, "qty": item.quantity, "price": price})
+        items_to_create.append({"variant": v, "qty": item.quantity, "price": price, "product_name": product.name})
     
+    # 2. Creación de la Orden
     initial_status = "completed" if order.source.lower() == "pos" else "pending"
     db_order = models.Order(
         id=uuid.uuid4(),
@@ -179,8 +211,9 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
         status=initial_status
     )
     db.add(db_order)
-    db.flush()
+    db.flush() # Generamos el ID de la orden sin hacer commit aún
     
+    # 3. Registro de ítems y descuento REAL de stock
     for it in items_to_create:
         db_item = models.OrderItem(
             id=uuid.uuid4(),
@@ -190,14 +223,16 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
             price_at_purchase=it["price"]
         )
         db.add(db_item)
-        it["variant"].stock -= it["qty"]
+        it["variant"].stock -= it["qty"] # Descuento atómico garantizado por with_for_update
 
+    # 4. Upsert de Cliente (Inteligencia de Datos Plan Básico)
     if order.customer_email:
         email_clean = order.customer_email.lower().strip()
         client_record = db.query(models.User).filter(
             models.User.email == email_clean,
             models.User.owner_id == actual_tenant_id
         ).first()
+        
         if client_record:
             client_record.total_spent += subtotal
             client_record.loyalty_points += int(subtotal / 1000)
@@ -219,6 +254,7 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
             )
             db.add(new_client)
 
+    # 5. Lógica de Envío (Sinergia de Módulos)
     if order.source.lower() != "pos":
         db_shipment = models.Shipment(
             id=uuid.uuid4(),
@@ -230,6 +266,7 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
         )
         db.add(db_shipment)
 
+    # 6. Logs y Finanzas (Tesorería Bayup)
     db_log = models.ActivityLog(
         id=uuid.uuid4(),
         user_id=customer_id,
@@ -249,7 +286,7 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
     )
     db.add(db_income)
     
-    db.commit()
+    db.commit() # Todo o nada. Si algo falló antes, el stock no se toca.
     db.refresh(db_order)
     return db_order
 

@@ -92,11 +92,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className={`h-screen w-full flex overflow-hidden transition-colors duration-700 ${isSuperAdminZone ? 'bg-[#001212]' : (theme === 'dark' ? 'bg-[#001212]' : 'bg-[#FAFAFA]')}`}>
+    <div className={`h-screen w-full flex overflow-hidden transition-colors duration-700 ${isSuperAdminZone ? 'bg-[#FAFAFA]' : (theme === 'dark' ? 'bg-[#001212]' : 'bg-[#FAFAFA]')}`}>
       <motion.div 
         animate={{ width: isSidebarCollapsed ? 100 : 280 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className={`relative m-4 rounded-[2.8rem] overflow-hidden flex-shrink-0 shadow-2xl border transition-all duration-500 ${isSuperAdminZone ? 'bg-[#001A1A] border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]' : 'bg-white border-white'}`}
+        className={`relative m-4 rounded-[2.8rem] overflow-hidden flex-shrink-0 shadow-2xl border transition-all duration-500 ${isSuperAdminZone ? 'bg-[#001A1A] border-white/5 shadow-2xl' : 'bg-white border-white'}`}
       >
         <aside className="w-full h-full flex flex-col p-4 no-scrollbar relative overflow-x-hidden">
           
@@ -225,16 +225,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </aside>
       </motion.div>
 
-      <div className={`flex-1 flex flex-col min-w-0 relative transition-colors duration-700 ${isSuperAdminZone ? 'bg-[#001212]' : ''}`}>
+      <div className={`flex-1 flex flex-col min-w-0 relative transition-colors duration-700 ${isSuperAdminZone ? 'bg-[#FAFAFA]' : ''}`}>
         <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
-        <main className={`flex-1 overflow-y-auto p-8 relative transition-colors duration-700 ${isSuperAdminZone ? 'bg-[#001212]' : ''}`}>
+        <main className={`flex-1 overflow-y-auto p-8 relative transition-colors duration-700 ${isSuperAdminZone ? 'bg-[#FAFAFA]' : ''}`}>
             {isSuperAdminZone && (
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-[#00f2ff]/5 rounded-full blur-[150px]" />
-                    <div className="absolute bottom-0 left-0 w-[50%] h-[50%] bg-[#004d4d]/10 rounded-full blur-[150px]" />
+                <div className="absolute inset-0 pointer-events-none opacity-20">
+                    <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-[#00f2ff]/10 rounded-full blur-[150px]" />
                 </div>
             )}
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02] pointer-events-none"></div>
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.01] pointer-events-none"></div>
             <div className="max-w-[1600px] mx-auto relative z-10">{children}</div>
         </main>
       </div>
