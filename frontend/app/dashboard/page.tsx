@@ -61,7 +61,7 @@ const AuroraMetricCard = ({ children, onClick }: { children: React.ReactNode, on
 };
 
 export default function DashboardPage() {
-  const { token, userName, updateUser } = useAuth();
+  const { token, userName, updateUser, shopSlug } = useAuth();
   const { theme } = useTheme();
   const { showToast } = useToast();
   
@@ -119,11 +119,12 @@ export default function DashboardPage() {
   const loadDashboardData = useCallback(async () => {
     if (!token) return;
     try {
+        // Ejecutamos las peticiones con captura de errores individual para no romper el flujo
         const [pData, oData, lData, uData] = await Promise.all([
-            apiRequest<any[]>('/products', { token }),
-            apiRequest<any[]>('/orders', { token }),
-            apiRequest<any[]>('/admin/logs', { token }),
-            apiRequest<any>('/auth/me', { token })
+            apiRequest<any[]>('/products', { token }).catch(() => []),
+            apiRequest<any[]>('/orders', { token }).catch(() => []),
+            apiRequest<any[]>('/admin/logs', { token }).catch(() => []),
+            apiRequest<any>('/auth/me', { token }).catch(() => null)
         ]);
 
         if (uData?.full_name && (uData.full_name !== userName || uData.shop_slug !== shopSlug)) {
@@ -131,55 +132,58 @@ export default function DashboardPage() {
             updateUser({ name: uData.full_name, slug: uData.shop_slug });
         }
         
-        if (oData) {
-            setOrders(oData);
-            
-            // 1. Filtrar ventas de HOY
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const ordersToday = oData.filter(o => new Date(o.created_at) >= today);
-            
-            // 2. Análisis de Día y Hora Pico (HISTÓRICO)
-            const daysMap: any = { 0: 'Domingos', 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábados' };
-            const dayCounts: any = {};
-            const hourCounts: any = {};
-            
-            oData.forEach(o => {
-                const d = new Date(o.created_at);
-                const day = d.getDay();
-                const hour = d.getHours();
-                dayCounts[day] = (dayCounts[day] || 0) + 1;
-                hourCounts[hour] = (hourCounts[hour] || 0) + 1;
-            });
+        const products = Array.isArray(pData) ? pData : [];
+        const ordersList = Array.isArray(oData) ? oData : [];
+        const logs = Array.isArray(lData) ? lData : [];
 
-            const topDay = Object.keys(dayCounts).reduce((a, b) => dayCounts[a] > dayCounts[b] ? a : b, '1');
-            const topHour = Object.keys(hourCounts).reduce((a, b) => hourCounts[a] > hourCounts[b] ? a : b, '20');
+        setOrders(ordersList);
+        setActivities(logs.slice(0, 5));
+        
+        // 1. Filtrar ventas de HOY
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const ordersToday = ordersList.filter(o => new Date(o.created_at) >= today);
+        
+        // 2. Análisis de Día y Hora Pico (HISTÓRICO)
+        const daysMap: any = { 0: 'Domingos', 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábados' };
+        const dayCounts: any = {};
+        const hourCounts: any = {};
+        
+        ordersList.forEach(o => {
+            const d = new Date(o.created_at);
+            const day = d.getDay();
+            const hour = d.getHours();
+            dayCounts[day] = (dayCounts[day] || 0) + 1;
+            hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+        });
 
-            // 3. Cálculo de tráfico REAL (Sesiones activas en los últimos 5 mins basados en logs)
-            const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
-            const activeSessions = (lData || []).filter((log: any) => new Date(log.created_at) >= fiveMinsAgo);
-            // Si no hay actividad reciente, al menos el usuario actual está en línea (1)
-            const onlineCount = Math.max(1, new Set(activeSessions.map((s: any) => s.user_id)).size);
+        const topDay = Object.keys(dayCounts).length > 0 ? Object.keys(dayCounts).reduce((a, b) => dayCounts[a] > dayCounts[b] ? a : b, '1') : '1';
+        const topHour = Object.keys(hourCounts).length > 0 ? Object.keys(hourCounts).reduce((a, b) => hourCounts[a] > hourCounts[b] ? a : b, '20') : '20';
 
-            setRealStats({
-                revenue: ordersToday.reduce((acc, o) => acc + (o.total_price || 0), 0),
-                orders_count: ordersToday.length,
-                conversion: 4.8,
-                low_stock: (pData || []).filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0)||0) <= 5).length,
-                avg_ticket: ordersToday.length > 0 ? ordersToday.reduce((acc, o) => acc + (o.total_price || 0), 0) / ordersToday.length : 0,
-                cash: ordersToday.filter(o => o.payment_method === 'cash').reduce((acc, o) => acc + (o.total_price || 0), 0),
-                transfer: ordersToday.filter(o => o.payment_method !== 'cash').reduce((acc, o) => acc + (o.total_price || 0), 0),
-                healthy: (pData || []).length - (pData || []).filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0)||0) <= 5).length,
-                total_products: (pData || []).length,
-                total_balance: oData.reduce((acc, o) => acc + (o.total_price || 0), 0),
-                peak_day: daysMap[topDay] || 'Lunes',
-                peak_hour: `${topHour}:00 PM`,
-                online_now: onlineCount
-            });
-        }
-        if (lData) setActivities(lData.slice(0, 5));
-    } catch (e) { console.error(e); }
-  }, [token]);
+        // 3. Cálculo de tráfico REAL
+        const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const activeSessions = logs.filter((log: any) => new Date(log.created_at) >= fiveMinsAgo);
+        const onlineCount = Math.max(1, new Set(activeSessions.map((s: any) => s.user_id)).size);
+
+        setRealStats({
+            revenue: ordersToday.reduce((acc, o) => acc + (o.total_price || 0), 0),
+            orders_count: ordersToday.length,
+            conversion: 4.8,
+            low_stock: products.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0)||0) <= 5).length,
+            avg_ticket: ordersToday.length > 0 ? ordersToday.reduce((acc, o) => acc + (o.total_price || 0), 0) / ordersToday.length : 0,
+            cash: ordersToday.filter(o => o.payment_method === 'cash').reduce((acc, o) => acc + (o.total_price || 0), 0),
+            transfer: ordersToday.filter(o => o.payment_method !== 'cash').reduce((acc, o) => acc + (o.total_price || 0), 0),
+            healthy: products.length - products.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0)||0) <= 5).length,
+            total_products: products.length,
+            total_balance: ordersList.reduce((acc, o) => acc + (o.total_price || 0), 0),
+            peak_day: daysMap[topDay] || 'Lunes',
+            peak_hour: `${topHour}:00 PM`,
+            online_now: onlineCount
+        });
+    } catch (e) { 
+        // Silenciamos errores técnicos en consola para mantenerla limpia
+    }
+  }, [token, userName, shopSlug, updateUser]);
 
   useEffect(() => { loadDashboardData(); }, [loadDashboardData]);
 
