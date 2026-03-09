@@ -47,7 +47,10 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
         }
         return await response.json();
     } catch (error: any) {
-        console.error(`[API] Fallo en ${endpoint}:`, error.message);
+        // En producción, silenciamos los errores 404 de servicios opcionales para mantener la consola limpia
+        if (!error.message?.includes('Error 404')) {
+            console.error(`[API] Fallo en ${endpoint}:`, error.message);
+        }
         throw error;
     }
 }

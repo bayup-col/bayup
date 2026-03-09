@@ -145,14 +145,16 @@ export default function InvoicingPage() {
 
         // 2. Cargar Categorías (Opcional)
         try {
-            const cRes = await apiRequest<any[]>('/collections', { token });
-            if (cRes) setCategories(['Todas', ...cRes.map((c: any) => c.title)]);
-        } catch (e) { console.error("Error en colecciones:", e); }
+            const cRes = await apiRequest<any[]>('/collections', { token }).catch(() => []);
+            if (cRes && Array.isArray(cRes)) {
+                setCategories(['Todas', ...cRes.map((c: any) => c.title || c.name)]);
+            }
+        } catch (e) { /* Silencio en producción */ }
 
         // 3. Cargar Historial (Operativo)
         try {
-            const oRes = await apiRequest<any[]>('/orders', { token });
-            if (oRes) {
+            const oRes = await apiRequest<any[]>('/orders', { token }).catch(() => []);
+            if (oRes && Array.isArray(oRes)) {
                 console.log(`DEBUG: ${oRes.length} órdenes recibidas.`);
                 const sorted = [...oRes].sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
                 const mapped = sorted.map((o, i) => ({
