@@ -20,6 +20,9 @@ import {
     ResponsiveContainer
 } from 'recharts';
 
+import { useRouter } from 'next/navigation';
+import { useEffect } from "react";
+
 interface MetricDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -48,12 +51,27 @@ const MOCK_CHART_DATA = [
 ];
 
 export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDetailModalProps) {
+  // Lógica de limpieza visual total al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
+
   if (!isOpen || !metric) return null;
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[2000000] flex items-center justify-center p-4 md:p-10">
+        <div className="fixed inset-0 z-[2000000] flex items-center justify-center p-4 md:p-10" data-modal-active="true">
           {/* FONDO OSCURO TOTAL (BLOQUEO DE HEADER) */}
           <motion.div
             initial={{ opacity: 0 }}
