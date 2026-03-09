@@ -49,23 +49,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bayup OS - Platinum Core v2.1", lifespan=lifespan)
 
-# --- CONFIGURACIÓN DE SEGURIDAD (CORS GLOBAL) ---
-origins = [
-    "http://localhost:3000",
-    "http://localhost:8080",
-    "https://bayup.com.co",
-    "https://www.bayup.com.co",
-    "https://bayup-interactive.vercel.app",
-    "https://exciting-optimism-production-4624.up.railway.app",
-]
-
+# --- CONFIGURACIÓN DE SEGURIDAD (CORS UNIVERSAL) ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex="https://.*\.vercel\.app", # Soporte para vistas previas de Vercel
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With"],
+    allow_origins=["*"],
+    allow_credentials=False, # Cambiado a False para permitir allow_origins=["*"]
+    allow_methods=["*"],
+    allow_headers=["*"],
     expose_headers=["*"]
 )
 

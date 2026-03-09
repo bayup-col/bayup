@@ -46,8 +46,6 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
     const config: RequestInit = {
         ...customConfig,
         headers,
-        mode: 'cors', // Forzar modo CORS para evitar bloqueos de preflight
-        credentials: 'omit' // No enviamos cookies, solo el Bearer Token
     };
 
     try {
