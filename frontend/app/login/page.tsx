@@ -79,6 +79,11 @@ export default function LoginPage() {
 
       const data = await response.json();
       const userData = data.user;
+      
+      if (!userData) {
+          throw new Error("Fallo en la carga del perfil. Contacta a soporte Bayup.");
+      }
+
       const isGlobalStaff = userData.is_global_staff || false;
       const userRole = userData.role || 'admin_tienda';
 

@@ -71,7 +71,16 @@ def login(form_data: schemas.UserLogin, db: Session = Depends(get_db)):
     return {
         "access_token": access_token, 
         "token_type": "bearer",
-        "user": user
+        "user": {
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "is_global_staff": user.is_global_staff,
+            "permissions": user.permissions or {},
+            "plan": user.plan,
+            "shop_slug": user.shop_slug,
+            "logo_url": user.logo_url
+        }
     }
 
 @app.get("/auth/me", response_model=schemas.User)
