@@ -354,6 +354,16 @@ export default function InvoicingPage() {
         ];
     }, [history]);
 
+    // Lógica para ocultar Header y Sidebar cuando el POS está activo
+    useEffect(() => {
+        if (isPOSActive) {
+            document.body.classList.add('modal-open');
+        } else {
+            document.body.classList.remove('modal-open');
+        }
+        return () => document.body.classList.remove('modal-open');
+    }, [isPOSActive]);
+
     return (
         <div className="max-w-[1600px] mx-auto space-y-10 pb-20 text-slate-900">
             <AnimatePresence mode="wait">
