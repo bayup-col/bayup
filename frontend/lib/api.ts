@@ -4,10 +4,16 @@ const getApiBaseUrl = () => {
     const PRODUCTION_URL = "https://exciting-optimism-production-4624.up.railway.app";
     
     if (typeof window !== 'undefined') {
-        // En local, usamos siempre el puerto de FastAPI (8000)
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // DETECCIÓN MAESTRA DE ENTORNO LOCAL (DESARROLLO)
+        const isLocal = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1' ||
+                        window.location.hostname.startsWith('192.168.');
+                        
+        if (isLocal) {
+            console.log("🛠️ Bayup Dev: Conectando a Motor Local en Puerto 8000");
             return 'http://localhost:8000';
         }
+        
         // En producción (Vercel/Dominio), usamos Railway
         return PRODUCTION_URL;
     }

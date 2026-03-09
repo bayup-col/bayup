@@ -18,8 +18,8 @@ ENV REBUILD_VERSION=2.6
 # Copiar el código del backend
 COPY . .
 
-# Exponer el puerto 8080 (coincidiendo con la red pública de Railway)
-EXPOSE 8080
+# Exponer el puerto 8000 (coincidiendo con la red local de Bayup)
+EXPOSE 8000
 
-# Comando de inicio: Usamos uvicorn directamente para que Railway detecte el puerto
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Comando de inicio: Usamos uvicorn directamente para que detecte el puerto 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
