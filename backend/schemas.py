@@ -40,6 +40,10 @@ class UserCreate(UserBase):
     password: str
     plan_id: Optional[uuid.UUID] = None
 
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     email: Optional[str] = None
