@@ -314,7 +314,14 @@ export default function NewProductPage() {
 
     return (
         <div className="fixed inset-0 z-[1000] bg-white flex flex-col lg:flex-row overflow-hidden text-slate-900 font-sans">
-            <motion.button whileHover={{ scale: 1.1, rotate: 90 }} onClick={() => router.back()} className="absolute top-8 right-8 z-[1010] h-12 w-12 flex items-center justify-center rounded-full bg-gray-900/10 backdrop-blur-md text-gray-500 shadow-lg"><X size={20} /></motion.button>
+            <motion.button 
+                whileHover={{ scale: 1.1, rotate: 90 }} 
+                whileTap={{ scale: 0.9 }}
+                onClick={() => router.push('/dashboard/products')} 
+                className="absolute top-8 right-8 z-[5000] h-12 w-12 flex items-center justify-center rounded-full bg-gray-900/10 backdrop-blur-md text-gray-500 shadow-lg cursor-pointer hover:bg-gray-900/20 transition-all"
+            >
+                <X size={20} />
+            </motion.button>
 
             <div className="w-full lg:w-[55%] h-full flex flex-col bg-[#FAFAFA] border-r border-gray-100 overflow-y-auto custom-scrollbar p-12 lg:p-20 space-y-12">
                 <header className="flex flex-col md:flex-row items-center justify-between gap-8">
