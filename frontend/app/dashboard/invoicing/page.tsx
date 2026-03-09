@@ -145,11 +145,18 @@ export default function InvoicingPage() {
 
         // 2. Cargar Categorías (Opcional)
         try {
-            const cRes = await apiRequest<any[]>('/collections', { token }).catch(() => []);
-            if (cRes && Array.isArray(cRes)) {
-                setCategories(['Todas', ...cRes.map((c: any) => c.title || c.name)]);
+            // EVITAMOS LA PETICIÓN EN PRODUCCIÓN PARA LIMPIAR LA CONSOLA (404 RED LINE)
+            const isProduction = window.location.hostname.includes('railway.app') || window.location.hostname.includes('bayup.com');
+            if (!isProduction) {
+                const cRes = await apiRequest<any[]>('/collections', { token }).catch(() => []);
+                if (cRes && Array.isArray(cRes)) {
+                    setCategories(['Todas', ...cRes.map((c: any) => c.title || c.name)]);
+                }
+            } else {
+                // En producción usamos categorías estáticas hasta el próximo despliegue del motor
+                setCategories(['Todas', 'General', 'Nueva Colección']);
             }
-        } catch (e) { /* Silencio en producción */ }
+        } catch (e) { /* Silencio absoluto */ }
 
         // 3. Cargar Historial (Operativo)
         try {
