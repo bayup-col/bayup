@@ -50,6 +50,14 @@ export default function NewProductPage() {
     const { token, userPlan } = useAuth();
     const { showToast } = useToast();
     const router = useRouter();
+
+    // Lógica de limpieza visual total al entrar en modo creación
+    useEffect(() => {
+        document.body.classList.add('modal-open');
+        return () => {
+            document.body.classList.remove('modal-open');
+        };
+    }, []);
     
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [activeTab, setActiveTab] = useState<'info' | 'financial' | 'variants'>('info');
