@@ -155,6 +155,12 @@ export default function DashboardPage() {
             const topDay = Object.keys(dayCounts).reduce((a, b) => dayCounts[a] > dayCounts[b] ? a : b, '1');
             const topHour = Object.keys(hourCounts).reduce((a, b) => hourCounts[a] > hourCounts[b] ? a : b, '20');
 
+            // 3. Cálculo de tráfico REAL (Sesiones activas en los últimos 5 mins basados en logs)
+            const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
+            const activeSessions = (lData || []).filter((log: any) => new Date(log.created_at) >= fiveMinsAgo);
+            // Si no hay actividad reciente, al menos el usuario actual está en línea (1)
+            const onlineCount = Math.max(1, new Set(activeSessions.map((s: any) => s.user_id)).size);
+
             setRealStats({
                 revenue: ordersToday.reduce((acc, o) => acc + (o.total_price || 0), 0),
                 orders_count: ordersToday.length,
@@ -168,7 +174,7 @@ export default function DashboardPage() {
                 total_balance: oData.reduce((acc, o) => acc + (o.total_price || 0), 0),
                 peak_day: daysMap[topDay] || 'Lunes',
                 peak_hour: `${topHour}:00 PM`,
-                online_now: Math.floor(Math.random() * 3) + 1 // Simulado hasta tener Storefront Tracker
+                online_now: onlineCount
             });
         }
         if (lData) setActivities(lData.slice(0, 5));
@@ -224,8 +230,8 @@ export default function DashboardPage() {
       showToast("Generando reporte...", "info");
       try {
           const [products, expenses] = await Promise.all([
-              apiRequest<any[]>('/products', { token }),
-              apiRequest<any[]>('/expenses', { token })
+              apiRequest<any[]>('/products', { token }).catch(() => []),
+              apiRequest<any[]>('/expenses', { token }).catch(() => [])
           ]);
           const { generateDailyReport } = await import('@/lib/report-generator');
           await generateDailyReport({ userName: companyName, products: products || [], orders, expenses: expenses || [] });
