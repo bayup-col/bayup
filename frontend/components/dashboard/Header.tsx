@@ -35,6 +35,7 @@ export const DashboardHeader = ({
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [isHoveringUser, setIsHoveringUser] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
+    const [shouldHide, setShouldHide] = useState(false);
     const lastCountRef = useRef(0);
 
     const isSuperAdminZone = pathname?.startsWith('/dashboard/super-admin');
@@ -64,9 +65,7 @@ export const DashboardHeader = ({
                     setNotifications(data);
                 }
             } catch (err: any) { 
-                // Si detectamos un 401 (Sesión no autorizada), detenemos el polling
                 if (err?.message?.includes('401')) {
-                    console.warn("[API] Sesión expirada. Deteniendo notificaciones.");
                     if (intervalId) clearInterval(intervalId);
                 }
             }
@@ -76,6 +75,28 @@ export const DashboardHeader = ({
         intervalId = setInterval(fetchNotifications, 30000);
         return () => { if (intervalId) clearInterval(intervalId); };
     }, [token]);
+
+    // Lógica para ocultar el header si hay modales abiertos
+    useEffect(() => {
+        const checkModal = () => {
+            const hasModal = document.body.classList.contains('modal-open') || 
+                             document.body.style.overflow === 'hidden' ||
+                             !!document.querySelector('[data-modal-active="true"]');
+            setShouldHide(hasModal);
+        };
+
+        const observer = new MutationObserver(checkModal);
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] });
+        
+        // También chequear al montar y en intervalos cortos para mayor seguridad
+        checkModal();
+        const interval = setInterval(checkModal, 500);
+
+        return () => {
+            observer.disconnect();
+            clearInterval(interval);
+        };
+    }, []);
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -96,7 +117,7 @@ export const DashboardHeader = ({
     };
 
     return (
-        <header className="h-24 flex-shrink-0 flex items-center justify-end px-10 sticky top-0 z-[50] pointer-events-auto transition-all duration-500">
+        <header className={`h-24 flex-shrink-0 flex items-center justify-end px-10 sticky top-0 z-[50] pointer-events-auto transition-all duration-700 ${shouldHide ? 'opacity-0 translate-y-[-20px] pointer-events-none' : 'opacity-100 translate-y-0'}`}>
             <div className={`absolute inset-0 -z-10 backdrop-blur-3xl border-b transition-all duration-500 ${
                 isSuperAdminZone ? 'bg-black/20 border-white/5' : (theme === 'dark' ? 'bg-[#001212]/20 border-white/5' : 'bg-white/20 border-white/40')
             }`} />

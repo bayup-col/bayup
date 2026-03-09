@@ -39,6 +39,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isBaytOpen, setIsBaytOpen] = useState(false);
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
+  const [isAnyModalOpen, setIsAnyModalOpen] = useState(false);
+
+  // Monitor inteligente de modales abiertos
+  useEffect(() => {
+    const checkModals = () => {
+      const hasModal = document.body.classList.contains('modal-open') || 
+                       document.body.style.overflow === 'hidden' ||
+                       !!document.querySelector('[data-modal-active="true"]');
+      setIsAnyModalOpen(hasModal);
+    };
+    const observer = new MutationObserver(checkModals);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] });
+    const interval = setInterval(checkModals, 500); // Doble chequeo
+    return () => { observer.disconnect(); clearInterval(interval); };
+  }, []);
 
   const isSuperAdminZone = pathname?.startsWith('/dashboard/super-admin');
 
