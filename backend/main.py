@@ -134,6 +134,19 @@ def get_logs(current_user: models.User = Depends(security.get_current_user), db:
 def get_notifications(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
     return []
 
+@app.get("/collections")
+def get_collections(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
+    return []
+
+@app.get("/expenses")
+def get_expenses(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
+    return []
+
+@app.get("/admin/users")
+def get_admin_users(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
+    # Si es admin de tienda solo se ve a sí mismo o su staff
+    return [current_user]
+
 
 # ... rest of endpoints ...
 # (Mantengo el resto del archivo intacto según la versión estable)
