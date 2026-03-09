@@ -237,11 +237,10 @@ export default function DashboardPage() {
       showToast("Generando periodo...", "info");
       try {
           const [allProducts, allOrders, allExpenses] = await Promise.all([
-              apiRequest<any[]>('/products', { token }),
-              apiRequest<any[]>('/orders', { token }),
-              apiRequest<any[]>('/expenses', { token })
+              apiRequest<any[]>('/products', { token }).catch(() => []),
+              apiRequest<any[]>('/orders', { token }).catch(() => []),
+              apiRequest<any[]>('/expenses', { token }).catch(() => [])
           ]);
-
           const start = new Date(customRange.start);
           const end = new Date(customRange.end);
           end.setHours(23, 59, 59, 999);
