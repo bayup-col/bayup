@@ -68,7 +68,11 @@ def login(form_data: schemas.UserLogin, db: Session = Depends(get_db)):
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Credenciales inválidas")
     access_token = security.create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user": user
+    }
 
 @app.get("/auth/me", response_model=schemas.User)
 def read_users_me(current_user: models.User = Depends(security.get_current_user)):

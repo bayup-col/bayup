@@ -55,7 +55,7 @@ def test_login_success():
     # 1. Registrar
     client.post("/auth/register", json={"email": "login@bayup.com", "password": "password123", "full_name": "User"})
     # 2. Login
-    response = client.post("/auth/login", data={"username": "login@bayup.com", "password": "password123"})
+    response = client.post("/auth/login", json={"email": "login@bayup.com", "password": "password123"})
     assert response.status_code == 200
     assert "access_token" in response.json()
 
@@ -64,7 +64,7 @@ def test_login_success():
 def test_create_product():
     # 1. Auth
     client.post("/auth/register", json={"email": "tienda@bayup.com", "password": "pass", "full_name": "Tienda"})
-    login_res = client.post("/auth/login", data={"username": "tienda@bayup.com", "password": "pass"})
+    login_res = client.post("/auth/login", json={"email": "tienda@bayup.com", "password": "pass"})
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -85,7 +85,7 @@ def test_create_product():
 
 def test_super_admin_access_denied_for_normal_user():
     client.post("/auth/register", json={"email": "normal@bayup.com", "password": "pass", "full_name": "Normal"})
-    login_res = client.post("/auth/login", data={"username": "normal@bayup.com", "password": "pass"})
+    login_res = client.post("/auth/login", json={"email": "normal@bayup.com", "password": "pass"})
     token = login_res.json()["access_token"]
     
     response = client.get("/super-admin/stats", headers={"Authorization": f"Bearer {token}"})

@@ -53,16 +53,27 @@ export default function LoginPage() {
       
       const response = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ username: email, password: password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: password }),
       });
 
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         let detail = errorData.detail;
-        if (detail === "Incorrect email or password") detail = "Correo o contraseña incorrectos";
-        else if (!detail) detail = "Correo o contraseña incorrectos";
+        
+        // Manejo robusto de errores para evitar [object Object]
+        if (Array.isArray(detail)) {
+          detail = detail.map(d => d.msg).join(", ");
+        } else if (typeof detail === 'object') {
+          detail = JSON.stringify(detail);
+        }
+
+        if (detail === "Incorrect email or password" || detail === "Credenciales inválidas") {
+          detail = "Correo o contraseña incorrectos";
+        } else if (!detail) {
+          detail = "Error al iniciar sesión";
+        }
         throw new Error(detail);
       }
 

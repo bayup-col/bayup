@@ -25,16 +25,10 @@ export default function BayupFamilyLogin() {
             // NÚCLEO OPERATIVO BAYUP: Sincronización con el motor Platinum Real
             const apiBase = "https://exciting-optimism-production-4624.up.railway.app";
             
-            const formData = new FormData();
-            formData.append('username', email.trim().toLowerCase());
-            formData.append('password', password);
-
             const response = await fetch(`${apiBase}/auth/login`, {
                 method: 'POST',
-                body: formData,
-                headers: {
-                    'Accept': 'application/json',
-                }
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email.trim().toLowerCase(), password: password }),
             });
 
             if (response.ok) {
@@ -51,12 +45,14 @@ export default function BayupFamilyLogin() {
                     return;
                 }
 
-                login(data.access_token, user.email, user.role, user.permissions, user.plan, true, user.shop_slug, user.name, user.logo_url || "");
+                login(data.access_token, user.email, user.role, user.permissions, user.plan, true, user.shop_slug, user.full_name || user.name, user.logo_url || "");
                 showToast("Acceso concedido. Iniciando sistemas...", "success");
                 router.push('/dashboard/super-admin');
             } else {
                 const errorData = await response.json().catch(() => ({}));
-                showToast(errorData.detail || "Credenciales globales no reconocidas.", "error");
+                let detail = errorData.detail;
+                if (Array.isArray(detail)) detail = detail.map((d: any) => d.msg).join(", ");
+                showToast(detail || "Credenciales globales no reconocidas.", "error");
             }
         } catch (err) {
             console.error("Error de enlace:", err);

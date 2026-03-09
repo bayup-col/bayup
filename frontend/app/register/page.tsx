@@ -110,13 +110,24 @@ function RegisterForm() {
 
       const loginResponse = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ username: formData.email, password: formData.password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, password: formData.password }),
       });
 
       if (loginResponse.ok) {
         const loginData = await loginResponse.json();
-        login(loginData.access_token, formData.email, 'admin_tienda');
+        const userData = loginData.user;
+        login(
+          loginData.access_token, 
+          formData.email, 
+          userData.role || 'admin_tienda',
+          userData.permissions || {},
+          userData.plan || null,
+          userData.is_global_staff || false,
+          userData.shop_slug || "",
+          userData.full_name || "",
+          userData.logo_url || ""
+        );
       }
 
       setTimeout(() => {
