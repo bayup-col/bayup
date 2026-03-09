@@ -126,7 +126,7 @@ export default function DashboardPage() {
             apiRequest<any>('/auth/me', { token })
         ]);
 
-        if (uData?.full_name) {
+        if (uData?.full_name && (uData.full_name !== userName || uData.shop_slug !== shopSlug)) {
             setCompanyName(uData.full_name);
             updateUser({ name: uData.full_name, slug: uData.shop_slug });
         }
