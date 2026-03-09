@@ -56,6 +56,7 @@ origins = [
     "https://bayup.com.co",
     "https://www.bayup.com.co",
     "https://bayup-interactive.vercel.app",
+    "https://exciting-optimism-production-4624.up.railway.app",
 ]
 
 app.add_middleware(
@@ -63,8 +64,8 @@ app.add_middleware(
     allow_origins=origins,
     allow_origin_regex="https://.*\.vercel\.app", # Soporte para vistas previas de Vercel
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With"],
     expose_headers=["*"]
 )
 
