@@ -243,7 +243,7 @@ async def get_msgs(db: Session = Depends(get_db), current_user: models.User = De
     }
 
 @app.post("/admin/messages")
-async def create_msg(msg_in: schemas.StoreMessageCreate, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
+async def create_msg(msg_in: schemas.StoreMessageBase, db: Session = Depends(get_db), current_user: models.User = Depends(security.get_current_user)):
     """
     Envía un mensaje. Si el destino es un número de WhatsApp, intenta enviarlo por el Bridge.
     """
