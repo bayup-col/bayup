@@ -1,14 +1,16 @@
 // Centralized API Client
 const getApiBaseUrl = () => {
-    const envUrl = process.env.NEXT_PUBLIC_API_URL || "";
+    // URL DE PRODUCCIÓN OFICIAL - NUNCA CAMBIAR SIN REVISAR RAILWAY
     const PRODUCTION_URL = "https://exciting-optimism-production-4624.up.railway.app";
     
-    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-        if (!envUrl || (envUrl.includes("railway.app") && !envUrl.includes("exciting-optimism"))) {
+    if (typeof window !== 'undefined') {
+        // Si estamos en producción (Vercel o Dominio Propio), forzamos la URL de Railway
+        if (window.location.hostname !== 'localhost') {
             return PRODUCTION_URL;
         }
     }
-    return envUrl || 'http://localhost:8000';
+    // En local, usamos la variable de entorno o el puerto por defecto
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -20,36 +22,37 @@ interface RequestOptions extends RequestInit {
 export async function apiRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { token, ...customConfig } = options;
     
-    // Construcción limpia de headers
-    const headers = new Headers();
+    // Construcción blindada de headers
+    const headers: Record<string, string> = {};
 
-    // 1. Token de Seguridad
+    // 1. Token de Seguridad (Bearer Standard)
     if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+        headers['Authorization'] = `Bearer ${token}`;
     }
 
     // 2. Inteligencia de Contenido
     const isFormData = customConfig.body instanceof FormData;
     
-    // Si NO es FormData, forzamos JSON. Si ES FormData, NO ponemos nada (El navegador pone el boundary)
+    // Si NO es FormData, forzamos JSON
     if (!isFormData) {
-        headers.set('Content-Type', 'application/json');
+        headers['Content-Type'] = 'application/json';
     }
 
     // Mezclar con headers personalizados si existen
     if (customConfig.headers) {
-        Object.entries(customConfig.headers).forEach(([key, value]) => {
-            headers.set(key, value as string);
-        });
+        Object.assign(headers, customConfig.headers);
     }
 
     const config: RequestInit = {
         ...customConfig,
         headers,
+        mode: 'cors', // Forzar modo CORS para evitar bloqueos de preflight
+        credentials: 'omit' // No enviamos cookies, solo el Bearer Token
     };
 
     try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+        const fullUrl = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+        const response = await fetch(fullUrl, config);
 
         if (!response.ok) {
             if (response.status === 401) {
