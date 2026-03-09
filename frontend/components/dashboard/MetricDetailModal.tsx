@@ -53,14 +53,15 @@ export default function MetricDetailModal({ isOpen, onClose, metric }: MetricDet
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 md:p-10">
-          {/* FONDO OSCURO TOTAL (FIJO E INMERSIVO) */}
+        <div className="fixed inset-0 z-[2000000] flex items-center justify-center p-4 md:p-10">
+          {/* FONDO OSCURO TOTAL (BLOQUEO DE HEADER) */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-[#001A1A]/95 backdrop-blur-2xl"
+            className="fixed inset-0 bg-[#001A1A] backdrop-blur-3xl"
+            style={{ opacity: 0.98 }}
           />
 
           <motion.div
