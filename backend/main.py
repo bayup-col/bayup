@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException, status, Request, File, UploadFile
+from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import os
@@ -9,10 +9,11 @@ import threading
 
 load_dotenv()
 
-# --- IMPORTACIONES DINÁMICAS PARA EVITAR CRASH ---
+# --- IMPORTACIONES CORE ---
 from database import engine, get_db
 import models, crud, security
 
+# Sincronización segura de DB
 def safe_db_init():
     try:
         models.Base.metadata.create_all(bind=engine)
@@ -21,13 +22,14 @@ def safe_db_init():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Inicialización asíncrona para no bloquear el puerto 8080 (Evita Error 502)
+    # Inicialización en segundo plano para evitar Error 502 por timeout
     threading.Thread(target=safe_db_init, daemon=True).start()
     yield
 
-app = FastAPI(title="Bayup OS - Platinum Core v2.1", lifespan=lifespan)
+app = FastAPI(title="Bayup OS Platinum", lifespan=lifespan)
 
-# --- CONFIGURACIÓN DE SEGURIDAD (CORS TOTAL) ---
+# --- CONFIGURACIÓN CORS SUPREMA ---
+# Permitimos absolutamente todo para restaurar el servicio de inmediato
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -37,15 +39,13 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# --- MODELOS DE ENTRADA ---
 class UserLoginRequest(BaseModel):
     email: str
     password: str
 
-# --- ENDPOINTS CORE ---
 @app.get("/")
-def read_root(): 
-    return {"status": "Bayup Core Active", "version": "2.1 Platinum"}
+def read_root():
+    return {"status": "Bayup Core Active", "version": "2.1 Platinum Production"}
 
 @app.post("/auth/login")
 def login(form_data: UserLoginRequest, db: Session = Depends(get_db)):
@@ -76,7 +76,8 @@ def login(form_data: UserLoginRequest, db: Session = Depends(get_db)):
     except HTTPException as he:
         raise he
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"DEBUG: Error en login: {e}")
+        raise HTTPException(status_code=500, detail="Fallo interno en el motor de acceso")
 
 @app.get("/auth/me")
 def read_users_me(current_user: models.User = Depends(security.get_current_user)):
