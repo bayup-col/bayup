@@ -20,19 +20,27 @@ from sqlalchemy import text
 
 # --- User CRUD ---
 def get_user_by_email(db: Session, email: str) -> models.User | None:
-    """Búsqueda ultra-segura mediante SQL plano para evitar fallos de JOIN por columnas faltantes."""
+    """Búsqueda proactiva del usuario incluyendo su plan para evitar fallos en el login."""
     try:
-        # 1. Intentamos obtener solo los datos base del usuario sin relaciones
+        # Intentamos usar el ORM primero para obtener relaciones (Plan)
+        user = db.query(models.User).filter(
+            text("LOWER(email) = :email")
+        ).params(email=email.lower().strip()).first()
+        
+        if user:
+            return user
+            
+        # Fallback: Si el ORM falla por esquema corrupto, intentamos SQL plano básico
         result = db.execute(
-            text("SELECT id, email, full_name, hashed_password, role, status, shop_slug, logo_url FROM users WHERE LOWER(email) = :email"),
+            text("SELECT id, email, full_name, hashed_password, role, status, shop_slug, logo_url, plan_id FROM users WHERE LOWER(email) = :email"),
             {"email": email.lower().strip()}
         ).first()
         
         if not result:
             return None
             
-        # 2. Mapeamos a un objeto de modelo huérfano para que FastAPI/Auth funcione
-        user = models.User(
+        # Creamos un usuario con datos mínimos para permitir el acceso
+        return models.User(
             id=result.id,
             email=result.email,
             full_name=result.full_name,
@@ -40,12 +48,11 @@ def get_user_by_email(db: Session, email: str) -> models.User | None:
             role=result.role,
             status=result.status,
             shop_slug=result.shop_slug,
-            logo_url=result.logo_url
+            logo_url=result.logo_url,
+            plan_id=getattr(result, 'plan_id', None)
         )
-        return user
     except Exception as e:
-        print(f"⚠️ SQL Fallback Triggered for {email}: {e}")
-        # Si incluso el SQL plano falla, es que la tabla está corrupta o no existe
+        print(f"⚠️ Crítico en Búsqueda de Usuario ({email}): {e}")
         return None
 
 def get_user_by_slug(db: Session, slug: str) -> models.User | None:
@@ -216,9 +223,10 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
             )
 
         # Cálculo de precio (Plan Básico / Mayorista)
-        price = product.price + v.price_adjustment
+        # Usamos el precio de la variante si existe, sino el del producto base
+        price = v.price if v.price > 0 else product.price
         if order.customer_type == 'mayorista' and product.wholesale_price > 0:
-            price = product.wholesale_price + v.price_adjustment
+            price = product.wholesale_price
             
         subtotal += price * item.quantity
         items_to_create.append({"variant": v, "qty": item.quantity, "price": price, "product_name": product.name})
@@ -277,7 +285,7 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
                 total_spent=subtotal,
                 loyalty_points=int(subtotal / 1000),
                 last_purchase_date=db_order.created_at,
-                last_purchase_summary=f"Primer registro vía {order.source}",
+                last_purchase_summary = f"Primer registro vía {order.source}",
                 role="cliente",
                 status="Activo"
             )
@@ -319,8 +327,15 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
     db.refresh(db_order)
     return db_order
 
+def get_orders_by_tenant(db: Session, tenant_id: uuid.UUID) -> list[models.Order]:
+    return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).order_by(models.Order.created_at.desc()).all()
+
+def get_activity_logs(db: Session, limit: int = 10) -> list[models.ActivityLog]:
+    return db.query(models.ActivityLog).order_by(models.ActivityLog.created_at.desc()).limit(limit).all()
+
 def get_orders_by_customer(db: Session, customer_id: uuid.UUID) -> list[models.Order]:
     return db.query(models.Order).filter(models.Order.customer_id == customer_id).order_by(models.Order.created_at.desc()).all()
+
 
 # --- Finance CRUD ---
 def create_income(db: Session, income: schemas.IncomeCreate, tenant_id: uuid.UUID) -> models.Income:

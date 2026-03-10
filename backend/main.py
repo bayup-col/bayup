@@ -70,33 +70,35 @@ def login(form_data: schemas.UserLogin, db: Session = Depends(get_db)):
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Credenciales inválidas")
     access_token = security.create_access_token(data={"sub": user.email})
+    
+    # Construcción segura de la respuesta para evitar crash (Error 500/502)
     return {
         "access_token": access_token, 
         "token_type": "bearer",
         "user": {
             "email": user.email,
-            "full_name": user.full_name,
-            "role": user.role,
-            "is_global_staff": user.is_global_staff,
-            "permissions": user.permissions or {},
+            "full_name": getattr(user, 'full_name', ""),
+            "role": getattr(user, 'role', "admin_tienda"),
+            "is_global_staff": getattr(user, 'is_global_staff', False),
+            "permissions": getattr(user, 'permissions', {}) or {},
             "plan": {
                 "id": str(user.plan.id),
                 "name": user.plan.name,
-                "commission_rate": user.plan.commission_rate
-            } if user.plan else None,
-            "shop_slug": user.shop_slug,
-            "logo_url": user.logo_url
+                "commission_rate": getattr(user.plan, 'commission_rate', 0.0)
+            } if getattr(user, 'plan', None) else None,
+            "shop_slug": getattr(user, 'shop_slug', ""),
+            "logo_url": getattr(user, 'logo_url', "")
         }
     }
 
 @app.get("/auth/me")
 def read_users_me(current_user: models.User = Depends(security.get_current_user)):
-    # Conversión explícita a dict para evitar fallos de serialización JSON (Error 500)
+    # Conversión explícita y segura a dict para evitar fallos de serialización JSON
     return {
         "id": str(current_user.id),
         "email": current_user.email,
-        "full_name": current_user.full_name,
-        "role": current_user.role,
+        "full_name": getattr(current_user, 'full_name', ""),
+        "role": getattr(current_user, 'role', "admin_tienda"),
         "is_global_staff": getattr(current_user, 'is_global_staff', False),
         "shop_slug": getattr(current_user, 'shop_slug', ""),
         "logo_url": getattr(current_user, 'logo_url', ""),
@@ -104,7 +106,7 @@ def read_users_me(current_user: models.User = Depends(security.get_current_user)
             "id": str(current_user.plan.id),
             "name": current_user.plan.name
         } if getattr(current_user, 'plan', None) else None,
-        "permissions": getattr(current_user, 'permissions', {})
+        "permissions": getattr(current_user, 'permissions', {}) or {}
     }
 
 @app.get("/products")
