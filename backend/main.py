@@ -42,15 +42,26 @@ def safe_db_init():
                 except: pass
     except: pass
 
+import threading
+
+def run_db_init():
+    """Ejecuta la inicialización de DB en un hilo separado para no bloquear el arranque del motor."""
+    try:
+        safe_db_init()
+        print("✅ Base de Datos Sincronizada en Segundo Plano")
+    except Exception as e:
+        print(f"❌ Error en inicialización de DB: {e}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    safe_db_init()
+    # Iniciamos la inicialización sin bloquear el arranque del servidor (Evita Error 502)
+    threading.Thread(target=run_db_init, daemon=True).start()
     yield
 
 app = FastAPI(title="Bayup OS - Platinum Core v2.1", lifespan=lifespan)
 
 # --- CONFIGURACIÓN DE SEGURIDAD (CORS TOTAL) ---
-# Forzamos la configuración más permisiva para restaurar acceso inmediato en producción
+# REGLA DE ORO: Debe ser lo primero que se configure para evitar bloqueos del navegador
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
