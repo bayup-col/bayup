@@ -64,32 +64,46 @@ app.add_middleware(
 @app.get("/")
 def read_root(): return {"status": "Bayup Core Active", "version": "2.1 Platinum"}
 
+from pydantic import BaseModel
+
+# --- MODELOS DE ENTRADA EXPLÍCITOS ---
+class UserLoginRequest(BaseModel):
+    email: str
+    password: str
+
 @app.post("/auth/login")
-def login(form_data: schemas.UserLogin, db: Session = Depends(get_db)):
-    user = crud.get_user_by_email(db, email=form_data.email)
-    if not user or not security.verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=400, detail="Credenciales inválidas")
-    access_token = security.create_access_token(data={"sub": user.email})
-    
-    # Construcción segura de la respuesta para evitar crash (Error 500/502)
-    return {
-        "access_token": access_token, 
-        "token_type": "bearer",
-        "user": {
-            "email": user.email,
-            "full_name": getattr(user, 'full_name', ""),
-            "role": getattr(user, 'role', "admin_tienda"),
-            "is_global_staff": getattr(user, 'is_global_staff', False),
-            "permissions": getattr(user, 'permissions', {}) or {},
-            "plan": {
-                "id": str(user.plan.id),
-                "name": user.plan.name,
-                "commission_rate": getattr(user.plan, 'commission_rate', 0.0)
-            } if getattr(user, 'plan', None) else None,
-            "shop_slug": getattr(user, 'shop_slug', ""),
-            "logo_url": getattr(user, 'logo_url', "")
+def login(form_data: UserLoginRequest, db: Session = Depends(get_db)):
+    try:
+        user = crud.get_user_by_email(db, email=form_data.email)
+        if not user or not security.verify_password(form_data.password, user.hashed_password):
+            raise HTTPException(status_code=400, detail="Credenciales inválidas")
+        
+        access_token = security.create_access_token(data={"sub": user.email})
+        
+        # Respuesta blindada
+        return {
+            "access_token": access_token, 
+            "token_type": "bearer",
+            "user": {
+                "email": user.email,
+                "full_name": getattr(user, 'full_name', ""),
+                "role": getattr(user, 'role', "admin_tienda"),
+                "is_global_staff": getattr(user, 'is_global_staff', False),
+                "permissions": getattr(user, 'permissions', {}) or {},
+                "plan": {
+                    "id": str(user.plan.id),
+                    "name": user.plan.name,
+                    "commission_rate": getattr(user.plan, 'commission_rate', 0.0)
+                } if getattr(user, 'plan', None) else None,
+                "shop_slug": getattr(user, 'shop_slug', ""),
+                "logo_url": getattr(user, 'logo_url', "")
+            }
         }
-    }
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(f"Login Error: {e}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 @app.get("/auth/me")
 def read_users_me(current_user: models.User = Depends(security.get_current_user)):
