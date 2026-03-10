@@ -47,10 +47,17 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
         }
         return await response.json();
     } catch (error: any) {
-        // En producción, silenciamos los errores 404 de servicios opcionales para mantener la consola limpia
-        if (!error.message?.includes('Error 404')) {
+        // DETECCIÓN MAESTRA DE PRODUCCIÓN: Railway o Dominio Propio
+        const isProduction = typeof window !== 'undefined' && 
+                            (window.location.hostname.includes('railway.app') || 
+                             window.location.hostname.includes('bayup.com'));
+
+        // En producción, silenciamos TODOS los errores de red/API para mantener la consola limpia
+        // Esto es crítico cuando el backend está reiniciando (502) o desplegando (404)
+        if (!isProduction) {
             console.error(`[API] Fallo en ${endpoint}:`, error.message);
         }
+        
         throw error;
     }
 }
