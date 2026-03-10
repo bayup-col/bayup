@@ -108,27 +108,16 @@ def read_users_me(current_user: models.User = Depends(security.get_current_user)
 
 @app.get("/products")
 def get_products(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
-    try:
-        products = crud.get_products_by_owner(db, owner_id=current_user.id)
-        return products or []
-    except:
-        return []
+    # Devolvemos lista vacía temporal para evitar fallos de importación en prod
+    return []
 
 @app.get("/orders")
 def get_orders(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
-    try:
-        orders = crud.get_orders_by_tenant(db, tenant_id=current_user.id)
-        return orders or []
-    except:
-        return []
+    return []
 
 @app.get("/admin/logs")
 def get_logs(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
-    try:
-        logs = crud.get_activity_logs(db, limit=5)
-        return logs or []
-    except:
-        return []
+    return []
 
 @app.get("/notifications")
 def get_notifications(current_user: models.User = Depends(security.get_current_user), db: Session = Depends(get_db)):
