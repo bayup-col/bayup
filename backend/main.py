@@ -50,20 +50,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Bayup OS - Platinum Core v2.1", lifespan=lifespan)
 
 # --- CONFIGURACIÓN DE SEGURIDAD (CORS TOTAL) ---
-origins = [
-    "https://www.bayup.com.co",
-    "https://bayup.com.co",
-    "http://localhost:3000",
-    "http://localhost:8000"
-]
-
+# Forzamos la configuración más permisiva para restaurar acceso inmediato en producción
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Permitir todos temporalmente para restaurar acceso
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
+    expose_headers=["*"],
 )
 
 # --- ENDPOINTS CORE ---
