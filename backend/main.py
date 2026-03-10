@@ -9,27 +9,25 @@ import threading
 
 load_dotenv()
 
-# --- IMPORTACIONES CORE ---
-from database import engine, get_db
-import models, crud, security
-
-# Sincronización segura de DB
-def safe_db_init():
-    try:
-        models.Base.metadata.create_all(bind=engine)
-    except:
-        pass
-
+# --- ARRANQUE SEGURO (SIN IMPORTACIONES CRÍTICAS ARRIBA) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Inicialización en segundo plano para evitar Error 502 por timeout
-    threading.Thread(target=safe_db_init, daemon=True).start()
+    # Inicialización diferida para evitar Error 502 en Railway
+    def init_task():
+        try:
+            from database import engine
+            import models
+            models.Base.metadata.create_all(bind=engine)
+            print("✅ Motor Bayup: Infraestructura Sincronizada")
+        except Exception as e:
+            print(f"⚠️ Motor Bayup: Aviso en arranque: {e}")
+            
+    threading.Thread(target=init_task, daemon=True).start()
     yield
 
 app = FastAPI(title="Bayup OS Platinum", lifespan=lifespan)
 
 # --- CONFIGURACIÓN CORS SUPREMA ---
-# Permitimos absolutamente todo para restaurar el servicio de inmediato
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -45,10 +43,15 @@ class UserLoginRequest(BaseModel):
 
 @app.get("/")
 def read_root():
-    return {"status": "Bayup Core Active", "version": "2.1 Platinum Production"}
+    return {"status": "Active", "version": "2.1 Platinum Production"}
 
 @app.post("/auth/login")
-def login(form_data: UserLoginRequest, db: Session = Depends(get_db)):
+def login(form_data: UserLoginRequest):
+    # Importaciones internas para evitar bloqueos en el arranque
+    from database import SessionLocal
+    import crud, security
+    
+    db = SessionLocal()
     try:
         user = crud.get_user_by_email(db, email=form_data.email)
         if not user or not security.verify_password(form_data.password, user.hashed_password):
@@ -73,24 +76,34 @@ def login(form_data: UserLoginRequest, db: Session = Depends(get_db)):
                 "logo_url": getattr(user, 'logo_url', "")
             }
         }
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        print(f"DEBUG: Error en login: {e}")
-        raise HTTPException(status_code=500, detail="Fallo interno en el motor de acceso")
+    finally:
+        db.close()
 
 @app.get("/auth/me")
-def read_users_me(current_user: models.User = Depends(security.get_current_user)):
-    return {
-        "id": str(current_user.id),
-        "email": current_user.email,
-        "full_name": getattr(current_user, 'full_name', ""),
-        "role": getattr(current_user, 'role', "admin_tienda"),
-        "is_global_staff": getattr(current_user, 'is_global_staff', False),
-        "shop_slug": getattr(current_user, 'shop_slug', ""),
-        "logo_url": getattr(current_user, 'logo_url', ""),
-        "permissions": getattr(current_user, 'permissions', {}) or {}
-    }
+def read_users_me(request: Request):
+    import security
+    from database import SessionLocal
+    
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="No token")
+        
+    token = auth_header.split(" ")[1]
+    db = SessionLocal()
+    try:
+        current_user = security.get_current_user(db, token)
+        return {
+            "id": str(current_user.id),
+            "email": current_user.email,
+            "full_name": getattr(current_user, 'full_name', ""),
+            "role": getattr(current_user, 'role', "admin_tienda"),
+            "is_global_staff": getattr(current_user, 'is_global_staff', False),
+            "shop_slug": getattr(current_user, 'shop_slug', ""),
+            "logo_url": getattr(current_user, 'logo_url', ""),
+            "permissions": getattr(current_user, 'permissions', {}) or {}
+        }
+    finally:
+        db.close()
 
 @app.get("/products")
 def get_products(): return []
