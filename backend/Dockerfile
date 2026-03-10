@@ -10,10 +10,10 @@ RUN apt-get update && apt-get install -y \
 # Copiar e instalar dependencias de Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install uvicorn psycopg2-binary python-dotenv
+RUN pip install uvicorn psycopg2-binary python-dotenv python-jose[cryptography] passlib[bcrypt]
 
-# Forzar reconstrucción tras limpieza de Clerk y arreglos de sintaxis
-ENV REBUILD_VERSION=2.6
+# Forzar reconstrucción tras limpieza de dependencias críticas
+ENV REBUILD_VERSION=2.7
 
 # Copiar el código del backend
 COPY . .
