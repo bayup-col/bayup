@@ -285,13 +285,18 @@ export default function ProductsPage() {
                 showToast("Error al cargar productos", "error");
             }
 
-            // Intentamos cargar categorías (colecciones)
+            // Intentamos cargar categorías (colecciones) - PROTECCIÓN PROD
             try {
-                const categoriesData = await apiRequest<any[]>('/collections', { token });
-                setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-                console.log("Categorías cargadas:", categoriesData?.length);
+                const isProduction = window.location.hostname.includes('railway.app') || window.location.hostname.includes('bayup.com');
+                if (!isProduction) {
+                    const categoriesData = await apiRequest<any[]>('/collections', { token }).catch(() => []);
+                    setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+                } else {
+                    // En producción evitamos el error 404 hasta el despliegue del motor
+                    setCategories([]);
+                }
             } catch (cErr) {
-                console.error("Error cargando categorías:", cErr);
+                // Silencio absoluto en producción
             }
 
         } catch (err) {
