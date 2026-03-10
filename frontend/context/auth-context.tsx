@@ -79,17 +79,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.setItem('isGlobalStaff', String(data.is_global_staff));
         }
       }
-    } catch (e) {
-      console.error("Error syncing profile", e);
-    }
-  }, []);
+      } catch (e) {
+      // Sincronización fallida silenciosa: Mantenemos datos locales para estabilidad
+      }
+      }, []);
 
-  useEffect(() => {
-    const loadStorage = async () => {
+      useEffect(() => {
+      const loadStorage = async () => {
       try {
         const storedToken = localStorage.getItem('token');
         const storedEmail = localStorage.getItem('userEmail');
-        
+
         if (storedToken && storedEmail) {
           setToken(storedToken);
           setUserEmail(storedEmail);
@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserNit(localStorage.getItem('userNit'));
           setUserAddress(localStorage.getItem('userAddress'));
           setShopSlug(localStorage.getItem('shopSlug'));
-          
+
           const storedPerms = localStorage.getItem('userPermissions');
           const storedPlan = localStorage.getItem('userPlan');
           const storedIsGlobal = localStorage.getItem('isGlobalStaff');
@@ -108,16 +108,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (storedPlan) setUserPlan(JSON.parse(storedPlan));
           if (storedIsGlobal) setIsGlobalStaff(storedIsGlobal === 'true');
 
-          // Sincronización proactiva con el servidor
+          // Sincronización proactiva con el servidor (Fallo silencioso)
           syncProfile(storedToken);
         }
       } catch (e) {
-        console.error("Error loading auth storage", e);
+        // Error de carga silencioso
       } finally {
         setIsLoading(false);
       }
-    };
-    loadStorage();
+      };    loadStorage();
   }, [syncProfile]);
 
   const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "", logo: string = "", nit: string = "", address: string = "") => {

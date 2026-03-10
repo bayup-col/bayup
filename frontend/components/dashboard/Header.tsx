@@ -51,8 +51,16 @@ export const DashboardHeader = ({
                 return;
             }
             try {
-                const data = await apiRequest<any[]>('/notifications', { token });
-                if (data) {
+                // DETECCIÓN DE PRODUCCIÓN PARA EVITAR RUIDO DE RED
+                const isProduction = window.location.hostname.includes('railway.app') || window.location.hostname.includes('bayup.com');
+                
+                const data = await apiRequest<any[]>('/notifications', { token }).catch(() => {
+                    // Si falla en producción, cancelamos el polling para limpiar la consola
+                    if (isProduction && intervalId) clearInterval(intervalId);
+                    return null;
+                });
+
+                if (data && Array.isArray(data)) {
                     const unread = data.filter((n: any) => !n.is_read).length;
                     
                     if (unread > lastCountRef.current) {
@@ -65,9 +73,7 @@ export const DashboardHeader = ({
                     setNotifications(data);
                 }
             } catch (err: any) { 
-                if (err?.message?.includes('401')) {
-                    if (intervalId) clearInterval(intervalId);
-                }
+                // Silencio total en producción
             }
         };
 
