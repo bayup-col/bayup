@@ -37,31 +37,123 @@
   }
 }
 
-/* Transiciones suaves para el cambio de tema */
-* {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+/* Transiciones de tema solo en elementos de UI — no en todos */
+button, a, input, select, textarea,
+[class*="transition"], [class*="duration"] {
+  transition-property: background-color, border-color, color, opacity, transform;
+  transition-timing-function: ease;
+  transition-duration: 200ms;
 }
 
+/* ============ DARK MODE GLOBAL ============ */
 .dark body {
-  background-color: #001212;
+  background-color: #0A0F0F;
   color: #e2e8f0;
 }
 
-.dark .bg-white {
-  background-color: #001a1a !important;
+/* Fondos blancos y gris claro */
+.dark .bg-white { background-color: #0f1a1a !important; }
+.dark .bg-gray-50 { background-color: #111c1c !important; }
+.dark .bg-gray-50\/30 { background-color: rgba(17,28,28,0.3) !important; }
+.dark .bg-gray-50\/50 { background-color: rgba(17,28,28,0.5) !important; }
+.dark .bg-gray-100 { background-color: #162020 !important; }
+
+/* Glassmorphism: variantes bg-white con opacidad */
+.dark .bg-white\/10 { background-color: rgba(15,26,26,0.10) !important; }
+.dark .bg-white\/20 { background-color: rgba(15,26,26,0.20) !important; }
+.dark .bg-white\/40 { background-color: rgba(15,26,26,0.95) !important; }
+.dark .bg-white\/50 { background-color: rgba(15,26,26,0.95) !important; }
+.dark .bg-white\/60 { background-color: rgba(15,26,26,0.97) !important; }
+.dark .bg-white\/80 { background-color: rgba(15,26,26,0.99) !important; }
+
+/* Glassmorphism: backdrop-blur como red de seguridad
+   Cuando un elemento tiene backdrop-blur Y bg-white/* en dark mode,
+   forzamos el fondo oscuro para evitar el efecto gris plateado */
+.dark [class*="backdrop-blur"].bg-white\/40,
+.dark [class*="backdrop-blur"].bg-white\/50,
+.dark [class*="backdrop-blur"].bg-white\/60,
+.dark [class*="backdrop-blur"].bg-white\/80 {
+  background-color: rgba(15,26,26,0.97) !important;
+  backdrop-filter: blur(12px);
 }
 
-.dark .text-black {
-  color: #f1f5f9 !important;
-}
+/* Tabla thead en dark mode */
+.dark .bg-gray-50\/50 { background-color: rgba(17,28,28,0.5) !important; }
 
-.dark .border-gray-100, 
-.dark .border-gray-200 {
-  border-color: rgba(0, 242, 255, 0.05) !important;
-}
+/* Textos */
+.dark .text-black { color: #f1f5f9 !important; }
+.dark .text-gray-900 { color: #f1f5f9 !important; }
+.dark .text-gray-800 { color: #e2e8f0 !important; }
+.dark .text-gray-700 { color: #cbd5e1 !important; }
+.dark .text-gray-600 { color: #94a3b8 !important; }
+.dark .text-gray-500 { color: #64748b !important; }
+.dark .text-gray-400 { color: #475569 !important; }
 
+/* Bordes */
+.dark .border-gray-50  { border-color: rgba(0,242,255,0.04) !important; }
+.dark .border-gray-100 { border-color: rgba(0,242,255,0.06) !important; }
+.dark .border-gray-200 { border-color: rgba(0,242,255,0.08) !important; }
+
+/* Divisores */
+.dark .divide-gray-50 > * + * { border-color: rgba(0,242,255,0.04) !important; }
+.dark .divide-gray-100 > * + * { border-color: rgba(0,242,255,0.06) !important; }
+
+/* Hovers */
+.dark .hover\:bg-gray-50:hover  { background-color: #162020 !important; }
+.dark .hover\:bg-gray-100:hover { background-color: #1a2828 !important; }
+.dark .hover\:bg-gray-900:hover { background-color: #00f2ff !important; }
+
+/* Sombras dark mode */
 .dark .shadow-sm,
 .dark .shadow-md,
-.dark .shadow-lg {
-  shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7) !important;
+.dark .shadow-lg,
+.dark .shadow-xl {
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.7) !important;
+}
+
+/* ============ LIGHT MODE: CARD VISIBILITY FIX ============ */
+/*
+  Problema: Tailwind shadow-sm = 1px a 5% opacidad → invisible sobre #FAFAFA.
+  shadow-2xl proyecta la sombra 25px hacia abajo (offset vertical) → se desvanece
+  en fondos claros porque el gradiente queda fuera del viewport visual del card.
+  Solución: sombras "envolventes" con blur radial que abrazan el card por todos lados.
+*/
+html:not(.dark) .shadow-sm {
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0, 0, 0, 0.07) !important;
+}
+
+html:not(.dark) .shadow-md {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.11), 0 2px 6px rgba(0, 0, 0, 0.07) !important;
+}
+
+html:not(.dark) .shadow-xl {
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.13), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+html:not(.dark) .shadow-2xl {
+  box-shadow: 0 8px 36px rgba(0, 0, 0, 0.13), 0 3px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* border-gray-100 (#f3f4f6) es más claro que el propio fondo #FAFAFA en algunos casos */
+html:not(.dark) .border-gray-100 {
+  border-color: #d1d5db !important; /* gray-300: borde limpio y bien visible */
+}
+
+html:not(.dark) .divide-gray-100 > * + * {
+  border-color: #e5e7eb !important;
+}
+
+/* bg-gray-50/50 en headers de sección es casi blanco puro — lo hacemos visible */
+html:not(.dark) .bg-gray-50\/50 {
+  background-color: #f1f5f9 !important; /* slate-100: tono neutro-azulado, distinguible */
+}
+
+/* bg-gray-50/30 igual — sólido para que sea distinguible */
+html:not(.dark) .bg-gray-50\/30 {
+  background-color: #f1f5f9 !important; /* slate-100 sólido */
+}
+
+/* shadow-inner (inputs) también es invisible sobre fondo blanco */
+html:not(.dark) .shadow-inner {
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.08), inset 0 1px 3px rgba(0, 0, 0, 0.06) !important;
 }

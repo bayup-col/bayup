@@ -1,26 +1,44 @@
 "use client";
 
 import { useState } from 'react';
-import { 
-    Settings, 
-    Globe, 
-    CreditCard, 
-    Zap, 
-    Coins, 
+import {
+    Settings,
+    Globe,
+    CreditCard,
+    Zap,
+    Coins,
     Palette,
     ShieldCheck,
     Bell,
     Save
 } from 'lucide-react';
+import { useTheme } from '@/context/theme-context';
 
 export default function GlobalSettings() {
+    const { theme } = useTheme();
+
+    // Variables de estilo por tema
+    const textPrimary = theme === 'dark' ? 'text-white/90' : 'text-gray-900';
+    const textSecondary = theme === 'dark' ? 'text-white/50' : 'text-gray-500';
+    const textMuted = theme === 'dark' ? 'text-white/40' : 'text-gray-400';
+    const cardBg = theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white border-gray-100 shadow-sm';
+    const iconBg = theme === 'dark' ? 'bg-white/5 text-white/40' : 'bg-gray-100 text-gray-400';
+    const inputBg = theme === 'dark' ? 'bg-white/[0.06] border-white/10 focus:bg-white/10 focus:border-cyan/30 text-white/80' : 'bg-gray-50 border-gray-200 focus:bg-white focus:border-cyan/30 text-gray-800';
+    const regionChip = theme === 'dark' ? 'bg-white/5 border-white/10 text-white/70 hover:border-cyan/40' : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-cyan/40';
+    const toggleRow = theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-100';
+    const toggleLabel = theme === 'dark' ? 'text-white' : 'text-gray-800';
+    const logoBg1 = theme === 'dark' ? 'bg-white/5 border-white/10 text-white/20' : 'bg-gray-50 border-gray-200 text-gray-300';
+    const logoBg2 = theme === 'dark' ? 'bg-black/40 border-white/10 text-white/20' : 'bg-gray-800 border-gray-600 text-gray-300';
+    const brandingLabel = theme === 'dark' ? 'text-white/40' : 'text-gray-500';
+    const brandingTitle = theme === 'dark' ? 'text-white/80' : 'text-gray-700';
+
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-20 animate-in fade-in duration-700">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tight italic">Configuración Global</h1>
-                    <p className="text-gray-500 mt-1 font-medium">Variables maestras del ecosistema Bayup.</p>
+                    <h1 className={`text-3xl font-black tracking-tight italic ${textPrimary}`}>Configuración Global</h1>
+                    <p className={`mt-1 font-medium ${textSecondary}`}>Variables maestras del ecosistema Bayup.</p>
                 </div>
                 <button className="flex items-center gap-2 px-8 py-4 bg-[#004d4d] text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-[#004d4d]/20 hover:bg-[#003333] transition-all active:scale-95">
                     <Save size={14} /> Guardar Cambios Globales
@@ -30,32 +48,32 @@ export default function GlobalSettings() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left: General Vars */}
                 <div className="lg:col-span-2 space-y-8">
-                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                    <div className={`p-10 rounded-[3rem] border shadow-sm space-y-8 ${cardBg}`}>
                         <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center"><Coins size={24} /></div>
-                            <h2 className="text-xl font-black text-gray-900 tracking-tight">Estructura de Comisiones</h2>
+                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${iconBg}`}><Coins size={24} /></div>
+                            <h2 className={`text-xl font-black tracking-tight ${textPrimary}`}>Estructura de Comisiones</h2>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Comisión Base (%)</label>
-                                <input type="number" defaultValue="5.0" className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-[#004d4d]/20 rounded-2xl outline-none text-sm font-bold transition-all" />
+                                <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${textMuted}`}>Comisión Base (%)</label>
+                                <input type="number" defaultValue="5.0" className={`w-full p-4 border rounded-2xl outline-none text-sm font-bold transition-all ${inputBg}`} />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Comisión Afiliados (%)</label>
-                                <input type="number" defaultValue="0.5" className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-[#004d4d]/20 rounded-2xl outline-none text-sm font-bold transition-all" />
+                                <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${textMuted}`}>Comisión Afiliados (%)</label>
+                                <input type="number" defaultValue="0.5" className={`w-full p-4 border rounded-2xl outline-none text-sm font-bold transition-all ${inputBg}`} />
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+                    <div className={`p-10 rounded-[3rem] border shadow-sm space-y-8 ${cardBg}`}>
                         <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center"><Globe size={24} /></div>
-                            <h2 className="text-xl font-black text-gray-900 tracking-tight">Regiones Soportadas</h2>
+                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${iconBg}`}><Globe size={24} /></div>
+                            <h2 className={`text-xl font-black tracking-tight ${textPrimary}`}>Regiones Soportadas</h2>
                         </div>
                         <div className="flex flex-wrap gap-4">
                             {['Colombia', 'México', 'España', 'Estados Unidos', 'Ecuador', 'Perú'].map((country) => (
-                                <div key={country} className="flex items-center gap-3 px-6 py-4 bg-gray-50 rounded-2xl border border-gray-100 group cursor-pointer hover:border-[#004d4d] transition-all">
-                                    <span className="text-sm font-bold text-gray-700">{country}</span>
+                                <div key={country} className={`flex items-center gap-3 px-6 py-4 rounded-2xl border group cursor-pointer transition-all ${regionChip}`}>
+                                    <span className="text-sm font-bold">{country}</span>
                                     <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
                                 </div>
                             ))}
@@ -75,13 +93,13 @@ export default function GlobalSettings() {
                         </div>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
-                                <span className="text-[10px] font-black uppercase tracking-widest">Mantenimiento</span>
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${toggleLabel}`}>Mantenimiento</span>
                                 <div className="h-6 w-11 bg-gray-700 rounded-full relative flex items-center px-1">
                                     <div className="h-4 w-4 bg-white rounded-full shadow-sm"></div>
                                 </div>
                             </div>
                             <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
-                                <span className="text-[10px] font-black uppercase tracking-widest">Nuevos Registros</span>
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${toggleLabel}`}>Nuevos Registros</span>
                                 <div className="h-6 w-11 bg-emerald-500 rounded-full relative flex items-center justify-end px-1">
                                     <div className="h-4 w-4 bg-white rounded-full shadow-sm"></div>
                                 </div>
@@ -89,16 +107,16 @@ export default function GlobalSettings() {
                         </div>
                     </div>
 
-                    <div className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
+                    <div className={`p-8 rounded-[3rem] border shadow-sm space-y-6 ${cardBg}`}>
                         <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center"><Palette size={20} /></div>
-                            <h2 className="text-lg font-bold text-gray-800">Branding</h2>
+                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${iconBg}`}><Palette size={20} /></div>
+                            <h2 className={`text-lg font-bold ${brandingTitle}`}>Branding</h2>
                         </div>
                         <div className="space-y-4">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Logo Principal (Claro/Oscuro)</p>
+                            <p className={`text-[10px] font-black uppercase tracking-widest ${brandingLabel}`}>Logo Principal (Claro/Oscuro)</p>
                             <div className="flex gap-4">
-                                <div className="h-20 w-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center text-[10px] font-black text-gray-300">LOGO</div>
-                                <div className="h-20 w-20 bg-gray-900 border-2 border-dashed border-white/10 rounded-2xl flex items-center justify-center text-[10px] font-black text-white/20">LOGO</div>
+                                <div className={`h-20 w-20 border-2 border-dashed rounded-2xl flex items-center justify-center text-[10px] font-black ${logoBg1}`}>LOGO</div>
+                                <div className={`h-20 w-20 border-2 border-dashed rounded-2xl flex items-center justify-center text-[10px] font-black ${logoBg2}`}>LOGO</div>
                             </div>
                         </div>
                     </div>

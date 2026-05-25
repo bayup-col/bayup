@@ -1,25 +1,36 @@
 "use client";
 
 import { useState } from 'react';
-import { 
-    Activity, 
-    Server, 
-    Database, 
-    Cloud, 
-    Terminal, 
+import {
+    Activity,
+    Server,
+    Database,
+    Cloud,
+    Terminal,
     AlertCircle,
     Cpu,
     Zap
 } from 'lucide-react';
+import { useTheme } from '@/context/theme-context';
 
 export default function GlobalObservability() {
+    const { theme } = useTheme();
+
+    // Variables de estilo por tema
+    const textPrimary = theme === 'dark' ? 'text-white/90' : 'text-gray-900';
+    const textSecondary = theme === 'dark' ? 'text-white/50' : 'text-gray-500';
+    const textMuted = theme === 'dark' ? 'text-white/40' : 'text-gray-400';
+    const cardBg = theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white border-gray-100 shadow-sm';
+    const iconBg = theme === 'dark' ? 'bg-white/5 text-white/40' : 'bg-gray-100 text-gray-400';
+    const statusBadge = theme === 'dark' ? 'bg-white/[0.08]' : 'bg-gray-100';
+
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-20 animate-in fade-in duration-700">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tight italic">Observabilidad Técnica</h1>
-                    <p className="text-gray-500 mt-1 font-medium">Logs, métricas y estado de la infraestructura en vivo.</p>
+                    <h1 className={`text-3xl font-black tracking-tight italic ${textPrimary}`}>Observabilidad Técnica</h1>
+                    <p className={`mt-1 font-medium ${textSecondary}`}>Logs, métricas y estado de la infraestructura en vivo.</p>
                 </div>
                 <div className="flex gap-3">
                     <button className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl">
@@ -36,18 +47,18 @@ export default function GlobalObservability() {
                     { label: 'Frontend (Vercel)', status: 'Healthy', val: '98ms', icon: <Cloud size={20} />, color: 'text-emerald-500' },
                     { label: 'Worker Queue', status: 'Busy', val: '1,200/s', icon: <Cpu size={20} />, color: 'text-blue-500' },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                    <div key={i} className={`p-6 rounded-[2.5rem] border shadow-sm ${cardBg}`}>
                         <div className="flex justify-between items-start mb-4">
-                            <div className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">{stat.icon}</div>
-                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg bg-gray-50 ${stat.color}`}>{stat.status}</span>
+                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${iconBg}`}>{stat.icon}</div>
+                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg ${statusBadge} ${stat.color}`}>{stat.status}</span>
                         </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">{stat.label}</p>
-                        <h3 className="text-xl font-black text-gray-900">{stat.val}</h3>
+                        <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${textMuted}`}>{stat.label}</p>
+                        <h3 className={`text-xl font-black ${textPrimary}`}>{stat.val}</h3>
                     </div>
                 ))}
             </div>
 
-            {/* Error Logs Console */}
+            {/* Error Logs Console — siempre oscuro por diseño terminal */}
             <div className="bg-[#001111] p-10 rounded-[3rem] shadow-2xl relative overflow-hidden font-mono">
                 <div className="flex justify-between items-center mb-6 text-white/50 border-b border-white/10 pb-6">
                     <div className="flex items-center gap-2">

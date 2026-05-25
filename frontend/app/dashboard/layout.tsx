@@ -41,18 +41,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const [isAnyModalOpen, setIsAnyModalOpen] = useState(false);
 
-  // Monitor inteligente de modales abiertos
+  // Monitor de modales abiertos — solo MutationObserver, sin polling
   useEffect(() => {
     const checkModals = () => {
-      const hasModal = document.body.classList.contains('modal-open') || 
+      const hasModal = document.body.classList.contains('modal-open') ||
                        document.body.style.overflow === 'hidden' ||
                        !!document.querySelector('[data-modal-active="true"]');
       setIsAnyModalOpen(hasModal);
     };
+    checkModals();
     const observer = new MutationObserver(checkModals);
     observer.observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] });
-    const interval = setInterval(checkModals, 500); // Doble chequeo
-    return () => { observer.disconnect(); clearInterval(interval); };
+    return () => observer.disconnect();
   }, []);
 
   const isSuperAdminZone = pathname?.startsWith('/dashboard/super-admin');
@@ -107,11 +107,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className={`h-screen w-full flex overflow-hidden transition-colors duration-700 ${isSuperAdminZone ? 'bg-[#FAFAFA]' : (theme === 'dark' ? 'bg-[#001212]' : 'bg-[#FAFAFA]')}`}>
+    <div className={`h-screen w-full flex overflow-hidden transition-colors duration-700 ${theme === 'dark' ? 'bg-[#001212]' : 'bg-[#FAFAFA]'}`}>
       <motion.div 
         animate={{ width: isSidebarCollapsed ? 100 : 280 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className={`relative m-4 rounded-[2.8rem] overflow-hidden flex-shrink-0 shadow-2xl border transition-all duration-500 ${isSuperAdminZone ? 'bg-[#001A1A] border-white/5 shadow-2xl' : 'bg-white border-white'}`}
+        className={`relative m-4 rounded-[2.8rem] overflow-hidden flex-shrink-0 shadow-2xl border transition-all duration-500 ${isSuperAdminZone ? 'bg-[#001A1A] border-white/5 shadow-2xl' : 'bg-white border-gray-100'}`}
       >
         <aside className="w-full h-full flex flex-col p-4 no-scrollbar relative overflow-x-hidden">
           
@@ -133,16 +133,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         </span>
                         <span className="text-base font-black italic truncate max-w-full mb-4">{isSuperAdminZone ? 'Global Master' : (authName || 'Bayup')}</span>
                         {isSuperAdminZone ? (
-                            <button onClick={() => router.push('/dashboard')} className="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 text-white"><ChevronLeft size={12} /> Volver</button>
-                        ) : (
-                            <motion.button onClick={() => window.open(`${window.location.origin}/shop/${authSlug || 'mi-tienda'}`, '_blank')} whileHover="hover" whileTap={{ scale: 0.98 }} className="relative w-full h-12 flex items-center justify-center p-[2px] overflow-hidden rounded-[1.2rem] group">
+                            <button onClick={() => router.push('/dashboard')} className="w-full py-3 bg-cyan/20 hover:bg-cyan/30 border border-cyan/30 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 text-cyan shadow-[0_0_12px_rgba(0,242,255,0.2)]"><ChevronLeft size={12} /> Panel de Tienda</button>
+                        ) : isGlobalStaff ? (
+                            <button onClick={() => router.push('/dashboard/super-admin')} className="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 text-white"><ShieldCheck size={12} /> Panel Admin</button>
+                        ) : authSlug ? (
+                            <motion.button onClick={() => window.open(`${window.location.origin}/shop/${authSlug}`, '_blank')} whileHover="hover" whileTap={{ scale: 0.98 }} className="relative w-full h-12 flex items-center justify-center p-[2px] overflow-hidden rounded-[1.2rem] group">
                                 <motion.div variants={{ hover: { rotate: [0, 360], scale: 1.5 } }} transition={{ rotate: { duration: 3, repeat: Infinity, ease: "linear" }, scale: { duration: 0.4 } }} className="absolute inset-0 bg-[conic-gradient(from_0deg,rgb(170,185,207)_0%,rgb(0,255,135)_35%,rgb(0,97,255)_92%,rgb(170,185,207)_100%)] opacity-80" />
                                 <div className="relative w-full h-full bg-[#000F26] rounded-[1.1rem] flex items-center justify-center gap-2 px-4 transition-colors group-hover:bg-[#001529]">
                                     <Eye size={14} className="text-[#00FF87] group-hover:scale-110 transition-transform" />
                                     <span className="text-[10px] font-black uppercase tracking-widest text-white">Tienda</span>
                                 </div>
                             </motion.button>
-                        )}
+                        ) : null}
                       </>
                   ) : (
                       <div className={`h-10 w-10 rounded-xl flex items-center justify-center shadow-inner ${isSuperAdminZone ? 'bg-white/10' : 'bg-white'}`}>
@@ -240,9 +242,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </aside>
       </motion.div>
 
-      <div className={`flex-1 flex flex-col min-w-0 relative transition-colors duration-700 ${isSuperAdminZone ? 'bg-[#FAFAFA]' : ''}`}>
-        <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
-        <main className={`flex-1 overflow-y-auto p-8 relative transition-colors duration-700 ${isSuperAdminZone ? 'bg-[#FAFAFA]' : ''}`}>
+      <div className={`flex-1 flex flex-col min-w-0 relative transition-colors duration-700 ${theme === 'dark' ? 'bg-[#001212]' : 'bg-[#FAFAFA]'}`}>
+        <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} isAnyModalOpen={isAnyModalOpen} />
+        <main className={`flex-1 overflow-y-auto p-8 relative transition-colors duration-700 ${theme === 'dark' ? 'bg-[#001212]' : 'bg-[#FAFAFA]'}`}>
             {isSuperAdminZone && (
                 <div className="absolute inset-0 pointer-events-none opacity-20">
                     <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-[#00f2ff]/10 rounded-full blur-[150px]" />
