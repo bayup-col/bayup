@@ -77,3 +77,11 @@
  ✓ Compiled /dashboard/reports/gastos in 3.4s (4330 modules)
  ○ Compiling /dashboard/settings/general ...
  ✓ Compiled /dashboard/settings/general in 4.5s (4349 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 17.3s (2192 modules)
+ GET / 200 in 19437ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 3.7s (2193 modules)
+ ✓ Compiled in 9.1s (4390 modules)
+ ✓ Compiled in 7.2s (4369 modules)
+ GET /dashboard 200 in 1464ms
