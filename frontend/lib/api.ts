@@ -8,6 +8,10 @@ const getApiBaseUrl = () => {
         if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('192.168.')) {
             return 'http://localhost:8000';
         }
+        // Si se accede vía túnel de desarrollo (tunnelmole/localtunnel), usar el backend local expuesto
+        if (hostname.includes('tunnelmole.net') || hostname.includes('loca.lt')) {
+            return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        }
         return PRODUCTION_URL;
     }
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';

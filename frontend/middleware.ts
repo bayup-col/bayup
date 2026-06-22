@@ -8,12 +8,14 @@ export function middleware(request: NextRequest) {
   
   // 1. Lista de dominios que NO son de clientes
   const mainDomains = [
-    "localhost:3000", 
-    "bayup.com", 
-    "www.bayup.com", 
+    "localhost:3000",
+    "bayup.com",
+    "www.bayup.com",
     "bayup.vercel.app",
     "bayup.com.co",
-    "www.bayup.com.co"
+    "www.bayup.com.co",
+    "tunnelmole.net",
+    "loca.lt"
   ];
   
   const isCustomDomain = !mainDomains.some(d => hostname.includes(d));

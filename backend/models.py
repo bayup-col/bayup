@@ -88,7 +88,7 @@ class User(Base):
     # Estandarizado arriba como customer_city para persistencia total
     
     plan_id = Column(GUID(), ForeignKey("plans.id"))
-    plan = relationship("Plan", back_populates="users", lazy="joined")
+    plan = relationship("Plan", back_populates="users", lazy="select")
     products = relationship("Product", back_populates="owner")
     orders = relationship("Order", back_populates="customer", foreign_keys="[Order.customer_id]")
 
@@ -127,12 +127,12 @@ class Order(Base):
     __tablename__ = "orders"
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     customer_id = Column(GUID(), ForeignKey("users.id"))
-    tenant_id = Column(GUID(), ForeignKey("users.id"))
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True)
     total_price = Column(Float)
     commission_amount = Column(Float, default=0.0) # Comisión para Bayup
     commission_rate_snapshot = Column(Float, default=0.0) # Tasa aplicada en ese momento
-    status = Column(String, default="pending")
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    status = Column(String, default="pending", index=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
     tax_rate_id = Column(GUID(), nullable=True)
     tax_rate_snapshot = Column(Float, nullable=True)
     shipping_option_id = Column(GUID(), nullable=True)
@@ -181,9 +181,9 @@ class Expense(Base):
     description = Column(String)
     amount = Column(Float)
     due_date = Column(DateTime)
-    status = Column(String, default="pending")
+    status = Column(String, default="pending", index=True)
     category = Column(String, default="diario")
-    tenant_id = Column(GUID(), ForeignKey("users.id"))
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True)
     invoice_num = Column(String)
     items = Column(JSON)
     description_detail = Column(String)
@@ -299,8 +299,8 @@ class ActivityLog(Base):
     action = Column(String)
     target_id = Column(String, nullable=True)
     detail = Column(String)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    tenant_id = Column(GUID(), ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True)
 
 class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
@@ -330,8 +330,8 @@ class Shipment(Base):
     __tablename__ = "shipments"
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     order_id = Column(GUID(), ForeignKey("orders.id"))
-    tenant_id = Column(GUID(), ForeignKey("users.id"))
-    status = Column(String, default="pending_packing")
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True)
+    status = Column(String, default="pending_packing", index=True)
     recipient_name = Column(String)
     recipient_phone = Column(String, nullable=True)
     destination_address = Column(String)
@@ -342,12 +342,12 @@ class Shipment(Base):
 class Notification(Base):
     __tablename__ = "notifications"
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(GUID(), ForeignKey("users.id"))
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True)
     title = Column(String)
     message = Column(String)
     type = Column(String, default="info")
     is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
 
 class ChannelConnection(Base):
     __tablename__ = "channel_connections"

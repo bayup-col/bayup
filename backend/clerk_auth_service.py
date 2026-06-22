@@ -1,4 +1,5 @@
 import os
+import asyncio
 import requests
 from jose import jwt
 from fastapi import HTTPException, status
@@ -14,7 +15,7 @@ CLERK_JWKS_URL = os.getenv("CLERK_JWKS_URL") # e.g., https://clerk.yourdomain.co
 
 _jwks_cache = None
 
-def get_jwks():
+def _fetch_jwks_sync():
     global _jwks_cache
     if _jwks_cache is None:
         if not CLERK_JWKS_URL:
@@ -29,11 +30,16 @@ def get_jwks():
             return None
     return _jwks_cache
 
+async def get_jwks():
+    # La llamada de red solo ocurre una vez (luego queda cacheada en _jwks_cache),
+    # pero esa primera llamada es bloqueante: se delega a un thread para no congelar el event loop.
+    return await asyncio.to_thread(_fetch_jwks_sync)
+
 async def verify_clerk_token(clerk_token: str) -> Dict:
     """
     Verifica un token JWT emitido por Clerk contra sus claves públicas (JWKS).
     """
-    jwks = get_jwks()
+    jwks = await get_jwks()
     if not jwks:
         # Si no hay JWKS (desarrollo local sin Clerk configurado), lanzamos error
         raise HTTPException(

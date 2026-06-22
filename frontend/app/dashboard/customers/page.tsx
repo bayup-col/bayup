@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
-import { exportCustomersToExcel } from '@/lib/customers-export';
 
 // ── TIPOS ──────────────────────────────────────────────────────────────────
 interface Customer {
@@ -429,6 +428,7 @@ export default function CustomersPage() {
     if (!customers.length) { showToast('No hay clientes para exportar', 'info'); return; }
     try {
       showToast('Generando Excel…', 'info');
+      const { exportCustomersToExcel } = await import('@/lib/customers-export');
       await exportCustomersToExcel(customers, 'Bayup_Clientes');
       showToast('¡Base de datos exportada!', 'success');
     } catch { showToast('Error al generar el archivo', 'error'); }

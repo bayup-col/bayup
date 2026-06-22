@@ -334,7 +334,7 @@ function ShopContent() {
                                 {filteredProducts.map((product: any) => (
                                     <div key={product.id} onClick={() => router.push(`/shop/${slug}?view=product&id=${product.id}`)} className="bg-white rounded-[3.5rem] p-5 border border-gray-100 shadow-sm group cursor-pointer hover:shadow-2xl transition-all duration-500">
                                         <div className="aspect-[4/5] bg-gray-50 rounded-[2.8rem] mb-8 overflow-hidden relative">
-                                            <img src={Array.isArray(product.image_url) ? product.image_url[0] : product.image_url} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                            <img src={Array.isArray(product.image_url) ? product.image_url[0] : product.image_url} loading="lazy" decoding="async" className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                                             <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity"><div className="h-12 w-12 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg"><Eye size={20} className="text-[#004d4d]"/></div></div>
                                         </div>
                                         <div className="px-2 space-y-2">
