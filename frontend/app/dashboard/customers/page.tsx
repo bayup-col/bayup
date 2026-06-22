@@ -1,95 +1,20 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
-import { 
-  Users, 
-  UserPlus, 
-  Search, 
-  Filter, 
-  Download, 
-  TrendingUp, 
-  Target, 
-  Zap, 
-  Activity,
-  ArrowUpRight,
-  ArrowDownRight,
-  ChevronRight,
-  X,
-  Mail,
-  Smartphone,
-  MapPin,
-  Clock,
-  ShieldCheck,
-  Bot,
-  Sparkles,
-  ShoppingBag,
-  DollarSign,
-  Heart,
-  UserCheck,
-  Plus,
-  Save,
-  Loader2,
-  ChevronDown,
-  Store,
-  Globe,
-  Share2,
-  MessageCircle,
-  Navigation
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Users, UserPlus, Search, Download, TrendingUp, DollarSign, Heart,
+  Mail, Phone, MapPin, ShoppingBag, Star, X, Plus, Loader2,
+  ChevronDown, Globe, MessageCircle, Store, Filter, ArrowUpRight,
+  ArrowDownRight, MoreHorizontal, Edit3, Trash2, Eye, Calendar,
+  Activity, Target, Zap, CheckCircle2, AlertCircle, Clock, Hash,
+  UserCheck, RefreshCw, Send
 } from 'lucide-react';
-import { useAuth } from "@/context/auth-context";
-import { useToast } from "@/context/toast-context";
-import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
+import { useAuth } from '@/context/auth-context';
+import { useToast } from '@/context/toast-context';
 import { exportCustomersToExcel } from '@/lib/customers-export';
 
-// --- COMPONENTE DE NÚMEROS ANIMADOS ---
-const AnimatedNumber = memo(({ value, type = 'simple', className }: { value: number, className?: string, type?: 'currency' | 'percentage' | 'simple' }) => {
-    const spring = useSpring(0, { mass: 0.8, stiffness: 75, damping: 15 });
-    const display = useTransform(spring, (current: number) => {
-        if (type === 'percentage') return `${current.toFixed(1)}%`;
-        if (type === 'simple') return Math.round(current).toLocaleString();
-        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(current);
-    });
-
-    useEffect(() => { spring.set(value); }, [value, spring]);
-    return <motion.span className={className}>{display}</motion.span>;
-});
-AnimatedNumber.displayName = 'AnimatedNumber';
-
-// --- TILT CARD PREMIUM ---
-const PremiumCard = ({ children, onClick, className = "", dark = false }: { children: React.ReactNode, onClick?: () => void, className?: string, dark?: boolean }) => {
-    const [rotateX, setRotateX] = useState(0);
-    const [rotateY, setRotateY] = useState(0);
-    const [glare, setGlare] = useState({ x: 50, y: 50, op: 0 });
-
-    const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        const box = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - box.left;
-        const y = e.clientY - box.top;
-        setRotateX((y - box.height/2) / 20);
-        setRotateY((box.width/2 - x) / 20);
-        setGlare({ x: (x/box.width)*100, y: (y/box.height)*100, op: dark ? 0.15 : 0.1 });
-    };
-
-    return (
-        <motion.div
-            onClick={onClick}
-            onMouseMove={handleMove}
-            onMouseLeave={() => { setRotateX(0); setRotateY(0); setGlare(g => ({...g, op: 0})); }}
-            animate={{ rotateX, rotateY, scale: rotateX !== 0 ? 1.02 : 1 }}
-            transition={{ type: "spring", stiffness: 250, damping: 25 }}
-            className={`rounded-[3rem] border transition-all duration-500 relative overflow-hidden isolate cursor-pointer ${dark ? 'bg-[#001A1A] border-white/5 shadow-2xl' : 'bg-white/40 backdrop-blur-xl border-white/80 shadow-xl'} ${className}`}
-            style={{ transformStyle: "preserve-3d", perspective: "1000px" }}
-        >
-            <div className="absolute inset-0 pointer-events-none transition-opacity duration-300"
-                 style={{ opacity: glare.op, background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, ${dark ? 'rgba(0,242,255,0.2)' : 'white'} 0%, transparent 60%)`, zIndex: 1 }} />
-            <div style={{ transform: "translateZ(30px)", position: "relative", zIndex: 2 }} className="h-full">{children}</div>
-            <div className={`absolute -bottom-20 -right-20 h-40 w-40 blur-[80px] rounded-full pointer-events-none ${dark ? 'bg-[#00f2ff]/10' : 'bg-[#004d4d]/5'}`} />
-        </motion.div>
-    );
-};
-
-// --- INTERFACES ---
+// ── TIPOS ──────────────────────────────────────────────────────────────────
 interface Customer {
   id: string;
   full_name: string;
@@ -100,435 +25,723 @@ interface Customer {
   customer_type: 'final' | 'mayorista';
   acquisition_channel: 'web' | 'redes' | 'tienda' | 'whatsapp';
   total_spent: number;
+  created_at?: string;
+  orders_count?: number;
+  last_purchase?: string;
+  notes?: string;
 }
 
-export default function CustomersPage() {
-  const { token, userEmail } = useAuth();
-  const { showToast } = useToast();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMetric, setSelectedMetric] = useState<any>(null);
+// ── UTILS ──────────────────────────────────────────────────────────────────
+const fmt = (n: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+const fmtN = (n: number) => n.toLocaleString('es-CO');
+const initials = (name: string) => name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+const avatarColor = (name: string) => {
+  const colors = ['bg-[#004d4d]','bg-blue-600','bg-violet-600','bg-rose-500','bg-amber-500','bg-emerald-600','bg-cyan-600','bg-pink-600'];
+  let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) % colors.length;
+  return colors[h];
+};
 
-  // Estados para Creación
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [formData, setFormData] = useState({
-      full_name: '',
-      email: '',
-      phone: '',
-      city: '',
-      customer_type: 'final' as 'final' | 'mayorista',
-      acquisition_channel: 'web' as 'web' | 'redes' | 'tienda' | 'whatsapp',
-      status: 'active'
+const CHANNELS: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string }> = {
+  web:       { label: 'Web',       icon: <Globe size={11}/>,          color: 'text-blue-600',   bg: 'bg-blue-50' },
+  redes:     { label: 'Redes',     icon: <Star size={11}/>,           color: 'text-pink-600',   bg: 'bg-pink-50' },
+  tienda:    { label: 'Tienda',    icon: <Store size={11}/>,          color: 'text-amber-600',  bg: 'bg-amber-50' },
+  whatsapp:  { label: 'WhatsApp',  icon: <MessageCircle size={11}/>,  color: 'text-emerald-600',bg: 'bg-emerald-50' },
+};
+
+const STATUS_MAP: Record<string, { label: string; dot: string; cls: string }> = {
+  active:    { label: 'Activo',   dot: 'bg-emerald-400', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+  Activo:    { label: 'Activo',   dot: 'bg-emerald-400', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+  blocked:   { label: 'Bloqueado',dot: 'bg-rose-400',    cls: 'bg-rose-50 text-rose-600 border-rose-100' },
+  Bloqueado: { label: 'Bloqueado',dot: 'bg-rose-400',    cls: 'bg-rose-50 text-rose-600 border-rose-100' },
+};
+
+// ── KPI CARD ───────────────────────────────────────────────────────────────
+function KpiCard({ label, value, sub, icon, trend, trendUp, accent = '#004d4d' }: any) {
+  return (
+    <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-5 hover:-translate-y-0.5 transition-transform duration-200">
+      <div className="flex items-start justify-between mb-4">
+        <div className="h-9 w-9 rounded-2xl flex items-center justify-center [&_svg]:w-4 [&_svg]:h-4"
+          style={{ background: `${accent}18`, color: accent }}>{icon}</div>
+        {trend != null && (
+          <span className={`flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${trendUp ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
+            {trendUp ? <ArrowUpRight size={10}/> : <ArrowDownRight size={10}/>}{trend}
+          </span>
+        )}
+      </div>
+      <p className="text-[8px] font-bold tracking-[0.22em] uppercase text-gray-400 mb-1">{label}</p>
+      <h3 className="text-xl font-black tracking-tight text-gray-900 leading-none">{value}</h3>
+      {sub && <p className="text-[10px] text-gray-400 mt-1">{sub}</p>}
+      <div className="mt-3 h-[3px] w-full rounded-full bg-gray-100">
+        <div className="h-full w-3/5 rounded-full" style={{ background: `linear-gradient(90deg,${accent}99,transparent)` }}/>
+      </div>
+    </div>
+  );
+}
+
+// ── MODAL NUEVO / EDITAR CLIENTE ───────────────────────────────────────────
+function CustomerModal({ customer, onSave, onClose }: { customer?: Customer | null; onSave: () => void; onClose: () => void }) {
+  const { token } = useAuth();
+  const { showToast } = useToast();
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    full_name: customer?.full_name || '',
+    email:     customer?.email     || '',
+    phone:     customer?.phone     || '',
+    city:      customer?.city      || '',
+    customer_type:       (customer?.customer_type || 'final') as 'final' | 'mayorista',
+    acquisition_channel: (customer?.acquisition_channel || 'web') as 'web' | 'redes' | 'tienda' | 'whatsapp',
+    notes: customer?.notes || '',
   });
 
+  const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
+
+  const handleSubmit = async () => {
+    if (!form.full_name || !form.email) { showToast('Nombre y email son obligatorios', 'error'); return; }
+    setSaving(true);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${apiBase}/admin/users${customer ? `/${customer.id}` : ''}`, {
+        method: customer ? 'PUT' : 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.email, full_name: form.full_name, phone: form.phone,
+          city: form.city, status: 'Activo', role: 'cliente',
+          password: customer ? undefined : Math.random().toString(36).slice(-10),
+          nickname: form.full_name.split(' ')[0],
+          customer_type: form.customer_type,
+          acquisition_channel: form.acquisition_channel,
+          notes: form.notes,
+        })
+      });
+      if (res.ok) {
+        showToast(customer ? 'Cliente actualizado ✓' : 'Cliente registrado ✨', 'success');
+        onSave(); onClose();
+      } else {
+        const err = await res.json();
+        showToast(err.detail || 'Error al guardar', 'error');
+      }
+    } catch { showToast('Error de conexión', 'error'); }
+    finally { setSaving(false); }
+  };
+
+  useEffect(() => {
+    document.body.classList.add('modal-open');
+    return () => document.body.classList.remove('modal-open');
+  }, []);
+
+  const inputCls = "w-full h-10 px-4 rounded-2xl border border-gray-200 bg-white text-sm text-gray-800 placeholder:text-gray-300 focus:outline-none focus:border-[#004d4d]/50 transition-colors";
+
+  return (
+    <>
+      <div className="fixed inset-0" style={{ zIndex: 9998 }} onClick={onClose}/>
+      <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+        <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.18 }}
+          className="relative bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden"
+          onClick={e => e.stopPropagation()}>
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-2xl bg-[#004d4d]/10 flex items-center justify-center">
+                {customer ? <Edit3 size={15} className="text-[#004d4d]"/> : <UserPlus size={15} className="text-[#004d4d]"/>}
+              </div>
+              <div>
+                <h2 className="text-sm font-black text-gray-900">{customer ? 'Editar cliente' : 'Nuevo cliente'}</h2>
+                <p className="text-[10px] text-gray-400">{customer ? 'Actualiza la información del cliente' : 'Agrega un nuevo comprador a tu base'}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"><X size={15} className="text-gray-400"/></button>
+          </div>
+
+          <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+            {/* Nombre + Email */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold tracking-widest uppercase text-gray-400">Nombre completo *</label>
+                <input value={form.full_name} onChange={e => set('full_name', e.target.value)} placeholder="Juan Pérez" className={inputCls}/>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold tracking-widest uppercase text-gray-400">Email *</label>
+                <input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="juan@email.com" className={inputCls}/>
+              </div>
+            </div>
+
+            {/* Teléfono + Ciudad */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold tracking-widest uppercase text-gray-400">Teléfono</label>
+                <input value={form.phone} onChange={e => set('phone', e.target.value.replace(/\D/g,'').slice(0,10))} placeholder="3001234567" className={inputCls}/>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold tracking-widest uppercase text-gray-400">Ciudad</label>
+                <input value={form.city} onChange={e => set('city', e.target.value)} placeholder="Bogotá" className={inputCls}/>
+              </div>
+            </div>
+
+            {/* Tipo de cliente */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-bold tracking-widest uppercase text-gray-400">Tipo de cliente</label>
+              <div className="flex rounded-2xl border border-gray-200 overflow-hidden">
+                {(['final', 'mayorista'] as const).map(t => (
+                  <button key={t} onClick={() => set('customer_type', t)}
+                    className={`flex-1 py-2.5 text-[10px] font-bold capitalize tracking-widest transition-colors ${form.customer_type === t ? 'bg-[#004d4d] text-white' : 'text-gray-400 hover:bg-gray-50'}`}>
+                    {t === 'final' ? '👤 Cliente final' : '🏪 Mayorista'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Canal de adquisición */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-bold tracking-widest uppercase text-gray-400">¿Cómo llegó?</label>
+              <div className="grid grid-cols-4 gap-2">
+                {(Object.entries(CHANNELS) as any).map(([key, ch]: any) => (
+                  <button key={key} onClick={() => set('acquisition_channel', key)}
+                    className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border text-[9px] font-bold transition-all ${form.acquisition_channel === key ? 'border-[#004d4d] bg-[#004d4d]/5 text-[#004d4d]' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}>
+                    <span className={form.acquisition_channel === key ? 'text-[#004d4d]' : 'text-gray-300'}>{ch.icon}</span>
+                    {ch.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Notas */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-bold tracking-widest uppercase text-gray-400">Notas internas</label>
+              <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} placeholder="Observaciones sobre este cliente..."
+                className="w-full px-4 py-2.5 rounded-2xl border border-gray-200 text-sm text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-[#004d4d]/50 resize-none"/>
+            </div>
+          </div>
+
+          <div className="flex gap-3 px-6 py-4 border-t border-gray-100">
+            <button onClick={onClose} className="flex-1 h-10 rounded-2xl border border-gray-200 text-[11px] font-semibold text-gray-500 hover:bg-gray-50 transition-colors">Cancelar</button>
+            <button onClick={handleSubmit} disabled={saving}
+              className="flex-1 h-10 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white text-[11px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
+              {saving ? <Loader2 size={13} className="animate-spin"/> : null}
+              {saving ? 'Guardando…' : customer ? 'Guardar cambios' : 'Registrar cliente'}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </>
+  );
+}
+
+// ── DRAWER DETALLE CLIENTE ─────────────────────────────────────────────────
+function CustomerDrawer({ customer, onClose, onEdit }: { customer: Customer; onClose: () => void; onEdit: () => void }) {
+  const ch = CHANNELS[customer.acquisition_channel] || CHANNELS.web;
+  const st = STATUS_MAP[customer.status] || STATUS_MAP.active;
+
+  useEffect(() => {
+    document.body.classList.add('modal-open');
+    return () => document.body.classList.remove('modal-open');
+  }, []);
+
+  return (
+    <>
+      <div className="fixed inset-0" style={{ zIndex: 9998 }} onClick={onClose}/>
+      <div className="fixed inset-0 flex items-center justify-end p-4" style={{ zIndex: 9999 }}>
+        <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+          className="relative bg-white w-full max-w-sm h-full max-h-[calc(100vh-2rem)] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden"
+          onClick={e => e.stopPropagation()}>
+
+          {/* Avatar header */}
+          <div className="bg-[#001a1a] p-6 shrink-0">
+            <div className="flex items-start justify-between mb-4">
+              <div className={`h-14 w-14 rounded-2xl flex items-center justify-center text-white text-lg font-black ${avatarColor(customer.full_name)}`}>
+                {initials(customer.full_name)}
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={onEdit} className="h-8 w-8 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 transition-colors">
+                  <Edit3 size={13} className="text-white/60"/>
+                </button>
+                <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 transition-colors">
+                  <X size={13} className="text-white/60"/>
+                </button>
+              </div>
+            </div>
+            <h2 className="text-lg font-black text-white leading-tight">{customer.full_name}</h2>
+            <p className="text-[11px] text-white/40 mt-0.5">{customer.email}</p>
+            <div className="flex items-center gap-2 mt-3">
+              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${st.cls}`}>{st.label}</span>
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-white/60 capitalize">{customer.customer_type}</span>
+              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${ch.bg} ${ch.color}`}>{ch.icon}{ch.label}</span>
+            </div>
+          </div>
+
+          {/* Scroll content */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+
+            {/* KPIs del cliente */}
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'Total gastado', value: fmt(customer.total_spent || 0), icon: <DollarSign size={13}/>, color: 'text-emerald-600 bg-emerald-50' },
+                { label: 'Pedidos', value: fmtN(customer.orders_count || 0), icon: <ShoppingBag size={13}/>, color: 'text-blue-600 bg-blue-50' },
+              ].map((k, i) => (
+                <div key={i} className={`p-3 rounded-2xl flex items-center gap-2 ${k.color.split(' ')[1]}`}>
+                  <div className={`shrink-0 ${k.color.split(' ')[0]}`}>{k.icon}</div>
+                  <div>
+                    <p className="text-[8px] font-bold uppercase tracking-widest text-gray-500">{k.label}</p>
+                    <p className="text-[13px] font-black text-gray-900">{k.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Datos de contacto */}
+            <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+              <p className="text-[9px] font-bold tracking-widest uppercase text-gray-400">Contacto</p>
+              {[
+                { icon: <Mail size={12}/>, label: 'Email', value: customer.email },
+                { icon: <Phone size={12}/>, label: 'Teléfono', value: customer.phone || '—' },
+                { icon: <MapPin size={12}/>, label: 'Ciudad', value: customer.city || '—' },
+              ].map((r, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="h-7 w-7 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-400 shrink-0">{r.icon}</div>
+                  <div>
+                    <p className="text-[9px] text-gray-400">{r.label}</p>
+                    <p className="text-[11px] font-semibold text-gray-800">{r.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Fechas */}
+            <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+              <p className="text-[9px] font-bold tracking-widest uppercase text-gray-400">Historial</p>
+              {[
+                { icon: <Calendar size={12}/>, label: 'Cliente desde', value: customer.created_at ? new Date(customer.created_at).toLocaleDateString('es-CO') : '—' },
+                { icon: <Clock size={12}/>, label: 'Última compra', value: customer.last_purchase ? new Date(customer.last_purchase).toLocaleDateString('es-CO') : 'Sin compras' },
+              ].map((r, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="h-7 w-7 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-400 shrink-0">{r.icon}</div>
+                  <div>
+                    <p className="text-[9px] text-gray-400">{r.label}</p>
+                    <p className="text-[11px] font-semibold text-gray-800">{r.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Notas */}
+            {customer.notes && (
+              <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100">
+                <p className="text-[9px] font-bold tracking-widest uppercase text-amber-600 mb-1">Notas</p>
+                <p className="text-[11px] text-gray-700 leading-relaxed">{customer.notes}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Acciones rápidas */}
+          <div className="p-4 border-t border-gray-100 grid grid-cols-2 gap-2 shrink-0">
+            <a href={`mailto:${customer.email}`}
+              className="h-10 flex items-center justify-center gap-2 rounded-2xl border border-gray-200 text-[10px] font-bold text-gray-600 hover:bg-gray-50 transition-colors">
+              <Mail size={13}/> Email
+            </a>
+            {customer.phone ? (
+              <a href={`https://wa.me/57${customer.phone.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer"
+                className="h-10 flex items-center justify-center gap-2 rounded-2xl bg-emerald-50 border border-emerald-100 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition-colors">
+                <MessageCircle size={13}/> WhatsApp
+              </a>
+            ) : (
+              <button disabled className="h-10 flex items-center justify-center gap-2 rounded-2xl bg-gray-50 text-[10px] font-bold text-gray-300 cursor-not-allowed">
+                <Phone size={13}/> Sin tel.
+              </button>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PÁGINA PRINCIPAL
+// ══════════════════════════════════════════════════════════════════════════
+export default function CustomersPage() {
+  const { token } = useAuth();
+  const { showToast } = useToast();
+
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState('');
+  const [filterType,    setFilterType]    = useState<'todos' | 'final' | 'mayorista'>('todos');
+  const [filterChannel, setFilterChannel] = useState<string>('todos');
+  const [filterStatus,  setFilterStatus]  = useState<'todos' | 'active' | 'blocked'>('todos');
+  const [sortBy, setSortBy] = useState<'name' | 'spent' | 'date'>('name');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+
+  const [isModalOpen,   setIsModalOpen]   = useState(false);
+  const [editCustomer,  setEditCustomer]  = useState<Customer | null>(null);
+  const [drawerCustomer, setDrawerCustomer] = useState<Customer | null>(null);
+
+  // ── CARGA ──
   const fetchCustomers = useCallback(async () => {
     if (!token) return;
     try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${apiBase}/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } });
-        if (res.ok) {
-            const data = await res.json();
-            setCustomers(data.filter((u: any) => u.role === 'cliente'));
-        }
-    } catch (e) { console.error("Sync Error"); }
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${apiBase}/admin/users`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        setCustomers(data.filter((u: any) => u.role === 'cliente'));
+      }
+    } catch {}
     finally { setLoading(false); }
   }, [token]);
 
-      useEffect(() => { 
-          fetchCustomers(); 
-          const handleFocus = () => fetchCustomers();
-          window.addEventListener('focus', handleFocus);
-          return () => window.removeEventListener('focus', handleFocus);
-      }, [fetchCustomers]);
-    const stats = useMemo(() => ({
-    total: customers.length,
-    ltv: customers.reduce((acc, c) => acc + (c.total_spent || 0), 0),
-    activeRate: customers.length > 0 ? 92.4 : 0,
-    newToday: 0
-  }), [customers]);
+  useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
-  const kpis = [
-    { label: "Total clientes", value: stats.total, icon: <Users size={24}/>, color: "text-[#004d4d]", bg: "bg-[#004d4d]/5", trend: "Live" },
-    { label: "Valor de cartera", value: stats.ltv, icon: <DollarSign size={24}/>, color: "text-emerald-600", bg: "bg-emerald-50", trend: "+0%", isCurrency: true },
-    { label: "Tasa retención", value: stats.activeRate, icon: <Heart size={24}/>, color: "text-rose-600", bg: "bg-rose-50", trend: "94% ok", isPercentage: true },
-    { label: "Nuevos hoy", value: stats.newToday, icon: <UserPlus size={24}/>, color: "text-purple-600", bg: "bg-purple-50", trend: "Iniciando" },
-  ];
+  // ── KPIs ──
+  const stats = useMemo(() => {
+    const total   = customers.length;
+    const ltv     = customers.reduce((a, c) => a + (c.total_spent || 0), 0);
+    const active  = customers.filter(c => c.status === 'active' || c.status === 'Activo').length;
+    const mayoristas = customers.filter(c => c.customer_type === 'mayorista').length;
+    const avgTicket  = total > 0 ? ltv / total : 0;
+    return { total, ltv, active, mayoristas, avgTicket };
+  }, [customers]);
 
-  const handleCreateCustomer = async () => {
-      if (!formData.full_name || !formData.email) {
-          showToast("Nombre y Email son obligatorios", "error");
-          return;
-      }
-      setIsSaving(true);
-      try {
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-          const res = await fetch(`${apiBase}/admin/users`, {
-              method: 'POST',
-              headers: { 
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                  email: formData.email,
-                  full_name: formData.full_name,
-                  phone: formData.phone,
-                  city: formData.city,
-                  status: 'Activo',
-                  password: Math.random().toString(36).slice(-10),
-                  role: 'cliente',
-                  nickname: formData.full_name.split(' ')[0],
-                  customer_type: formData.customer_type,
-                  acquisition_channel: formData.acquisition_channel
-              })
-          });
-          if (res.ok) {
-              showToast("Cliente registrado con éxito ✨", "success");
-              setIsModalOpen(false);
-              setFormData({ full_name: '', email: '', phone: '', city: '', customer_type: 'final', acquisition_channel: 'web', status: 'active' });
-              fetchCustomers();
-          } else {
-              const err = await res.json();
-              showToast(err.detail || "Error al registrar cliente", "error");
-          }
-      } catch (e) {
-          showToast("Error de conexión con el servidor", "error");
-      } finally {
-          setIsSaving(false);
-      }
-  };
-
-  const handleExport = async () => {
-      if (customers.length === 0) {
-          showToast("No hay clientes para exportar", "info");
-          return;
-      }
-      try {
-          showToast("Generando Excel Empresarial...", "info");
-          await exportCustomersToExcel(customers, "Bayup_Tienda");
-          showToast("¡Base de datos exportada! 📊", "success");
-      } catch (e) {
-          showToast("Error al generar el archivo", "error");
-      }
-  };
-
-  const filteredCustomers = useMemo(() => {
-    return customers.filter(c => 
-        c.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        c.email.toLowerCase().includes(searchTerm.toLowerCase())
+  // ── FILTROS ──
+  const filtered = useMemo(() => {
+    let list = [...customers];
+    if (search) list = list.filter(c =>
+      c.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      c.email.toLowerCase().includes(search.toLowerCase()) ||
+      (c.city || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.phone || '').includes(search)
     );
-  }, [customers, searchTerm]);
+    if (filterType    !== 'todos') list = list.filter(c => c.customer_type === filterType);
+    if (filterChannel !== 'todos') list = list.filter(c => c.acquisition_channel === filterChannel);
+    if (filterStatus  !== 'todos') list = list.filter(c => {
+      const isActive = c.status === 'active' || c.status === 'Activo';
+      return filterStatus === 'active' ? isActive : !isActive;
+    });
+    if (sortBy === 'spent') list.sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0));
+    else if (sortBy === 'date') list.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+    else list.sort((a, b) => a.full_name.localeCompare(b.full_name));
+    return list;
+  }, [customers, search, filterType, filterChannel, filterStatus, sortBy]);
+
+  // ── EXPORT ──
+  const handleExport = async () => {
+    if (!customers.length) { showToast('No hay clientes para exportar', 'info'); return; }
+    try {
+      showToast('Generando Excel…', 'info');
+      await exportCustomersToExcel(customers, 'Bayup_Clientes');
+      showToast('¡Base de datos exportada!', 'success');
+    } catch { showToast('Error al generar el archivo', 'error'); }
+  };
+
+  // ── TOP COMPRADORES ──
+  const topBuyers = useMemo(() =>
+    [...customers].sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0)).slice(0, 5)
+  , [customers]);
+
+  // ── CANALES ──
+  const channelStats = useMemo(() => {
+    const map: Record<string, number> = {};
+    customers.forEach(c => { map[c.acquisition_channel] = (map[c.acquisition_channel] || 0) + 1; });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [customers]);
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <Loader2 className="animate-spin text-[#004d4d]" size={32}/>
+    </div>
+  );
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-10 pb-20 animate-in fade-in duration-1000">
-      
-      {/* 1. HEADER PLATINUM */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 px-4">
+    <div className="space-y-6 pb-20">
+
+      {/* ── HEADER ── */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-            <div className="flex items-center gap-3 mb-2">
-                <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                <span className="text-[10px] font-black tracking-[0.3em] text-[#004d4d]/60 italic">Customer intelligence v2.0</span>
+          <p className="flex items-center gap-2 text-[10px] font-bold tracking-[0.22em] uppercase mb-1 text-gray-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#004d4d] inline-block"/>
+            Customer Intelligence
+          </p>
+          <h1 className="text-4xl font-black tracking-tight leading-none text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00b2bd] to-[#004d4d]">
+            CLIENTES
+          </h1>
+          <p className="text-sm mt-1 text-gray-400">Centro de mando de tu base de compradores</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={handleExport}
+            className="h-10 flex items-center gap-2 px-4 rounded-2xl border border-gray-200 bg-white text-[10px] font-semibold text-gray-600 hover:border-[#004d4d]/30 transition-all shadow-sm">
+            <Download size={13}/> Exportar base
+          </button>
+          <button onClick={() => { setEditCustomer(null); setIsModalOpen(true); }}
+            className="h-10 flex items-center gap-2 px-5 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm">
+            <Plus size={13}/> Nuevo cliente
+          </button>
+        </div>
+      </div>
+
+      {/* ── KPIs ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <KpiCard label="Total clientes"   value={fmtN(stats.total)}       sub="En tu base de datos"   icon={<Users/>}     trend="+0%"   trendUp accent="#004d4d"/>
+        <KpiCard label="Clientes activos" value={fmtN(stats.active)}      sub={`${stats.total > 0 ? ((stats.active/stats.total)*100).toFixed(0) : 0}% del total`} icon={<UserCheck/>}  trendUp accent="#10b981"/>
+        <KpiCard label="Valor de cartera" value={fmt(stats.ltv)}          sub="Total acumulado"       icon={<DollarSign/>} trendUp accent="#3b82f6"/>
+        <KpiCard label="Ticket promedio"  value={fmt(stats.avgTicket)}    sub="Por cliente"           icon={<Target/>}     trendUp accent="#8b5cf6"/>
+        <KpiCard label="Mayoristas"       value={fmtN(stats.mayoristas)}  sub="Cuentas B2B"          icon={<Store/>}      accent="#f59e0b"/>
+      </div>
+
+      {/* ── BARRA DE BÚSQUEDA Y FILTROS ── */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Búsqueda */}
+        <div className="flex-1 flex items-center gap-2 h-10 bg-white rounded-2xl border border-gray-200 shadow-sm px-3">
+          <Search size={14} className="text-gray-300 shrink-0"/>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar por nombre, email, ciudad o teléfono…"
+            className="flex-1 bg-transparent outline-none text-sm text-gray-700 placeholder:text-gray-300"/>
+          {search && <button onClick={() => setSearch('')}><X size={12} className="text-gray-300"/></button>}
+        </div>
+
+        {/* Filtros */}
+        <div className="flex items-center gap-2">
+          <select value={filterType} onChange={e => setFilterType(e.target.value as any)}
+            className="h-10 px-3 rounded-2xl border border-gray-200 bg-white text-[11px] font-semibold text-gray-600 focus:outline-none shadow-sm">
+            <option value="todos">Todos los tipos</option>
+            <option value="final">Cliente final</option>
+            <option value="mayorista">Mayorista</option>
+          </select>
+          <select value={filterChannel} onChange={e => setFilterChannel(e.target.value)}
+            className="h-10 px-3 rounded-2xl border border-gray-200 bg-white text-[11px] font-semibold text-gray-600 focus:outline-none shadow-sm">
+            <option value="todos">Todos los canales</option>
+            <option value="web">Web</option>
+            <option value="redes">Redes sociales</option>
+            <option value="tienda">Tienda física</option>
+            <option value="whatsapp">WhatsApp</option>
+          </select>
+          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
+            className="h-10 px-3 rounded-2xl border border-gray-200 bg-white text-[11px] font-semibold text-gray-600 focus:outline-none shadow-sm">
+            <option value="name">A → Z</option>
+            <option value="spent">Mayor compra</option>
+            <option value="date">Más recientes</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+        {/* ── TABLA PRINCIPAL ── */}
+        <div className="lg:col-span-3 bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] overflow-hidden">
+          {/* Cabecera tabla */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <Activity size={14} className="text-[#004d4d]"/>
+              <span className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Directorio</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#004d4d]/10 text-[#004d4d]">{filtered.length}</span>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-none text-[#001A1A]">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d]">Clientes</span>
-            </h1>
-            <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">¡Toda tu base de datos en un solo lugar! 👥</p>
-        </div>
-        <div className="flex items-center gap-4">
-            <button onClick={() => setIsModalOpen(true)} className="h-12 px-8 bg-[#004d4d] text-white rounded-full font-black text-[10px] tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center gap-3 group">
-                <Plus size={16} className="group-hover:rotate-90 transition-transform"/> Nuevo cliente
+            <button onClick={fetchCustomers} className="h-7 w-7 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
+              <RefreshCw size={12} className="text-gray-400"/>
             </button>
-            <button onClick={handleExport} className="h-12 px-8 bg-white border border-gray-100 text-[#004d4d] rounded-full font-black text-[10px] tracking-[0.3em] shadow-xl hover:bg-gray-50 transition-all flex items-center gap-2">
-                <Download size={16} /> Exportar base
-            </button>
-        </div>
-      </div>
-
-      {/* 2. GRID DE MÉTRICAS MAESTRAS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
-          {kpis.map((kpi, i) => (
-              <div key={i} onClick={() => setSelectedMetric(kpi)}>
-                  <PremiumCard className="p-8 group h-full">
-                      <div className="flex justify-between items-start mb-6">
-                          <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg group-hover:scale-110 border border-white/50 ${kpi.bg} ${kpi.color}`}>
-                              {kpi.icon}
-                          </div>
-                          <div className="px-3 py-1 bg-gray-100 rounded-full text-[9px] font-black tracking-wider text-gray-400">
-                              {kpi.trend}
-                          </div>
-                      </div>
-                      <div>
-                          <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] mb-1.5">{kpi.label}</p>
-                          <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">
-                              <AnimatedNumber value={kpi.value} type={kpi.isCurrency ? 'currency' : kpi.isPercentage ? 'percentage' : 'simple'} />
-                          </h3>
-                      </div>
-                  </PremiumCard>
-              </div>
-          ))}
-      </div>
-
-      {/* 3. LISTADO TÁCTICO */}
-      <div className="px-4 space-y-6">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-6">
-              <div className="flex items-center gap-3">
-                  <Activity size={20} className="text-[#004d4d]"/>
-                  <h4 className="text-xs font-black tracking-widest text-gray-900">Directorio de cuentas</h4>
-              </div>
-              <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm w-full max-w-md transition-all focus-within:shadow-xl focus-within:border-cyan/30">
-                  <Search size={18} className="text-gray-300 ml-2" />
-                  <input 
-                    placeholder="Buscar por nombre, email o id..." 
-                    value={searchTerm} 
-                    onChange={e => setSearchTerm(e.target.value)} 
-                    className="flex-1 bg-transparent outline-none text-sm font-bold" 
-                  />
-              </div>
           </div>
 
-          <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] border border-white/80 shadow-xl overflow-hidden">
-              <table className="w-full text-center">
-                  <thead>
-                      <tr className="bg-gray-50/50">
-                          {['Cliente', 'Contacto', 'Ubicación', 'Estado', 'Tipo', 'Inversión total'].map((h, i) => (
-                              <th key={i} className="px-8 py-6 text-center text-[10px] font-black text-[#004D4D] tracking-[0.2em]">{h}</th>
-                          ))}
-                      </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100/50">
-                      {loading ? (
-                          <tr><td colSpan={6} className="py-20 text-center"><div className="h-12 w-12 border-4 border-[#004d4d] border-t-cyan rounded-full animate-spin mx-auto" /></td></tr>
-                      ) : filteredCustomers.length === 0 ? (
-                          <tr><td colSpan={6} className="py-20 text-center text-gray-300 font-black text-[10px]">Sin clientes registrados</td></tr>
-                      ) : filteredCustomers.map((c) => (
-                          <tr key={c.id} className="hover:bg-white/60 transition-all cursor-pointer group">
-                              <td className="px-8 py-8">
-                                  <div className="flex items-center justify-center gap-4">
-                                      <div className="h-12 w-12 rounded-[1.2rem] bg-gray-900 text-white flex items-center justify-center font-black text-sm italic shadow-lg group-hover:scale-110 transition-transform">
-                                          {c.full_name.charAt(0)}
-                                      </div>
-                                      <div className="text-left">
-                                          <p className="text-sm font-black text-gray-900">{c.full_name}</p>
-                                          <p className="text-[9px] text-gray-400 font-bold tracking-tighter">id: {c.id.slice(0,8)}</p>
-                                      </div>
-                                  </div>
-                              </td>
-                              <td className="px-8 py-8">
-                                  <div className="flex flex-col items-center gap-1">
-                                      <p className="text-xs font-bold text-gray-600">{c.email}</p>
-                                      <p className="text-[10px] text-gray-400 font-medium">{c.phone || 'Sin WhatsApp'}</p>
-                                  </div>
-                              </td>
-                              <td className="px-8 py-8">
-                                  <div className="flex items-center justify-center gap-2 text-gray-500 italic">
-                                      <MapPin size={12} className="text-cyan" />
-                                      <span className="text-[10px] font-black tracking-widest">{c.city || 'No registrada'}</span>
-                                  </div>
-                              </td>
-                              <td className="px-8 py-8">
-                                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest ${c.status === 'active' || c.status === 'Activo' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                                      {c.status === 'active' || c.status === 'Activo' ? 'Activo' : 'Bloqueado'}
-                                  </span>
-                              </td>
-                              <td className="px-8 py-8 text-[9px] font-black text-gray-400 italic">{c.customer_type === 'mayorista' ? 'Mayorista' : 'Final'}</td>
-                              <td className="px-8 py-8 font-black text-[#004D4D] text-base">
-                                  <AnimatedNumber value={c.total_spent || 0} type="currency" />
-                              </td>
-                          </tr>
-                      ))}
-                  </tbody>
-              </table>
-          </div>
-      </div>
-
-      {/* 4. MODAL DE CREACIÓN (DOUBLE COLUMN PLATINUM) */}
-      <AnimatePresence>
-          {isModalOpen && (
-              <div className="fixed inset-0 z-[500] flex items-center justify-center p-6">
-                  <motion.div 
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    onClick={() => setIsModalOpen(false)}
-                    className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
-                  />
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    className="relative w-full max-w-6xl bg-white rounded-[4rem] shadow-3xl overflow-hidden flex flex-col lg:flex-row max-h-[90vh]"
-                  >
-                      {/* Lado Izquierdo: Vista Previa Real-Time */}
-                      <div className="lg:w-[450px] bg-slate-950 p-12 text-white flex flex-col justify-between relative overflow-hidden shrink-0">
-                          <div className="absolute top-0 right-0 p-12 opacity-5"><Bot size={300} /></div>
-                          <div className="relative z-10">
-                              <div className="flex items-center gap-3 mb-8">
-                                  <span className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                                  <span className="text-[10px] font-black tracking-[0.3em] text-cyan/60">Vista previa elite</span>
+          {filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-gray-300">
+              <Users size={36} className="mb-3"/>
+              <p className="text-sm font-semibold">{search ? 'Sin resultados' : 'Sin clientes registrados'}</p>
+              <p className="text-[11px] mt-1">{search ? 'Intenta con otro término' : 'Agrega tu primer cliente'}</p>
+              {!search && (
+                <button onClick={() => setIsModalOpen(true)}
+                  className="mt-4 h-9 px-5 rounded-2xl bg-[#004d4d] text-white text-[10px] font-bold uppercase tracking-widest">
+                  + Nuevo cliente
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-50">
+                    {['Cliente','Contacto','Ciudad','Canal','Tipo','Total gastado','Estado',''].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-[8px] font-bold tracking-widest uppercase text-gray-400 whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <AnimatePresence>
+                    {filtered.map((c, i) => {
+                      const st  = STATUS_MAP[c.status] || STATUS_MAP.active;
+                      const ch  = CHANNELS[c.acquisition_channel] || CHANNELS.web;
+                      return (
+                        <motion.tr key={c.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}
+                          className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors group cursor-pointer"
+                          onClick={() => setDrawerCustomer(c)}>
+                          {/* Cliente */}
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className={`h-9 w-9 rounded-2xl flex items-center justify-center text-white text-[11px] font-black shrink-0 ${avatarColor(c.full_name)}`}>
+                                {initials(c.full_name)}
                               </div>
-                              <PremiumCard dark className="p-8 aspect-[4/5] flex flex-col justify-between border-white/10">
-                                  <div className="flex justify-between items-start">
-                                      <div className="h-20 w-20 rounded-[2rem] bg-gradient-to-tr from-cyan to-blue-600 flex items-center justify-center text-4xl font-black italic shadow-2xl">
-                                          {formData.full_name ? formData.full_name.charAt(0).toUpperCase() : '?'}
-                                      </div>
-                                      <div className="px-4 py-1 bg-white/10 rounded-full border border-white/10 text-[9px] font-black tracking-widest text-cyan">
-                                          {formData.customer_type === 'final' ? 'Usuario final' : 'Mayorista'}
-                                      </div>
-                                  </div>
-                                  <div className="space-y-4">
-                                      <div>
-                                          <div className="flex items-center gap-2 mb-1">
-                                              <Navigation size={10} className="text-cyan" />
-                                              <span className="text-[8px] font-black tracking-[0.3em] text-cyan/60">{formData.city || 'Ubicación'}</span>
-                                          </div>
-                                          <h4 className="text-3xl font-black tracking-tight leading-none truncate">{formData.full_name || 'Nombre del cliente'}</h4>
-                                          <p className="text-[10px] text-white/40 font-bold tracking-widest mt-2">{formData.email || 'correo@ejemplo.com'}</p>
-                                      </div>
-                                      <div className="grid grid-cols-2 gap-4">
-                                          <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                              <p className="text-[8px] font-black text-white/30 tracking-widest">Canal</p>
-                                              <p className="text-lg font-black text-[#00f2ff]">{formData.acquisition_channel}</p>
-                                          </div>
-                                          <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                              <p className="text-[8px] font-black text-white/30 tracking-widest">Estado</p>
-                                              <p className="text-lg font-black text-white">Activo</p>
-                                          </div>
-                                      </div>
-                                  </div>
-                                  <div className="pt-4 border-t border-white/5 flex items-center gap-3">
-                                      <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                                      <span className="text-[9px] font-black tracking-[0.2em] text-white/60">Cuenta verificada</span>
-                                  </div>
-                              </PremiumCard>
-                          </div>
-                          <div className="relative z-10 bg-white/5 p-6 rounded-3xl border border-white/5 backdrop-blur-xl">
-                              <p className="text-[10px] font-bold italic text-white/40 leading-relaxed">&quot;Al registrar la ubicación del cliente, Bayt AI podrá generar mapas de calor sobre tus ventas y optimizar los costos de envío automáticos.&quot;</p>
-                          </div>
-                      </div>
-
-                      {/* Lado Derecho: Formulario Táctico */}
-                      <div className="flex-1 p-12 overflow-y-auto custom-scrollbar bg-gray-50/50">
-                          <div className="flex justify-between items-start mb-12">
                               <div>
-                                  <h3 className="text-3xl font-black text-gray-900 italic tracking-tighter">Registro de cuenta</h3>
-                                  <p className="text-xs font-bold text-gray-400 tracking-widest mt-2">Diligencia la información oficial del cliente</p>
+                                <p className="text-[12px] font-black text-gray-900 leading-tight">{c.full_name}</p>
+                                <p className="text-[10px] text-gray-400 truncate max-w-[130px]">{c.email}</p>
                               </div>
-                              <button onClick={() => setIsModalOpen(false)} className="h-12 w-12 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-600 transition-all shadow-sm">
-                                  <X size={20}/>
+                            </div>
+                          </td>
+                          {/* Contacto */}
+                          <td className="px-4 py-3">
+                            <div className="space-y-0.5">
+                              {c.phone && <p className="text-[10px] text-gray-600 flex items-center gap-1"><Phone size={9} className="text-gray-300"/>{c.phone}</p>}
+                              <p className="text-[10px] text-gray-400 flex items-center gap-1"><Mail size={9} className="text-gray-300"/>email</p>
+                            </div>
+                          </td>
+                          {/* Ciudad */}
+                          <td className="px-4 py-3">
+                            <span className="text-[11px] font-medium text-gray-600 flex items-center gap-1">
+                              <MapPin size={10} className="text-gray-300"/>{c.city || '—'}
+                            </span>
+                          </td>
+                          {/* Canal */}
+                          <td className="px-4 py-3">
+                            <span className={`flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-full ${ch.bg} ${ch.color}`}>
+                              {ch.icon} {ch.label}
+                            </span>
+                          </td>
+                          {/* Tipo */}
+                          <td className="px-4 py-3">
+                            <span className={`text-[9px] font-bold px-2 py-1 rounded-full uppercase ${c.customer_type === 'mayorista' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-500'}`}>
+                              {c.customer_type === 'mayorista' ? 'B2B' : 'Final'}
+                            </span>
+                          </td>
+                          {/* Total */}
+                          <td className="px-4 py-3">
+                            <span className="text-[12px] font-black text-gray-900">{fmt(c.total_spent || 0)}</span>
+                          </td>
+                          {/* Estado */}
+                          <td className="px-4 py-3">
+                            <span className={`flex items-center gap-1.5 text-[9px] font-bold px-2 py-1 rounded-full border ${st.cls}`}>
+                              <div className={`h-1.5 w-1.5 rounded-full ${st.dot}`}/>
+                              {st.label}
+                            </span>
+                          </td>
+                          {/* Acciones */}
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                              <button onClick={() => { setEditCustomer(c); setIsModalOpen(true); }}
+                                className="h-7 w-7 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
+                                <Edit3 size={12} className="text-gray-400"/>
                               </button>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                              <div className="space-y-2">
-                                  <label className="text-[10px] font-black text-gray-400 tracking-widest ml-1">Nombre completo</label>
-                                  <input 
-                                    type="text" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})}
-                                    placeholder="Ej: Sebas Betancourt"
-                                    className="w-full p-5 bg-white border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-cyan/10 transition-all font-bold text-sm"
-                                  />
-                              </div>
-                              <div className="space-y-2">
-                                  <label className="text-[10px] font-black text-gray-400 tracking-widest ml-1">Correo electrónico</label>
-                                  <input 
-                                    type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})}
-                                    placeholder="cliente@bayup.com"
-                                    className="w-full p-5 bg-white border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-cyan/10 transition-all font-bold text-sm"
-                                  />
-                              </div>
-                              <div className="space-y-2">
-                                  <label className="text-[10px] font-black text-gray-400 tracking-widest ml-1">WhatsApp / celular</label>
-                                  <input 
-                                    type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})}
-                                    placeholder="+57 300 000 0000"
-                                    className="w-full p-5 bg-white border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-cyan/10 transition-all font-bold text-sm"
-                                  />
-                              </div>
-                              <div className="space-y-2">
-                                  <label className="text-[10px] font-black text-gray-400 tracking-widest ml-1">Ciudad de origen</label>
-                                  <input 
-                                    type="text" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})}
-                                    placeholder="Ej: Bogotá, Medellín..."
-                                    className="w-full p-5 bg-white border border-gray-100 rounded-3xl outline-none focus:ring-4 focus:ring-cyan/10 transition-all font-bold text-sm"
-                                  />
-                              </div>
-                              
-                              {/* SELECTOR PREMIUM DE TIPO DE CLIENTE */}
-                              <div className="space-y-2">
-                                  <label className="text-[10px] font-black text-gray-400 tracking-widest ml-1">Tipo de cliente</label>
-                                  <div className="grid grid-cols-2 gap-3">
-                                      {[
-                                          { id: 'final', label: 'Usuario final', icon: <UserCheck size={14}/> },
-                                          { id: 'mayorista', label: 'Mayorista', icon: <ShoppingBag size={14}/> }
-                                      ].map((type) => (
-                                          <button
-                                            key={type.id}
-                                            onClick={() => setFormData({...formData, customer_type: type.id as any})}
-                                            className={`p-4 rounded-3xl border-2 flex flex-col items-center gap-2 transition-all ${formData.customer_type === type.id ? 'bg-[#004d4d] border-[#004d4d] text-white shadow-xl scale-105' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
-                                          >
-                                              {type.icon}
-                                              <span className="text-[9px] font-black tracking-widest">{type.label}</span>
-                                          </button>
-                                      ))}
-                                  </div>
-                              </div>
-
-                              {/* SELECTOR PREMIUM DE CANAL DE ADQUISICIÓN */}
-                              <div className="md:col-span-2 space-y-4">
-                                  <label className="text-[10px] font-black text-gray-400 tracking-widest ml-1">Canal de adquisición (¿De donde llegó?)</label>
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                      {[
-                                          { id: 'web', label: 'Página web', icon: <Globe size={16}/> },
-                                          { id: 'redes', label: 'Redes sociales', icon: <Share2 size={16}/> },
-                                          { id: 'tienda', label: 'Tienda física', icon: <Store size={16}/> },
-                                          { id: 'whatsapp', label: 'WhatsApp', icon: <MessageCircle size={16}/> }
-                                      ].map((channel) => (
-                                          <button
-                                            key={channel.id}
-                                            onClick={() => setFormData({...formData, acquisition_channel: channel.id as any})}
-                                            className={`p-5 rounded-[2rem] border-2 flex items-center gap-4 transition-all ${formData.acquisition_channel === channel.id ? 'bg-cyan border-cyan text-[#001a1a] shadow-xl scale-[1.02]' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
-                                          >
-                                              <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${formData.acquisition_channel === channel.id ? 'bg-black/10' : 'bg-gray-50'}`}>
-                                                  {channel.icon}
-                                              </div>
-                                              <span className="text-[10px] font-black tracking-widest">{channel.label}</span>
-                                          </button>
-                                      ))}
-                                  </div>
-                              </div>
-                          </div>
-
-                          <div className="mt-12 p-8 bg-[#004d4d]/5 rounded-[2.5rem] border border-[#004d4d]/10 flex items-center justify-between">
-                              <div className="flex items-center gap-4">
-                                  <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-[#004d4d] shadow-sm"><Sparkles size={20}/></div>
-                                  <div>
-                                      <p className="text-[10px] font-black text-[#004d4d] tracking-widest">Base de datos railway</p>
-                                      <p className="text-[9px] text-gray-500 font-bold mt-1 italic">El registro será almacenado y sincronizado globalmente</p>
-                                  </div>
-                              </div>
-                              <button 
-                                onClick={handleCreateCustomer}
-                                disabled={isSaving}
-                                className="h-14 px-12 bg-gray-900 text-white rounded-2xl font-black text-[11px] tracking-[0.3em] shadow-2xl hover:bg-black disabled:opacity-50 transition-all flex items-center gap-3"
-                              >
-                                  {isSaving ? <Loader2 size={18} className="animate-spin"/> : <Save size={18} className="text-[#00f2ff]"/>}
-                                  {isSaving ? 'Sincronizando...' : 'Finalizar registro'}
+                              <button onClick={() => setDrawerCustomer(c)}
+                                className="h-7 w-7 flex items-center justify-center rounded-xl hover:bg-[#004d4d]/10 transition-colors">
+                                <Eye size={12} className="text-[#004d4d]"/>
                               </button>
-                          </div>
-                      </div>
-                  </motion.div>
-              </div>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+                  </AnimatePresence>
+                </tbody>
+              </table>
+            </div>
           )}
+
+          {/* Footer */}
+          {filtered.length > 0 && (
+            <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+              <span className="text-[10px] text-gray-400">{filtered.length} clientes · cartera total {fmt(filtered.reduce((a,c) => a+(c.total_spent||0),0))}</span>
+            </div>
+          )}
+        </div>
+
+        {/* ── SIDEBAR DERECHO ── */}
+        <div className="space-y-4">
+
+          {/* Top compradores */}
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Star size={13} className="text-amber-500"/>
+              <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Top compradores</p>
+            </div>
+            {topBuyers.length === 0 ? (
+              <p className="text-[10px] text-gray-300 text-center py-4">Sin datos aún</p>
+            ) : (
+              <div className="space-y-3">
+                {topBuyers.map((c, i) => (
+                  <div key={c.id} className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded-2xl p-1.5 -m-1.5 transition-colors" onClick={() => setDrawerCustomer(c)}>
+                    <span className={`text-[9px] font-black w-4 shrink-0 ${i === 0 ? 'text-amber-500' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-amber-700' : 'text-gray-300'}`}>#{i+1}</span>
+                    <div className={`h-8 w-8 rounded-xl flex items-center justify-center text-white text-[10px] font-black shrink-0 ${avatarColor(c.full_name)}`}>
+                      {initials(c.full_name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-black text-gray-900 truncate">{c.full_name}</p>
+                      <p className="text-[9px] text-gray-400">{c.city || 'Sin ciudad'}</p>
+                    </div>
+                    <span className="text-[10px] font-black text-[#004d4d] shrink-0">{fmt(c.total_spent || 0)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Canales de adquisición */}
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Zap size={13} className="text-[#004d4d]"/>
+              <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Por canal</p>
+            </div>
+            {channelStats.length === 0 ? (
+              <p className="text-[10px] text-gray-300 text-center py-4">Sin datos aún</p>
+            ) : (
+              <div className="space-y-3">
+                {channelStats.map(([key, count]) => {
+                  const ch = CHANNELS[key] || CHANNELS.web;
+                  const pct = stats.total > 0 ? (count / stats.total) * 100 : 0;
+                  return (
+                    <div key={key}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`flex items-center gap-1.5 text-[10px] font-semibold ${ch.color}`}>{ch.icon}{ch.label}</span>
+                        <span className="text-[10px] text-gray-400">{count} · {pct.toFixed(0)}%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.6 }}
+                          className={`h-full rounded-full ${ch.color.replace('text-','bg-').replace('-600','-400').replace('-500','-400')}`}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Insight rápido */}
+          <div className="bg-[#001a1a] rounded-3xl p-5">
+            <p className="text-[8px] font-bold tracking-widest text-[#00f2ff]/60 mb-1">BAYUP INSIGHT</p>
+            <p className="text-[11px] text-white/70 leading-relaxed">
+              {stats.mayoristas > 0
+                ? <>Tienes <span className="text-white font-bold">{stats.mayoristas} mayoristas</span> que representan un canal B2B clave. Ofréceles precios especiales para fidelizarlos.</>
+                : <>Aún no tienes clientes mayoristas. <span className="text-[#00f2ff] font-bold">Considera crear una línea B2B</span> para aumentar el volumen de ventas.</>
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── MODALES ── */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <CustomerModal
+            customer={editCustomer}
+            onSave={fetchCustomers}
+            onClose={() => { setIsModalOpen(false); setEditCustomer(null); }}
+          />
+        )}
       </AnimatePresence>
 
-      <MetricDetailModal 
-        isOpen={!!selectedMetric} 
-        onClose={() => setSelectedMetric(null)} 
-        metric={selectedMetric} 
-      />
-
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 10px; }
-      `}</style>
+      <AnimatePresence>
+        {drawerCustomer && (
+          <CustomerDrawer
+            customer={drawerCustomer}
+            onClose={() => setDrawerCustomer(null)}
+            onEdit={() => { setEditCustomer(drawerCustomer); setDrawerCustomer(null); setIsModalOpen(true); }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

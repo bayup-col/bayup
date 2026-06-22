@@ -1,786 +1,612 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Store, Mail, Smartphone, Globe, Instagram, Facebook, 
-  MessageCircle, Send, CheckCircle2, Trash2, Plus, 
-  Camera, Loader2, ShieldCheck, Zap, X, CreditCard, 
-  MapPin, Clock, Info, Activity, AlertCircle, LayoutGrid, 
-  Briefcase, Sparkles, Settings2, Check, ArrowUpRight, 
-  Bot, ShoppingBag, ChevronRight, Hash, ExternalLink, ShoppingCart, Lock, Moon
+import {
+  Store, Mail, Phone, Globe, MapPin, Clock, Camera, Loader2,
+  ShieldCheck, Zap, X, ChevronDown, ExternalLink, Save,
+  Building2, Hash, User, FileText, Package, Sparkles,
+  Activity, ShoppingBag, Smartphone, Check, AlertCircle,
+  Instagram, Facebook, Send, ArrowUpRight, Edit3, Eye
 } from 'lucide-react';
-import { useAuth } from "@/context/auth-context";
+import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
-import { apiRequest, userService } from '@/lib/api';
+import { apiRequest } from '@/lib/api';
 
-// --- ICONO TIKTOK SVG ---
-const TikTokIcon = ({ size = 20 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.59-.98v6.68c0 5.23-4.03 9.35-9.25 9.23-5.5-.12-9.33-5.14-8.34-10.42.57-3.03 3.14-5.43 6.2-5.86 1.13-.08 2.27.02 3.35.3v4.07c-1.14-.46-2.47-.5-3.6-.07-1.9.72-3.08 2.85-2.6 4.83.4 1.62 1.93 2.78 3.6 2.73 2.33-.06 3.89-2.33 3.89-4.59V0h4.39c-.15.02-.3.01-.45.02z"/>
-    </svg>
+// ── TIKTOK ICON ─────────────────────────────────────────────────────────────
+const TikTokIcon = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.59-.98v6.68c0 5.23-4.03 9.35-9.25 9.23-5.5-.12-9.33-5.14-8.34-10.42.57-3.03 3.14-5.43 6.2-5.86 1.13-.08 2.27.02 3.35.3v4.07c-1.14-.46-2.47-.5-3.6-.07-1.9.72-3.08 2.85-2.6 4.83.4 1.62 1.93 2.78 3.6 2.73 2.33-.06 3.89-2.33 3.89-4.59V0h4.39c-.15.02-.3.01-.45.02z"/>
+  </svg>
 );
 
-// --- INTERFACES ---
-interface PaymentAccount {
-    id: string;
-    bank_name: string;
-    account_type: string;
-    number: string;
-    billing_limit: number;
-    current_billed: number;
-    is_primary: boolean;
-    status: 'active' | 'limit_near' | 'limit_reached';
+// ── TIPOS ────────────────────────────────────────────────────────────────────
+const CATEGORIES = [
+  { id: 'Moda & Accesorios',  label: 'Moda & Accesorios',   icon: <ShoppingBag size={14}/> },
+  { id: 'Calzado',            label: 'Calzado',              icon: <Package size={14}/> },
+  { id: 'Tecnología',         label: 'Tecnología',           icon: <Smartphone size={14}/> },
+  { id: 'Hogar',              label: 'Hogar',                icon: <Store size={14}/> },
+  { id: 'Belleza',            label: 'Belleza',              icon: <Sparkles size={14}/> },
+  { id: 'Mascotas',           label: 'Mascotas',             icon: <Activity size={14}/> },
+  { id: 'Deportes',           label: 'Deportes',             icon: <Activity size={14}/> },
+  { id: 'Alimentos',          label: 'Alimentos',            icon: <Package size={14}/> },
+  { id: 'Joyería',            label: 'Joyería',              icon: <Sparkles size={14}/> },
+  { id: 'Arte & Diseño',      label: 'Arte & Diseño',        icon: <Edit3 size={14}/> },
+];
+
+const TAX_REGIMES = ['Simplificado', 'Común (Responsable de IVA)', 'Gran Contribuyente', 'Persona Natural'];
+
+const SCHEDULE_DAYS = ['Lun – Vie', 'Lun – Sáb', 'Todos los días', 'Fines de semana', 'Personalizado'];
+
+// ── FIELD COMPONENT ──────────────────────────────────────────────────────────
+function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[9px] font-bold tracking-[0.2em] uppercase text-gray-400 block">{label}</label>
+      {children}
+      {hint && <p className="text-[9px] text-gray-400 italic pl-1">{hint}</p>}
+    </div>
+  );
 }
 
-interface WhatsAppLine {
-    id: string;
-    name: string;
-    number: string;
+function Input({ value, onChange, placeholder, type = 'text', prefix, icon, error }: any) {
+  return (
+    <div className="relative">
+      {icon && <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 [&_svg]:w-3.5 [&_svg]:h-3.5">{icon}</span>}
+      {prefix && <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-300">{prefix}</span>}
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={`w-full h-10 ${icon ? 'pl-9' : prefix ? 'pl-28' : 'pl-4'} pr-4 rounded-2xl border text-sm text-gray-800 placeholder:text-gray-300 focus:outline-none transition-colors
+          ${error ? 'border-rose-200 bg-rose-50/30 focus:border-rose-400' : 'border-gray-200 bg-white focus:border-[#004d4d]/50'}`}
+      />
+    </div>
+  );
 }
 
-export default function GeneralSettings() {
-    const { token, updateUser } = useAuth();
-    const { showToast } = useToast();
-    
-    const [activeTab, setActiveTab] = useState<'perfil' | 'finanzas' | 'canales'>('perfil');
-    const [loading, setLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
-    
-    const [currentPlan, setCurrentPlan] = useState<'Pro' | 'Empresa' | 'Básico'>('Básico');
+function Textarea({ value, onChange, placeholder, rows = 3 }: any) {
+  return (
+    <textarea
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      rows={rows}
+      className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-800 placeholder:text-gray-300 focus:outline-none focus:border-[#004d4d]/50 transition-colors resize-none"
+    />
+  );
+}
 
-    const [identity, setIdentity] = useState({
-        name: "Mi Tienda Bayup",
-        category: "Moda & Accesorios",
-        story: "Nacimos con la idea de democratizar el lujo...",
-        logo: null as string | null
-    });
+// ── SELECT DROPDOWN ──────────────────────────────────────────────────────────
+function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { id: string; label: string; icon?: React.ReactNode }[] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = options.find(o => o.id === value);
 
-    const [contact, setContact] = useState({
-        email: "soporte@mitienda.com",
-        phone: "3001234567",
-        address: "Calle 100 #15-20",
-        city: "Bogotá",
-        country: "Colombia",
-        hours: "Lun - Vie: 8am - 6pm",
-        website: "",
-        shop_slug: "", // Pilar 2
-        nit: "",
-        tax_regime: "Simplificado",
-        legal_rep: ""
-    });
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
-    const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
-    const [whatsappLines, setWhatsappLines] = useState<WhatsAppLine[]>([]);
-    const [socialLinks, setSocialLinks] = useState({
-        instagram: "https://www.instagram.com/",
-        facebook: "https://www.facebook.com/?locale=es_LA",
-        tiktok: "https://www.tiktok.com/signup?lang=es",
-        telegram: "#"
-    });
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen(v => !v)}
+        className="w-full h-10 flex items-center gap-2 px-4 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:border-[#004d4d]/40 transition-colors focus:outline-none">
+        {selected?.icon && <span className="text-gray-400 [&_svg]:w-3.5 [&_svg]:h-3.5">{selected.icon}</span>}
+        <span className="flex-1 text-left truncate">{selected?.label || 'Seleccionar…'}</span>
+        <ChevronDown size={13} className={`text-gray-300 transition-transform ${open ? 'rotate-180' : ''}`}/>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}
+            className="absolute left-0 right-0 top-12 z-50 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden max-h-52 overflow-y-auto">
+            {options.map(opt => (
+              <button key={opt.id} onClick={() => { onChange(opt.id); setOpen(false); }}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-[11px] font-medium text-left transition-colors ${value === opt.id ? 'bg-[#004d4d]/5 text-[#004d4d] font-bold' : 'text-gray-600 hover:bg-gray-50'}`}>
+                {opt.icon && <span className="[&_svg]:w-3.5 [&_svg]:h-3.5 text-gray-400">{opt.icon}</span>}
+                {opt.label}
+                {value === opt.id && <Check size={11} className="ml-auto text-[#004d4d]"/>}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
-    const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
-    const [editingAccount, setEditingAccount] = useState<PaymentAccount | null>(null);
-    const [accountFormData, setAccountFormData] = useState({
-        bank_name: '',
-        account_type: 'Ahorros',
-        number: '',
-        billing_limit: '5000000'
-    });
-
-    const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
-    const [whatsappFormData, setWhatsappFormData] = useState({ name: '', number: '' });
-
-    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-    const [scheduleConfig, setScheduleConfig] = useState({
-        range: 'Lun - Vie',
-        openTime: '08:00',
-        closeTime: '18:00'
-    });
-
-    const scheduleRanges = ['Lun - Vie', 'Lun - Sáb', 'Todos los días', 'Fines de semana'];
-    const hoursOptions = Array.from({ length: 24 }, (_, i) => {
-        const hour = i % 12 || 12;
-        const ampm = i < 12 ? 'am' : 'pm';
-        return { id: `${i.toString().padStart(2, '0')}:00`, label: `${hour}:00 ${ampm}` };
-    });
-
-    const updateScheduleString = () => {
-        const newHours = `${scheduleConfig.range}: ${scheduleConfig.openTime} - ${scheduleConfig.closeTime}`;
-        setContact(prev => ({ ...prev, hours: newHours }));
-        setIsScheduleModalOpen(false);
-    };
-
-    const [isGuideOpen, setIsGuideOpen] = useState(false);
-    const [activeGuideStep, setActiveGuideStep] = useState(0);
-
-    const guideSteps = [
-        {
-            id: 'identidad',
-            title: 'Identidad & Marca',
-            icon: <Store size={20}/>,
-            desc: 'La primera impresión es la que vende. Tu logo y nombre son el ADN de tu negocio.',
-            details: [
-                { label: 'Logo Corporativo', value: 'Usa una imagen cuadrada (1:1) de alta resolución. Evita textos pequeños que no se lean en móvil.' },
-                { label: 'Nicho de Mercado', value: 'Ayuda a Bayup a categorizarte para enviarte el tráfico correcto y sugerencias personalizadas.' },
-                { label: 'Historia / Bio', value: 'No vendas productos, vende soluciones. Cuenta por qué creaste esta marca en 3 o 4 líneas.' }
-            ],
-            baytTip: 'Las tiendas con una biografía que cuenta una historia real venden un 22% más que las que solo listan productos.'
-        },
-        {
-            id: 'contacto',
-            title: 'Contacto & Confianza',
-            icon: <Mail size={20}/>,
-            desc: 'La transparencia genera ventas. Asegúrate de que tus clientes puedan encontrarte.',
-            details: [
-                { label: 'Email de Soporte', value: 'Usa un correo profesional. Aquí llegarán las dudas de tus clientes.' },
-                { label: 'Teléfono Público', value: 'Preferiblemente un número con WhatsApp activo para cierre de ventas directo.' },
-                { label: 'Horarios', value: 'Define tus tiempos de respuesta. Un cliente informado es un cliente paciente.' }
-            ],
-            baytTip: 'Mostrar un número de contacto visible reduce el abandono de carrito en un 15%.'
-        },
-        {
-            id: 'tienda',
-            title: 'Tu Link (Slug)',
-            icon: <Zap size={20}/>,
-            desc: 'Tu dirección en el mundo digital. Es el enlace que compartirás en todas tus redes sociales.',
-            details: [
-                { label: 'Shop Slug', value: 'Debe ser corto, memorable y sin caracteres especiales. Ej: "mi-tienda" en lugar de "mi_tienda_123".' },
-                { label: 'Importancia SEO', value: 'Este nombre ayuda a Google a encontrarte. Si lo cambias, los enlaces anteriores dejarán de funcionar.' }
-            ],
-            baytTip: 'Los slugs cortos son más fáciles de recordar y tienen una tasa de click un 40% mayor en redes sociales.'
-        },
-        {
-            id: 'ubicacion',
-            title: 'Presencia Física',
-            icon: <MapPin size={20}/>,
-            desc: 'Incluso si eres 100% digital, tener una base de operaciones genera seguridad legal y logística.',
-            details: [
-                { label: 'Ciudad/País', value: 'Vital para calcular costos de envío automáticos y moneda de recaudo.' },
-                { label: 'Dirección', value: 'Solo se mostrará en las facturas y guías de envío si tú lo permites.' }
-            ],
-            baytTip: 'Muchos clientes prefieren comprar en tiendas de su misma ciudad para recibir el pedido más rápido.'
-        }
-    ];
-
-    const categoriesOptions = [
-        { id: 'Moda & Accesorios', label: 'Moda & Accesorios', icon: <ShoppingBag size={14}/> },
-        { id: 'Calzado', label: 'Calzado', icon: <ChevronRight size={14}/> },
-        { id: 'Tecnología', label: 'Tecnología', icon: <Smartphone size={14}/> },
-        { id: 'Hogar', label: 'Hogar', icon: <Store size={14}/> },
-        { id: 'Belleza', label: 'Belleza', icon: <Sparkles size={14}/> },
-        { id: 'Mascotas', label: 'Mascotas', icon: <Store size={14}/> },
-        { id: 'Deportes', label: 'Deportes', icon: <Activity size={14}/> },
-        { id: 'Alimentos', label: 'Alimentos', icon: <Zap size={14}/> },
-    ];
-
-    useEffect(() => {
-        const fetchStoreData = async () => {
-            if (!token) return;
-            setLoading(true);
-            try {
-                // Sincronización de Élite: Priorizamos el servidor seguro
-                const data = await apiRequest<any>('/auth/me', { token });
-                if (data) {
-                    console.log("Sincronizando perfil Platinum...");
-                    
-                    setIdentity({ 
-                        name: data.full_name || "Mi Tienda Bayup",
-                        category: data.category || "Moda & Accesorios", // CARGA DEL NICHO
-                        story: data.story || "Nacimos con la idea de democratizar el lujo...",
-                        logo: data.logo_url || null 
-                    });
-                    
-                    setContact({ 
-                        email: data.email || "", 
-                        phone: data.phone || "",
-                        address: data.address || "",
-                        city: data.customer_city || "Bogotá",
-                        country: data.country || "Colombia",
-                        hours: data.hours || "Lun - Vie: 8am - 6pm",
-                        website: data.website || "",
-                        shop_slug: data.shop_slug || "",
-                        nit: data.nit || "",
-                        tax_regime: data.tax_regime || "Simplificado",
-                        legal_rep: data.legal_rep || ""
-                    });
-                    
-                    if (data.social_links) setSocialLinks(prev => ({ ...prev, ...data.social_links }));
-                    
-                    // Persistencia local de respaldo
-                    localStorage.setItem('bayup_user_logo', data.logo_url || "");
-                    localStorage.setItem('bayup_user_name', data.full_name || "");
-                }
-            } catch (err) { 
-                console.error("Error al sincronizar perfil:", err);
-                // Fallback a localStorage si el servidor falla
-                const saved = localStorage.getItem('bayup_general_settings');
-                if (saved) {
-                    const p = JSON.parse(saved);
-                    setIdentity(p.identity);
-                    setContact(p.contact);
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchStoreData();
-    }, [token]);
-
-    const formatCurrency = (val: string | number) => {
-        try {
-            const num = typeof val === 'string' ? parseInt(val.replace(/\D/g, '') || '0') : val;
-            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num);
-        } catch (e) { return "$ " + val; }
-    };
-
-    const formatDots = (val: string | number) => {
-        const num = typeof val === 'string' ? val.replace(/\D/g, '') : val.toString();
-        return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    };
-
-    const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.(com|co|col|net|org|me)$/.test(email);
-    const validatePhone = (phone: string) => phone.length === 10 && /^\d+$/.test(phone);
-
-    const handleSaveMain = async () => {
-        // Quitamos validaciones bloqueantes para permitir la primera configuración fluida
-        setIsSaving(true);
-        try {
-            const payload = {
-                full_name: identity.name,
-                logo_url: identity.logo,
-                category: identity.category,
-                story: identity.story, // BIOGRAFÍA CORPORATIVA
-                email: contact.email,
-                phone: contact.phone,
-                shop_slug: contact.shop_slug,
-                nit: contact.nit,
-                address: contact.address,
-                customer_city: contact.city,
-                country: contact.country,
-                hours: contact.hours,
-                social_links: socialLinks
-            };
-
-            console.log("Enviando Sincronización Platinum:", payload);
-
-            // Persistencia en Base de Datos (Railway/Supabase)
-            await apiRequest('/admin/update-profile', {
-                method: 'PUT',
-                token,
-                body: JSON.stringify(payload),
-            });
-
-            // Sincronización de Estado Global (Header/Sidebar/Context)
-            // Actualizamos el objeto de usuario completo en el contexto
-            updateUser({
-                name: identity.name,
-                slug: contact.shop_slug,
-                logo: identity.logo || "",
-                // Inyectamos el resto de campos en el contexto de sesión
-                ...payload
-            } as any);
-
-            showToast("¡Configuración guardada y publicada! 🚀", "success");
-        } catch (e: any) { 
-            console.error("Error en sincronización:", e);
-            showToast(e.message || "Error al sincronizar con el servidor", "error"); 
-        } finally { setIsSaving(false); }
-    };
-
-    const handleAccountAction = (e: React.FormEvent) => {
-        e.preventDefault();
-        const limit = parseInt(accountFormData.billing_limit.replace(/\D/g, ''));
-        if (editingAccount) {
-            setAccounts(accounts.map(a => a.id === editingAccount.id ? { ...a, ...accountFormData, billing_limit: limit } : a));
-        } else {
-            setAccounts([...accounts, { id: Date.now().toString(), ...accountFormData, billing_limit: limit, current_billed: 0, is_primary: accounts.length === 0, status: 'active' }]);
-        }
-        setIsAccountModalOpen(false);
-    };
-
-    const handleWhatsAppAction = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!validatePhone(whatsappFormData.number)) { showToast("Número de 10 dígitos", "error"); return; }
-        setWhatsappLines([...whatsappLines, { id: Date.now().toString(), ...whatsappFormData }]);
-        setIsWhatsappModalOpen(false);
-        setWhatsappFormData({ name: '', number: '' });
-    };
-
-    const PremiumSelect = ({ label, value, onChange, options, icon: Icon }: any) => {
-        const [isOpen, setIsOpen] = useState(false);
-        return (
-            <div className="space-y-2 relative">
-                <label className="text-[10px] font-black text-gray-400  tracking-widest ml-2">{label}</label>
-                <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full pl-14 p-5 bg-gray-50 rounded-2xl border-2 border-transparent hover:border-[#004d4d]/20 text-left flex items-center justify-between group transition-all">
-                    <Icon className="absolute left-5 text-gray-300 group-hover:text-[#004d4d]" size={18}/>
-                    <span className="text-sm font-bold text-slate-700">{options.find((o:any) => o.id === value)?.label || 'Seleccionar...'}</span>
-                    <ChevronRight size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
-                </button>
-                <AnimatePresence>
-                    {isOpen && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: 10 }} 
-                            animate={{ opacity: 1, y: 0 }} 
-                            exit={{ opacity: 0, y: 10 }} 
-                            className="absolute left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-gray-100 z-[3000] overflow-y-auto max-h-64 p-2 custom-scrollbar"
-                        >
-                            {options.map((opt: any) => (
-                                <button key={opt.id} onClick={() => { onChange(opt.id); setIsOpen(false); }} className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all ${value === opt.id ? 'bg-[#004d4d] text-white' : 'hover:bg-gray-50 text-slate-600'}`}>
-                                    {opt.icon} <span className="text-xs font-bold ">{opt.label}</span>
-                                </button>
-                            ))}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-        );
-    };
-
-    if (loading) return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="animate-spin text-[#004d4d]" size={40} /></div>;
-
-    return (
-        <div className="max-w-[1600px] mx-auto pb-32 space-y-12 animate-in fade-in duration-700 overflow-visible">
-            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8 px-4 overflow-visible">
-                <div className="overflow-visible">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                        <span className="text-[10px] font-black  tracking-[0.3em] text-[#004d4d]/60 italic">Identidad corporativa</span>
-                    </div>
-                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-[1.5] text-[#001A1A] pt-2 pb-6 px-2 overflow-visible">
-                        Info <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block pb-4 pr-10">general</span>
-                    </h1>
-                    <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">¡Toda la información de tu empresa en un solo lugar! 🏢</p>
-                </div>
-                <button onClick={handleSaveMain} disabled={isSaving} className="h-14 px-10 bg-gray-900 text-white rounded-full font-black text-[10px]  tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4">
-                    {isSaving ? <Loader2 className="animate-spin" size={18}/> : <ShieldCheck size={18} className="text-[#00f2ff]" />}
-                    {isSaving ? 'Sincronizando...' : 'Guardar y publicar cambios'}
-                </button>
-            </div>
-
-            <div className="flex items-center justify-center gap-6 relative z-20">
-                <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl flex items-center overflow-x-auto relative">
-                    {[ 
-                        { id: 'perfil', label: 'Información de Tienda', icon: <Store size={14}/>, disabled: false }, 
-                        { id: 'finanzas', label: 'Finanzas (Próximamente)', icon: <CreditCard size={14}/>, disabled: true }, 
-                        { id: 'canales', label: currentPlan === 'Básico' ? 'Canales & social' : 'Canales & social', icon: <Globe size={14}/>, disabled: currentPlan === 'Básico' } 
-                    ].map((tab) => {
-                        const isActive = activeTab === tab.id;
-                        const isLocked = tab.id === 'canales' && currentPlan === 'Básico';
-                        return (
-                            <button 
-                                key={tab.id} 
-                                onClick={() => !tab.disabled && setActiveTab(tab.id as any)} 
-                                className={`relative px-8 py-3.5 rounded-full text-[9px] font-black tracking-widest transition-all z-10 whitespace-nowrap flex items-center gap-2 ${
-                                    isActive ? 'text-white' : tab.disabled ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-900'
-                                }`}
-                            >
-                                {isActive && (
-                                    <motion.div layoutId="generalTabGlow" className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
-                                )}
-                                {tab.icon} 
-                                {tab.label}
-                                {isLocked && <Lock size={10} className="ml-1 text-gray-300"/>}
-                            </button>
-                        );
-                    })}
-                </div>
-                <button onClick={() => setIsGuideOpen(true)} className="h-12 w-12 rounded-full bg-white border border-gray-100 shadow-xl flex items-center justify-center text-[#004D4D] hover:bg-black hover:text-white transition-all group shrink-0">
-                    <Info size={20} className="group-hover:scale-110 transition-transform" />
-                </button>
-            </div>
-
-            <div className="px-4">
-                <AnimatePresence mode="wait">
-                    {activeTab === 'perfil' && (
-                        <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-12">
-                            {/* SECCIÓN 1: IDENTIDAD Y MARCA */}
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                                <div className="lg:col-span-4 flex flex-col items-center gap-6 bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm">
-                                    <div className="relative group cursor-pointer" onClick={() => document.getElementById('logo-file')?.click()}>
-                                        <div className="h-48 w-48 rounded-[3.5rem] bg-gray-900 flex items-center justify-center text-white text-6xl font-black border-8 border-white shadow-2xl relative overflow-hidden">
-                                            {identity.logo ? <img src={identity.logo} className="w-full h-full object-cover" /> : identity.name.charAt(0)}
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                                                {isSaving ? <Loader2 className="animate-spin text-cyan" /> : <Camera className="text-[#00f2ff]" />}
-                                            </div>
-                                        </div>
-                                        <input id="logo-file" type="file" hidden accept="image/*" onChange={async (e) => {
-                                            const f = e.target.files?.[0];
-                                            if(!f || !token) return;
-                                            
-                                            setIsSaving(true);
-                                            try {
-                                                const formData = new FormData();
-                                                formData.append('file', f);
-                                                // REFACTORIZADO: Uso de apiRequest blindado para subida de imagen
-                                                const data = await apiRequest<any>('/admin/upload-image', {
-                                                    method: 'POST',
-                                                    token,
-                                                    body: formData
-                                                });
-                                                if (data.url) {
-                                                    setIdentity({...identity, logo: data.url});
-                                                    updateUser({ logo: data.url });
-                                                    showToast("Logo subido correctamente", "success");
-                                                }
-                                            } catch (err) {
-                                                console.error(err);
-                                                showToast("Error al subir imagen", "error");
-                                            } finally {
-                                                setIsSaving(false);
-                                            }
-                                        }}/>
-                                    </div>
-                                    <div className="text-center">
-                                        <h3 className="text-xl font-black text-gray-900 italic tracking-tight">{identity.name}</h3>
-                                        <p className="text-[10px] font-black text-gray-400 mt-1 tracking-widest uppercase">{identity.category}</p>
-                                    </div>
-                                </div>
-                                <div className="lg:col-span-8 bg-white p-12 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-gray-400 tracking-widest ml-2 uppercase">Nombre de la empresa</label>
-                                            <input 
-                                                type="text" 
-                                                value={identity.name} 
-                                                onChange={(e) => {
-                                                    const newName = e.target.value;
-                                                    setIdentity({...identity, name: newName});
-                                                    window.dispatchEvent(new CustomEvent('bayup_name_update', { detail: newName }));
-                                                }} 
-                                                className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" 
-                                            />
-                                        </div>
-                                        <PremiumSelect label="NICHO DE MERCADO" value={identity.category} onChange={(v:any) => setIdentity({...identity, category: v})} options={categoriesOptions} icon={LayoutGrid} />
-                                    </div>
-                                    <div className="space-y-2 pt-4">
-                                        <label className="text-[10px] font-black text-gray-400 tracking-widest ml-2 uppercase">Historia / biografía corporativa</label>
-                                        <textarea rows={3} value={identity.story} onChange={(e) => setIdentity({...identity, story: e.target.value})} className="w-full p-6 bg-gray-50 rounded-[2.5rem] border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-medium shadow-inner resize-none" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* SECCIÓN 2: CONTACTO Y TIENDA ONLINE */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <div className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
-                                    <div className="flex items-center gap-3 mb-4"><div className="h-10 w-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><Mail size={20}/></div><h4 className="text-sm font-black tracking-widest uppercase">Atención al cliente</h4></div>
-                                    <div className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 tracking-widest ml-2 uppercase">Email de soporte</label>
-                                                <input value={contact.email} onChange={e => setContact({...contact, email: e.target.value})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validateEmail(contact.email) ? 'border-transparent' : 'border-rose-200'}`} />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-gray-400 tracking-widest ml-2 uppercase">Teléfono público</label>
-                                                <input maxLength={10} value={contact.phone} onChange={e => setContact({...contact, phone: e.target.value.replace(/\D/g, '')})} className={`w-full p-5 bg-gray-50 rounded-2xl border-2 outline-none text-sm font-bold shadow-inner ${validatePhone(contact.phone) ? 'border-transparent' : 'border-rose-200'}`} />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2 max-w-md">
-                                            <label className="text-[10px] font-black text-gray-400 tracking-widest ml-2 uppercase">NIT / Identificación Fiscal</label>
-                                            <input value={contact.nit} onChange={e => setContact({...contact, nit: e.target.value})} placeholder="900.000.000-1" className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                        </div>
-                                        <div className="space-y-4 pt-6 border-t border-gray-100">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-[#004d4d] tracking-widest ml-2 flex items-center gap-2 uppercase">
-                                                    <Zap size={12} /> Link de tienda único (slug)
-                                                </label>
-                                                <div className="relative group">
-                                                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 text-xs font-bold">bayup.com.co/shop/</span>
-                                                    <input 
-                                                        value={contact.shop_slug} 
-                                                        onChange={e => setContact({...contact, shop_slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} 
-                                                        placeholder="mi-tienda"
-                                                        className="w-full p-5 pl-36 bg-[#004d4d]/5 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-black text-[#004d4d] shadow-inner" 
-                                                    />
-                                                </div>
-                                                <p className="text-[9px] text-gray-400 ml-2 italic">Este es el link que pondrás en tu Instagram o TikTok.</p>
-                                            </div>
-
-                                            <button 
-                                                onClick={() => window.open(`/shop/${contact.shop_slug || 'preview'}`, '_blank')}
-                                                disabled={!contact.shop_slug}
-                                                className="w-full flex items-center justify-between p-5 bg-gray-900 text-white rounded-2xl group hover:bg-black transition-all disabled:opacity-50"
-                                            >
-                                                <span className="text-[10px] font-black tracking-widest uppercase">Ver mi tienda ahora</span>
-                                                <ExternalLink size={16} className="text-[#00f2ff]"/>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-[#001a1a] p-12 rounded-[4rem] text-white relative overflow-hidden flex flex-col justify-between">
-                                    <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12"><MapPin size={250} /></div>
-                                    <div className="relative z-10 space-y-8">
-                                        <div className="flex items-center gap-3"><div className="h-10 w-10 bg-white/10 text-[#00f2ff] rounded-xl flex items-center justify-center"><MapPin size={20}/></div><h4 className="text-sm font-black tracking-widest uppercase">Ubicación física</h4></div>
-                                        <div className="space-y-6">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-white/40 tracking-widest ml-2 uppercase">Dirección principal</label>
-                                                <input value={contact.address} onChange={e => setContact({...contact, address: e.target.value})} className="w-full p-5 bg-white/5 border-2 border-white/10 rounded-2xl outline-none text-sm font-bold" />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-6">
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-white/40 tracking-widest ml-2 uppercase">Ciudad</label>
-                                                    <input value={contact.city} onChange={e => setContact({...contact, city: e.target.value})} className="w-full p-5 bg-white/5 border-2 border-white/10 rounded-2xl outline-none text-sm font-bold" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-white/40 tracking-widest ml-2 uppercase">País</label>
-                                                    <input value={contact.country} onChange={e => setContact({...contact, country: e.target.value})} className="w-full p-5 bg-white/5 border-2 border-white/10 rounded-2xl outline-none text-sm font-bold" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button 
-                                        onClick={() => setIsScheduleModalOpen(true)}
-                                        className="relative z-10 mt-8 p-6 bg-white/5 rounded-[2.5rem] border border-white/10 w-full text-left hover:bg-white/10 transition-all group"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-12 w-12 bg-[#00f2ff]/20 text-[#00f2ff] rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><Clock size={20}/></div>
-                                            <div className="flex-1">
-                                                <h5 className="text-[10px] font-black tracking-widest uppercase text-white/60">Horario de operación</h5>
-                                                <p className="text-sm font-bold text-white mt-0.5">{contact.hours || 'Configurar horario...'}</p>
-                                            </div>
-                                            <ChevronRight size={16} className="text-white/20 group-hover:text-[#00f2ff] group-hover:translate-x-1 transition-all" />
-                                        </div>
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* MODAL SELECTOR DE HORARIOS PREMIUM */}
-                    <AnimatePresence>
-                        {isScheduleModalOpen && (
-                            <div className="fixed inset-0 z-[2500] flex items-center justify-center p-4">
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsScheduleModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-                                <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-md rounded-[3.5rem] shadow-3xl p-10 relative z-10 border border-white overflow-visible">
-                                    <div className="space-y-8">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="text-2xl font-black text-gray-900 italic">Horario de trabajo</h3>
-                                            <button onClick={() => setIsScheduleModalOpen(false)} className="h-10 w-10 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-all"><X size={18}/></button>
-                                        </div>
-
-                                        <div className="space-y-6 overflow-visible">
-                                            <PremiumSelect 
-                                                label="DÍAS DE ATENCIÓN" 
-                                                value={scheduleConfig.range} 
-                                                onChange={(v:any) => setScheduleConfig({...scheduleConfig, range: v})} 
-                                                options={scheduleRanges.map(r => ({ id: r, label: r, icon: <Clock size={14}/> }))} 
-                                                icon={Clock} 
-                                            />
-
-                                            <div className="grid grid-cols-2 gap-6 overflow-visible">
-                                                <PremiumSelect 
-                                                    label="APERTURA" 
-                                                    value={scheduleConfig.openTime} 
-                                                    onChange={(v:any) => setScheduleConfig({...scheduleConfig, openTime: v})} 
-                                                    options={hoursOptions.map(h => ({ id: h.id, label: h.label, icon: <Sparkles size={14}/> }))} 
-                                                    icon={Clock} 
-                                                />
-                                                <PremiumSelect 
-                                                    label="CIERRE" 
-                                                    value={scheduleConfig.closeTime} 
-                                                    onChange={(v:any) => setScheduleConfig({...scheduleConfig, closeTime: v})} 
-                                                    options={hoursOptions.map(h => ({ id: h.id, label: h.label, icon: <Moon size={14}/> }))} 
-                                                    icon={Clock} 
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="p-6 bg-[#004d4d]/5 rounded-[2rem] border border-[#004d4d]/10 text-center">
-                                            <p className="text-[10px] font-black text-[#004d4d] uppercase tracking-widest mb-1">Vista previa</p>
-                                            <p className="text-sm font-bold text-gray-700">{scheduleConfig.range}: {scheduleConfig.openTime} - {scheduleConfig.closeTime}</p>
-                                        </div>
-
-                                        <button 
-                                            onClick={updateScheduleString}
-                                            className="w-full py-5 bg-[#004d4d] text-white rounded-2xl font-black text-[10px] tracking-widest shadow-xl hover:bg-black transition-all uppercase"
-                                        >
-                                            Confirmar horario
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            </div>
-                        )}
-                    </AnimatePresence>
-
-                    {activeTab === 'finanzas' && (
-                        <motion.div key="fin" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-8">
-                            <div className="bg-white/40 p-8 rounded-[3rem] border border-white/60 flex flex-col md:flex-row justify-between items-center gap-6">
-                                <div><h3 className="text-2xl font-black text-[#004d4d]  italic">Cuentas de recaudo</h3></div>
-                                <button onClick={() => { setEditingAccount(null); setAccountFormData({ bank_name: '', account_type: 'Ahorros', number: '', billing_limit: '5000000' }); setIsAccountModalOpen(true); }} className="h-14 px-8 bg-gray-900 text-white rounded-2xl font-black text-[10px]  shadow-xl flex items-center gap-3"><Plus size={18} className="text-[#00f2ff]"/> Añadir cuenta</button>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {accounts.map((acc) => (
-                                    <motion.div key={acc.id} whileHover={{ y: -5 }} className="bg-white p-10 rounded-[3.5rem] border border-gray-100 shadow-xl space-y-8 relative overflow-hidden group">
-                                        <div className="flex justify-between items-start">
-                                            <div className={`h-16 w-16 rounded-2xl flex items-center justify-center ${acc.is_primary ? 'bg-[#004d4d] text-[#00f2ff]' : 'bg-gray-100 text-gray-400'}`}><CreditCard size={32} /></div>
-                                            {acc.is_primary && <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[8px] font-black  rounded-lg border border-emerald-100">Principal</span>}
-                                        </div>
-                                        <div><h4 className="text-2xl font-black text-gray-900  italic">{acc.bank_name}</h4><p className="text-sm font-black text-[#004d4d] mt-1">{acc.number}</p></div>
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between"><p className="text-[10px] font-black text-gray-400 ">Tope mensual</p><p className="text-sm font-black text-gray-900">{formatCurrency(acc.billing_limit)}</p></div>
-                                            <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: `${(acc.current_billed / acc.billing_limit) * 100}%` }} className="h-full rounded-full bg-[#004d4d]"></motion.div></div>
-                                        </div>
-                                        <div className="pt-6 border-t border-gray-50 flex gap-4">
-                                            <button onClick={() => { setEditingAccount(acc); setAccountFormData({ bank_name: acc.bank_name, account_type: acc.account_type, number: acc.number, billing_limit: acc.billing_limit.toString() }); setIsAccountModalOpen(true); }} className="h-10 w-10 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center hover:bg-[#004d4d] hover:text-white transition-all"><Settings2 size={16}/></button>
-                                            <button onClick={() => setAccounts(accounts.filter(a => a.id !== acc.id))} className="h-10 w-10 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"><Trash2 size={16}/></button>
-                                            {!acc.is_primary && <button onClick={() => setAccounts(accounts.map(a => ({...a, is_primary: a.id === acc.id})))} className="flex-1 py-3 bg-[#004d4d]/5 hover:bg-[#004d4d] text-[#004d4d] hover:text-white rounded-2xl text-[9px] font-black  transition-all">Activar recaudo</button>}
-                                        </div>
-                                    </motion.div>
-                                ))}
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {activeTab === 'canales' && (
-                        <motion.div key="chan" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="grid grid-cols-1 lg:grid-cols-1 gap-8">
-                            <div className="bg-white p-10 rounded-[4rem] border border-gray-100 shadow-sm space-y-8">
-                                <h3 className="text-xl font-black text-gray-900 italic">Ecosistema social</h3>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {[ 
-                                        { id: 'instagram', label: 'Instagram', icon: <Instagram size={24}/>, color: 'text-pink-500', link: socialLinks.instagram, disabled: false }, 
-                                        { id: 'facebook', label: 'Facebook', icon: <Facebook size={24}/>, color: 'text-blue-600', link: socialLinks.facebook, disabled: false }, 
-                                        { id: 'tiktok', label: 'TikTok', icon: <TikTokIcon size={24}/>, color: 'text-gray-900', link: socialLinks.tiktok, disabled: false }, 
-                                        { id: 'telegram', label: 'Telegram', icon: <Send size={24}/>, color: 'text-gray-300', link: '#', disabled: true } 
-                                    ].map((social) => (
-                                        <a 
-                                            key={social.id} 
-                                            href={social.disabled ? undefined : social.link} 
-                                            target={social.disabled ? undefined : "_blank"} 
-                                            rel="noopener noreferrer" 
-                                            className={`p-8 rounded-[3rem] bg-gray-50 border border-transparent transition-all flex flex-col items-center gap-4 group relative overflow-hidden ${
-                                                social.disabled ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:border-[#004d4d]/20 hover:bg-white hover:shadow-2xl'
-                                            }`}
-                                        >
-                                            <div className={`h-14 w-14 bg-white ${social.color} rounded-2xl flex items-center justify-center shadow-lg ${!social.disabled && 'group-hover:scale-110'} transition-all`}>
-                                                {social.icon}
-                                            </div>
-                                            <span className="text-[10px] font-black text-gray-900 tracking-widest text-center">
-                                                {social.label} {social.disabled && <span className="block text-[8px]">(Próximamente)</span>}
-                                            </span>
-                                        </a>
-                                    ))}
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            <AnimatePresence>
-                {isGuideOpen && (
-                    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 md:p-12">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsGuideOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 40 }} className="bg-white w-full max-w-5xl h-[80vh] rounded-[4rem] shadow-3xl relative z-10 border border-white/20 overflow-hidden flex flex-col md:flex-row">
-                            
-                            {/* SIDEBAR TÁCTICO */}
-                            <div className="w-full md:w-80 bg-gray-50 border-r border-gray-100 p-8 flex flex-col gap-8">
-                                <div className="space-y-1">
-                                    <h3 className="text-2xl font-black text-gray-900 italic tracking-tight">Guía <span className="text-[#004d4d]">Élite</span></h3>
-                                    <p className="text-[9px] font-black text-gray-400 tracking-[0.2em] uppercase">Módulo Info General</p>
-                                </div>
-                                <div className="flex flex-col gap-2 flex-1">
-                                    {guideSteps.map((step, idx) => (
-                                        <button key={step.id} onClick={() => setActiveGuideStep(idx)} className={`flex items-center gap-4 p-4 rounded-3xl transition-all group ${activeGuideStep === idx ? 'bg-[#004d4d] text-white shadow-xl scale-[1.02]' : 'hover:bg-white text-gray-500 hover:text-[#004d4d]'}`}>
-                                            <div className={`h-10 w-10 rounded-2xl flex items-center justify-center transition-all ${activeGuideStep === idx ? 'bg-white/20 text-[#00f2ff]' : 'bg-gray-200/50 group-hover:bg-[#004d4d]/10'}`}>{step.icon}</div>
-                                            <span className="text-[10px] font-black tracking-widest uppercase">{step.title}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="p-6 bg-[#004d4d]/5 rounded-[2.5rem] border border-[#004d4d]/10">
-                                    <div className="flex items-center gap-3 mb-2"><Zap size={14} className="text-[#004d4d]"/> <span className="text-[9px] font-black tracking-widest uppercase text-[#004d4d]">Propósito</span></div>
-                                    <p className="text-[10px] font-medium text-gray-500 leading-relaxed italic">&quot;Tu perfil no es solo datos, es la base de tu confianza digital para cerrar ventas.&quot;</p>
-                                </div>
-                            </div>
-
-                            {/* CONTENIDO PRINCIPAL */}
-                            <div className="flex-1 p-12 overflow-y-auto custom-scrollbar relative flex flex-col">
-                                <button onClick={() => setIsGuideOpen(false)} className="absolute top-8 right-8 h-12 w-12 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-all z-20"><X size={20}/></button>
-                                
-                                <div className="flex-1 space-y-10">
-                                    <div className="space-y-4">
-                                        <div className="h-16 w-16 bg-[#004d4d]/10 text-[#004d4d] rounded-3xl flex items-center justify-center scale-110 mb-6">{guideSteps[activeGuideStep].icon}</div>
-                                        <h2 className="text-4xl font-black text-gray-900 italic tracking-tighter leading-none">{guideSteps[activeGuideStep].title}</h2>
-                                        <p className="text-gray-400 font-medium text-lg leading-relaxed max-w-xl">{guideSteps[activeGuideStep].desc}</p>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 gap-6">
-                                        {guideSteps[activeGuideStep].details.map((det, i) => (
-                                            <div key={i} className="p-8 bg-gray-50 rounded-[3rem] border border-transparent hover:border-gray-200 transition-all group">
-                                                <h4 className="text-[10px] font-black tracking-widest uppercase text-[#004d4d] mb-2">{det.label}</h4>
-                                                <p className="text-sm font-medium text-gray-600 leading-relaxed">{det.value}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <div className="p-10 bg-[#001a1a] rounded-[4rem] text-white relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12 group-hover:rotate-0 transition-all duration-700"><Bot size={200} /></div>
-                                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-                                            <div className="h-20 w-20 bg-gradient-to-br from-[#00f2ff] to-[#004d4d] rounded-[2rem] flex items-center justify-center shadow-2xl shrink-0"><Bot size={40} className="text-white animate-pulse" /></div>
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-3"><span className="h-1.5 w-1.5 rounded-full bg-[#00f2ff] shadow-[0_0_10px_#00f2ff] animate-pulse"></span><span className="text-[10px] font-black tracking-widest uppercase text-[#00f2ff]">Estrategia de Bayt AI</span></div>
-                                                <p className="text-lg font-bold italic leading-tight text-white/90">&quot;{guideSteps[activeGuideStep].baytTip}&quot;</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="mt-12 flex justify-end">
-                                    <button onClick={() => activeGuideStep === guideSteps.length - 1 ? setIsGuideOpen(false) : setActiveGuideStep(activeGuideStep + 1)} className="h-16 px-10 bg-[#004d4d] text-white rounded-full font-black text-[10px] tracking-widest shadow-2xl hover:scale-105 transition-all flex items-center gap-4">
-                                        {activeGuideStep === guideSteps.length - 1 ? '¡LO TENGO CLARO!' : 'SIGUIENTE PASO'}
-                                        {activeGuideStep !== guideSteps.length - 1 && <ChevronRight size={18} className="text-[#00f2ff]" />}
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-                {isAccountModalOpen && (
-                    <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAccountModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-md rounded-[3.5rem] shadow-3xl p-10 relative z-10 border border-white">
-                                                        <form onSubmit={handleAccountAction} className="space-y-8">
-                                                            <h3 className="text-2xl font-black text-gray-900  italic">Configurar cuenta</h3>
-                                                            <div className="space-y-6">
-                                                                <input required placeholder="Banco / entidad" value={accountFormData.bank_name} onChange={e => setAccountFormData({...accountFormData, bank_name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                                                <input required placeholder="Nro de cuenta" value={accountFormData.number} onChange={e => setAccountFormData({...accountFormData, number: e.target.value.replace(/\D/g,'')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                                                <div className="space-y-2">
-                                                                    <label className="text-[10px] font-black text-gray-400   tracking-widest ml-2">Tope mensual (COP)</label>
-                                                                    <input required value={formatDots(accountFormData.billing_limit)} onChange={e => setAccountFormData({...accountFormData, billing_limit: e.target.value.replace(/\D/g, '')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-black shadow-inner" />
-                                                                    <p className="text-[9px] font-black text-[#004d4d] ml-2">Total: {formatCurrency(accountFormData.billing_limit)}</p>
-                                                                </div>
-                                                            </div>
-                                                            <button type="submit" className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px]   shadow-xl hover:bg-black transition-all">Confirmar configuración</button>
-                                                        </form>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-                {isWhatsappModalOpen && (
-                    <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsWhatsappModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-3xl p-10 relative z-10 border border-white">
-                                                        <form onSubmit={handleWhatsAppAction} className="space-y-8">
-                                                            <h3 className="text-xl font-black text-gray-900  italic">Vincular WhatsApp</h3>
-                                                            <div className="space-y-6">
-                                                                <input required placeholder="Canal (ej: ventas)" value={whatsappFormData.name} onChange={e => setWhatsappFormData({...whatsappFormData, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-emerald-500 outline-none text-sm font-bold shadow-inner" />
-                                                                <input required placeholder="Número (10 dígitos)" maxLength={10} value={whatsappFormData.number} onChange={e => setWhatsappFormData({...whatsappFormData, number: e.target.value.replace(/\D/g,'')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-emerald-500 outline-none text-sm font-bold shadow-inner" />
-                                                            </div>
-                                                            <button type="submit" className="w-full py-5 bg-[#004d4d] text-white rounded-2xl font-black text-[10px]   shadow-xl">Activar línea</button>
-                                                        </form>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            <style jsx global>{`
-                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 30px; }
-            `}</style>
+// ── SECTION CARD ─────────────────────────────────────────────────────────────
+function SectionCard({ title, sub, icon, children, accent }: any) {
+  const colors: any = {
+    teal:   'bg-[#004d4d]/10 text-[#004d4d]',
+    blue:   'bg-blue-50 text-blue-600',
+    violet: 'bg-violet-50 text-violet-600',
+    amber:  'bg-amber-50 text-amber-600',
+    emerald:'bg-emerald-50 text-emerald-600',
+  };
+  return (
+    <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
+      <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-100">
+        <div className={`h-9 w-9 rounded-2xl flex items-center justify-center [&_svg]:w-4 [&_svg]:h-4 ${colors[accent] || colors.teal}`}>{icon}</div>
+        <div>
+          <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-widest">{title}</h3>
+          {sub && <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>}
         </div>
-    );
+      </div>
+      <div className="space-y-4">{children}</div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PÁGINA PRINCIPAL
+// ══════════════════════════════════════════════════════════════════════════════
+export default function GeneralSettings() {
+  const { token, updateUser } = useAuth();
+  const { showToast } = useToast();
+
+  const [loading, setLoading]   = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<'identidad' | 'contacto' | 'fiscal' | 'canales'>('identidad');
+
+  // Datos de identidad
+  const [identity, setIdentity] = useState({
+    name:     '',
+    category: 'Moda & Accesorios',
+    story:    '',
+    logo:     null as string | null,
+    shop_slug: '',
+  });
+
+  // Datos de contacto
+  const [contact, setContact] = useState({
+    email:   '',
+    phone:   '',
+    address: '',
+    city:    '',
+    country: 'Colombia',
+    hours:   'Lun – Vie: 8:00am – 6:00pm',
+    website: '',
+  });
+
+  // Datos fiscales
+  const [fiscal, setFiscal] = useState({
+    nit:        '',
+    tax_regime: 'Simplificado',
+    legal_rep:  '',
+  });
+
+  // Redes sociales
+  const [social, setSocial] = useState({
+    instagram: '',
+    facebook:  '',
+    tiktok:    '',
+  });
+
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [schedDays,    setSchedDays]    = useState('Lun – Vie');
+  const [schedOpen,    setSchedOpen2]   = useState('08:00');
+  const [schedClose,   setSchedClose]   = useState('18:00');
+
+  // ── CARGA INICIAL ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!token) return;
+    apiRequest<any>('/auth/me', { token })
+      .then(d => {
+        if (!d) return;
+        setIdentity({
+          name:      d.full_name || '',
+          category:  d.category  || 'Moda & Accesorios',
+          story:     d.story     || '',
+          logo:      d.logo_url  || null,
+          shop_slug: d.shop_slug || '',
+        });
+        setContact({
+          email:   d.email         || '',
+          phone:   d.phone         || '',
+          address: d.address       || '',
+          city:    d.customer_city || '',
+          country: d.country       || 'Colombia',
+          hours:   d.hours         || 'Lun – Vie: 8:00am – 6:00pm',
+          website: d.website       || '',
+        });
+        setFiscal({
+          nit:        d.nit        || '',
+          tax_regime: d.tax_regime || 'Simplificado',
+          legal_rep:  d.legal_rep  || '',
+        });
+        if (d.social_links) setSocial(prev => ({ ...prev, ...d.social_links }));
+      })
+      .catch(() => {
+        const cached = localStorage.getItem('bayup_company_profile');
+        if (cached) {
+          try {
+            const p = JSON.parse(cached);
+            setIdentity(prev => ({ ...prev, name: p.full_name || '', logo: p.logo_url || null, shop_slug: p.shop_slug || '', category: p.category || prev.category, story: p.story || '' }));
+            setContact(prev => ({ ...prev, email: p.email || '', phone: p.phone || '', address: p.address || '', city: p.customer_city || '', country: p.country || 'Colombia', hours: p.hours || prev.hours }));
+            setFiscal(prev => ({ ...prev, nit: p.nit || '', tax_regime: p.tax_regime || 'Simplificado' }));
+          } catch {}
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  // ── GUARDAR ────────────────────────────────────────────────────────────────
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const payload = {
+        full_name:     identity.name,
+        logo_url:      identity.logo,
+        category:      identity.category,
+        story:         identity.story,
+        shop_slug:     identity.shop_slug,
+        email:         contact.email,
+        phone:         contact.phone,
+        address:       contact.address,
+        customer_city: contact.city,
+        country:       contact.country,
+        hours:         contact.hours,
+        website:       contact.website,
+        nit:           fiscal.nit,
+        tax_regime:    fiscal.tax_regime,
+        legal_rep:     fiscal.legal_rep,
+        social_links:  social,
+      };
+
+      await apiRequest('/admin/update-profile', { method: 'PUT', token, body: JSON.stringify(payload) });
+
+      updateUser({ name: identity.name, slug: identity.shop_slug, logo: identity.logo || '', ...payload } as any);
+
+      // Caché + evento tiempo real
+      localStorage.setItem('bayup_company_profile', JSON.stringify(payload));
+      window.dispatchEvent(new CustomEvent('bayup_company_updated', { detail: payload }));
+
+      showToast('¡Configuración guardada y publicada!', 'success');
+    } catch (e: any) {
+      showToast(e.message || 'Error al guardar', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // ── UPLOAD LOGO ────────────────────────────────────────────────────────────
+  const handleLogoUpload = async (file: File) => {
+    if (!token) return;
+    setIsSaving(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const data = await apiRequest<any>('/admin/upload-image', { method: 'POST', token, body: formData });
+      if (data.url) {
+        setIdentity(p => ({ ...p, logo: data.url }));
+        updateUser({ logo: data.url });
+        showToast('Logo actualizado', 'success');
+      }
+    } catch { showToast('Error al subir imagen', 'error'); }
+    finally { setIsSaving(false); }
+  };
+
+  // ── HORARIO ────────────────────────────────────────────────────────────────
+  const applySchedule = () => {
+    const hours = `${schedDays}: ${schedOpen} – ${schedClose}`;
+    setContact(p => ({ ...p, hours }));
+    setScheduleOpen(false);
+  };
+
+  const tabs = [
+    { id: 'identidad', label: 'Identidad',  icon: <Store size={13}/> },
+    { id: 'contacto',  label: 'Contacto',   icon: <Phone size={13}/> },
+    { id: 'fiscal',    label: 'Fiscal',     icon: <ShieldCheck size={13}/> },
+    { id: 'canales',   label: 'Redes',      icon: <Globe size={13}/> },
+  ] as const;
+
+  const validateEmail = (e: string) => !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  const validatePhone = (p: string) => !p || (p.length === 10 && /^\d+$/.test(p));
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <Loader2 className="animate-spin text-[#004d4d]" size={32}/>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6 pb-20">
+
+      {/* ── HEADER ── */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <p className="flex items-center gap-2 text-[10px] font-bold tracking-[0.22em] uppercase mb-1 text-gray-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#004d4d] inline-block"/>
+            Identidad corporativa
+          </p>
+          <h1 className="text-4xl font-black tracking-tight leading-none text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00b2bd] to-[#004d4d]">
+            CONFIG TIENDA
+          </h1>
+          <p className="text-sm mt-1 text-gray-400">Información y configuración general de tu empresa</p>
+        </div>
+        <button onClick={handleSave} disabled={isSaving}
+          className="h-10 flex items-center gap-2 px-5 rounded-2xl bg-[#004d4d] hover:bg-[#003838] disabled:opacity-60 text-white text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm">
+          {isSaving ? <Loader2 size={13} className="animate-spin"/> : <ShieldCheck size={13} className="text-[#00f2ff]"/>}
+          {isSaving ? 'Guardando…' : 'Guardar y publicar'}
+        </button>
+      </div>
+
+      {/* ── LOGO + PREVIEW CARD ── */}
+      <div className="bg-[#001a1a] rounded-3xl p-6 flex items-center gap-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#004d4d]/40 to-transparent pointer-events-none"/>
+        {/* Avatar/logo */}
+        <div className="relative shrink-0 z-10">
+          <div className="h-20 w-20 rounded-[1.5rem] bg-gray-800 border-2 border-white/10 overflow-hidden flex items-center justify-center text-white text-2xl font-black shadow-xl">
+            {identity.logo ? <img src={identity.logo} className="w-full h-full object-cover" alt="logo"/> : identity.name.charAt(0) || '?'}
+          </div>
+          <label htmlFor="logo-upload" className="absolute -bottom-1.5 -right-1.5 h-7 w-7 bg-[#004d4d] rounded-xl flex items-center justify-center cursor-pointer hover:bg-[#00b2bd] transition-colors shadow-lg">
+            {isSaving ? <Loader2 size={12} className="animate-spin text-white"/> : <Camera size={12} className="text-white"/>}
+          </label>
+          <input id="logo-upload" type="file" hidden accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); }}/>
+        </div>
+        {/* Info */}
+        <div className="flex-1 min-w-0 z-10">
+          <h2 className="text-xl font-black text-white truncate">{identity.name || 'Tu empresa'}</h2>
+          <p className="text-[10px] font-bold tracking-widest text-white/40 uppercase mt-0.5">{identity.category}</p>
+          {identity.shop_slug && (
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="text-[10px] text-[#00f2ff]/60 font-mono">bayup.com.co/shop/{identity.shop_slug}</span>
+              <button onClick={() => window.open(`/shop/${identity.shop_slug}`, '_blank')} className="text-[#00f2ff]/60 hover:text-[#00f2ff] transition-colors">
+                <ExternalLink size={10}/>
+              </button>
+            </div>
+          )}
+        </div>
+        {/* Status */}
+        <div className="shrink-0 z-10 flex flex-col items-end gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"/>
+            <span className="text-[9px] font-bold text-emerald-400 tracking-widest">ACTIVA</span>
+          </div>
+          <button onClick={() => identity.shop_slug && window.open(`/shop/${identity.shop_slug}`, '_blank')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors border border-white/10">
+            <Eye size={10} className="text-white/40"/>
+            <span className="text-[9px] text-white/40 font-semibold">Ver tienda</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── TABS ── */}
+      <div className="flex p-1 rounded-2xl gap-1 w-fit bg-gray-100">
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all duration-150 ${
+              activeTab === t.id ? 'bg-[#004d4d] text-white shadow-sm' : 'text-gray-400 hover:text-gray-700'
+            }`}>
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ══ TAB: IDENTIDAD ══ */}
+      <AnimatePresence mode="wait">
+        {activeTab === 'identidad' && (
+          <motion.div key="identidad" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <SectionCard title="Marca" sub="Nombre e identidad pública" icon={<Store/>} accent="teal">
+                <Field label="Nombre de la empresa *">
+                  <Input value={identity.name} onChange={(e: any) => setIdentity(p => ({ ...p, name: e.target.value }))}
+                    placeholder="Nombre de tu empresa" icon={<Building2/>}/>
+                </Field>
+                <Field label="Categoría / nicho de mercado">
+                  <Select value={identity.category} onChange={v => setIdentity(p => ({ ...p, category: v }))}
+                    options={CATEGORIES}/>
+                </Field>
+                <Field label="Link de tienda (slug)" hint="Solo letras minúsculas, números y guiones. Ej: mi-tienda">
+                  <Input value={identity.shop_slug} onChange={(e: any) => setIdentity(p => ({ ...p, shop_slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
+                    placeholder="mi-tienda" prefix="bayup.com.co/shop/"/>
+                </Field>
+              </SectionCard>
+
+              <SectionCard title="Historia & Descripción" sub="Cuéntale a tus clientes quién eres" icon={<FileText/>} accent="blue">
+                <Field label="Biografía corporativa" hint="Aparece en tu tienda online. Cuenta tu historia en 2-4 líneas.">
+                  <Textarea value={identity.story} onChange={(e: any) => setIdentity(p => ({ ...p, story: e.target.value }))}
+                    placeholder="Nacimos con la idea de democratizar el lujo..." rows={5}/>
+                </Field>
+                <div className="p-3 rounded-2xl bg-[#004d4d]/5 border border-[#004d4d]/10">
+                  <p className="text-[10px] text-[#004d4d] font-medium leading-relaxed">
+                    <span className="font-bold">💡 Tip Bayup:</span> Las tiendas con una historia real venden un <strong>22% más</strong>. Habla de tu propósito, no de tus productos.
+                  </p>
+                </div>
+              </SectionCard>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ══ TAB: CONTACTO ══ */}
+        {activeTab === 'contacto' && (
+          <motion.div key="contacto" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <SectionCard title="Canales de atención" sub="Cómo te contactan tus clientes" icon={<Mail/>} accent="blue">
+                <Field label="Email de soporte *">
+                  <Input value={contact.email} onChange={(e: any) => setContact(p => ({ ...p, email: e.target.value }))}
+                    type="email" placeholder="soporte@tutienda.com" icon={<Mail/>}
+                    error={!validateEmail(contact.email)}/>
+                  {!validateEmail(contact.email) && (
+                    <p className="text-[9px] text-rose-500 flex items-center gap-1 mt-1"><AlertCircle size={10}/> Email inválido</p>
+                  )}
+                </Field>
+                <Field label="Teléfono / WhatsApp">
+                  <Input value={contact.phone} onChange={(e: any) => setContact(p => ({ ...p, phone: e.target.value.replace(/\D/g,'').slice(0,10) }))}
+                    placeholder="3001234567" icon={<Phone/>}
+                    error={!validatePhone(contact.phone)}/>
+                  {!validatePhone(contact.phone) && contact.phone && (
+                    <p className="text-[9px] text-rose-500 flex items-center gap-1 mt-1"><AlertCircle size={10}/> Debe tener 10 dígitos</p>
+                  )}
+                </Field>
+                <Field label="Sitio web (opcional)">
+                  <Input value={contact.website} onChange={(e: any) => setContact(p => ({ ...p, website: e.target.value }))}
+                    placeholder="https://tutienda.com" icon={<Globe/>}/>
+                </Field>
+              </SectionCard>
+
+              <SectionCard title="Ubicación física" sub="Ciudad, dirección y horarios" icon={<MapPin/>} accent="violet">
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Ciudad">
+                    <Input value={contact.city} onChange={(e: any) => setContact(p => ({ ...p, city: e.target.value }))}
+                      placeholder="Bogotá" icon={<MapPin/>}/>
+                  </Field>
+                  <Field label="País">
+                    <Input value={contact.country} onChange={(e: any) => setContact(p => ({ ...p, country: e.target.value }))}
+                      placeholder="Colombia" icon={<Globe/>}/>
+                  </Field>
+                </div>
+                <Field label="Dirección principal">
+                  <Input value={contact.address} onChange={(e: any) => setContact(p => ({ ...p, address: e.target.value }))}
+                    placeholder="Calle 100 #15-20" icon={<Building2/>}/>
+                </Field>
+                <Field label="Horario de atención">
+                  <button onClick={() => setScheduleOpen(true)}
+                    className="w-full h-10 flex items-center gap-3 px-4 rounded-2xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:border-[#004d4d]/40 transition-colors text-left">
+                    <Clock size={14} className="text-gray-300 shrink-0"/>
+                    <span className="flex-1 truncate">{contact.hours || 'Configurar horario…'}</span>
+                    <Edit3 size={12} className="text-gray-300"/>
+                  </button>
+                </Field>
+              </SectionCard>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ══ TAB: FISCAL ══ */}
+        {activeTab === 'fiscal' && (
+          <motion.div key="fiscal" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <SectionCard title="Información tributaria" sub="Datos para facturas y documentos legales" icon={<ShieldCheck/>} accent="emerald">
+                <Field label="NIT / Identificación fiscal">
+                  <Input value={fiscal.nit} onChange={(e: any) => setFiscal(p => ({ ...p, nit: e.target.value }))}
+                    placeholder="900.000.000-1" icon={<Hash/>}/>
+                </Field>
+                <Field label="Régimen tributario">
+                  <Select value={fiscal.tax_regime} onChange={v => setFiscal(p => ({ ...p, tax_regime: v }))}
+                    options={TAX_REGIMES.map(r => ({ id: r, label: r }))}/>
+                </Field>
+                <Field label="Representante legal">
+                  <Input value={fiscal.legal_rep} onChange={(e: any) => setFiscal(p => ({ ...p, legal_rep: e.target.value }))}
+                    placeholder="Nombre completo" icon={<User/>}/>
+                </Field>
+              </SectionCard>
+
+              {/* Vista previa de cómo aparece en factura */}
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
+                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
+                  <FileText size={14} className="text-[#004d4d]"/>
+                  <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Así aparece en tu factura</h3>
+                </div>
+                <div className="p-4 rounded-2xl border border-dashed border-gray-200 bg-gray-50 space-y-1">
+                  <div className="h-8 w-8 rounded-lg bg-gray-800 flex items-center justify-center text-white text-xs font-black mb-2">
+                    {identity.logo
+                      ? <img src={identity.logo} className="w-full h-full object-cover rounded-lg" alt="logo"/>
+                      : identity.name.charAt(0) || '?'}
+                  </div>
+                  <p className="text-[11px] font-black text-gray-900">{identity.name || 'Nombre de empresa'}</p>
+                  {fiscal.nit && <p className="text-[10px] text-gray-500">NIT: {fiscal.nit}</p>}
+                  {contact.address && <p className="text-[10px] text-gray-500">{contact.address}</p>}
+                  {contact.city && <p className="text-[10px] text-gray-500">{contact.city}{contact.country ? `, ${contact.country}` : ''}</p>}
+                  {contact.email && <p className="text-[10px] text-gray-500">{contact.email}</p>}
+                  {contact.phone && <p className="text-[10px] text-gray-500">Tel: {contact.phone}</p>}
+                </div>
+                <p className="text-[9px] text-gray-400 mt-3 italic">Esta información se actualiza automáticamente en todas tus facturas al guardar.</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ══ TAB: CANALES ══ */}
+        {activeTab === 'canales' && (
+          <motion.div key="canales" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <SectionCard title="Redes sociales" sub="Vincula tus canales digitales" icon={<Globe/>} accent="violet">
+              <div className="grid grid-cols-1 gap-3">
+                {[
+                  { key: 'instagram', label: 'Instagram', icon: <Instagram size={14}/>, placeholder: 'https://instagram.com/tutienda', color: 'text-pink-500' },
+                  { key: 'facebook',  label: 'Facebook',  icon: <Facebook  size={14}/>, placeholder: 'https://facebook.com/tutienda', color: 'text-blue-600' },
+                  { key: 'tiktok',    label: 'TikTok',    icon: <TikTokIcon size={14}/>, placeholder: 'https://tiktok.com/@tutienda', color: 'text-gray-900' },
+                ].map(s => (
+                  <Field key={s.key} label={s.label}>
+                    <div className="flex items-center gap-2">
+                      <div className={`h-10 w-10 flex items-center justify-center rounded-2xl bg-gray-50 border border-gray-200 shrink-0 ${s.color}`}>
+                        {s.icon}
+                      </div>
+                      <div className="flex-1">
+                        <Input
+                          value={(social as any)[s.key]}
+                          onChange={(e: any) => setSocial(p => ({ ...p, [s.key]: e.target.value }))}
+                          placeholder={s.placeholder}
+                        />
+                      </div>
+                      {(social as any)[s.key] && (
+                        <a href={(social as any)[s.key]} target="_blank" rel="noopener noreferrer"
+                          className="h-10 w-10 flex items-center justify-center rounded-2xl bg-gray-50 border border-gray-200 text-gray-400 hover:text-[#004d4d] hover:border-[#004d4d]/30 transition-colors shrink-0">
+                          <ArrowUpRight size={14}/>
+                        </a>
+                      )}
+                    </div>
+                  </Field>
+                ))}
+              </div>
+              <div className="pt-4 border-t border-gray-100 p-3 rounded-2xl bg-[#004d4d]/5">
+                <p className="text-[10px] text-[#004d4d] font-medium">
+                  <span className="font-bold">💡 Tip:</span> Vincular tus redes sociales aumenta la confianza del cliente. Aparecen en el footer de tu tienda online.
+                </p>
+              </div>
+            </SectionCard>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── MODAL HORARIO ── */}
+      <AnimatePresence>
+        {scheduleOpen && (
+          <>
+            <div className="fixed inset-0" style={{ zIndex: 9998 }} onClick={() => setScheduleOpen(false)}/>
+            <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+              <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }}
+                className="relative bg-white w-full max-w-sm rounded-[2rem] shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h3 className="text-sm font-black text-gray-900">Horario de atención</h3>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Configura tus días y horas de trabajo</p>
+                  </div>
+                  <button onClick={() => setScheduleOpen(false)} className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
+                    <X size={15} className="text-gray-400"/>
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <Field label="Días de atención">
+                    <Select value={schedDays} onChange={setSchedDays}
+                      options={SCHEDULE_DAYS.map(d => ({ id: d, label: d, icon: <Clock size={13}/> }))}/>
+                  </Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Apertura">
+                      <input type="time" value={schedOpen} onChange={e => setSchedOpen2(e.target.value)}
+                        className="w-full h-10 px-4 rounded-2xl border border-gray-200 text-sm font-bold text-gray-700 focus:outline-none focus:border-[#004d4d]/50"/>
+                    </Field>
+                    <Field label="Cierre">
+                      <input type="time" value={schedClose} onChange={e => setSchedClose(e.target.value)}
+                        className="w-full h-10 px-4 rounded-2xl border border-gray-200 text-sm font-bold text-gray-700 focus:outline-none focus:border-[#004d4d]/50"/>
+                    </Field>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-[#004d4d]/5 text-center">
+                    <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-widest mb-0.5">Vista previa</p>
+                    <p className="text-[12px] font-bold text-[#004d4d]">{schedDays}: {schedOpen} – {schedClose}</p>
+                  </div>
+                  <button onClick={applySchedule} className="w-full h-10 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white text-[10px] font-bold uppercase tracking-widest transition-colors">
+                    Confirmar horario
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }

@@ -1,0 +1,79 @@
+
+> frontend@1.0.7 dev
+> next dev
+
+  ▲ Next.js 14.2.23
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 5.2s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1385ms (72 modules)
+ ○ Compiling /bayup-family ...
+ ✓ Compiled /bayup-family in 24.8s (1367 modules)
+ GET /bayup-family 200 in 26679ms
+ ✓ Compiled in 1870ms (689 modules)
+ ○ Compiling /dashboard/super-admin ...
+ ✓ Compiled /dashboard/super-admin in 2.4s (1476 modules)
+ ✓ Compiled in 2.7s (1480 modules)
+ ✓ Compiled in 1212ms (748 modules)
+ ✓ Compiled in 647ms (748 modules)
+ ✓ Compiled in 667ms (748 modules)
+ ✓ Compiled in 880ms (748 modules)
+ ✓ Compiled in 1333ms (748 modules)
+ ✓ Compiled in 940ms (748 modules)
+ ✓ Compiled in 868ms (748 modules)
+ ✓ Compiled in 920ms (748 modules)
+ ✓ Compiled in 686ms (748 modules)
+ GET /dashboard/super-admin 200 in 489ms
+ GET /dashboard/super-admin 200 in 105ms
+ ○ Compiling / ...
+ ✓ Compiled / in 24.7s (2743 modules)
+ GET / 200 in 25669ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 4.8s (2755 modules)
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 15.8s (4272 modules)
+ ○ Compiling /dashboard/invoicing ...
+ ✓ Compiled /dashboard/invoicing in 4.2s (4300 modules)
+ GET /dashboard/super-admin 200 in 306ms
+ ○ Compiling /dashboard/orders ...
+ ✓ Compiled /dashboard/orders in 26.2s (4818 modules)
+ GET /dashboard/super-admin 200 in 22950ms
+ ○ Compiling /dashboard/super-admin/empresas ...
+ ✓ Compiled /dashboard/super-admin/empresas in 6.8s (4818 modules)
+ ✓ Compiled in 3.6s (4308 modules)
+ ✓ Compiled in 1088ms (2134 modules)
+ ✓ Compiled in 1519ms (2132 modules)
+ ✓ Compiled in 2.5s (4306 modules)
+ ✓ Compiled in 897ms (2132 modules)
+ ✓ Compiled in 913ms (2132 modules)
+ ✓ Compiled in 1067ms (2132 modules)
+ ✓ Compiled in 1092ms (2132 modules)
+ ✓ Compiled in 823ms (2132 modules)
+ ✓ Compiled in 1341ms (2132 modules)
+ ✓ Compiled in 868ms (2132 modules)
+ GET /dashboard/super-admin/empresas 200 in 500ms
+ ○ Compiling /dashboard/super-admin/tesoreria ...
+ ✓ Compiled /dashboard/super-admin/tesoreria in 4.3s (4314 modules)
+ ○ Compiling /dashboard/super-admin/users ...
+ ✓ Compiled /dashboard/super-admin/users in 4.9s (4310 modules)
+ ○ Compiling /dashboard/super-admin/web-templates ...
+ ✓ Compiled /dashboard/super-admin/web-templates in 3.2s (3710 modules)
+ ○ Compiling /dashboard/super-admin/soporte ...
+ ✓ Compiled /dashboard/super-admin/soporte in 2.2s (3722 modules)
+ ○ Compiling /dashboard/orders ...
+ ✓ Compiled /dashboard/orders in 4.4s (2084 modules)
+ ○ Compiling /dashboard/products ...
+ ✓ Compiled /dashboard/products in 4.2s (4258 modules)
+ ○ Compiling /dashboard/shipping ...
+ ✓ Compiled /dashboard/shipping in 6.1s (4272 modules)
+ ○ Compiling /dashboard/customers ...
+ ✓ Compiled /dashboard/customers in 3.4s (4284 modules)
+ ○ Compiling /dashboard/web-analytics ...
+ ✓ Compiled /dashboard/web-analytics in 3.8s (4316 modules)
+ ○ Compiling /dashboard/reports/gastos ...
+ ✓ Compiled /dashboard/reports/gastos in 3.4s (4330 modules)
+ ○ Compiling /dashboard/settings/general ...
+ ✓ Compiled /dashboard/settings/general in 4.5s (4349 modules)

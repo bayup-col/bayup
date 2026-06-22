@@ -2,545 +2,930 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Plus, Trash2, Edit3, Search, Tag, X, CheckCircle2, 
-  DollarSign, Calendar, ChevronDown, LayoutGrid, 
-  Filter, Download, Sparkles, Bot, Zap, TrendingUp, 
-  Activity, Target, ArrowUpRight, Clock, Briefcase, 
-  Users, ShieldCheck, AlertCircle, FileText, CreditCard, 
-  Receipt, ShoppingBag, Loader2, Info, RotateCcw, TrendingDown, BarChart3
+import {
+  Plus, Trash2, Edit3, Search, X, ChevronDown, Download, TrendingUp, TrendingDown,
+  DollarSign, ShoppingCart, Package, AlertCircle, CheckCircle2, Clock, CreditCard,
+  BarChart3, PieChart, Zap, ArrowUpRight, ArrowDownRight, Filter, Calendar,
+  Briefcase, Receipt, Target, Activity, RotateCcw, FileText, Loader2,
+  Building2, Wrench, Users, Wifi, ShieldCheck, Coffee, Truck, Star
 } from 'lucide-react';
-import { useToast } from "@/context/toast-context";
-import { useAuth } from "@/context/auth-context";
+import { useToast } from '@/context/toast-context';
+import { useAuth } from '@/context/auth-context';
+import { useTheme } from '@/context/theme-context';
+import { apiRequest } from '@/lib/api';
+import {
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, PieChart as RPieChart, Pie, Cell, LineChart, Line
+} from 'recharts';
 
-// --- INTERFACES ---
+// ── TIPOS ──────────────────────────────────────────────────────────────────
+type ExpenseCategory =
+  | 'arriendo' | 'nomina' | 'servicios' | 'marketing' | 'logistica'
+  | 'tecnologia' | 'inventario' | 'impuestos' | 'bancario' | 'caja_menor' | 'otro';
+
+type ExpenseStatus = 'pagado' | 'pendiente' | 'vencido';
+type ExpenseType = 'fijo' | 'variable';
+
 interface Expense {
-    id: string;
-    category: 'operativo_fijo' | 'operativo_diario';
-    description: string;
-    amount: number;
-    due_date: string;
-    status: 'paid' | 'pending' | 'overdue';
-    payment_method: string;
+  id: string;
+  description: string;
+  category: ExpenseCategory;
+  type: ExpenseType;
+  amount: number;
+  due_date: string;
+  paid_date?: string;
+  status: ExpenseStatus;
+  payment_method: string;
+  notes?: string;
+  recurring: boolean;
+  recurring_period?: 'mensual' | 'trimestral' | 'anual';
+  created_at: string;
 }
 
-// --- COMPONENTE NÚMEROS ANIMADOS ---
-function AnimatedNumber({ value }: { value: number }) {
-    const [display, setDisplay] = useState(0);
-    useEffect(() => {
-        let start = 0;
-        const end = value;
-        const duration = 1000;
-        const increment = end / (duration / 16);
-        const timer = setInterval(() => {
-            start += increment;
-            if (start >= end) { setDisplay(end); clearInterval(timer); }
-            else { setDisplay(Math.floor(start)); }
-        }, 16);
-        return () => clearInterval(timer);
-    }, [value]);
-    return <span>{display.toLocaleString('es-CO')}</span>;
-}
+// ── UTILS ──────────────────────────────────────────────────────────────────
+const fmt = (n: number) =>
+  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+const fmtN = (n: number) => n.toLocaleString('es-CO');
+const today = () => new Date().toISOString().split('T')[0];
+const nowId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-// --- COMPONENTE TILT CARD PREMIUM ---
-const TiltCard = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => {
-    const [rotateX, setRotateX] = useState(0);
-    const [rotateY, setRotateY] = useState(0);
-    const [glarePos, setGlarePos] = useState({ x: 50, y: 50, opacity: 0 });
+const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const CURRENT_MONTH = new Date().getMonth();
+const CURRENT_YEAR = new Date().getFullYear();
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        const card = e.currentTarget;
-        const box = card.getBoundingClientRect();
-        const x = e.clientX - box.left;
-        const y = e.clientY - box.top;
-        const centerX = box.width / 2;
-        const centerY = box.height / 2;
-        const rotateX = (y - centerY) / 7; 
-        const rotateY = (centerX - x) / 7;
-        setRotateX(rotateX);
-        setRotateY(rotateY);
-        setGlarePos({ x: (x/box.width)*100, y: (y/box.height)*100, opacity: 0.3 });
-    };
+const CATEGORIES: { id: ExpenseCategory; label: string; icon: React.ReactNode; color: string; bg: string }[] = [
+  { id: 'arriendo',    label: 'Arriendo / Local',  icon: <Building2 size={14}/>,  color: 'text-violet-600', bg: 'bg-violet-50' },
+  { id: 'nomina',      label: 'Nómina',             icon: <Users size={14}/>,      color: 'text-blue-600',   bg: 'bg-blue-50' },
+  { id: 'servicios',   label: 'Servicios públicos', icon: <Wifi size={14}/>,       color: 'text-amber-600',  bg: 'bg-amber-50' },
+  { id: 'marketing',   label: 'Marketing / Ads',    icon: <Zap size={14}/>,        color: 'text-pink-600',   bg: 'bg-pink-50' },
+  { id: 'logistica',   label: 'Logística / Envíos', icon: <Truck size={14}/>,      color: 'text-orange-600', bg: 'bg-orange-50' },
+  { id: 'tecnologia',  label: 'Tecnología',         icon: <Wrench size={14}/>,     color: 'text-cyan-600',   bg: 'bg-cyan-50' },
+  { id: 'inventario',  label: 'Inventario / Compras',icon:<Package size={14}/>,    color: 'text-emerald-600',bg: 'bg-emerald-50' },
+  { id: 'impuestos',   label: 'Impuestos / IVA',    icon: <ShieldCheck size={14}/>,color: 'text-red-600',    bg: 'bg-red-50' },
+  { id: 'bancario',    label: 'Comisiones banco',   icon: <CreditCard size={14}/>, color: 'text-gray-600',   bg: 'bg-gray-100' },
+  { id: 'caja_menor',  label: 'Caja menor',         icon: <Coffee size={14}/>,     color: 'text-yellow-600', bg: 'bg-yellow-50' },
+  { id: 'otro',        label: 'Otro',               icon: <Receipt size={14}/>,    color: 'text-gray-500',   bg: 'bg-gray-100' },
+];
 
-    return (
-        <motion.div
-            onMouseMove={handleMouseMove}
-            onMouseLeave={() => { setRotateX(0); setRotateY(0); setGlarePos(p => ({...p, opacity: 0})); }}
-            animate={{ rotateX, rotateY, scale: rotateX !== 0 ? 1.05 : 1 }}
-            transition={{ type: "spring", stiffness: 250, damping: 20 }}
-            style={{ transformStyle: "preserve-3d", perspective: "1000px" }}
-            className={`bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-2xl flex flex-col justify-between group relative overflow-hidden h-full ${className}`}
-        >
-            <div className="absolute inset-0 pointer-events-none transition-opacity duration-300" style={{ opacity: glarePos.opacity, background: `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255,255,255,0.9) 0%, transparent 50%)`, zIndex: 1 }} />
-            <div style={{ transform: "translateZ(80px)", position: "relative", zIndex: 2 }} className="h-full flex flex-col justify-between">{children}</div>
-            <div className="absolute -bottom-20 -right-20 h-40 w-40 bg-[#00f2ff]/20 blur-[60px] rounded-full pointer-events-none" />
-        </motion.div>
-    );
+const STATUS_MAP: Record<ExpenseStatus, { label: string; class: string }> = {
+  pagado:   { label: 'Pagado',   class: 'bg-emerald-50 text-emerald-600' },
+  pendiente:{ label: 'Pendiente',class: 'bg-amber-50 text-amber-600' },
+  vencido:  { label: 'Vencido',  class: 'bg-rose-50 text-rose-600' },
 };
 
-export default function GastosPage() {
-    const { token } = useAuth();
-    const { showToast } = useToast();
-    
-    const [activeTab, setActiveTab] = useState<'resumen' | 'fijos' | 'diarios' | 'bayt'>('resumen');
-    const [expenses, setExpenses] = useState<Expense[]>([]);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [dateRange, setDateRange] = useState({ start: '', end: '' });
-    const [filterCategory, setFilterCategory] = useState("all");
-    const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
-    const [isFilterHovered, setIsFilterHovered] = useState(false);
-    const [isDateHovered, setIsDateHovered] = useState(false);
-    const [isExportHovered, setIsExportHovered] = useState(false);
-    const [selectedPeriod, setSelectedPeriod] = useState("Febrero 2026");
-    const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+const PAYMENT_METHODS = ['Transferencia', 'Efectivo', 'Tarjeta débito', 'Tarjeta crédito', 'PSE', 'Nequi / Daviplata', 'Cheque'];
 
-    // Modal States
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isGuideOpen, setIsGuideOpen] = useState(false);
-    const [activeGuideStep, setActiveGuideStep] = useState(0);
-    const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-    const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+// ── SEED DATA ──────────────────────────────────────────────────────────────
+const SEED: Expense[] = [
+  { id: '1', description: 'Arriendo bodega', category: 'arriendo', type: 'fijo', amount: 1500000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-05`, status: 'pagado', payment_method: 'Transferencia', recurring: true, recurring_period: 'mensual', created_at: today() },
+  { id: '2', description: 'Nómina julio', category: 'nomina', type: 'fijo', amount: 3200000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-30`, status: 'pendiente', payment_method: 'Transferencia', recurring: true, recurring_period: 'mensual', created_at: today() },
+  { id: '3', description: 'Pauta Meta Ads', category: 'marketing', type: 'variable', amount: 450000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-15`, status: 'pagado', payment_method: 'Tarjeta crédito', recurring: false, created_at: today() },
+  { id: '4', description: 'Energía + agua', category: 'servicios', type: 'fijo', amount: 280000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-20`, status: 'pendiente', payment_method: 'PSE', recurring: true, recurring_period: 'mensual', created_at: today() },
+  { id: '5', description: 'Compra inventario camisetas', category: 'inventario', type: 'variable', amount: 2400000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-10`, status: 'pagado', payment_method: 'Transferencia', recurring: false, created_at: today() },
+  { id: '6', description: 'Dominio + hosting', category: 'tecnologia', type: 'fijo', amount: 120000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-01`, status: 'vencido', payment_method: 'Tarjeta crédito', recurring: true, recurring_period: 'mensual', created_at: today() },
+];
 
-    const [formData, setFormData] = useState({
-        description: '',
-        amount: '',
-        due_date: new Date().toISOString().split('T')[0],
-        category: 'operativo_fijo' as 'operativo_fijo' | 'operativo_diario',
-        payment_method: 'Transferencia'
-    });
-
-    // --- PERSISTENCIA ---
-    useEffect(() => {
-        const saved = localStorage.getItem('bayup_expenses_data');
-        if (saved) { setExpenses(JSON.parse(saved)); } 
-        else {
-            const initial: Expense[] = [
-                { id: '1', description: 'Arriendo Bodega', amount: 3500000, due_date: '2026-02-05', status: 'paid', category: 'operativo_fijo', payment_method: 'Transferencia' },
-                { id: '2', description: 'Cintas de embalaje', amount: 45000, due_date: '2026-02-01', status: 'pending', category: 'operativo_diario', payment_method: 'Efectivo' }
-            ];
-            setExpenses(initial); localStorage.setItem('bayup_expenses_data', JSON.stringify(initial));
-        }
-        setLoading(false);
-    }, []);
-
-    const saveExpenses = (data: Expense[]) => { setExpenses(data); localStorage.setItem('bayup_expenses_data', JSON.stringify(data)); };
-
-    const formatCurrency = (amount: number) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount).replace('$', '$ ');
-    const formatDots = (val: string | number) => {
-        const num = typeof val === 'string' ? val.replace(/\D/g, '') : val.toString();
-        if (!num) return ""; return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    };
-
-    const totals = useMemo(() => {
-        const fixed = expenses.filter(e => e.category === 'operativo_fijo').reduce((acc, e) => acc + e.amount, 0);
-        const daily = expenses.filter(e => e.category === 'operativo_diario').reduce((acc, e) => acc + e.amount, 0);
-        const pending = expenses.filter(e => e.status !== 'paid').reduce((acc, e) => acc + e.amount, 0);
-        return { total: fixed + daily, fixed, daily, pending };
-    }, [expenses]);
-
-    const filteredExpenses = useMemo(() => {
-        return expenses.filter(e => {
-            const matchesSearch = e.description.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'resumen' || (activeTab === 'fijos' && e.category === 'operativo_fijo') || (activeTab === 'diarios' && e.category === 'operativo_diario');
-            const matchesFilter = filterCategory === 'all' || e.category === filterCategory;
-            let matchesDate = true;
-            if (dateRange.start && dateRange.end) {
-                const recordDate = new Date(e.due_date).getTime();
-                const start = new Date(dateRange.start).getTime();
-                const end = new Date(dateRange.end).getTime();
-                matchesDate = recordDate >= start && recordDate <= end;
-            }
-            return matchesSearch && matchesTab && matchesFilter && matchesDate;
-        });
-    }, [expenses, searchTerm, activeTab, filterCategory, dateRange]);
-
-    const handleSaveExpense = (e: React.FormEvent) => {
-        e.preventDefault();
-        const amountNum = parseInt(formData.amount.replace(/\D/g, ''));
-        if (!formData.description || isNaN(amountNum)) { showToast("Completa los campos", "error"); return; }
-        if (editingExpense) {
-            const newData = expenses.map(ex => ex.id === editingExpense.id ? { ...ex, ...formData, amount: amountNum } : ex);
-            saveExpenses(newData); showToast("Gasto actualizado", "success");
-        } else {
-            const newEx: Expense = { id: Date.now().toString(), ...formData, amount: amountNum, status: 'pending' };
-            saveExpenses([...expenses, newEx]); showToast("Gasto registrado", "success");
-        }
-        setIsModalOpen(false); setEditingExpense(null);
-    };
-
-    const handleDownloadReport = () => {
-        const reportTitle = activeTab === 'resumen' ? 'REPORTE GENERAL DE EGRESOS' : 
-                           activeTab === 'fijos' ? 'AUDITORÍA DE COSTOS FIJOS' : 'CONTROL DE CAJA MENOR';
-        
-        const date = new Date().toLocaleDateString();
-        const time = new Date().toLocaleTimeString();
-
-        const html = `
-            <html><head><meta charset="utf-8"><style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-                .header { background: #001a1a; color: #00f2ff; text-align: center; padding: 40px; border-bottom: 5px solid #004d4d; }
-                .header h1 { margin: 0; font-size: 26px; letter-spacing: 2px; text-transform: uppercase; }
-                .header p { margin: 5px 0 0; opacity: 0.7; font-size: 12px; }
-                .info-section { padding: 30px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
-                .info-grid { display: table; width: 100%; }
-                .info-item { display: table-cell; font-size: 13px; color: #64748b; }
-                .info-item b { color: #0f172a; }
-                table { width: 100%; border-collapse: collapse; margin-top: 0; }
-                th { background: #f1f5f9; color: #475569; text-align: left; font-size: 11px; text-transform: uppercase; padding: 15px 12px; border-bottom: 2px solid #e2e8f0; }
-                td { padding: 15px 12px; font-size: 13px; border-bottom: 1px solid #f1f5f9; color: #334155; }
-                .category-tag { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
-                .amount { font-weight: 900; color: #0f172a; text-align: right; }
-                .status-paid { color: #10b981; font-weight: bold; }
-                .status-pending { color: #f59e0b; font-weight: bold; }
-                .footer { background: #001a1a; color: white; padding: 20px; }
-                .total-row { background: #f0fdf4; }
-                .total-label { text-align: right; font-weight: 900; color: #004d4d; text-transform: uppercase; font-size: 12px; }
-            </style></head><body>
-                <div class="header">
-                    <h1>${reportTitle}</h1>
-                    <p>Sistema de Gestión Financiera Bayup | Platinum v2.0</p>
-                </div>
-                <div class="info-section">
-                    <div class="info-grid">
-                        <div class="info-item"><b>Periodo:</b> ${selectedPeriod}</div>
-                        <div class="info-item"><b>Fecha Emisión:</b> ${date}</div>
-                        <div class="info-item"><b>Hora:</b> ${time}</div>
-                    </div>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Descripción del Concepto</th>
-                            <th>Categoría</th>
-                            <th>Método Pago</th>
-                            <th>Vencimiento</th>
-                            <th>Estado</th>
-                            <th style="text-align: right;">Monto (COP)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${filteredExpenses.map(e => `
-                            <tr>
-                                <td>${e.description}</td>
-                                <td><span class="category-tag">${e.category.replace('_', ' ')}</span></td>
-                                <td>${e.payment_method}</td>
-                                <td>${e.due_date}</td>
-                                <td class="${e.status === 'paid' ? 'status-paid' : 'status-pending'}">
-                                    ${e.status === 'paid' ? 'LIQUIDADO' : 'PENDIENTE'}
-                                </td>
-                                <td class="amount">${formatCurrency(e.amount)}</td>
-                            </tr>
-                        `).join('')}
-                        <tr class="total-row">
-                            <td colspan="5" class="total-label">Balance Total Exportado:</td>
-                            <td class="amount" style="color: #ef4444; font-size: 16px;">${formatCurrency(filteredExpenses.reduce((acc, e) => acc + e.amount, 0))}</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div style="padding: 20px; text-align: center; color: #94a3b8; font-size: 10px;">
-                    © 2026 BAYUP INTERACTIVE UP. Documento generado por Bayt AI para fines de auditoría corporativa.
-                </div>
-            </body></html>
-        `;
-        const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `Reporte_${activeTab.toUpperCase()}_${selectedPeriod.replace(/\s+/g, '_')}.xls`;
-        a.click();
-        showToast("Reporte Platinum generado correctamente 📦", "success");
-    };
-
-    const renderActionBar = () => (
-        <div className="w-full max-w-[1100px] mx-auto flex justify-between items-center bg-white p-2 rounded-2xl border border-gray-100 shadow-sm transition-all focus-within:shadow-xl focus-within:border-[#004d4d]/20 relative z-30">
-            <div className="relative w-full"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} /><input type="text" placeholder="Buscar gasto..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-transparent text-sm font-bold outline-none placeholder:text-gray-300" /></div>
-            <div className="flex items-center gap-1">
-                <div className="relative"><motion.button layout onMouseEnter={() => setIsFilterHovered(true)} onMouseLeave={() => setIsFilterHovered(false)} onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className={`h-12 flex items-center gap-2 px-4 rounded-xl transition-all ${isFilterMenuOpen ? 'bg-[#004d4d] text-white' : 'bg-gray-50 text-gray-500 hover:bg-white hover:border-gray-100'}`}><Filter size={18}/> <AnimatePresence>{isFilterHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase whitespace-nowrap overflow-hidden px-1">Filtros</motion.span>}</AnimatePresence></motion.button></div>
-                <div className="relative group/date"><motion.button layout onMouseEnter={() => setIsDateHovered(true)} onMouseLeave={() => setIsDateHovered(false)} className={`h-12 flex items-center gap-2 px-4 rounded-xl transition-all ${dateRange.start ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-500 hover:bg-white hover:border-gray-100'}`}><Calendar size={18}/> <AnimatePresence>{isDateHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase whitespace-nowrap overflow-hidden px-1">Fechas</motion.span>}</AnimatePresence></motion.button><div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 opacity-0 scale-95 pointer-events-none group-hover/date:opacity-100 group-hover/date:scale-100 group-hover/date:pointer-events-auto transition-all z-50 flex gap-2"><input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} className="p-2 bg-gray-50 rounded-lg text-[10px]"/><input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} className="p-2 bg-gray-50 rounded-lg text-[10px]"/><button onClick={() => setDateRange({start:'', end:''})} className="p-2 bg-rose-50 text-rose-500 rounded-lg"><RotateCcw size={14}/></button></div></div>
-                <motion.button layout onMouseEnter={() => setIsExportHovered(true)} onMouseLeave={() => setIsExportHovered(false)} onClick={handleDownloadReport} className="h-12 flex items-center gap-2 px-4 rounded-xl bg-gray-50 border border-transparent hover:bg-white hover:border-gray-100 text-gray-500 transition-all"><Download size={18}/> <AnimatePresence>{isExportHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase whitespace-nowrap overflow-hidden px-1">Reporte</motion.span>}</AnimatePresence></motion.button>
-            </div>
+// ── MINI TOOLTIP ───────────────────────────────────────────────────────────
+const ChartTip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white border border-gray-100 shadow-xl rounded-2xl p-3 text-xs min-w-[150px]">
+      <p className="font-semibold text-gray-400 mb-2 text-[10px]">{label}</p>
+      {payload.map((p: any, i: number) => (
+        <div key={i} className="flex items-center gap-2 mb-1">
+          <div style={{ background: p.color }} className="h-1.5 w-1.5 rounded-full"/>
+          <span className="text-gray-400 text-[10px]">{p.name}:</span>
+          <span className="font-bold text-gray-800 text-[10px]">{fmt(p.value)}</span>
         </div>
-    );
+      ))}
+    </div>
+  );
+};
 
-    if (loading) return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="animate-spin text-[#004d4d]" size={40} /></div>;
+// ── KPI CARD ───────────────────────────────────────────────────────────────
+function KpiCard({ label, value, sub, icon, trend, trendUp, accent = '#004d4d' }: any) {
+  return (
+    <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-5 hover:-translate-y-0.5 transition-transform duration-200">
+      <div className="flex items-start justify-between mb-4">
+        <div className="h-9 w-9 rounded-2xl flex items-center justify-center [&_svg]:w-4 [&_svg]:h-4"
+          style={{ background: `${accent}15`, color: accent }}>{icon}</div>
+        {trend != null && (
+          <span className={`flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${trendUp ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
+            {trendUp ? <ArrowUpRight size={10}/> : <ArrowDownRight size={10}/>}{trend}
+          </span>
+        )}
+      </div>
+      <p className="text-[8px] font-bold tracking-[0.22em] uppercase text-gray-400 mb-1">{label}</p>
+      <h3 className="text-xl font-black tracking-tight text-gray-900 leading-none">{value}</h3>
+      {sub && <p className="text-[10px] text-gray-400 mt-1 leading-tight">{sub}</p>}
+      <div className="mt-3 h-[3px] w-full rounded-full bg-gray-100">
+        <div className="h-full w-3/5 rounded-full" style={{ background: `linear-gradient(90deg, ${accent}99, transparent)` }}/>
+      </div>
+    </div>
+  );
+}
 
-    return (
-        <div className="max-w-[1600px] mx-auto pb-20 space-y-12 animate-in fade-in duration-1000">
-            {/* Header */}
-            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8 px-4">
-                <div>
-                    <div className="flex items-center gap-3 mb-2"><span className="h-2 w-2 rounded-full bg-[#00f2ff] animate-pulse shadow-[0_0_10px_#00f2ff]"></span><span className="text-[10px] font-black uppercase text-[#004d4d]/60 tracking-[0.2em]">Finanzas Operativas</span></div>
-                    <h1 className="text-5xl font-black italic text-[#001A1A] tracking-tighter uppercase leading-tight">Control de <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-[#00F2FF]">Gastos</span></h1>
-                    <p className="text-[#004d4d]/60 mt-2 font-medium max-w-lg leading-relaxed italic">Gestiona costos fijos y optimiza la <span className="font-bold text-[#001A1A]">salud financiera</span>.</p>
-                </div>
-                <button onClick={() => { setEditingExpense(null); setFormData({ description: '', amount: '', due_date: new Date().toISOString().split('T')[0], category: 'operativo_fijo', payment_method: 'Transferencia' }); setIsModalOpen(true); }} className="h-14 px-10 bg-gray-900 text-white rounded-full font-black text-[10px] uppercase shadow-2xl hover:scale-105 transition-all flex items-center gap-4 group"><Zap size={18} className="text-[#00f2ff] group-hover:rotate-12 transition-transform" /> Registrar Gasto</button>
+// ── MODAL REGISTRO ─────────────────────────────────────────────────────────
+function ExpenseModal({ expense, onSave, onClose }: { expense?: Expense | null; onSave: (e: Expense) => void; onClose: () => void }) {
+  const blank: Omit<Expense, 'id' | 'created_at'> = {
+    description: '', category: 'otro', type: 'variable', amount: 0,
+    due_date: today(), status: 'pendiente', payment_method: 'Transferencia',
+    notes: '', recurring: false, recurring_period: 'mensual'
+  };
+  const [form, setForm] = useState<Omit<Expense, 'id' | 'created_at'>>(expense ? {
+    description: expense.description, category: expense.category, type: expense.type,
+    amount: expense.amount, due_date: expense.due_date, status: expense.status,
+    payment_method: expense.payment_method, notes: expense.notes || '',
+    recurring: expense.recurring, recurring_period: expense.recurring_period
+  } : blank);
+
+  const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSave = () => {
+    if (!form.description || !form.amount) return;
+    onSave({ ...form, id: expense?.id || nowId(), created_at: expense?.created_at || today() } as Expense);
+    onClose();
+  };
+
+  useEffect(() => {
+    document.body.classList.add('modal-open');
+    return () => document.body.classList.remove('modal-open');
+  }, []);
+
+  return (
+    <>
+      <div className="fixed inset-0" style={{ zIndex: 9998 }} onClick={onClose}/>
+      <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+        <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.18 }}
+          className="relative bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden"
+          onClick={e => e.stopPropagation()}>
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-7 pt-7 pb-5 border-b border-gray-100">
+            <div>
+              <h2 className="text-base font-black text-gray-900">{expense ? 'Editar gasto' : 'Registrar gasto'}</h2>
+              <p className="text-[10px] text-gray-400 mt-0.5">Mantén tu control financiero actualizado</p>
+            </div>
+            <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"><X size={16} className="text-gray-400"/></button>
+          </div>
+
+          <div className="px-7 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+            {/* Descripción */}
+            <div>
+              <label className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1.5 block">Descripción *</label>
+              <input value={form.description} onChange={e => set('description', e.target.value)}
+                placeholder="Ej: Nómina junio, Pauta Instagram..."
+                className="w-full h-10 px-4 rounded-2xl border border-gray-200 text-sm text-gray-800 placeholder:text-gray-300 focus:outline-none focus:border-[#004d4d]/50"/>
             </div>
 
-            {/* KPIs con TILT INTERACTIVOS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
-                {[
-                    { id: 'total', label: 'Total Gastos Mes', value: totals.total, icon: <Receipt size={20}/>, color: 'text-rose-600', trend: 'Pasivo' },
-                    { id: 'fijos', label: 'Costos Fijos', value: totals.fixed, icon: <Briefcase size={20}/>, color: 'text-[#004d4d]', trend: 'Fijo' },
-                    { id: 'diarios', label: 'Caja Menor', value: totals.daily, icon: <DollarSign size={20}/>, color: 'text-amber-500', trend: 'Variable' },
-                    { id: 'pendientes', label: 'Pendiente Pago', value: totals.pending, icon: <Clock size={20}/>, color: 'text-rose-500', trend: 'Crítico' },
-                ].map((kpi, i) => (
-                    <div key={i} onClick={() => setSelectedKPI(kpi.id)} className="cursor-pointer h-full">
-                        <TiltCard className="p-8">
-                            <div className="flex justify-between items-start"><div className={`h-12 w-12 rounded-2xl bg-white shadow-inner flex items-center justify-center ${kpi.color}`}>{kpi.icon}</div><span className="text-[10px] font-black px-2 py-1 bg-gray-50 text-gray-400 rounded-lg uppercase tracking-widest">Stats</span></div>
-                            <div className="mt-6"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</p><h3 className="text-2xl font-black text-gray-900 mt-1">$ <AnimatedNumber value={kpi.value} /></h3><p className="text-[9px] font-bold text-gray-400 mt-1 uppercase tracking-tighter">{kpi.trend}</p></div>
-                        </TiltCard>
-                    </div>
+            {/* Categoría */}
+            <div>
+              <label className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1.5 block">Categoría *</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {CATEGORIES.map(c => (
+                  <button key={c.id} onClick={() => set('category', c.id)}
+                    className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border text-[10px] font-semibold transition-all ${form.category === c.id ? 'border-[#004d4d] bg-[#004d4d]/5 text-[#004d4d]' : 'border-gray-100 text-gray-500 hover:border-gray-200'}`}>
+                    <span className={`shrink-0 ${c.color}`}>{c.icon}</span>
+                    <span className="truncate">{c.label}</span>
+                  </button>
                 ))}
+              </div>
             </div>
 
-            {/* Menu Tabs */}
-            <div className="flex items-center justify-center gap-4">
-                <div className="p-1.5 bg-white border border-gray-100 rounded-full shadow-xl flex items-center overflow-x-auto relative z-10">
-                    {[ { id: 'resumen', label: 'Todos los Gastos', icon: <LayoutGrid size={14}/> }, { id: 'fijos', label: 'Costos Fijos', icon: <Briefcase size={14}/> }, { id: 'diarios', label: 'Caja Menor', icon: <DollarSign size={14}/> }, { id: 'bayt', label: 'Bayt Insight', icon: <Sparkles size={14}/> } ].map((tab) => (
-                        <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`relative px-8 py-3.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${activeTab === tab.id ? 'text-white' : 'text-gray-400 hover:text-gray-900'}`}>{activeTab === tab.id && <motion.div layoutId="gastosTabGlow" className="absolute inset-0 bg-[#004D4D] rounded-full shadow-lg -z-10" />}{tab.icon} {tab.label}</button>
-                    ))}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Tipo */}
+              <div>
+                <label className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1.5 block">Tipo</label>
+                <div className="flex rounded-2xl border border-gray-200 overflow-hidden">
+                  {(['fijo', 'variable'] as ExpenseType[]).map(t => (
+                    <button key={t} onClick={() => set('type', t)}
+                      className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors ${form.type === t ? 'bg-[#004d4d] text-white' : 'text-gray-400 hover:text-gray-700'}`}>
+                      {t}
+                    </button>
+                  ))}
                 </div>
-                <button onClick={() => setIsGuideOpen(true)} className="h-12 w-12 rounded-full bg-white border border-gray-100 shadow-xl flex items-center justify-center text-[#004d4d] hover:bg-black hover:text-white transition-all group shrink-0"><Info size={20} className="group-hover:scale-110 transition-transform" /></button>
+              </div>
+
+              {/* Monto */}
+              <div>
+                <label className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1.5 block">Monto (COP) *</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400 font-bold">$</span>
+                  <input type="number" value={form.amount || ''} onChange={e => set('amount', Number(e.target.value))}
+                    placeholder="0"
+                    className="w-full h-10 pl-7 pr-4 rounded-2xl border border-gray-200 text-sm font-bold text-gray-800 placeholder:text-gray-300 focus:outline-none focus:border-[#004d4d]/50"/>
+                </div>
+              </div>
             </div>
 
-            <AnimatePresence mode="wait">
-                <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }} className="space-y-10">
-                    {activeTab !== 'bayt' ? (
-                        <div className="space-y-8">
-                            {renderActionBar()}
-                            <div className="px-4 space-y-4">
-                                {filteredExpenses.map((e) => (
-                                    <motion.div key={e.id} whileHover={{ x: 5 }} className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-10">
-                                        <div className="flex items-center gap-6 flex-1"><div className={`h-16 w-16 rounded-[1.8rem] flex items-center justify-center text-xl font-black shadow-2xl ${e.category === 'operativo_fijo' ? 'bg-[#004d4d] text-[#00f2ff]' : 'bg-rose-50 text-rose-600'}`}>{e.category === 'operativo_fijo' ? <Briefcase size={24} /> : <ShoppingBag size={24} />}</div><div><div className="flex items-center gap-3"><h4 className="text-xl font-black text-gray-900 tracking-tight">{e.description}</h4><span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${e.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>{e.status === 'paid' ? 'Liquidado' : 'Pendiente'}</span></div><p className="text-[10px] text-gray-400 font-bold uppercase mt-1 italic">{e.category.replace('_', ' ')}</p></div></div>
-                                        <div className="flex-[1.5] grid grid-cols-3 gap-8 px-10 border-x border-gray-50"><div className="text-center"><p className="text-[9px] font-black text-gray-400 uppercase">Método</p><p className="text-xs font-black text-gray-900 mt-1">{e.payment_method}</p></div><div className="text-center"><p className="text-[9px] font-black text-gray-400 uppercase">Fecha</p><p className="text-xs font-black text-gray-900 mt-1">{e.due_date}</p></div><div className="text-center"><p className="text-[9px] font-black text-gray-400 uppercase">Monto</p><p className="text-sm font-black text-rose-600 mt-1">{formatCurrency(e.amount)}</p></div></div>
-                                                                                <div className="flex items-center gap-4">
-                                                                                    <button onClick={() => { setEditingExpense(e); setFormData({ description: e.description, amount: e.amount.toString(), due_date: e.due_date, category: e.category, payment_method: e.payment_method }); setIsModalOpen(true); }} className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-400 hover:text-[#004d4d] flex items-center justify-center transition-all shadow-inner"><Edit3 size={20}/></button>
-                                                                                    <button onClick={() => setExpenseToDelete(e)} className="h-12 w-12 rounded-2xl bg-rose-50 text-rose-400 hover:text-rose-600 flex items-center justify-center transition-all shadow-inner"><Trash2 size={20}/></button>
-                                                                                </div>
-                                                                            </motion.div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                        
-                        <div className="px-4"><div className="bg-[#004d4d] p-16 rounded-[4rem] text-white relative overflow-hidden shadow-2xl border border-white/5"><div className="absolute top-0 right-0 p-10 opacity-5 rotate-12"><DollarSign size={300} /></div><div className="flex flex-col md:flex-row items-center gap-16 relative z-10"><div className="h-32 w-32 bg-gray-900 rounded-[3rem] border-2 border-[#00f2ff]/50 flex items-center justify-center animate-pulse"><Bot size={64} className="text-[#00f2ff]" /></div><div className="flex-1 space-y-6"><h3 className="text-4xl font-black uppercase italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-[#00f2ff]">Expense Insight</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><div className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">&quot;Tus gastos fijos representan el 65% de tu operación. Centralizar proveedores podría ahorrarte un 8% mensual.&quot;</p></div><div className="bg-white/5 backdrop-blur-md p-8 rounded-3xl border border-white/10"><p className="text-sm font-medium italic leading-relaxed">&quot;Se detectó un pico de gastos en Caja Menor la semana pasada. Recomiendo revisar facturas de logística.&quot;</p></div></div></div></div></div></div>
-                    )}
-                </motion.div>
-            </AnimatePresence>
+            <div className="grid grid-cols-2 gap-3">
+              {/* Fecha vencimiento */}
+              <div>
+                <label className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1.5 block">Fecha vence</label>
+                <input type="date" value={form.due_date} onChange={e => set('due_date', e.target.value)}
+                  className="w-full h-10 px-4 rounded-2xl border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#004d4d]/50"/>
+              </div>
 
-            {/* MODAL DETALLE KPI DINÁMICO */}
-            <AnimatePresence>
-                {selectedKPI && (
-                    <div className="fixed inset-0 z-[2500] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedKPI(null)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-3xl overflow-hidden border border-white">
-                            <div className="p-10 bg-gradient-to-br from-gray-900 to-[#001a1a] text-white relative">
-                                <button onClick={() => setSelectedKPI(null)} className="absolute top-6 right-6 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all group"><X size={20} className="group-hover:rotate-90 transition-transform"/></button>
-                                <div className="space-y-4"><h3 className="text-3xl font-black italic uppercase tracking-tighter">{selectedKPI === 'total' ? 'Egresos Mes' : selectedKPI === 'fijos' ? 'Costos Fijos' : selectedKPI === 'diarios' ? 'Caja Menor' : 'Pendientes'}</h3><p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00f2ff]">Financial Strategy Bayup</p></div>
-                            </div>
-                            <div className="p-10 space-y-8">
-                                {selectedKPI === 'total' && (<div className="space-y-6"><div className="flex justify-between items-end"><p className="text-xs font-bold text-gray-400 uppercase">Comparativa vs Enero</p><p className="text-xl font-black text-rose-500">+12.4% Gasto</p></div><div className="p-6 bg-gray-50 rounded-2xl"><p className="text-xs font-medium italic">&quot;El incremento se debe a la inversión en bodega. Mantén el control de suministros.&quot;</p></div></div>)}
-                                {selectedKPI === 'fijos' && (<div className="space-y-6"><div className="flex justify-between items-end"><p className="text-xs font-bold text-gray-400 uppercase">Impacto Utilidad</p><p className="text-xl font-black text-[#004d4d]">35% del Ingreso</p></div><div className="p-10 bg-gray-900 rounded-[2.5rem] text-white text-center relative overflow-hidden"><div className="absolute top-0 right-0 p-4 opacity-10"><TrendingDown size={100}/></div><p className="text-sm font-medium text-[#00f2ff] italic">&quot;Costos estables. Renegociar logística liberaría un 3% de rentabilidad.&quot;</p></div></div>)}
-                                {selectedKPI === 'diarios' && (<div className="space-y-6"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Picos de Caja Menor</p><div className="p-6 bg-amber-50 rounded-3xl"><p className="text-xs font-medium text-amber-800 italic">&quot;Detecté 5 micro-compras de papelería. Centralizar pedidos ahorraría costos de envío.&quot;</p></div></div>)}
-                                {selectedKPI === 'pendientes' && (<div className="space-y-6"><div className="grid grid-cols-2 gap-4"><div className="p-5 bg-rose-50 rounded-2xl text-center"><p className="text-[10px] font-black text-rose-600 uppercase mb-1">Por Pagar</p><p className="text-2xl font-black">{formatCurrency(totals.pending)}</p></div><div className="p-5 bg-emerald-50 rounded-2xl text-center"><p className="text-[10px] font-black text-emerald-600 uppercase mb-1">Pagado</p><p className="text-2xl font-black">{formatCurrency(totals.total - totals.pending)}</p></div></div><p className="text-[10px] font-medium text-gray-500 text-center italic">&quot;2 facturas vencen en 48 horas. Liquídalas para evitar recargos.&quot;</p></div>)}
-                                <button onClick={() => setSelectedKPI(null)} className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl hover:bg-black">Cerrar Análisis</button>
-                            </div>
-                        </motion.div>
-                    </div>
+              {/* Estado */}
+              <div>
+                <label className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1.5 block">Estado</label>
+                <select value={form.status} onChange={e => set('status', e.target.value as ExpenseStatus)}
+                  className="w-full h-10 px-4 rounded-2xl border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#004d4d]/50 bg-white appearance-none">
+                  <option value="pendiente">Pendiente</option>
+                  <option value="pagado">Pagado</option>
+                  <option value="vencido">Vencido</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Método de pago */}
+            <div>
+              <label className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1.5 block">Método de pago</label>
+              <div className="flex flex-wrap gap-1.5">
+                {PAYMENT_METHODS.map(m => (
+                  <button key={m} onClick={() => set('payment_method', m)}
+                    className={`px-3 py-1.5 rounded-xl text-[10px] font-semibold border transition-all ${form.payment_method === m ? 'bg-[#004d4d] text-white border-[#004d4d]' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}>
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Recurrente */}
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 border border-gray-100">
+              <div>
+                <p className="text-[11px] font-bold text-gray-700">Gasto recurrente</p>
+                <p className="text-[10px] text-gray-400">Se repetirá automáticamente</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {form.recurring && (
+                  <select value={form.recurring_period} onChange={e => set('recurring_period', e.target.value)}
+                    className="h-7 px-2 rounded-xl border border-gray-200 text-[10px] text-gray-600 bg-white focus:outline-none">
+                    <option value="mensual">Mensual</option>
+                    <option value="trimestral">Trimestral</option>
+                    <option value="anual">Anual</option>
+                  </select>
                 )}
-            </AnimatePresence>
+                <button onClick={() => set('recurring', !form.recurring)}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${form.recurring ? 'bg-[#004d4d]' : 'bg-gray-200'}`}>
+                  <div className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${form.recurring ? 'left-5' : 'left-0.5'}`}/>
+                </button>
+              </div>
+            </div>
 
-            {/* MODAL REGISTRO/EDICION */}
-            <AnimatePresence>
-                {isModalOpen && (
-                    <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-md rounded-[3.5rem] shadow-3xl p-10 relative z-10 border border-white overflow-hidden">
-                            <form onSubmit={handleSaveExpense} className="space-y-8">
-                                <div className="flex justify-between items-center"><div className="h-12 w-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shadow-inner"><DollarSign size={24}/></div><button type="button" onClick={() => setIsModalOpen(false)} className="h-10 w-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 hover:text-rose-500"><X size={20}/></button></div>
-                                <h3 className="text-2xl font-black text-gray-900 uppercase italic">{editingExpense ? 'Editar Gasto' : 'Registrar Gasto'}</h3>
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-2 gap-4"><button type="button" onClick={() => setFormData({...formData, category: 'operativo_fijo'})} className={`py-4 rounded-2xl border-2 transition-all text-[10px] font-black uppercase ${formData.category === 'operativo_fijo' ? 'border-[#004d4d] bg-[#004d4d] text-white shadow-lg' : 'border-gray-100 text-gray-400'}`}>Gasto Fijo</button><button type="button" onClick={() => setFormData({...formData, category: 'operativo_diario'})} className={`py-4 rounded-2xl border-2 transition-all text-[10px] font-black uppercase ${formData.category === 'operativo_diario' ? 'border-rose-500 bg-rose-500 text-white shadow-lg' : 'border-gray-100 text-gray-400'}`}>Caja Menor</button></div>
-                                    <input required placeholder="Descripción" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-gray-900 outline-none text-sm font-bold shadow-inner" />
-                                    <input required placeholder="Monto" value={formatDots(formData.amount)} onChange={e => setFormData({...formData, amount: e.target.value.replace(/\D/g, '')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-gray-900 outline-none text-sm font-black shadow-inner" />
-                                    <input type="date" value={formData.due_date} onChange={e => setFormData({...formData, due_date: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-gray-900 outline-none text-sm font-bold shadow-inner" />
-                                </div>
-                                <button type="submit" className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl hover:bg-black flex items-center justify-center gap-3"><CheckCircle2 size={18} className="text-[#00f2ff]"/> {editingExpense ? 'Guardar' : 'Confirmar'}</button>
-                            </form>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+            {/* Notas */}
+            <div>
+              <label className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1.5 block">Notas (opcional)</label>
+              <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} placeholder="Detalles adicionales..."
+                className="w-full px-4 py-2.5 rounded-2xl border border-gray-200 text-sm text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-[#004d4d]/50 resize-none"/>
+            </div>
+          </div>
 
-            {/* MODAL GUÍA ELITE PLATINUM */}
-            <AnimatePresence>
-                {isGuideOpen && (
-                    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsGuideOpen(false)} className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" />
-                        <motion.div initial={{ scale: 0.95, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 50 }} className="bg-white w-full max-w-6xl h-[80vh] rounded-[4rem] shadow-3xl overflow-hidden relative z-10 border border-white flex flex-col md:flex-row">
-                            
-                            {/* SIDEBAR TÁCTICO */}
-                            <div className="w-full md:w-[320px] bg-gray-50 border-r border-gray-100 p-10 flex flex-col gap-3">
-                                <div className="h-12 w-12 bg-gray-900 text-[#00f2ff] rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-cyan-500/20"><Bot size={24}/></div>
-                                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#004d4d] mb-4">Guía Maestro Gastos</h3>
-                                
-                                {[
-                                    { id: 0, label: 'Todos los Gastos', icon: <LayoutGrid size={16}/> },
-                                    { id: 1, label: 'Costos Fijos', icon: <Briefcase size={16}/> },
-                                    { id: 2, label: 'Caja Menor', icon: <DollarSign size={16}/> },
-                                    { id: 3, label: 'Bayt Insight', icon: <Sparkles size={16}/> }
-                                ].map(step => (
-                                    <button 
-                                        key={step.id} 
-                                        onClick={() => setActiveGuideStep(step.id)} 
-                                        className={`flex items-center gap-4 p-4 rounded-2xl transition-all text-left ${activeGuideStep === step.id ? 'bg-[#004d4d] text-white shadow-xl shadow-[#004d4d]/20' : 'text-gray-500 hover:bg-white hover:shadow-sm'}`}
-                                    >
-                                        <div className={activeGuideStep === step.id ? 'text-[#00f2ff]' : 'text-gray-300'}>{step.icon}</div>
-                                        <span className="text-[10px] font-black uppercase tracking-widest">{step.label}</span>
-                                    </button>
-                                ))}
+          {/* Footer */}
+          <div className="flex gap-3 px-7 py-5 border-t border-gray-100">
+            <button onClick={onClose} className="flex-1 h-10 rounded-2xl border border-gray-200 text-[11px] font-semibold text-gray-500 hover:bg-gray-50 transition-colors">Cancelar</button>
+            <button onClick={handleSave} className="flex-1 h-10 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white text-[11px] font-bold uppercase tracking-widest transition-colors">
+              {expense ? 'Guardar cambios' : 'Registrar gasto'}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </>
+  );
+}
 
-                                <div className="mt-auto pt-8 border-t border-gray-100 px-2">
-                                    <p className="text-[8px] font-black uppercase text-gray-300 tracking-[0.2em]">Bayup Finance Core v2.0</p>
-                                </div>
-                            </div>
+// ══════════════════════════════════════════════════════════════════════════
+// PÁGINA PRINCIPAL
+// ══════════════════════════════════════════════════════════════════════════
+export default function GastosPage() {
+  const { token } = useAuth();
+  const { theme } = useTheme();
+  const { showToast } = useToast();
+  const dark = theme === 'dark';
 
-                            {/* CONTENIDO ESTRATÉGICO VISUAL */}
-                            <div className="flex-1 p-16 flex flex-col justify-between relative bg-white overflow-y-auto custom-scrollbar">
-                                <button onClick={() => setIsGuideOpen(false)} className="absolute top-10 right-10 text-gray-300 hover:text-rose-500 transition-colors z-[100]"><X size={24}/></button>
-                                
-                                <div className="space-y-12">
-                                    {activeGuideStep === 0 && (
-                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                                            <div className="space-y-4">
-                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Terminal de <span className="text-[#004D4D]">Egresos</span></h2>
-                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">&quot;Esta pantalla centraliza cada salida de capital de tu marca para una auditoría impecable.&quot;</p>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-6">
-                                                <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 shadow-sm group hover:bg-white hover:shadow-xl transition-all">
-                                                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-[#004d4d] mb-6 shadow-sm"><Search size={24}/></div>
-                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Búsqueda & Suite</p>
-                                                    <p className="text-sm font-medium text-gray-600 mt-2 italic">Filtra gastos por concepto, fecha o categoría. Usa el botón de Reporte para exportar auditorías a Excel.</p>
-                                                </div>
-                                                <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 shadow-sm group hover:bg-white hover:shadow-xl transition-all">
-                                                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-[#00f2ff] mb-6 shadow-sm"><Zap size={24}/></div>
-                                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Acción Rápida</p>
-                                                    <p className="text-sm font-medium text-gray-600 mt-2 italic">Utiliza el botón &apos;Registrar Gasto&apos; para capturar en segundos cualquier movimiento financiero.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+  const [expenses, setExpenses] = useState<Expense[]>(SEED);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+  const [activeTab, setActiveTab] = useState<'resumen' | 'gastos' | 'ingresos' | 'rentabilidad'>('resumen');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [search, setSearch] = useState('');
+  const [filterCat, setFilterCat] = useState<ExpenseCategory | 'todas'>('todas');
+  const [filterStatus, setFilterStatus] = useState<ExpenseStatus | 'todas'>('todas');
+  const [periodMonth, setPeriodMonth] = useState(CURRENT_MONTH);
+  const [periodYear, setPeriodYear] = useState(CURRENT_YEAR);
 
-                                    {activeGuideStep === 1 && (
-                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                                            <div className="space-y-4">
-                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Costos <span className="text-[#004D4D]">Fijos</span></h2>
-                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">La columna vertebral de tu operación. Arriendos, servicios y nómina base.</p>
-                                            </div>
-                                            <div className="relative p-10 bg-gray-900 rounded-[3.5rem] overflow-hidden text-white shadow-2xl">
-                                                <div className="absolute top-0 right-0 p-4 opacity-10"><Briefcase size={120}/></div>
-                                                <div className="space-y-6 relative z-10">
-                                                    <p className="text-sm font-medium text-gray-300 italic leading-relaxed">&quot;Medimos los costos fijos para entender tu Punto de Equilibrio. Bayt te notificará si estos costos superan el 40% de tus ingresos brutos.&quot;</p>
-                                                    <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10">
-                                                        <ShieldCheck className="text-emerald-400" size={20}/>
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-[#00f2ff]">Salud Estructural OK</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+  // Cargar órdenes reales
+  useEffect(() => {
+    if (!token) return;
+    apiRequest<any[]>('/orders', { token })
+      .then(d => { setOrders(Array.isArray(d) ? d : []); setLoadingOrders(false); })
+      .catch(() => setLoadingOrders(false));
+  }, [token]);
 
-                                    {activeGuideStep === 2 && (
-                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                                            <div className="space-y-4">
-                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Caja <span className="text-[#004D4D]">Menor</span></h2>
-                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">Gastos operativos diarios y micro-compras que suelen fugar utilidad.</p>
-                                            </div>
-                                            <div className="p-10 bg-gray-50 rounded-[3.5rem] border border-gray-100 flex items-center gap-10">
-                                                <div className="h-20 w-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center shadow-xl shrink-0"><DollarSign size={40}/></div>
-                                                <div className="space-y-2">
-                                                    <p className="text-sm font-black uppercase tracking-widest text-gray-900">Control de Fugas</p>
-                                                    <p className="text-xs font-medium text-gray-500 italic leading-relaxed">&quot;El 15% de la utilidad se pierde en gastos hormiga. Registra cada cinta, cada envío y cada insumo pequeño aquí.&quot;</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+  // ── Ingresos desde órdenes ──
+  const salesRevenue = useMemo(() => {
+    return orders
+      .filter(o => {
+        const d = new Date(o.created_at);
+        return d.getMonth() === periodMonth && d.getFullYear() === periodYear;
+      })
+      .reduce((a, o) => a + (o.total_price || 0), 0);
+  }, [orders, periodMonth, periodYear]);
 
-                                    {activeGuideStep === 3 && (
-                                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                                            <div className="space-y-4">
-                                                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#001A1A]">Bayt <span className="text-[#004D4D]">Insight</span></h2>
-                                                <p className="text-gray-500 text-lg font-medium leading-relaxed italic">Análisis predictivo aplicado a la optimización de egresos.</p>
-                                            </div>
-                                            <div className="p-10 bg-[#001A1A] rounded-[3.5rem] relative overflow-hidden text-white shadow-2xl">
-                                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#00f2ff]/10 rounded-full blur-[80px]"></div>
-                                                <div className="relative z-10 flex flex-col items-center text-center space-y-6">
-                                                    <div className="h-20 w-20 bg-[#00f2ff]/10 text-[#00f2ff] rounded-[2rem] border border-[#00f2ff]/30 flex items-center justify-center shadow-[0_0_30px_rgba(0,242,255,0.2)] animate-pulse"><Bot size={48}/></div>
-                                                    <div className="space-y-4">
-                                                        <p className="text-sm font-black uppercase tracking-[0.3em] text-[#00f2ff]">Supply-AI Strategist</p>
-                                                        <p className="text-lg font-medium leading-relaxed italic text-gray-300">&quot;Bayt detecta patrones de gasto. Te dirá cuándo centralizar compras para ahorrar costos de envío y qué días de la semana gastas más de lo proyectado.&quot;</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
+  const totalOrders = useMemo(() =>
+    orders.filter(o => {
+      const d = new Date(o.created_at);
+      return d.getMonth() === periodMonth && d.getFullYear() === periodYear;
+    }).length
+  , [orders, periodMonth, periodYear]);
 
-                                <div className="mt-12 pt-12 border-t border-gray-100 flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-10 w-10 rounded-full bg-gray-900 text-[#00f2ff] flex items-center justify-center font-black text-xs shadow-lg italic">B</div>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Bayup Expense Manager v2.0</p>
-                                    </div>
-                                    <button onClick={() => setIsGuideOpen(false)} className="px-12 py-5 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-2xl">Entendido, Continuar Operación</button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+  // ── Filtros de gastos ──
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter(e => {
+      const d = new Date(e.due_date);
+      const inPeriod = d.getMonth() === periodMonth && d.getFullYear() === periodYear;
+      const matchSearch = !search || e.description.toLowerCase().includes(search.toLowerCase());
+      const matchCat = filterCat === 'todas' || e.category === filterCat;
+      const matchStatus = filterStatus === 'todas' || e.status === filterStatus;
+      return inPeriod && matchSearch && matchCat && matchStatus;
+    });
+  }, [expenses, periodMonth, periodYear, search, filterCat, filterStatus]);
 
-            {/* MODAL CONFIRMACIÓN ELIMINACIÓN GASTO */}
-            <AnimatePresence>
-                {expenseToDelete && (
-                    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setExpenseToDelete(null)} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center relative z-10 border border-white">
-                            <div className="h-20 w-20 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-rose-100 animate-bounce">
-                                <AlertCircle size={40} />
-                            </div>
-                            <h3 className="text-xl font-black text-gray-900 uppercase italic">¿Remover Registro?</h3>
-                            <p className="text-gray-500 text-sm mt-4 font-medium italic leading-relaxed">
-                                Estás por eliminar el concepto:<br/>
-                                <span className="font-bold text-gray-900">&quot;{expenseToDelete.description}&quot;</span><br/>
-                                Esta acción es irreversible.
-                            </p>
-                            <div className="flex flex-col gap-3 mt-10">
-                                <button 
-                                    onClick={() => {
-                                        saveExpenses(expenses.filter(ex => ex.id !== expenseToDelete.id));
-                                        setExpenseToDelete(null);
-                                        showToast("Gasto eliminado correctamente 🗑️", "info");
-                                    }} 
-                                    className="w-full py-5 bg-rose-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-rose-700 transition-all active:scale-95"
-                                >
-                                    Eliminar Definitivamente
-                                </button>
-                                <button 
-                                    onClick={() => setExpenseToDelete(null)} 
-                                    className="w-full py-5 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-all"
-                                >
-                                    Cancelar
-                                </button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+  const totalExpenses = useMemo(() => filteredExpenses.reduce((a, e) => a + e.amount, 0), [filteredExpenses]);
+  const paidExpenses = useMemo(() => filteredExpenses.filter(e => e.status === 'pagado').reduce((a, e) => a + e.amount, 0), [filteredExpenses]);
+  const pendingExpenses = useMemo(() => filteredExpenses.filter(e => e.status !== 'pagado').reduce((a, e) => a + e.amount, 0), [filteredExpenses]);
+  const overdueExpenses = useMemo(() => filteredExpenses.filter(e => e.status === 'vencido').reduce((a, e) => a + e.amount, 0), [filteredExpenses]);
+  const netProfit = salesRevenue - totalExpenses;
+  const profitMargin = salesRevenue > 0 ? (netProfit / salesRevenue) * 100 : 0;
 
-            <style jsx global>{`
-                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 30px; }
-            `}</style>
+  // ── Por categoría ──
+  const byCategory = useMemo(() => {
+    const map: Record<string, number> = {};
+    filteredExpenses.forEach(e => { map[e.category] = (map[e.category] || 0) + e.amount; });
+    return Object.entries(map)
+      .map(([cat, total]) => ({ cat: cat as ExpenseCategory, total }))
+      .sort((a, b) => b.total - a.total);
+  }, [filteredExpenses]);
+
+  // ── Evolución últimos 6 meses ──
+  const evolutionData = useMemo(() => {
+    return Array.from({ length: 6 }, (_, i) => {
+      const m = (periodMonth - 5 + i + 12) % 12;
+      const y = periodYear - (periodMonth - 5 + i < 0 ? 1 : 0);
+      const gastos = expenses
+        .filter(e => { const d = new Date(e.due_date); return d.getMonth() === m && d.getFullYear() === y; })
+        .reduce((a, e) => a + e.amount, 0);
+      const ingresos = orders
+        .filter(o => { const d = new Date(o.created_at); return d.getMonth() === m && d.getFullYear() === y; })
+        .reduce((a, o) => a + (o.total_price || 0), 0);
+      return { mes: MONTHS[m], gastos, ingresos, utilidad: ingresos - gastos };
+    });
+  }, [expenses, orders, periodMonth, periodYear]);
+
+  // ── Donut categorías ──
+  const PIE_COLORS = ['#004d4d','#00b2bd','#10b981','#6366f1','#f59e0b','#ec4899','#ef4444','#8b5cf6','#64748b','#14b8a6','#f97316'];
+
+  // ── CRUD ──
+  const handleSave = (exp: Expense) => {
+    setExpenses(prev => {
+      const idx = prev.findIndex(e => e.id === exp.id);
+      if (idx >= 0) { const next = [...prev]; next[idx] = exp; return next; }
+      return [exp, ...prev];
+    });
+    showToast({ type: 'success', message: editingExpense ? 'Gasto actualizado' : 'Gasto registrado correctamente' });
+    setEditingExpense(null);
+  };
+
+  const handleDelete = (id: string) => {
+    setExpenses(prev => prev.filter(e => e.id !== id));
+    showToast({ type: 'success', message: 'Gasto eliminado' });
+  };
+
+  const openEdit = (exp: Expense) => { setEditingExpense(exp); setIsModalOpen(true); };
+
+  const tabs = [
+    { id: 'resumen',       label: 'Resumen' },
+    { id: 'gastos',        label: 'Gastos' },
+    { id: 'ingresos',      label: 'Ingresos' },
+    { id: 'rentabilidad',  label: 'Rentabilidad' },
+  ] as const;
+
+  // ── Helper cat ──
+  const getCat = (id: ExpenseCategory) => CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
+
+  return (
+    <div className="space-y-6 pb-20">
+
+      {/* ── HEADER ── */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <p className={`flex items-center gap-2 text-[10px] font-bold tracking-[0.22em] uppercase mb-1 ${dark ? 'text-white/30' : 'text-gray-400'}`}>
+            <span className="h-1.5 w-1.5 rounded-full bg-[#004d4d] inline-block"/>
+            Finanzas operativas
+          </p>
+          <h1 className="text-4xl font-black tracking-tight leading-none text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00b2bd] to-[#004d4d]">
+            CONTROL DE GASTOS
+          </h1>
+          <p className={`text-sm mt-1 ${dark ? 'text-white/30' : 'text-gray-400'}`}>
+            Gestión de costos, ingresos y rentabilidad real del negocio
+          </p>
         </div>
-    );
+        <div className="flex items-center gap-2">
+          {/* Selector mes */}
+          <div className="flex items-center gap-1 h-10 px-3 rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <button onClick={() => {
+              if (periodMonth === 0) { setPeriodMonth(11); setPeriodYear(y => y - 1); }
+              else setPeriodMonth(m => m - 1);
+            }} className="h-6 w-6 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
+              <ChevronDown size={12} className="rotate-90 text-gray-400"/>
+            </button>
+            <span className="text-[11px] font-bold text-gray-700 min-w-[80px] text-center">
+              {MONTHS[periodMonth]} {periodYear}
+            </span>
+            <button onClick={() => {
+              if (periodMonth === 11) { setPeriodMonth(0); setPeriodYear(y => y + 1); }
+              else setPeriodMonth(m => m + 1);
+            }} className="h-6 w-6 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
+              <ChevronDown size={12} className="-rotate-90 text-gray-400"/>
+            </button>
+          </div>
+          <button onClick={() => { setEditingExpense(null); setIsModalOpen(true); }}
+            className="h-10 flex items-center gap-2 px-5 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm">
+            <Plus size={14}/> Registrar gasto
+          </button>
+        </div>
+      </div>
+
+      {/* ── KPIs ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <KpiCard label="Ingresos del mes" value={fmt(salesRevenue)} sub={`${totalOrders} ventas registradas`} icon={<TrendingUp/>} trend="+12%" trendUp accent="#004d4d"/>
+        <KpiCard label="Gastos totales" value={fmt(totalExpenses)} sub={`${filteredExpenses.length} gastos`} icon={<TrendingDown/>} accent="#ef4444"/>
+        <KpiCard label="Utilidad neta" value={fmt(netProfit)} sub={`Margen: ${profitMargin.toFixed(1)}%`} icon={<DollarSign/>} trend={profitMargin > 0 ? `${profitMargin.toFixed(0)}%` : undefined} trendUp={profitMargin > 0} accent={netProfit >= 0 ? '#10b981' : '#ef4444'}/>
+        <KpiCard label="Gastos pagados" value={fmt(paidExpenses)} sub="Comprometido y pagado" icon={<CheckCircle2/>} accent="#10b981"/>
+        <KpiCard label="Por pagar" value={fmt(pendingExpenses)} sub={overdueExpenses > 0 ? `${fmt(overdueExpenses)} vencidos` : 'Sin vencidos'} icon={<Clock/>} accent={overdueExpenses > 0 ? '#ef4444' : '#f59e0b'}/>
+      </div>
+
+      {/* Alerta vencidos */}
+      {overdueExpenses > 0 && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 p-4 rounded-2xl bg-rose-50 border border-rose-100">
+          <AlertCircle size={16} className="text-rose-500 shrink-0"/>
+          <p className="text-[11px] text-rose-700 font-medium">
+            Tienes gastos vencidos por <span className="font-black">{fmt(overdueExpenses)}</span> — revísalos y márcalos como pagados para mantener tu contabilidad al día.
+          </p>
+          <button onClick={() => setFilterStatus('vencido')} className="ml-auto text-[10px] font-bold text-rose-600 underline shrink-0">Ver vencidos</button>
+        </motion.div>
+      )}
+
+      {/* ── TABS ── */}
+      <div className={`flex p-1 rounded-2xl gap-1 w-fit ${dark ? 'bg-white/5' : 'bg-gray-100'}`}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)}
+            className={`px-4 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-widest transition-all duration-150 ${
+              activeTab === t.id ? 'bg-[#004d4d] text-white shadow-sm' : dark ? 'text-white/40 hover:text-white/70' : 'text-gray-400 hover:text-gray-700'
+            }`}>{t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ══ TAB: RESUMEN ══════════════════════════════════════════════════════ */}
+      {activeTab === 'resumen' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {/* Gráfico evolución */}
+            <div className="lg:col-span-2 bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-[8px] font-bold tracking-widest uppercase text-gray-400">Últimos 6 meses</p>
+                  <h3 className="text-sm font-black text-gray-900">Ingresos vs Gastos</h3>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-[#004d4d]"/><span className="text-[9px] text-gray-400">Ingresos</span></div>
+                  <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-rose-400"/><span className="text-[9px] text-gray-400">Gastos</span></div>
+                  <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-emerald-400"/><span className="text-[9px] text-gray-400">Utilidad</span></div>
+                </div>
+              </div>
+              <div style={{ height: 220 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={evolutionData} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gI" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#004d4d" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#004d4d" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="gG" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.12}/>
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="gU" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false}/>
+                    <XAxis dataKey="mes" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false}/>
+                    <Tooltip content={<ChartTip/>}/>
+                    <Area type="monotone" dataKey="ingresos" name="Ingresos" stroke="#004d4d" strokeWidth={2.5} fill="url(#gI)" dot={false} activeDot={{ r: 4, fill: '#004d4d', stroke: 'white', strokeWidth: 2 }}/>
+                    <Area type="monotone" dataKey="gastos" name="Gastos" stroke="#ef4444" strokeWidth={2} fill="url(#gG)" dot={false} activeDot={{ r: 3 }}/>
+                    <Area type="monotone" dataKey="utilidad" name="Utilidad" stroke="#10b981" strokeWidth={2} fill="url(#gU)" dot={false} activeDot={{ r: 3 }}/>
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Gastos por categoría donut */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
+              <p className="text-[8px] font-bold tracking-widest uppercase text-gray-400 mb-0.5">Distribución</p>
+              <h3 className="text-sm font-black text-gray-900 mb-4">Gastos por área</h3>
+              {byCategory.length > 0 ? (
+                <>
+                  <div style={{ height: 160 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RPieChart>
+                        <Pie data={byCategory} dataKey="total" cx="50%" cy="50%" innerRadius={45} outerRadius={70} stroke="none">
+                          {byCategory.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]}/>)}
+                        </Pie>
+                        <Tooltip formatter={(v: any) => [fmt(v), '']}/>
+                      </RPieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="space-y-1.5 mt-3">
+                    {byCategory.slice(0, 5).map((c, i) => {
+                      const cat = getCat(c.cat);
+                      return (
+                        <div key={i} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }}/>
+                            <span className="text-[10px] text-gray-600">{cat.label}</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-gray-800">{fmt(c.total)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-center h-40 text-gray-300 text-[11px]">Sin gastos en este período</div>
+              )}
+            </div>
+          </div>
+
+          {/* Panel financiero */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Resumen P&L */}
+            <div className="bg-[#001a1a] rounded-3xl p-6 text-white">
+              <p className="text-[8px] font-bold tracking-widest text-[#00f2ff]/60 mb-1">ESTADO DE RESULTADOS</p>
+              <h3 className="text-sm font-black text-white mb-5">{MONTHS[periodMonth]} {periodYear}</h3>
+              <div className="space-y-3">
+                {[
+                  { label: 'Ingresos por ventas', value: salesRevenue, color: 'text-emerald-400', sign: '+' },
+                  { label: 'Costos fijos', value: filteredExpenses.filter(e=>e.type==='fijo').reduce((a,e)=>a+e.amount,0), color: 'text-rose-400', sign: '-' },
+                  { label: 'Costos variables', value: filteredExpenses.filter(e=>e.type==='variable').reduce((a,e)=>a+e.amount,0), color: 'text-amber-400', sign: '-' },
+                ].map((r, i) => (
+                  <div key={i} className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <span className="text-[10px] text-white/50">{r.label}</span>
+                    <span className={`text-[11px] font-black ${r.color}`}>{r.sign} {fmt(r.value)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] font-bold text-white">UTILIDAD NETA</span>
+                  <span className={`text-base font-black ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmt(netProfit)}</span>
+                </div>
+                <div className="mt-3 p-3 rounded-2xl bg-white/5 text-center">
+                  <p className="text-[9px] text-white/40">Margen de ganancia</p>
+                  <p className={`text-2xl font-black mt-0.5 ${profitMargin > 20 ? 'text-emerald-400' : profitMargin > 0 ? 'text-amber-400' : 'text-rose-400'}`}>
+                    {profitMargin.toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Gastos fijos vs variables */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
+              <p className="text-[8px] font-bold tracking-widest uppercase text-gray-400 mb-0.5">Análisis</p>
+              <h3 className="text-sm font-black text-gray-900 mb-4">Fijos vs Variables</h3>
+              {['fijo','variable'].map((t, i) => {
+                const total = filteredExpenses.filter(e => e.type === t).reduce((a, e) => a + e.amount, 0);
+                const pctV = totalExpenses > 0 ? (total / totalExpenses) * 100 : 0;
+                return (
+                  <div key={t} className="mb-4">
+                    <div className="flex justify-between mb-1.5">
+                      <span className="text-[11px] font-bold capitalize text-gray-700">{t === 'fijo' ? 'Costos fijos' : 'Costos variables'}</span>
+                      <span className="text-[10px] text-gray-500">{fmt(total)} · {pctV.toFixed(0)}%</span>
+                    </div>
+                    <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                      <motion.div initial={{ width: 0 }} animate={{ width: `${pctV}%` }} transition={{ duration: 0.6, delay: i * 0.1 }}
+                        className="h-full rounded-full" style={{ background: i === 0 ? '#004d4d' : '#00b2bd' }}/>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="mt-4 space-y-2">
+                {[
+                  { label: 'Pagados', count: filteredExpenses.filter(e=>e.status==='pagado').length, color: 'text-emerald-600 bg-emerald-50' },
+                  { label: 'Pendientes', count: filteredExpenses.filter(e=>e.status==='pendiente').length, color: 'text-amber-600 bg-amber-50' },
+                  { label: 'Vencidos', count: filteredExpenses.filter(e=>e.status==='vencido').length, color: 'text-rose-600 bg-rose-50' },
+                ].map(s => (
+                  <div key={s.label} className="flex items-center justify-between">
+                    <span className="text-[10px] text-gray-500">{s.label}</span>
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${s.color}`}>{s.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Insights */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
+              <p className="text-[8px] font-bold tracking-widest uppercase text-gray-400 mb-0.5">IA Financiera</p>
+              <h3 className="text-sm font-black text-gray-900 mb-4">Bayup Insights</h3>
+              <div className="space-y-3">
+                {[
+                  {
+                    icon: <Target size={12}/>,
+                    title: profitMargin > 20 ? '¡Margen saludable!' : profitMargin > 0 ? 'Margen ajustado' : 'Margen negativo',
+                    text: profitMargin > 20 ? `Tu margen es ${profitMargin.toFixed(0)}%, estás por encima del promedio del sector.`
+                      : profitMargin > 0 ? `Margen de ${profitMargin.toFixed(0)}%. Revisa tus costos variables.`
+                      : 'Tus gastos superan los ingresos. Reduce costos urgentemente.',
+                    color: profitMargin > 20 ? 'bg-emerald-50 border-emerald-100' : profitMargin > 0 ? 'bg-amber-50 border-amber-100' : 'bg-rose-50 border-rose-100',
+                    icolor: profitMargin > 20 ? 'text-emerald-600' : profitMargin > 0 ? 'text-amber-600' : 'text-rose-600',
+                  },
+                  {
+                    icon: <Zap size={12}/>,
+                    title: 'Mayor gasto',
+                    text: byCategory[0] ? `${getCat(byCategory[0].cat).label} representa el ${((byCategory[0].total / totalExpenses)*100).toFixed(0)}% de tus gastos totales.` : 'Sin gastos registrados aún.',
+                    color: 'bg-blue-50 border-blue-100',
+                    icolor: 'text-blue-600',
+                  },
+                  {
+                    icon: <Activity size={12}/>,
+                    title: 'Gastos recurrentes',
+                    text: `${filteredExpenses.filter(e=>e.recurring).length} gastos fijos programados este mes por ${fmt(filteredExpenses.filter(e=>e.recurring).reduce((a,e)=>a+e.amount,0))}.`,
+                    color: 'bg-purple-50 border-purple-100',
+                    icolor: 'text-purple-600',
+                  },
+                ].map((ins, i) => (
+                  <div key={i} className={`p-3 rounded-2xl border ${ins.color}`}>
+                    <div className={`flex items-center gap-1.5 font-bold text-[10px] mb-1 ${ins.icolor}`}>
+                      {ins.icon} {ins.title}
+                    </div>
+                    <p className="text-[10px] text-gray-600 leading-relaxed">{ins.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ TAB: GASTOS ══════════════════════════════════════════════════════ */}
+      {activeTab === 'gastos' && (
+        <div className="space-y-4">
+          {/* Barra filtros */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 flex items-center gap-2 h-10 bg-white rounded-2xl border border-gray-200 shadow-sm px-3">
+              <Search size={14} className="text-gray-300 shrink-0"/>
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar gasto..."
+                className="flex-1 bg-transparent outline-none text-sm text-gray-700 placeholder:text-gray-300"/>
+              {search && <button onClick={() => setSearch('')}><X size={12} className="text-gray-300"/></button>}
+            </div>
+            <select value={filterCat} onChange={e => setFilterCat(e.target.value as any)}
+              className="h-10 px-3 rounded-2xl border border-gray-200 bg-white text-[11px] font-semibold text-gray-600 focus:outline-none shadow-sm min-w-[140px]">
+              <option value="todas">Todas las categorías</option>
+              {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </select>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}
+              className="h-10 px-3 rounded-2xl border border-gray-200 bg-white text-[11px] font-semibold text-gray-600 focus:outline-none shadow-sm">
+              <option value="todas">Todos los estados</option>
+              <option value="pagado">Pagados</option>
+              <option value="pendiente">Pendientes</option>
+              <option value="vencido">Vencidos</option>
+            </select>
+          </div>
+
+          {/* Lista */}
+          <div className="space-y-2">
+            <AnimatePresence>
+              {filteredExpenses.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-gray-300">
+                  <Receipt size={36} className="mb-3"/>
+                  <p className="text-sm font-semibold">Sin gastos en este período</p>
+                  <p className="text-[11px] mt-1">Registra tu primer gasto para empezar</p>
+                  <button onClick={() => { setEditingExpense(null); setIsModalOpen(true); }}
+                    className="mt-4 h-9 px-5 rounded-2xl bg-[#004d4d] text-white text-[10px] font-bold uppercase tracking-widest">
+                    + Registrar gasto
+                  </button>
+                </div>
+              ) : filteredExpenses.map((exp, i) => {
+                const cat = getCat(exp.category);
+                const st = STATUS_MAP[exp.status];
+                return (
+                  <motion.div key={exp.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -20 }}
+                    transition={{ delay: i * 0.03 }}
+                    className="flex items-center gap-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 hover:shadow-md transition-all group">
+                    {/* Icono */}
+                    <div className={`h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 [&_svg]:w-4 [&_svg]:h-4 ${cat.bg} ${cat.color}`}>
+                      {cat.icon}
+                    </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className="text-[12px] font-black text-gray-900 truncate">{exp.description}</p>
+                        {exp.recurring && (
+                          <span className="text-[8px] font-bold tracking-widest bg-[#004d4d]/10 text-[#004d4d] px-1.5 py-0.5 rounded-full shrink-0 uppercase">{exp.recurring_period}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-gray-400">{cat.label}</span>
+                        <span className="text-[10px] text-gray-300">·</span>
+                        <span className="text-[10px] text-gray-400">{exp.payment_method}</span>
+                        <span className="text-[10px] text-gray-300">·</span>
+                        <span className="text-[10px] text-gray-400">Vence: {exp.due_date}</span>
+                      </div>
+                    </div>
+                    {/* Tipo */}
+                    <span className={`text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-full uppercase shrink-0 ${exp.type === 'fijo' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-500'}`}>
+                      {exp.type}
+                    </span>
+                    {/* Estado */}
+                    <span className={`text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-full uppercase shrink-0 ${st.class}`}>{st.label}</span>
+                    {/* Monto */}
+                    <span className="text-base font-black text-gray-900 shrink-0">{fmt(exp.amount)}</span>
+                    {/* Acciones */}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => openEdit(exp)} className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
+                        <Edit3 size={13} className="text-gray-400"/>
+                      </button>
+                      <button onClick={() => handleDelete(exp.id)} className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-rose-50 transition-colors">
+                        <Trash2 size={13} className="text-rose-400"/>
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+
+          {/* Totales footer */}
+          {filteredExpenses.length > 0 && (
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
+              <span className="text-[11px] font-bold text-gray-500">{filteredExpenses.length} gastos en {MONTHS[periodMonth]}</span>
+              <span className="text-base font-black text-gray-900">Total: {fmt(totalExpenses)}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══ TAB: INGRESOS ══════════════════════════════════════════════════ */}
+      {activeTab === 'ingresos' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Órdenes del mes */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
+              <p className="text-[8px] font-bold tracking-widest uppercase text-gray-400 mb-0.5">Conectado con pedidos</p>
+              <h3 className="text-sm font-black text-gray-900 mb-4">Ventas en {MONTHS[periodMonth]}</h3>
+              {loadingOrders ? (
+                <div className="flex items-center justify-center h-40"><Loader2 size={20} className="animate-spin text-gray-300"/></div>
+              ) : orders.filter(o => {
+                const d = new Date(o.created_at);
+                return d.getMonth() === periodMonth && d.getFullYear() === periodYear;
+              }).length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-300">
+                  <ShoppingCart size={32} className="mb-2"/>
+                  <p className="text-[11px]">Sin ventas en este período</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                  {orders.filter(o => {
+                    const d = new Date(o.created_at);
+                    return d.getMonth() === periodMonth && d.getFullYear() === periodYear;
+                  }).slice(0,20).map((o, i) => (
+                    <div key={o.id || i} className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                      <div>
+                        <p className="text-[11px] font-bold text-gray-800">#{o.order_number || o.id?.slice(0,8) || i+1}</p>
+                        <p className="text-[10px] text-gray-400">{o.customer_name || 'Cliente'} · {new Date(o.created_at).toLocaleDateString('es-CO')}</p>
+                      </div>
+                      <span className="text-[12px] font-black text-emerald-600">{fmt(o.total_price || 0)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                <span className="text-[10px] text-gray-400">{totalOrders} ventas</span>
+                <span className="text-base font-black text-gray-900">{fmt(salesRevenue)}</span>
+              </div>
+            </div>
+
+            {/* Ticket promedio + rentabilidad por venta */}
+            <div className="space-y-4">
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
+                <p className="text-[8px] font-bold tracking-widest uppercase text-gray-400 mb-0.5">Métricas clave</p>
+                <h3 className="text-sm font-black text-gray-900 mb-4">Análisis de ingresos</h3>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Ticket promedio', value: fmt(totalOrders > 0 ? salesRevenue / totalOrders : 0), color: 'text-[#004d4d]' },
+                    { label: 'Ingreso diario prom.', value: fmt(salesRevenue / 30), color: 'text-blue-600' },
+                    { label: 'Costo por venta', value: fmt(totalOrders > 0 ? totalExpenses / Math.max(totalOrders, 1) : 0), color: 'text-rose-500' },
+                    { label: 'Utilidad por venta', value: fmt(totalOrders > 0 ? netProfit / Math.max(totalOrders, 1) : 0), color: netProfit >= 0 ? 'text-emerald-600' : 'text-rose-500' },
+                  ].map((m, i) => (
+                    <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                      <span className="text-[11px] text-gray-500">{m.label}</span>
+                      <span className={`text-[13px] font-black ${m.color}`}>{m.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Break even */}
+              <div className="bg-[#001a1a] rounded-3xl p-5 text-white">
+                <p className="text-[8px] font-bold tracking-widest text-[#00f2ff]/60 mb-1">PUNTO DE EQUILIBRIO</p>
+                <h3 className="text-sm font-black text-white mb-3">¿Cuándo cubres gastos?</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-[10px] text-white/50">Necesitas vender</span>
+                    <span className="text-[11px] font-black text-amber-400">{fmt(totalExpenses)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[10px] text-white/50">Ya vendiste</span>
+                    <span className="text-[11px] font-black text-emerald-400">{fmt(salesRevenue)}</span>
+                  </div>
+                  <div className="mt-2 h-3 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min((salesRevenue / Math.max(totalExpenses, 1)) * 100, 100)}%` }}
+                      transition={{ duration: 0.8 }} className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-[#00f2ff]"/>
+                  </div>
+                  <p className="text-[10px] text-white/40 mt-1 text-right">
+                    {totalExpenses > 0 ? `${Math.min((salesRevenue / totalExpenses * 100), 100).toFixed(0)}% cubierto` : '—'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ TAB: RENTABILIDAD ══════════════════════════════════════════════ */}
+      {activeTab === 'rentabilidad' && (
+        <div className="space-y-6">
+          {/* Barras comparativas mensual */}
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-6">
+            <p className="text-[8px] font-bold tracking-widest uppercase text-gray-400 mb-0.5">Histórico</p>
+            <h3 className="text-sm font-black text-gray-900 mb-4">Rentabilidad últimos 6 meses</h3>
+            <div style={{ height: 240 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={evolutionData} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false}/>
+                  <XAxis dataKey="mes" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false}/>
+                  <Tooltip content={<ChartTip/>}/>
+                  <Bar dataKey="ingresos" name="Ingresos" fill="#004d4d" radius={[4,4,0,0]} maxBarSize={30}/>
+                  <Bar dataKey="gastos" name="Gastos" fill="#fca5a5" radius={[4,4,0,0]} maxBarSize={30}/>
+                  <Bar dataKey="utilidad" name="Utilidad" fill="#34d399" radius={[4,4,0,0]} maxBarSize={30}/>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {evolutionData.map((m, i) => {
+              const margin = m.ingresos > 0 ? ((m.ingresos - m.gastos) / m.ingresos * 100) : 0;
+              return (
+                <div key={i} className="bg-white rounded-3xl border border-gray-100 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)] p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[11px] font-black text-gray-700">{m.mes}</span>
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${margin > 20 ? 'bg-emerald-50 text-emerald-600' : margin > 0 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-500'}`}>
+                      {margin.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[10px]"><span className="text-gray-400">Ingresos</span><span className="font-semibold text-gray-700">{fmt(m.ingresos)}</span></div>
+                    <div className="flex justify-between text-[10px]"><span className="text-gray-400">Gastos</span><span className="font-semibold text-gray-700">{fmt(m.gastos)}</span></div>
+                    <div className="flex justify-between text-[10px] pt-1 border-t border-gray-100"><span className="font-bold text-gray-600">Utilidad</span><span className={`font-black ${m.utilidad >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>{fmt(m.utilidad)}</span></div>
+                  </div>
+                  <div className="mt-2.5 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                    <div className="h-full rounded-full" style={{
+                      width: `${Math.max(0, Math.min(margin, 100))}%`,
+                      background: margin > 20 ? '#34d399' : margin > 0 ? '#fbbf24' : '#f87171'
+                    }}/>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL ── */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <ExpenseModal
+            expense={editingExpense}
+            onSave={handleSave}
+            onClose={() => { setIsModalOpen(false); setEditingExpense(null); }}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }

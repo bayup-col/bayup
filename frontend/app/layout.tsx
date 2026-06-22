@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+
+const inter = Inter({ 
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
   title: "Bayup",
@@ -21,8 +28,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning>
-      <body>
+    <html lang="es" suppressHydrationWarning className={inter.variable}>
+      <body className={`${inter.className} antialiased`}>
         <Providers>
           {children}
         </Providers>

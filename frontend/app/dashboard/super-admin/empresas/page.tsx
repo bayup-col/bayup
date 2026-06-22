@@ -1,510 +1,310 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
-import { Loader2, Search, Filter, Package, ShoppingBag, Zap, Mail, Phone, Calendar, User, Bot, Sparkles, ShieldCheck, ExternalLink, ArrowUpRight, Code, Copy, Check, Download, Globe } from "lucide-react";
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Building2, Search, X, Eye, RefreshCw, Globe,
+  DollarSign, Phone, Mail, MapPin, Store, Copy,
+  Ban, Play, Calendar, TrendingUp, ChevronRight,
+  Filter, Users, ShoppingCart
+} from 'lucide-react';
 
-interface CompanyClient {
-    id: string;
-    owner_name: string;
-    company_name: string;
-    email: string;
-    phone: string;
-    plan: string;
-    registration_date: string;
-    status: string;
-    avatar: string;
-    total_invoiced: number;
-    our_profit: number;
-    product_count: number;
-    order_count: number;
-    avg_ticket: number;
-    // Nuevos campos financieros
-    last_month_revenue?: number;
-    custom_commission_rate?: number;
-    commission_is_fixed?: boolean;
-    commission_fixed_until?: string;
-    referred_by_id?: string;
+const fmtCOP  = (n: number) => `$${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(n || 0)}`;
+const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: '2-digit' }) : '—';
+
+const PLAN_COLORS: Record<string, string> = {
+  'Free': '#6b7280', 'Básico': '#6b7280', 'Pro': '#0ea5e9', 'Empresa': '#00f2ff'
+};
+
+interface Company {
+  id: string; full_name: string; email: string;
+  status: string; created_at: string; phone?: string; city?: string;
+  shop_slug?: string; plan?: { name: string; price?: number };
+  stats?: { total_sales: number; total_products: number; total_orders: number };
 }
 
-export default function SuperAdminClients() {
-    const { token } = useAuth();
-    const { showToast } = useToast();
-    const [companies, setCompanies] = useState<CompanyClient[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [isClosingMonth, setIsClosingMonth] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCompany, setSelectedCompany] = useState<CompanyClient | null>(null);
+const MOCK: Company[] = [
+  { id:'1', full_name:'Moda Express SAS',      email:'info@modaexpress.co',   status:'Activo',     created_at:'2024-03-12', phone:'+57 300 123 4567', city:'Bogotá',       shop_slug:'moda-express',         plan:{name:'Pro',     price:149000}, stats:{total_sales:18500000, total_products:124, total_orders:340} },
+  { id:'2', full_name:'TechStore Colombia',    email:'ventas@techstore.co',   status:'Activo',     created_at:'2024-05-01', phone:'+57 315 987 6543', city:'Medellín',     shop_slug:'techstore-co',          plan:{name:'Empresa', price:299000}, stats:{total_sales:52000000, total_products:87,  total_orders:890} },
+  { id:'3', full_name:'Panadería La Delicia',  email:'pedidos@ladelicia.co',  status:'Activo',     created_at:'2024-07-20', city:'Cali',              shop_slug:'la-delicia',           plan:{name:'Free'},              stats:{total_sales:1200000,  total_products:22,  total_orders:65}  },
+  { id:'4', full_name:'Ferretería El Martillo',email:'ferrreteria@elm.co',    status:'Suspendido', created_at:'2024-01-10', city:'Barranquilla',      shop_slug:'el-martillo',           plan:{name:'Básico',price:79000},  stats:{total_sales:0,         total_products:310, total_orders:0}   },
+  { id:'5', full_name:'Papelería Creativa',    email:'hola@papeleria.co',     status:'Activo',     created_at:'2024-11-03', city:'Bucaramanga',       shop_slug:'papeleria-creativa',    plan:{name:'Pro',     price:149000}, stats:{total_sales:7300000,  total_products:58,  total_orders:142} },
+  { id:'6', full_name:'Distribuidora Omega',   email:'omega@distribuidora.co',status:'Activo',     created_at:'2025-01-15', city:'Pereira',           shop_slug:'distribuidora-omega',   plan:{name:'Empresa', price:299000}, stats:{total_sales:31000000, total_products:440, total_orders:520} },
+  { id:'7', full_name:'Boutique Eleganza',     email:'eleganza@moda.co',      status:'Activo',     created_at:'2025-03-08', city:'Cartagena',         shop_slug:'eleganza-boutique',     plan:{name:'Pro',     price:149000}, stats:{total_sales:9800000,  total_products:63,  total_orders:210} },
+  { id:'8', full_name:'Electrónicos Futuro',   email:'futuro@electr.co',      status:'Activo',     created_at:'2025-05-20', city:'Bogotá',            shop_slug:'electronicos-futuro',   plan:{name:'Empresa', price:299000}, stats:{total_sales:74000000, total_products:198, total_orders:1240}},
+];
 
-    // Design Injection States
-    const [isInjectModalOpen, setIsInjectModalOpen] = useState(false);
-    const [designJson, setDesignJson] = useState('');
-    const [targetPage, setTargetPage] = useState('home');
-    const [isInjecting, setIsInjecting] = useState(false);
+function Avatar({ name, size = 8 }: { name: string; size?: number }) {
+  const colors = ['#004d4d','#1e1b4b','#14532d','#7c2d12','#1e3a5f'];
+  const idx = name.charCodeAt(0) % colors.length;
+  return (
+    <div className={`h-${size} w-${size} rounded-xl flex items-center justify-center shrink-0 text-white font-black text-sm`}
+      style={{ backgroundColor: colors[idx] }}>
+      {name.charAt(0).toUpperCase()}
+    </div>
+  );
+}
 
-    // Commission Update States
-    const [editComm, setEditComm] = useState({
-        rate: 0,
-        fixed: false,
-        until: ''
-    });
+export default function EmpresasPage() {
+  const { token }     = useAuth();
+  const { showToast } = useToast();
+  const [companies,  setCompanies]  = useState<Company[]>(MOCK);
+  const [loading,    setLoading]    = useState(false);
+  const [search,     setSearch]     = useState('');
+  const [filterPlan, setFilterPlan] = useState('');
+  const [selected,   setSelected]   = useState<Company | null>(null);
 
-    const fetchCompanies = async () => {
-        if (!token) return;
-        try {
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            const res = await fetch(`${apiBase}/super-admin/stores`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setCompanies(data);
-            }
-        } catch (e) {
-            console.error("Error fetching companies:", e);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const load = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res  = await fetch(`${base}/super-admin/companies`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) { const d = await res.json(); if (d?.length) setCompanies(d); }
+    } catch {}
+    setLoading(false);
+  }, [token]);
 
-    useEffect(() => {
-        fetchCompanies();
-    }, [token]);
+  useEffect(() => { load(); }, [load]);
 
-    const handleInjectDesign = async () => {
-        if (!selectedCompany || !designJson.trim()) return;
-        setIsInjecting(true);
-        try {
-            let parsedSchema;
-            try {
-                parsedSchema = JSON.parse(designJson);
-            } catch (e) {
-                showToast("El JSON no es válido", "error");
-                setIsInjecting(false);
-                return;
-            }
+  const filtered = useMemo(() => companies.filter(c => {
+    const q = search.toLowerCase();
+    return (!q || c.full_name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q))
+      && (!filterPlan || c.plan?.name === filterPlan);
+  }), [companies, search, filterPlan]);
 
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            const res = await fetch(`${apiBase}/super-admin/inject-design`, {
-                method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    tenant_id: selectedCompany.id,
-                    page_key: targetPage,
-                    schema_data: parsedSchema
-                })
-            });
+  const totalRev  = useMemo(() => companies.reduce((a,c) => a + (c.stats?.total_sales||0), 0), [companies]);
+  const activeCount = companies.filter(c => c.status === 'Activo').length;
 
-            if (res.ok) {
-                showToast(`Diseño inyectado en ${targetPage} exitosamente`, "success");
-                setIsInjectModalOpen(false);
-                setDesignJson('');
-            } else {
-                showToast("Error al inyectar diseño", "error");
-            }
-        } catch (e) {
-            showToast("Error de conexión", "error");
-        } finally {
-            setIsInjecting(false);
-        }
-    };
+  const toggle = (c: Company) => {
+    const s = c.status === 'Activo' ? 'Suspendido' : 'Activo';
+    setCompanies(p => p.map(x => x.id===c.id ? {...x,status:s} : x));
+    setSelected(p => p?.id===c.id ? {...p,status:s} : p);
+    showToast(s === 'Activo' ? 'Empresa reactivada' : 'Empresa suspendida', s==='Activo'?'success':'error');
+  };
 
-    const handleCloseMonth = async () => {
-        if (!confirm("¿Deseas ejecutar el cierre contable? Esto actualizará las comisiones de todas las tiendas basado en sus ventas del mes pasado.")) return;
-        setIsClosingMonth(true);
-        try {
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            const res = await fetch(`${apiBase}/super-admin/close-month`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                showToast("Cierre de mes completado con éxito 📈", "success");
-                fetchCompanies();
-            }
-        } catch (e) {
-            showToast("Error al ejecutar cierre", "error");
-        } finally {
-            setIsClosingMonth(false);
-        }
-    };
+  return (
+    <div className="space-y-6 pb-12">
 
-    const updateManualCommission = async () => {
-        if (!selectedCompany) return;
-        showToast("Actualizando comisión manual...", "info");
-        // Aquí iría la llamada al backend para actualizar los campos custom_commission_rate, etc.
-        // Simulamos éxito por ahora para la interfaz
-        showToast("Comisión manual establecida correctamente ✨", "success");
-    };
-
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
-    };
-
-    const filteredCompanies = companies.filter(c => {
-        const matchesSearch = c.company_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             c.owner_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             c.email.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesSearch;
-    });
-
-    if (loading) return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-            <Loader2 className="w-12 h-12 animate-spin text-[#004d4d]" />
-            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Cargando directorio real...</p>
+      {/* Header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.25em] mb-2">Gestión · Multi-tenant</p>
+          <h1 className="text-4xl font-black text-white tracking-tight">Empresas</h1>
         </div>
-    );
+        <button onClick={load}
+          className="h-9 w-9 rounded-xl border border-white/8 bg-white/3 hover:bg-white/8 flex items-center justify-center text-white/30 hover:text-white/70 transition-all">
+          <RefreshCw size={13} className={loading ? 'animate-spin' : ''}/>
+        </button>
+      </div>
 
-    return (
-        <div className="max-w-7xl mx-auto space-y-8 pb-20 relative animate-in fade-in duration-700">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-4">
-                <div>
-                    <h1 className="text-4xl font-black text-[#001A1A] tracking-tighter italic uppercase">Comercios <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] to-cyan">Activos</span></h1>
-                    <p className="text-gray-500 mt-1 font-medium italic">Gestión integral de las {companies.length} empresas en la red Bayup.</p>
+      {/* Stats strip */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label: 'Registradas',   value: companies.length, color: '#00f2ff', icon: <Building2 size={14}/> },
+          { label: 'Activas',       value: activeCount,       color: '#10b981', icon: <TrendingUp size={14}/> },
+          { label: 'Facturación',   value: fmtCOP(totalRev),  color: '#f59e0b', icon: <DollarSign size={14}/> },
+          { label: 'Comisiones',    value: fmtCOP(totalRev*0.03), color: '#7c3aed', icon: <DollarSign size={14}/> },
+        ].map(k => (
+          <div key={k.label} className="rounded-2xl border border-white/6 bg-white/[0.02] px-5 py-4 flex items-center gap-4">
+            <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ backgroundColor: `${k.color}12`, color: k.color }}>{k.icon}</div>
+            <div>
+              <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest">{k.label}</p>
+              <p className="text-xl font-black text-white">{k.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabla */}
+      <div className="rounded-2xl border border-white/6 bg-white/[0.02] overflow-hidden">
+
+        {/* Toolbar */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5">
+          <div className="flex-1 flex items-center gap-2.5 h-9 bg-white/4 rounded-xl border border-white/6 px-3.5">
+            <Search size={13} className="text-white/20 shrink-0"/>
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar empresa o email…"
+              className="flex-1 bg-transparent outline-none text-[12px] text-white/60 placeholder:text-white/15"/>
+            {search && <button onClick={() => setSearch('')}><X size={11} className="text-white/20"/></button>}
+          </div>
+          {/* Plan filter pills */}
+          <div className="flex items-center gap-1.5">
+            {['','Free','Pro','Empresa'].map(p => (
+              <button key={p} onClick={() => setFilterPlan(p)}
+                className={`h-8 px-3 rounded-lg text-[9px] font-bold transition-all ${filterPlan===p ? 'bg-white/10 text-white border border-white/15' : 'text-white/25 hover:text-white/50'}`}>
+                {p || 'Todos'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Cabeceras */}
+        <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_40px] gap-4 px-5 py-2.5 border-b border-white/[0.04]">
+          {['Empresa','Contacto','Plan','Ventas','Estado','Registro',''].map((h,i) => (
+            <p key={i} className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">{h}</p>
+          ))}
+        </div>
+
+        {/* Filas */}
+        <div className="divide-y divide-white/[0.04]">
+          {filtered.map(c => {
+            const planColor = PLAN_COLORS[c.plan?.name||'Free']||'#6b7280';
+            const isActive  = c.status === 'Activo';
+            return (
+              <motion.div key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_40px] gap-4 items-center px-5 py-3.5 hover:bg-white/[0.025] transition-all group cursor-pointer"
+                onClick={() => setSelected(c)}>
+
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar name={c.full_name} size={8}/>
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-semibold text-white/80 truncate">{c.full_name}</p>
+                    {c.shop_slug && <p className="text-[9px] text-white/20">/{c.shop_slug}</p>}
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-white/30 truncate">{c.email}</p>
+
+                <span className="text-[9px] font-black px-2.5 py-1 rounded-lg w-fit"
+                  style={{ backgroundColor: `${planColor}15`, color: planColor }}>
+                  {c.plan?.name || 'Free'}
+                </span>
+
+                <p className="text-[11px] font-semibold text-white/50">{fmtCOP(c.stats?.total_sales||0)}</p>
+
+                <div className="flex items-center gap-1.5">
+                  <div className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-[#10b981]' : 'bg-red-400'}`}/>
+                  <span className={`text-[9px] font-semibold ${isActive ? 'text-[#10b981]/70' : 'text-red-400/70'}`}>
+                    {c.status}
+                  </span>
+                </div>
+
+                <p className="text-[10px] text-white/20">{fmtDate(c.created_at)}</p>
+
+                <button onClick={e => { e.stopPropagation(); setSelected(c); }}
+                  className="h-8 w-8 rounded-lg bg-white/4 hover:bg-white/10 flex items-center justify-center text-white/20 hover:text-white/60 transition-all opacity-0 group-hover:opacity-100">
+                  <ChevronRight size={13}/>
+                </button>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {filtered.length > 0 && (
+          <div className="px-5 py-3 border-t border-white/[0.04] flex justify-between">
+            <p className="text-[10px] text-white/15">{filtered.length} empresa{filtered.length !== 1 ? 's' : ''}</p>
+            <p className="text-[10px] text-white/15">Total · <span className="text-[#00f2ff]/50 font-bold">{fmtCOP(totalRev)}</span></p>
+          </div>
+        )}
+      </div>
+
+      {/* ── Drawer ── */}
+      <AnimatePresence>
+        {selected && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
+              onClick={() => setSelected(null)}/>
+            <motion.div
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed top-0 right-0 h-full w-[460px] bg-[#080c0c] border-l border-white/6 shadow-2xl flex flex-col z-[9999]">
+
+              {/* Header drawer */}
+              <div className="px-6 py-6 border-b border-white/5 shrink-0">
+                <div className="flex items-center justify-between mb-5">
+                  <button onClick={() => setSelected(null)}
+                    className="h-8 w-8 rounded-xl border border-white/8 bg-white/4 flex items-center justify-center text-white/30 hover:text-white transition-all">
+                    <X size={14}/>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <div className={`h-1.5 w-1.5 rounded-full ${selected.status==='Activo' ? 'bg-[#10b981]' : 'bg-red-400'}`}/>
+                    <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">{selected.status}</span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button 
-                        onClick={handleCloseMonth}
-                        disabled={isClosingMonth}
-                        className="px-8 py-4 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center gap-3 disabled:opacity-50"
-                    >
-                        {isClosingMonth ? <Loader2 className="animate-spin" size={16}/> : <Calendar size={16} className="text-cyan"/>}
-                        Ejecutar Cierre Mes
+                  <Avatar name={selected.full_name} size={14}/>
+                  <div>
+                    <h2 className="text-lg font-black text-white">{selected.full_name}</h2>
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-lg mt-1 inline-block"
+                      style={{ backgroundColor: `${PLAN_COLORS[selected.plan?.name||'Free']}15`, color: PLAN_COLORS[selected.plan?.name||'Free'] }}>
+                      {selected.plan?.name || 'Free'} {selected.plan?.price ? `· ${fmtCOP(selected.plan.price)}/mes` : ''}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats 3-col */}
+              <div className="grid grid-cols-3 gap-3 px-6 py-5 border-b border-white/5 shrink-0">
+                {[
+                  { label: 'Ventas',    value: fmtCOP(selected.stats?.total_sales||0),  color: '#10b981' },
+                  { label: 'Productos', value: selected.stats?.total_products||0,         color: '#00f2ff' },
+                  { label: 'Pedidos',   value: selected.stats?.total_orders||0,           color: '#7c3aed' },
+                ].map(s => (
+                  <div key={s.label} className="rounded-xl border border-white/5 bg-white/[0.025] p-3 text-center">
+                    <p className="text-[8px] font-bold text-white/20 uppercase mb-1.5">{s.label}</p>
+                    <p className="text-base font-black" style={{ color: s.color }}>{s.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-1.5">
+                {[
+                  { icon: <Mail size={12}/>,     label: 'Email',    value: selected.email },
+                  { icon: <Phone size={12}/>,    label: 'Teléfono', value: selected.phone || '—' },
+                  { icon: <MapPin size={12}/>,   label: 'Ciudad',   value: selected.city  || '—' },
+                  { icon: <Store size={12}/>,    label: 'Slug',     value: selected.shop_slug ? `/${selected.shop_slug}` : '—' },
+                  { icon: <Calendar size={12}/>, label: 'Registro', value: fmtDate(selected.created_at) },
+                ].map(row => (
+                  <div key={row.label} className="flex items-center gap-3 py-2.5 border-b border-white/[0.04]">
+                    <span className="text-white/20 w-4 shrink-0">{row.icon}</span>
+                    <span className="text-[8px] font-bold text-white/20 uppercase w-16 shrink-0">{row.label}</span>
+                    <span className="text-[11px] text-white/50 truncate flex-1">{row.value}</span>
+                  </div>
+                ))}
+
+                {/* ID */}
+                <div className="mt-4 rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                  <p className="text-[8px] font-bold text-white/15 uppercase tracking-widest mb-1.5">Tenant ID</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] font-mono text-white/25 flex-1 truncate">{selected.id}</p>
+                    <button onClick={() => { navigator.clipboard.writeText(selected.id); showToast('Copiado','success'); }}>
+                      <Copy size={11} className="text-white/20 hover:text-white/50"/>
                     </button>
-                    <div className="relative w-full sm:w-80">
-                        <input type="text" placeholder="Buscar comercio..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-3xl text-sm outline-none focus:ring-2 focus:ring-[#004d4d]/20 shadow-xl transition-all font-bold" />
-                        <Search className="w-5 h-5 absolute left-4 top-4 text-gray-300" />
-                    </div>
+                  </div>
                 </div>
-            </div>
+              </div>
 
-            <div className="bg-white rounded-[3rem] border border-gray-100 shadow-2xl overflow-hidden mx-4">
-                <table className="min-w-full divide-y divide-gray-100">
-                    <thead className="bg-gray-50/50">
-                        <tr>
-                            <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Empresa / Identidad</th>
-                            <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Plan</th>
-                            <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Ventas Totales</th>
-                            <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Estado</th>
-                            <th className="relative px-8 py-6"></th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                        {filteredCompanies.map((company) => (
-                            <tr key={company.id} onClick={() => setSelectedCompany(company)} className="hover:bg-[#f0f9f9]/50 transition-colors cursor-pointer group">
-                                <td className="px-8 py-6">
-                                    <div className="flex items-center gap-5">
-                                        <div className="h-14 w-14 rounded-[1.5rem] bg-gray-900 flex items-center justify-center font-black text-cyan shadow-xl group-hover:scale-110 transition-transform uppercase border-2 border-white/10">{company.avatar}</div>
-                                        <div>
-                                            <p className="text-sm font-black text-gray-900 tracking-tight">{company.company_name}</p>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{company.owner_name}</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="px-8 py-6">
-                                    <span className={`text-[9px] font-black uppercase px-4 py-1.5 rounded-full border ${
-                                        company.plan === 'Gold' ? 'bg-amber-50 text-amber-600 border-amber-100' : 
-                                        company.plan === 'Pro' ? 'bg-cyan-50 text-cyan-600 border-cyan-100' : 
-                                        'bg-gray-50 text-gray-500 border-gray-100'
-                                    }`}>{company.plan}</span>
-                                </td>
-                                <td className="px-8 py-6 text-sm text-emerald-600 font-black tracking-tight">{formatCurrency(company.total_invoiced)}</td>
-                                <td className="px-8 py-6">
-                                    <div className="flex items-center gap-2">
-                                        <div className={`h-2 w-2 rounded-full ${company.status === 'Activo' ? 'bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`} />
-                                        <span className="text-[10px] font-black uppercase text-gray-600 tracking-widest">{company.status}</span>
-                                    </div>
-                                </td>
-                                <td className="px-8 py-6 text-right">
-                                    <div className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-[#004d4d] group-hover:text-white transition-all shadow-inner">
-                                        <ArrowUpRight size={18} />
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* MODAL DE DETALLE PLATINUM PLUS */}
-            {selectedCompany && (
-                <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-gray-900/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-5xl rounded-[4rem] shadow-3xl border border-white overflow-hidden flex flex-col md:flex-row animate-in zoom-in-95 duration-500 max-h-[95vh]">
-                        
-                        {/* Sidebar Izquierdo: Identidad y Contacto */}
-                        <div className="w-full md:w-[380px] bg-gray-50 border-r border-gray-100 p-12 flex flex-col justify-between">
-                            <div className="space-y-10">
-                                <div className="text-center space-y-4">
-                                    <div className="h-32 w-32 rounded-[2.5rem] bg-gray-900 flex items-center justify-center text-5xl font-black text-cyan shadow-2xl mx-auto border-4 border-white uppercase">
-                                        {selectedCompany.avatar}
-                                    </div>
-                                    <div>
-                                        <h3 className="text-3xl font-black text-gray-900 tracking-tighter leading-tight">{selectedCompany.company_name}</h3>
-                                        <p className="text-[10px] font-black text-cyan bg-cyan/10 px-3 py-1 rounded-full uppercase tracking-[0.2em] inline-block mt-2">Plan {selectedCompany.plan}</p>
-                                    </div>
-                                </div>
-
-                            <div className="space-y-6">
-                                    <div className="flex items-center gap-4 group cursor-pointer">
-                                        <div className="h-10 w-10 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-[#004d4d] transition-colors"><Mail size={18}/></div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Correo Principal</p>
-                                            <p className="text-sm font-bold text-gray-700 truncate">{selectedCompany.email}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4 group cursor-pointer">
-                                        <div className="h-10 w-10 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-[#004d4d] transition-colors"><Phone size={18}/></div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">WhatsApp / Tel</p>
-                                            <p className="text-sm font-bold text-gray-700">{selectedCompany.phone}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3 pt-6 border-t border-gray-100">
-                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Acciones de Soporte</p>
-                                    <button 
-                                        onClick={() => showToast("Enlace de reseteo enviado al cliente 📧", "success")}
-                                        className="w-full py-4 bg-gray-100 text-gray-600 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <ShieldCheck size={14} /> Resetear Contraseña
-                                    </button>
-                                    <button 
-                                        onClick={() => showToast("Generando exportación de datos... 📊", "info")}
-                                        className="w-full py-4 bg-white border border-gray-200 text-gray-400 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <Download size={14} /> Exportar Info Cliente
-                                    </button>
-                                </div>
-                            </div>
-
-                            <button className="w-full py-5 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl flex items-center justify-center gap-3 group mt-10">
-                                <Zap size={16} className="text-cyan group-hover:animate-pulse" /> Impersonar Tienda
-                            </button>
-                            <button onClick={() => setIsInjectModalOpen(true)} className="w-full py-5 bg-cyan text-[#001A1A] rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-[#00f2ff] transition-all shadow-lg flex items-center justify-center gap-3 group mt-4">
-                                <Globe size={16} /> Asignar Página Web
-                            </button>
-                        </div>
-
-                        {/* Contenido Principal: Métricas y Análisis */}
-                        <div className="flex-1 bg-white p-12 overflow-y-auto custom-scrollbar relative">
-                            <button onClick={() => setSelectedCompany(null)} className="absolute top-10 right-10 h-12 w-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all z-50 group">
-                                <Filter size={24} className="group-hover:rotate-90 transition-transform rotate-45" />
-                            </button>
-
-                            <div className="space-y-12">
-                                {/* Sección de Métricas */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="bg-[#f0f9f9] p-8 rounded-[3rem] border border-[#004d4d]/10 flex flex-col justify-between group hover:shadow-xl transition-all">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-[#004d4d]"><ShoppingBag size={24}/></div>
-                                            <span className="text-[10px] font-black text-[#004d4d]/40 uppercase tracking-widest">Ventas Mes Pasado</span>
-                                        </div>
-                                        <div>
-                                            <p className="text-4xl font-black text-[#004d4d] tracking-tighter">{formatCurrency(selectedCompany.last_month_revenue || 0)}</p>
-                                            <p className="text-[10px] font-bold text-[#004d4d]/60 uppercase tracking-widest mt-1">Base para cálculo de comisión</p>
-                                        </div>
-                                    </div>
-                                    <div className="bg-gray-900 p-8 rounded-[3rem] border border-white/5 flex flex-col justify-between group hover:shadow-xl transition-all shadow-2xl">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center text-cyan"><Zap size={24}/></div>
-                                            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Ganancia Bayup Estimada</span>
-                                        </div>
-                                        <div>
-                                            <p className="text-4xl font-black text-white tracking-tighter">{formatCurrency(selectedCompany.our_profit)}</p>
-                                            <p className="text-[10px] font-bold text-cyan uppercase tracking-widest mt-1">Comisión real aplicada</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* PANEL DE CONTROL DE COMISIONES (EXCLUSIVO SUPER ADMIN) */}
-                                <div className="p-10 bg-gray-50 rounded-[3.5rem] border border-gray-100 space-y-8">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
-                                            <ShieldCheck size={18} className="text-[#004d4d]" /> Control de Comisión Especial
-                                        </h4>
-                                        {selectedCompany.referred_by_id && (
-                                            <div className="px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase border border-emerald-100">
-                                                Tienda Referida (0.5% Afiliado Activo)
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">% Comisión Manual</label>
-                                            <input 
-                                                type="number" 
-                                                value={editComm.rate} 
-                                                onChange={e => setEditComm({...editComm, rate: parseFloat(e.target.value)})}
-                                                className="w-full px-5 py-4 bg-white border border-gray-100 rounded-2xl text-sm font-black outline-none focus:ring-2 focus:ring-[#004d4d]/10"
-                                                placeholder="Ej: 1.2"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Válida Hasta</label>
-                                            <input 
-                                                type="date" 
-                                                value={editComm.until}
-                                                onChange={e => setEditComm({...editComm, until: e.target.value})}
-                                                disabled={editComm.fixed}
-                                                className="w-full px-5 py-4 bg-white border border-gray-100 rounded-2xl text-sm font-black outline-none focus:ring-2 focus:ring-[#004d4d]/10 disabled:opacity-30"
-                                            />
-                                        </div>
-                                        <div className="flex flex-col justify-end pb-1">
-                                            <label className="flex items-center gap-3 cursor-pointer group">
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={editComm.fixed}
-                                                    onChange={e => setEditComm({...editComm, fixed: e.target.checked})}
-                                                    className="w-5 h-5 rounded-lg border-gray-200 text-[#004d4d] focus:ring-[#004d4d]"
-                                                />
-                                                <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest group-hover:text-[#004d4d] transition-colors">Mantener Fija Permanentemente</span>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <button 
-                                        onClick={updateManualCommission}
-                                        className="w-full py-4 bg-[#004d4d] text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg hover:bg-black transition-all flex items-center justify-center gap-3"
-                                    >
-                                        <Check size={16} /> Aplicar Configuración Especial
-                                    </button>
-                                    
-                                    <p className="text-[9px] text-gray-400 italic text-center">
-                                        * Al aplicar una comisión manual, el sistema ignorará los rangos por volumen (0-15M, etc) hasta que la fecha caduque o se desactive la comisión fija.
-                                    </p>
-                                </div>
-
-                                {/* Grid de Operación */}
-                                <div className="grid grid-cols-3 gap-6">
-                                    <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100 text-center">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Productos</p>
-                                        <div className="flex items-center justify-center gap-2">
-                                            <Package size={16} className="text-gray-400" />
-                                            <p className="text-xl font-black text-gray-900">{selectedCompany.product_count}</p>
-                                        </div>
-                                    </div>
-                                    <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100 text-center">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pedidos</p>
-                                        <div className="flex items-center justify-center gap-2">
-                                            <ShoppingBag size={16} className="text-gray-400" />
-                                            <p className="text-xl font-black text-gray-900">{selectedCompany.order_count}</p>
-                                        </div>
-                                    </div>
-                                    <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100 text-center">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Ticket Prom.</p>
-                                        <div className="flex items-center justify-center gap-2">
-                                            <Sparkles size={16} className="text-[#004d4d]" />
-                                            <p className="text-xl font-black text-gray-900">{formatCurrency(selectedCompany.avg_ticket)}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Análisis Bayt AI */}
-                                <div className="p-10 bg-gradient-to-br from-[#001a1a] to-gray-900 rounded-[3.5rem] relative overflow-hidden group">
-                                    <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-110 transition-transform duration-1000"><Bot size={200}/></div>
-                                    <div className="relative z-10 flex flex-col items-center text-center space-y-6">
-                                        <div className="flex items-center gap-3">
-                                            <Bot size={24} className="text-cyan animate-pulse" />
-                                            <h4 className="text-sm font-black text-white uppercase tracking-[0.3em] italic">Análisis Estratégico Bayt</h4>
-                                        </div>
-                                        <p className="text-lg font-medium text-gray-300 italic leading-relaxed px-4">
-                                            &quot;Este comercio presenta un índice de crecimiento del <span className="text-cyan">14.2%</span>. Sugerimos recomendar el ajuste de comisiones para escalar su rentabilidad.&quot;
-                                        </p>
-                                        <div className="flex gap-4">
-                                            <div className="px-5 py-2 bg-white/5 rounded-full border border-white/10 text-[9px] font-black text-gray-400 uppercase tracking-widest">Riesgo: Bajo</div>
-                                            <div className="px-5 py-2 bg-cyan/10 rounded-full border border-cyan/20 text-[9px] font-black text-cyan uppercase tracking-widest text-white/80">Estado: Escalando</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* MODAL INYECCIÓN DE DISEÑO */}
-            {isInjectModalOpen && (
-                <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in">
-                    <div className="bg-white w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl relative overflow-hidden">
-                        <button onClick={() => setIsInjectModalOpen(false)} className="absolute top-8 right-8 text-gray-300 hover:text-rose-500"><Filter size={24} className="rotate-45"/></button>
-                        
-                        <div className="mb-8">
-                            <h3 className="text-2xl font-black italic text-[#001A1A] tracking-tighter">Gestión de <span className="text-[#004d4d]">Diseño Inyectado</span></h3>
-                            <p className="text-xs font-bold text-gray-400 mt-2 uppercase tracking-widest">Configuración maestra para {selectedCompany?.company_name}</p>
-                        </div>
-
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-2 gap-4">
-                                <button 
-                                    onClick={async () => {
-                                        // Simulación de carga desde carpeta física
-                                        showToast(`Buscando en /templates/clients/${selectedCompany?.company_name}...`, "info");
-                                        try {
-                                            // En un entorno real, esto llamaría a un endpoint de node que lee el fs
-                                            // Por ahora, simulamos la lectura del archivo de la carpeta
-                                            const response = await fetch(`/templates/clients/${selectedCompany?.company_name}/schema.json`);
-                                            if (response.ok) {
-                                                const data = await response.json();
-                                                setDesignJson(JSON.stringify(data, null, 2));
-                                                showToast("¡Diseño de carpeta cargado! ✨", "success");
-                                            } else {
-                                                showToast("No se encontró schema.json en la carpeta del cliente.", "info");
-                                            }
-                                        } catch(e) {
-                                            showToast("Error al leer la carpeta local.", "error");
-                                        }
-                                    }}
-                                    className="p-6 bg-emerald-50 border-2 border-emerald-100 rounded-[2rem] text-center hover:bg-emerald-100 transition-all group"
-                                >
-                                    <Package size={24} className="mx-auto text-emerald-600 mb-2 group-hover:scale-110 transition-transform"/>
-                                    <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Cargar desde Carpeta</p>
-                                    <p className="text-[8px] text-emerald-600/60 mt-1 italic">Lee el archivo local del equipo</p>
-                                </button>
-
-                                <div className="p-6 bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2rem] text-center">
-                                    <Code size={24} className="mx-auto text-gray-400 mb-2"/>
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Manual JSON</p>
-                                    <p className="text-[8px] text-gray-400 mt-1 italic">Pega el código directamente</p>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-2 mb-2 block">Página Destino</label>
-                                <div className="flex gap-2 p-1.5 bg-gray-100 rounded-2xl overflow-x-auto">
-                                    {['home', 'catalog', 'product_detail', 'checkout', 'about'].map(p => (
-                                        <button key={p} onClick={() => setTargetPage(p)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${targetPage === p ? 'bg-white text-[#004d4d] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>{p}</button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-2 mb-2 block">Vista previa del Schema</label>
-                                <textarea 
-                                    value={designJson} 
-                                    onChange={e => setDesignJson(e.target.value)} 
-                                    placeholder='El JSON aparecerá aquí al cargar la carpeta o al pegarlo...' 
-                                    className="w-full h-48 p-6 bg-gray-50 rounded-3xl border border-transparent focus:border-[#004d4d] outline-none text-xs font-mono text-gray-600 resize-none shadow-inner"
-                                />
-                            </div>
-
-                            <button onClick={handleInjectDesign} disabled={isInjecting || !designJson} className="w-full py-5 bg-[#004d4d] text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-3">
-                                {isInjecting ? <Loader2 className="animate-spin" size={16}/> : <><ShieldCheck size={16}/> Vincular y Publicar Tienda</>}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <style jsx global>{`
-                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.05); border-radius: 30px; }
-            `}</style>
-        </div>
-    );
+              {/* Acciones */}
+              <div className="px-6 pb-6 pt-4 space-y-2.5 border-t border-white/5 shrink-0">
+                <button onClick={() => { showToast(`Accediendo como ${selected.full_name}`, 'success'); window.open('/dashboard','_blank'); }}
+                  className="w-full h-11 rounded-2xl bg-[#00f2ff]/8 hover:bg-[#00f2ff]/15 border border-[#00f2ff]/15 hover:border-[#00f2ff]/30 text-[#00f2ff]/70 hover:text-[#00f2ff] font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                  <Eye size={13}/> Acceder como empresa
+                </button>
+                {selected.shop_slug && (
+                  <button onClick={() => window.open(`/shop/${selected.shop_slug}`,'_blank')}
+                    className="w-full h-10 rounded-2xl bg-white/3 hover:bg-white/6 border border-white/6 text-white/30 hover:text-white/60 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                    <Globe size={12}/> Ver tienda pública
+                  </button>
+                )}
+                <button onClick={() => toggle(selected)}
+                  className={`w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${
+                    selected.status === 'Activo'
+                      ? 'border-red-500/15 text-red-400/60 hover:bg-red-500/8 hover:text-red-400'
+                      : 'border-emerald-500/15 text-emerald-400/60 hover:bg-emerald-500/8 hover:text-emerald-400'
+                  }`}>
+                  {selected.status === 'Activo' ? <><Ban size={12}/>Suspender</> : <><Play size={12}/>Reactivar</>}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }

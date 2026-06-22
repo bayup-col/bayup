@@ -1,108 +1,222 @@
 "use client";
 
-import { useState } from 'react';
-import { 
-    MessageSquare, 
-    Ticket, 
-    Search, 
-    Filter, 
-    User, 
-    Clock, 
-    CheckCircle2, 
-    AlertCircle,
-    Send
+import { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/context/toast-context';
+import {
+  MessageSquare, Search, X, CheckCircle2, Clock,
+  AlertTriangle, Send, Building2, User, Tag
 } from 'lucide-react';
 
-export default function GlobalSupport() {
-    const [selectedType, setSelectedType] = useState('Todos');
+const fmtDate = (d: string) => new Date(d).toLocaleDateString('es-CO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
 
-    const tickets = [
-        { id: 'TK-1024', user: 'Tech Nova', type: 'Empresa', issue: 'Error en pasarela de pagos', priority: 'Alta', status: 'Abierto', time: 'hace 10 min' },
-        { id: 'TK-1025', user: '@juan_afiliado', type: 'Afiliado', issue: 'Consulta liquidación marzo', priority: 'Media', status: 'Pendiente', time: 'hace 2 horas' },
-        { id: 'TK-1026', user: 'Vogue Boutique', type: 'Empresa', issue: 'Cambio de plan a Gold', priority: 'Baja', status: 'Cerrado', time: 'ayer' },
-    ];
+interface Ticket {
+  id:string; title:string; company:string; userEmail:string;
+  priority:'Alta'|'Media'|'Baja'; status:'Abierto'|'En proceso'|'Resuelto';
+  category:string; createdAt:string;
+  messages: { sender:'usuario'|'soporte'; text:string; time:string }[];
+}
 
-    return (
-        <div className="max-w-7xl mx-auto space-y-8 pb-20 animate-in fade-in duration-700">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tight italic">Centro de Soporte</h1>
-                    <p className="text-gray-500 mt-1 font-medium">Gestión unificada de tickets y chats.</p>
-                </div>
-                <div className="flex gap-3">
-                    <button className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-2xl text-xs font-black uppercase tracking-widest text-gray-600 shadow-sm hover:bg-gray-50 transition-all">
-                        <Filter size={14} /> Filtrar por Tipo
-                    </button>
-                    <button className="flex items-center gap-2 px-6 py-3 bg-[#004d4d] text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-[#003333] transition-all shadow-xl shadow-[#004d4d]/20">
-                        <MessageSquare size={14} /> Abrir Chat Global
-                    </button>
-                </div>
-            </div>
+const MOCK: Ticket[] = [
+  { id:'TKT-001', title:'No puedo acceder a mi tienda',        company:'Moda Express SAS',    userEmail:'carlos@modaexpress.co', priority:'Alta',  status:'Abierto',    category:'Acceso',      createdAt:'2026-06-20T09:12:00', messages:[{sender:'usuario',text:'Error 401 al iniciar sesión',time:'09:12'},{sender:'soporte',text:'Revisando tu caso ahora mismo.',time:'09:15'}] },
+  { id:'TKT-002', title:'Facturas no llegan al correo',        company:'TechStore Colombia',  userEmail:'ana@techstore.co',      priority:'Media', status:'En proceso', category:'Facturación', createdAt:'2026-06-19T14:30:00', messages:[{sender:'usuario',text:'Las facturas no se envían',time:'14:30'}] },
+  { id:'TKT-003', title:'Quiero cambiar al plan Empresa',      company:'Papelería Creativa',  userEmail:'roberto@papeleria.co',  priority:'Baja',  status:'Resuelto',   category:'Planes',      createdAt:'2026-06-18T10:00:00', messages:[{sender:'usuario',text:'Quiero upgrade',time:'10:00'},{sender:'soporte',text:'Plan Empresa activado ✓',time:'10:45'}] },
+  { id:'TKT-004', title:'Error al importar CSV de productos',  company:'Distribuidora Omega', userEmail:'omega@distribuidora.co',priority:'Media', status:'Abierto',    category:'Productos',   createdAt:'2026-06-20T07:55:00', messages:[{sender:'usuario',text:'El CSV falla en columna precio',time:'07:55'}] },
+  { id:'TKT-005', title:'Dominio no apunta a la tienda',       company:'Boutique Eleganza',   userEmail:'eleganza@moda.co',      priority:'Alta',  status:'En proceso', category:'Dominio',     createdAt:'2026-06-19T16:20:00', messages:[{sender:'usuario',text:'El dominio no carga',time:'16:20'},{sender:'soporte',text:'DNS tarda hasta 48h en propagarse.',time:'16:35'}] },
+];
 
-            {/* Support Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center"><AlertCircle size={24} /></div>
-                    <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Tickets Abiertos</p>
-                        <h3 className="text-xl font-black text-gray-900">12</h3>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center"><Clock size={24} /></div>
-                    <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Tiempo de Respuesta</p>
-                        <h3 className="text-xl font-black text-gray-900">14m</h3>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-2xl bg-[#f0f9f9] text-[#004d4d] flex items-center justify-center"><CheckCircle2 size={24} /></div>
-                    <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Resueltos Hoy</p>
-                        <h3 className="text-xl font-black text-gray-900">45</h3>
-                    </div>
-                </div>
-            </div>
+const PR_COLOR: Record<string,string> = { Alta:'#ef4444', Media:'#f59e0b', Baja:'#6b7280' };
+const ST_COLOR: Record<string,string> = { Abierto:'#00f2ff', 'En proceso':'#f59e0b', Resuelto:'#10b981' };
+const ST_ICON:  Record<string,any>    = { Abierto:<AlertTriangle size={9}/>, 'En proceso':<Clock size={9}/>, Resuelto:<CheckCircle2 size={9}/> };
 
-            {/* Tickets Table */}
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-8 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-gray-800">Bandeja de Entrada</h2>
-                    <div className="relative w-64">
-                        <input type="text" placeholder="Buscar ticket..." className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-[10px] font-bold uppercase tracking-widest outline-none focus:ring-2 focus:ring-[#004d4d] transition-all" />
-                        <Search size={14} className="absolute left-3.5 top-2 text-gray-400" />
-                    </div>
-                </div>
-                <div className="divide-y divide-gray-50">
-                    {tickets.map((tk) => (
-                        <div key={tk.id} className="p-6 flex items-center justify-between hover:bg-[#f0f9f9] transition-colors cursor-pointer group">
-                            <div className="flex items-center gap-6">
-                                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black ${tk.type === 'Empresa' ? 'bg-[#f0f9f9] text-[#004d4d]' : 'bg-pink-50 text-pink-600'}`}>
-                                    {tk.id.slice(0, 2)}
-                                </div>
-                                <div>
-                                    <p className="text-sm font-black text-gray-900 uppercase tracking-tight">{tk.issue}</p>
-                                    <div className="flex gap-4 mt-1">
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{tk.user} ({tk.type})</span>
-                                        <span className="text-[10px] font-bold text-gray-300 uppercase italic">{tk.time}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-6">
-                                <div className="text-right">
-                                    <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-lg ${tk.priority === 'Alta' ? 'bg-rose-100 text-rose-600' : 'bg-gray-100 text-gray-500'}`}>
-                                        Prioridad {tk.priority}
-                                    </span>
-                                </div>
-                                <button className="h-10 w-10 bg-gray-50 rounded-xl flex items-center justify-center hover:bg-[#004d4d] hover:text-white transition-all text-gray-400">
-                                    <Send size={14} />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+export default function SoportePage() {
+  const { showToast } = useToast();
+  const [tickets,  setTickets]  = useState<Ticket[]>(MOCK);
+  const [search,   setSearch]   = useState('');
+  const [filterSt, setFilterSt] = useState('');
+  const [selected, setSelected] = useState<Ticket|null>(null);
+  const [reply,    setReply]    = useState('');
+
+  const filtered = useMemo(() => tickets.filter(t => {
+    const q = search.toLowerCase();
+    return (!q || t.title.toLowerCase().includes(q) || t.company.toLowerCase().includes(q))
+      && (!filterSt || t.status === filterSt);
+  }), [tickets, search, filterSt]);
+
+  const sendReply = () => {
+    if (!reply.trim() || !selected) return;
+    const msg = { sender: 'soporte' as const, text: reply, time: new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) };
+    const upd  = { ...selected, messages:[...selected.messages,msg], status: selected.status==='Abierto' ? 'En proceso' as const : selected.status };
+    setTickets(p => p.map(t => t.id===selected.id ? upd : t));
+    setSelected(upd);
+    setReply('');
+    showToast('Respuesta enviada','success');
+  };
+
+  const resolve = () => {
+    if (!selected) return;
+    const upd = { ...selected, status:'Resuelto' as const };
+    setTickets(p => p.map(t => t.id===selected.id ? upd : t));
+    setSelected(upd);
+    showToast('Ticket resuelto ✓','success');
+  };
+
+  return (
+    <div className="space-y-6 pb-12">
+
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.25em] mb-2">Centro de soporte · Multi-tenant</p>
+          <h1 className="text-4xl font-black text-white tracking-tight">Soporte</h1>
         </div>
-    );
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label:'Abiertos',       value: tickets.filter(t=>t.status==='Abierto').length,      color:'#00f2ff' },
+          { label:'En proceso',     value: tickets.filter(t=>t.status==='En proceso').length,   color:'#f59e0b' },
+          { label:'Resueltos',      value: tickets.filter(t=>t.status==='Resuelto').length,     color:'#10b981' },
+          { label:'Alta prioridad', value: tickets.filter(t=>t.priority==='Alta').length,       color:'#ef4444' },
+        ].map(k => (
+          <div key={k.label} className="rounded-2xl border border-white/6 bg-white/[0.02] px-5 py-4">
+            <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mb-1.5">{k.label}</p>
+            <p className="text-2xl font-black" style={{ color:k.color }}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabla tickets */}
+      <div className="rounded-2xl border border-white/6 bg-white/[0.02] overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.04]">
+          <div className="flex-1 flex items-center gap-2.5 h-9 bg-white/4 rounded-xl border border-white/6 px-3.5">
+            <Search size={13} className="text-white/20 shrink-0"/>
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar tickets…"
+              className="flex-1 bg-transparent outline-none text-[12px] text-white/60 placeholder:text-white/15"/>
+          </div>
+          <div className="flex gap-1.5">
+            {[['','Todos'],['Abierto','Abiertos'],['En proceso','En proceso'],['Resuelto','Resueltos']].map(([v,l]) => (
+              <button key={v} onClick={() => setFilterSt(v)}
+                className={`h-8 px-3 rounded-lg text-[9px] font-bold transition-all ${filterSt===v ? 'bg-white/10 text-white border border-white/15' : 'text-white/25 hover:text-white/50'}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-[auto_2fr_1.5fr_1fr_1fr_1fr] gap-4 px-5 py-2.5 border-b border-white/[0.04]">
+          {['ID','Asunto','Empresa','Prioridad','Estado','Fecha'].map((h,i) => (
+            <p key={i} className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">{h}</p>
+          ))}
+        </div>
+
+        <div className="divide-y divide-white/[0.04]">
+          {filtered.map(t => (
+            <div key={t.id}
+              className="grid grid-cols-[auto_2fr_1.5fr_1fr_1fr_1fr] gap-4 items-center px-5 py-3.5 hover:bg-white/[0.025] transition-all cursor-pointer"
+              onClick={() => setSelected(t)}>
+              <span className="text-[9px] font-mono text-white/20">{t.id}</span>
+              <div>
+                <p className="text-[12px] font-semibold text-white/70 truncate">{t.title}</p>
+                <p className="text-[9px] text-white/20">{t.category}</p>
+              </div>
+              <p className="text-[11px] text-white/30 truncate">{t.company}</p>
+              <span className="text-[8px] font-black px-2 py-0.5 rounded-lg w-fit"
+                style={{ backgroundColor:`${PR_COLOR[t.priority]}12`, color:PR_COLOR[t.priority] }}>{t.priority}</span>
+              <span className="text-[8px] font-black px-2 py-0.5 rounded-lg flex items-center gap-1 w-fit"
+                style={{ backgroundColor:`${ST_COLOR[t.status]}10`, color:ST_COLOR[t.status] }}>
+                {ST_ICON[t.status]}{t.status}
+              </span>
+              <p className="text-[9px] text-white/20">{fmtDate(t.createdAt)}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Drawer ticket */}
+      <AnimatePresence>
+        {selected && (
+          <>
+            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
+              onClick={() => setSelected(null)}/>
+            <motion.div
+              initial={{x:'100%'}} animate={{x:0}} exit={{x:'100%'}}
+              transition={{type:'spring',damping:30,stiffness:300}}
+              className="fixed top-0 right-0 h-full w-[480px] bg-[#080c0c] border-l border-white/6 flex flex-col z-[9999]">
+
+              <div className="px-6 py-5 border-b border-white/5 shrink-0">
+                <div className="flex justify-between mb-4">
+                  <button onClick={() => setSelected(null)}
+                    className="h-8 w-8 rounded-xl border border-white/8 bg-white/4 flex items-center justify-center text-white/30 hover:text-white">
+                    <X size={14}/>
+                  </button>
+                  <span className="text-[8px] font-black px-2.5 py-1 rounded-full flex items-center gap-1"
+                    style={{ backgroundColor:`${ST_COLOR[selected.status]}10`, color:ST_COLOR[selected.status] }}>
+                    {ST_ICON[selected.status]}{selected.status}
+                  </span>
+                </div>
+                <p className="text-[8px] font-mono text-white/20 mb-1">{selected.id}</p>
+                <h2 className="text-sm font-black text-white mb-3">{selected.title}</h2>
+                <div className="flex items-center gap-3 text-[9px] text-white/25">
+                  <span className="flex items-center gap-1"><Building2 size={9}/>{selected.company}</span>
+                  <span className="flex items-center gap-1"><Tag size={9}/>{selected.category}</span>
+                  <span className="text-[8px] font-black px-1.5 py-0.5 rounded"
+                    style={{ backgroundColor:`${PR_COLOR[selected.priority]}12`, color:PR_COLOR[selected.priority] }}>
+                    {selected.priority}
+                  </span>
+                </div>
+              </div>
+
+              {/* Mensajes */}
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+                {selected.messages.map((msg,i) => (
+                  <div key={i} className={`flex gap-2.5 ${msg.sender==='soporte'?'justify-end':'justify-start'}`}>
+                    {msg.sender!=='soporte' && (
+                      <div className="h-7 w-7 rounded-xl bg-white/8 flex items-center justify-center shrink-0 mt-auto">
+                        <User size={11} className="text-white/30"/>
+                      </div>
+                    )}
+                    <div className={`max-w-[78%] flex flex-col gap-1 ${msg.sender==='soporte'?'items-end':'items-start'}`}>
+                      <div className={`px-4 py-2.5 rounded-2xl text-[12px] font-medium leading-relaxed ${
+                        msg.sender==='soporte' ? 'bg-[#004d4d]/40 text-white/80 border border-[#004d4d]/30 rounded-br-sm' : 'bg-white/5 border border-white/6 text-white/50 rounded-bl-sm'
+                      }`}>{msg.text}</div>
+                      <span className="text-[8px] text-white/15 px-1">{msg.time}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="px-5 py-4 border-t border-white/5 space-y-2.5 shrink-0">
+                {selected.status !== 'Resuelto' ? (
+                  <>
+                    <div className="flex gap-2">
+                      <input value={reply} onChange={e => setReply(e.target.value)}
+                        onKeyDown={e => e.key==='Enter' && sendReply()}
+                        placeholder="Escribir respuesta…"
+                        className="flex-1 h-10 px-3.5 bg-white/5 border border-white/8 rounded-xl text-[12px] text-white/60 placeholder:text-white/20 outline-none focus:border-white/15 transition-all"/>
+                      <button onClick={sendReply} disabled={!reply.trim()}
+                        className="h-10 w-10 rounded-xl bg-[#004d4d]/50 hover:bg-[#004d4d] border border-[#004d4d]/30 flex items-center justify-center text-[#00f2ff]/60 hover:text-[#00f2ff] transition-all disabled:opacity-30">
+                        <Send size={13}/>
+                      </button>
+                    </div>
+                    <button onClick={resolve}
+                      className="w-full h-9 rounded-xl bg-[#10b981]/8 hover:bg-[#10b981]/15 border border-[#10b981]/15 text-[#10b981]/60 hover:text-[#10b981] font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all">
+                      <CheckCircle2 size={12}/> Marcar como resuelto
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center gap-2 py-2">
+                    <CheckCircle2 size={14} className="text-[#10b981]"/>
+                    <p className="text-[11px] font-black text-[#10b981]/70">Ticket resuelto</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }

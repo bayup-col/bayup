@@ -37,9 +37,18 @@
   }
 }
 
-/* Transiciones suaves para el cambio de tema */
-* {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+/* Transiciones suaves solo para cambio de tema explícito */
+
+/* ── Efecto holográfico iridiscente ── */
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes spin-holo {
+  0%   { --angle: 0deg; }
+  100% { --angle: 360deg; }
 }
 
 .dark body {
@@ -64,4 +73,46 @@
 .dark .shadow-md,
 .dark .shadow-lg {
   shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7) !important;
+}
+
+/* ==========================================================================
+   SISTEMA DE SCROLLBARS PREMIUM (ESTILO GLASSMORPHISM / SUTIL)
+   ========================================================================== */
+
+/* Ocultar barra de scroll por completo (ej. para el Sidebar) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;  /* IE y Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
+
+/* Estilo global para scrollbars sutiles */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+/* Scrollbar en modo oscuro */
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 242, 255, 0.25);
 }

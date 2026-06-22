@@ -13,30 +13,68 @@ import {
   LayoutGrid, Activity, DollarSign, Clock, ShieldCheck, FileText, Printer, User, 
   CheckCircle2, Truck, RefreshCw, Lightbulb, Wallet, CreditCard, Calendar
 } from 'lucide-react';
-import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
 import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
+import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // --- COMPONENTES ATÓMICOS ---
 const AnimatedNumber = memo(({ value, type = 'currency' }: { value: number, type?: 'currency' | 'simple' | 'percentage' }) => {
-    const spring = useSpring(0, { mass: 0.8, stiffness: 75, damping: 15 });
-    const display = useTransform(spring, (current: number) => {
-        if (type === 'percentage') return Math.round(current) + "%";
-        if (type === 'simple') return Math.round(current).toLocaleString();
-        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(current);
-    });
-    useEffect(() => { spring.set(value); }, [value, spring]);
-    return <motion.span>{display}</motion.span>; 
+    const [display, setDisplay] = useState(value);
+    const rafRef = useRef<number | null>(null);
+    const startRef = useRef<number | null>(null);
+    const fromRef = useRef(value);
+
+    useEffect(() => {
+        const from = fromRef.current;
+        const to = value;
+        if (from === to) return;
+        const duration = 600;
+        const animate = (ts: number) => {
+            if (!startRef.current) startRef.current = ts;
+            const progress = Math.min((ts - startRef.current) / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setDisplay(from + (to - from) * eased);
+            if (progress < 1) rafRef.current = requestAnimationFrame(animate);
+            else { fromRef.current = to; startRef.current = null; }
+        };
+        rafRef.current = requestAnimationFrame(animate);
+        return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+    }, [value]);
+
+    const formatted = useMemo(() => {
+        if (type === 'percentage') return Math.round(display) + "%";
+        if (type === 'simple') return Math.round(display).toLocaleString();
+        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(display);
+    }, [display, type]);
+
+    return <span>{formatted}</span>;
 });
 AnimatedNumber.displayName = 'AnimatedNumber';
 
+const ChartTooltip = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+        <div className="bg-white border border-gray-100 shadow-xl rounded-2xl p-4 text-xs min-w-[160px]">
+            <p className="font-semibold text-gray-500 mb-2">{payload[0]?.payload?.label}</p>
+            {payload.map((p: any, i: number) => (
+                <div key={i} className="flex items-center gap-2 mt-1">
+                    <div style={{ background: p.stroke || p.color }} className="h-2 w-2 rounded-full shrink-0" />
+                    <span className="text-gray-400 text-[10px]">{p.name}:</span>
+                    <span className="font-bold text-gray-800 text-[10px]">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(p.value)}</span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 const PremiumCard = ({ children, className = "", dark = false }: { children: React.ReactNode, className?: string, dark?: boolean }) => {
     return (
-        <div className={`rounded-[3rem] border transition-all duration-500 relative overflow-hidden isolate ${
-            dark 
-            ? 'bg-gradient-to-br from-[#001a1a]/95 to-[#002626]/95 border-white/10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]' 
-            : 'bg-white/40 backdrop-blur-xl border-white/80 shadow-xl'
+        <div className={`rounded-[3rem] border relative overflow-hidden ${
+            dark
+            ? 'bg-gradient-to-br from-[#001a1a] to-[#002626] border-white/10 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.4)]'
+            : 'bg-white border-gray-100 shadow-md'
         } ${className}`}>
             {dark && <div className="absolute inset-0 bg-gradient-to-tr from-cyan/5 to-transparent pointer-events-none" />}
             <div className="h-full relative z-[2]">{children}</div>
@@ -46,16 +84,11 @@ const PremiumCard = ({ children, className = "", dark = false }: { children: Rea
 
 const AuroraMetricCard = ({ children, onClick }: { children: React.ReactNode, onClick: () => void }) => {
     return (
-        <div className="relative group cursor-pointer h-full perspective-1000" onClick={onClick}>
-            <div className="absolute inset-0 -m-[2px] rounded-[3rem] overflow-hidden pointer-events-none z-0">
-                <motion.div 
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-                    style={{ willChange: 'transform' }}
-                    className="absolute inset-[-150%] bg-[conic-gradient(from_0deg,transparent_0deg,#00F2FF_20deg,#10B981_40deg,#9333EA_60deg,transparent_80deg,transparent_360deg)] opacity-30 group-hover:opacity-100 transition-opacity duration-1000 blur-[12px] transform-gpu"
-                />
+        <div className="relative group cursor-pointer h-full" onClick={onClick}>
+            <div className="absolute inset-0 -m-[1px] rounded-[3rem] overflow-hidden pointer-events-none z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan/30 via-emerald-400/20 to-purple-500/20 blur-[8px]" />
             </div>
-            <div className="relative z-10 h-full transform-gpu">{children}</div>
+            <div className="relative z-10 h-full">{children}</div>
         </div>
     );
 };
@@ -67,7 +100,16 @@ export default function DashboardPage() {
   
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
   const [isCustomReportModalOpen, setIsCustomReportModalOpen] = useState(false);
+  const [chartMode, setChartMode] = useState<'diario' | 'comparativo'>('diario');
   const [customRange, setCustomRange] = useState({ start: '', end: '' });
+  const [isChartDateOpen, setIsChartDateOpen] = useState(false);
+  const [chartDateRange, setChartDateRange] = useState(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    return { start: `${y}-${m}-01`, end: `${y}-${m}-${String(lastDay).padStart(2, '0')}` };
+  });
   const [companyName, setCompanyName] = useState(userName || 'Empresario Bayup');
 
   // Sincronizar estado local con global si el global cambia
@@ -115,6 +157,88 @@ export default function DashboardPage() {
     });
     return dailyTotals;
   }, [orders]);
+
+  // --- DATOS MENSUALES PARA GRÁFICO ---
+  const monthlySales = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const dailyData: { day: string; label: string; cumReal: number; cumMeta: number; dailyVal: number }[] =
+        Array.from({ length: daysInMonth }, (_, i) => ({ day: `${i+1}`, label: `${i+1} ${monthNames[month]}`, cumReal: 0, cumMeta: 0, dailyVal: 0 }));
+    orders.forEach(o => {
+        const d = new Date(o.created_at);
+        if (d.getFullYear() === year && d.getMonth() === month) {
+            const idx = d.getDate() - 1;
+            if (idx < daysInMonth) dailyData[idx].dailyVal += (o.total_price || 0);
+        }
+    });
+    const totalMonthly = dailyData.reduce((a, d) => a + d.dailyVal, 0);
+    const goal = Math.max(totalMonthly * 1.35, 500_000);
+    const dailyGoal = goal / daysInMonth;
+    let cumR = 0, cumM = 0;
+    return dailyData.map(d => {
+        cumR += d.dailyVal;
+        cumM += dailyGoal;
+        return { ...d, cumReal: cumR, cumMeta: Math.round(cumM) };
+    });
+  }, [orders]);
+
+  // --- DATOS SEMANALES PARA MODO COMPARATIVO ---
+  const weeklySalesForChart = useMemo(() => {
+    const days = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+    let cumR = 0;
+    return weeklySales.map((val, i) => {
+        cumR += val;
+        return { day: days[i], label: days[i], cumReal: cumR, cumMeta: Math.round(cumR * 1.2), dailyVal: val };
+    });
+  }, [weeklySales]);
+
+  // --- INSIGHTS DINÁMICOS ---
+  const insights = useMemo(() => {
+    const now = new Date();
+    const monthlyTotal = orders.reduce((acc, o) => {
+        const d = new Date(o.created_at);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() ? acc + (o.total_price || 0) : acc;
+    }, 0);
+    const goal = Math.max(monthlyTotal * 1.35, 500_000);
+    const goalPct = goal > 0 ? Math.min(Math.round((monthlyTotal / goal) * 100), 100) : 0;
+    const fmt = (v: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v);
+
+    const productMap: Record<string, { name: string; total: number; units: number }> = {};
+    orders.forEach(o => {
+        (o.items || o.order_items || []).forEach((item: any) => {
+            const key = item.product_id || item.product_name || 'Unknown';
+            const name = item.product_name || item.name || 'Producto';
+            if (!productMap[key]) productMap[key] = { name, total: 0, units: 0 };
+            productMap[key].total += (item.total_price || (item.unit_price * (item.quantity || 1)) || 0);
+            productMap[key].units += (item.quantity || 1);
+        });
+    });
+    const topProduct = Object.values(productMap).sort((a, b) => b.total - a.total)[0];
+
+    return [
+        {
+            icon: <TrendingUp size={15} />, iconBg: 'bg-rose-100 text-rose-500',
+            bg: 'bg-rose-50 border border-rose-100', tag: 'Meta del mes', tagBg: 'bg-rose-100', tagColor: 'text-rose-600',
+            title: '1. Meta del mes',
+            text: monthlyTotal > 0 ? `${goalPct}% completado. Ventas acumuladas: ${fmt(monthlyTotal)}.` : 'Sin ventas registradas este mes aún. ¡Activa tu primera venta!'
+        },
+        {
+            icon: <Zap size={15} />, iconBg: 'bg-amber-100 text-amber-500',
+            bg: 'bg-amber-50 border border-amber-100', tag: 'Top ventas', tagBg: 'bg-amber-100', tagColor: 'text-amber-600',
+            title: '2. Producto líder del mes',
+            text: topProduct ? `"${topProduct.name}" lidera con ${fmt(topProduct.total)} (${topProduct.units} uds).` : 'Registra ventas para ver tu producto estrella del mes.'
+        },
+        {
+            icon: <AlertCircle size={15} />, iconBg: 'bg-red-100 text-red-500',
+            bg: 'bg-red-50 border border-red-100', tag: 'Alerta stock', tagBg: 'bg-red-100', tagColor: 'text-red-600',
+            title: '3. Stock crítico',
+            text: realStats.low_stock > 0 ? `${realStats.low_stock} producto${realStats.low_stock > 1 ? 's' : ''} con stock crítico (≤5 uds). Reponlos para no perder ventas.` : 'Inventario en niveles óptimos. Todo bajo control.'
+        }
+    ];
+  }, [orders, realStats]);
 
   const loadDashboardData = useCallback(async () => {
     if (!token) return;
@@ -277,147 +401,357 @@ export default function DashboardPage() {
       } catch (e) { showToast("Error al generar reporte", "error"); }
   };
 
+  // --- DATOS FILTRADOS POR RANGO PARA EL GRÁFICO ---
+  const chartFilteredData = useMemo(() => {
+    if (!chartDateRange.start || !chartDateRange.end) return monthlySales;
+    const start = new Date(chartDateRange.start);
+    const end = new Date(chartDateRange.end);
+    end.setHours(23, 59, 59, 999);
+    const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const days: Date[] = [];
+    const cur = new Date(start);
+    while (cur <= end) { days.push(new Date(cur)); cur.setDate(cur.getDate() + 1); }
+    const dailyData = days.map(d => ({ day: `${d.getDate()}`, label: `${d.getDate()} ${monthNames[d.getMonth()]}`, dailyVal: 0, cumReal: 0, cumMeta: 0 }));
+    orders.forEach(o => {
+      const d = new Date(o.created_at);
+      if (d >= start && d <= end) {
+        const idx = days.findIndex(day => day.toDateString() === d.toDateString());
+        if (idx >= 0) dailyData[idx].dailyVal += (o.total_price || 0);
+      }
+    });
+    const total = dailyData.reduce((a, d) => a + d.dailyVal, 0);
+    const goal = Math.max(total * 1.35, 500_000);
+    const dailyGoal = goal / Math.max(days.length, 1);
+    let cumR = 0, cumM = 0;
+    return dailyData.map(d => { cumR += d.dailyVal; cumM += dailyGoal; return { ...d, cumReal: cumR, cumMeta: Math.round(cumM) }; });
+  }, [orders, chartDateRange, monthlySales]);
+
+  const chartData = chartMode === 'comparativo' ? weeklySalesForChart : chartFilteredData;
+
+  const fmtChartDate = (s: string) => {
+    if (!s) return '';
+    const d = new Date(s + 'T12:00:00');
+    return `${d.getDate()} ${d.toLocaleDateString('es-CO', { month: 'short' }).toUpperCase()}. ${d.getFullYear()}`;
+  };
+  const recentOrders = useMemo(() => [...orders].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 6), [orders]);
+
+  const statusBadge = (s: string) => {
+    const map: Record<string, { label: string; cls: string }> = {
+      pending:    { label: 'Pendiente',  cls: 'bg-amber-50  text-amber-600  border-amber-100'  },
+      paid:       { label: 'Pagado',     cls: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
+      shipped:    { label: 'Enviado',    cls: 'bg-blue-50   text-blue-600   border-blue-100'   },
+      delivered:  { label: 'Entregado',  cls: 'bg-green-50  text-green-700  border-green-100'  },
+      cancelled:  { label: 'Cancelado',  cls: 'bg-rose-50   text-rose-600   border-rose-100'   },
+    };
+    const st = map[s] ?? { label: s, cls: 'bg-gray-50 text-gray-500 border-gray-100' };
+    return <span className={`text-[8px] font-semibold tracking-widest uppercase px-2.5 py-0.5 rounded-full border ${st.cls}`}>{st.label}</span>;
+  };
+
   return (
-    <div className="max-w-[1600px] mx-auto space-y-12 pb-20 px-4">
-        <div className="flex flex-col xl:flex-row items-center justify-between gap-8 overflow-visible">
-            <div className="space-y-2 text-center xl:text-left">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                    <span className={`text-[10px] font-black tracking-[0.3em] italic ${theme === 'dark' ? 'text-white/40' : 'text-[#004d4d]/60'}`}>Tu panel de control</span>
-                </div>
-                <h1 className={`text-4xl md:text-6xl font-black italic tracking-tighter leading-[1.4] py-4 overflow-visible transition-colors duration-500 ${theme === 'dark' ? 'text-white shadow-[0_0_30px_rgba(255,255,255,0.05)]' : 'text-[#001A1A]'}`}>
-                    ¡Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block pb-4 pr-2"> {companyName}</span>!
+    <div className="max-w-[1600px] mx-auto space-y-6 pb-20 px-4">
+
+        {/* ── HEADER ── */}
+        <div className="flex flex-col xl:flex-row items-start justify-between gap-4">
+            <div>
+                <p className={`flex items-center gap-2 text-[10px] font-bold tracking-[0.22em] uppercase mb-1 ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#004d4d] inline-block"/>
+                    <Calendar size={10} />
+                    {new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}
+                </p>
+                <h1 className="text-4xl font-black tracking-tight leading-none text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00b2bd] to-[#004d4d]">
+                    BIENVENIDO, {companyName.toUpperCase()}
                 </h1>
-                <p className="text-gray-400 font-medium text-lg italic">¡Aquí tienes el resumen de tu negocio hoy! 🚀</p>
             </div>
-            <div className="flex gap-4 shrink-0">
-                <button onClick={handleDownloadReport} className={`h-16 px-10 rounded-full flex items-center justify-center gap-3 transition-all group ${theme === 'dark' ? 'bg-white/5 border border-white/10 text-white hover:bg-white/10' : 'bg-white border border-gray-100 text-[#004d4d] shadow-xl'}`}>
-                    <FileText size={20} className="text-cyan"/><span className="font-black tracking-widest text-[10px] uppercase">Reporte diario</span>
+            <div className="relative shrink-0">
+                <button
+                    onClick={() => setIsCustomReportModalOpen(!isCustomReportModalOpen)}
+                    className="h-10 px-5 rounded-full flex items-center gap-2 bg-[#004d4d] hover:bg-[#003838] text-white transition-colors duration-150 shadow-sm"
+                >
+                    <Download size={13} className="text-[#00f2ff] shrink-0"/>
+                    <span className="font-semibold tracking-widest text-[9px] uppercase whitespace-nowrap">Reportes</span>
                 </button>
-                <button onClick={() => setIsCustomReportModalOpen(true)} className={`h-16 px-10 rounded-full flex items-center justify-center gap-3 shadow-2xl transition-all ${theme === 'dark' ? 'bg-cyan/10 border border-cyan/20 text-cyan hover:bg-cyan/20' : 'bg-[#004d4d] text-white hover:bg-black'}`}>
-                    <Calendar size={20} className="text-cyan"/><span className="font-black tracking-widest text-[10px] uppercase">Reportes del mes</span>
-                </button>
+
+                <AnimatePresence>
+                    {isCustomReportModalOpen && (
+                        <>
+                            <div className="fixed inset-0 z-40" onClick={() => setIsCustomReportModalOpen(false)} />
+                            <motion.div
+                                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                transition={{ duration: 0.16 }}
+                                className={`absolute right-0 top-12 z-50 w-72 rounded-3xl shadow-2xl border p-5 ${theme === 'dark' ? 'bg-[#0a1f1f] border-white/10' : 'bg-white border-gray-100'}`}
+                            >
+                                <p className={`text-[9px] font-semibold tracking-[0.2em] uppercase mb-4 ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>Selecciona el rango</p>
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className={`text-[8px] font-semibold uppercase tracking-widest ml-1 mb-1 block ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>Desde</label>
+                                        <input type="date" value={customRange.start} onChange={e => setCustomRange({...customRange, start: e.target.value})} className={`w-full p-3 rounded-2xl outline-none font-medium text-sm ${theme === 'dark' ? 'bg-white/5 text-white' : 'bg-gray-50 text-gray-900'}`} />
+                                    </div>
+                                    <div>
+                                        <label className={`text-[8px] font-semibold uppercase tracking-widest ml-1 mb-1 block ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>Hasta</label>
+                                        <input type="date" value={customRange.end} onChange={e => setCustomRange({...customRange, end: e.target.value})} className={`w-full p-3 rounded-2xl outline-none font-medium text-sm ${theme === 'dark' ? 'bg-white/5 text-white' : 'bg-gray-50 text-gray-900'}`} />
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 mt-4">
+                                    <button onClick={() => { handleDownloadReport(); setIsCustomReportModalOpen(false); }} className={`flex-1 h-9 rounded-full text-[8px] font-semibold uppercase tracking-widest border transition-colors ${theme === 'dark' ? 'border-white/10 text-white/50 hover:bg-white/5' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                                        Hoy
+                                    </button>
+                                    <button onClick={() => { handleGenerateCustomReport(); setIsCustomReportModalOpen(false); }} disabled={!customRange.start || !customRange.end} className="flex-1 h-9 rounded-full bg-[#004d4d] hover:bg-[#003838] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[8px] font-semibold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors">
+                                        <Download size={11}/> Descargar
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {kpis.map((kpi, i) => (
-                <div key={i}>
-                    <AuroraMetricCard onClick={() => setSelectedMetric(kpi)}>
-                        <MetricKPI {...kpi} dark={theme === 'dark'} />
-                    </AuroraMetricCard>
+        {/* ── FILA DE 4 MÉTRICAS ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* CARD 1: Tráfico */}
+            <div>
+                <div className={`group relative h-full rounded-3xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5 ${
+                    theme === 'dark'
+                    ? 'bg-[#0a1f1f] border border-white/[0.06] shadow-[0_2px_24px_-4px_rgba(0,0,0,0.5)]'
+                    : 'bg-white border border-gray-100/80 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)]'
+                }`}>
+                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${theme === 'dark' ? 'bg-gradient-to-br from-emerald-400/5 to-transparent' : 'bg-gradient-to-br from-gray-50/80 to-transparent'}`} />
+                    <div className={`absolute top-0 left-6 right-6 h-px ${theme === 'dark' ? 'bg-gradient-to-r from-transparent via-white/10 to-transparent' : 'bg-gradient-to-r from-transparent via-gray-200 to-transparent'}`} />
+
+                    <div className="relative z-10 p-5">
+                        <div className="flex items-center justify-between mb-5">
+                            <div className="h-9 w-9 rounded-2xl flex items-center justify-center bg-emerald-500/10 text-emerald-500">
+                                <Activity size={16} />
+                            </div>
+                            <span className={`text-[7px] font-bold tracking-[0.2em] uppercase px-2.5 py-1 rounded-full flex items-center gap-1.5 ${
+                                theme === 'dark' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/10' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                            }`}>
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                En vivo
+                            </span>
+                        </div>
+                        <p className={`text-[8px] font-semibold tracking-[0.22em] uppercase mb-2 ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>Tráfico en tiempo real</p>
+                        <h3 className={`text-2xl font-bold tracking-tight leading-none ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                            <AnimatedNumber value={realStats.online_now} type="simple" />
+                            <span className={`text-sm font-medium ml-1.5 ${theme === 'dark' ? 'text-emerald-400/70' : 'text-emerald-600/70'}`}>en línea</span>
+                        </h3>
+                        <div className={`mt-4 h-[3px] w-full rounded-full overflow-hidden ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-100'}`}>
+                            <div className="h-full w-3/5 rounded-full bg-gradient-to-r from-emerald-400/70 to-emerald-400/10" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* CARDS 2-4: Ventas, Pedidos, Inventario */}
+            {kpis.filter((_,i) => i !== 2).map((kpi, i) => (
+                <div key={i} className="cursor-pointer" onClick={() => setSelectedMetric(kpi)}>
+                    <MetricKPI {...kpi} dark={theme === 'dark'} />
                 </div>
             ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <PremiumCard dark={true} className="lg:col-span-8 p-12 min-h-[450px]">
-                <div className="flex items-center justify-between mb-12">
-                    <div className="flex items-center gap-4">
-                        <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_15px_#10B981]" />
-                        <span className="text-[10px] font-black text-emerald-500 tracking-[0.4em] uppercase">Tráfico en Tiempo Real</span>
-                    </div>
-                    <div className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                        <Globe size={12} className="text-cyan" /> bayup.com.co/shop/{companyName.toLowerCase().replace(/ /g, '-')}
-                    </div>
-                </div>
-                <div className="flex-1 flex flex-col items-center justify-center text-center">
-                    <h2 className="text-8xl font-black text-white italic tracking-tighter leading-none mb-4 flex items-center gap-4">
-                        <AnimatedNumber value={realStats.online_now} type="simple" />
-                        <span className="text-2xl text-cyan not-italic tracking-normal">En línea</span>
-                    </h2>
-                    <p className="text-gray-400 text-base font-medium italic">Personas navegando tu tienda ahora</p>
-                </div>
-                <div className="mt-12 grid grid-cols-3 gap-8 pt-10 border-t border-white/5">
-                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Órdenes Hoy</p><span className="text-xl font-black text-white italic">{realStats.orders_count} Pedidos</span></div>
-                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Día Pico</p><span className="text-xl font-black text-white italic">{realStats.peak_day}</span></div>
-                    <div><p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">Hora Pico</p><span className={`text-xl font-black text-white italic ${theme === 'dark' ? 'shadow-[0_0_15px_rgba(0,242,255,0.3)]' : ''}`}>{realStats.peak_hour}</span></div>
-                </div>
-            </PremiumCard>
-            <PremiumCard dark={theme === 'dark'} className="lg:col-span-4 p-10 flex flex-col justify-between">
-                <div className="space-y-8">
-                    <div className={`flex items-center justify-between border-b pb-6 ${theme === 'dark' ? 'border-white/5' : 'border-gray-100'}`}>
-                        <div className="flex items-center gap-3">
-                            <Activity size={20} className="text-cyan"/>
-                            <h4 className={`text-xs font-black tracking-widest ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Actividad En vivo</h4>
+        {/* ── CHART + INSIGHTS ── */}
+        <div className="grid grid-cols-12 gap-6">
+
+            {/* COMPARATIVA DE VENTAS */}
+            <div className="col-span-12 lg:col-span-8">
+                <PremiumCard dark={theme === 'dark'} className="p-7 h-full">
+                    <div className="flex flex-col h-full gap-5">
+                        {/* Header */}
+                        <div className="shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <h4 className={`font-bold text-sm uppercase tracking-[0.12em] ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Comparativa de Ventas</h4>
+                                <p className={`text-[10px] mt-0.5 ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>Análisis del rendimiento comercial actual vs. periodos anteriores</p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {/* Toggle modo */}
+                                <div className={`flex p-1 rounded-full gap-1 ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-100'}`}>
+                                    <button onClick={() => setChartMode('diario')} className={`px-3 py-1 rounded-full text-[9px] font-semibold uppercase transition-colors duration-150 ${chartMode === 'diario' ? 'bg-[#004d4d] text-white shadow-sm' : (theme === 'dark' ? 'text-white/40' : 'text-gray-400')}`}>Modo Diario</button>
+                                    <button onClick={() => setChartMode('comparativo')} className={`px-3 py-1 rounded-full text-[9px] font-semibold uppercase transition-colors duration-150 ${chartMode === 'comparativo' ? 'bg-[#004d4d] text-white shadow-sm' : (theme === 'dark' ? 'text-white/40' : 'text-gray-400')}`}>Modo Comparativo</button>
+                                </div>
+
+                                {/* Date range picker */}
+                                {chartMode === 'diario' && (
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setIsChartDateOpen(v => !v)}
+                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[9px] font-medium border transition-colors duration-150 ${
+                                                isChartDateOpen
+                                                ? (theme === 'dark' ? 'bg-[#004d4d]/40 border-[#004d4d]/60 text-white' : 'bg-[#004d4d]/10 border-[#004d4d]/30 text-[#004d4d]')
+                                                : (theme === 'dark' ? 'border-white/10 text-white/40 bg-white/5 hover:bg-white/10' : 'border-gray-200 text-gray-500 bg-white hover:bg-gray-50')
+                                            }`}
+                                        >
+                                            <Calendar size={10} />
+                                            <span>{fmtChartDate(chartDateRange.start)} – {fmtChartDate(chartDateRange.end)}</span>
+                                            <ChevronDown size={9} className={`transition-transform duration-150 ${isChartDateOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+
+                                        <AnimatePresence>
+                                            {isChartDateOpen && (
+                                                <>
+                                                    <div className="fixed inset-0 z-40" onClick={() => setIsChartDateOpen(false)} />
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                        exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                                                        transition={{ duration: 0.15 }}
+                                                        className={`absolute right-0 top-10 z-50 w-64 rounded-3xl shadow-2xl border p-4 ${theme === 'dark' ? 'bg-[#0a1f1f] border-white/10' : 'bg-white border-gray-100'}`}
+                                                    >
+                                                        <p className={`text-[8px] font-semibold tracking-[0.2em] uppercase mb-3 ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>Rango del gráfico</p>
+                                                        <div className="space-y-2">
+                                                            <div>
+                                                                <label className={`text-[8px] font-semibold uppercase tracking-widest ml-1 mb-1 block ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>Desde</label>
+                                                                <input
+                                                                    type="date"
+                                                                    value={chartDateRange.start}
+                                                                    onChange={e => setChartDateRange(r => ({ ...r, start: e.target.value }))}
+                                                                    className={`w-full p-2.5 rounded-2xl outline-none text-xs font-medium ${theme === 'dark' ? 'bg-white/5 text-white' : 'bg-gray-50 text-gray-900'}`}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className={`text-[8px] font-semibold uppercase tracking-widest ml-1 mb-1 block ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>Hasta</label>
+                                                                <input
+                                                                    type="date"
+                                                                    value={chartDateRange.end}
+                                                                    onChange={e => setChartDateRange(r => ({ ...r, end: e.target.value }))}
+                                                                    className={`w-full p-2.5 rounded-2xl outline-none text-xs font-medium ${theme === 'dark' ? 'bg-white/5 text-white' : 'bg-gray-50 text-gray-900'}`}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        {/* Accesos rápidos */}
+                                                        <div className="flex gap-1.5 mt-3 flex-wrap">
+                                                            {[
+                                                                { label: 'Hoy', fn: () => { const t = new Date(); const s = t.toISOString().slice(0,10); setChartDateRange({ start: s, end: s }); } },
+                                                                { label: 'Esta semana', fn: () => { const t = new Date(); const dow = t.getDay() || 7; const mon = new Date(t); mon.setDate(t.getDate() - dow + 1); const sun = new Date(mon); sun.setDate(mon.getDate() + 6); setChartDateRange({ start: mon.toISOString().slice(0,10), end: sun.toISOString().slice(0,10) }); } },
+                                                                { label: 'Este mes', fn: () => { const t = new Date(); const y = t.getFullYear(); const m = String(t.getMonth()+1).padStart(2,'0'); const last = new Date(t.getFullYear(), t.getMonth()+1, 0).getDate(); setChartDateRange({ start: `${y}-${m}-01`, end: `${y}-${m}-${String(last).padStart(2,'0')}` }); } },
+                                                            ].map(q => (
+                                                                <button key={q.label} onClick={() => { q.fn(); setIsChartDateOpen(false); }} className={`text-[8px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${theme === 'dark' ? 'border-white/10 text-white/40 hover:bg-white/5 hover:text-white/70' : 'border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}>
+                                                                    {q.label}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <button onClick={() => setIsChartDateOpen(false)} className="mt-3 w-full h-8 rounded-full bg-[#004d4d] hover:bg-[#003838] text-white text-[8px] font-semibold uppercase tracking-widest transition-colors">
+                                                            Aplicar
+                                                        </button>
+                                                    </motion.div>
+                                                </>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Chart — flex-1 para llenar el espacio disponible */}
+                        <div className="flex-1 min-h-[160px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="gradReal" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#004d4d" stopOpacity={0.2}/>
+                                            <stop offset="95%" stopColor="#004d4d" stopOpacity={0.01}/>
+                                        </linearGradient>
+                                        <linearGradient id="gradMeta" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.08}/>
+                                            <stop offset="95%" stopColor="#94a3b8" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)'} vertical={false} />
+                                    <XAxis dataKey="day" tick={{ fontSize: 10, fill: theme === 'dark' ? 'rgba(255,255,255,0.3)' : '#9ca3af' }} axisLine={false} tickLine={false} interval={Math.max(0, Math.floor(chartData.length / 6) - 1)} />
+                                    <Tooltip content={<ChartTooltip />} />
+                                    <Area type="monotone" dataKey="cumReal" name="Venta Real" stroke="#004d4d" strokeWidth={2.5} fill="url(#gradReal)" dot={false} activeDot={{ r: 4, fill: '#004d4d', stroke: 'white', strokeWidth: 2 }} />
+                                    {chartMode === 'comparativo' && <Area type="monotone" dataKey="cumMeta" name="Meta del Mes" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="5 3" fill="url(#gradMeta)" dot={false} activeDot={{ r: 3, fill: '#94a3b8', stroke: 'white', strokeWidth: 2 }} />}
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        {/* Legend */}
+                        <div className={`shrink-0 flex items-center gap-6 pt-4 border-t ${theme === 'dark' ? 'border-white/5' : 'border-gray-100'}`}>
+                            <div className="flex items-center gap-2"><div className="h-[3px] w-5 rounded-full bg-[#004d4d]" /><span className="text-[10px] text-gray-400">Venta Real</span></div>
+                            {chartMode === 'comparativo' && <div className="flex items-center gap-2"><div className="h-[2px] w-5 bg-gray-300 rounded-full" /><span className="text-[10px] text-gray-400">Meta del Mes</span></div>}
+                            <button onClick={loadDashboardData} className={`ml-auto text-[9px] font-semibold tracking-widest uppercase transition-colors duration-150 flex items-center gap-1.5 ${theme === 'dark' ? 'text-white/20 hover:text-white/50' : 'text-gray-300 hover:text-[#004d4d]'}`}>
+                                <RefreshCw size={10} /> Actualizar
+                            </button>
                         </div>
                     </div>
-                    <div className="space-y-6">
-                        {activities.length > 0 ? activities.map((act, i) => (
-                            <div key={i} className="flex items-center gap-4 group/item">
-                                <div className={`h-10 w-10 rounded-2xl flex items-center justify-center transition-all ${theme === 'dark' ? 'bg-white/5 text-gray-400 group-hover/item:text-cyan' : 'bg-gray-50 text-gray-400 group-hover/item:text-[#004d4d]'}`}>
-                                    <RefreshCw size={16}/>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className={`text-[11px] font-black truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{act.user_name || 'Sistema'}</p>
-                                    <p className="text-[9px] text-gray-500 truncate font-medium italic">{act.detail}</p>
-                                </div>
-                            </div>
-                        )) : (<div className="py-12 text-center space-y-4"><div className="h-12 w-12 border-4 border-white/5 border-t-cyan rounded-full animate-spin mx-auto" /><p className="text-[10px] font-black text-gray-500">Sincronizando flujo...</p></div>)}
-                    </div>
-                </div>
-                <button onClick={loadDashboardData} className={`w-full py-4 rounded-2xl text-[9px] font-black transition-all uppercase tracking-widest ${theme === 'dark' ? 'bg-white/5 text-gray-400 hover:bg-cyan/10 hover:text-cyan' : 'bg-gray-50 text-gray-400 hover:bg-[#004d4d] hover:text-white'}`}>Actualizar terminal</button>
-            </PremiumCard>
-        </div>
-
-        {/* 4. SECCIÓN DE RENDIMIENTO SEMANAL (PLATINUM CHART) */}
-        <PremiumCard dark={theme === 'dark'} className="p-12">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-                <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <TrendingUp size={18} className="text-cyan" />
-                        <h4 className={`text-xs font-black tracking-[0.3em] uppercase ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Rendimiento Semanal</h4>
-                    </div>
-                    <p className="text-[10px] text-gray-400 font-bold italic tracking-widest uppercase">Visualización de ingresos de los últimos 7 días</p>
-                </div>
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-cyan" /><span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ventas Web</span></div>
-                    <div className="flex items-center gap-2"><div className={`h-2 w-2 rounded-full ${theme === 'dark' ? 'bg-white/20' : 'bg-[#004d4d]'}`} /><span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ventas POS</span></div>
-                </div>
+                </PremiumCard>
             </div>
 
-            <div className="h-64 flex items-end justify-between gap-4 px-4 relative">
-                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
-                    {[1, 2, 3, 4].map(i => <div key={i} className={`w-full h-px ${theme === 'dark' ? 'bg-white' : 'bg-gray-900'}`} />)}
-                </div>
+            {/* INSIGHTS BAYUP */}
+            <div className="col-span-12 lg:col-span-4">
+                <div className={`rounded-[2.5rem] h-full p-6 flex flex-col gap-4 ${theme === 'dark' ? 'bg-gradient-to-br from-[#001a1a] to-[#002626] border border-white/5' : 'bg-gradient-to-br from-[#003838] to-[#001a1a]'}`}>
+                    <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-sm uppercase tracking-[0.12em] text-white">Insights Bayup</h4>
+                        <div className="flex items-center gap-1.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="text-[8px] text-emerald-400 font-semibold tracking-widest uppercase">En tiempo real</span>
+                        </div>
+                    </div>
 
-                {(() => {
-                    const maxVal = Math.max(...weeklySales) || 1;
-                    return weeklySales.map((val, i) => {
-                        const day = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"][i];
-                        const heightPercent = (val / maxVal) * 100;
-                        return (
-                            <div key={i} className="flex-1 flex flex-col items-center gap-4 group/bar relative z-10">
-                                <div className="relative w-full flex flex-col items-center justify-end h-48">
-                                    <motion.div 
-                                        initial={{ height: 0 }}
-                                        animate={{ height: `${heightPercent}%` }}
-                                        transition={{ delay: i * 0.1, duration: 1, ease: "circOut" }}
-                                        className="w-full max-w-[40px] bg-gradient-to-t from-[#004d4d] to-cyan rounded-t-2xl relative group-hover/bar:shadow-[0_0_30px_rgba(0,242,255,0.4)] transition-all duration-500"
-                                    >
-                                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] font-black px-3 py-1.5 rounded-xl opacity-0 group-hover/bar:opacity-100 transition-all shadow-2xl border border-white/10 whitespace-nowrap z-50">
-                                            $ {val.toLocaleString()}
-                                        </div>
-                                    </motion.div>
-                                </div>
-                                <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${theme === 'dark' ? 'text-white/40 group-hover/bar:text-cyan' : 'text-gray-400 group-hover/bar:text-[#004d4d]'}`}>{day}</span>
+                    {insights.map((ins, i) => (
+                        <div key={i} className="bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-4 flex flex-col gap-2 transition-colors duration-150 cursor-pointer">
+                            <div className="flex items-center gap-3">
+                                <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${ins.iconBg}`}>{ins.icon}</div>
+                                <h5 className="font-semibold text-[13px] text-white leading-tight">{ins.title}</h5>
                             </div>
-                        );
-                    });
-                })()}
+                            <span className={`self-start text-[8px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full ${ins.tagBg} ${ins.tagColor}`}>{ins.tag}</span>
+                            <p className="text-[11px] text-white/50 leading-relaxed">{ins.text}</p>
+                        </div>
+                    ))}
+
+                    <button onClick={() => router.push('/dashboard/web-analytics')} className="mt-auto w-full py-2.5 rounded-xl border border-white/10 text-[9px] font-semibold tracking-widest uppercase text-white/50 hover:text-white hover:border-white/20 transition-colors duration-150 flex items-center justify-center gap-2">
+                        <BarChart3 size={12} /> Ver Análisis Detallado
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {/* ── ACTIVIDAD RECIENTE ── */}
+        <PremiumCard dark={theme === 'dark'} className="overflow-hidden">
+            <div className={`px-7 py-5 flex items-center justify-between border-b ${theme === 'dark' ? 'border-white/5' : 'border-gray-100'}`}>
+                <h4 className={`font-bold text-sm uppercase tracking-[0.12em] ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Actividad Reciente</h4>
+                <button onClick={() => router.push('/dashboard/orders')} className={`text-[9px] font-semibold tracking-widest uppercase flex items-center gap-1.5 transition-colors duration-150 ${theme === 'dark' ? 'text-white/30 hover:text-white/60' : 'text-gray-400 hover:text-[#004d4d]'}`}>
+                    Ver todo <ChevronRight size={12} />
+                </button>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full">
+                    <thead>
+                        <tr className={`border-b ${theme === 'dark' ? 'border-white/5' : 'border-gray-50'}`}>
+                            {['ID Pedido','Cliente','Fecha','Total','Estado','Acción'].map(h => (
+                                <th key={h} className={`px-6 py-3 text-left text-[9px] font-semibold tracking-widest uppercase ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>{h}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {recentOrders.length === 0 ? (
+                            <tr><td colSpan={6} className="px-6 py-16 text-center">
+                                <div className="flex flex-col items-center gap-3">
+                                    <ShoppingBag size={28} className="text-gray-200" />
+                                    <p className={`text-[11px] font-medium ${theme === 'dark' ? 'text-white/30' : 'text-gray-400'}`}>No se han registrado pedidos todavía.</p>
+                                </div>
+                            </td></tr>
+                        ) : recentOrders.map((o, i) => (
+                            <tr key={i} className={`border-b transition-colors duration-100 ${theme === 'dark' ? 'border-white/5 hover:bg-white/5' : 'border-gray-50 hover:bg-gray-50/70'}`}>
+                                <td className={`px-6 py-4 text-[11px] font-mono font-semibold ${theme === 'dark' ? 'text-white/60' : 'text-gray-600'}`}>#{String(o.id || i+1).slice(-6).toUpperCase()}</td>
+                                <td className={`px-6 py-4 text-[12px] font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>{o.customer_name || o.customer || '—'}</td>
+                                <td className={`px-6 py-4 text-[11px] ${theme === 'dark' ? 'text-white/40' : 'text-gray-400'}`}>{new Date(o.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                <td className={`px-6 py-4 text-[12px] font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(o.total_price || 0)}</td>
+                                <td className="px-6 py-4">{statusBadge(o.status || 'pending')}</td>
+                                <td className="px-6 py-4">
+                                    <button onClick={() => router.push('/dashboard/orders')} className={`text-[9px] font-semibold tracking-widest uppercase transition-colors duration-150 ${theme === 'dark' ? 'text-white/30 hover:text-[#00f2ff]' : 'text-gray-400 hover:text-[#004d4d]'}`}>Ver →</button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
         </PremiumCard>
 
         <MetricDetailModal isOpen={!!selectedMetric} onClose={() => setSelectedMetric(null)} metric={selectedMetric} />
-        
-        <AnimatePresence>
-            {isCustomReportModalOpen && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCustomReportModalOpen(false)} className="fixed inset-0 bg-[#001A1A]/95 backdrop-blur-xl" />
-                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative bg-white w-full max-w-md rounded-[4rem] shadow-3xl p-12 z-10"><div className="text-center mb-10"><Calendar size={40} className="mx-auto text-[#004d4d] mb-4"/><h3 className="text-2xl font-black italic tracking-tighter text-[#001A1A]">Auditar mi negocio</h3><p className="text-xs text-gray-400 font-medium italic">Selecciona el rango de fechas para tu reporte.</p></div><div className="space-y-6"><div><label className="text-[9px] font-black text-gray-400 uppercase ml-2">Desde</label><input type="date" value={customRange.start} onChange={e => setCustomRange({...customRange, start: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl outline-none font-bold text-sm" /></div><div><label className="text-[9px] font-black text-gray-400 uppercase ml-2">Hasta</label><input type="date" value={customRange.end} onChange={e => setCustomRange({...customRange, end: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl outline-none font-bold text-sm" /></div></div><button onClick={handleGenerateCustomReport} className="w-full py-6 mt-10 bg-gray-900 text-white rounded-[2rem] font-black text-[10px] uppercase tracking-widest shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3"><Download size={18}/> Descargar Reporte</button></motion.div>
-                </div>
-            )}
-        </AnimatePresence>
+
     </div>
   );
 }
@@ -439,24 +773,47 @@ interface MetricKPIProps {
 }
 
 function MetricKPI({ label, value, icon, color, bg, trend, isCurrency = false, isPercentage = false, dark = false }: MetricKPIProps) {
+    // Extraer color base para el acento (ej: "text-amber-500" → "amber-500")
+    const accentColor = color.replace('text-', '');
     return (
-        <PremiumCard dark={dark} className="p-8 group h-full border-none shadow-none">
-            <div className="flex justify-between items-start mb-6">
-                <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg group-hover:scale-110 border ${dark ? 'bg-white/5 border-white/10' : 'border-white/50 ' + bg} ${color}`}>
-                    {icon}
+        <div className={`group relative h-full rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-0.5 ${
+            dark
+            ? 'bg-[#0a1f1f] border border-white/[0.06] shadow-[0_2px_24px_-4px_rgba(0,0,0,0.5)]'
+            : 'bg-white border border-gray-100/80 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08)]'
+        }`}>
+            {/* Glow sutil al hover */}
+            <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${dark ? 'bg-gradient-to-br from-[#00f2ff]/5 to-transparent' : 'bg-gradient-to-br from-gray-50/80 to-transparent'}`} />
+
+            {/* Línea de acento top */}
+            <div className={`absolute top-0 left-6 right-6 h-px ${dark ? 'bg-gradient-to-r from-transparent via-white/10 to-transparent' : 'bg-gradient-to-r from-transparent via-gray-200 to-transparent'}`} />
+
+            <div className="relative z-10 p-5">
+                {/* Badge trend — top right */}
+                <div className="flex items-center justify-between mb-5">
+                    <div className={`h-9 w-9 rounded-2xl flex items-center justify-center shrink-0 [&_svg]:w-[16px] [&_svg]:h-[16px] ${dark ? `bg-white/[0.07]` : bg} ${color}`}>
+                        {icon}
+                    </div>
+                    <span className={`text-[7px] font-bold tracking-[0.2em] uppercase px-2.5 py-1 rounded-full ${
+                        dark ? 'bg-white/5 text-white/25 border border-white/5' : 'bg-gray-50 text-gray-400 border border-gray-100'
+                    }`}>{trend}</span>
                 </div>
-                <div className={`px-3 py-1 rounded-full text-[9px] font-black tracking-wider ${
-                    dark ? 'bg-white/5 text-white/40' : 'bg-gray-100 text-gray-400'
-                }`}>
-                    {trend}
-                </div>
-            </div>
-            <div>
-                <p className={`text-[10px] font-black tracking-tight mb-1.5 ${dark ? 'text-white/40' : 'text-gray-400'}`}>{label}</p>
-                <h3 className={`text-3xl font-black tracking-tighter italic ${dark ? 'text-white' : 'text-gray-900'}`}>
+
+                {/* Label */}
+                <p className={`text-[8px] font-semibold tracking-[0.22em] uppercase mb-2 ${dark ? 'text-white/30' : 'text-gray-400'}`}>{label}</p>
+
+                {/* Valor */}
+                <h3 className={`text-2xl font-bold tracking-tight leading-none ${dark ? 'text-white' : 'text-gray-900'}`}>
                     <AnimatedNumber value={value} type={isCurrency ? 'currency' : isPercentage ? 'percentage' : 'simple'} />
                 </h3>
+
+                {/* Barra de progreso decorativa */}
+                <div className={`mt-4 h-[3px] w-full rounded-full overflow-hidden ${dark ? 'bg-white/5' : 'bg-gray-100'}`}>
+                    <div
+                        className={`h-full rounded-full transition-all duration-700 ${dark ? 'bg-gradient-to-r from-[#00f2ff]/60 to-[#00f2ff]/10' : `bg-gradient-to-r ${bg.replace('bg-', 'from-').replace('/10', '/70')} to-transparent`}`}
+                        style={{ width: value > 0 ? '60%' : '0%' }}
+                    />
+                </div>
             </div>
-        </PremiumCard>
+        </div>
     );
 }

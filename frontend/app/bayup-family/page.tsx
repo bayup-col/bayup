@@ -23,7 +23,13 @@ export default function BayupFamilyLogin() {
 
         try {
             // NÚCLEO OPERATIVO BAYUP: Sincronización con el motor Platinum Real
-            const apiBase = "https://exciting-optimism-production-4624.up.railway.app";
+            const isLocal = typeof window !== 'undefined' && 
+                (window.location.hostname === 'localhost' || 
+                 window.location.hostname === '127.0.0.1' || 
+                 window.location.hostname.includes('192.168.'));
+            const apiBase = isLocal 
+                ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000') 
+                : "https://exciting-optimism-production-4624.up.railway.app";
             
             const response = await fetch(`${apiBase}/auth/login`, {
                 method: 'POST',
@@ -36,8 +42,10 @@ export default function BayupFamilyLogin() {
                 const user = data.user;
 
                 // REGLA DE ORO: Acceso restringido a la Familia Bayup
-                const isOwner = user.email === 'bayupcol@gmail.com';
-                const isGlobal = user.role?.toUpperCase() === 'SUPER_ADMIN' || user.is_global_staff;
+                const ALLOWED_EMAILS = ['bayupcol@gmail.com', 'admin@bayup.com'];
+                const isOwner  = ALLOWED_EMAILS.includes(user.email?.toLowerCase());
+                const roleUp   = user.role?.toUpperCase();
+                const isGlobal = roleUp === 'SUPER_ADMIN' || roleUp === 'ADMIN' || user.is_global_staff;
 
                 if (!isOwner && !isGlobal) {
                     showToast("Acceso Denegado: Protocolo de seguridad nivel 5 activo.", "error");

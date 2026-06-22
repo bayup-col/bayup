@@ -1,109 +1,140 @@
 "use client";
 
 import { useState } from 'react';
-import { 
-    Settings, 
-    Globe, 
-    CreditCard, 
-    Zap, 
-    Coins, 
-    Palette,
-    ShieldCheck,
-    Bell,
-    Save
-} from 'lucide-react';
+import { useToast } from '@/context/toast-context';
+import { Settings, Shield, Globe, CreditCard, Bell, Save, Percent, Mail, Zap } from 'lucide-react';
 
-export default function GlobalSettings() {
-    return (
-        <div className="max-w-7xl mx-auto space-y-8 pb-20 animate-in fade-in duration-700">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tight italic">Configuración Global</h1>
-                    <p className="text-gray-500 mt-1 font-medium">Variables maestras del ecosistema Bayup.</p>
-                </div>
-                <button className="flex items-center gap-2 px-8 py-4 bg-[#004d4d] text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-[#004d4d]/20 hover:bg-[#003333] transition-all active:scale-95">
-                    <Save size={14} /> Guardar Cambios Globales
-                </button>
-            </div>
+export default function SettingsPage() {
+  const { showToast } = useToast();
+  const [commission,    setCommission]    = useState('3');
+  const [platformName,  setPlatformName]  = useState('Bayup');
+  const [supportEmail,  setSupportEmail]  = useState('soporte@bayup.com');
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [emailNotifs,   setEmailNotifs]   = useState(true);
+  const [autoSuspend,   setAutoSuspend]   = useState(false);
+  const [trialDays,     setTrialDays]     = useState('14');
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left: General Vars */}
-                <div className="lg:col-span-2 space-y-8">
-                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                        <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center"><Coins size={24} /></div>
-                            <h2 className="text-xl font-black text-gray-900 tracking-tight">Estructura de Comisiones</h2>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Comisión Base (%)</label>
-                                <input type="number" defaultValue="5.0" className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-[#004d4d]/20 rounded-2xl outline-none text-sm font-bold transition-all" />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Comisión Afiliados (%)</label>
-                                <input type="number" defaultValue="0.5" className="w-full p-4 bg-gray-50 border border-transparent focus:bg-white focus:border-[#004d4d]/20 rounded-2xl outline-none text-sm font-bold transition-all" />
-                            </div>
-                        </div>
-                    </div>
+  const save = () => showToast('Configuración guardada ✓', 'success');
 
-                    <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
-                        <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center"><Globe size={24} /></div>
-                            <h2 className="text-xl font-black text-gray-900 tracking-tight">Regiones Soportadas</h2>
-                        </div>
-                        <div className="flex flex-wrap gap-4">
-                            {['Colombia', 'México', 'España', 'Estados Unidos', 'Ecuador', 'Perú'].map((country) => (
-                                <div key={country} className="flex items-center gap-3 px-6 py-4 bg-gray-50 rounded-2xl border border-gray-100 group cursor-pointer hover:border-[#004d4d] transition-all">
-                                    <span className="text-sm font-bold text-gray-700">{country}</span>
-                                    <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
-                                </div>
-                            ))}
-                            <button className="px-6 py-4 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all">
-                                + Agregar Región
-                            </button>
-                        </div>
-                    </div>
-                </div>
+  const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
+    <button onClick={() => onChange(!value)}
+      className={`relative h-5 w-9 rounded-full transition-all duration-200 ${value ? 'bg-[#00f2ff]/60' : 'bg-white/10'}`}>
+      <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200 ${value ? 'left-4' : 'left-0.5'}`}/>
+    </button>
+  );
 
-                {/* Right: Security & Branding */}
-                <div className="space-y-8">
-                    <div className="bg-[#002222] p-8 rounded-[3rem] text-white space-y-6">
-                        <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 rounded-xl bg-[#004d4d] flex items-center justify-center"><ShieldCheck size={20} /></div>
-                            <h2 className="text-lg font-black italic tracking-tighter">Seguridad Global</h2>
-                        </div>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
-                                <span className="text-[10px] font-black uppercase tracking-widest">Mantenimiento</span>
-                                <div className="h-6 w-11 bg-gray-700 rounded-full relative flex items-center px-1">
-                                    <div className="h-4 w-4 bg-white rounded-full shadow-sm"></div>
-                                </div>
-                            </div>
-                            <div className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/10">
-                                <span className="text-[10px] font-black uppercase tracking-widest">Nuevos Registros</span>
-                                <div className="h-6 w-11 bg-emerald-500 rounded-full relative flex items-center justify-end px-1">
-                                    <div className="h-4 w-4 bg-white rounded-full shadow-sm"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+  const Field = ({ label, value, onChange, type='text', suffix }: any) => (
+    <div className="flex items-center justify-between py-3.5 border-b border-white/[0.04]">
+      <p className="text-[12px] text-white/50">{label}</p>
+      <div className="flex items-center gap-2">
+        {suffix && <span className="text-[10px] text-white/20">{suffix}</span>}
+        <input value={value} onChange={e => onChange(e.target.value)} type={type}
+          className="w-36 h-8 px-3 bg-white/5 border border-white/8 rounded-lg text-[12px] text-white/60 outline-none text-right focus:border-white/15 transition-all"/>
+      </div>
+    </div>
+  );
 
-                    <div className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm space-y-6">
-                        <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center"><Palette size={20} /></div>
-                            <h2 className="text-lg font-bold text-gray-800">Branding</h2>
-                        </div>
-                        <div className="space-y-4">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Logo Principal (Claro/Oscuro)</p>
-                            <div className="flex gap-4">
-                                <div className="h-20 w-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center text-[10px] font-black text-gray-300">LOGO</div>
-                                <div className="h-20 w-20 bg-gray-900 border-2 border-dashed border-white/10 rounded-2xl flex items-center justify-center text-[10px] font-black text-white/20">LOGO</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  const sections = [
+    {
+      icon: <Globe size={15}/>, label: 'Plataforma', color: '#00f2ff',
+      content: (
+        <div>
+          <Field label="Nombre de la plataforma" value={platformName} onChange={setPlatformName}/>
+          <Field label="Email de soporte" value={supportEmail} onChange={setSupportEmail}/>
+          <Field label="Días de prueba gratuita" value={trialDays} onChange={setTrialDays} type="number" suffix="días"/>
         </div>
-    );
+      )
+    },
+    {
+      icon: <CreditCard size={15}/>, label: 'Facturación', color: '#10b981',
+      content: (
+        <div>
+          <Field label="Comisión Bayup" value={commission} onChange={setCommission} type="number" suffix="%"/>
+          <div className="flex items-center justify-between py-3.5 border-b border-white/[0.04]">
+            <p className="text-[12px] text-white/50">Suspensión automática por impago</p>
+            <Toggle value={autoSuspend} onChange={setAutoSuspend}/>
+          </div>
+        </div>
+      )
+    },
+    {
+      icon: <Bell size={15}/>, label: 'Notificaciones', color: '#f59e0b',
+      content: (
+        <div>
+          <div className="flex items-center justify-between py-3.5 border-b border-white/[0.04]">
+            <p className="text-[12px] text-white/50">Notificaciones por email</p>
+            <Toggle value={emailNotifs} onChange={setEmailNotifs}/>
+          </div>
+        </div>
+      )
+    },
+    {
+      icon: <Shield size={15}/>, label: 'Sistema', color: '#ef4444',
+      content: (
+        <div>
+          <div className="flex items-center justify-between py-3.5">
+            <div>
+              <p className="text-[12px] text-white/50">Modo mantenimiento</p>
+              <p className="text-[9px] text-white/20 mt-0.5">Bloquea el acceso a todos los tenants</p>
+            </div>
+            <Toggle value={maintenanceMode} onChange={setMaintenanceMode}/>
+          </div>
+          {maintenanceMode && (
+            <div className="mt-3 p-3 rounded-xl bg-red-500/8 border border-red-500/15">
+              <p className="text-[10px] text-red-400/70 font-bold">⚠ Modo mantenimiento activo — los usuarios no pueden acceder</p>
+            </div>
+          )}
+        </div>
+      )
+    },
+  ];
+
+  return (
+    <div className="space-y-6 pb-12">
+
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.25em] mb-2">Sistema global · Bayup</p>
+          <h1 className="text-4xl font-black text-white tracking-tight">Configuración</h1>
+        </div>
+        <button onClick={save}
+          className="h-9 px-5 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 text-white/70 hover:text-white font-bold text-[11px] flex items-center gap-2 transition-all">
+          <Save size={13}/> Guardar cambios
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {sections.map(s => (
+          <div key={s.label} className="rounded-2xl border border-white/6 bg-white/[0.02] overflow-hidden">
+            <div className="px-5 py-4 border-b border-white/[0.04] flex items-center gap-3">
+              <div className="h-7 w-7 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor:`${s.color}12`, color:s.color }}>
+                {s.icon}
+              </div>
+              <p className="text-[11px] font-black text-white/60 uppercase tracking-wide">{s.label}</p>
+            </div>
+            <div className="px-5 py-1">{s.content}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Info técnica */}
+      <div className="rounded-2xl border border-white/6 bg-white/[0.02] p-5">
+        <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-4">Información del sistema</p>
+        <div className="grid grid-cols-4 gap-4">
+          {[
+            { label:'Versión API',   value:'v4.2.1',     color:'#00f2ff' },
+            { label:'Entorno',       value:'Producción', color:'#10b981' },
+            { label:'Base de datos', value:'PostgreSQL',  color:'#7c3aed' },
+            { label:'Uptime',        value:'99.97%',     color:'#f59e0b' },
+          ].map(i => (
+            <div key={i.label} className="rounded-xl border border-white/5 bg-white/[0.015] p-3">
+              <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mb-1.5">{i.label}</p>
+              <p className="text-[13px] font-black" style={{ color:i.color }}>{i.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -1,350 +1,627 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { 
-  Plus, Search, Filter, Download, Package, AlertCircle, ShoppingBag, Trophy, Layers, 
-  Edit3, Trash2, MoreVertical, ChevronDown, Info, ArrowUpRight, Eye, Zap, BarChart3, 
-  X, ImageIcon, TrendingUp, Globe, Store, MessageSquare, Smartphone, CheckCheck, 
-  ChevronRight, Loader2, FilterX, Target, Sparkles, Bot, MousePointer2, Rocket, 
-  LayoutGrid, Activity, DollarSign, Clock, ShieldCheck, FileText, Printer, User, 
-  CheckCircle2, Truck
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  Search, Filter, Download, Package, AlertCircle, ShoppingBag, Layers,
+  X, TrendingUp, Globe, MessageSquare, CheckCircle2, Truck, Clock,
+  FilterX, Target, Zap, User, Smartphone, Activity, FileText,
+  ChevronRight, Loader2, MapPin, CreditCard, Check, ArrowRight,
+  RefreshCw, Eye, MoreHorizontal, Inbox, BadgeCheck, XCircle,
 } from 'lucide-react';
-import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
 import { apiRequest } from '@/lib/api';
-import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
 import { exportOrdersToExcel } from '@/lib/orders-export';
 
-const AnimatedNumber = memo(({ value, type = 'currency' }: { value: number, type?: 'currency' | 'simple' }) => {
-    const spring = useSpring(0, { mass: 0.8, stiffness: 75, damping: 15 });
-    const display = useTransform(spring, (current: number) => {
-        if (type === 'simple') return Math.round(current).toLocaleString();
-        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(current);
-    });
-    useEffect(() => { spring.set(value); }, [value, spring]);
-    return <motion.span>{display}</motion.span>; 
-});
-AnimatedNumber.displayName = 'AnimatedNumber';
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+const fmtCOP = (n: number) =>
+  `$${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(n)}`;
 
-const PremiumCard = ({ children, className = "", dark = false }: { children: React.ReactNode, className?: string, dark?: boolean }) => {
-    return (
-        <motion.div
-            animate={{ scale: 1 }}
-            className={`rounded-[3rem] border transition-all duration-500 relative overflow-hidden isolate ${dark ? 'bg-[#001A1A] border-white/5 shadow-2xl' : 'bg-white/40 backdrop-blur-xl border-white/80 shadow-xl'} ${className}`}
-        >
-            <div className="h-full relative z-[2]">{children}</div>
-        </motion.div>
-    );
+// ── STATUS CONFIG ─────────────────────────────────────────────────────────────
+type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
+
+const STATUS: Record<OrderStatus, {
+  label: string; color: string; bg: string; border: string;
+  dot: string; icon: React.ReactNode; step: number;
+}> = {
+  pending:    { label: 'Pendiente',   color: 'text-amber-600',   bg: 'bg-amber-50',   border: 'border-amber-200', dot: 'bg-amber-400',   icon: <Clock size={11}/>,       step: 0 },
+  processing: { label: 'En proceso',  color: 'text-blue-600',    bg: 'bg-blue-50',    border: 'border-blue-200',  dot: 'bg-blue-400',    icon: <Zap size={11}/>,         step: 1 },
+  completed:  { label: 'Completado',  color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200',dot:'bg-emerald-400', icon: <CheckCircle2 size={11}/>, step: 2 },
+  cancelled:  { label: 'Cancelado',   color: 'text-rose-600',    bg: 'bg-rose-50',    border: 'border-rose-200',  dot: 'bg-rose-400',    icon: <XCircle size={11}/>,     step: -1 },
 };
 
-const AuroraMetricCard = ({ children, onClick }: { children: React.ReactNode, onClick: () => void }) => {
-    return (
-        <div className="relative group cursor-pointer h-full perspective-1000" onClick={onClick}>
-            <div className="absolute inset-0 -m-[2px] rounded-[3rem] overflow-hidden pointer-events-none z-0">
-                <motion.div 
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                    style={{ willChange: 'transform' }}
-                    className="absolute inset-[-150%] bg-[conic-gradient(from_0deg,transparent_0deg,#00F2FF_20deg,#10B981_40deg,#9333EA_60deg,transparent_80deg,transparent_360deg)] opacity-40 group-hover:opacity-100 transition-opacity duration-700 blur-[8px] transform-gpu"
-                />
-            </div>
-            <div className="relative z-10 h-full transform-gpu">
-                {children}
-            </div>
+const TABS = [
+  { key: 'all',        label: 'Todos',       icon: <Inbox size={11}/> },
+  { key: 'pending',    label: 'Pendientes',  icon: <Clock size={11}/> },
+  { key: 'processing', label: 'En proceso',  icon: <Zap size={11}/> },
+  { key: 'completed',  label: 'Completados', icon: <CheckCircle2 size={11}/> },
+  { key: 'cancelled',  label: 'Cancelados',  icon: <XCircle size={11}/> },
+];
+
+// ── KPI CARD ──────────────────────────────────────────────────────────────────
+function KpiCard({ icon, label, value, sub, accent, progress }: {
+  icon: React.ReactNode; label: string; value: string;
+  sub?: string; accent: string; progress?: number;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3 hover:-translate-y-0.5 transition-transform">
+      <div className="flex items-center justify-between">
+        <div className="h-9 w-9 rounded-xl flex items-center justify-center [&_svg]:w-4 [&_svg]:h-4"
+          style={{ backgroundColor: `${accent}15`, color: accent }}>
+          {icon}
         </div>
-    );
-};
+        {sub && (
+          <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+            style={{ backgroundColor: `${accent}12`, color: accent }}>
+            {sub}
+          </span>
+        )}
+      </div>
+      <div>
+        <p className="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-0.5">{label}</p>
+        <p className="text-2xl font-black text-gray-900 leading-none">{value}</p>
+      </div>
+      {progress !== undefined && (
+        <div className="h-1 w-full rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${progress}%`, backgroundColor: accent }}/>
+        </div>
+      )}
+    </div>
+  );
+}
 
+// ── STATUS BADGE ──────────────────────────────────────────────────────────────
+function StatusBadge({ status }: { status: string }) {
+  const s = STATUS[status as OrderStatus] ?? STATUS.pending;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black border ${s.bg} ${s.color} ${s.border}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`}/>
+      {s.label}
+    </span>
+  );
+}
+
+// ── SOURCE BADGE ──────────────────────────────────────────────────────────────
+function SourceBadge({ source }: { source: string }) {
+  const src = (source || '').toLowerCase();
+  const cfg =
+    src === 'pos'       ? { label: 'Tienda física', color: '#7c3aed', bg: '#7c3aed15' } :
+    src === 'whatsapp'  ? { label: 'WhatsApp',       color: '#16a34a', bg: '#16a34a15' } :
+    src === 'instagram' ? { label: 'Instagram',      color: '#db2777', bg: '#db277715' } :
+                          { label: 'Web',             color: '#0891b2', bg: '#0891b215' };
+  return (
+    <span className="text-[8px] font-black px-2 py-0.5 rounded-full"
+      style={{ backgroundColor: cfg.bg, color: cfg.color }}>
+      {cfg.label}
+    </span>
+  );
+}
+
+// ── MAIN ──────────────────────────────────────────────────────────────────────
 export default function OrdersPage() {
-    const { token } = useAuth();
-    const { showToast } = useToast();
-    
-    const [orders, setOrders] = useState<any[]>([]);
-    const [allRawOrders, setAllRawOrders] = useState<any[]>([]); 
-    const [products, setProducts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [activeTab, setActiveTab] = useState('all');
-    const [selectedMetric, setSelectedMetric] = useState<any>(null);
-    const [selectedOrder, setSelectedOrder] = useState<any>(null);
-    
-    // UI States
-    const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-    const [dateRange, setDateRange] = useState({ start: '', end: '' });
-    const [extraFilters, setExtraFilters] = useState({ source: 'Todos', status: 'Todos' });
-    const [isFilterHovered, setIsFilterHovered] = useState(false);
-    const [isExportHovered, setIsExportHovered] = useState(false);
+  const { token } = useAuth();
+  const { showToast } = useToast();
 
-    const fetchOrders = useCallback(async () => {
-        if (!token) return;
-        setLoading(true);
-        try {
-            const [ordersData, productsData] = await Promise.all([
-                apiRequest<any[]>('/orders', { token }),
-                apiRequest<any[]>('/products', { token })
-            ]);
-            if (ordersData) {
-                setAllRawOrders(ordersData);
-                setOrders(ordersData);
-            }
-            if (productsData) setProducts(productsData);
-        } catch (e) {
-            showToast("Error al sincronizar datos", "error");
-        } finally {
-            setLoading(false);
-        }
-    }, [token, showToast]);
+  const [orders,       setOrders]       = useState<any[]>([]);
+  const [products,     setProducts]     = useState<any[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [searchTerm,   setSearchTerm]   = useState('');
+  const [activeTab,    setActiveTab]    = useState('all');
+  const [drawerOrder,  setDrawerOrder]  = useState<any>(null);
+  const [filterOpen,   setFilterOpen]   = useState(false);
+  const [dateRange,    setDateRange]    = useState({ start: '', end: '' });
+  const [srcFilter,    setSrcFilter]    = useState('Todos');
+  const [updatingId,   setUpdatingId]   = useState<string | null>(null);
 
-    useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  // ── Fetch ──
+  const fetchAll = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const [ord, prod] = await Promise.all([
+        apiRequest<any[]>('/orders',   { token }),
+        apiRequest<any[]>('/products', { token }),
+      ]);
+      if (ord)  setOrders(ord);
+      if (prod) setProducts(prod);
+    } catch { showToast('Error al cargar datos', 'error'); }
+    finally   { setLoading(false); }
+  }, [token, showToast]);
 
-    const kpis = useMemo(() => {
-        const totalRevenue = orders.reduce((acc, o) => acc + (o.total_price || 0), 0);
-        const avgTicket = orders.length > 0 ? (totalRevenue / orders.length) : 0;
-        const lowStockCount = products.filter(p => (p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0) <= 5).length;
-        const warningStockCount = products.filter(p => {
-            const s = p.variants?.reduce((a:any,v:any)=>a+(v.stock||0),0) || 0;
-            return s > 5 && s <= 15;
-        }).length;
-        const healthyStockCount = products.length - (lowStockCount + warningStockCount);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
-        const lastWeb = allRawOrders.filter(o => o.source?.toLowerCase() !== 'pos')[0];
-        const lastPOS = allRawOrders.filter(o => o.source?.toLowerCase() === 'pos')[0];
+  // ── KPIs ──
+  const kpis = useMemo(() => {
+    const total    = orders.length;
+    const pending  = orders.filter(o => o.status === 'pending').length;
+    const avgTicket = total > 0 ? orders.reduce((a, o) => a + (o.total_price || 0), 0) / total : 0;
+    const lowStock = products.filter(p => (p.variants?.reduce((a: any, v: any) => a + (v.stock || 0), 0) || 0) <= 5).length;
+    return [
+      { icon: <ShoppingBag/>, label: 'Total pedidos',   value: String(total),       sub: 'Hoy',       accent: '#0891b2', progress: Math.min((total / 20) * 100, 100) },
+      { icon: <Clock/>,        label: 'Por facturar',    value: String(pending),     sub: 'Urgente',   accent: '#d97706', progress: total > 0 ? (pending / total) * 100 : 0 },
+      { icon: <AlertCircle/>,  label: 'Stock crítico',   value: String(lowStock),    sub: 'Atención',  accent: '#e11d48', progress: Math.min((lowStock / 10) * 100, 100) },
+      { icon: <Target/>,       label: 'Ticket promedio', value: fmtCOP(avgTicket),   sub: 'Promedio',  accent: '#004d4d', progress: 68 },
+    ];
+  }, [orders, products]);
 
-        return [
-            { 
-                id: 'total', label: 'Total pedidos', value: orders.length, icon: <ShoppingBag size={24}/>, color: 'text-cyan-600', bg: 'bg-cyan-50', trend: 'Digital', isSimple: true,
-                details: [
-                    { l: "POR FACTURAR", v: `${orders.filter(o => o.status === 'pending').length}`, icon: <Clock size={10}/> },
-                    { l: "EN PREPARACIÓN", v: `${orders.filter(o => o.status === 'processing').length}`, icon: <Zap size={10}/> },
-                    { l: "FINALIZADOS", v: `${orders.filter(o => o.status === 'completed').length}`, icon: <CheckCircle2 size={10}/> }
-                ],
-                advice: "Tienes pedidos web pendientes. Recuerda que facturar rápido mejora tu posicionamiento."
-            },
-            { 
-                id: 'active', label: 'Ítems activos', value: products.length, icon: <Layers size={24}/>, color: 'text-purple-600', bg: 'bg-purple-50', trend: 'Catálogo', isSimple: true,
-                details: [
-                    { l: "DISPONIBLES", v: `${healthyStockCount}`, icon: <Package size={10}/> },
-                    { l: "AGOTADOS", v: `${lowStockCount}`, icon: <Zap size={10}/> },
-                    { l: "TOTAL", v: `${products.length}`, icon: <Layers size={10}/> }
-                ],
-                advice: "Mantener un catálogo variado atrae más visitas web. Repón los agotados pronto."
-            },
-            { 
-                id: 'stock', label: 'Stock crítico', value: lowStockCount, icon: <AlertCircle size={24}/>, color: 'text-rose-600', bg: 'bg-rose-50', trend: 'Atención', isSimple: true,
-                details: [
-                    { l: "CRÍTICO", v: `${lowStockCount}`, icon: <AlertCircle size={10}/> },
-                    { l: "PREVENTIVO", v: `${warningStockCount}`, icon: <Zap size={10}/> },
-                    { l: "SANO", v: `${healthyStockCount}`, icon: <CheckCircle2 size={10}/> }
-                ],
-                advice: lowStockCount > 0 ? "¡Alerta! Tienes productos en rojo. Repón stock ya." : "Inventario sano."
-            },
-            { 
-                id: 'average', label: 'Ticket promedio', value: avgTicket, icon: <Target size={24}/>, color: 'text-[#004d4d]', bg: 'bg-[#004d4d]/5', trend: 'Market ok', isCurrency: true,
-                details: [
-                    { l: "TICKET WEB", v: `$ ${(lastWeb?.total_price || 0).toLocaleString()}`, icon: <Globe size={10}/> },
-                    { l: "TICKET POS", v: `$ ${(lastPOS?.total_price || 0).toLocaleString()}`, icon: <Store size={10}/> },
-                    { l: "CONVERSIÓN", v: "4.8%", icon: <TrendingUp size={10}/> }
-                ],
-                advice: "Tu ticket promedio web es bueno. Ofrece combos para subirlo un 15% más."
-            }
-        ];
-    }, [orders, products, allRawOrders]);
+  // ── Counts por tab ──
+  const counts = useMemo(() => ({
+    all:        orders.length,
+    pending:    orders.filter(o => o.status === 'pending').length,
+    processing: orders.filter(o => o.status === 'processing').length,
+    completed:  orders.filter(o => o.status === 'completed').length,
+    cancelled:  orders.filter(o => o.status === 'cancelled').length,
+  }), [orders]);
 
-    const filteredOrders = useMemo(() => {
-        return allRawOrders.filter(o => {
-            const matchesSearch = o.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) || o.id.toLowerCase().includes(searchTerm.toLowerCase());
-            const invDate = new Date(o.created_at);
-            const matchesStart = !dateRange.start || invDate >= new Date(dateRange.start);
-            const matchesEnd = !dateRange.end || invDate <= new Date(dateRange.end);
-            const matchesSource = extraFilters.source === 'Todos' || o.source === extraFilters.source;
-            const matchesStatus = extraFilters.status === 'Todos' || o.status === extraFilters.status;
-            return matchesSearch && matchesStart && matchesEnd && matchesSource && matchesStatus;
-        });
-    }, [allRawOrders, searchTerm, dateRange, extraFilters]);
+  // ── Filtered ──
+  const filtered = useMemo(() => {
+    return orders.filter(o => {
+      const q = searchTerm.toLowerCase();
+      const matchSearch = !q || o.customer_name?.toLowerCase().includes(q) || o.id?.toLowerCase().includes(q);
+      const matchTab    = activeTab === 'all' || o.status === activeTab;
+      const matchSrc    = srcFilter === 'Todos' || (o.source || '').toLowerCase() === srcFilter.toLowerCase();
+      const d = new Date(o.created_at);
+      const matchStart  = !dateRange.start || d >= new Date(dateRange.start);
+      const matchEnd    = !dateRange.end   || d <= new Date(dateRange.end);
+      return matchSearch && matchTab && matchSrc && matchStart && matchEnd;
+    });
+  }, [orders, searchTerm, activeTab, srcFilter, dateRange]);
 
-    const handleExport = () => {
-        showToast("Generando Excel...", "info");
-        exportOrdersToExcel(filteredOrders, "Auditoria_Pedidos");
-    };
+  // ── Update status ──
+  const updateStatus = async (orderId: string, newStatus: string) => {
+    setUpdatingId(orderId);
+    try {
+      await apiRequest(`/orders/${orderId}`, {
+        method: 'PUT', token,
+        body: JSON.stringify({ status: newStatus }),
+      });
+      showToast(`Estado actualizado: ${STATUS[newStatus as OrderStatus]?.label ?? newStatus}`, 'success');
+      await fetchAll();
+      setDrawerOrder((prev: any) => prev ? { ...prev, status: newStatus } : null);
+    } catch { showToast('Error al actualizar', 'error'); }
+    finally   { setUpdatingId(null); }
+  };
 
-    const updateOrderStatus = async (orderId: string, newStatus: string) => {
-        try {
-            await apiRequest(`/orders/${orderId}`, {
-                method: 'PUT',
-                token,
-                body: JSON.stringify({ status: newStatus })
-            });
-            showToast(`Estado actualizado a ${newStatus.toUpperCase()}`, "success");
-            fetchOrders();
-            setSelectedOrder(prev => prev ? { ...prev, status: newStatus } : null);
-        } catch (e) {
-            showToast("Error al actualizar estado", "error");
-        }
-    };
+  const handleExport = () => {
+    showToast('Generando Excel…', 'info');
+    exportOrdersToExcel(filtered, 'Pedidos_Web');
+  };
 
-    return (
-        <div className="max-w-[1600px] mx-auto space-y-10 pb-20 animate-in fade-in duration-1000">
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-4">
-                <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="h-2 w-2 rounded-full bg-cyan shadow-[0_0_10px_#00f2ff] animate-pulse" />
-                        <span className="text-[10px] font-black tracking-[0.3em] text-[#004d4d]/60 italic">Monitor de órdenes</span>
-                    </div>
-                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-[1.4] text-[#001A1A] py-2 px-1 overflow-visible">
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00f2ff] to-[#004d4d] inline-block pb-4 pr-10">Pedidos Web</span>
-                    </h1>
-                    <p className="text-gray-400 font-medium text-lg italic max-w-2xl mt-4">¡Aquí encontrarás todos los pedidos que tienes en tu web! 📦</p>
-                </div>
-            </header>
+  return (
+    <div className="max-w-[1400px] mx-auto pb-20 space-y-6">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
-                {kpis.map((kpi, i) => (
-                    <div key={i}>
-                        <AuroraMetricCard onClick={() => setSelectedMetric(kpi)}>
-                            <PremiumCard className="p-8 group h-full border-none bg-white/80 backdrop-blur-2xl shadow-none">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg group-hover:scale-110 border border-white/50 ${kpi.bg} ${kpi.color}`}>
-                                        {kpi.icon}
-                                    </div>
-                                    <div className="px-3 py-1 bg-gray-100 rounded-full text-[9px] font-black tracking-wider text-gray-400">{kpi.trend}</div>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] mb-1.5">{kpi.label}</p>
-                                    <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">
-                                        <AnimatedNumber value={kpi.value} type={kpi.isSimple ? 'simple' : 'currency'} />
-                                    </h3>
-                                </div>
-                            </PremiumCard>
-                        </AuroraMetricCard>
-                    </div>
-                ))}
-            </div>
-
-            <div className="px-4 space-y-10">
-                <div className="flex flex-col md:flex-row items-center gap-4 w-full max-w-6xl mx-auto relative z-30">
-                    <div className="flex-1 flex items-center gap-4 bg-white/60 backdrop-blur-md p-2 rounded-3xl border border-white/80 shadow-sm focus-within:shadow-xl focus-within:border-[#004D4D]/20 w-full transition-all">
-                        <Search size={22} className="text-gray-300 ml-4" />
-                        <input placeholder="Buscar por id o nombre..." className="flex-1 bg-transparent outline-none text-sm font-bold text-gray-900 py-4" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <motion.button layout onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)} onMouseEnter={() => setIsFilterHovered(true)} onMouseLeave={() => setIsFilterHovered(false)} className={`h-16 flex items-center gap-2 px-6 rounded-3xl border transition-all ${isFilterPanelOpen ? 'bg-[#004d4d] text-white border-[#004d4d]' : 'bg-white border-white/80 text-slate-500 shadow-sm'}`}>
-                            {isFilterPanelOpen ? <FilterX size={20}/> : <Filter size={20}/>}
-                            <AnimatePresence>{isFilterHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest overflow-hidden whitespace-nowrap">Filtros avanzados</motion.span>}</AnimatePresence>
-                        </motion.button>
-                        <motion.button layout onMouseEnter={() => setIsExportHovered(true)} onMouseLeave={() => setIsExportHovered(false)} onClick={handleExport} className="h-16 flex items-center gap-2 px-6 rounded-3xl bg-[#004D4D] text-white shadow-2xl hover:bg-black transition-all group">
-                            <Download size={20}/>
-                            <AnimatePresence>{isExportHovered && <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[10px] font-black uppercase tracking-widest overflow-hidden whitespace-nowrap">Exportar Auditoría</motion.span>}</AnimatePresence>
-                        </motion.button>
-                    </div>
-                </div>
-
-                <AnimatePresence>
-                    {isFilterPanelOpen && (
-                        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="max-w-6xl mx-auto p-8 bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-xl space-y-8 relative z-20">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-3"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Periodo Desde</label><input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} className="w-full p-4 bg-white/50 border border-gray-100 rounded-2xl outline-none font-bold text-sm" /></div>
-                                <div className="space-y-3"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Periodo Hasta</label><input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} className="w-full p-4 bg-white/50 border border-gray-100 rounded-2xl outline-none font-bold text-sm" /></div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-gray-100/50">
-                                <div className="space-y-3"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Canal</label>
-                                    <div className="flex flex-wrap gap-2">{['Todos', 'web', 'WhatsApp', 'Instagram', 'pos'].map(opt => (<button key={opt} onClick={() => setExtraFilters({...extraFilters, source: opt})} className={`px-6 py-2 rounded-full text-[9px] font-black tracking-widest transition-all ${extraFilters.source === opt ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white border text-gray-400'}`}>{opt === 'pos' ? 'TIENDA FÍSICA' : opt.toUpperCase()}</button>))}</div>
-                                </div>
-                                <div className="space-y-3"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-2">Estado</label>
-                                    <div className="flex flex-wrap gap-2">{['Todos', 'pending', 'processing', 'completed', 'cancelled'].map(opt => (<button key={opt} onClick={() => setExtraFilters({...extraFilters, status: opt})} className={`px-6 py-2 rounded-full text-[9px] font-black tracking-widest transition-all ${extraFilters.status === opt ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white border text-gray-400'}`}>{opt === 'pending' ? 'PENDIENTE' : opt === 'processing' ? 'PROCESO' : opt === 'completed' ? 'ÉXITO' : opt === 'cancelled' ? 'CANCELADO' : 'TODOS'}</button>))}</div>
-                                </div>
-                            </div>
-                            <div className="flex justify-end pt-4"><button onClick={() => { setDateRange({start:'', end:''}); setExtraFilters({source:'Todos', status:'Todos'}); }} className="text-[9px] font-black text-rose-500 uppercase tracking-widest hover:underline">Limpiar filtros</button></div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] border border-white/80 shadow-xl overflow-hidden relative z-10">
-                    <table className="w-full text-center">
-                        <thead className="bg-gray-50/50">
-                            <tr>{['Id pedido', 'Cliente', 'Estado', 'Total', 'Acciones'].map((h, i) => (<th key={i} className="px-10 py-6 text-[10px] font-black text-[#004D4D] tracking-[0.2em] uppercase">{h}</th>))}</tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100/50">
-                            {loading ? (<tr><td colSpan={5} className="py-20 text-center"><div className="h-12 w-12 border-4 border-[#004d4d] border-t-cyan rounded-full animate-spin mx-auto" /></td></tr>) : filteredOrders.length === 0 ? (<tr><td colSpan={5} className="py-20 text-center text-gray-300 font-black text-[10px] uppercase">Sin movimientos registrados</td></tr>) : filteredOrders.map((o) => (
-                                <tr key={o.id} className="hover:bg-white/60 transition-all cursor-pointer group" onClick={() => setSelectedOrder(o)}>
-                                    <td className="px-10 py-8 font-black text-gray-900">#{o.id.slice(0, 8).toUpperCase()}</td>
-                                    <td className="px-10 py-8"><p className="text-sm font-black text-gray-900">{o.customer_name}</p><p className="text-[9px] font-bold text-gray-400 uppercase">{o.source || 'Tienda'}</p></td>
-                                    <td className="px-10 py-8"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${o.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : o.status === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>{o.status === 'pending' ? 'Pendiente' : o.status === 'processing' ? 'Proceso' : o.status === 'completed' ? 'Exitoso' : 'Cancelado'}</span></td>
-                                    <td className="px-10 py-8 font-black text-[#004D4D] text-base"><AnimatedNumber value={o.total_price} /></td>
-                                    <td className="px-10 py-8"><button className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:text-[#004D4D] hover:bg-white transition-all shadow-sm flex items-center justify-center m-auto"><Eye size={16}/></button></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <MetricDetailModal isOpen={!!selectedMetric} onClose={() => setSelectedMetric(null)} metric={selectedMetric} />
-
-            {/* MODAL DE DETALLE DE PEDIDO */}
-            <AnimatePresence>
-                {selectedOrder && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedOrder(null)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-2xl" />
-                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative bg-white w-full max-w-2xl max-h-[90vh] rounded-[4rem] shadow-3xl overflow-hidden border border-white/20 flex flex-col">
-                            <div className="p-12 border-b bg-white flex justify-between items-center shrink-0">
-                                <div>
-                                    <p className="text-[10px] font-black text-[#004D4D] uppercase tracking-widest mb-1">Detalle del Pedido</p>
-                                    <h2 className="text-3xl font-black italic tracking-tighter text-[#001A1A]">#{selectedOrder.id.slice(0, 8).toUpperCase()}</h2>
-                                </div>
-                                <button onClick={() => setSelectedOrder(null)} className="h-12 w-12 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center hover:bg-rose-50 hover:text-rose-500 transition-all"><X size={20}/></button>
-                            </div>
-                            
-                            <div className="flex-1 overflow-y-auto p-12 space-y-10 custom-scrollbar">
-                                <div className="grid grid-cols-2 gap-10">
-                                    <div className="space-y-4">
-                                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Información del Cliente</p>
-                                        <div className="space-y-3">
-                                            <div className="flex items-center gap-3"><div className="h-8 w-8 bg-[#004D4D]/5 rounded-xl flex items-center justify-center text-[#004D4D]"><User size={14}/></div><p className="text-sm font-black text-gray-900">{selectedOrder.customer_name}</p></div>
-                                            <div className="flex items-center gap-3"><div className="h-8 w-8 bg-[#004D4D]/5 rounded-xl flex items-center justify-center text-[#004D4D]"><Smartphone size={14}/></div><p className="text-sm font-bold text-gray-500">{selectedOrder.customer_phone || 'N/A'}</p></div>
-                                            <div className="flex items-center gap-3"><div className="h-8 w-8 bg-[#004D4D]/5 rounded-xl flex items-center justify-center text-[#004D4D]"><MapPin size={14}/></div><p className="text-sm font-bold text-gray-500">{selectedOrder.customer_city || 'N/A'}</p></div>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Estado y Pago</p>
-                                        <div className="space-y-3">
-                                            <div className="flex items-center gap-3"><div className="h-8 w-8 bg-[#004D4D]/5 rounded-xl flex items-center justify-center text-[#004D4D]"><Activity size={14}/></div><span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${selectedOrder.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>{selectedOrder.status}</span></div>
-                                            <div className="flex items-center gap-3"><div className="h-8 w-8 bg-[#004D4D]/5 rounded-xl flex items-center justify-center text-[#004D4D]"><CreditCard size={14}/></div><p className="text-sm font-bold text-gray-500 uppercase">{selectedOrder.payment_method || 'WhatsApp'}</p></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Productos Solicitados</p>
-                                    <div className="space-y-3">
-                                        {selectedOrder.items?.map((item: any, i: number) => (
-                                            <div key={i} className="flex items-center gap-4 p-4 bg-gray-50 rounded-[2rem] border border-gray-100">
-                                                <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center text-[#004D4D] shrink-0 shadow-sm"><Package size={20}/></div>
-                                                <div className="flex-1"><p className="text-xs font-black text-gray-900">{item.product_variant?.product?.name || 'Producto'}</p><p className="text-[9px] font-bold text-gray-400">SKU: {item.product_variant?.sku || 'N/A'}</p></div>
-                                                <div className="text-right"><p className="text-xs font-black text-[#004D4D]">x{item.quantity}</p><p className="text-[10px] font-bold text-gray-400">${(item.price_at_purchase * item.quantity).toLocaleString()}</p></div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="p-12 bg-gray-50 border-t space-y-8">
-                                <div className="flex justify-between items-center"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones de gestión</p><div className="flex gap-2">
-                                    {['pending', 'processing', 'completed', 'cancelled'].map(st => (
-                                        <button key={st} onClick={() => updateOrderStatus(selectedOrder.id, st)} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${selectedOrder.status === st ? 'bg-[#004D4D] text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100 hover:border-[#004D4D]/20'}`}>{st === 'pending' ? 'Pendiente' : st === 'processing' ? 'Proceso' : st === 'completed' ? 'Éxito' : 'Anular'}</button>
-                                    ))}
-                                </div></div>
-                                <div className="flex gap-4">
-                                    <button onClick={() => window.open(`https://wa.me/57${selectedOrder.customer_phone?.replace(/\D/g, '')}`, '_blank')} className="flex-1 h-14 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase shadow-xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"><MessageSquare size={16}/> WhatsApp</button>
-                                    <button onClick={() => setSelectedOrder(null)} className="flex-1 h-14 bg-white border border-gray-200 text-gray-400 rounded-2xl font-black text-[10px] uppercase hover:bg-gray-100 transition-all">Cerrar</button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-            <style jsx global>{`.custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.05); border-radius: 10px; }`}</style>
+      {/* ── HEADER ─────────────────────────────────────────────────────── */}
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[9px] font-black tracking-[0.22em] uppercase text-gray-400 mb-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#004d4d] inline-block"/>
+            Monitor de órdenes
+          </p>
+          <h1 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00b2bd] to-[#004d4d] leading-none">
+            PEDIDOS WEB
+          </h1>
+          <p className="text-gray-400 text-sm mt-1.5">Gestión de pedidos en tiempo real desde tu tienda online</p>
         </div>
-    );
+        <button onClick={fetchAll}
+          className="h-9 w-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:text-[#004d4d] hover:border-[#004d4d]/30 transition-all shadow-sm">
+          <RefreshCw size={14}/>
+        </button>
+      </div>
+
+      {/* ── KPIs ───────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpis.map((k, i) => <KpiCard key={i} {...k}/>)}
+      </div>
+
+      {/* ── PIPELINE VISUAL ────────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <div className="flex items-center gap-1">
+          {(['pending','processing','completed'] as OrderStatus[]).map((st, i) => {
+            const s   = STATUS[st];
+            const cnt = orders.filter(o => o.status === st).length;
+            const pct = orders.length > 0 ? (cnt / orders.length) * 100 : 0;
+            return (
+              <React.Fragment key={st}>
+                <button onClick={() => setActiveTab(st)}
+                  className={`flex-1 flex flex-col gap-2 p-3 rounded-xl transition-all ${activeTab === st ? 'bg-gray-50 ring-1 ring-gray-200' : 'hover:bg-gray-50/60'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`h-2 w-2 rounded-full ${s.dot}`}/>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-gray-500">{s.label}</p>
+                    </div>
+                    <p className="text-sm font-black text-gray-900">{cnt}</p>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                    <motion.div className="h-full rounded-full" style={{ backgroundColor: st === 'pending' ? '#f59e0b' : st === 'processing' ? '#3b82f6' : '#10b981' }}
+                      initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.7, delay: i * 0.1 }}/>
+                  </div>
+                </button>
+                {i < 2 && <ChevronRight size={14} className="text-gray-200 shrink-0"/>}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── TABLA PRINCIPAL ────────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+
+        {/* Toolbar */}
+        <div className="flex items-center gap-3 p-4 border-b border-gray-100">
+          {/* Tabs */}
+          <div className="flex items-center gap-1 p-1 bg-gray-50 rounded-xl border border-gray-100 overflow-x-auto shrink-0">
+            {TABS.map(tab => {
+              const cnt = counts[tab.key as keyof typeof counts];
+              const isActive = activeTab === tab.key;
+              return (
+                <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                  className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wide whitespace-nowrap transition-all z-0 ${
+                    isActive ? 'text-white' : 'text-gray-400 hover:text-gray-600'
+                  }`}>
+                  {isActive && (
+                    <motion.div layoutId="orderTab"
+                      className="absolute inset-0 rounded-lg bg-[#004d4d]"
+                      style={{ zIndex: -1 }}
+                      transition={{ type: 'spring', bounce: 0.2, duration: 0.35 }}/>
+                  )}
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    {tab.icon}{tab.label}
+                    <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-black ${isActive ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                      {cnt}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search */}
+          <div className="flex-1 flex items-center gap-2 h-9 bg-gray-50 rounded-xl border border-gray-100 px-3">
+            <Search size={13} className="text-gray-300 shrink-0"/>
+            <input
+              value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Buscar por ID o cliente…"
+              className="flex-1 bg-transparent outline-none text-sm text-gray-700 placeholder:text-gray-300"/>
+            {searchTerm && (
+              <button onClick={() => setSearchTerm('')} className="text-gray-300 hover:text-gray-500">
+                <X size={12}/>
+              </button>
+            )}
+          </div>
+
+          {/* Acciones */}
+          <button onClick={() => setFilterOpen(!filterOpen)}
+            className={`h-9 flex items-center gap-1.5 px-3 rounded-xl border text-[9px] font-black uppercase tracking-wide transition-all ${
+              filterOpen ? 'bg-[#004d4d] text-white border-[#004d4d]' : 'bg-white border-gray-200 text-gray-400 hover:border-[#004d4d]/30'
+            }`}>
+            {filterOpen ? <FilterX size={12}/> : <Filter size={12}/>} Filtros
+          </button>
+          <button onClick={handleExport}
+            className="h-9 flex items-center gap-1.5 px-3 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-white text-[9px] font-black uppercase tracking-wide transition-all">
+            <Download size={12}/> Exportar
+          </button>
+        </div>
+
+        {/* Panel de filtros */}
+        <AnimatePresence>
+          {filterOpen && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden border-b border-gray-100">
+              <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Desde</label>
+                  <input type="date" value={dateRange.start} onChange={e => setDateRange(p => ({ ...p, start: e.target.value }))}
+                    className="w-full h-9 px-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 focus:outline-none focus:border-[#004d4d]/40"/>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Hasta</label>
+                  <input type="date" value={dateRange.end} onChange={e => setDateRange(p => ({ ...p, end: e.target.value }))}
+                    className="w-full h-9 px-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 focus:outline-none focus:border-[#004d4d]/40"/>
+                </div>
+                <div className="space-y-1.5 col-span-2">
+                  <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Canal</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['Todos', 'web', 'WhatsApp', 'Instagram', 'pos'].map(s => (
+                      <button key={s} onClick={() => setSrcFilter(s)}
+                        className={`h-8 px-3 rounded-xl text-[9px] font-black uppercase tracking-wide transition-all ${
+                          srcFilter === s ? 'bg-[#004d4d] text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                        }`}>
+                        {s === 'pos' ? 'Tienda' : s}
+                      </button>
+                    ))}
+                    <button onClick={() => { setDateRange({ start:'', end:'' }); setSrcFilter('Todos'); }}
+                      className="h-8 px-3 rounded-xl text-[9px] font-black text-rose-400 hover:text-rose-500 uppercase tracking-wide transition-all">
+                      Limpiar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Tabla */}
+        {loading ? (
+          <div className="flex items-center justify-center py-24">
+            <Loader2 size={24} className="animate-spin text-[#004d4d]"/>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-3">
+            <div className="h-14 w-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
+              <Inbox size={22} className="text-gray-300"/>
+            </div>
+            <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Sin pedidos registrados</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {/* Header */}
+            <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_auto] gap-4 px-5 py-2.5">
+              {['Pedido', 'Cliente', 'Canal', 'Estado', 'Total', ''].map((h, i) => (
+                <p key={i} className="text-[8px] font-black uppercase tracking-widest text-gray-400">{h}</p>
+              ))}
+            </div>
+
+            {/* Filas */}
+            {filtered.map(o => {
+              const st = STATUS[o.status as OrderStatus] ?? STATUS.pending;
+              const date = new Date(o.created_at);
+              const isUpdating = updatingId === o.id;
+              return (
+                <motion.div key={o.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  onClick={() => setDrawerOrder(o)}
+                  className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_auto] gap-4 items-center px-5 py-3.5 hover:bg-gray-50/70 cursor-pointer transition-all group">
+
+                  {/* Pedido */}
+                  <div className="flex items-center gap-3">
+                    <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${st.bg}`}>
+                      <span className={st.color}>{st.icon}</span>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black text-gray-900">#{o.id.slice(0, 8).toUpperCase()}</p>
+                      <p className="text-[9px] text-gray-400">
+                        {date.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Cliente */}
+                  <div>
+                    <p className="text-[11px] font-bold text-gray-800 truncate">{o.customer_name}</p>
+                    <p className="text-[9px] text-gray-400">{o.customer_phone || '—'}</p>
+                  </div>
+
+                  {/* Canal */}
+                  <div><SourceBadge source={o.source}/></div>
+
+                  {/* Estado */}
+                  <div><StatusBadge status={o.status}/></div>
+
+                  {/* Total */}
+                  <p className="text-sm font-black text-[#004d4d]">{fmtCOP(o.total_price || 0)}</p>
+
+                  {/* Acción */}
+                  <button
+                    onClick={e => { e.stopPropagation(); setDrawerOrder(o); }}
+                    className="h-8 w-8 rounded-xl bg-white border border-gray-100 text-gray-300 hover:text-[#004d4d] hover:border-[#004d4d]/20 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 shadow-sm">
+                    {isUpdating ? <Loader2 size={13} className="animate-spin"/> : <Eye size={13}/>}
+                  </button>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Footer count */}
+        {!loading && filtered.length > 0 && (
+          <div className="px-5 py-3 border-t border-gray-50 flex items-center justify-between">
+            <p className="text-[9px] font-bold text-gray-400">
+              Mostrando <span className="font-black text-gray-600">{filtered.length}</span> de {orders.length} pedidos
+            </p>
+            <p className="text-[9px] font-bold text-gray-400">
+              Total: <span className="font-black text-[#004d4d]">
+                {fmtCOP(filtered.reduce((a, o) => a + (o.total_price || 0), 0))}
+              </span>
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* ── DRAWER DETALLE ─────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {drawerOrder && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/25 backdrop-blur-sm"
+              style={{ zIndex: 9998 }} onClick={() => setDrawerOrder(null)}/>
+
+            {/* Panel */}
+            <motion.div
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col"
+              style={{ zIndex: 9999 }}>
+
+              {/* Header */}
+              <div className="bg-[#001a1a] px-6 pt-6 pb-0 shrink-0">
+                <div className="flex items-start justify-between mb-5">
+                  <div>
+                    <p className="text-[9px] font-black text-[#00f2ff]/40 uppercase tracking-widest mb-1">
+                      Detalle del pedido
+                    </p>
+                    <h2 className="text-xl font-black text-white">
+                      #{drawerOrder.id.slice(0, 8).toUpperCase()}
+                    </h2>
+                    <p className="text-[10px] text-white/40 mt-0.5">
+                      {new Date(drawerOrder.created_at).toLocaleString('es-CO')}
+                    </p>
+                  </div>
+                  <button onClick={() => setDrawerOrder(null)}
+                    className="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 transition-all">
+                    <X size={14}/>
+                  </button>
+                </div>
+
+                {/* Pipeline mini */}
+                <div className="flex items-center gap-0 pb-0">
+                  {(['pending','processing','completed'] as OrderStatus[]).map((st, i) => {
+                    const s = STATUS[st];
+                    const isDone    = STATUS[drawerOrder.status as OrderStatus]?.step > s.step;
+                    const isCurrent = drawerOrder.status === st;
+                    return (
+                      <React.Fragment key={st}>
+                        <div className={`flex-1 py-2.5 flex items-center justify-center gap-1 border-b-2 transition-all ${
+                          isCurrent ? 'border-[#00f2ff]' : isDone ? 'border-[#00f2ff]/40' : 'border-transparent'
+                        }`}>
+                          <span className={`text-[8px] font-black uppercase tracking-wide ${isCurrent ? 'text-[#00f2ff]' : isDone ? 'text-white/40' : 'text-white/20'}`}>
+                            {s.label}
+                          </span>
+                          {isDone && <Check size={9} className="text-[#00f2ff]/60"/>}
+                        </div>
+                        {i < 2 && <div className="w-3 h-px bg-white/10 shrink-0"/>}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Contenido scrollable */}
+              <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+
+                {/* Info cliente */}
+                <div className="p-5 space-y-3">
+                  <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Cliente</p>
+                  <div className="space-y-2">
+                    {[
+                      { icon: <User size={13}/>, value: drawerOrder.customer_name },
+                      { icon: <Smartphone size={13}/>, value: drawerOrder.customer_phone || 'Sin teléfono' },
+                      { icon: <MapPin size={13}/>, value: drawerOrder.customer_city || 'Sin ciudad' },
+                      { icon: <CreditCard size={13}/>, value: drawerOrder.payment_method || 'WhatsApp' },
+                    ].map((row, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className="h-7 w-7 rounded-lg bg-[#004d4d]/8 flex items-center justify-center text-[#004d4d] shrink-0">
+                          {row.icon}
+                        </div>
+                        <p className="text-[11px] font-semibold text-gray-700">{row.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Productos */}
+                <div className="p-5 space-y-3">
+                  <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                    Productos ({drawerOrder.items?.length ?? 0})
+                  </p>
+                  <div className="space-y-2">
+                    {drawerOrder.items?.map((item: any, i: number) => (
+                      <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        <div className="h-9 w-9 rounded-lg bg-white border border-gray-100 flex items-center justify-center text-[#004d4d] shrink-0 shadow-sm">
+                          <Package size={15}/>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-black text-gray-900 truncate">
+                            {item.product_variant?.product?.name || 'Producto'}
+                          </p>
+                          <p className="text-[9px] text-gray-400">SKU: {item.product_variant?.sku || 'N/A'}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-[10px] font-black text-[#004d4d]">x{item.quantity}</p>
+                          <p className="text-[9px] text-gray-400">{fmtCOP((item.price_at_purchase || 0) * item.quantity)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Total */}
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total</p>
+                    <p className="text-lg font-black text-[#004d4d]">{fmtCOP(drawerOrder.total_price || 0)}</p>
+                  </div>
+                </div>
+
+                {/* Notas */}
+                {drawerOrder.notes && (
+                  <div className="p-5 space-y-2">
+                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Nota del cliente</p>
+                    <p className="text-[11px] text-gray-600 bg-amber-50 rounded-xl p-3 border border-amber-100">
+                      {drawerOrder.notes}
+                    </p>
+                  </div>
+                )}
+
+                {/* Cambiar estado */}
+                <div className="p-5 space-y-3">
+                  <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Cambiar estado</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['pending','processing','completed','cancelled'] as OrderStatus[]).map(st => {
+                      const s = STATUS[st];
+                      const isCurrent = drawerOrder.status === st;
+                      return (
+                        <button key={st} onClick={() => updateStatus(drawerOrder.id, st)}
+                          disabled={isCurrent || updatingId === drawerOrder.id}
+                          className={`flex items-center gap-2 h-9 px-3 rounded-xl text-[9px] font-black border transition-all ${
+                            isCurrent
+                              ? `${s.bg} ${s.color} ${s.border} cursor-default`
+                              : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200 hover:bg-gray-50'
+                          } disabled:opacity-50`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${s.dot} shrink-0`}/>
+                          {s.label}
+                          {isCurrent && <Check size={9} className="ml-auto shrink-0"/>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer CTAs */}
+              <div className="p-5 border-t border-gray-100 space-y-2 shrink-0 bg-gray-50/50">
+
+                {/* CTA principal: Aceptar y facturar */}
+                {drawerOrder.status === 'pending' && (
+                  <button
+                    onClick={() => updateStatus(drawerOrder.id, 'processing')}
+                    disabled={updatingId === drawerOrder.id}
+                    className="w-full h-12 rounded-2xl bg-gradient-to-r from-[#004d4d] to-[#00706e] hover:from-[#003838] hover:to-[#005856] text-white font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50">
+                    {updatingId === drawerOrder.id
+                      ? <Loader2 size={14} className="animate-spin"/>
+                      : <><BadgeCheck size={15}/> Aceptar y facturar</>}
+                  </button>
+                )}
+
+                {/* CTA: Enviar a envíos */}
+                {drawerOrder.status === 'processing' && (
+                  <button
+                    onClick={() => updateStatus(drawerOrder.id, 'completed')}
+                    disabled={updatingId === drawerOrder.id}
+                    className="w-full h-12 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50">
+                    {updatingId === drawerOrder.id
+                      ? <Loader2 size={14} className="animate-spin"/>
+                      : <><Truck size={15}/> Completar → Envíos</>}
+                  </button>
+                )}
+
+                {/* WhatsApp */}
+                <button
+                  onClick={() => window.open(`https://wa.me/57${drawerOrder.customer_phone?.replace(/\D/g, '')}`, '_blank')}
+                  className="w-full h-10 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                  <MessageSquare size={13}/> Contactar por WhatsApp
+                </button>
+
+                {/* Cerrar */}
+                <button onClick={() => setDrawerOrder(null)}
+                  className="w-full h-9 rounded-2xl border border-gray-200 bg-white text-gray-400 hover:text-gray-600 font-black text-[9px] uppercase tracking-widest transition-all">
+                  Cerrar
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+    </div>
+  );
 }
