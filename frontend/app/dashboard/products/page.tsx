@@ -154,17 +154,17 @@ export default function ProductsPage() {
   const fetchProducts = useCallback(async () => {
     if (!token) return;
     setLoading(true);
-    try {
-      const productsData = await apiRequest<any[]>('/products', { token });
-      setProducts(Array.isArray(productsData) ? productsData : []);
-    } catch { showToast('Error al cargar productos', 'error'); }
-    try {
-      const isProduction = window.location.hostname.includes('railway.app') || window.location.hostname.includes('bayup.com');
-      if (!isProduction) {
-        const categoriesData = await apiRequest<any[]>('/collections', { token }).catch(() => []);
-        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-      } else { setCategories([]); }
-    } catch { /* silence */ }
+    const isProduction = window.location.hostname.includes('railway.app') || window.location.hostname.includes('bayup.com');
+    const [productsResult, categoriesResult] = await Promise.allSettled([
+      apiRequest<any[]>('/products', { token }),
+      isProduction ? Promise.resolve([]) : apiRequest<any[]>('/collections', { token }),
+    ]);
+    if (productsResult.status === 'fulfilled') {
+      setProducts(Array.isArray(productsResult.value) ? productsResult.value : []);
+    } else {
+      showToast('Error al cargar productos', 'error');
+    }
+    setCategories(categoriesResult.status === 'fulfilled' && Array.isArray(categoriesResult.value) ? categoriesResult.value : []);
     setLoading(false);
   }, [token, showToast]);
 

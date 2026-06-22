@@ -2,7 +2,7 @@
 import uuid
 from database import SessionLocal
 from models import User, Plan
-from security import get_password_hash
+from security import get_password_hash, generate_random_password
 
 def add_basic_user():
     db = SessionLocal()
@@ -28,13 +28,14 @@ def add_basic_user():
         user_email = "tienda@bayup.com"
         existing_user = db.query(User).filter(User.email == user_email).first()
         if not existing_user:
+            password = generate_random_password()
             print(f"Creando usuario admin de tienda: {user_email}...")
             new_user = User(
                 id=uuid.uuid4(),
                 email=user_email,
                 full_name="Mi Tienda Local",
                 nickname="Tienda Pro",
-                hashed_password=get_password_hash("tienda123"),
+                hashed_password=get_password_hash(password),
                 role="admin_tienda",
                 status="Activo",
                 is_global_staff=False, # No es super admin
@@ -44,7 +45,7 @@ def add_basic_user():
             )
             db.add(new_user)
             db.commit()
-            print(f"¡Usuario '{user_email}' creado exitosamente!")
+            print(f"¡Usuario '{user_email}' creado exitosamente! Contraseña: {password}")
         else:
             print(f"El usuario '{user_email}' ya existe.")
             

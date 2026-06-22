@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Priorizar DATABASE_URL de entorno (para producción en Railway/Supabase)
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
+DATABASE_URL = os.getenv("DATABASE_URL") or "sqlite:///./sql_app.db"
 
 # Configuración de Engine optimizada
 if DATABASE_URL.startswith("sqlite"):

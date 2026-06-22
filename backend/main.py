@@ -5,8 +5,11 @@ import os
 import sys
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import threading
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Evita UnicodeEncodeError al imprimir emojis en consolas Windows (cp1252)
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -33,10 +36,27 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bayup OS Platinum", lifespan=lifespan)
 
-# --- CONFIGURACIÓN CORS SUPREMA ---
+# --- RATE LIMITING ---
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# --- CORS ---
+# NOTA: si en el futuro las tiendas activan dominio propio (custom_domain en el modelo User),
+# esta whitelist estática no los cubrirá — habrá que validar el origen dinámicamente contra la DB.
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "https://bayup.com",
+    "https://www.bayup.com",
+    "https://bayup.com.co",
+    "https://www.bayup.com.co",
+    "https://bayup.vercel.app",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://bayup.*\.vercel\.app",
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,7 +72,8 @@ def read_root():
     return {"status": "Active", "version": "2.1 Platinum Production"}
 
 @app.post("/auth/login")
-def login(form_data: UserLoginRequest):
+@limiter.limit("5/minute")
+def login(request: Request, form_data: UserLoginRequest):
     # Importaciones internas para evitar bloqueos en el arranque
     from database import SessionLocal
     import crud, security
@@ -89,7 +110,10 @@ def _get_bearer_token(request: Request) -> str:
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="No token")
-    return auth_header.split(" ")[1]
+    parts = auth_header.split(" ")
+    if len(parts) != 2 or parts[0].lower() != "bearer" or not parts[1]:
+        raise HTTPException(status_code=401, detail="Header Authorization inválido, se espera 'Bearer <token>'")
+    return parts[1]
 
 async def _authenticate(request: Request, db):
     """Reutiliza security.get_current_user pasando los valores explícitamente
@@ -122,11 +146,11 @@ async def read_users_me(request: Request):
         db.close()
 
 class ProductCreateRequest(BaseModel):
-    name: str
+    name: str = Field(min_length=1)
     description: str | None = None
-    price: float
-    wholesale_price: float | None = 0.0
-    cost: float | None = 0.0
+    price: float = Field(gt=0)
+    wholesale_price: float | None = Field(default=0.0, ge=0)
+    cost: float | None = Field(default=0.0, ge=0)
     sku: str | None = None
     status: str = "active"
     category: str | None = None
@@ -168,7 +192,11 @@ async def update_product_route(product_id: str, payload: ProductCreateRequest, r
     try:
         user = await _authenticate(request, db)
         tenant_id = _tenant_id(user)
-        db_product = crud.get_product(db, product_id=uuid_lib.UUID(product_id), tenant_id=tenant_id)
+        try:
+            product_uuid = uuid_lib.UUID(product_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="product_id inválido")
+        db_product = crud.get_product(db, product_id=product_uuid, tenant_id=tenant_id)
         if not db_product:
             raise HTTPException(status_code=404, detail="Producto no encontrado")
         product_in = schemas.ProductCreate(**payload.model_dump())
@@ -179,13 +207,13 @@ async def update_product_route(product_id: str, payload: ProductCreateRequest, r
 
 class OrderItemRequest(BaseModel):
     product_variant_id: str
-    quantity: int
-    price_at_purchase: float
+    quantity: int = Field(gt=0)
+    price_at_purchase: float = Field(ge=0)
 
 class OrderCreateRequest(BaseModel):
-    total_price: float
-    commission_amount: float | None = 0.0
-    commission_rate_snapshot: float | None = 0.0
+    total_price: float = Field(ge=0)
+    commission_amount: float | None = Field(default=0.0, ge=0)
+    commission_rate_snapshot: float | None = Field(default=0.0, ge=0)
     customer_type: str | None = "final"
     customer_name: str
     customer_email: str | None = None
@@ -271,5 +299,50 @@ async def create_collection_route(payload: CollectionCreateRequest, request: Req
         collection_in = schemas.CollectionCreate(**payload.model_dump())
         db_collection = crud.create_collection(db, collection=collection_in, owner_id=_tenant_id(user))
         return schemas.Collection.model_validate(db_collection).model_dump(mode="json")
+    finally:
+        db.close()
+
+# --- ENDPOINTS PÚBLICOS DE TIENDA (sin auth, para el storefront /shop/[slug]) ---
+@app.get("/public/shop/{slug}")
+async def get_public_shop(slug: str):
+    import crud, schemas
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        store = crud.get_user_by_slug(db, slug=slug)
+        if not store:
+            raise HTTPException(status_code=404, detail="Tienda no encontrada")
+        collections = crud.get_collections_by_owner(db, owner_id=store.id)
+        return {
+            "id": str(store.id),
+            "owner_id": str(store.id),
+            "full_name": store.full_name,
+            "shop_slug": store.shop_slug,
+            "phone": getattr(store, "phone", None),
+            "logo_url": store.logo_url,
+            "category": getattr(store, "category", None),
+            "hours": getattr(store, "hours", None),
+            "social_links": getattr(store, "social_links", None) or {},
+            "whatsapp_lines": getattr(store, "whatsapp_lines", None) or [],
+            "categories": [schemas.Collection.model_validate(c).model_dump(mode="json") for c in collections],
+        }
+    finally:
+        db.close()
+
+@app.get("/public/stores/{store_id}/products")
+async def get_public_store_products(store_id: str):
+    import crud, schemas, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        try:
+            store_uuid = uuid_lib.UUID(store_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="store_id inválido")
+        products = crud.get_all_products(db, tenant_id=store_uuid, limit=500)
+        return [
+            schemas.Product.model_validate(p).model_dump(mode="json")
+            for p in products if p.status == "active"
+        ]
     finally:
         db.close()
