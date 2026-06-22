@@ -81,6 +81,8 @@ class ProductVariantBase(BaseModel):
     sku: Optional[str] = None
     stock: int = 0
     price: Optional[float] = None
+    image_url: Optional[str] = None
+    attributes: Optional[Dict[str, Any]] = None
 
 class ProductVariantCreate(ProductVariantBase):
     pass
@@ -94,8 +96,14 @@ class ProductBase(BaseModel):
     name: str
     description: Optional[str] = None
     price: float
+    wholesale_price: Optional[float] = 0.0
+    cost: Optional[float] = 0.0
+    sku: Optional[str] = None
     status: str = "active"
     category: Optional[str] = None
+    add_gateway_fee: Optional[bool] = False
+    image_url: Optional[Any] = None
+    collection_id: Optional[uuid.UUID] = None
 
 class ProductCreate(ProductBase):
     variants: List[ProductVariantCreate] = []
@@ -121,6 +129,7 @@ class OrderBase(BaseModel):
     total_price: float
     commission_amount: Optional[float] = 0.0
     commission_rate_snapshot: Optional[float] = 0.0
+    customer_type: Optional[str] = "final"
     customer_name: str
     customer_email: Optional[str] = None
     customer_phone: Optional[str] = None
@@ -128,6 +137,7 @@ class OrderBase(BaseModel):
     shipping_address: Optional[str] = None
     payment_method: str = "cash"
     source: str = "pos"
+    seller_name: Optional[str] = None
 
 class OrderCreate(OrderBase):
     items: List[OrderItemBase]

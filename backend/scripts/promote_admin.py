@@ -1,6 +1,7 @@
 """
 Promueve admin@bayup.com a super admin (is_global_staff=True, role=SUPER_ADMIN).
-Si no existe, lo crea con contraseña admin123.
+Si no existe, lo crea con una contraseña aleatoria generada en el momento (se imprime
+una sola vez en consola, no queda hardcodeada en este archivo).
 
 Ejecutar desde la carpeta backend/:
   python scripts/promote_admin.py
@@ -13,7 +14,7 @@ from sqlalchemy import text
 import models, security
 
 TARGET_EMAIL    = "admin@bayup.com"
-TARGET_PASSWORD = "admin123"
+TARGET_PASSWORD = security.generate_random_password()
 
 def promote():
     db = SessionLocal()

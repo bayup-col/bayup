@@ -1,16 +1,18 @@
 import boto3
 import os
 import uuid
+from botocore.client import Config
 from botocore.exceptions import ClientError
 
 def get_s3_client():
-    # Inject dummy credentials for Moto compatibility if not present
+    # Apunta al endpoint S3-compatible de Supabase Storage (Project Settings > Storage > S3 Connection)
     return boto3.client(
         "s3",
-        region_name=os.getenv("AWS_REGION", "us-east-1"),
-        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID", "testing"),
-        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "testing"),
-        aws_session_token=os.getenv("AWS_SESSION_TOKEN", "testing"),
+        endpoint_url=os.getenv("SUPABASE_S3_ENDPOINT"),
+        region_name=os.getenv("SUPABASE_S3_REGION", "us-east-1"),
+        aws_access_key_id=os.getenv("SUPABASE_S3_ACCESS_KEY_ID", "testing"),
+        aws_secret_access_key=os.getenv("SUPABASE_S3_SECRET_ACCESS_KEY", "testing"),
+        config=Config(s3={"addressing_style": "path"}),
     )
 
 def create_presigned_upload_url(file_type: str) -> dict | None:

@@ -327,8 +327,8 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
     db.refresh(db_order)
     return db_order
 
-def get_orders_by_tenant(db: Session, tenant_id: uuid.UUID) -> list[models.Order]:
-    return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).order_by(models.Order.created_at.desc()).all()
+def get_orders_by_tenant(db: Session, tenant_id: uuid.UUID, skip: int = 0, limit: int = 200) -> list[models.Order]:
+    return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).order_by(models.Order.created_at.desc()).offset(skip).limit(limit).all()
 
 def get_activity_logs(db: Session, limit: int = 10) -> list[models.ActivityLog]:
     return db.query(models.ActivityLog).order_by(models.ActivityLog.created_at.desc()).limit(limit).all()

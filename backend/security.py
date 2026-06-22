@@ -15,7 +15,13 @@ from dotenv import load_dotenv
 import os
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_that_should_be_in_env_var")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY no está configurada. Genera una con: "
+        "python -c \"import secrets; print(secrets.token_hex(32))\" "
+        "y ponla en backend/.env (local) o en las env vars de Render (producción)."
+    )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480 # 8 Horas
 
@@ -63,27 +69,17 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    email: str | None = None
-    
-    # 1. Intentar como Token Local (HS256)
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")
     except JWTError:
-        # 2. Si falla el local, intentar como Token de Clerk (RS256)
-        from clerk_auth_service import verify_clerk_token
-        try:
-            clerk_user = await verify_clerk_token(token)
-            email = clerk_user.get("email")
-        except Exception:
-            raise credentials_exception
-    
+        raise credentials_exception
+
     if email is None:
         raise credentials_exception
-    
+
     user = crud.get_user_by_email(db, email=email)
     if user is None:
-        print(f"DEBUG SECURITY: Usuario no encontrado en DB: {email}")
         raise credentials_exception
     return user
 

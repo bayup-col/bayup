@@ -12,7 +12,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
 import { apiRequest } from '@/lib/api';
-import { exportOrdersToExcel } from '@/lib/orders-export';
 
 // ── HELPERS ──────────────────────────────────────────────────────────────────
 const fmtCOP = (n: number) =>
@@ -183,8 +182,9 @@ export default function OrdersPage() {
     finally   { setUpdatingId(null); }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     showToast('Generando Excel…', 'info');
+    const { exportOrdersToExcel } = await import('@/lib/orders-export');
     exportOrdersToExcel(filtered, 'Pedidos_Web');
   };
 
@@ -219,7 +219,7 @@ export default function OrdersPage() {
         <div className="flex items-center gap-1">
           {(['pending','processing','completed'] as OrderStatus[]).map((st, i) => {
             const s   = STATUS[st];
-            const cnt = orders.filter(o => o.status === st).length;
+            const cnt = counts[st];
             const pct = orders.length > 0 ? (cnt / orders.length) * 100 : 0;
             return (
               <React.Fragment key={st}>

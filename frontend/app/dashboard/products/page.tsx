@@ -15,7 +15,6 @@ import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
 import { apiRequest } from '@/lib/api';
 import MetricDetailModal from '@/components/dashboard/MetricDetailModal';
-import { exportProductsToExcel } from '@/lib/products-export';
 
 // ── ANIMATED NUMBER ────────────────────────────────────────────────────────
 const AnimatedNumber = memo(({ value, type = 'currency' }: { value: number, type?: 'currency' | 'simple' }) => {
@@ -98,6 +97,24 @@ function StockBadge({ stock }: { stock: number }) {
   return <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">OK</span>;
 }
 
+// ── GUIDE CONTENT (estático, fuera del componente para no recrearse en cada render) ──
+const GUIDE_CONTENT = {
+  overview: { title: 'Vista general', icon: <LayoutGrid size={20}/>, color: 'text-slate-600', description: 'Central de mando unificada. Aquí visualizas el 100% de tus activos comerciales.', whyImportant: 'Tener una visión global permite detectar redundancias en el catálogo.', kpi: { label: 'Diversidad de catálogo', val: '100%' }, baytTip: 'Usa la barra de búsqueda rápida con SKU para encontrar productos en menos de 2 segundos.' },
+  active:   { title: 'Activos',       icon: <Zap size={20}/>,        color: 'text-emerald-500', description: 'Solo los productos aquí listados son visibles para tus clientes.',             whyImportant: 'Mantener esta lista depurada garantiza que no vendas sin stock.',           kpi: { label: 'Disponibilidad web',    val: '98.2%' }, baytTip: 'Si un producto tiene alta rotación pero poco margen, prioriza otros más rentables.' },
+  draft:    { title: 'Borradores',    icon: <Edit3 size={20}/>,      color: 'text-amber-500',   description: 'Espacio de preparación para pulir fotos, descripciones y precios.',            whyImportant: 'Un producto bien preparado tiene un 40% más de conversión.',                kpi: { label: 'Calidad de carga',      val: 'Elite' }, baytTip: 'No publiques nada sin al menos 3 fotos de alta calidad.' },
+  categories:{ title: 'Categorías',  icon: <Layers size={20}/>,     color: 'text-cyan-500',    description: 'Segmentación estratégica. Organiza tus productos por familias lógicas.',        whyImportant: 'Las categorías mejoran la navegación del usuario en un 35%.',               kpi: { label: 'User experience',       val: 'A+' },    baytTip: 'Crea categorías por "Ocasión de Uso" para vender más.' },
+  new:      { title: 'Nuevo producto',icon: <Rocket size={20}/>,    color: 'text-purple-500',  description: 'Tu herramienta de expansión. Inyecta nuevos activos al flujo de caja.',         whyImportant: 'La innovación constante mantiene a tus clientes regresando.',               kpi: { label: 'Innovación mensual',    val: '+5 items'}, baytTip: 'Asigna siempre el precio mayorista para activar Dropshipping en el futuro.' },
+};
+
+// ── TAB LABELS (estático) ──
+const TABS = [
+  { key: 'all',        label: 'Todos',       icon: null },
+  { key: 'active',     label: 'Activos',     icon: null },
+  { key: 'draft',      label: 'Borradores',  icon: null },
+  { key: 'categories', label: 'Categorías',  icon: <Layers size={11}/> },
+  { key: 'inventory',  label: 'Inventario',  icon: <Warehouse size={11}/> },
+] as const;
+
 // ══════════════════════════════════════════════════════════════════════════
 export default function ProductsPage() {
   const { token, userPlan } = useAuth();
@@ -137,17 +154,17 @@ export default function ProductsPage() {
   const fetchProducts = useCallback(async () => {
     if (!token) return;
     setLoading(true);
-    try {
-      const productsData = await apiRequest<any[]>('/products', { token });
-      setProducts(Array.isArray(productsData) ? productsData : []);
-    } catch { showToast('Error al cargar productos', 'error'); }
-    try {
-      const isProduction = window.location.hostname.includes('railway.app') || window.location.hostname.includes('bayup.com');
-      if (!isProduction) {
-        const categoriesData = await apiRequest<any[]>('/collections', { token }).catch(() => []);
-        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-      } else { setCategories([]); }
-    } catch { /* silence */ }
+    const isProduction = window.location.hostname.includes('railway.app') || window.location.hostname.includes('bayup.com');
+    const [productsResult, categoriesResult] = await Promise.allSettled([
+      apiRequest<any[]>('/products', { token }),
+      isProduction ? Promise.resolve([]) : apiRequest<any[]>('/collections', { token }),
+    ]);
+    if (productsResult.status === 'fulfilled') {
+      setProducts(Array.isArray(productsResult.value) ? productsResult.value : []);
+    } else {
+      showToast('Error al cargar productos', 'error');
+    }
+    setCategories(categoriesResult.status === 'fulfilled' && Array.isArray(categoriesResult.value) ? categoriesResult.value : []);
     setLoading(false);
   }, [token, showToast]);
 
@@ -202,7 +219,12 @@ export default function ProductsPage() {
 
   const handleExport = async () => {
     if (products.length === 0) { showToast('No hay productos para exportar', 'info'); return; }
-    try { showToast('Generando exportación...', 'info'); await exportProductsToExcel(products, 'Bayup_Tienda'); showToast('¡Catálogo exportado! 📊', 'success'); }
+    try {
+      showToast('Generando exportación...', 'info');
+      const { exportProductsToExcel } = await import('@/lib/products-export');
+      await exportProductsToExcel(products, 'Bayup_Tienda');
+      showToast('¡Catálogo exportado! 📊', 'success');
+    }
     catch { showToast('Error al generar el archivo', 'error'); }
   };
 
@@ -279,14 +301,23 @@ export default function ProductsPage() {
 
   const handleClearFilters = () => { setFilterConfig({ minPrice: '', maxPrice: '', minStock: '', selectedCategory: 'all' }); setSearchTerm(''); };
 
-  // ── GUIDE CONTENT ──
-  const guideContent = {
-    overview: { title: 'Vista general', icon: <LayoutGrid size={20}/>, color: 'text-slate-600', description: 'Central de mando unificada. Aquí visualizas el 100% de tus activos comerciales.', whyImportant: 'Tener una visión global permite detectar redundancias en el catálogo.', kpi: { label: 'Diversidad de catálogo', val: '100%' }, baytTip: 'Usa la barra de búsqueda rápida con SKU para encontrar productos en menos de 2 segundos.' },
-    active:   { title: 'Activos',       icon: <Zap size={20}/>,        color: 'text-emerald-500', description: 'Solo los productos aquí listados son visibles para tus clientes.',             whyImportant: 'Mantener esta lista depurada garantiza que no vendas sin stock.',           kpi: { label: 'Disponibilidad web',    val: '98.2%' }, baytTip: 'Si un producto tiene alta rotación pero poco margen, prioriza otros más rentables.' },
-    draft:    { title: 'Borradores',    icon: <Edit3 size={20}/>,      color: 'text-amber-500',   description: 'Espacio de preparación para pulir fotos, descripciones y precios.',            whyImportant: 'Un producto bien preparado tiene un 40% más de conversión.',                kpi: { label: 'Calidad de carga',      val: 'Elite' }, baytTip: 'No publiques nada sin al menos 3 fotos de alta calidad.' },
-    categories:{ title: 'Categorías',  icon: <Layers size={20}/>,     color: 'text-cyan-500',    description: 'Segmentación estratégica. Organiza tus productos por familias lógicas.',        whyImportant: 'Las categorías mejoran la navegación del usuario en un 35%.',               kpi: { label: 'User experience',       val: 'A+' },    baytTip: 'Crea categorías por "Ocasión de Uso" para vender más.' },
-    new:      { title: 'Nuevo producto',icon: <Rocket size={20}/>,    color: 'text-purple-500',  description: 'Tu herramienta de expansión. Inyecta nuevos activos al flujo de caja.',         whyImportant: 'La innovación constante mantiene a tus clientes regresando.',               kpi: { label: 'Innovación mensual',    val: '+5 items'}, baytTip: 'Asigna siempre el precio mayorista para activar Dropshipping en el futuro.' },
-  };
+  const guideContent = GUIDE_CONTENT;
+
+  // ── CONTEO DE PRODUCTOS POR CATEGORÍA (evita filter() repetido por cada card) ──
+  const productCountByCategory = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of products) {
+      if (!p.collection_id) continue;
+      counts.set(p.collection_id, (counts.get(p.collection_id) || 0) + 1);
+    }
+    return counts;
+  }, [products]);
+
+  // ── PRODUCTOS DE LA CATEGORÍA SELECCIONADA (modal) ──
+  const selectedCategoryProducts = useMemo(() => {
+    if (!selectedCategory) return [];
+    return products.filter(p => p.collection_id === selectedCategory.id);
+  }, [products, selectedCategory]);
 
   // ── QUICK STATS (sidebar) ──
   const quickStats = useMemo(() => {
@@ -299,15 +330,6 @@ export default function ProductsPage() {
     };
     return { totalUnits, totalValue, withImages, byStatus };
   }, [products]);
-
-  // ── TAB LABELS ──
-  const TABS = [
-    { key: 'all',        label: 'Todos',       icon: null },
-    { key: 'active',     label: 'Activos',     icon: null },
-    { key: 'draft',      label: 'Borradores',  icon: null },
-    { key: 'categories', label: 'Categorías',  icon: <Layers size={11}/> },
-    { key: 'inventory',  label: 'Inventario',  icon: <Warehouse size={11}/> },
-  ] as const;
 
   return (
     <div className="space-y-6 pb-20">
@@ -505,7 +527,7 @@ export default function ProductsPage() {
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
                                 <div className="h-8 w-8 rounded-xl bg-gray-50 overflow-hidden border border-gray-100 shrink-0 flex items-center justify-center">
-                                  {getProductImage(p) ? <img src={getProductImage(p)!} className="h-full w-full object-cover" alt={p.name} onError={(e) => (e.target as any).style.display='none'}/> : <ImageIcon size={12} className="text-gray-300"/>}
+                                  {getProductImage(p) ? <img src={getProductImage(p)!} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={p.name} onError={(e) => (e.target as any).style.display='none'}/> : <ImageIcon size={12} className="text-gray-300"/>}
                                 </div>
                                 <p className="text-[11px] font-bold text-gray-800 truncate max-w-[140px]">{p.name}</p>
                               </div>
@@ -534,7 +556,7 @@ export default function ProductsPage() {
               <motion.div key="categories" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {categories.map(cat => {
-                  const count = products.filter(p => p.collection_id === cat.id).length;
+                  const count = productCountByCategory.get(cat.id) || 0;
                   return (
                     <button key={cat.id} onClick={() => { setSelectedCategory(cat); setCategoryView('intel'); }}
                       className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 text-left hover:-translate-y-0.5 hover:shadow-md transition-all group">
@@ -626,7 +648,7 @@ export default function ProductsPage() {
                                   <div className="flex items-center gap-3">
                                     <div className="h-10 w-10 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform">
                                       {img ? (
-                                        <img src={img} className="h-full w-full object-cover" alt={p.name} onError={(e) => (e.target as any).style.display='none'}/>
+                                        <img src={img} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={p.name} onError={(e) => (e.target as any).style.display='none'}/>
                                       ) : (
                                         <ImageIcon size={14} className="text-gray-300"/>
                                       )}
@@ -827,7 +849,7 @@ export default function ProductsPage() {
                   <div>
                     <p className="text-[9px] font-bold tracking-widest text-[#00f2ff]/50 uppercase">Categoría</p>
                     <h3 className="text-2xl font-black mt-1">{selectedCategory.title}</h3>
-                    <p className="text-[#00f2ff]/60 text-xs mt-2">{products.filter(p => p.collection_id === selectedCategory.id).length} productos</p>
+                    <p className="text-[#00f2ff]/60 text-xs mt-2">{selectedCategoryProducts.length} productos</p>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -843,10 +865,10 @@ export default function ProductsPage() {
                   {categoryView === 'list' ? (
                     <motion.div key="list" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
                       className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {products.filter(p => p.collection_id === selectedCategory.id).map(p => (
+                      {selectedCategoryProducts.map(p => (
                         <div key={p.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                           <div className="aspect-square bg-gray-50 flex items-center justify-center">
-                            {getProductImage(p) ? <img src={getProductImage(p)!} className="h-full w-full object-cover" alt={p.name}/> : <ImageIcon size={24} className="text-gray-200"/>}
+                            {getProductImage(p) ? <img src={getProductImage(p)!} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={p.name}/> : <ImageIcon size={24} className="text-gray-200"/>}
                           </div>
                           <div className="p-3">
                             <p className="text-[11px] font-bold text-gray-900 truncate">{p.name}</p>
@@ -860,10 +882,10 @@ export default function ProductsPage() {
                       <h4 className="text-xl font-black text-gray-900">Análisis de <span className="text-[#004d4d]">{selectedCategory.title}</span></h4>
                       <div className="grid grid-cols-2 gap-4">
                         {[
-                          { label: 'Productos', value: products.filter(p => p.collection_id === selectedCategory.id).length },
-                          { label: 'Valor total', value: fmt(products.filter(p => p.collection_id === selectedCategory.id).reduce((a, p) => a + (p.price || 0), 0)) },
-                          { label: 'Con foto', value: products.filter(p => p.collection_id === selectedCategory.id && getProductImage(p)).length },
-                          { label: 'Activos', value: products.filter(p => p.collection_id === selectedCategory.id && p.status === 'active').length },
+                          { label: 'Productos', value: selectedCategoryProducts.length },
+                          { label: 'Valor total', value: fmt(selectedCategoryProducts.reduce((a, p) => a + (p.price || 0), 0)) },
+                          { label: 'Con foto', value: selectedCategoryProducts.filter(p => getProductImage(p)).length },
+                          { label: 'Activos', value: selectedCategoryProducts.filter(p => p.status === 'active').length },
                         ].map((s, i) => (
                           <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
                             <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold">{s.label}</p>

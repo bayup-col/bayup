@@ -6,16 +6,20 @@ import uuid
 import os
 from typing import Dict, Any
 
-# Credenciales de Wompi (Se leen de variables de entorno para Producción)
-WOMPI_PUBLIC_KEY = os.getenv("WOMPI_PUBLIC_KEY", "pub_test_a5bfIpgmDfOA8U72jOc1keurMyUreLqI")
-WOMPI_INTEGRITY_SECRET = os.getenv("WOMPI_INTEGRITY_SECRET", "test_integrity_aPmROcyq83HAXHnPj1HV4FpCAK8DMiy9")
-WOMPI_EVENTS_SECRET = os.getenv("WOMPI_EVENTS_SECRET", "test_events_kz6zoiM62KiAJqT5ZRBu0yRpnQwdP1fk")
+# Credenciales de Wompi (sin fallback: si no están configuradas, los pagos quedan deshabilitados)
+WOMPI_PUBLIC_KEY = os.getenv("WOMPI_PUBLIC_KEY")
+WOMPI_INTEGRITY_SECRET = os.getenv("WOMPI_INTEGRITY_SECRET")
+WOMPI_EVENTS_SECRET = os.getenv("WOMPI_EVENTS_SECRET")
+WOMPI_CONFIGURED = bool(WOMPI_PUBLIC_KEY and WOMPI_INTEGRITY_SECRET and WOMPI_EVENTS_SECRET)
 
 # Detectar automáticamente si es Producción o Sandbox basado en el prefijo de la llave
-IS_PRODUCTION = WOMPI_PUBLIC_KEY.startswith("pub_prod")
+IS_PRODUCTION = bool(WOMPI_PUBLIC_KEY) and WOMPI_PUBLIC_KEY.startswith("pub_prod")
 WOMPI_API_URL = "https://production.wompi.co/v1" if IS_PRODUCTION else "https://sandbox.wompi.co/v1"
 
-print(f"💳 Wompi Service: {'PRODUCTION' if IS_PRODUCTION else 'SANDBOX'} mode active.")
+if WOMPI_CONFIGURED:
+    print(f"💳 Wompi Service: {'PRODUCTION' if IS_PRODUCTION else 'SANDBOX'} mode active.")
+else:
+    print("⚠️ Wompi Service: sin credenciales configuradas, pagos deshabilitados.")
 
 def generate_integrity_signature(reference: str, amount_in_cents: int, currency: str) -> str:
     """
@@ -30,6 +34,9 @@ def create_payment_session(amount: float, user: Any, currency: str = "COP", desc
     Prepara la información para el Widget de Wompi con lógica de SPLIT PAYMENTS.
     Calcula la comisión de Bayup según el plan del usuario.
     """
+    if not WOMPI_CONFIGURED:
+        raise RuntimeError("Wompi no está configurado (faltan WOMPI_PUBLIC_KEY/WOMPI_INTEGRITY_SECRET/WOMPI_EVENTS_SECRET).")
+
     reference = f"BAY-{uuid.uuid4().hex[:8].upper()}"
     amount_in_cents = int(amount * 100)
     
@@ -75,14 +82,39 @@ def create_payment_session(amount: float, user: Any, currency: str = "COP", desc
         "commission_applied": f"{commission_rate * 100}%"
     }
 
-def verify_webhook_event(data: Dict[str, Any], checksum: str) -> bool:
+def _get_nested(data: Dict[str, Any], dotted_path: str):
+    """Navega un dict anidado usando una ruta tipo 'transaction.id'."""
+    value = data
+    for part in dotted_path.split("."):
+        if not isinstance(value, dict):
+            return None
+        value = value.get(part)
+    return value
+
+def verify_webhook_event(event: Dict[str, Any]) -> bool:
     """
-    Verifica que el evento enviado por Wompi sea auténtico.
+    Verifica la firma de un evento de webhook de Wompi.
+    Esquema oficial: concatenar los valores de signature.properties (en orden),
+    luego el timestamp del evento, luego el WOMPI_EVENTS_SECRET, y aplicar SHA256.
+    El resultado debe coincidir (case-insensitive) con signature.checksum.
     """
-    # Lógica de validación de checksum de eventos (opcional para MVP pero recomendada)
-    # Por simplicidad en el lanzamiento de mañana, confiaremos en la estructura por ahora
-    # pero guardamos la función para robustez.
-    return True
+    if not WOMPI_EVENTS_SECRET:
+        return False
+
+    signature_info = event.get("signature") or {}
+    checksum = signature_info.get("checksum")
+    properties = signature_info.get("properties") or []
+    timestamp = event.get("timestamp")
+    event_data = event.get("data") or {}
+
+    if not checksum or not properties or timestamp is None:
+        return False
+
+    concatenated = "".join(str(_get_nested(event_data, prop) or "") for prop in properties)
+    concatenated += f"{timestamp}{WOMPI_EVENTS_SECRET}"
+    expected_checksum = hashlib.sha256(concatenated.encode()).hexdigest()
+
+    return hmac.compare_digest(expected_checksum.lower(), str(checksum).lower())
 
 def get_transaction_status(transaction_id: str):
     """
