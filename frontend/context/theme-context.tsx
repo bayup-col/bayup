@@ -14,18 +14,11 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
 
-  // Cargar preferencia guardada
+  // Siempre tema claro por defecto — eliminar cualquier dark guardado
   useEffect(() => {
-    const savedTheme = localStorage.getItem('bayup-theme') as Theme;
-    if (savedTheme) {
-      setTheme(savedTheme);
-      if (savedTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-      }
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      // Opcional: Respetar preferencia del sistema si no hay guardada
-      // Por ahora dejamos light por defecto para no impactar de golpe
-    }
+    localStorage.removeItem('bayup-theme');
+    document.documentElement.classList.remove('dark');
+    setTheme('light');
   }, []);
 
   const toggleTheme = () => {

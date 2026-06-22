@@ -125,34 +125,6 @@ export const DashboardHeader = ({
                 style={{ pointerEvents: visible ? 'auto' : 'none' }}
             >
                 <div className="flex items-center gap-2">
-                    {/* Tema (solo Empresa/Staff) */}
-                    {(isEmpresaPlan || isGlobalStaff || isSuperAdminZone) && (
-                        <button
-                            onClick={toggleTheme}
-                            className={`h-10 w-10 rounded-2xl flex items-center justify-center shadow-lg border transition-all duration-200 hover:scale-105 active:scale-95 ${
-                                isSuperAdminZone
-                                ? 'bg-[#001A1A]/90 border-white/10 text-white/40 hover:text-[#00f2ff]'
-                                : 'bg-white/90 border-white text-[#004d4d]/50 hover:text-[#004d4d]'
-                            }`}
-                        >
-                            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-                        </button>
-                    )}
-
-                    {/* Bot IA (solo Empresa) */}
-                    {(isEmpresaPlan || isSuperAdminZone) && (
-                        <button
-                            onClick={() => setIsBaytOpen(!isBaytOpen)}
-                            className={`h-10 w-10 rounded-2xl flex items-center justify-center shadow-lg border transition-all duration-200 hover:scale-105 active:scale-95 ${
-                                isBaytOpen
-                                ? (isSuperAdminZone ? 'bg-[#00f2ff]/10 border-[#00f2ff]/20 text-[#00f2ff]' : 'bg-[#004d4d]/10 border-[#004d4d]/20 text-[#004d4d]')
-                                : (isSuperAdminZone ? 'bg-[#001A1A]/90 border-white/10 text-white/40 hover:text-[#00f2ff]' : 'bg-white/90 border-white text-[#004d4d]/50 hover:text-[#004d4d]')
-                            }`}
-                        >
-                            <Bot size={16} />
-                        </button>
-                    )}
-
                     {/* Campana */}
                     <div className="relative">
                         <button
