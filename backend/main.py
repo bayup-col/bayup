@@ -431,3 +431,61 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
         raise HTTPException(status_code=400, detail="product_variant_id inválido")
     finally:
         db.close()
+
+def _serialize_customer(u) -> dict:
+    """Serializacion segura de un cliente: nunca incluye hashed_password ni datos bancarios."""
+    return {
+        "id": str(u.id),
+        "full_name": u.full_name,
+        "email": u.email,
+        "phone": u.phone,
+        "city": u.customer_city,
+        "status": u.status,
+        "customer_type": u.customer_type,
+        "acquisition_channel": u.acquisition_channel,
+        "total_spent": u.total_spent or 0.0,
+        "loyalty_points": u.loyalty_points or 0,
+        "last_purchase_date": u.last_purchase_date.isoformat() if u.last_purchase_date else None,
+        "last_purchase_summary": u.last_purchase_summary,
+    }
+
+@app.get("/admin/users")
+async def get_admin_users(request: Request):
+    """Lista los clientes (role='cliente') de la tienda del usuario autenticado."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        customers = db.query(models.User).filter(
+            models.User.owner_id == tenant_id,
+            models.User.role == "cliente",
+        ).all()
+        return [_serialize_customer(c) for c in customers]
+    finally:
+        db.close()
+
+@app.delete("/admin/users/{user_id}")
+async def delete_admin_user(user_id: str, request: Request):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        try:
+            target_uuid = uuid_lib.UUID(user_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="user_id inválido")
+        target = db.query(models.User).filter(
+            models.User.id == target_uuid,
+            models.User.owner_id == tenant_id,
+        ).first()
+        if not target:
+            raise HTTPException(status_code=404, detail="Cliente no encontrado")
+        db.delete(target)
+        db.commit()
+        return {"ok": True}
+    finally:
+        db.close()
