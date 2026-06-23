@@ -489,3 +489,74 @@ async def delete_admin_user(user_id: str, request: Request):
         return {"ok": True}
     finally:
         db.close()
+
+class ExpenseCreateRequest(BaseModel):
+    description: str = Field(min_length=1)
+    amount: float = Field(gt=0)
+    due_date: str | None = None
+    status: str = "pending"
+    category: str = "diario"
+    invoice_num: str | None = None
+    items: list | None = None
+    description_detail: str | None = None
+
+def _serialize_expense(e) -> dict:
+    return {
+        "id": str(e.id),
+        "description": e.description,
+        "amount": e.amount,
+        "due_date": e.due_date.isoformat() if e.due_date else None,
+        "status": e.status,
+        "category": e.category,
+        "invoice_num": e.invoice_num,
+        "items": e.items,
+        "description_detail": e.description_detail,
+    }
+
+async def _get_expenses(request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        expenses = db.query(models.Expense).filter(models.Expense.tenant_id == tenant_id).all()
+        return [_serialize_expense(e) for e in expenses]
+    finally:
+        db.close()
+
+@app.get("/expenses")
+async def get_expenses(request: Request):
+    return await _get_expenses(request)
+
+@app.get("/finances/expenses")
+async def get_finances_expenses(request: Request):
+    return await _get_expenses(request)
+
+@app.post("/expenses")
+async def create_expense(payload: ExpenseCreateRequest, request: Request):
+    import models, uuid as uuid_lib
+    from datetime import datetime
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        due_date = datetime.fromisoformat(payload.due_date) if payload.due_date else None
+        db_expense = models.Expense(
+            id=uuid_lib.uuid4(),
+            description=payload.description,
+            amount=payload.amount,
+            due_date=due_date,
+            status=payload.status,
+            category=payload.category,
+            tenant_id=tenant_id,
+            invoice_num=payload.invoice_num,
+            items=payload.items,
+            description_detail=payload.description_detail,
+        )
+        db.add(db_expense)
+        db.commit()
+        return _serialize_expense(db_expense)
+    finally:
+        db.close()
