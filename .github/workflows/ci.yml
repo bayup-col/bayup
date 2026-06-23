@@ -12,6 +12,9 @@ jobs:
     defaults:
       run:
         working-directory: ./backend
+    env:
+      # Valor solo para que los tests puedan importar security.py; no es un secreto real.
+      SECRET_KEY: ci-test-secret-key-not-for-production-use
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
