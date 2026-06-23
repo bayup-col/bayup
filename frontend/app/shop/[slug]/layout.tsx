@@ -7,7 +7,7 @@ interface Props {
 }
 
 async function getShopData(slug: string) {
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://exciting-optimism-production-4624.up.railway.app';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://bayup-backend.onrender.com';
   try {
     const res = await fetch(`${apiBase}/public/shop/${slug}`, { next: { revalidate: 3600 } });
     if (!res.ok) return null;

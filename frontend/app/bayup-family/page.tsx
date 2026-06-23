@@ -22,14 +22,13 @@ export default function BayupFamilyLogin() {
         setIsLoading(true);
 
         try {
-            // NÚCLEO OPERATIVO BAYUP: Sincronización con el motor Platinum Real
-            const isLocal = typeof window !== 'undefined' && 
-                (window.location.hostname === 'localhost' || 
-                 window.location.hostname === '127.0.0.1' || 
+            const isLocal = typeof window !== 'undefined' &&
+                (window.location.hostname === 'localhost' ||
+                 window.location.hostname === '127.0.0.1' ||
                  window.location.hostname.includes('192.168.'));
-            const apiBase = isLocal 
-                ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000') 
-                : "https://exciting-optimism-production-4624.up.railway.app";
+            const apiBase = isLocal
+                ? 'http://localhost:8000'
+                : (process.env.NEXT_PUBLIC_API_URL || 'https://bayup-backend.onrender.com');
             
             const response = await fetch(`${apiBase}/auth/login`, {
                 method: 'POST',
