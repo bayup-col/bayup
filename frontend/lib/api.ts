@@ -1,20 +1,19 @@
 // Centralized API Client - Dynamic Base URL detection
 const getApiBaseUrl = () => {
-    const PRODUCTION_URL = "https://exciting-optimism-production-4624.up.railway.app";
-    
+    // Fallback solo si NEXT_PUBLIC_API_URL no está configurada en el entorno de despliegue
+    const PRODUCTION_URL = "https://bayup-backend.onrender.com";
+
     if (typeof window !== 'undefined') {
         const hostname = window.location.hostname;
         // Si es localhost o IP local, USAR SIEMPRE EL MOTOR LOCAL
         if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('192.168.')) {
             return 'http://localhost:8000';
         }
-        // Si se accede vía túnel de desarrollo (tunnelmole/localtunnel), usar el backend local expuesto
-        if (hostname.includes('tunnelmole.net') || hostname.includes('loca.lt')) {
-            return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        }
-        return PRODUCTION_URL;
+        // Cualquier otro dominio (producción, túneles de desarrollo, previews de Vercel):
+        // usar la variable de entorno configurada, y solo si falta, el fallback de producción.
+        return process.env.NEXT_PUBLIC_API_URL || PRODUCTION_URL;
     }
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    return process.env.NEXT_PUBLIC_API_URL || PRODUCTION_URL;
 };
 
 interface RequestOptions extends RequestInit {
