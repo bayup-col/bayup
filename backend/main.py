@@ -235,6 +235,25 @@ async def update_product_route(product_id: str, payload: ProductCreateRequest, r
     finally:
         db.close()
 
+@app.delete("/products/{product_id}")
+async def delete_product_route(product_id: str, request: Request):
+    import crud, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        try:
+            product_uuid = uuid_lib.UUID(product_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="product_id inválido")
+        deleted = crud.delete_product(db, product_id=product_uuid, owner_id=tenant_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Producto no encontrado")
+        return {"ok": True}
+    finally:
+        db.close()
+
 class OrderItemRequest(BaseModel):
     product_variant_id: str
     quantity: int = Field(gt=0)
@@ -278,6 +297,37 @@ async def create_order_route(payload: OrderCreateRequest, request: Request):
         order_in = schemas.OrderCreate(tenant_id=tenant_id, **payload.model_dump())
         db_order = crud.create_order(db, order=order_in, customer_id=user.id, tenant_id=tenant_id)
         return schemas.Order.model_validate(db_order).model_dump(mode="json")
+    finally:
+        db.close()
+
+VALID_ORDER_STATUSES = {"pending", "processing", "completed", "cancelled"}
+
+class OrderUpdateRequest(BaseModel):
+    status: str
+
+@app.put("/orders/{order_id}")
+async def update_order_route(order_id: str, payload: OrderUpdateRequest, request: Request):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        if payload.status not in VALID_ORDER_STATUSES:
+            raise HTTPException(status_code=400, detail=f"status inválido, debe ser uno de: {sorted(VALID_ORDER_STATUSES)}")
+        try:
+            order_uuid = uuid_lib.UUID(order_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="order_id inválido")
+        db_order = db.query(models.Order).filter(
+            models.Order.id == order_uuid,
+            models.Order.tenant_id == tenant_id,
+        ).first()
+        if not db_order:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        db_order.status = payload.status
+        db.commit()
+        return {"id": str(db_order.id), "status": db_order.status}
     finally:
         db.close()
 
