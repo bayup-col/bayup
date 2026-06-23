@@ -63,6 +63,11 @@ class User(Base):
     hours = Column(String, default="Lun - Vie: 8am - 6pm") # Horario de operación
     custom_domain = Column(String, unique=True, nullable=True) # e.g. mitienda.com
     onboarding_completed = Column(Boolean, default=False) # Pilar 4: Guía de inicio
+    story = Column(String, nullable=True) # Biografia/historia de la tienda
+    country = Column(String, nullable=True, default="Colombia")
+    website = Column(String, nullable=True)
+    tax_regime = Column(String, nullable=True)
+    legal_rep = Column(String, nullable=True)
     bank_accounts = Column(JSON, default=[])
     social_links = Column(JSON, default={})
     whatsapp_lines = Column(JSON, default=[])

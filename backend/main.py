@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException, status, Request
+from fastapi import Depends, FastAPI, HTTPException, status, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import os
@@ -610,3 +610,68 @@ async def create_expense(payload: ExpenseCreateRequest, request: Request):
         return _serialize_expense(db_expense)
     finally:
         db.close()
+
+# Campos del perfil de tienda que el usuario puede editar desde Settings General
+PROFILE_EDITABLE_FIELDS = {
+    "full_name", "logo_url", "category", "story", "shop_slug",
+    "email", "phone", "address", "customer_city", "country", "hours",
+    "website", "nit", "tax_regime", "legal_rep", "social_links",
+}
+
+class UpdateProfileRequest(BaseModel):
+    full_name: str | None = None
+    logo_url: str | None = None
+    category: str | None = None
+    story: str | None = None
+    shop_slug: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    address: str | None = None
+    customer_city: str | None = None
+    country: str | None = None
+    hours: str | None = None
+    website: str | None = None
+    nit: str | None = None
+    tax_regime: str | None = None
+    legal_rep: str | None = None
+    social_links: dict | None = None
+
+@app.put("/admin/update-profile")
+async def update_profile(payload: UpdateProfileRequest, request: Request):
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        update_data = payload.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            if key in PROFILE_EDITABLE_FIELDS:
+                setattr(user, key, value)
+        db.commit()
+        return {"ok": True}
+    finally:
+        db.close()
+
+@app.post("/admin/upload-image")
+async def upload_image(request: Request, file: UploadFile = File(...)):
+    import s3_service
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        await _authenticate(request, db)
+    finally:
+        db.close()
+
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="El archivo debe ser una imagen")
+
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="La imagen no puede superar 5MB")
+
+    url = s3_service.upload_file_and_get_public_url(contents, file.content_type, file.filename or "image")
+    if not url:
+        raise HTTPException(
+            status_code=503,
+            detail="El almacenamiento de imágenes no está configurado (faltan SUPABASE_S3_ENDPOINT / S3_BUCKET_NAME).",
+        )
+    return {"url": url}

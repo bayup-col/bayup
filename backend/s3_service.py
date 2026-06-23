@@ -33,3 +33,22 @@ def create_presigned_upload_url(file_type: str) -> dict | None:
         )
     except Exception:
         return None
+
+def upload_file_and_get_public_url(file_bytes: bytes, content_type: str, filename: str) -> str | None:
+    """Sube un archivo directo a Supabase Storage y devuelve su URL publica.
+    Requiere que el bucket este configurado como publico en el dashboard de Supabase."""
+    bucket_name = os.getenv("S3_BUCKET_NAME")
+    endpoint = os.getenv("SUPABASE_S3_ENDPOINT")
+    if not bucket_name or not endpoint:
+        return None
+
+    extension = filename.rsplit(".", 1)[-1] if "." in filename else content_type.split("/")[-1]
+    object_name = f"uploads/{uuid.uuid4()}.{extension}"
+
+    try:
+        s3_client = get_s3_client()
+        s3_client.put_object(Bucket=bucket_name, Key=object_name, Body=file_bytes, ContentType=content_type)
+        base_url = endpoint.replace("/storage/v1/s3", "")
+        return f"{base_url}/storage/v1/object/public/{bucket_name}/{object_name}"
+    except ClientError:
+        return None
