@@ -701,3 +701,110 @@ async def upload_image(request: Request, file: UploadFile = File(...)):
             detail="El almacenamiento de imágenes no está configurado (faltan SUPABASE_S3_ENDPOINT / S3_BUCKET_NAME).",
         )
     return {"url": url}
+
+def _require_super_admin(user) -> None:
+    if not (getattr(user, "is_global_staff", False) or user.role == "super_admin"):
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+@app.get("/super-admin/stats")
+async def get_super_admin_stats(request: Request):
+    import models
+    from sqlalchemy import func
+    from datetime import datetime
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+
+        # Tiendas raiz: admin_tienda sin owner_id (no son sub-cuentas ni clientes)
+        companies_q = db.query(models.User).filter(
+            models.User.role == "admin_tienda",
+            models.User.owner_id.is_(None),
+        )
+        total_companies = companies_q.count()
+        active_companies = companies_q.filter(models.User.status.in_(["Activo", "active"])).count()
+
+        total_users = db.query(models.User).count()
+        total_orders = db.query(models.Order).count()
+        total_revenue = db.query(func.coalesce(func.sum(models.Order.total_price), 0.0)).scalar() or 0.0
+        total_commission = db.query(func.coalesce(func.sum(models.Order.commission_amount), 0.0)).scalar() or 0.0
+
+        now = datetime.utcnow()
+        today_start = datetime(now.year, now.month, now.day)
+        month_start = datetime(now.year, now.month, 1)
+
+        commission_today = db.query(func.coalesce(func.sum(models.Order.commission_amount), 0.0)).filter(
+            models.Order.created_at >= today_start
+        ).scalar() or 0.0
+        commission_month = db.query(func.coalesce(func.sum(models.Order.commission_amount), 0.0)).filter(
+            models.Order.created_at >= month_start
+        ).scalar() or 0.0
+        revenue_today = db.query(func.coalesce(func.sum(models.Order.total_price), 0.0)).filter(
+            models.Order.created_at >= today_start
+        ).scalar() or 0.0
+        revenue_month = db.query(func.coalesce(func.sum(models.Order.total_price), 0.0)).filter(
+            models.Order.created_at >= month_start
+        ).scalar() or 0.0
+
+        return {
+            "total_companies": total_companies,
+            "active_companies": active_companies,
+            "total_users": total_users,
+            "total_orders": total_orders,
+            "total_revenue": total_revenue,
+            "total_commission": total_commission,
+            "commission_today": commission_today,
+            "commission_month": commission_month,
+            "revenue_today": revenue_today,
+            "revenue_month": revenue_month,
+        }
+    finally:
+        db.close()
+
+@app.get("/super-admin/companies")
+async def get_super_admin_companies(request: Request):
+    import models
+    from sqlalchemy import func
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+
+        companies = db.query(models.User).filter(
+            models.User.role == "admin_tienda",
+            models.User.owner_id.is_(None),
+        ).all()
+
+        result = []
+        for c in companies:
+            total_sales = db.query(func.coalesce(func.sum(models.Order.total_price), 0.0)).filter(
+                models.Order.tenant_id == c.id
+            ).scalar() or 0.0
+            total_commission = db.query(func.coalesce(func.sum(models.Order.commission_amount), 0.0)).filter(
+                models.Order.tenant_id == c.id
+            ).scalar() or 0.0
+            total_orders = db.query(models.Order).filter(models.Order.tenant_id == c.id).count()
+            total_products = db.query(models.Product).filter(models.Product.owner_id == c.id).count()
+
+            result.append({
+                "id": str(c.id),
+                "full_name": c.full_name,
+                "email": c.email,
+                "status": c.status,
+                "created_at": c.created_at.isoformat() if c.created_at else None,
+                "phone": c.phone,
+                "city": c.customer_city,
+                "shop_slug": c.shop_slug,
+                "plan": {"name": c.plan.name, "price": c.plan.monthly_fee} if c.plan else None,
+                "stats": {
+                    "total_sales": total_sales,
+                    "total_products": total_products,
+                    "total_orders": total_orders,
+                    "total_commission": total_commission,
+                },
+            })
+        return result
+    finally:
+        db.close()

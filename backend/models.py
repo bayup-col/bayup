@@ -68,6 +68,7 @@ class User(Base):
     website = Column(String, nullable=True)
     tax_regime = Column(String, nullable=True)
     legal_rep = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
     bank_accounts = Column(JSON, default=[])
     social_links = Column(JSON, default={})
     whatsapp_lines = Column(JSON, default=[])
