@@ -376,3 +376,58 @@ async def get_public_store_products(store_id: str):
         ]
     finally:
         db.close()
+
+class PublicOrderItemRequest(BaseModel):
+    product_variant_id: str
+    quantity: int = Field(gt=0)
+    price_at_purchase: float = Field(ge=0)
+
+class PublicOrderCreateRequest(BaseModel):
+    tenant_id: str
+    total_price: float = Field(ge=0)
+    customer_name: str = Field(min_length=1)
+    customer_email: str | None = None
+    customer_phone: str | None = None
+    customer_city: str | None = None
+    shipping_address: str | None = None
+    payment_method: str = "cash"
+    source: str = "web"
+    items: list[PublicOrderItemRequest] = Field(min_length=1)
+
+@app.post("/public/orders")
+@limiter.limit("10/minute")
+def create_public_order(request: Request, payload: PublicOrderCreateRequest):
+    """Checkout publico del storefront (/shop/[slug]), sin autenticacion."""
+    import crud, schemas, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        try:
+            tenant_uuid = uuid_lib.UUID(payload.tenant_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="tenant_id inválido")
+
+        order_in = schemas.OrderCreate(
+            tenant_id=tenant_uuid,
+            total_price=payload.total_price,
+            customer_name=payload.customer_name,
+            customer_email=payload.customer_email,
+            customer_phone=payload.customer_phone,
+            customer_city=payload.customer_city,
+            shipping_address=payload.shipping_address,
+            payment_method=payload.payment_method,
+            source=payload.source,
+            items=[
+                schemas.OrderItemBase(
+                    product_variant_id=uuid_lib.UUID(item.product_variant_id),
+                    quantity=item.quantity,
+                    price_at_purchase=item.price_at_purchase,
+                ) for item in payload.items
+            ],
+        )
+        db_order = crud.create_order(db, order=order_in, customer_id=None, tenant_id=tenant_uuid)
+        return schemas.Order.model_validate(db_order).model_dump(mode="json")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="product_variant_id inválido")
+    finally:
+        db.close()
