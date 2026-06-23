@@ -289,7 +289,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </div>
 
       <UserSettingsModal isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} />
-      {isGlobalStaff && !isSuperAdminZone && <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />}
+      {/* Oculto temporalmente para el MVP — no es necesario aún, se retoma después. No borrar. */}
+      {false && isGlobalStaff && !isSuperAdminZone && <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />}
       <SupportWidget isSupportOpen={isSupportOpen} setIsSupportOpen={setIsSupportOpen} />
 
       {/* Overlay raíz — cubre TODO el viewport sin interferencias de overflow/transform */}
