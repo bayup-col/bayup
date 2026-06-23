@@ -1,25 +1,15 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
-import { Layout, Plus, X, Star, Trash2, Eye, Search, ImagePlus, CheckCircle2 } from 'lucide-react';
+import { Layout, Plus, X, Star, Trash2, Eye, Search, ImagePlus, CheckCircle2, RefreshCw } from 'lucide-react';
 
 interface Template {
   id:string; name:string; category:string; description:string;
   tags:string[]; uses:number; rating:number; isPremium:boolean; isActive:boolean; color:string;
 }
-
-const MOCK: Template[] = [
-  { id:'1', name:'StorePro Dark',     category:'Tienda',      description:'Tienda oscura premium con diseño moderno y animaciones sutiles', tags:['dark','ecommerce','premium'],  uses:24, rating:4.8, isPremium:true,  isActive:true,  color:'#001a1a' },
-  { id:'2', name:'Moda Minimal',      category:'Moda',        description:'Diseño limpio y elegante para marcas de moda y lifestyle',      tags:['fashion','minimal','clean'],   uses:18, rating:4.6, isPremium:false, isActive:true,  color:'#1a0a2e' },
-  { id:'3', name:'RestaurantX',       category:'Restaurante', description:'Menú digital interactivo con sistema de reservas integrado',     tags:['food','menu','reservas'],      uses:31, rating:4.9, isPremium:true,  isActive:true,  color:'#1a0a00' },
-  { id:'4', name:'TechCorp',          category:'Tecnología',  description:'Catálogo de productos tech con filtros y búsqueda avanzada',    tags:['tech','catalog','filters'],   uses:12, rating:4.3, isPremium:false, isActive:true,  color:'#001020' },
-  { id:'5', name:'ServicePro',        category:'Servicios',   description:'Página de servicios con calendario de citas integrado',         tags:['services','booking','B2B'],   uses:9,  rating:4.1, isPremium:false, isActive:false, color:'#0a1a0a' },
-  { id:'6', name:'Portfolio Creator', category:'Portfolio',   description:'Portafolio visual para creativos y freelancers',                tags:['portfolio','creative','art'],  uses:7,  rating:4.5, isPremium:true,  isActive:true,  color:'#1a001a' },
-  { id:'7', name:'Fashion Luxe',      category:'Moda',        description:'Alta moda con animaciones premium y experiencia de lujo',       tags:['luxury','fashion','animate'], uses:15, rating:4.7, isPremium:true,  isActive:true,  color:'#1a0510' },
-  { id:'8', name:'Blog Magazine',     category:'Blog',        description:'Blog estilo revista con artículos destacados y categorías',     tags:['blog','magazine','content'],  uses:5,  rating:3.9, isPremium:false, isActive:true,  color:'#0a0a1a' },
-];
 
 const CATS = ['Todos','Tienda','Moda','Restaurante','Tecnología','Servicios','Portfolio','Blog'];
 
@@ -45,14 +35,29 @@ function TemplateMock({ color, name }: { color:string; name:string }) {
 }
 
 export default function WebTemplatesPage() {
-  const { showToast } = useToast();
-  const [templates,    setTemplates]    = useState<Template[]>(MOCK);
+  const { token }      = useAuth();
+  const { showToast }  = useToast();
+  const [templates,    setTemplates]    = useState<Template[]>([]);
+  const [loading,       setLoading]      = useState(false);
   const [search,       setSearch]       = useState('');
   const [filterCat,    setFilterCat]    = useState('Todos');
   const [filterType,   setFilterType]   = useState<'todos'|'free'|'premium'>('todos');
   const [selected,     setSelected]     = useState<Template|null>(null);
   const [showNew,      setShowNew]      = useState(false);
   const [newForm,      setNewForm]      = useState({ name:'', category:'', description:'', tags:'' });
+
+  const load = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/web-templates`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) { const d = await res.json(); setTemplates(Array.isArray(d) ? d : []); }
+    } catch {}
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => templates.filter(t => {
     const q = search.toLowerCase();
@@ -61,25 +66,62 @@ export default function WebTemplatesPage() {
       && (filterType==='todos' || (filterType==='premium' ? t.isPremium : !t.isPremium));
   }), [templates, search, filterCat, filterType]);
 
-  const toggleActive = (t: Template) => {
-    setTemplates(p => p.map(x => x.id===t.id ? {...x,isActive:!x.isActive} : x));
-    setSelected(s => s?.id===t.id ? {...s,isActive:!s.isActive} : s);
-    showToast(t.isActive ? 'Plantilla desactivada' : 'Plantilla activada','success');
+  const toggleActive = async (t: Template) => {
+    if (!token) return;
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/web-templates/${t.id}/toggle`, {
+        method: 'PUT', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const upd = await res.json();
+        setTemplates(p => p.map(x => x.id===t.id ? upd : x));
+        setSelected(s => s?.id===t.id ? upd : s);
+        showToast(upd.isActive ? 'Plantilla activada' : 'Plantilla desactivada','success');
+      }
+    } catch {
+      showToast('No se pudo actualizar la plantilla','error');
+    }
   };
 
-  const del = (t: Template) => {
-    setTemplates(p => p.filter(x => x.id!==t.id));
-    setSelected(null);
-    showToast('Plantilla eliminada','success');
+  const del = async (t: Template) => {
+    if (!token) return;
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/web-templates/${t.id}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setTemplates(p => p.filter(x => x.id!==t.id));
+        setSelected(null);
+        showToast('Plantilla eliminada','success');
+      }
+    } catch {
+      showToast('No se pudo eliminar la plantilla','error');
+    }
   };
 
-  const create = () => {
-    if (!newForm.name) return;
-    const t: Template = { id:Date.now().toString(), name:newForm.name, category:newForm.category||'General', description:newForm.description, tags:newForm.tags.split(',').map(s=>s.trim()).filter(Boolean), uses:0, rating:0, isPremium:false, isActive:true, color:'#0f1a1a' };
-    setTemplates(p => [t, ...p]);
-    setShowNew(false);
-    setNewForm({name:'',category:'',description:'',tags:''});
-    showToast('Plantilla creada ✓','success');
+  const create = async () => {
+    if (!newForm.name || !token) return;
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/web-templates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(newForm),
+      });
+      if (res.ok) {
+        const t = await res.json();
+        setTemplates(p => [t, ...p]);
+        setShowNew(false);
+        setNewForm({name:'',category:'',description:'',tags:''});
+        showToast('Plantilla creada ✓','success');
+      } else {
+        showToast('No se pudo crear la plantilla','error');
+      }
+    } catch {
+      showToast('No se pudo crear la plantilla','error');
+    }
   };
 
   return (
@@ -90,10 +132,16 @@ export default function WebTemplatesPage() {
           <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.25em] mb-2">Biblioteca · Templates</p>
           <h1 className="text-4xl font-black text-white tracking-tight">Plantillas Web</h1>
         </div>
-        <button onClick={() => setShowNew(true)}
-          className="h-9 px-5 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 text-white/70 hover:text-white font-bold text-[11px] flex items-center gap-2 transition-all">
-          <Plus size={14}/> Nueva plantilla
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={load}
+            className="h-9 w-9 rounded-xl border border-white/8 bg-white/3 hover:bg-white/8 flex items-center justify-center text-white/30 hover:text-white/70 transition-all">
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''}/>
+          </button>
+          <button onClick={() => setShowNew(true)}
+            className="h-9 px-5 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 text-white/70 hover:text-white font-bold text-[11px] flex items-center gap-2 transition-all">
+            <Plus size={14}/> Nueva plantilla
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -139,6 +187,11 @@ export default function WebTemplatesPage() {
       </div>
 
       {/* Grid */}
+      {filtered.length === 0 && (
+        <div className="rounded-2xl border border-white/6 bg-white/[0.02] py-14 text-center text-[10px] text-white/20">
+          {templates.length === 0 ? 'Aún no hay plantillas creadas' : 'Sin resultados para el filtro aplicado'}
+        </div>
+      )}
       <div className="grid grid-cols-4 gap-4">
         {filtered.map(t => (
           <motion.div key={t.id} whileHover={{ y:-3 }} transition={{ duration:0.15 }}

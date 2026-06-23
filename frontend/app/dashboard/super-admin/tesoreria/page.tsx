@@ -1,52 +1,55 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { DollarSign, ArrowUpRight, TrendingUp, Download, ChevronRight } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
 
 const fmtCOP = (n: number) => `$${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(n || 0)}`;
 
-const MONTHLY = [
-  { month: 'Ene', rev: 12500000, com: 375000,  orders: 180 },
-  { month: 'Feb', rev: 14800000, com: 444000,  orders: 210 },
-  { month: 'Mar', rev: 18200000, com: 546000,  orders: 265 },
-  { month: 'Abr', rev: 16400000, com: 492000,  orders: 240 },
-  { month: 'May', rev: 22100000, com: 663000,  orders: 310 },
-  { month: 'Jun', rev: 28700000, com: 861000,  orders: 398 },
-  { month: 'Jul', rev: 31200000, com: 936000,  orders: 430 },
-  { month: 'Ago', rev: 29800000, com: 894000,  orders: 415 },
-  { month: 'Sep', rev: 34500000, com: 1035000, orders: 480 },
-  { month: 'Oct', rev: 38900000, com: 1167000, orders: 530 },
-  { month: 'Nov', rev: 45200000, com: 1356000, orders: 610 },
-  { month: 'Dic', rev: 52800000, com: 1584000, orders: 720 },
-];
+interface MonthlyPoint { month: string; rev: number; com: number; orders: number; }
+interface CompanyRow { name: string; rev: number; orders: number; plan: string; pct: number; }
+interface TxnRow { id: string; company: string; amount: number; date: string | null; }
 
-const COMPANIES = [
-  { name: 'Electrónicos Futuro', rev: 74000000, orders: 1240, plan: 'Empresa', pct: 38 },
-  { name: 'TechStore Colombia',  rev: 52000000, orders: 890,  plan: 'Empresa', pct: 27 },
-  { name: 'Distribuidora Omega', rev: 31000000, orders: 520,  plan: 'Empresa', pct: 16 },
-  { name: 'Moda Express SAS',    rev: 18500000, orders: 340,  plan: 'Pro',     pct: 10 },
-  { name: 'Boutique Eleganza',   rev: 9800000,  orders: 210,  plan: 'Pro',     pct:  5 },
-  { name: 'Papelería Creativa',  rev: 7300000,  orders: 142,  plan: 'Pro',     pct:  4 },
-];
-
-const TRANSACTIONS = [
-  { id:'TXN-8821', company:'Electrónicos Futuro', amount:2800000, date:'Hoy 14:32' },
-  { id:'TXN-8820', company:'TechStore Colombia',  amount:1450000, date:'Hoy 12:10' },
-  { id:'TXN-8819', company:'Moda Express SAS',    amount:380000,  date:'Ayer 18:45' },
-  { id:'TXN-8818', company:'Distribuidora Omega', amount:5200000, date:'Ayer 11:20' },
-  { id:'TXN-8817', company:'Papelería Creativa',  amount:125000,  date:'Jun 18'    },
-];
+const EMPTY_MONTHLY: MonthlyPoint[] = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+  .map(month => ({ month, rev: 0, com: 0, orders: 0 }));
 
 export default function TesoreriaPage() {
+  const { token } = useAuth();
   const [period, setPeriod] = useState<'dia'|'semana'|'mes'|'año'>('mes');
+  const [monthly, setMonthly] = useState<MonthlyPoint[]>(EMPTY_MONTHLY);
+  const [companies, setCompanies] = useState<CompanyRow[]>([]);
+  const [transactions, setTransactions] = useState<TxnRow[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/treasury`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const d = await res.json();
+        if (d?.monthly?.length) setMonthly(d.monthly);
+        setCompanies(d?.companies || []);
+        setTransactions(d?.transactions || []);
+      }
+    } catch {}
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const MONTHLY = monthly;
+  const COMPANIES = companies;
+  const TRANSACTIONS = transactions;
 
   const totalRev = MONTHLY.reduce((a,m) => a + m.rev, 0);
   const totalCom = MONTHLY.reduce((a,m) => a + m.com, 0);
   const cur = MONTHLY[MONTHLY.length-1];
   const prev= MONTHLY[MONTHLY.length-2];
-  const growth = Math.round(((cur.rev - prev.rev)/prev.rev)*100);
-  const maxRev = Math.max(...MONTHLY.map(m => m.rev));
+  const growth = prev?.rev ? Math.round(((cur.rev - prev.rev)/prev.rev)*100) : 0;
+  const maxRev = Math.max(...MONTHLY.map(m => m.rev), 1);
 
   const periodData: Record<string, any> = {
     dia:    { rev: cur.rev/30,   com: cur.com/30,   label: 'hoy' },
@@ -83,8 +86,8 @@ export default function TesoreriaPage() {
         {[
           { label: `Ingresos ${pd.label}`,   value: fmtCOP(pd.rev),  delta: growth,  color: '#10b981' },
           { label: `Comisión ${pd.label}`,   value: fmtCOP(pd.com),  delta: growth,  color: '#00f2ff' },
-          { label: 'Acumulado anual',         value: fmtCOP(totalRev),delta: 34,      color: '#7c3aed' },
-          { label: 'Comisión anual',          value: fmtCOP(totalCom),delta: 34,      color: '#f59e0b' },
+          { label: 'Acumulado anual',         value: fmtCOP(totalRev),delta: growth,  color: '#7c3aed' },
+          { label: 'Comisión anual',          value: fmtCOP(totalCom),delta: growth,  color: '#f59e0b' },
         ].map(k => (
           <div key={k.label} className="rounded-2xl border border-white/6 bg-white/[0.02] p-5">
             <div className="flex items-center justify-between mb-4">
@@ -142,6 +145,9 @@ export default function TesoreriaPage() {
             <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">Por empresa</p>
           </div>
           <div className="divide-y divide-white/[0.04]">
+            {COMPANIES.length === 0 && (
+              <div className="px-5 py-8 text-center text-[10px] text-white/20">Aún no hay ventas registradas</div>
+            )}
             {COMPANIES.map((c,i) => (
               <div key={c.name} className="px-5 py-3.5 flex items-center gap-3 hover:bg-white/[0.025] transition-all">
                 <span className="text-[11px] font-black text-white/15 w-5 shrink-0">#{i+1}</span>
@@ -170,6 +176,9 @@ export default function TesoreriaPage() {
             <span className="text-[8px] font-black px-2 py-1 rounded-full bg-[#10b981]/8 border border-[#10b981]/15 text-[#10b981]/50 uppercase tracking-widest">Live</span>
           </div>
           <div className="divide-y divide-white/[0.04]">
+            {TRANSACTIONS.length === 0 && (
+              <div className="px-5 py-8 text-center text-[10px] text-white/20">Aún no hay transacciones</div>
+            )}
             {TRANSACTIONS.map(tx => (
               <div key={tx.id} className="px-5 py-3.5 flex items-center gap-3 hover:bg-white/[0.025] transition-all">
                 <div className="h-9 w-9 rounded-xl bg-[#10b981]/8 border border-[#10b981]/12 flex items-center justify-center shrink-0">
@@ -179,7 +188,7 @@ export default function TesoreriaPage() {
                   <p className="text-[11px] font-semibold text-white/60 truncate">{tx.company}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[9px] font-mono text-white/15">{tx.id}</span>
-                    <span className="text-[9px] text-white/15">{tx.date}</span>
+                    <span className="text-[9px] text-white/15">{tx.date ? new Date(tx.date).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
                   </div>
                 </div>
                 <p className="text-[12px] font-black text-[#10b981]/70 shrink-0">+{fmtCOP(tx.amount)}</p>

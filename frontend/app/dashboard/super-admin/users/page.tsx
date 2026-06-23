@@ -21,23 +21,10 @@ const ROLE_CFG: Record<string, { label: string; color: string }> = {
 
 interface AppUser { id:string; full_name:string; email:string; role:string; status:string; created_at:string; company?:string; }
 
-const MOCK: AppUser[] = [
-  { id:'1', full_name:'Admin Bayup',        email:'admin@bayup.com',       role:'SUPER_ADMIN',  status:'Activo', created_at:'2024-01-01', company:'Bayup SAS' },
-  { id:'2', full_name:'Carlos Martínez',    email:'carlos@modaexpress.co', role:'admin_tienda', status:'Activo', created_at:'2024-03-12', company:'Moda Express SAS' },
-  { id:'3', full_name:'Ana Gómez',          email:'ana@techstore.co',      role:'admin_tienda', status:'Activo', created_at:'2024-05-01', company:'TechStore Colombia' },
-  { id:'4', full_name:'Luis Herrera',       email:'luis@ladelicia.co',     role:'admin_tienda', status:'Activo', created_at:'2024-07-20', company:'Panadería La Delicia' },
-  { id:'5', full_name:'María Torres',       email:'maria@vendedor.co',     role:'vendedor',     status:'Activo', created_at:'2024-09-10', company:'Moda Express SAS' },
-  { id:'6', full_name:'Pedro Sánchez',      email:'pedro@cliente.co',      role:'cliente',      status:'Activo', created_at:'2024-10-15' },
-  { id:'7', full_name:'Sandra López',       email:'sandra@elmartillo.co',  role:'admin_tienda', status:'Suspendido', created_at:'2024-01-10', company:'Ferretería El Martillo' },
-  { id:'8', full_name:'Roberto Díaz',       email:'roberto@papeleria.co',  role:'admin_tienda', status:'Activo', created_at:'2024-11-03', company:'Papelería Creativa' },
-  { id:'9', full_name:'Valentina Ruiz',     email:'valentina@cliente.co',  role:'cliente',      status:'Activo', created_at:'2025-01-20' },
-  { id:'10',full_name:'Jorge Morales',      email:'jorge@omega.co',        role:'vendedor',     status:'Activo', created_at:'2025-02-15', company:'Distribuidora Omega' },
-];
-
 export default function UsersPage() {
   const { token }     = useAuth();
   const { showToast } = useToast();
-  const [users,      setUsers]     = useState<AppUser[]>(MOCK);
+  const [users,      setUsers]     = useState<AppUser[]>([]);
   const [loading,    setLoading]   = useState(false);
   const [search,     setSearch]    = useState('');
   const [filterRole, setFilterRole]= useState('');
@@ -49,7 +36,7 @@ export default function UsersPage() {
     try {
       const base = process.env.NEXT_PUBLIC_API_URL||'http://localhost:8000';
       const res  = await fetch(`${base}/super-admin/users`, { headers:{ Authorization:`Bearer ${token}` } });
-      if (res.ok) { const d = await res.json(); if (d?.length) setUsers(d); }
+      if (res.ok) { const d = await res.json(); setUsers(Array.isArray(d) ? d : []); }
     } catch {}
     setLoading(false);
   }, [token]);
@@ -131,6 +118,11 @@ export default function UsersPage() {
         </div>
 
         <div className="divide-y divide-white/[0.04]">
+          {filtered.length === 0 && (
+            <div className="px-5 py-10 text-center text-[10px] text-white/20">
+              {users.length === 0 ? 'Aún no hay usuarios registrados' : 'Sin resultados para el filtro aplicado'}
+            </div>
+          )}
           {filtered.map(u => {
             const rc = ROLE_CFG[u.role] || ROLE_CFG['cliente'];
             const isActive = u.status === 'Activo';

@@ -808,3 +808,433 @@ async def get_super_admin_companies(request: Request):
         return result
     finally:
         db.close()
+
+def _last_n_months(n: int = 12):
+    from datetime import datetime
+    now = datetime.utcnow()
+    year, month = now.year, now.month
+    out = []
+    for _ in range(n):
+        out.append((year, month))
+        month -= 1
+        if month == 0:
+            month, year = 12, year - 1
+    return list(reversed(out))
+
+_MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+
+@app.get("/super-admin/treasury")
+async def get_super_admin_treasury(request: Request):
+    """Tesoreria global: ingresos/comision por mes, ranking de tiendas, ultimas transacciones."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+
+        orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
+        tenants = {
+            t.id: t for t in db.query(models.User).filter(
+                models.User.role == "admin_tienda", models.User.owner_id.is_(None)
+            ).all()
+        }
+
+        # --- Serie mensual (ultimos 12 meses) ---
+        months = _last_n_months(12)
+        buckets = {ym: {"rev": 0.0, "com": 0.0, "orders": 0} for ym in months}
+        for o in orders:
+            if not o.created_at:
+                continue
+            ym = (o.created_at.year, o.created_at.month)
+            if ym in buckets:
+                buckets[ym]["rev"] += o.total_price or 0.0
+                buckets[ym]["com"] += o.commission_amount or 0.0
+                buckets[ym]["orders"] += 1
+        monthly = [
+            {"month": _MONTH_LABELS[m - 1], "rev": buckets[(y, m)]["rev"], "com": buckets[(y, m)]["com"], "orders": buckets[(y, m)]["orders"]}
+            for (y, m) in months
+        ]
+
+        # --- Ranking de tiendas por ingresos ---
+        per_tenant: dict = {}
+        for o in orders:
+            if not o.tenant_id:
+                continue
+            entry = per_tenant.setdefault(o.tenant_id, {"rev": 0.0, "orders": 0})
+            entry["rev"] += o.total_price or 0.0
+            entry["orders"] += 1
+        total_rev_all = sum(e["rev"] for e in per_tenant.values()) or 1.0
+        companies_ranking = []
+        for tenant_id, e in per_tenant.items():
+            t = tenants.get(tenant_id)
+            companies_ranking.append({
+                "name": t.full_name if t else "Tienda eliminada",
+                "rev": e["rev"],
+                "orders": e["orders"],
+                "plan": t.plan.name if (t and t.plan) else "Básico",
+                "pct": round((e["rev"] / total_rev_all) * 100),
+            })
+        companies_ranking.sort(key=lambda c: c["rev"], reverse=True)
+
+        # --- Ultimas transacciones ---
+        transactions = []
+        for o in orders[:10]:
+            t = tenants.get(o.tenant_id)
+            transactions.append({
+                "id": f"TXN-{str(o.id)[:8].upper()}",
+                "company": t.full_name if t else "Tienda eliminada",
+                "amount": o.total_price or 0.0,
+                "date": o.created_at.isoformat() if o.created_at else None,
+            })
+
+        return {"monthly": monthly, "companies": companies_ranking[:10], "transactions": transactions}
+    finally:
+        db.close()
+
+_SECTOR_COLORS = ["#00f2ff", "#7c3aed", "#10b981", "#f59e0b", "#6b7280", "#ec4899", "#3b82f6"]
+
+@app.get("/super-admin/reports")
+async def get_super_admin_reports(request: Request, period: str = "mes"):
+    """Analitica global: KPIs por periodo, top empresas, sectores, actividad por hora."""
+    import models
+    from datetime import datetime, timedelta
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+
+        now = datetime.utcnow()
+        span_days = {"dia": 1, "semana": 7, "mes": 30, "año": 365}.get(period, 30)
+        start = now - timedelta(days=span_days)
+        prev_start = now - timedelta(days=span_days * 2)
+
+        orders = db.query(models.Order).filter(models.Order.created_at >= start).all()
+        prev_orders = db.query(models.Order).filter(
+            models.Order.created_at >= prev_start, models.Order.created_at < start
+        ).all()
+        tenants = {
+            t.id: t for t in db.query(models.User).filter(
+                models.User.role == "admin_tienda", models.User.owner_id.is_(None)
+            ).all()
+        }
+
+        rev = sum(o.total_price or 0.0 for o in orders)
+        com = sum(o.commission_amount or 0.0 for o in orders)
+        prev_rev = sum(o.total_price or 0.0 for o in prev_orders)
+        delta = round(((rev - prev_rev) / prev_rev) * 100) if prev_rev else 0
+
+        new_companies = db.query(models.User).filter(
+            models.User.role == "admin_tienda", models.User.owner_id.is_(None),
+            models.User.created_at >= start,
+        ).count()
+        new_users = len({o.customer_email for o in orders if o.customer_email})
+
+        # --- Top empresas por ingresos en el periodo ---
+        per_tenant: dict = {}
+        for o in orders:
+            if not o.tenant_id:
+                continue
+            entry = per_tenant.setdefault(o.tenant_id, 0.0)
+            per_tenant[o.tenant_id] = entry + (o.total_price or 0.0)
+        total_rev = sum(per_tenant.values()) or 1.0
+        top = []
+        for tenant_id, tenant_rev in per_tenant.items():
+            t = tenants.get(tenant_id)
+            top.append({
+                "name": t.full_name if t else "Tienda eliminada",
+                "rev": tenant_rev,
+                "pct": round((tenant_rev / total_rev) * 100),
+                "plan": t.plan.name if (t and t.plan) else "Básico",
+            })
+        top.sort(key=lambda c: c["rev"], reverse=True)
+        top = top[:6]
+
+        # --- Sectores (categoria de tienda) ponderado por ingresos ---
+        per_sector: dict = {}
+        for o in orders:
+            t = tenants.get(o.tenant_id)
+            sector = (t.category if t and t.category else "Otros")
+            per_sector[sector] = per_sector.get(sector, 0.0) + (o.total_price or 0.0)
+        sectors = []
+        for i, (label, sector_rev) in enumerate(sorted(per_sector.items(), key=lambda x: x[1], reverse=True)):
+            sectors.append({
+                "label": label,
+                "pct": round((sector_rev / total_rev) * 100),
+                "color": _SECTOR_COLORS[i % len(_SECTOR_COLORS)],
+            })
+
+        # --- Actividad por hora (24h, normalizada 0-1) ---
+        hour_counts = [0] * 24
+        for o in orders:
+            if o.created_at:
+                hour_counts[o.created_at.hour] += 1
+        max_hour = max(hour_counts) or 1
+        activity = [{"h": h, "v": round(c / max_hour, 3)} for h, c in enumerate(hour_counts)]
+
+        return {
+            "kpis": {"rev": rev, "com": com, "orders": len(orders), "users": new_users, "companies": new_companies, "delta": delta},
+            "top": top,
+            "sectors": sectors,
+            "activity": activity,
+        }
+    finally:
+        db.close()
+
+@app.get("/super-admin/users")
+async def get_super_admin_users(request: Request):
+    """Lista global de personas en el ecosistema: staff, dueños de tienda, vendedores y clientes."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+
+        all_users = db.query(models.User).all()
+        tenants_by_id = {u.id: u for u in all_users if u.role == "admin_tienda" and u.owner_id is None}
+
+        result = []
+        for u in all_users:
+            is_staff = bool(u.is_global_staff) or u.role == "super_admin"
+            if is_staff:
+                role_label, company = "SUPER_ADMIN", "Bayup"
+            elif u.role == "admin_tienda" and u.owner_id is None:
+                role_label, company = "admin_tienda", u.full_name
+            elif u.role == "cliente":
+                role_label = "cliente"
+                owner = tenants_by_id.get(u.owner_id)
+                company = owner.full_name if owner else None
+            else:
+                continue
+            result.append({
+                "id": str(u.id),
+                "full_name": u.full_name,
+                "email": u.email,
+                "role": role_label,
+                "status": u.status or "Activo",
+                "created_at": u.created_at.isoformat() if u.created_at else None,
+                "company": company,
+            })
+
+        sellers = db.query(models.Seller).all()
+        for s in sellers:
+            owner = tenants_by_id.get(s.tenant_id)
+            result.append({
+                "id": str(s.id),
+                "full_name": s.name,
+                "email": None,
+                "role": "vendedor",
+                "status": "Activo",
+                "created_at": None,
+                "company": owner.full_name if owner else None,
+            })
+
+        return result
+    finally:
+        db.close()
+
+def _serialize_ticket(t, tenant=None):
+    return {
+        "id": f"TKT-{str(t.id)[:8].upper()}",
+        "title": t.title,
+        "company": tenant.full_name if tenant else "Tienda eliminada",
+        "userEmail": tenant.email if tenant else None,
+        "priority": t.priority,
+        "status": t.status,
+        "category": t.category,
+        "createdAt": t.created_at.isoformat() if t.created_at else None,
+        "messages": t.messages or [],
+    }
+
+def _find_ticket_by_short_id(db, models, short_id: str):
+    target = short_id.replace("TKT-", "").upper()
+    for t in db.query(models.SupportTicket).all():
+        if str(t.id)[:8].upper() == target:
+            return t
+    return None
+
+@app.get("/super-admin/support/tickets")
+async def get_super_admin_tickets(request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        tickets = db.query(models.SupportTicket).order_by(models.SupportTicket.created_at.desc()).all()
+        tenants = {t.id: t for t in db.query(models.User).all()}
+        return [_serialize_ticket(t, tenants.get(t.tenant_id)) for t in tickets]
+    finally:
+        db.close()
+
+@app.post("/super-admin/support/tickets/{ticket_id}/reply")
+async def reply_super_admin_ticket(ticket_id: str, payload: dict, request: Request):
+    import models
+    from datetime import datetime
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        ticket = _find_ticket_by_short_id(db, models, ticket_id)
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket no encontrado")
+        text = (payload.get("text") or "").strip()
+        if not text:
+            raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío")
+        msgs = list(ticket.messages or [])
+        msgs.append({"sender": "soporte", "text": text, "time": datetime.utcnow().strftime("%H:%M")})
+        ticket.messages = msgs
+        if ticket.status == "Abierto":
+            ticket.status = "En proceso"
+        db.commit()
+        tenant = db.query(models.User).filter(models.User.id == ticket.tenant_id).first()
+        return _serialize_ticket(ticket, tenant)
+    finally:
+        db.close()
+
+@app.post("/super-admin/support/tickets/{ticket_id}/resolve")
+async def resolve_super_admin_ticket(ticket_id: str, request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        ticket = _find_ticket_by_short_id(db, models, ticket_id)
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket no encontrado")
+        ticket.status = "Resuelto"
+        db.commit()
+        tenant = db.query(models.User).filter(models.User.id == ticket.tenant_id).first()
+        return _serialize_ticket(ticket, tenant)
+    finally:
+        db.close()
+
+@app.post("/support/tickets")
+async def create_support_ticket(payload: dict, request: Request):
+    """Crea un ticket de soporte para la tienda autenticada."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        title = (payload.get("title") or "").strip()
+        if not title:
+            raise HTTPException(status_code=400, detail="El título es obligatorio")
+        text = (payload.get("text") or "").strip()
+        from datetime import datetime
+        ticket = models.SupportTicket(
+            tenant_id=tenant_id,
+            title=title,
+            category=payload.get("category") or "General",
+            priority=payload.get("priority") or "Media",
+            status="Abierto",
+            messages=[{"sender": "usuario", "text": text, "time": datetime.utcnow().strftime("%H:%M")}] if text else [],
+        )
+        db.add(ticket)
+        db.commit()
+        return _serialize_ticket(ticket, db.query(models.User).filter(models.User.id == tenant_id).first())
+    finally:
+        db.close()
+
+def _serialize_template(t):
+    return {
+        "id": str(t.id),
+        "name": t.name,
+        "category": t.category or "General",
+        "description": t.description or "",
+        "tags": t.tags or [],
+        "uses": t.uses or 0,
+        "rating": t.rating or 0.0,
+        "isPremium": bool(t.is_premium),
+        "isActive": bool(t.is_active),
+        "color": t.color or "#0f1a1a",
+    }
+
+@app.get("/super-admin/web-templates")
+async def get_super_admin_web_templates(request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        templates = db.query(models.WebTemplate).order_by(models.WebTemplate.created_at.desc()).all()
+        return [_serialize_template(t) for t in templates]
+    finally:
+        db.close()
+
+@app.post("/super-admin/web-templates")
+async def create_super_admin_web_template(payload: dict, request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        name = (payload.get("name") or "").strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="El nombre es obligatorio")
+        tags = payload.get("tags")
+        if isinstance(tags, str):
+            tags = [s.strip() for s in tags.split(",") if s.strip()]
+        template = models.WebTemplate(
+            name=name,
+            category=payload.get("category") or "General",
+            description=payload.get("description") or "",
+            tags=tags or [],
+            is_active=True,
+            is_premium=False,
+            color=payload.get("color") or "#0f1a1a",
+        )
+        db.add(template)
+        db.commit()
+        return _serialize_template(template)
+    finally:
+        db.close()
+
+@app.put("/super-admin/web-templates/{template_id}/toggle")
+async def toggle_super_admin_web_template(template_id: str, request: Request):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        try:
+            target_uuid = uuid_lib.UUID(template_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="template_id inválido")
+        template = db.query(models.WebTemplate).filter(models.WebTemplate.id == target_uuid).first()
+        if not template:
+            raise HTTPException(status_code=404, detail="Plantilla no encontrada")
+        template.is_active = not template.is_active
+        db.commit()
+        return _serialize_template(template)
+    finally:
+        db.close()
+
+@app.delete("/super-admin/web-templates/{template_id}")
+async def delete_super_admin_web_template(template_id: str, request: Request):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        try:
+            target_uuid = uuid_lib.UUID(template_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="template_id inválido")
+        template = db.query(models.WebTemplate).filter(models.WebTemplate.id == target_uuid).first()
+        if not template:
+            raise HTTPException(status_code=404, detail="Plantilla no encontrada")
+        db.delete(template)
+        db.commit()
+        return {"ok": True}
+    finally:
+        db.close()

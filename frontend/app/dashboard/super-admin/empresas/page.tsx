@@ -25,17 +25,6 @@ interface Company {
   stats?: { total_sales: number; total_products: number; total_orders: number };
 }
 
-const MOCK: Company[] = [
-  { id:'1', full_name:'Moda Express SAS',      email:'info@modaexpress.co',   status:'Activo',     created_at:'2024-03-12', phone:'+57 300 123 4567', city:'Bogotá',       shop_slug:'moda-express',         plan:{name:'Pro',     price:149000}, stats:{total_sales:18500000, total_products:124, total_orders:340} },
-  { id:'2', full_name:'TechStore Colombia',    email:'ventas@techstore.co',   status:'Activo',     created_at:'2024-05-01', phone:'+57 315 987 6543', city:'Medellín',     shop_slug:'techstore-co',          plan:{name:'Empresa', price:299000}, stats:{total_sales:52000000, total_products:87,  total_orders:890} },
-  { id:'3', full_name:'Panadería La Delicia',  email:'pedidos@ladelicia.co',  status:'Activo',     created_at:'2024-07-20', city:'Cali',              shop_slug:'la-delicia',           plan:{name:'Free'},              stats:{total_sales:1200000,  total_products:22,  total_orders:65}  },
-  { id:'4', full_name:'Ferretería El Martillo',email:'ferrreteria@elm.co',    status:'Suspendido', created_at:'2024-01-10', city:'Barranquilla',      shop_slug:'el-martillo',           plan:{name:'Básico',price:79000},  stats:{total_sales:0,         total_products:310, total_orders:0}   },
-  { id:'5', full_name:'Papelería Creativa',    email:'hola@papeleria.co',     status:'Activo',     created_at:'2024-11-03', city:'Bucaramanga',       shop_slug:'papeleria-creativa',    plan:{name:'Pro',     price:149000}, stats:{total_sales:7300000,  total_products:58,  total_orders:142} },
-  { id:'6', full_name:'Distribuidora Omega',   email:'omega@distribuidora.co',status:'Activo',     created_at:'2025-01-15', city:'Pereira',           shop_slug:'distribuidora-omega',   plan:{name:'Empresa', price:299000}, stats:{total_sales:31000000, total_products:440, total_orders:520} },
-  { id:'7', full_name:'Boutique Eleganza',     email:'eleganza@moda.co',      status:'Activo',     created_at:'2025-03-08', city:'Cartagena',         shop_slug:'eleganza-boutique',     plan:{name:'Pro',     price:149000}, stats:{total_sales:9800000,  total_products:63,  total_orders:210} },
-  { id:'8', full_name:'Electrónicos Futuro',   email:'futuro@electr.co',      status:'Activo',     created_at:'2025-05-20', city:'Bogotá',            shop_slug:'electronicos-futuro',   plan:{name:'Empresa', price:299000}, stats:{total_sales:74000000, total_products:198, total_orders:1240}},
-];
-
 function Avatar({ name, size = 8 }: { name: string; size?: number }) {
   const colors = ['#004d4d','#1e1b4b','#14532d','#7c2d12','#1e3a5f'];
   const idx = name.charCodeAt(0) % colors.length;
@@ -50,7 +39,7 @@ function Avatar({ name, size = 8 }: { name: string; size?: number }) {
 export default function EmpresasPage() {
   const { token }     = useAuth();
   const { showToast } = useToast();
-  const [companies,  setCompanies]  = useState<Company[]>(MOCK);
+  const [companies,  setCompanies]  = useState<Company[]>([]);
   const [loading,    setLoading]    = useState(false);
   const [search,     setSearch]     = useState('');
   const [filterPlan, setFilterPlan] = useState('');
@@ -62,7 +51,7 @@ export default function EmpresasPage() {
     try {
       const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const res  = await fetch(`${base}/super-admin/companies`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) { const d = await res.json(); if (d?.length) setCompanies(d); }
+      if (res.ok) { const d = await res.json(); setCompanies(Array.isArray(d) ? d : []); }
     } catch {}
     setLoading(false);
   }, [token]);
@@ -151,6 +140,11 @@ export default function EmpresasPage() {
 
         {/* Filas */}
         <div className="divide-y divide-white/[0.04]">
+          {filtered.length === 0 && (
+            <div className="px-5 py-10 text-center text-[10px] text-white/20">
+              {companies.length === 0 ? 'Aún no hay empresas registradas' : 'Sin resultados para el filtro aplicado'}
+            </div>
+          )}
           {filtered.map(c => {
             const planColor = PLAN_COLORS[c.plan?.name||'Free']||'#6b7280';
             const isActive  = c.status === 'Activo';

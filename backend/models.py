@@ -370,6 +370,12 @@ class WebTemplate(Base):
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     name = Column(String, index=True)
     description = Column(String)
+    category = Column(String, default="General")
+    tags = Column(JSON, default=list)
+    uses = Column(Integer, default=0)
+    rating = Column(Float, default=0.0)
+    is_premium = Column(Boolean, default=False)
+    color = Column(String, default="#0f1a1a")
     preview_url = Column(String, nullable=True)
     schema_data = Column(JSON)
     active_plans = Column(JSON, default=[])
@@ -385,6 +391,17 @@ class ShopPage(Base):
     schema_data = Column(JSON)
     is_published = Column(Boolean, default=False)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class SupportTicket(Base):
+    __tablename__ = "support_tickets"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True)
+    title = Column(String)
+    category = Column(String, default="General")
+    priority = Column(String, default="Media")  # Alta / Media / Baja
+    status = Column(String, default="Abierto", index=True)  # Abierto / En proceso / Resuelto
+    messages = Column(JSON, default=list)  # [{sender, text, time}]
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
 
 class StoreMessage(Base):
     __tablename__ = "store_messages"
