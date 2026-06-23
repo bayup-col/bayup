@@ -106,6 +106,36 @@ def login(request: Request, form_data: UserLoginRequest):
     finally:
         db.close()
 
+class RegisterRequest(BaseModel):
+    email: str
+    password: str = Field(min_length=6)
+    full_name: str = Field(min_length=1)
+    # El frontend manda un id de plan ficticio (no es un UUID real); el plan
+    # efectivo se asigna automaticamente al plan marcado is_default=True.
+    plan_id: str | None = None
+
+@app.post("/auth/register")
+@limiter.limit("5/minute")
+def register(request: Request, payload: RegisterRequest):
+    from database import SessionLocal
+    import crud, schemas
+
+    db = SessionLocal()
+    try:
+        existing = crud.get_user_by_email(db, email=payload.email)
+        if existing:
+            raise HTTPException(status_code=400, detail="Ya existe una cuenta con ese correo")
+
+        user_in = schemas.UserCreate(
+            email=payload.email,
+            password=payload.password,
+            full_name=payload.full_name,
+        )
+        user = crud.create_user(db, user=user_in)
+        return {"id": str(user.id), "email": user.email}
+    finally:
+        db.close()
+
 def _get_bearer_token(request: Request) -> str:
     auth_header = request.headers.get("Authorization")
     if not auth_header:
