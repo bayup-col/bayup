@@ -63,13 +63,39 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+# --- HEADERS DE SEGURIDAD HTTP ---
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    return response
+
 class UserLoginRequest(BaseModel):
     email: str
     password: str
 
 @app.get("/")
 def read_root():
+    # Liveness simple: Render usa esta ruta como healthcheck por defecto.
+    # No verifica la DB a proposito, para no reiniciar el servicio por un hiccup pasajero.
     return {"status": "Active", "version": "2.1 Platinum Production"}
+
+@app.get("/health")
+def health_check():
+    """Readiness real: confirma que la conexion a la base de datos funciona."""
+    from sqlalchemy import text
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "connected"}
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Base de datos no disponible: {e}")
+    finally:
+        db.close()
 
 @app.post("/auth/login")
 @limiter.limit("5/minute")
