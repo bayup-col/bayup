@@ -67,11 +67,12 @@ export default function LoginPage() {
       const shopSlug = userData.shop_slug || "";
       const userLogo = userData.logo_url || "";
       
-      login(data.access_token, email, userRole, userPermissions, userPlan, isGlobalStaff, shopSlug, userData.full_name || "", userLogo);
-      
+      login(data.access_token, email, userRole, userPermissions, userPlan, isGlobalStaff, shopSlug, userData.full_name || "", userLogo, "", "", !!userData.onboarding_completed);
+
       let targetPath = '/dashboard';
       if (isGlobalStaff) targetPath = '/dashboard/super-admin';
       else if (userRole === 'afiliado') targetPath = '/afiliado/dashboard';
+      else if (!userData.onboarding_completed) targetPath = '/onboarding';
       
       setRedirectUrl(targetPath);
       setTimeout(() => {

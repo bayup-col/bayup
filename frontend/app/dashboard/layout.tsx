@@ -79,17 +79,18 @@ const PlanBadge = ({ planName, userPlan }: { planName: string; userPlan: any }) 
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { 
-    userEmail: authEmail, 
-    userRole: authRole, 
+  const {
+    userEmail: authEmail,
+    userRole: authRole,
     userName: authName,
     shopSlug: authSlug,
-    token, 
-    logout, 
-    userPlan, 
-    isGlobalStaff, 
-    isAuthenticated, 
-    isLoading 
+    token,
+    logout,
+    userPlan,
+    isGlobalStaff,
+    onboardingCompleted,
+    isAuthenticated,
+    isLoading
   } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
@@ -131,7 +132,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       if (!isLoading && !isAuthenticated) router.replace('/login');
   }, [isAuthenticated, isLoading, router]);
 
-  if (isLoading || !isAuthenticated) {
+  // Onboarding obligatorio: si el vendedor (no staff) aun no publico su tienda,
+  // lo primero que ve es el asistente de plantilla + datos, no el panel.
+  const isStaffAccount = isGlobalStaff || authRole?.toUpperCase() === 'SUPER_ADMIN';
+  const needsOnboarding = !isStaffAccount && !onboardingCompleted;
+  useEffect(() => {
+      if (!isLoading && isAuthenticated && needsOnboarding) router.replace('/onboarding');
+  }, [isLoading, isAuthenticated, needsOnboarding, router]);
+
+  // Bloquea por ahora el editor visual libre (Studio) y la galeria de plantillas
+  // para vendedores normales: solo eligen plantilla durante el onboarding.
+  const isStudioRoute = pathname?.startsWith('/dashboard/pages') || pathname?.startsWith('/dashboard/my-store');
+  useEffect(() => {
+      if (!isLoading && isAuthenticated && !isStaffAccount && isStudioRoute) router.replace('/dashboard');
+  }, [isLoading, isAuthenticated, isStaffAccount, isStudioRoute, router]);
+
+  if (isLoading || !isAuthenticated || needsOnboarding || (!isStaffAccount && isStudioRoute)) {
       return (
         <div className="h-screen w-screen flex items-center justify-center bg-[#FAFAFA]">
             <div className="text-2xl font-bold tracking-[0.15em] text-[#004d4d] animate-pulse uppercase">BAYUP</div>
@@ -225,7 +241,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
 
         {/* ── MI TIENDA WEB (editor) ── */}
-        {!isSuperAdminZone && !isGlobalStaff && (
+        {/* Oculto temporalmente: por ahora el vendedor solo elige plantilla en el onboarding, no personaliza libremente. No borrar. */}
+        {false && !isSuperAdminZone && !isGlobalStaff && (
           <div className="px-3 mb-2 shrink-0">
             {!isSidebarCollapsed ? (
               <button

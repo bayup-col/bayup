@@ -52,7 +52,7 @@ export default function BayupFamilyLogin() {
                     return;
                 }
 
-                login(data.access_token, user.email, user.role, user.permissions, user.plan, true, user.shop_slug, user.full_name || user.name, user.logo_url || "");
+                login(data.access_token, user.email, user.role, user.permissions, user.plan, true, user.shop_slug, user.full_name || user.name, user.logo_url || "", "", "", true);
                 showToast("Acceso concedido. Iniciando sistemas...", "success");
                 router.push('/dashboard/super-admin');
             } else {

@@ -16,7 +16,9 @@ interface AuthContextType {
   userPlan: any | null;
   shopSlug: string | null;
   isGlobalStaff: boolean;
-  login: (token: string, email: string, role: string, permissions?: any, plan?: any, isGlobal?: boolean, shopSlug?: string, name?: string, logo?: string, nit?: string, address?: string) => void;
+  onboardingCompleted: boolean;
+  setOnboardingCompleted: (done: boolean) => void;
+  login: (token: string, email: string, role: string, permissions?: any, plan?: any, isGlobal?: boolean, shopSlug?: string, name?: string, logo?: string, nit?: string, address?: string, onboardingCompleted?: boolean) => void;
   updateUser: (data: { name?: string, slug?: string, logo?: string, nit?: string, address?: string }) => void;
   logout: () => void;
   isAuthenticated: boolean;
@@ -37,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userPlan, setUserPlan] = useState<any | null>(null);
   const [shopSlug, setShopSlug] = useState<string | null>(null);
   const [isGlobalStaff, setIsGlobalStaff] = useState<boolean>(false);
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
 
@@ -78,6 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setIsGlobalStaff(data.is_global_staff);
             localStorage.setItem('isGlobalStaff', String(data.is_global_staff));
         }
+        if (data.onboarding_completed !== undefined) {
+            setOnboardingCompleted(!!data.onboarding_completed);
+            localStorage.setItem('onboardingCompleted', String(!!data.onboarding_completed));
+        }
       }
       } catch (e) {
       // Sincronización fallida silenciosa: Mantenemos datos locales para estabilidad
@@ -103,10 +110,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const storedPerms = localStorage.getItem('userPermissions');
           const storedPlan = localStorage.getItem('userPlan');
           const storedIsGlobal = localStorage.getItem('isGlobalStaff');
+          const storedOnboarding = localStorage.getItem('onboardingCompleted');
 
           if (storedPerms) setUserPermissions(JSON.parse(storedPerms));
           if (storedPlan) setUserPlan(JSON.parse(storedPlan));
           if (storedIsGlobal) setIsGlobalStaff(storedIsGlobal === 'true');
+          if (storedOnboarding) setOnboardingCompleted(storedOnboarding === 'true');
 
           // Sincronización proactiva con el servidor (Fallo silencioso)
           syncProfile(storedToken);
@@ -119,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };    loadStorage();
   }, [syncProfile]);
 
-  const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "", logo: string = "", nit: string = "", address: string = "") => {
+  const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "", logo: string = "", nit: string = "", address: string = "", onboardingDone: boolean = false) => {
     setToken(newToken);
     setUserEmail(email);
     setUserName(name);
@@ -131,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setShopSlug(safeSlug);
     setUserNit(nit);
     setUserAddress(address);
+    setOnboardingCompleted(onboardingDone);
 
     localStorage.setItem('token', newToken);
     localStorage.setItem('userEmail', email);
@@ -141,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('shopSlug', safeSlug);
     localStorage.setItem('userNit', nit);
     localStorage.setItem('userAddress', address);
+    localStorage.setItem('onboardingCompleted', onboardingDone ? 'true' : 'false');
     if (plan) localStorage.setItem('userPlan', JSON.stringify(plan));
 
     if (logo) {
@@ -190,6 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserPlan(null);
     setShopSlug(null);
     setIsGlobalStaff(false);
+    setOnboardingCompleted(false);
     localStorage.clear();
     router.push('/login');
   }, [router]);
@@ -208,12 +220,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userPlan,
     shopSlug,
     isGlobalStaff,
+    onboardingCompleted,
+    setOnboardingCompleted,
     login,
     updateUser,
     logout,
     isAuthenticated,
     isLoading
-  }), [token, userEmail, userName, userRole, userLogo, userNit, userAddress, userPermissions, userPlan, shopSlug, isGlobalStaff, login, updateUser, logout, isAuthenticated, isLoading]);
+  }), [token, userEmail, userName, userRole, userLogo, userNit, userAddress, userPermissions, userPlan, shopSlug, isGlobalStaff, onboardingCompleted, login, updateUser, logout, isAuthenticated, isLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>

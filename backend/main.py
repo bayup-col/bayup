@@ -126,7 +126,8 @@ def login(request: Request, form_data: UserLoginRequest):
                     "name": user.plan.name if getattr(user, 'plan', None) else "Básico"
                 } if getattr(user, 'plan', None) else None,
                 "shop_slug": getattr(user, 'shop_slug', ""),
-                "logo_url": getattr(user, 'logo_url', "")
+                "logo_url": getattr(user, 'logo_url', ""),
+                "onboarding_completed": bool(getattr(user, 'onboarding_completed', False)),
             }
         }
     finally:
@@ -196,7 +197,8 @@ async def read_users_me(request: Request):
             "is_global_staff": getattr(current_user, 'is_global_staff', False),
             "shop_slug": getattr(current_user, 'shop_slug', ""),
             "logo_url": getattr(current_user, 'logo_url', ""),
-            "permissions": getattr(current_user, 'permissions', {}) or {}
+            "permissions": getattr(current_user, 'permissions', {}) or {},
+            "onboarding_completed": bool(getattr(current_user, 'onboarding_completed', False)),
         }
     finally:
         db.close()
@@ -1088,14 +1090,31 @@ class UpdateProfileRequest(BaseModel):
 
 @app.put("/admin/update-profile")
 async def update_profile(payload: UpdateProfileRequest, request: Request):
+    import crud
     from database import SessionLocal
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
         update_data = payload.model_dump(exclude_unset=True)
+        if update_data.get("shop_slug") and update_data["shop_slug"] != user.shop_slug:
+            existing = crud.get_user_by_slug(db, slug=update_data["shop_slug"])
+            if existing and existing.id != user.id:
+                raise HTTPException(status_code=400, detail="Esa URL de tienda ya está en uso, elige otra")
         for key, value in update_data.items():
             if key in PROFILE_EDITABLE_FIELDS:
                 setattr(user, key, value)
+        db.commit()
+        return {"ok": True}
+    finally:
+        db.close()
+
+@app.post("/onboarding/complete")
+async def complete_onboarding(request: Request):
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        user.onboarding_completed = True
         db.commit()
         return {"ok": True}
     finally:

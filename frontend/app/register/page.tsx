@@ -118,15 +118,18 @@ function RegisterForm() {
         const loginData = await loginResponse.json();
         const userData = loginData.user;
         login(
-          loginData.access_token, 
-          formData.email, 
+          loginData.access_token,
+          formData.email,
           userData.role || 'admin_tienda',
           userData.permissions || {},
           userData.plan || null,
           userData.is_global_staff || false,
           userData.shop_slug || "",
           userData.full_name || "",
-          userData.logo_url || ""
+          userData.logo_url || "",
+          "",
+          "",
+          !!userData.onboarding_completed
         );
       }
 
@@ -292,7 +295,7 @@ function RegisterForm() {
                   <div className="relative z-10 flex items-center justify-center min-h-[24px]">
                     <AnimatePresence mode="wait">
                       {isSuccess ? (
-                        <motion.div key="ghost-jump" initial={{ y: 20, opacity: 0, scale: 0.5 }} animate={{ y: [0, -80, 0], opacity: 1, scale: [0.5, 1.5, 1], rotate: [0, 15, -15, 0] }} transition={{ duration: 1.2, times: [0, 0.5, 1], ease: "easeInOut" }} onAnimationComplete={() => { setTimeout(() => { router.push('/dashboard'); }, 300); }} className="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]" >
+                        <motion.div key="ghost-jump" initial={{ y: 20, opacity: 0, scale: 0.5 }} animate={{ y: [0, -80, 0], opacity: 1, scale: [0.5, 1.5, 1], rotate: [0, 15, -15, 0] }} transition={{ duration: 1.2, times: [0, 0.5, 1], ease: "easeInOut" }} onAnimationComplete={() => { setTimeout(() => { router.push('/onboarding'); }, 300); }} className="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]" >
                           <Ghost size={38} strokeWidth={2.5} />
                         </motion.div>
                       ) : isLoading ? (
