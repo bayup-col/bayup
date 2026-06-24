@@ -8,6 +8,12 @@ import { DraggableCanvasElement } from "./CanvasElements";
 import { Lock, Unlock } from "lucide-react";
 import { CheckoutStudio } from "./CheckoutStudio";
 
+const viewportWidths: Record<string, string> = {
+  desktop: "max-w-none",
+  tablet: "max-w-[768px] mx-auto",
+  mobile: "max-w-[390px] mx-auto",
+};
+
 const DroppableSection = ({ section, headerRef, children, activeSection, setActiveSection, isPreview = false }: any) => {
   const { setNodeRef, isOver } = useDroppable({ id: section, disabled: isPreview });
   const { pageKey, headerLocked, setHeaderLocked, footerLocked, setFooterLocked } = useStudio();
