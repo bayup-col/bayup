@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
-import { CUSTOM_HTML_TEMPLATES } from '@/lib/custom-templates';
 import { buildDefaultBodyElements } from '@/lib/default-page-schemas';
 
 const CATEGORIES = [
@@ -18,6 +17,15 @@ const CATEGORIES = [
 ];
 
 const STEPS = ['Plantilla', 'Tu tienda', 'Tu primer producto'];
+
+interface WebTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  preview_url: string | null;
+  schema_data: any;
+}
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -28,6 +36,8 @@ export default function OnboardingPage() {
   const [isPublishing, setIsPublishing] = useState(false);
 
   // Paso 1
+  const [templates, setTemplates] = useState<WebTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
   const [templateId, setTemplateId] = useState<string | null>(null);
 
   // Paso 2
@@ -54,7 +64,16 @@ export default function OnboardingPage() {
     if (!isLoading && !isAuthenticated) router.replace('/login');
   }, [isLoading, isAuthenticated, router]);
 
-  const selectedTemplate = CUSTOM_HTML_TEMPLATES.find(t => t.id === templateId) || null;
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${apiBase}/web-templates`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setTemplates(Array.isArray(data) ? data : []))
+      .catch(() => setTemplates([]))
+      .finally(() => setTemplatesLoading(false));
+  }, [token, apiBase]);
+
+  const selectedTemplate = templates.find(t => t.id === templateId) || null;
 
   const handleStoreNameChange = (value: string) => {
     setStoreName(value);
@@ -108,9 +127,7 @@ export default function OnboardingPage() {
       }
 
       // 3. Instalar la plantilla elegida en Home
-      const archRes = await fetch(`/templates/custom-html/${selectedTemplate.folderPath}/architecture.json`);
-      if (!archRes.ok) throw new Error('No se pudo cargar la plantilla seleccionada');
-      const architecture = await archRes.json();
+      const architecture = selectedTemplate.schema_data || {};
       const homeSchema = {
         header: architecture.header || { elements: [], styles: {} },
         footer: architecture.footer || { elements: [], styles: {} },
@@ -228,30 +245,40 @@ export default function OnboardingPage() {
                   <h1 className="text-4xl md:text-5xl font-black italic uppercase tracking-tighter text-[#001A1A]">Elige tu plantilla</h1>
                   <p className="text-gray-500 font-medium max-w-xl">Selecciona el diseño con el que quieres lanzar tu tienda hoy mismo. Podrás pedir más diseños y personalizaciones más adelante.</p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {CUSTOM_HTML_TEMPLATES.map(tpl => (
-                    <button
-                      key={tpl.id}
-                      onClick={() => setTemplateId(tpl.id)}
-                      className={`group text-left rounded-[2rem] overflow-hidden border-2 transition-all bg-white ${
-                        templateId === tpl.id ? 'border-[#004d4d] shadow-2xl scale-[1.02]' : 'border-gray-100 hover:border-[#004d4d]/30 shadow-sm'
-                      }`}
-                    >
-                      <div className="aspect-[4/3] bg-gray-50 relative overflow-hidden">
-                        <img src={tpl.thumbnail} alt={tpl.name} className="w-full h-full object-cover" />
-                        {templateId === tpl.id && (
-                          <div className="absolute top-3 right-3 h-7 w-7 bg-[#004d4d] rounded-full flex items-center justify-center text-white shadow-lg">
-                            <Check size={14} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-5 space-y-1">
-                        <p className="text-sm font-black uppercase tracking-tight text-gray-900">{tpl.name}</p>
-                        <p className="text-[11px] text-gray-400 font-medium line-clamp-2">{tpl.description}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                {templatesLoading ? (
+                  <div className="py-20 flex items-center justify-center text-gray-300">
+                    <Loader2 size={28} className="animate-spin" />
+                  </div>
+                ) : templates.length === 0 ? (
+                  <div className="py-20 text-center text-sm font-medium text-gray-400">
+                    No hay plantillas disponibles por ahora. Contacta a soporte.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {templates.map(tpl => (
+                      <button
+                        key={tpl.id}
+                        onClick={() => setTemplateId(tpl.id)}
+                        className={`group text-left rounded-[2rem] overflow-hidden border-2 transition-all bg-white ${
+                          templateId === tpl.id ? 'border-[#004d4d] shadow-2xl scale-[1.02]' : 'border-gray-100 hover:border-[#004d4d]/30 shadow-sm'
+                        }`}
+                      >
+                        <div className="aspect-[4/3] bg-gray-50 relative overflow-hidden">
+                          {tpl.preview_url && <img src={tpl.preview_url} alt={tpl.name} className="w-full h-full object-cover" />}
+                          {templateId === tpl.id && (
+                            <div className="absolute top-3 right-3 h-7 w-7 bg-[#004d4d] rounded-full flex items-center justify-center text-white shadow-lg">
+                              <Check size={14} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-5 space-y-1">
+                          <p className="text-sm font-black uppercase tracking-tight text-gray-900">{tpl.name}</p>
+                          <p className="text-[11px] text-gray-400 font-medium line-clamp-2">{tpl.description}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             )}
 

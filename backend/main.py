@@ -1746,6 +1746,7 @@ async def save_shop_page(payload: ShopPageSaveRequest, request: Request):
             models.ShopPage.tenant_id == tenant_id,
             models.ShopPage.page_key == payload.page_key,
         ).first()
+        is_new = page is None
         if page:
             page.schema_data = payload.schema_data
             if payload.template_id:
@@ -1758,6 +1759,18 @@ async def save_shop_page(payload: ShopPageSaveRequest, request: Request):
                 template_id=payload.template_id,
             )
             db.add(page)
+
+        # Contabiliza el uso real de la plantilla (solo al instalar Home por primera vez)
+        if is_new and payload.page_key == "home" and payload.template_id:
+            import uuid as uuid_lib
+            try:
+                template_uuid = uuid_lib.UUID(payload.template_id)
+                template = db.query(models.WebTemplate).filter(models.WebTemplate.id == template_uuid).first()
+                if template:
+                    template.uses = (template.uses or 0) + 1
+            except ValueError:
+                pass
+
         db.commit()
         db.refresh(page)
         return _serialize_shop_page(page)
