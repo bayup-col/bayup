@@ -33,27 +33,40 @@ export default function PagesDashboard() {
             if (!token) return;
             try {
                 const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-                
+                const headers = { 'Authorization': `Bearer ${token}` };
+
+                const masterPages = [
+                    { id: 'p1', title: 'Página de Inicio', url: '/', key: 'home', icon: <Home size={32}/>, desc: 'Escaparate principal y aterrizaje de campañas.' },
+                    { id: 'p2', title: 'Detalle de Producto', url: '/product/slug', key: 'product_detail', icon: <Layout size={32}/>, desc: 'Alta conversión: Fotos izq, Info der y carrusel de similares.' },
+                    { id: 'p3', title: 'Catálogo & Colecciones', url: '/shop', key: 'catalog', icon: <Globe size={32}/>, desc: 'Buscador pro y filtros inteligentes con panel lateral desenfocado.' },
+                    // Checkout siempre tiene un constructor dedicado con valores por defecto, nunca está "vacío"
+                    { id: 'p4', title: 'Checkout & Pago', url: '/checkout', key: 'checkout', icon: <Settings2 size={32}/>, desc: 'Proceso de pago optimizado: Identificación vs Resumen de compra.', alwaysConfigured: true },
+                    { id: 'p5', title: 'Nosotros / Contacto', url: '/about', key: 'about', icon: <FileText size={32}/>, desc: 'Información de marca, ubicación y canales de contacto.' }
+                ];
+
                 // 1. Verificamos si hay una página de inicio configurada (indicador de plantilla activa)
-                const resStatus = await fetch(`${apiBase}/shop-pages/home`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                
-                if (resStatus.ok) {
-                    const statusData = await resStatus.json();
-                    if (statusData.schema_data) {
-                        setHasActiveTemplate(true);
-                        
-                        // Generamos las páginas maestras dinámicamente para el listado
-                        const masterPages = [
-                            { id: 'p1', title: 'Página de Inicio', url: '/', key: 'home', icon: <Home size={32}/>, desc: 'Escaparate principal y aterrizaje de campañas.' },
-                            { id: 'p2', title: 'Detalle de Producto', url: '/product/slug', key: 'product_detail', icon: <Layout size={32}/>, desc: 'Alta conversión: Fotos izq, Info der y carrusel de similares.' },
-                            { id: 'p3', title: 'Catálogo & Colecciones', url: '/shop', key: 'catalog', icon: <Globe size={32}/>, desc: 'Buscador pro y filtros inteligentes con panel lateral desenfocado.' },
-                            { id: 'p4', title: 'Checkout & Pago', url: '/checkout', key: 'checkout', icon: <Settings2 size={32}/>, desc: 'Proceso de pago optimizado: Identificación vs Resumen de compra.' },
-                            { id: 'p5', title: 'Nosotros / Contacto', url: '/about', key: 'about', icon: <FileText size={32}/>, desc: 'Información de marca, ubicación y canales de contacto.' }
-                        ];
-                        setPages(masterPages);
-                    }
+                const resHome = await fetch(`${apiBase}/shop-pages/home`, { headers });
+                const homeData = resHome.ok ? await resHome.json() : null;
+                const homeConfigured = !!homeData?.schema_data?.body?.elements?.length;
+
+                if (homeConfigured) {
+                    setHasActiveTemplate(true);
+
+                    // 2. Verificamos el estado real de cada una de las demás páginas
+                    const statuses = await Promise.all(
+                        masterPages.map(async (p) => {
+                            if (p.key === 'home') return true;
+                            if (p.alwaysConfigured) return true;
+                            try {
+                                const res = await fetch(`${apiBase}/shop-pages/${p.key}`, { headers });
+                                if (!res.ok) return false;
+                                const data = await res.json();
+                                return !!data?.schema_data?.body?.elements?.length;
+                            } catch { return false; }
+                        })
+                    );
+
+                    setPages(masterPages.map((p, i) => ({ ...p, isConfigured: statuses[i] })));
                 }
             } catch (err) {
                 console.error(err);
@@ -141,7 +154,11 @@ export default function PagesDashboard() {
                                     <div className="flex-1">
                                         <div className="flex items-center gap-4">
                                             <h3 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">{page.title}</h3>
-                                            <span className="px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border bg-emerald-50 text-emerald-600 border-emerald-100">Configurada</span>
+                                            {page.isConfigured ? (
+                                                <span className="px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border bg-emerald-50 text-emerald-600 border-emerald-100">Configurada</span>
+                                            ) : (
+                                                <span className="px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border bg-amber-50 text-amber-600 border-amber-100">Vacía · sin diseñar</span>
+                                            )}
                                         </div>
                                         <p className="text-lg font-medium italic text-gray-400 mt-2">{page.desc}</p>
                                         <p className="text-xs font-bold text-[#00f2ff] mt-2 flex items-center gap-2">
