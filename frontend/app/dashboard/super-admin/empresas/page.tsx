@@ -8,7 +8,7 @@ import {
   Building2, Search, X, Eye, RefreshCw, Globe,
   DollarSign, Phone, Mail, MapPin, Store, Copy,
   Ban, Play, Calendar, TrendingUp, ChevronRight,
-  Filter, Users, ShoppingCart
+  Filter, Users, ShoppingCart, Trash2, AlertTriangle, Loader2
 } from 'lucide-react';
 
 const fmtCOP  = (n: number) => `$${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(n || 0)}`;
@@ -44,6 +44,10 @@ export default function EmpresasPage() {
   const [search,     setSearch]     = useState('');
   const [filterPlan, setFilterPlan] = useState('');
   const [selected,   setSelected]   = useState<Company | null>(null);
+  const [isToggling, setIsToggling] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Company | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -67,11 +71,51 @@ export default function EmpresasPage() {
   const totalRev  = useMemo(() => companies.reduce((a,c) => a + (c.stats?.total_sales||0), 0), [companies]);
   const activeCount = companies.filter(c => c.status === 'Activo').length;
 
-  const toggle = (c: Company) => {
-    const s = c.status === 'Activo' ? 'Suspendido' : 'Activo';
-    setCompanies(p => p.map(x => x.id===c.id ? {...x,status:s} : x));
-    setSelected(p => p?.id===c.id ? {...p,status:s} : p);
-    showToast(s === 'Activo' ? 'Empresa reactivada' : 'Empresa suspendida', s==='Activo'?'success':'error');
+  const toggle = async (c: Company) => {
+    if (!token || isToggling) return;
+    setIsToggling(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/companies/${c.id}/suspend`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const { status } = await res.json();
+        setCompanies(p => p.map(x => x.id === c.id ? { ...x, status } : x));
+        setSelected(p => p?.id === c.id ? { ...p, status } : p);
+        showToast(status === 'Activo' ? 'Empresa reactivada' : 'Empresa suspendida — su tienda pública ya no es accesible', status === 'Activo' ? 'success' : 'info');
+      } else {
+        showToast('No se pudo cambiar el estado', 'error');
+      }
+    } catch {
+      showToast('No se pudo cambiar el estado', 'error');
+    }
+    setIsToggling(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!token || !deleteTarget || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/companies/${deleteTarget.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setCompanies(p => p.filter(x => x.id !== deleteTarget.id));
+        showToast('Empresa eliminada permanentemente', 'success');
+        setDeleteTarget(null);
+        setDeleteConfirmText('');
+        setSelected(null);
+      } else {
+        showToast('No se pudo eliminar la empresa', 'error');
+      }
+    } catch {
+      showToast('No se pudo eliminar la empresa', 'error');
+    }
+    setIsDeleting(false);
   };
 
   return (
@@ -288,17 +332,64 @@ export default function EmpresasPage() {
                     <Globe size={12}/> Ver tienda pública
                   </button>
                 )}
-                <button onClick={() => toggle(selected)}
-                  className={`w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${
+                <button onClick={() => toggle(selected)} disabled={isToggling}
+                  className={`w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border disabled:opacity-50 ${
                     selected.status === 'Activo'
                       ? 'border-red-500/15 text-red-400/60 hover:bg-red-500/8 hover:text-red-400'
                       : 'border-emerald-500/15 text-emerald-400/60 hover:bg-emerald-500/8 hover:text-emerald-400'
                   }`}>
-                  {selected.status === 'Activo' ? <><Ban size={12}/>Suspender</> : <><Play size={12}/>Reactivar</>}
+                  {isToggling ? <Loader2 size={12} className="animate-spin"/> : selected.status === 'Activo' ? <><Ban size={12}/>Suspender</> : <><Play size={12}/>Reactivar</>}
+                </button>
+                <button onClick={() => { setDeleteTarget(selected); setDeleteConfirmText(''); }}
+                  className="w-full h-10 rounded-2xl border border-red-500/10 text-red-500/40 hover:bg-red-500/8 hover:text-red-500 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                  <Trash2 size={12}/> Eliminar permanentemente
                 </button>
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Modal confirmación de borrado permanente ── */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => !isDeleting && setDeleteTarget(null)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="relative bg-[#0a0f0f] border border-red-500/20 rounded-3xl w-full max-w-md p-7 space-y-5 shadow-2xl">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-400 shrink-0">
+                  <AlertTriangle size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">Eliminar permanentemente</h3>
+                  <p className="text-[10px] text-white/30 mt-0.5">Esta acción no se puede deshacer</p>
+                </div>
+              </div>
+              <p className="text-[12px] text-white/50 leading-relaxed">
+                Se borrará <span className="text-white font-bold">{deleteTarget.full_name}</span> y todos sus datos: productos, pedidos, páginas publicadas, tickets de soporte, envíos, gastos y cuentas de su equipo. No hay forma de recuperarlo.
+              </p>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
+                  Escribe <span className="text-red-400">ELIMINAR</span> para confirmar
+                </label>
+                <input value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)}
+                  className="w-full h-10 px-3.5 bg-white/5 border border-white/10 rounded-xl text-[12px] text-white outline-none focus:border-red-500/40" />
+              </div>
+              <div className="flex gap-2.5">
+                <button onClick={() => setDeleteTarget(null)} disabled={isDeleting}
+                  className="flex-1 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 font-black text-[9px] uppercase tracking-widest transition-all disabled:opacity-50">
+                  Cancelar
+                </button>
+                <button onClick={confirmDelete} disabled={deleteConfirmText !== 'ELIMINAR' || isDeleting}
+                  className="flex-1 h-10 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-400 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-30">
+                  {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Eliminar
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

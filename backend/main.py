@@ -102,14 +102,19 @@ def health_check():
 def login(request: Request, form_data: UserLoginRequest):
     # Importaciones internas para evitar bloqueos en el arranque
     from database import SessionLocal
-    import crud, security
-    
+    import crud, security, models
+
     db = SessionLocal()
     try:
         user = crud.get_user_by_email(db, email=form_data.email)
         if not user or not security.verify_password(form_data.password, user.hashed_password):
             raise HTTPException(status_code=400, detail="Credenciales inválidas")
-        
+
+        if not user.is_global_staff:
+            root = db.query(models.User).filter(models.User.id == user.owner_id).first() if user.owner_id else user
+            if root and root.status == "Suspendido":
+                raise HTTPException(status_code=403, detail="Esta tienda ha sido suspendida. Contacta a soporte Bayup.")
+
         access_token = security.create_access_token(data={"sub": user.email})
         
         return {
@@ -418,7 +423,7 @@ async def get_public_shop(slug: str):
     db = SessionLocal()
     try:
         store = crud.get_user_by_slug(db, slug=slug)
-        if not store:
+        if not store or store.status == "Suspendido":
             raise HTTPException(status_code=404, detail="Tienda no encontrada")
         collections = crud.get_collections_by_owner(db, owner_id=store.id)
         return {
@@ -1249,6 +1254,112 @@ async def get_super_admin_companies(request: Request):
                 },
             })
         return result
+    finally:
+        db.close()
+
+@app.put("/super-admin/companies/{company_id}/suspend")
+async def toggle_suspend_company(company_id: str, request: Request):
+    """Suspende o reactiva una tienda. Reversible: no borra ningun dato."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        try:
+            target_uuid = uuid_lib.UUID(company_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="company_id inválido")
+        company = db.query(models.User).filter(
+            models.User.id == target_uuid,
+            models.User.role == "admin_tienda",
+            models.User.owner_id.is_(None),
+        ).first()
+        if not company:
+            raise HTTPException(status_code=404, detail="Empresa no encontrada")
+        company.status = "Activo" if company.status == "Suspendido" else "Suspendido"
+        db.commit()
+        return {"id": str(company.id), "status": company.status}
+    finally:
+        db.close()
+
+@app.delete("/super-admin/companies/{company_id}")
+async def delete_company_permanently(company_id: str, request: Request):
+    """Elimina una tienda y TODOS sus datos asociados. No reversible."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        try:
+            target_uuid = uuid_lib.UUID(company_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="company_id inválido")
+        company = db.query(models.User).filter(
+            models.User.id == target_uuid,
+            models.User.role == "admin_tienda",
+            models.User.owner_id.is_(None),
+        ).first()
+        if not company:
+            raise HTTPException(status_code=404, detail="Empresa no encontrada")
+
+        try:
+            # IDs de cuentas dependientes (staff + clientes de esta tienda)
+            sub_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.owner_id == target_uuid).all()]
+            all_user_ids = [target_uuid] + sub_user_ids
+
+            order_ids = [o.id for o in db.query(models.Order.id).filter(models.Order.tenant_id == target_uuid).all()]
+            product_ids = [p.id for p in db.query(models.Product.id).filter(models.Product.owner_id == target_uuid).all()]
+            assistant_ids = [a.id for a in db.query(models.AIAssistant.id).filter(models.AIAssistant.owner_id == target_uuid).all()]
+            seller_ids = [s.id for s in db.query(models.Seller.id).filter(models.Seller.tenant_id == target_uuid).all()]
+
+            if order_ids:
+                db.query(models.OrderItem).filter(models.OrderItem.order_id.in_(order_ids)).delete(synchronize_session=False)
+            if product_ids:
+                db.query(models.ProductVariant).filter(models.ProductVariant.product_id.in_(product_ids)).delete(synchronize_session=False)
+            if assistant_ids:
+                db.query(models.AIAssistantLog).filter(models.AIAssistantLog.assistant_id.in_(assistant_ids)).delete(synchronize_session=False)
+
+            # Evitar violar la FK auto-referenciada referred_by_id
+            db.query(models.User).filter(models.User.referred_by_id.in_(all_user_ids)).update(
+                {models.User.referred_by_id: None}, synchronize_session=False
+            )
+
+            db.query(models.PayrollEmployee).filter(models.PayrollEmployee.tenant_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.Order).filter(models.Order.tenant_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.Product).filter(models.Product.owner_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.AIAssistant).filter(models.AIAssistant.owner_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.Shipment).filter(models.Shipment.tenant_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.PurchaseOrder).filter(models.PurchaseOrder.tenant_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.Provider).filter(models.Provider.tenant_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.Expense).filter(models.Expense.tenant_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.Receivable).filter(models.Receivable.tenant_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.Income).filter(models.Income.tenant_id == target_uuid).delete(synchronize_session=False)
+            if seller_ids:
+                db.query(models.Seller).filter(models.Seller.id.in_(seller_ids)).delete(synchronize_session=False)
+            db.query(models.Page).filter(models.Page.owner_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.TaxRate).filter(models.TaxRate.owner_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.ShippingOption).filter(models.ShippingOption.owner_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.Collection).filter(models.Collection.owner_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.CustomRole).filter(models.CustomRole.owner_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.ActivityLog).filter(models.ActivityLog.tenant_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.Notification).filter(models.Notification.tenant_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.ShopPage).filter(models.ShopPage.tenant_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.SupportTicket).filter(models.SupportTicket.tenant_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.StoreMessage).filter(models.StoreMessage.tenant_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.ChannelConnection).filter(models.ChannelConnection.user_id.in_(all_user_ids)).delete(synchronize_session=False)
+
+            # Staff y clientes de esta tienda (cuentas hijas), y por ultimo la tienda misma
+            db.query(models.User).filter(models.User.owner_id == target_uuid).delete(synchronize_session=False)
+            db.query(models.User).filter(models.User.id == target_uuid).delete(synchronize_session=False)
+
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise HTTPException(status_code=500, detail="No se pudo eliminar la empresa por completo")
+
+        return {"ok": True}
     finally:
         db.close()
 
