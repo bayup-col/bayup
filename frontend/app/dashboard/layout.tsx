@@ -190,7 +190,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
 
         {/* ── TIENDA PILL ── */}
-        {!isSuperAdminZone && (
+        {!isSuperAdminZone && !isGlobalStaff && authSlug && (
           <div className="px-3 mb-2 shrink-0">
             {!isSidebarCollapsed ? (
               <button
