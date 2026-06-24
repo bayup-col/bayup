@@ -15,7 +15,7 @@ import {
   LogOut, Eye, ShieldCheck, Building2, Users, Wallet, Headset,
   Layout, BarChart3, Code, Activity,
   ChevronLeft, ChevronRight,
-  UserCheck, Coins, HelpCircle, Lock, Menu, X
+  UserCheck, Coins, HelpCircle, Lock, Menu, X, CreditCard
 } from 'lucide-react';
 
 // Componente externo memoizado — evita re-mount en cada render del layout
@@ -318,6 +318,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <MenuItem href="/dashboard/super-admin/users" label="Usuarios" icon={<Users size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/users')} />
               {!isSidebarCollapsed && <p className="px-3 text-[8px] font-bold text-white/15 uppercase tracking-[0.3em] mt-4 mb-1.5">Plataforma</p>}
               <MenuItem href="/dashboard/super-admin/web-templates" label="Plantillas Web" icon={<Layout size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/web-templates')} />
+              <MenuItem href="/dashboard/super-admin/planes" label="Planes" icon={<CreditCard size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/planes')} />
               <MenuItem href="/dashboard/super-admin/soporte" label="Soporte" icon={<Headset size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/soporte')} />
               <MenuItem href="/dashboard/super-admin/reports" label="Reportes" icon={<BarChart3 size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/reports')} />
               {!isSidebarCollapsed && <p className="px-3 text-[8px] font-bold text-white/15 uppercase tracking-[0.3em] mt-4 mb-1.5">Sistema</p>}

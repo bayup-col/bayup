@@ -1728,6 +1728,65 @@ async def delete_super_admin_web_template(template_id: str, request: Request):
     finally:
         db.close()
 
+# ── PLANES ────────────────────────────────────────────────────────────────
+def _serialize_plan(p):
+    return {
+        "id": str(p.id),
+        "name": p.name,
+        "description": p.description,
+        "commission_rate": p.commission_rate,
+        "monthly_fee": p.monthly_fee,
+        "modules": p.modules or [],
+        "is_default": bool(p.is_default),
+    }
+
+@app.get("/super-admin/plans")
+async def get_super_admin_plans(request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        plans = db.query(models.Plan).order_by(models.Plan.monthly_fee.asc()).all()
+        return [_serialize_plan(p) for p in plans]
+    finally:
+        db.close()
+
+class PlanUpdateRequest(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    commission_rate: float | None = Field(default=None, ge=0, le=1)
+    monthly_fee: float | None = Field(default=None, ge=0)
+    modules: list[str] | None = None
+    is_default: bool | None = None
+
+@app.put("/super-admin/plans/{plan_id}")
+async def update_super_admin_plan(plan_id: str, payload: PlanUpdateRequest, request: Request):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        try:
+            target_uuid = uuid_lib.UUID(plan_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="plan_id inválido")
+        plan = db.query(models.Plan).filter(models.Plan.id == target_uuid).first()
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan no encontrado")
+
+        update_data = payload.model_dump(exclude_unset=True)
+        if update_data.get("is_default"):
+            db.query(models.Plan).filter(models.Plan.id != target_uuid).update({models.Plan.is_default: False})
+        for key, value in update_data.items():
+            setattr(plan, key, value)
+        db.commit()
+        return _serialize_plan(plan)
+    finally:
+        db.close()
+
 @app.get("/web-templates")
 async def get_web_templates(request: Request):
     """Galeria de plantillas visible para cualquier tenant autenticado."""
