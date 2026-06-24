@@ -1584,6 +1584,50 @@ async def create_support_ticket(payload: dict, request: Request):
     finally:
         db.close()
 
+@app.get("/support/tickets")
+async def get_my_support_tickets(request: Request):
+    """Lista los tickets de soporte de la tienda autenticada."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        tickets = db.query(models.SupportTicket).filter(
+            models.SupportTicket.tenant_id == tenant_id
+        ).order_by(models.SupportTicket.created_at.desc()).all()
+        tenant = db.query(models.User).filter(models.User.id == tenant_id).first()
+        return [_serialize_ticket(t, tenant) for t in tickets]
+    finally:
+        db.close()
+
+@app.post("/support/tickets/{ticket_id}/reply")
+async def reply_my_support_ticket(ticket_id: str, payload: dict, request: Request):
+    """Permite a la tienda autenticada responder en su propio ticket."""
+    import models
+    from datetime import datetime
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        ticket = _find_ticket_by_short_id(db, models, ticket_id)
+        if not ticket or ticket.tenant_id != tenant_id:
+            raise HTTPException(status_code=404, detail="Ticket no encontrado")
+        text = (payload.get("text") or "").strip()
+        if not text:
+            raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío")
+        msgs = list(ticket.messages or [])
+        msgs.append({"sender": "usuario", "text": text, "time": datetime.utcnow().strftime("%H:%M")})
+        ticket.messages = msgs
+        if ticket.status == "Resuelto":
+            ticket.status = "Abierto"
+        db.commit()
+        tenant = db.query(models.User).filter(models.User.id == tenant_id).first()
+        return _serialize_ticket(ticket, tenant)
+    finally:
+        db.close()
+
 def _serialize_template(t):
     return {
         "id": str(t.id),
