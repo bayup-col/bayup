@@ -249,6 +249,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <MenuItem href="/dashboard/invoicing" label="Facturación" icon={<FileText size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/invoicing')} />
               <MenuItem href="/dashboard/orders" label="Pedidos Web" icon={<Package size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/orders')} />
               <MenuItem href="/dashboard/products" label="Productos" icon={<Store size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/products')} />
+              <MenuItem href="/dashboard/my-store" label="Mi Tienda Web" icon={<Layout size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/my-store')} />
               <MenuItem href="/dashboard/shipping" label="Envíos" icon={<Truck size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/shipping')} />
               <MenuItem href="/dashboard/customers" label="Clientes" icon={<UserCheck size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/customers')} />
               <MenuItem href="/dashboard/web-analytics" label="Estadísticas" icon={<BarChart3 size={17} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/web-analytics')} />
