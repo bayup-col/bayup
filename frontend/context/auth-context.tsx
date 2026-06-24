@@ -126,8 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserRole(role);
     setUserPermissions(permissions);
     setUserPlan(plan);
+    const safeSlug = slug || '';
     setIsGlobalStaff(isGlobal);
-    setShopSlug(slug);
+    setShopSlug(safeSlug);
     setUserNit(nit);
     setUserAddress(address);
 
@@ -137,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('userRole', role);
     localStorage.setItem('userPermissions', JSON.stringify(permissions));
     localStorage.setItem('isGlobalStaff', isGlobal ? 'true' : 'false');
-    localStorage.setItem('shopSlug', slug);
+    localStorage.setItem('shopSlug', safeSlug);
     localStorage.setItem('userNit', nit);
     localStorage.setItem('userAddress', address);
     if (plan) localStorage.setItem('userPlan', JSON.stringify(plan));
