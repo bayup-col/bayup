@@ -566,6 +566,430 @@ async def delete_admin_user(user_id: str, request: Request):
     finally:
         db.close()
 
+# ── ENVÍOS (tarifas) ──────────────────────────────────────────────────────
+class ShippingOptionRequest(BaseModel):
+    name: str = Field(min_length=1)
+    cost: float = Field(ge=0)
+    min_order_total: float | None = None
+
+def _serialize_shipping_option(s):
+    return {
+        "id": str(s.id),
+        "name": s.name,
+        "cost": s.cost,
+        "min_order_total": s.min_order_total,
+        "owner_id": str(s.owner_id) if s.owner_id else None,
+    }
+
+@app.get("/shipping")
+async def get_shipping_options(request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        options = db.query(models.ShippingOption).filter(models.ShippingOption.owner_id == tenant_id).all()
+        return [_serialize_shipping_option(o) for o in options]
+    finally:
+        db.close()
+
+@app.post("/shipping")
+async def create_shipping_option(payload: ShippingOptionRequest, request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        option = models.ShippingOption(name=payload.name, cost=payload.cost, min_order_total=payload.min_order_total, owner_id=tenant_id)
+        db.add(option)
+        db.commit()
+        return _serialize_shipping_option(option)
+    finally:
+        db.close()
+
+@app.get("/shipping/{shipping_id}")
+async def get_shipping_option(shipping_id: str, request: Request):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        try:
+            target_uuid = uuid_lib.UUID(shipping_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="id inválido")
+        option = db.query(models.ShippingOption).filter(models.ShippingOption.id == target_uuid, models.ShippingOption.owner_id == tenant_id).first()
+        if not option:
+            raise HTTPException(status_code=404, detail="Opción de envío no encontrada")
+        return _serialize_shipping_option(option)
+    finally:
+        db.close()
+
+@app.put("/shipping/{shipping_id}")
+async def update_shipping_option(shipping_id: str, payload: ShippingOptionRequest, request: Request):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        try:
+            target_uuid = uuid_lib.UUID(shipping_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="id inválido")
+        option = db.query(models.ShippingOption).filter(models.ShippingOption.id == target_uuid, models.ShippingOption.owner_id == tenant_id).first()
+        if not option:
+            raise HTTPException(status_code=404, detail="Opción de envío no encontrada")
+        option.name = payload.name
+        option.cost = payload.cost
+        option.min_order_total = payload.min_order_total
+        db.commit()
+        return _serialize_shipping_option(option)
+    finally:
+        db.close()
+
+@app.delete("/shipping/{shipping_id}")
+async def delete_shipping_option(shipping_id: str, request: Request):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        try:
+            target_uuid = uuid_lib.UUID(shipping_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="id inválido")
+        option = db.query(models.ShippingOption).filter(models.ShippingOption.id == target_uuid, models.ShippingOption.owner_id == tenant_id).first()
+        if not option:
+            raise HTTPException(status_code=404, detail="Opción de envío no encontrada")
+        db.delete(option)
+        db.commit()
+        return {"ok": True}
+    finally:
+        db.close()
+
+# ── IMPUESTOS ─────────────────────────────────────────────────────────────
+class TaxRateRequest(BaseModel):
+    name: str = Field(min_length=1)
+    rate: float = Field(ge=0)
+    is_default: bool = False
+
+def _serialize_tax_rate(t):
+    return {
+        "id": str(t.id),
+        "name": t.name,
+        "rate": t.rate,
+        "is_default": bool(t.is_default),
+        "owner_id": str(t.owner_id) if t.owner_id else None,
+    }
+
+@app.get("/taxes")
+async def get_tax_rates(request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        rates = db.query(models.TaxRate).filter(models.TaxRate.owner_id == tenant_id).all()
+        return [_serialize_tax_rate(t) for t in rates]
+    finally:
+        db.close()
+
+@app.post("/taxes")
+async def create_tax_rate(payload: TaxRateRequest, request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        if payload.is_default:
+            db.query(models.TaxRate).filter(models.TaxRate.owner_id == tenant_id).update({models.TaxRate.is_default: False})
+        rate = models.TaxRate(name=payload.name, rate=payload.rate, is_default=payload.is_default, owner_id=tenant_id)
+        db.add(rate)
+        db.commit()
+        return _serialize_tax_rate(rate)
+    finally:
+        db.close()
+
+@app.get("/taxes/{tax_id}")
+async def get_tax_rate(tax_id: str, request: Request):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        try:
+            target_uuid = uuid_lib.UUID(tax_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="id inválido")
+        rate = db.query(models.TaxRate).filter(models.TaxRate.id == target_uuid, models.TaxRate.owner_id == tenant_id).first()
+        if not rate:
+            raise HTTPException(status_code=404, detail="Tasa de impuesto no encontrada")
+        return _serialize_tax_rate(rate)
+    finally:
+        db.close()
+
+@app.put("/taxes/{tax_id}")
+async def update_tax_rate(tax_id: str, payload: TaxRateRequest, request: Request):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        try:
+            target_uuid = uuid_lib.UUID(tax_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="id inválido")
+        rate = db.query(models.TaxRate).filter(models.TaxRate.id == target_uuid, models.TaxRate.owner_id == tenant_id).first()
+        if not rate:
+            raise HTTPException(status_code=404, detail="Tasa de impuesto no encontrada")
+        if payload.is_default:
+            db.query(models.TaxRate).filter(models.TaxRate.owner_id == tenant_id, models.TaxRate.id != target_uuid).update({models.TaxRate.is_default: False})
+        rate.name = payload.name
+        rate.rate = payload.rate
+        rate.is_default = payload.is_default
+        db.commit()
+        return _serialize_tax_rate(rate)
+    finally:
+        db.close()
+
+@app.delete("/taxes/{tax_id}")
+async def delete_tax_rate(tax_id: str, request: Request):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        try:
+            target_uuid = uuid_lib.UUID(tax_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="id inválido")
+        rate = db.query(models.TaxRate).filter(models.TaxRate.id == target_uuid, models.TaxRate.owner_id == tenant_id).first()
+        if not rate:
+            raise HTTPException(status_code=404, detail="Tasa de impuesto no encontrada")
+        db.delete(rate)
+        db.commit()
+        return {"ok": True}
+    finally:
+        db.close()
+
+# ── EQUIPO / STAFF (distinto de /admin/users, que lista CLIENTES) ────────
+_BASE_ROLE_DEFS = [
+    ("admin_tienda", "Administrador"),
+    ("editor", "Editor"),
+    ("logistica", "Logística"),
+    ("vendedor", "Vendedor"),
+]
+
+def _log_staff_activity(db, models, tenant_id, actor, action, detail, target_id=None):
+    log = models.ActivityLog(
+        user_id=actor.id,
+        action=action,
+        target_id=target_id,
+        detail=detail,
+        tenant_id=tenant_id,
+    )
+    db.add(log)
+    db.commit()
+
+def _serialize_staff_member(u):
+    return {
+        "id": str(u.id),
+        "full_name": u.full_name or "Usuario",
+        "email": u.email,
+        "role": u.role,
+        "status": getattr(u, "status", None) or "Activo",
+        "created_at": u.created_at.isoformat() if getattr(u, "created_at", None) else None,
+    }
+
+@app.get("/admin/staff")
+async def get_admin_staff(request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        owner = db.query(models.User).filter(models.User.id == tenant_id).first()
+        staff = db.query(models.User).filter(
+            models.User.owner_id == tenant_id,
+            models.User.role != "cliente",
+        ).all()
+        result = []
+        if owner:
+            result.append(_serialize_staff_member(owner))
+        result.extend(_serialize_staff_member(s) for s in staff)
+        return result
+    finally:
+        db.close()
+
+class StaffCreateRequest(BaseModel):
+    email: str
+    full_name: str
+    password: str
+    role: str = "vendedor"
+    status: str = "Invitado"
+
+@app.post("/admin/staff")
+async def create_admin_staff(payload: StaffCreateRequest, request: Request):
+    import models, crud, schemas, security
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        if crud.get_user_by_email(db, email=payload.email):
+            raise HTTPException(status_code=400, detail="Ya existe una cuenta con ese correo")
+        new_staff = models.User(
+            email=payload.email,
+            full_name=payload.full_name,
+            hashed_password=security.get_password_hash(payload.password),
+            role=payload.role,
+            status=payload.status,
+            owner_id=tenant_id,
+        )
+        db.add(new_staff)
+        db.commit()
+        _log_staff_activity(db, models, tenant_id, user, "CREATE_USER", f"Invitó a {payload.full_name} ({payload.email}) como {payload.role}", target_id=str(new_staff.id))
+        return _serialize_staff_member(new_staff)
+    finally:
+        db.close()
+
+class StaffUpdateRequest(BaseModel):
+    email: str
+    new_role: str | None = None
+    full_name: str | None = None
+    status: str | None = None
+
+@app.post("/admin/update-user")
+async def update_admin_staff(payload: StaffUpdateRequest, request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        target = db.query(models.User).filter(
+            models.User.email == payload.email,
+            models.User.owner_id == tenant_id,
+        ).first()
+        if not target:
+            raise HTTPException(status_code=404, detail="Miembro del staff no encontrado")
+        if payload.new_role:
+            target.role = payload.new_role
+        if payload.full_name:
+            target.full_name = payload.full_name
+        if payload.status:
+            target.status = payload.status
+        db.commit()
+        _log_staff_activity(db, models, tenant_id, user, "UPDATE_USER", f"Actualizó a {target.full_name} ({target.email})", target_id=str(target.id))
+        return _serialize_staff_member(target)
+    finally:
+        db.close()
+
+@app.delete("/admin/staff/{staff_id}")
+async def delete_admin_staff(staff_id: str, request: Request):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        try:
+            target_uuid = uuid_lib.UUID(staff_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="id inválido")
+        target = db.query(models.User).filter(
+            models.User.id == target_uuid,
+            models.User.owner_id == tenant_id,
+        ).first()
+        if not target:
+            raise HTTPException(status_code=404, detail="Miembro del staff no encontrado")
+        name, email = target.full_name, target.email
+        db.delete(target)
+        db.commit()
+        _log_staff_activity(db, models, tenant_id, user, "DELETE_USER", f"Eliminó a {name} ({email})", target_id=staff_id)
+        return {"ok": True}
+    finally:
+        db.close()
+
+@app.get("/admin/logs")
+async def get_admin_logs(request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        logs = db.query(models.ActivityLog).filter(models.ActivityLog.tenant_id == tenant_id).order_by(models.ActivityLog.created_at.desc()).limit(100).all()
+        actor_ids = {l.user_id for l in logs if l.user_id}
+        actors = {u.id: u for u in db.query(models.User).filter(models.User.id.in_(actor_ids)).all()} if actor_ids else {}
+        return [{
+            "id": str(l.id),
+            "action": l.action,
+            "detail": l.detail,
+            "target_id": l.target_id,
+            "user_name": actors[l.user_id].full_name if l.user_id in actors else "Sistema",
+            "created_at": l.created_at.isoformat() if l.created_at else None,
+        } for l in logs]
+    finally:
+        db.close()
+
+# ── ROLES Y PERMISOS ──────────────────────────────────────────────────────
+def _serialize_custom_role(r):
+    return {"id": r.name, "name": r.name, "permissions": r.permissions or {}, "owner_id": str(r.owner_id) if r.owner_id else None}
+
+@app.get("/admin/roles")
+async def get_admin_roles(request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        roles = db.query(models.CustomRole).filter(models.CustomRole.owner_id == tenant_id).all()
+        if not roles:
+            for role_id, _label in _BASE_ROLE_DEFS:
+                role = models.CustomRole(name=role_id, permissions={}, owner_id=tenant_id)
+                db.add(role)
+            db.commit()
+            roles = db.query(models.CustomRole).filter(models.CustomRole.owner_id == tenant_id).all()
+        return [_serialize_custom_role(r) for r in roles]
+    finally:
+        db.close()
+
+class RoleUpdateRequest(BaseModel):
+    name: str
+    permissions: dict = {}
+
+@app.put("/admin/roles/{role_name}")
+async def update_admin_role(role_name: str, payload: RoleUpdateRequest, request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        role = db.query(models.CustomRole).filter(models.CustomRole.owner_id == tenant_id, models.CustomRole.name == role_name).first()
+        if not role:
+            role = models.CustomRole(name=role_name, permissions=payload.permissions, owner_id=tenant_id)
+            db.add(role)
+        else:
+            role.permissions = payload.permissions
+        db.commit()
+        return _serialize_custom_role(role)
+    finally:
+        db.close()
+
 class ExpenseCreateRequest(BaseModel):
     description: str = Field(min_length=1)
     amount: float = Field(gt=0)

@@ -68,14 +68,17 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
 // SERVICES
 export const userService = {
     getMe: (token: string) => apiRequest<any>('/auth/me', { token }),
-    getAll: (token: string) => apiRequest<any[]>('/admin/users', { token }),
-    create: (token: string, data: any) => 
-        apiRequest('/admin/users', { method: 'POST', token, body: JSON.stringify(data) }),
-    updateDetails: (token: string, data: any) => 
+    getAll: (token: string) => apiRequest<any[]>('/admin/staff', { token }),
+    create: (token: string, data: any) =>
+        apiRequest('/admin/staff', { method: 'POST', token, body: JSON.stringify(data) }),
+    updateDetails: (token: string, data: any) =>
         apiRequest('/admin/update-user', { method: 'POST', token, body: JSON.stringify(data) }),
     delete: (token: string, userId: string) =>
-        apiRequest(`/admin/users/${userId}`, { method: 'DELETE', token }),
+        apiRequest(`/admin/staff/${userId}`, { method: 'DELETE', token }),
     getLogs: (token: string) => apiRequest<any[]>('/admin/logs', { token }),
+    getRoles: (token: string) => apiRequest<any[]>('/admin/roles', { token }),
+    updateRole: (token: string, roleId: string, data: any) =>
+        apiRequest(`/admin/roles/${roleId}`, { method: 'PUT', token, body: JSON.stringify(data) }),
 };
 
 export const productService = {
