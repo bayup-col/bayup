@@ -86,10 +86,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.setItem('onboardingCompleted', String(!!data.onboarding_completed));
         }
       }
-      } catch (e) {
-      // Sincronización fallida silenciosa: Mantenemos datos locales para estabilidad
+      } catch (e: any) {
+      // La cuenta fue eliminada/desactivada por un administrador: el backend
+      // rechaza el token (401) porque el usuario ya no existe. A diferencia de
+      // un fallo de red transitorio, esto debe cerrar la sesion de inmediato.
+      if (e?.message === 'Could not validate credentials') {
+        sessionStorage.setItem('bayup_logout_reason', 'account_removed');
+        setToken(null);
+        setUserEmail(null);
+        setUserName(null);
+        setUserRole(null);
+        setUserLogo(null);
+        setUserNit(null);
+        setUserAddress(null);
+        setUserPermissions(null);
+        setUserPlan(null);
+        setShopSlug(null);
+        setIsGlobalStaff(false);
+        setOnboardingCompleted(false);
+        localStorage.clear();
+        router.push('/login');
       }
-      }, []);
+      // Cualquier otro error (red, timeout) se ignora: mantenemos datos locales para estabilidad
+      }
+      }, [router]);
 
       useEffect(() => {
       const loadStorage = async () => {

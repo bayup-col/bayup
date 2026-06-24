@@ -40,6 +40,13 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, isSuccess, router]);
 
+  useEffect(() => {
+    if (sessionStorage.getItem('bayup_logout_reason') === 'account_removed') {
+      setError('Tu cuenta o tienda fue desactivada por un administrador. Si crees que es un error, contacta a soporte Bayup.');
+      sessionStorage.removeItem('bayup_logout_reason');
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSuccess) return;

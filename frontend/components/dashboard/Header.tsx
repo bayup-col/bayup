@@ -62,7 +62,15 @@ export const DashboardHeader = ({
             if (!token) { if (intervalId) clearInterval(intervalId); return; }
             try {
                 const isProduction = window.location.hostname.includes('railway.app') || window.location.hostname.includes('bayup.com');
-                const data = await apiRequest<any[]>('/notifications', { token }).catch(() => {
+                const data = await apiRequest<any[]>('/notifications', { token }).catch((err: any) => {
+                    // La cuenta fue eliminada/desactivada mientras la pestaña estaba abierta:
+                    // el backend rechaza el token porque el usuario ya no existe.
+                    if (err?.message === 'Could not validate credentials') {
+                        if (intervalId) clearInterval(intervalId);
+                        sessionStorage.setItem('bayup_logout_reason', 'account_removed');
+                        logout();
+                        return null;
+                    }
                     if (isProduction && intervalId) clearInterval(intervalId);
                     return null;
                 });
@@ -79,7 +87,7 @@ export const DashboardHeader = ({
         fetchNotifications();
         intervalId = setInterval(fetchNotifications, 30000);
         return () => { if (intervalId) clearInterval(intervalId); };
-    }, [token]);
+    }, [token, logout]);
 
     // Ocultar al abrir modal
     useEffect(() => {
