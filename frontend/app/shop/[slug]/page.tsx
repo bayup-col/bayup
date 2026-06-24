@@ -344,6 +344,7 @@ function ShopContent() {
                             onOpenCart={() => setIsCartOpen(true)}
                             tenantId={shopData.owner_id}
                             productId={productId}
+                            hideHeader
                         />
                     </StudioProvider>
                 ) : (
