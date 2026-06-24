@@ -111,13 +111,14 @@ export default function UsersPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_40px] gap-4 px-5 py-2.5 border-b border-white/[0.04]">
+        <div className="overflow-x-auto">
+        <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_40px] gap-4 px-5 py-2.5 border-b border-white/[0.04] min-w-[760px]">
           {['Usuario','Email','Rol','Estado','Registro',''].map((h,i) => (
             <p key={i} className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">{h}</p>
           ))}
         </div>
 
-        <div className="divide-y divide-white/[0.04]">
+        <div className="divide-y divide-white/[0.04] min-w-[760px]">
           {filtered.length === 0 && (
             <div className="px-5 py-10 text-center text-[10px] text-white/20">
               {users.length === 0 ? 'Aún no hay usuarios registrados' : 'Sin resultados para el filtro aplicado'}
@@ -156,6 +157,7 @@ export default function UsersPage() {
               </motion.div>
             );
           })}
+        </div>
         </div>
         <div className="px-5 py-3 border-t border-white/[0.04]">
           <p className="text-[10px] text-white/15">{filtered.length} usuario{filtered.length!==1?'s':''}</p>

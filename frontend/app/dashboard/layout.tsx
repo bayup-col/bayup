@@ -15,7 +15,7 @@ import {
   LogOut, Eye, ShieldCheck, Building2, Users, Wallet, Headset,
   Layout, BarChart3, Code, Activity,
   ChevronLeft, ChevronRight,
-  UserCheck, Coins, HelpCircle, Lock
+  UserCheck, Coins, HelpCircle, Lock, Menu, X
 } from 'lucide-react';
 
 // Componente externo memoizado — evita re-mount en cada render del layout
@@ -102,6 +102,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [isAnyModalOpen, setIsAnyModalOpen] = useState(false);
   const [isSidebarHidden, setIsSidebarHidden] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Cierra el drawer móvil al navegar
+  useEffect(() => { setIsMobileSidebarOpen(false); }, [pathname]);
 
   // Monitor de modales abiertos (solo MutationObserver, sin polling)
   // modal-open   → oculta sidebar + muestra overlay oscuro (modales flotantes)
@@ -151,7 +155,31 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className={`h-screen w-full flex overflow-hidden ${isSuperAdminZone ? 'bg-[#001212]' : theme === 'dark' ? 'bg-[#001212]' : 'bg-[#F0F2F5]'}`}>
 
-      {/* ── SIDEBAR — pegado esquina, sin margen ── */}
+      {/* Botón hamburguesa — solo móvil */}
+      {!isMobileSidebarOpen && (
+        <button
+          onClick={() => setIsMobileSidebarOpen(true)}
+          className="md:hidden fixed top-5 left-5 z-[60] h-10 w-10 rounded-2xl bg-[#001e1e] border border-white/10 shadow-lg flex items-center justify-center text-white/70"
+          title="Abrir menú"
+        >
+          <Menu size={18} />
+        </button>
+      )}
+
+      {/* Overlay — solo móvil, cierra el drawer al tocar fuera */}
+      {isMobileSidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/55 backdrop-blur-sm z-40"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* ── SIDEBAR — drawer en móvil, fijo en escritorio ── */}
+      <div
+        className={`fixed md:relative inset-y-0 left-0 z-50 md:z-30 transition-transform duration-300 ease-in-out ${
+          isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0`}
+      >
       <div
         style={{
           width: isSidebarCollapsed ? 64 : 256,
@@ -160,8 +188,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           transform: isSidebarHidden ? 'translateX(-16px)' : 'translateX(0)',
           pointerEvents: isSidebarHidden ? 'none' : 'auto',
         }}
-        className="relative h-full flex-shrink-0 bg-[#001e1e] flex flex-col shadow-xl z-30"
+        className="relative h-full flex-shrink-0 bg-[#001e1e] flex flex-col shadow-xl"
       >
+        <button
+          onClick={() => setIsMobileSidebarOpen(false)}
+          className="md:hidden absolute top-4 right-4 h-7 w-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white z-10"
+          title="Cerrar menú"
+        >
+          <X size={14} />
+        </button>
         {/* ── LOGO TOP ── */}
         <div className={`flex items-center h-16 px-5 shrink-0 ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
           {!isSidebarCollapsed ? (
@@ -307,11 +342,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
       </div>
+      </div>
 
       {/* ── MAIN CONTENT ── */}
       <div className="flex-1 flex flex-col min-w-0 relative overflow-hidden">
         <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
-        <main className={`flex-1 overflow-y-auto pt-24 px-6 pb-6 relative ${isSuperAdminZone ? 'bg-[#001212]' : ''}`}>
+        <main className={`flex-1 overflow-y-auto pt-20 sm:pt-24 px-3 sm:px-6 pb-6 relative ${isSuperAdminZone ? 'bg-[#001212]' : ''}`}>
           <div className="max-w-[1600px] mx-auto">{children}</div>
         </main>
       </div>

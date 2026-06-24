@@ -254,12 +254,15 @@ function ShopContent() {
         <div className="min-h-screen bg-[#FAFAFA] text-slate-900 font-sans selection:bg-[#00f2ff] selection:text-black relative">
             
             {/* --- NAVEGACIÓN UNIVERSAL --- */}
-            <motion.nav style={{ backgroundColor: navBg }} className="fixed top-0 w-full z-[1000] border-b border-white/10 backdrop-blur-md h-24 flex items-center px-6">
+            <motion.nav style={{ backgroundColor: navBg }} className="fixed top-0 w-full z-[1000] border-b border-white/10 backdrop-blur-md h-20 lg:h-24 flex items-center px-4 lg:px-6">
                 <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
-                    <div className="flex items-center gap-10">
-                        <div onClick={() => router.push(`/shop/${slug}`)} className="flex items-center gap-3 cursor-pointer">
-                            <div className="h-10 w-10 bg-[#004d4d] rounded-xl flex items-center justify-center text-[#00f2ff] font-black">{shopData.full_name?.charAt(0) || 'B'}</div>
-                            <h1 className="text-xl font-black italic uppercase tracking-tighter">{shopData.full_name}</h1>
+                    <div className="flex items-center gap-4 lg:gap-10 min-w-0">
+                        <button onClick={() => setIsMenuOpen(o => !o)} className="lg:hidden h-10 w-10 -ml-2 rounded-xl flex items-center justify-center text-gray-700 shrink-0">
+                            {isMenuOpen ? <X size={20}/> : <Menu size={20}/>}
+                        </button>
+                        <div onClick={() => router.push(`/shop/${slug}`)} className="flex items-center gap-3 cursor-pointer min-w-0">
+                            <div className="h-9 w-9 lg:h-10 lg:w-10 bg-[#004d4d] rounded-xl flex items-center justify-center text-[#00f2ff] font-black shrink-0">{shopData.full_name?.charAt(0) || 'B'}</div>
+                            <h1 className="text-base lg:text-xl font-black italic uppercase tracking-tighter truncate">{shopData.full_name}</h1>
                         </div>
                         <nav className="hidden lg:flex items-center gap-8">
                             <button onClick={() => router.push(`/shop/${slug}?view=home`)} className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${view === 'home' ? 'text-[#004d4d]' : 'text-gray-400 hover:text-black'}`}>Inicio</button>
@@ -267,18 +270,40 @@ function ShopContent() {
                             <button onClick={() => router.push(`/shop/${slug}?view=about`)} className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${view === 'about' ? 'text-[#004d4d]' : 'text-gray-400 hover:text-black'}`}>Nosotros</button>
                         </nav>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 lg:gap-4 shrink-0">
                         <div className="hidden md:flex items-center bg-gray-100 rounded-2xl px-4 h-12">
                             <Search size={16} className="text-gray-400" />
                             <input value={searchTerm} onChange={e => { setSearchTerm(e.target.value); if(view !== 'catalog') router.push(`/shop/${slug}?view=catalog`); }} placeholder="Buscar producto..." className="bg-transparent border-none outline-none px-3 text-sm font-bold w-40 focus:w-60 transition-all" />
                         </div>
-                        <button onClick={() => setIsCartOpen(true)} className="h-14 w-14 rounded-2xl bg-[#004d4d] text-[#00f2ff] flex items-center justify-center shadow-lg relative active:scale-90 transition-all">
-                            <ShoppingBag size={24} />
+                        <button onClick={() => setIsCartOpen(true)} className="h-11 w-11 lg:h-14 lg:w-14 rounded-2xl bg-[#004d4d] text-[#00f2ff] flex items-center justify-center shadow-lg relative active:scale-90 transition-all">
+                            <ShoppingBag size={20} className="lg:hidden" />
+                            <ShoppingBag size={24} className="hidden lg:block" />
                             {cart.length > 0 && <span className="absolute -top-2 -right-2 h-6 w-6 bg-[#00f2ff] text-[#004d4d] text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">{cart.length}</span>}
                         </button>
                     </div>
                 </div>
             </motion.nav>
+
+            {/* --- MENÚ MÓVIL --- */}
+            <AnimatePresence>
+                {isMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                        className="lg:hidden fixed top-20 left-0 w-full z-[999] bg-white border-b border-gray-100 shadow-xl px-6 py-6 space-y-4"
+                    >
+                        <div className="flex items-center bg-gray-100 rounded-2xl px-4 h-12">
+                            <Search size={16} className="text-gray-400" />
+                            <input value={searchTerm} onChange={e => { setSearchTerm(e.target.value); if(view !== 'catalog') router.push(`/shop/${slug}?view=catalog`); }} placeholder="Buscar producto..." className="bg-transparent border-none outline-none px-3 text-sm font-bold w-full" />
+                        </div>
+                        {[['home','Inicio'],['catalog','Catálogo'],['about','Nosotros']].map(([v, label]) => (
+                            <button key={v} onClick={() => { router.push(`/shop/${slug}?view=${v}`); setIsMenuOpen(false); }}
+                                className={`w-full text-left py-3 text-sm font-black uppercase tracking-widest transition-colors ${view === v ? 'text-[#004d4d]' : 'text-gray-400'}`}>
+                                {label}
+                            </button>
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* --- PANEL DE FILTROS (GLASSMORPHISM) --- */}
             <AnimatePresence>
@@ -308,7 +333,7 @@ function ShopContent() {
             </AnimatePresence>
 
             {/* --- MOTOR DE RENDERIZADO (STUDIO VS DEFAULT) --- */}
-            <main className="pt-24 min-h-screen">
+            <main className="pt-20 lg:pt-24 min-h-screen">
                 {shopData.custom_schema ? (
                     <StudioProvider>
                         <Canvas 
@@ -450,15 +475,15 @@ function ShopContent() {
                 {isCheckoutOpen && (
                     <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCheckoutOpen(false)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-xl" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="relative bg-white w-full max-w-xl rounded-[4rem] shadow-3xl p-12 overflow-hidden border border-white/20">
-                            <h3 className="text-3xl font-black italic uppercase tracking-tighter text-[#001A1A] mb-8">Información de <span className="text-[#004d4d]">Envío</span></h3>
-                            <form onSubmit={handlePlaceOrder} className="space-y-6">
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="relative bg-white w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-[2rem] sm:rounded-[4rem] shadow-3xl p-6 sm:p-12 border border-white/20">
+                            <h3 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-[#001A1A] mb-8">Información de <span className="text-[#004d4d]">Envío</span></h3>
+                            <form onSubmit={handlePlaceOrder} className="space-y-4 sm:space-y-6">
                                 <input required placeholder="Nombre Completo" value={customerData.name} onChange={e => setCustomerData({...customerData, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <input required placeholder="WhatsApp" maxLength={10} value={customerData.phone} onChange={e => setCustomerData({...customerData, phone: e.target.value.replace(/\D/g,'')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
                                     <input required type="email" placeholder="Email" value={customerData.email} onChange={e => setCustomerData({...customerData, email: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <input required placeholder="Dirección" value={customerData.address} onChange={e => setCustomerData({...customerData, address: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
                                     <input required placeholder="Ciudad" value={customerData.city} onChange={e => setCustomerData({...customerData, city: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
                                 </div>

@@ -40,8 +40,21 @@ const StudioInterface = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col h-screen w-screen bg-gray-100 overflow-hidden text-gray-900 font-sans">
-      
+    <>
+      {/* Aviso móvil — el editor visual requiere pantalla de escritorio/tablet */}
+      <div className="md:hidden fixed inset-0 z-[200] bg-[#001A1A] flex flex-col items-center justify-center text-center p-10 gap-5">
+        <Monitor size={40} className="text-[#00f2ff]" />
+        <p className="text-white font-black uppercase tracking-widest text-sm">Usa una pantalla más grande</p>
+        <p className="text-white/40 text-xs max-w-xs leading-relaxed">
+          El editor visual de páginas (Bayup Studio) necesita más espacio para funcionar bien. Ábrelo desde una tablet o computador.
+        </p>
+        <Link href="/dashboard/pages" className="mt-2 px-5 py-2.5 bg-white/10 hover:bg-white/15 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+          Volver
+        </Link>
+      </div>
+
+      <div className="hidden md:flex fixed inset-0 z-[100] flex-col h-screen w-screen bg-gray-100 overflow-hidden text-gray-900 font-sans">
+
       {/* HEADER DEL STUDIO */}
       <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 z-[110] shadow-sm">
         <div className="flex items-center gap-4">
@@ -172,7 +185,8 @@ const StudioInterface = () => {
            <DesignerInspector />
         </div>
       </main>
-    </div>
+      </div>
+    </>
   );
 };
 

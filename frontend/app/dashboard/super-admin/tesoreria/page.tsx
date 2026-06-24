@@ -137,7 +137,7 @@ export default function TesoreriaPage() {
       </div>
 
       {/* Dos columnas */}
-      <div className="grid grid-cols-[1fr_1.1fr] gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-5">
 
         {/* Por empresa */}
         <div className="rounded-2xl border border-white/6 bg-white/[0.02] overflow-hidden">

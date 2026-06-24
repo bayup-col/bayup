@@ -144,13 +144,13 @@ function RegisterForm() {
   const selectedPlan = plans.find(p => p.id === formData.planId);
 
   return (
-    <div className="relative z-10 w-full max-w-[640px] p-6 max-h-screen overflow-y-auto no-scrollbar">
-        <motion.div 
+    <div className="relative z-10 w-full max-w-[640px] p-4 sm:p-6 max-h-screen overflow-y-auto no-scrollbar">
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative p-10 md:p-12 rounded-[4rem] overflow-hidden group transition-all duration-700 isolate flex flex-col shadow-[0_40px_80px_-15px_rgba(0,0,0,0.08)] bg-white"
+          className="relative p-6 sm:p-10 md:p-12 rounded-[2.5rem] sm:rounded-[4rem] overflow-hidden group transition-all duration-700 isolate flex flex-col shadow-[0_40px_80px_-15px_rgba(0,0,0,0.08)] bg-white"
         >
-          <div className="absolute inset-0 rounded-[4rem] overflow-hidden -z-10">
+          <div className="absolute inset-0 rounded-[2.5rem] sm:rounded-[4rem] overflow-hidden -z-10">
             <div 
               className="absolute top-1/2 left-1/2 w-[250%] aspect-square animate-aurora opacity-40 transition-opacity duration-700"
               style={{
@@ -158,7 +158,7 @@ function RegisterForm() {
                 willChange: 'transform'
               }}
             />
-            <div className="absolute inset-[2px] rounded-[3.9rem] bg-white/90 backdrop-blur-3xl" />
+            <div className="absolute inset-[2px] rounded-[2.4rem] sm:rounded-[3.9rem] bg-white/90 backdrop-blur-3xl" />
           </div>
 
           <div className="text-center mb-8">
@@ -329,7 +329,7 @@ export default function RegisterPage() {
       <FloatingParticlesBackground />
 
       {/* Botón de Regreso a Home (Elegante y blanco premium) */}
-      <div className="fixed top-8 left-8 z-[100]">
+      <div className="fixed top-4 left-4 sm:top-8 sm:left-8 z-[100]">
         <GlassyButton href="/" variant="light">
           <Home size={18} />
         </GlassyButton>

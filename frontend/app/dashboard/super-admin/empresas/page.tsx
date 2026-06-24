@@ -132,14 +132,15 @@ export default function EmpresasPage() {
         </div>
 
         {/* Cabeceras */}
-        <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_40px] gap-4 px-5 py-2.5 border-b border-white/[0.04]">
+        <div className="overflow-x-auto">
+        <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_40px] gap-4 px-5 py-2.5 border-b border-white/[0.04] min-w-[820px]">
           {['Empresa','Contacto','Plan','Ventas','Estado','Registro',''].map((h,i) => (
             <p key={i} className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">{h}</p>
           ))}
         </div>
 
         {/* Filas */}
-        <div className="divide-y divide-white/[0.04]">
+        <div className="divide-y divide-white/[0.04] min-w-[820px]">
           {filtered.length === 0 && (
             <div className="px-5 py-10 text-center text-[10px] text-white/20">
               {companies.length === 0 ? 'Aún no hay empresas registradas' : 'Sin resultados para el filtro aplicado'}
@@ -186,6 +187,7 @@ export default function EmpresasPage() {
               </motion.div>
             );
           })}
+        </div>
         </div>
 
         {filtered.length > 0 && (
