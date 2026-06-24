@@ -17,16 +17,20 @@ import {
   Loader2
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { useEffect, useState } from 'react';
+import { buildDefaultBodyElements } from '@/lib/default-page-schemas';
 
 export default function PagesDashboard() {
     const { token } = useAuth();
     const { showToast } = useToast();
+    const router = useRouter();
     const [pages, setPages] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [hasActiveTemplate, setHasActiveTemplate] = useState(false);
+    const [seedingKey, setSeedingKey] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchState = async () => {
@@ -37,7 +41,7 @@ export default function PagesDashboard() {
 
                 const masterPages = [
                     { id: 'p1', title: 'Página de Inicio', url: '/', key: 'home', icon: <Home size={32}/>, desc: 'Escaparate principal y aterrizaje de campañas.' },
-                    { id: 'p2', title: 'Detalle de Producto', url: '/product/slug', key: 'product_detail', icon: <Layout size={32}/>, desc: 'Alta conversión: Fotos izq, Info der y carrusel de similares.' },
+                    { id: 'p2', title: 'Detalle de Producto', url: '/product/slug', key: 'product', icon: <Layout size={32}/>, desc: 'Alta conversión: Fotos izq, Info der y carrusel de similares.' },
                     { id: 'p3', title: 'Catálogo & Colecciones', url: '/shop', key: 'catalog', icon: <Globe size={32}/>, desc: 'Buscador pro y filtros inteligentes con panel lateral desenfocado.' },
                     // Checkout siempre tiene un constructor dedicado con valores por defecto, nunca está "vacío"
                     { id: 'p4', title: 'Checkout & Pago', url: '/checkout', key: 'checkout', icon: <Settings2 size={32}/>, desc: 'Proceso de pago optimizado: Identificación vs Resumen de compra.', alwaysConfigured: true },
@@ -76,6 +80,43 @@ export default function PagesDashboard() {
         };
         fetchState();
     }, [token]);
+
+    const handleCustomize = async (page: any) => {
+        // Ya tiene contenido propio (o es Checkout, que siempre trae su propio constructor): vamos directo al editor
+        if (page.isConfigured || page.alwaysConfigured) {
+            router.push(`/dashboard/pages/studio?page=${page.key}`);
+            return;
+        }
+        setSeedingKey(page.key);
+        try {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+            // Reutilizamos el header/footer ya instalado en Home para que la página nueva no se vea desconectada del resto
+            const resHome = await fetch(`${apiBase}/shop-pages/home`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const homeData = resHome.ok ? await resHome.json() : null;
+            const homeSchema = homeData?.schema_data;
+
+            const newSchema = {
+                header: homeSchema?.header || { elements: [], styles: {} },
+                footer: homeSchema?.footer || { elements: [], styles: {} },
+                body: { elements: buildDefaultBodyElements(page.key as 'catalog' | 'about' | 'product'), styles: {} },
+            };
+
+            const res = await fetch(`${apiBase}/shop-pages`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ page_key: page.key, schema_data: newSchema }),
+            });
+
+            if (!res.ok) throw new Error('No se pudo crear el diseño inicial');
+            router.push(`/dashboard/pages/studio?page=${page.key}`);
+        } catch (e) {
+            showToast('No se pudo preparar la página, intenta de nuevo', 'error');
+        } finally {
+            setSeedingKey(null);
+        }
+    };
 
     const handleViewPage = (pageUrl: string) => {
         const savedSettings = localStorage.getItem('bayup_general_settings');
@@ -168,16 +209,21 @@ export default function PagesDashboard() {
                                 </div>
 
                                 <div className="flex items-center gap-4 relative z-10">
-                                    <Link 
-                                        href={`/dashboard/pages/studio?page=${page.key}`} 
-                                        className="flex-1 lg:flex-none"
+                                    <button
+                                        onClick={() => handleCustomize(page)}
+                                        disabled={seedingKey === page.key}
+                                        className="flex-1 lg:flex-none w-full lg:w-auto h-16 px-12 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-[#004d4d] transition-all flex items-center justify-center gap-3 group/btn active:scale-95 disabled:opacity-50"
                                     >
-                                        <button className="w-full lg:w-auto h-16 px-12 bg-gray-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-[#004d4d] transition-all flex items-center justify-center gap-3 group/btn active:scale-95">
-                                            Personalizar Página
-                                            <Edit3 size={16} className="text-[#00f2ff] group-hover/btn:rotate-12 transition-transform"/>
-                                        </button>
-                                    </Link>
-                                    <button 
+                                        {seedingKey === page.key ? (
+                                            <Loader2 size={16} className="animate-spin" />
+                                        ) : (
+                                            <>
+                                                Personalizar Página
+                                                <Edit3 size={16} className="text-[#00f2ff] group-hover/btn:rotate-12 transition-transform"/>
+                                            </>
+                                        )}
+                                    </button>
+                                    <button
                                         onClick={() => handleViewPage(page.url)}
                                         className="h-16 w-16 bg-white border border-gray-100 rounded-3xl flex items-center justify-center text-gray-400 hover:text-[#00f2ff] hover:border-[#00f2ff] transition-all shadow-sm"
                                     >

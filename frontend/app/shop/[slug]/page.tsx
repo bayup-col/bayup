@@ -336,13 +336,14 @@ function ShopContent() {
             <main className="pt-20 lg:pt-24 min-h-screen">
                 {shopData.custom_schema ? (
                     <StudioProvider>
-                        <Canvas 
-                            overrideData={shopData.custom_schema} 
-                            isPreview={true} 
+                        <Canvas
+                            overrideData={shopData.custom_schema}
+                            isPreview={true}
                             initialProducts={shopData.products}
                             initialCategories={shopData.categories}
                             onOpenCart={() => setIsCartOpen(true)}
                             tenantId={shopData.owner_id}
+                            productId={productId}
                         />
                     </StudioProvider>
                 ) : (

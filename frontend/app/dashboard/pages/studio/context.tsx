@@ -7,7 +7,7 @@ import { useToast } from "@/context/toast-context";
 
 // --- Tipos ---
 export type SectionType = "header" | "body" | "footer";
-export type ComponentType = "text" | "button" | "image" | "product-grid" | "hero-banner" | "video" | "announcement-bar" | "navbar" | "custom-block" | "cards" | "product-master-view" | "footer-premium" | "categories-grid";
+export type ComponentType = "text" | "button" | "image" | "product-grid" | "hero-banner" | "video" | "announcement-bar" | "navbar" | "custom-block" | "cards" | "product-master-view" | "footer-premium" | "categories-grid" | "text-block-premium" | "contact-form" | "product-detail";
 
 export interface StudioElement {
   id: string;

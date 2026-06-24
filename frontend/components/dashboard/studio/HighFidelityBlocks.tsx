@@ -318,7 +318,84 @@ export const SmartContactForm = ({ props, tenantId }: { props: any, tenantId?: s
   );
 };
 
-// 10. TRUST BANNER (JOYERÍA NO LO USA SEGÚN TU HTML, PERO LO DEJAMOS POR COMPATIBILIDAD)
+// 10. FICHA DE PRODUCTO (GALERÍA + INFO + RELACIONADOS)
+export const SmartProductDetail = ({ product, relatedProducts = [] }: { product?: any, relatedProducts?: any[] }) => {
+  const { addItem: addToCart } = useCart();
+  const [qty, setQty] = React.useState(1);
+  const [activeImg, setActiveImg] = React.useState(0);
+
+  if (!product) {
+    return (
+      <section className="py-32 text-center font-sans bg-white">
+        <p className="text-gray-400 text-[11px] font-bold uppercase tracking-widest">Esta ficha mostrará tus productos reales una vez tengas inventario cargado.</p>
+      </section>
+    );
+  }
+
+  const images: string[] = (Array.isArray(product.image_url) ? product.image_url : [product.image_url || product.image]).filter(Boolean);
+
+  return (
+    <section className="py-20 bg-white font-sans">
+      <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16">
+        {/* Galería */}
+        <div className="space-y-4">
+          <div className="aspect-square rounded-[2.5rem] overflow-hidden bg-gray-50">
+            {images[activeImg] && <img src={images[activeImg]} className="w-full h-full object-cover" alt={product.name} />}
+          </div>
+          {images.length > 1 && (
+            <div className="flex gap-3">
+              {images.map((img, i) => (
+                <button key={i} onClick={() => setActiveImg(i)} className={cn("h-20 w-20 rounded-2xl overflow-hidden border-2 transition-colors", activeImg === i ? "border-[#004d4d]" : "border-transparent")}>
+                  <img src={img} className="w-full h-full object-cover" alt="" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="space-y-6">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">{product.category || 'Producto'}</p>
+          <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter">{product.name}</h1>
+          <p className="text-3xl font-black text-[#004d4d]">$ {Number(product.price || 0).toLocaleString()}</p>
+          {product.description && <p className="text-gray-500 leading-relaxed">{product.description}</p>}
+          <div className="flex items-center gap-4 pt-4">
+            <div className="flex items-center border border-gray-200 rounded-2xl shrink-0">
+              <button onClick={() => setQty(q => Math.max(1, q - 1))} className="h-12 w-12 flex items-center justify-center text-gray-400 hover:text-gray-900"><Minus size={16} /></button>
+              <span className="w-10 text-center font-bold text-sm">{qty}</span>
+              <button onClick={() => setQty(q => q + 1)} className="h-12 w-12 flex items-center justify-center text-gray-400 hover:text-gray-900"><Plus size={16} /></button>
+            </div>
+            <button
+              onClick={() => addToCart({ id: product.id, title: product.name, price: product.price, image: images[0], quantity: qty })}
+              className="flex-1 h-12 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#004d4d] transition-all"
+            >
+              Añadir al carrito
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {relatedProducts.length > 0 && (
+        <div className="max-w-6xl mx-auto px-6 mt-24">
+          <h3 className="text-2xl font-black uppercase tracking-tighter text-gray-900 mb-8">Productos similares</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {relatedProducts.slice(0, 4).map((p: any) => (
+              <div key={p.id} className="space-y-3">
+                <div className="aspect-square rounded-2xl overflow-hidden bg-gray-50">
+                  <img src={Array.isArray(p.image_url) ? p.image_url[0] : p.image_url} className="w-full h-full object-cover" alt={p.name} />
+                </div>
+                <p className="text-xs font-bold text-gray-900 truncate">{p.name}</p>
+                <p className="text-sm font-black text-[#004d4d]">$ {Number(p.price || 0).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};
+
+// 11. TRUST BANNER (JOYERÍA NO LO USA SEGÚN TU HTML, PERO LO DEJAMOS POR COMPATIBILIDAD)
 export const SmartTrustBanner = ({ props }: { props?: any }) => null;
 export const SmartBentoGrid = ({ props }: { props?: any }) => null;
 export const SmartServices = ({ props }: { props?: any }) => null;
