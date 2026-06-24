@@ -386,9 +386,10 @@ class WebTemplate(Base):
 class ShopPage(Base):
     __tablename__ = "shop_pages"
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(GUID(), ForeignKey("users.id"))
-    page_key = Column(String)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True)
+    page_key = Column(String, index=True)
     schema_data = Column(JSON)
+    template_id = Column(String, nullable=True)
     is_published = Column(Boolean, default=False)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 

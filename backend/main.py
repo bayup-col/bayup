@@ -1153,6 +1153,8 @@ def _serialize_template(t):
         "isPremium": bool(t.is_premium),
         "isActive": bool(t.is_active),
         "color": t.color or "#0f1a1a",
+        "preview_url": t.preview_url,
+        "schema_data": t.schema_data,
     }
 
 @app.get("/super-admin/web-templates")
@@ -1236,5 +1238,135 @@ async def delete_super_admin_web_template(template_id: str, request: Request):
         db.delete(template)
         db.commit()
         return {"ok": True}
+    finally:
+        db.close()
+
+@app.get("/web-templates")
+async def get_web_templates(request: Request):
+    """Galeria de plantillas visible para cualquier tenant autenticado."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        await _authenticate(request, db)
+        templates = db.query(models.WebTemplate).filter(models.WebTemplate.is_active == True).order_by(models.WebTemplate.created_at.desc()).all()
+        return [_serialize_template(t) for t in templates]
+    finally:
+        db.close()
+
+def _serialize_shop_page(p):
+    return {
+        "id": str(p.id),
+        "page_key": p.page_key,
+        "schema_data": p.schema_data,
+        "template_id": p.template_id,
+        "is_published": bool(p.is_published),
+        "updated_at": p.updated_at.isoformat() if p.updated_at else None,
+    }
+
+class ShopPageSaveRequest(BaseModel):
+    page_key: str
+    schema_data: dict
+    template_id: str | None = None
+
+class ShopPagePublishRequest(BaseModel):
+    page_key: str
+    schema_data: dict
+
+@app.get("/shop-pages/{page_key}")
+async def get_shop_page(page_key: str, request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        page = db.query(models.ShopPage).filter(
+            models.ShopPage.tenant_id == tenant_id,
+            models.ShopPage.page_key == page_key,
+        ).first()
+        if not page:
+            return {"page_key": page_key, "schema_data": None, "template_id": None, "is_published": False}
+        return _serialize_shop_page(page)
+    finally:
+        db.close()
+
+@app.post("/shop-pages")
+async def save_shop_page(payload: ShopPageSaveRequest, request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        page = db.query(models.ShopPage).filter(
+            models.ShopPage.tenant_id == tenant_id,
+            models.ShopPage.page_key == payload.page_key,
+        ).first()
+        if page:
+            page.schema_data = payload.schema_data
+            if payload.template_id:
+                page.template_id = payload.template_id
+        else:
+            page = models.ShopPage(
+                tenant_id=tenant_id,
+                page_key=payload.page_key,
+                schema_data=payload.schema_data,
+                template_id=payload.template_id,
+            )
+            db.add(page)
+        db.commit()
+        db.refresh(page)
+        return _serialize_shop_page(page)
+    finally:
+        db.close()
+
+@app.post("/shop-pages/publish")
+async def publish_shop_page(payload: ShopPagePublishRequest, request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        page = db.query(models.ShopPage).filter(
+            models.ShopPage.tenant_id == tenant_id,
+            models.ShopPage.page_key == payload.page_key,
+        ).first()
+        if page:
+            page.schema_data = payload.schema_data
+            page.is_published = True
+        else:
+            page = models.ShopPage(
+                tenant_id=tenant_id,
+                page_key=payload.page_key,
+                schema_data=payload.schema_data,
+                is_published=True,
+            )
+            db.add(page)
+        db.commit()
+        db.refresh(page)
+        return _serialize_shop_page(page)
+    finally:
+        db.close()
+
+@app.get("/public/stores/{store_id}/pages/{page_key}")
+async def get_public_shop_page(store_id: str, page_key: str):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        try:
+            store_uuid = uuid_lib.UUID(store_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="store_id inválido")
+        page = db.query(models.ShopPage).filter(
+            models.ShopPage.tenant_id == store_uuid,
+            models.ShopPage.page_key == page_key,
+            models.ShopPage.is_published == True,
+        ).first()
+        if not page:
+            raise HTTPException(status_code=404, detail="Página no publicada")
+        return {"page_key": page.page_key, "schema_data": page.schema_data}
     finally:
         db.close()
