@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check, ChevronRight, ChevronLeft, Loader2, Image as ImageIcon,
-  Store, Package, Rocket, ShoppingBag, Smartphone, Sparkles, Activity, Edit3, LogOut
+  Store, Package, Rocket, ShoppingBag, Smartphone, Sparkles, Activity, Edit3, LogOut, Eye
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -74,6 +74,12 @@ export default function OnboardingPage() {
   }, [token, apiBase]);
 
   const selectedTemplate = templates.find(t => t.id === templateId) || null;
+
+  const openPreview = () => {
+    if (!selectedTemplate) return;
+    localStorage.setItem('bayup-studio-preview', JSON.stringify(selectedTemplate.schema_data));
+    window.open('/studio-preview', '_blank');
+  };
 
   const handleStoreNameChange = (value: string) => {
     setStoreName(value);
@@ -228,6 +234,12 @@ export default function OnboardingPage() {
               </div>
             ))}
           </div>
+          {selectedTemplate && (
+            <button onClick={openPreview}
+              className="flex items-center gap-2 h-9 px-4 rounded-full bg-[#004d4d]/5 border border-[#004d4d]/15 text-[10px] font-black uppercase tracking-widest text-[#004d4d] hover:bg-[#004d4d]/10 transition-all">
+              <Eye size={13} /> Vista previa
+            </button>
+          )}
           <button onClick={logout} className="text-gray-300 hover:text-rose-500 transition-colors" title="Cerrar sesión">
             <LogOut size={18} />
           </button>
