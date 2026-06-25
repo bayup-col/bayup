@@ -11,7 +11,7 @@ import { BookButton } from "./BookButton";
 import { GlassButton } from "./GlassButton";
 
 const products = [
-  { id: 1, name: "Diseños Diferentes", image: "/assets/gift.gif", detail: "Muestra tus productos \n de manera diferente a tu competencia." },
+  { id: 1, name: "Diseños Diferentes", image: "/assets/gift.webp", detail: "Muestra tus productos \n de manera diferente a tu competencia." },
   { id: 2, name: "Tu Tienda Tech", image: "/assets/gatgets.webp", detail: "Digitaliza tu stock tecnológico y escala \n tus ventas a un nivel profesional." },
   { id: 4, name: "Expertos en Hardware", image: "/assets/Neon Red Animated and Bright Twitch Logo (4).png", detail: "Vende laptops, PCs y componentes con \n una interfaz optimizada." },
   { id: 5, name: "Moda con Identidad", image: "/assets/Neon Red Animated and Bright Twitch Logo (5).png", detail: "Lanza tu línea de ropa con una tienda \n que resalta cada detalle de tu diseño." },
