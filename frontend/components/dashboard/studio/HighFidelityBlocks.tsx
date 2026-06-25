@@ -274,10 +274,64 @@ export const SmartNewsletter = () => {
   );
 };
 
+// Textos legales genéricos pero reales, parametrizados con el nombre de la tienda.
+// No varían por nicho (a diferencia de "Nosotros"/"Contacto") porque el contenido
+// legal base es el mismo sin importar si la tienda vende tenis o joyas.
+type LegalDocType = 'privacy' | 'terms' | 'cookies';
+
+const getLegalContent = (type: LegalDocType, storeName: string) => {
+  const docs: Record<LegalDocType, { title: string; paragraphs: string[] }> = {
+    privacy: {
+      title: 'Política de Privacidad',
+      paragraphs: [
+        `${storeName} recopila únicamente los datos necesarios para procesar tu compra: nombre, correo electrónico, teléfono y dirección de envío. Los datos de pago son procesados directamente por la pasarela de pagos y nunca se almacenan en nuestros servidores.`,
+        'Utilizamos tu información exclusivamente para gestionar tu pedido, comunicarnos contigo sobre el estado de tu compra y mejorar nuestro servicio. No vendemos ni compartimos tus datos con terceros para fines publicitarios.',
+        'Puedes solicitar acceder, corregir o eliminar tus datos personales en cualquier momento escribiéndonos a través de la sección de Contacto.',
+      ],
+    },
+    terms: {
+      title: 'Términos y Condiciones',
+      paragraphs: [
+        `Al realizar una compra en ${storeName} aceptas estos términos. Los precios y la disponibilidad de los productos están sujetos a cambios sin previo aviso.`,
+        'El pedido se confirma una vez recibido el pago. Los tiempos de envío son estimados y pueden variar según la ubicación de entrega y el transportador.',
+        'Las devoluciones y cambios se rigen por la política descrita en la sección "Garantía" y "Envíos y Devoluciones". El uso de este sitio se rige por las leyes de la República de Colombia.',
+      ],
+    },
+    cookies: {
+      title: 'Política de Cookies',
+      paragraphs: [
+        `${storeName} utiliza cookies esenciales para que el carrito de compras y tu sesión funcionen correctamente mientras navegas el sitio.`,
+        'También podemos usar cookies analíticas para entender cómo se usa la tienda y mejorar la experiencia de compra. No usamos cookies de terceros con fines publicitarios.',
+        'Puedes desactivar las cookies desde la configuración de tu navegador, aunque esto podría afectar el funcionamiento del carrito y el inicio de sesión.',
+      ],
+    },
+  };
+  return docs[type];
+};
+
+const LegalModal = ({ type, storeName, onClose }: { type: LegalDocType; storeName: string; onClose: () => void }) => {
+  const { title, paragraphs } = getLegalContent(type, storeName);
+  return (
+    <div className="fixed inset-0 z-[5000] flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <motion.div initial={{ opacity: 0, y: 20, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="relative bg-white max-w-xl w-full rounded-[2rem] shadow-2xl max-h-[80vh] overflow-y-auto">
+        <div className="p-8 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white">
+          <h3 className="text-xl font-black text-slate-900">{title}</h3>
+          <button onClick={onClose} className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-all"><X size={18} /></button>
+        </div>
+        <div className="p-8 space-y-5">
+          {paragraphs.map((p, i) => <p key={i} className="text-sm text-slate-600 leading-relaxed">{p}</p>)}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 // 7. FOOTER JOYERÍA
 export const SmartFooter = ({ props }: { props: any }) => {
   const { showToast } = useToast();
   const { setActiveFilter } = useSimNav();
+  const [legalModal, setLegalModal] = React.useState<LegalDocType | null>(null);
 
   const goAbout = () => goToSimulatedSection('Nosotros', setActiveFilter);
   const goContact = () => goToSimulatedSection('Contacto', setActiveFilter);
@@ -324,8 +378,15 @@ export const SmartFooter = ({ props }: { props: any }) => {
       </div>
       <div className="max-w-7xl mx-auto mt-32 pt-10 border-t border-slate-100 flex flex-col md:flex-row justify-between gap-6 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">
         <p>© 2024 {props.logoText}. Todos los derechos reservados.</p>
-        <div className="flex gap-8"><span onClick={simulate} className="hover:text-black cursor-pointer">Privacidad</span><span onClick={simulate} className="hover:text-black cursor-pointer">Términos</span><span onClick={simulate} className="hover:text-black cursor-pointer">Cookies</span></div>
+        <div className="flex gap-8">
+          <span onClick={() => setLegalModal('privacy')} className="hover:text-black cursor-pointer">Privacidad</span>
+          <span onClick={() => setLegalModal('terms')} className="hover:text-black cursor-pointer">Términos</span>
+          <span onClick={() => setLegalModal('cookies')} className="hover:text-black cursor-pointer">Cookies</span>
+        </div>
       </div>
+      <AnimatePresence>
+        {legalModal && <LegalModal type={legalModal} storeName={props.logoText || 'Tu Tienda'} onClose={() => setLegalModal(null)} />}
+      </AnimatePresence>
     </footer>
   );
 };
