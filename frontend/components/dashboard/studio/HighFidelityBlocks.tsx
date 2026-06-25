@@ -16,26 +16,52 @@ import { useToast } from '@/context/toast-context';
  * COMPONENTES DE ALTA FIDELIDAD - ESPECIALIZADOS POR MARCA
  */
 
+// --- Filtro de catalogo simulado ---
+// El navbar y las tarjetas de categoria disparan un filtro (p.ej. "Conjuntos",
+// "Pijamas", "Basketball"); la grilla de productos lo lee y muestra solo lo
+// que corresponde a esa categoria, para que cada seccion del menu muestre
+// contenido distinto y real en vez de siempre el mismo listado completo.
+interface SimNavState { activeFilter: string | null; setActiveFilter: (f: string | null) => void; }
+const SimNavContext = React.createContext<SimNavState>({ activeFilter: null, setActiveFilter: () => {} });
+export const SimulatedStoreProvider = ({ children }: { children: React.ReactNode }) => {
+  const [activeFilter, setActiveFilter] = React.useState<string | null>(null);
+  return <SimNavContext.Provider value={{ activeFilter, setActiveFilter }}>{children}</SimNavContext.Provider>;
+};
+const useSimNav = () => React.useContext(SimNavContext);
+
+const normalizeLabel = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
 // Navegacion simulada: como estas plantillas son de una sola pagina (sin
 // rutas reales aun), el menu y los botones de "Ver Coleccion"/"Ver Drops"
-// desplazan a la seccion mas relevante dentro de la misma vista, para que
-// todo se sienta clickeable e interactivo en la vista previa.
-const scrollToSimulatedSection = (label: string) => {
-  const l = label.toLowerCase();
-  let targetId = 'bayup-products';
-  if (/(contact|contacto)/.test(l)) targetId = 'bayup-footer';
-  else if (/(nosotr|about|historia|marca|empresa)/.test(l)) targetId = 'bayup-footer';
-  else if (/(colec|producto|tienda|shop|novedad|drop|catalog|ofert)/.test(l)) targetId = 'bayup-products';
-  else if (/(inicio|home)/.test(l)) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-
-  const el = document.getElementById(targetId) || document.getElementById('bayup-categories') || document.getElementById('bayup-footer');
-  el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+// desplazan a la seccion mas relevante dentro de la misma vista, ademas de
+// aplicar el filtro de categoria correspondiente, para que todo se sienta
+// clickeable e interactivo en la vista previa.
+const goToSimulatedSection = (label: string, setFilter: (f: string | null) => void) => {
+  const l = normalizeLabel(label);
+  if (/(contact|contacto)/.test(l) || /(nosotr|about|historia|marca|empresa)/.test(l)) {
+    setFilter(null);
+    document.getElementById('bayup-footer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  if (/(inicio|home)$/.test(l)) {
+    setFilter(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  // Cualquier otra etiqueta (Novedades, Conjuntos, Pijamas, Ofertas, Colecciones,
+  // Drops, una marca puntual, etc.) se usa como filtro real del catalogo.
+  setFilter(/novedad/.test(l) ? null : label);
+  setTimeout(() => {
+    const el = document.getElementById('bayup-products') || document.getElementById('bayup-categories') || document.getElementById('bayup-footer');
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 50);
 };
 
 // 1. NAVBAR PREMIUM (FUNCIONAL CON CARRITO)
 export const SmartNavbar = ({ props }: { props: any }) => {
   const { items: cart, setIsCartOpen: setIsOpen } = useCart();
   const { showToast } = useToast();
+  const { activeFilter, setActiveFilter } = useSimNav();
 
   return (
     <>
@@ -49,8 +75,9 @@ export const SmartNavbar = ({ props }: { props: any }) => {
           <nav className="hidden lg:flex items-center gap-10">
             {(props.menuItems || ["Novedades", "Colecciones", "Nosotros", "Contacto"]).map((item: any, i: number) => {
               const label = typeof item === 'string' ? item : item.label;
+              const isActive = activeFilter?.toLowerCase() === label.toLowerCase();
               return (
-                <span key={i} onClick={() => scrollToSimulatedSection(label)} className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-cyan cursor-pointer transition-all">
+                <span key={i} onClick={() => goToSimulatedSection(label, setActiveFilter)} className={cn("text-[10px] font-black uppercase tracking-[0.2em] cursor-pointer transition-all", isActive ? "text-cyan" : "text-gray-500 hover:text-cyan")}>
                   {label}
                 </span>
               );
@@ -77,6 +104,7 @@ export const SmartNavbar = ({ props }: { props: any }) => {
 
 // 2. HERO JOYERÍA
 export const SmartHero = ({ props }: { props: any }) => {
+  const { setActiveFilter } = useSimNav();
   return (
     <section className="relative w-full h-[80vh] overflow-hidden flex items-center justify-center bg-slate-900 font-serif">
       <img className="absolute inset-0 w-full h-full object-cover opacity-60" src={props.imageUrl} alt="Hero" />
@@ -91,7 +119,7 @@ export const SmartHero = ({ props }: { props: any }) => {
         <p className="text-lg md:text-xl text-slate-200 mb-12 max-w-2xl mx-auto font-light leading-relaxed">
           {props.subtitle}
         </p>
-        <button onClick={() => scrollToSimulatedSection(props.primaryBtnText || 'Ver Colección')} className="px-12 py-5 border border-white text-white rounded-none font-bold text-xs uppercase tracking-[0.3em] hover:bg-white hover:text-black transition-all">
+        <button onClick={() => goToSimulatedSection('Novedades', setActiveFilter)} className="px-12 py-5 border border-white text-white rounded-none font-bold text-xs uppercase tracking-[0.3em] hover:bg-white hover:text-black transition-all">
           {props.primaryBtnText || 'Ver Colección'}
         </button>
       </div>
@@ -120,19 +148,40 @@ export const SmartHeritageBlock = ({ props }: { props: any }) => {
 // 4. GRID DE PRODUCTOS PREMIUM (FUNCIONAL)
 export const SmartProductGrid = ({ props }: { props: any }) => {
   const { addItem: addToCart } = useCart();
-  
+  const { activeFilter } = useSimNav();
+
+  const allProducts: any[] = props.products || [];
+  const filterNorm = activeFilter ? normalizeLabel(activeFilter) : null;
+  const isOfertas = filterNorm ? /oferta|descuento|sale|rebaja/.test(filterNorm) : false;
+
+  let displayProducts = allProducts;
+  let displayTitle = props.title || 'Novedades';
+
+  if (filterNorm) {
+    displayTitle = activeFilter as string;
+    if (!isOfertas) {
+      const matched = allProducts.filter((p) => {
+        const cat = normalizeLabel(p.category || '');
+        return cat.includes(filterNorm) || filterNorm.includes(cat) || cat.split(/[\s·,/-]+/).some((w) => w && (w === filterNorm || filterNorm.includes(w)));
+      });
+      if (matched.length > 0) displayProducts = matched;
+    }
+  }
+
   return (
     <section id="bayup-products" className="py-32 bg-white font-sans">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-6">
           <div>
             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-cyan mb-4 block">Tendencias</span>
-            <h3 className="text-5xl font-black text-gray-900 italic tracking-tighter uppercase">{props.title || 'Novedades'}</h3>
+            <h3 className="text-5xl font-black text-gray-900 italic tracking-tighter uppercase">{displayTitle}</h3>
           </div>
           <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 hover:text-cyan cursor-pointer transition-all border-b border-gray-100 pb-2">Explorar todo el catálogo</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
-          {(props.products || []).map((p: any, i: number) => (
+          {displayProducts.length === 0 ? (
+            <p className="col-span-full text-center text-gray-400 font-bold uppercase text-sm tracking-widest py-12">Próximamente nuevos productos en esta sección</p>
+          ) : displayProducts.map((p: any, i: number) => (
             <motion.div 
               key={i} 
               initial={{ opacity: 0, y: 20 }} 
@@ -180,6 +229,7 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
 
 // 5. COLECCIONES JOYERÍA
 export const SmartCategoriesGrid = ({ props }: { props: any }) => {
+  const { setActiveFilter } = useSimNav();
   return (
     <section id="bayup-categories" className="py-32 bg-white font-serif">
       <div className="max-w-7xl mx-auto px-6">
@@ -191,7 +241,7 @@ export const SmartCategoriesGrid = ({ props }: { props: any }) => {
               <img className="w-full h-full object-cover opacity-60 group-hover:opacity-40 group-hover:scale-110 transition-all duration-[3000ms]" src={item.image} />
               <div className="absolute inset-0 flex flex-col items-center justify-center p-10 text-center space-y-6">
                 <h5 className="text-white text-3xl font-light italic tracking-tight">{item.label}</h5>
-                <button onClick={() => scrollToSimulatedSection('productos')} className="px-6 py-3 border border-white/40 text-white text-[9px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all">Ver Detalles</button>
+                <button onClick={() => goToSimulatedSection(item.label, setActiveFilter)} className="px-6 py-3 border border-white/40 text-white text-[9px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all">Ver Detalles</button>
               </div>
             </div>
           ))}

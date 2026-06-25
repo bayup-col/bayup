@@ -7,6 +7,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { DraggableCanvasElement } from "./CanvasElements";
 import { Lock, Unlock } from "lucide-react";
 import { CheckoutStudio } from "./CheckoutStudio";
+import { SimulatedStoreProvider } from "@/components/dashboard/studio/HighFidelityBlocks";
 
 const viewportWidths: Record<string, string> = {
   desktop: "max-w-none",
@@ -210,11 +211,13 @@ export const Canvas = ({
     <div className={cn("flex-1 overflow-y-auto overflow-x-hidden scroll-smooth flex flex-col items-center", isPreview ? "bg-white p-0 w-full" : "bg-gray-100 p-8")}>
       <style>{` @keyframes marquee-loop { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } } .animate-marquee-loop { animation: marquee-loop 20s linear infinite; } `}</style>
       <div className={cn("w-full transition-all duration-500", !isPreview ? viewportWidths[viewport] : "max-w-none")}>
-        {!hideHeader && (
-          <DroppableSection section="header" headerRef={headerRef} activeSection={activeSection} setActiveSection={setActiveSection} isPreview={isPreview}>{renderElements("header")}</DroppableSection>
-        )}
-        <DroppableSection section="body" headerRef={bodyRef} activeSection={activeSection} setActiveSection={setActiveSection} isPreview={isPreview}>{renderElements("body")}</DroppableSection>
-        <DroppableSection section="footer" headerRef={footerRef} activeSection={activeSection} setActiveSection={setActiveSection} isPreview={isPreview}>{renderElements("footer")}</DroppableSection>
+        <SimulatedStoreProvider>
+          {!hideHeader && (
+            <DroppableSection section="header" headerRef={headerRef} activeSection={activeSection} setActiveSection={setActiveSection} isPreview={isPreview}>{renderElements("header")}</DroppableSection>
+          )}
+          <DroppableSection section="body" headerRef={bodyRef} activeSection={activeSection} setActiveSection={setActiveSection} isPreview={isPreview}>{renderElements("body")}</DroppableSection>
+          <DroppableSection section="footer" headerRef={footerRef} activeSection={activeSection} setActiveSection={setActiveSection} isPreview={isPreview}>{renderElements("footer")}</DroppableSection>
+        </SimulatedStoreProvider>
       </div>
     </div>
   );
