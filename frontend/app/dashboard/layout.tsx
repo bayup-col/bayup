@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/context/theme-context';
+import { useSuperAdminTheme } from '@/context/super-admin-theme-context';
 import { DashboardHeader } from '@/components/dashboard/Header';
 import UserSettingsModal from '@/components/dashboard/UserSettingsModal';
 import { BaytAssistant } from '@/components/dashboard/BaytAssistant';
@@ -93,6 +94,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     isLoading
   } = useAuth();
   const { theme } = useTheme();
+  const { saTheme } = useSuperAdminTheme();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -169,7 +171,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className={`h-screen w-full flex overflow-hidden ${isSuperAdminZone ? 'bg-[#001212]' : theme === 'dark' ? 'bg-[#001212]' : 'bg-[#F0F2F5]'}`}>
+    <div
+      data-sa-theme={isSuperAdminZone ? saTheme : undefined}
+      className={`h-screen w-full flex overflow-hidden ${isSuperAdminZone ? (saTheme === 'light' ? 'bg-[#F4F6F7]' : 'bg-[#001212]') : theme === 'dark' ? 'bg-[#001212]' : 'bg-[#F0F2F5]'}`}>
 
       {/* Botón hamburguesa — solo móvil */}
       {!isMobileSidebarOpen && (
@@ -365,7 +369,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {/* ── MAIN CONTENT ── */}
       <div className="flex-1 flex flex-col min-w-0 relative overflow-hidden">
         <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
-        <main className={`flex-1 overflow-y-auto pt-20 sm:pt-24 px-3 sm:px-6 pb-6 relative ${isSuperAdminZone ? 'bg-[#001212]' : ''}`}>
+        <main className={`flex-1 overflow-y-auto pt-20 sm:pt-24 px-3 sm:px-6 pb-6 relative ${isSuperAdminZone ? (saTheme === 'light' ? 'bg-[#F4F6F7]' : 'bg-[#001212]') : ''}`}>
           <div className="max-w-[1600px] mx-auto">{children}</div>
         </main>
       </div>
