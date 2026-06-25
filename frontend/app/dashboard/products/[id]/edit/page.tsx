@@ -155,10 +155,12 @@ export default function EditProductPage() {
         const fetchInitial = async () => {
             if (!token || !productId) return;
             try {
-                const cats = await apiRequest<any[]>('/collections', { token });
+                const [cats, prod] = await Promise.all([
+                    apiRequest<any[]>('/collections', { token }).catch(() => null),
+                    apiRequest<any>(`/products/${productId}`, { token }).catch(() => null),
+                ]);
                 if (cats) setCategoriesList(cats);
 
-                const prod = await apiRequest<any>(`/products/${productId}`, { token });
                 if (prod) {
                     setFormData({
                         name: prod.name,
