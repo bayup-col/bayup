@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check, ChevronRight, ChevronLeft, Loader2, Image as ImageIcon,
-  Store, Package, Rocket, ShoppingBag, Smartphone, Sparkles, Activity, Edit3, LogOut, Eye
+  Store, Package, Rocket, ShoppingBag, Smartphone, Sparkles, Activity, Edit3, LogOut, Eye, X
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -29,11 +29,20 @@ interface WebTemplate {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { token, isAuthenticated, isLoading, updateUser, setOnboardingCompleted, logout } = useAuth();
+  const { token, isAuthenticated, isLoading, userName, userEmail, updateUser, refreshToken, setOnboardingCompleted, logout } = useAuth();
   const { showToast } = useToast();
 
   const [step, setStep] = useState(0);
   const [isPublishing, setIsPublishing] = useState(false);
+
+  // Correccion de los datos del registro (nombre/correo), accesible desde el
+  // Paso 1 por si el usuario se equivoco al crear la cuenta y quiere arreglarlo
+  // antes de seguir, sin tener que volver a /register (eso crearia una cuenta
+  // nueva en vez de editar la actual).
+  const [showEditAccount, setShowEditAccount] = useState(false);
+  const [accountName, setAccountName] = useState('');
+  const [accountEmail, setAccountEmail] = useState('');
+  const [savingAccount, setSavingAccount] = useState(false);
 
   // Paso 1
   const [templates, setTemplates] = useState<WebTemplate[]>([]);
@@ -80,6 +89,41 @@ export default function OnboardingPage() {
     if (!target) return;
     localStorage.setItem('bayup-studio-preview', JSON.stringify(target.schema_data));
     window.open('/studio-preview', '_blank');
+  };
+
+  const openEditAccount = () => {
+    setAccountName(userName || '');
+    setAccountEmail(userEmail || '');
+    setShowEditAccount(true);
+  };
+
+  const saveAccount = async () => {
+    if (!accountName.trim() || !accountEmail.trim()) return;
+    setSavingAccount(true);
+    try {
+      const res = await fetch(`${apiBase}/admin/update-profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ full_name: accountName.trim(), email: accountEmail.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'No se pudieron guardar tus datos');
+      }
+      const data = await res.json().catch(() => ({}));
+      updateUser({ name: accountName.trim() });
+      if (data.access_token) {
+        // El email cambio: el backend emitio un token nuevo porque el viejo
+        // (firmado con el email anterior) ya no es valido para esta cuenta.
+        refreshToken(data.access_token, accountEmail.trim());
+      }
+      showToast('Tus datos se actualizaron correctamente', 'success');
+      setShowEditAccount(false);
+    } catch (e: any) {
+      showToast(e.message || 'No se pudieron guardar tus datos', 'error');
+    } finally {
+      setSavingAccount(false);
+    }
   };
 
   const handleStoreNameChange = (value: string) => {
@@ -257,6 +301,9 @@ export default function OnboardingPage() {
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00b2bd]">Paso 1 de 3</p>
                   <h1 className="text-4xl md:text-5xl font-black italic uppercase tracking-tighter text-[#001A1A]">Elige tu plantilla</h1>
                   <p className="text-gray-500 font-medium max-w-xl">Selecciona el diseño con el que quieres lanzar tu tienda hoy mismo. Podrás pedir más diseños y personalizaciones más adelante.</p>
+                  <button onClick={openEditAccount} className="text-[11px] font-bold text-gray-400 hover:text-[#004d4d] underline decoration-gray-200 underline-offset-4 transition-colors">
+                    ¿Tu nombre o correo de registro están mal? Corrígelos aquí
+                  </button>
                 </div>
                 {templatesLoading ? (
                   <div className="py-20 flex items-center justify-center text-gray-300">
@@ -440,6 +487,47 @@ export default function OnboardingPage() {
           </div>
         </div>
       </main>
+
+      {/* MODAL: corregir nombre/correo de registro */}
+      <AnimatePresence>
+        {showEditAccount && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
+              onClick={() => setShowEditAccount(false)} />
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 16 }}
+                onClick={e => e.stopPropagation()}
+                className="w-full max-w-md my-auto bg-white rounded-[2rem] shadow-2xl p-8 space-y-6"
+              >
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-black text-[#001A1A]">Corregir mis datos</h2>
+                  <button onClick={() => setShowEditAccount(false)} className="h-8 w-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-900">
+                    <X size={16} />
+                  </button>
+                </div>
+                <p className="text-[12px] text-gray-400 font-medium -mt-2">Estos son los datos con los que creaste tu cuenta. Puedes corregirlos sin perder tu avance.</p>
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre</label>
+                  <input value={accountName} onChange={e => setAccountName(e.target.value)}
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none text-sm font-bold focus:border-[#004d4d] transition-all" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Correo electrónico</label>
+                  <input type="email" value={accountEmail} onChange={e => setAccountEmail(e.target.value)}
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none text-sm font-bold focus:border-[#004d4d] transition-all" />
+                </div>
+                <button onClick={saveAccount} disabled={savingAccount || !accountName.trim() || !accountEmail.trim()}
+                  className="w-full flex items-center justify-center gap-2 py-4 bg-[#001A1A] text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-black transition-all disabled:opacity-40">
+                  {savingAccount ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} className="text-[#00f2ff]" />}
+                  Guardar cambios
+                </button>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

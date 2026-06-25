@@ -1096,6 +1096,7 @@ class UpdateProfileRequest(BaseModel):
 @app.put("/admin/update-profile")
 async def update_profile(payload: UpdateProfileRequest, request: Request):
     import crud
+    import security
     from database import SessionLocal
     db = SessionLocal()
     try:
@@ -1105,11 +1106,22 @@ async def update_profile(payload: UpdateProfileRequest, request: Request):
             existing = crud.get_user_by_slug(db, slug=update_data["shop_slug"])
             if existing and existing.id != user.id:
                 raise HTTPException(status_code=400, detail="Esa URL de tienda ya está en uso, elige otra")
+        email_changed = update_data.get("email") and update_data["email"] != user.email
+        if email_changed:
+            existing_email = crud.get_user_by_email(db, email=update_data["email"])
+            if existing_email and existing_email.id != user.id:
+                raise HTTPException(status_code=400, detail="Ese correo ya está en uso por otra cuenta")
         for key, value in update_data.items():
             if key in PROFILE_EDITABLE_FIELDS:
                 setattr(user, key, value)
         db.commit()
-        return {"ok": True}
+        result: dict = {"ok": True}
+        if email_changed:
+            # El token de sesion usa el email como identificador (sub); si cambia,
+            # el token viejo deja de resolver a ningun usuario y la app fuerza un
+            # logout automatico. Emitimos uno nuevo para que la sesion siga viva.
+            result["access_token"] = security.create_access_token(data={"sub": user.email})
+        return result
     finally:
         db.close()
 

@@ -20,6 +20,7 @@ interface AuthContextType {
   setOnboardingCompleted: (done: boolean) => void;
   login: (token: string, email: string, role: string, permissions?: any, plan?: any, isGlobal?: boolean, shopSlug?: string, name?: string, logo?: string, nit?: string, address?: string, onboardingCompleted?: boolean) => void;
   updateUser: (data: { name?: string, slug?: string, logo?: string, nit?: string, address?: string }) => void;
+  refreshToken: (newToken: string, newEmail?: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -209,6 +210,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // El token de sesion se firma con el email como identificador (sub); si el
+  // usuario corrige su email (ej. desde onboarding), el token viejo deja de
+  // resolver a ningun usuario y el backend emite uno nuevo en la misma
+  // respuesta. Esto lo guarda sin forzar un logout/relogin completo.
+  const refreshToken = useCallback((newToken: string, newEmail?: string) => {
+    setToken(newToken);
+    localStorage.setItem('token', newToken);
+    if (newEmail) {
+      setUserEmail(newEmail);
+      localStorage.setItem('userEmail', newEmail);
+    }
+  }, []);
+
   const logout = useCallback(() => {
     setToken(null);
     setUserEmail(null);
@@ -244,10 +258,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setOnboardingCompleted,
     login,
     updateUser,
+    refreshToken,
     logout,
     isAuthenticated,
     isLoading
-  }), [token, userEmail, userName, userRole, userLogo, userNit, userAddress, userPermissions, userPlan, shopSlug, isGlobalStaff, onboardingCompleted, login, updateUser, logout, isAuthenticated, isLoading]);
+  }), [token, userEmail, userName, userRole, userLogo, userNit, userAddress, userPermissions, userPlan, shopSlug, isGlobalStaff, onboardingCompleted, login, updateUser, refreshToken, logout, isAuthenticated, isLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>
