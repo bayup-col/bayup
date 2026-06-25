@@ -23,6 +23,23 @@ const HTML_PAGE_KEYS = [
   { key: 'privacy',  label: 'Privacidad',  required: false },
 ];
 
+function inferCategory(doc: Document): string {
+  const text = (doc.body?.textContent || '').toLowerCase();
+  const checks: [string[], string][] = [
+    [['restaurant', 'restaurante', 'food', 'comida', 'menú', 'menu', 'chef'], 'Restaurantes'],
+    [['moda', 'fashion', 'ropa', 'clothing', 'outfit', 'luxury', 'luxe', 'apparel'], 'Moda'],
+    [['hogar', 'home decor', 'furniture', 'muebles', 'interior', 'living'], 'Hogar'],
+    [['tech', 'tecnología', 'software', 'saas', 'digital', 'app'], 'Tecnología'],
+    [['salud', 'health', 'wellness', 'spa', 'fitness', 'gym'], 'Salud'],
+    [['joyería', 'jewelry', 'jewellery', 'accesorios', 'accessories'], 'Accesorios'],
+    [['beauty', 'belleza', 'cosmetics', 'skincare', 'makeup'], 'Belleza'],
+  ];
+  for (const [keywords, category] of checks) {
+    if (keywords.some(k => text.includes(k))) return category;
+  }
+  return 'General';
+}
+
 function TemplateMock({ color, name, previewUrl, templateType }: { color: string; name: string; previewUrl?: string | null; templateType?: string }) {
   if (previewUrl) {
     return (
@@ -499,18 +516,21 @@ export default function WebTemplatesPage() {
                                 if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
                                 const blob = new Blob([text], { type: 'text/html' });
                                 setPreviewBlobUrl(URL.createObjectURL(blob));
-                                // Auto-fill form fields from <meta name="bayup-*"> tags
+                                // Auto-fill form fields: lee bayup-* primero, luego meta estándar, luego <title>
                                 const doc = new DOMParser().parseFromString(text, 'text/html');
-                                const getMeta = (n: string) => doc.querySelector(`meta[name="${n}"]`)?.getAttribute('content') || '';
-                                const metaName = getMeta('bayup-name');
-                                const metaCategory = getMeta('bayup-category');
-                                const metaDescription = getMeta('bayup-description');
-                                const metaTags = getMeta('bayup-tags');
+                                const getMeta = (n: string) => doc.querySelector(`meta[name="${n}"]`)?.getAttribute('content')?.trim() || '';
+                                const rawTitle = doc.querySelector('title')?.textContent?.trim() || '';
+                                // Extrae el nombre limpio del título (quita " | Subtítulo" y similares)
+                                const titleName = rawTitle.split(/[|\-–—]/)[0].trim();
+                                const detectedName        = getMeta('bayup-name')        || titleName;
+                                const detectedCategory    = getMeta('bayup-category')    || inferCategory(doc);
+                                const detectedDescription = getMeta('bayup-description') || getMeta('description') || getMeta('og:description') || '';
+                                const detectedTags        = getMeta('bayup-tags')        || getMeta('keywords')    || '';
                                 setNewForm(p => ({
-                                  name:        metaName        || p.name,
-                                  category:    metaCategory    || p.category,
-                                  description: metaDescription || p.description,
-                                  tags:        metaTags        || p.tags,
+                                  name:        detectedName        || p.name,
+                                  category:    detectedCategory    || p.category,
+                                  description: detectedDescription || p.description,
+                                  tags:        detectedTags        || p.tags,
                                 }));
                               }
                             }}
