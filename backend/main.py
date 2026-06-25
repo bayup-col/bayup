@@ -1,4 +1,5 @@
 from fastapi import Depends, FastAPI, HTTPException, status, Request, Response, UploadFile, File, Query
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import os
@@ -1863,8 +1864,8 @@ async def reply_my_support_ticket(ticket_id: str, payload: dict, request: Reques
     finally:
         db.close()
 
-def _serialize_template(t):
-    return {
+def _serialize_template(t, include_html: bool = False):
+    d = {
         "id": str(t.id),
         "name": t.name,
         "category": t.category or "General",
@@ -1877,7 +1878,10 @@ def _serialize_template(t):
         "color": t.color or "#0f1a1a",
         "preview_url": t.preview_url,
         "schema_data": t.schema_data,
+        "template_type": getattr(t, "template_type", "schema") or "schema",
+        "html_pages": list((getattr(t, "html_pages", None) or {}).keys()) if not include_html else (getattr(t, "html_pages", None) or {}),
     }
+    return d
 
 @app.get("/super-admin/web-templates")
 async def get_super_admin_web_templates(request: Request):
@@ -1906,6 +1910,12 @@ async def create_super_admin_web_template(payload: dict, request: Request):
         tags = payload.get("tags")
         if isinstance(tags, str):
             tags = [s.strip() for s in tags.split(",") if s.strip()]
+        template_type = payload.get("template_type") or "schema"
+        if template_type not in ("schema", "html"):
+            raise HTTPException(status_code=400, detail="template_type debe ser 'schema' o 'html'")
+        html_pages = payload.get("html_pages") or None
+        if template_type == "html" and not html_pages:
+            raise HTTPException(status_code=400, detail="Se requiere al menos la página 'home' para plantillas HTML")
         template = models.WebTemplate(
             name=name,
             category=payload.get("category") or "General",
@@ -1914,10 +1924,12 @@ async def create_super_admin_web_template(payload: dict, request: Request):
             is_active=True,
             is_premium=False,
             color=payload.get("color") or "#0f1a1a",
+            template_type=template_type,
+            html_pages=html_pages,
         )
         db.add(template)
         db.commit()
-        _templates_cache.clear()  # invalidar caché de /web-templates
+        _templates_cache.clear()
         return _serialize_template(template)
     finally:
         db.close()
@@ -2369,5 +2381,267 @@ async def get_admin_payment(payment_id: str, request: Request):
         if not payment:
             raise HTTPException(status_code=404, detail="Pago no encontrado")
         return _serialize_payment(payment)
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
+# TIENDAS HTML — sirve plantillas HTML nativas con bayup.js inyectado
+# ---------------------------------------------------------------------------
+
+_BAYUP_SDK = """
+<script id="bayup-sdk">
+(function(){
+  const SLUG = document.documentElement.dataset.bayupSlug || '';
+  const API  = document.documentElement.dataset.bayupApi  || '';
+  const PAGE = document.documentElement.dataset.bayupPage || 'home';
+
+  // --- Estado del carrito en localStorage ---
+  const CART_KEY = 'bayup_cart_' + SLUG;
+  function getCart(){ try{ return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); }catch(e){ return []; } }
+  function saveCart(c){ localStorage.setItem(CART_KEY, JSON.stringify(c)); }
+
+  function cartTotal(cart){ return cart.reduce(function(s,i){ return s + i.unit_price * i.qty; }, 0); }
+  function cartCount(cart){ return cart.reduce(function(s,i){ return s + i.qty; }, 0); }
+
+  function formatCOP(n){ return '$' + Math.round(n).toLocaleString('es-CO'); }
+
+  // --- Actualiza todos los elementos del DOM ---
+  function render(store, products){
+    // Nombre e info de tienda
+    document.querySelectorAll('[data-bayup="store-name"]').forEach(function(el){ el.textContent = store.full_name || store.name || SLUG; });
+    document.querySelectorAll('[data-bayup="store-phone"]').forEach(function(el){ el.textContent = store.phone || ''; });
+    document.querySelectorAll('img[data-bayup="store-logo"]').forEach(function(el){ if(store.logo_url) el.src = store.logo_url; });
+
+    // Grilla de productos
+    var grid = document.querySelector('[data-bayup="product-grid"]');
+    var cardTpl = document.querySelector('template[data-bayup="product-card-template"]');
+    if(grid && cardTpl && products.length){
+      grid.innerHTML = '';
+      products.forEach(function(p){
+        var clone = cardTpl.content.cloneNode(true);
+        clone.querySelectorAll('[data-bayup-card="name"]').forEach(function(el){ el.textContent = p.name; });
+        clone.querySelectorAll('[data-bayup-card="price"]').forEach(function(el){ el.textContent = formatCOP(p.price); });
+        clone.querySelectorAll('img[data-bayup-card="image"]').forEach(function(el){ if(p.image_url&&p.image_url[0]) el.src=p.image_url[0]; });
+        clone.querySelectorAll('[data-bayup-action="add-to-cart"]').forEach(function(el){ el.dataset.bayupProductId=p.id; el.dataset.bayupProductName=p.name; el.dataset.bayupProductPrice=p.price; });
+        grid.appendChild(clone);
+      });
+    }
+
+    renderCart();
+  }
+
+  function renderCart(){
+    var cart = getCart();
+    document.querySelectorAll('[data-bayup="cart-count"]').forEach(function(el){ el.textContent = cartCount(cart); });
+    document.querySelectorAll('[data-bayup="cart-total"]').forEach(function(el){ el.textContent = formatCOP(cartTotal(cart)); });
+    var cartList = document.querySelector('[data-bayup="cart-items"]');
+    if(cartList){
+      cartList.innerHTML = '';
+      cart.forEach(function(item){
+        var li = document.createElement('div');
+        li.className = 'bayup-cart-item';
+        li.innerHTML = '<span>' + item.name + ' x' + item.qty + '</span><span>' + formatCOP(item.unit_price * item.qty) + '</span>';
+        cartList.appendChild(li);
+      });
+    }
+  }
+
+  // --- Acciones globales (delegación de eventos) ---
+  document.addEventListener('click', function(e){
+    var el = e.target.closest('[data-bayup-action]');
+    if(!el) return;
+    var action = el.dataset.bayupAction;
+
+    if(action === 'add-to-cart'){
+      var cart = getCart();
+      var id = el.dataset.bayupProductId;
+      var existing = cart.find(function(i){ return i.product_id === id; });
+      if(existing){ existing.qty += 1; }
+      else{ cart.push({ product_id:id, name:el.dataset.bayupProductName, unit_price:Number(el.dataset.bayupProductPrice), qty:1 }); }
+      saveCart(cart);
+      renderCart();
+      el.textContent = '✓ Añadido';
+      setTimeout(function(){ el.textContent = 'Agregar'; }, 1200);
+    }
+
+    if(action === 'checkout'){
+      var cart = getCart();
+      if(!cart.length){ alert('Tu carrito está vacío'); return; }
+      var phone = document.documentElement.dataset.bayupPhone || '';
+      var lines  = ['*Nuevo pedido*',''];
+      cart.forEach(function(i){ lines.push('• ' + i.name + ' ×' + i.qty + '  → ' + formatCOP(i.unit_price * i.qty)); });
+      lines.push('','*Total: ' + formatCOP(cartTotal(cart)) + ' COP*');
+      var text  = encodeURIComponent(lines.join('\\n'));
+      var clean = phone.replace(/[^0-9]/g,'');
+      window.open('https://wa.me/' + clean + '?text=' + text, '_blank');
+    }
+
+    if(action === 'nav-home')    window.location.href = '/html-shop/' + SLUG + '/home';
+    if(action === 'nav-catalog') window.location.href = '/html-shop/' + SLUG + '/catalog';
+    if(action === 'nav-cart')    window.location.href = '/html-shop/' + SLUG + '/cart';
+    if(action === 'nav-contact') window.location.href = '/html-shop/' + SLUG + '/contact';
+  });
+
+  // --- Bootstrap: carga datos de la tienda y productos ---
+  async function init(){
+    try{
+      var [storeRes, productsRes] = await Promise.all([
+        fetch(API + '/public/shop-info/' + SLUG),
+        fetch(API + '/public/shop/' + SLUG + '/products?limit=100'),
+      ]);
+      var store    = storeRes.ok    ? await storeRes.json()    : {};
+      var products = productsRes.ok ? await productsRes.json() : [];
+      render(store, Array.isArray(products) ? products : []);
+    } catch(err){
+      console.warn('[Bayup SDK] Error cargando datos:', err);
+    }
+  }
+
+  if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); }
+  else { init(); }
+})();
+</script>
+"""
+
+def _inject_sdk(html: str, slug: str, page_key: str, phone: str, api_url: str) -> str:
+    """Inyecta bayup.js y los data attributes necesarios en el <html> y <head>."""
+    sdk_attrs = (
+        f' data-bayup-slug="{slug}"'
+        f' data-bayup-page="{page_key}"'
+        f' data-bayup-api="{api_url}"'
+        f' data-bayup-phone="{phone}"'
+    )
+    # Agrega atributos al <html>
+    import re
+    html = re.sub(r'<html([^>]*?)>', f'<html\\1{sdk_attrs}>', html, count=1, flags=re.IGNORECASE)
+    # Inyecta el SDK justo antes de </body>
+    html = re.sub(r'</body>', _BAYUP_SDK + '\n</body>', html, count=1, flags=re.IGNORECASE)
+    return html
+
+
+@app.get("/html-shop/{slug}", response_class=HTMLResponse)
+@app.get("/html-shop/{slug}/{page_key}", response_class=HTMLResponse)
+@limiter.limit("30/minute")
+async def serve_html_shop(request: Request, slug: str, page_key: str = "home"):
+    """Sirve la tienda HTML con bayup.js inyectado."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        tenant = db.query(models.User).filter(
+            models.User.shop_slug == slug,
+            models.User.status == "Activo",
+        ).first()
+        if not tenant:
+            return HTMLResponse("<h1>Tienda no encontrada</h1>", status_code=404)
+
+        # Busca la plantilla HTML activa instalada en la tienda
+        shop_page = db.query(models.ShopPage).filter(
+            models.ShopPage.tenant_id == tenant.id,
+            models.ShopPage.is_published == True,
+        ).first()
+        template_id = shop_page.template_id if shop_page else None
+
+        html_template = None
+        if template_id:
+            import uuid as _uuid
+            try:
+                tid = _uuid.UUID(template_id)
+                html_template = db.query(models.WebTemplate).filter(
+                    models.WebTemplate.id == tid,
+                    models.WebTemplate.template_type == "html",
+                ).first()
+            except (ValueError, Exception):
+                pass
+
+        if not html_template or not html_template.html_pages:
+            return HTMLResponse("<h1>Esta tienda no tiene una plantilla HTML configurada.</h1>", status_code=404)
+
+        pages = html_template.html_pages or {}
+        # Fallback: home si la página pedida no existe
+        html_content = pages.get(page_key) or pages.get("home") or ""
+        if not html_content:
+            return HTMLResponse("<h1>Página no encontrada</h1>", status_code=404)
+
+        api_url = os.getenv("SITE_URL", "https://bayup.com.co").rstrip("/")
+        api_url = os.getenv("NEXT_PUBLIC_API_URL", api_url)
+        backend_url = os.getenv("BACKEND_URL", "https://api-bayup.onrender.com")
+
+        html_out = _inject_sdk(
+            html_content,
+            slug=slug,
+            page_key=page_key,
+            phone=tenant.phone or "",
+            api_url=backend_url,
+        )
+        return HTMLResponse(content=html_out, status_code=200)
+    finally:
+        db.close()
+
+
+@app.get("/public/shop-info/{slug}")
+@limiter.limit("60/minute")
+async def get_public_shop_info(request: Request, slug: str):
+    """Info pública de una tienda (nombre, logo, teléfono, categoría)."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        tenant = db.query(models.User).filter(
+            models.User.shop_slug == slug,
+            models.User.status == "Activo",
+        ).first()
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tienda no encontrada")
+        return {
+            "name": tenant.full_name,
+            "slug": tenant.shop_slug,
+            "logo_url": tenant.logo_url,
+            "phone": tenant.phone,
+            "category": tenant.category,
+            "story": tenant.story,
+            "social_links": tenant.social_links or {},
+        }
+    finally:
+        db.close()
+
+
+@app.get("/public/shop/{slug}/products")
+@limiter.limit("60/minute")
+async def get_public_shop_products(
+    request: Request,
+    slug: str,
+    limit: int = Query(default=100, ge=1),
+    skip: int = Query(default=0, ge=0),
+):
+    """Catálogo público de productos de una tienda."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        tenant = db.query(models.User).filter(
+            models.User.shop_slug == slug,
+            models.User.status == "Activo",
+        ).first()
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tienda no encontrada")
+        products = (
+            db.query(models.Product)
+            .filter(models.Product.owner_id == tenant.id, models.Product.status == "active")
+            .offset(skip).limit(limit).all()
+        )
+        return [
+            {
+                "id": str(p.id),
+                "name": p.name,
+                "price": p.price,
+                "description": p.description,
+                "image_url": p.image_url or [],
+                "category": p.category,
+                "sku": p.sku,
+            }
+            for p in products
+        ]
     finally:
         db.close()

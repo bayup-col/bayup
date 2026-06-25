@@ -381,6 +381,11 @@ class WebTemplate(Base):
     schema_data = Column(JSON)
     active_plans = Column(JSON, default=[])
     is_active = Column(Boolean, default=True)
+    # "schema" = builder visual JSON | "html" = archivos HTML nativos
+    template_type = Column(String(10), default="schema", nullable=False)
+    # Páginas HTML: {"home":"...", "catalog":"...", "product":"...",
+    #                "cart":"...", "checkout":"...", "contact":"...", "privacy":"..."}
+    html_pages = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
