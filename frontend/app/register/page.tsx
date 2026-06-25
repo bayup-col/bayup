@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from "@/context/auth-context";
 import { InteractiveUP } from "@/components/landing/InteractiveUP";
 import { GlassyButton } from "@/components/landing/GlassyButton";
-import { Lock, Mail, Loader2, Ghost, User, Phone, ShieldCheck, LayoutGrid, ChevronDown, Check, Home, Eye, EyeOff } from "lucide-react";
+import { Lock, Mail, Loader2, Ghost, User, Phone, ShieldCheck, LayoutGrid, ChevronDown, Check, Home, Eye, EyeOff, MailCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -46,6 +46,7 @@ function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   // Auto-selección de plan basada en URL
   useEffect(() => {
@@ -108,35 +109,8 @@ function RegisterForm() {
         throw new Error(errorData.detail || 'Error al registrarse');
       }
 
-      const loginResponse = await fetch(`${apiUrl}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, password: formData.password }),
-      });
-
-      if (loginResponse.ok) {
-        const loginData = await loginResponse.json();
-        const userData = loginData.user;
-        login(
-          loginData.access_token,
-          formData.email,
-          userData.role || 'admin_tienda',
-          userData.permissions || {},
-          userData.plan || null,
-          userData.is_global_staff || false,
-          userData.shop_slug || "",
-          userData.full_name || "",
-          userData.logo_url || "",
-          "",
-          "",
-          !!userData.onboarding_completed
-        );
-      }
-
-      setTimeout(() => {
-        setIsSuccess(true);
-        setIsLoading(false);
-      }, 500);
+      setEmailSent(true);
+      setIsLoading(false);
 
     } catch (err: any) {
       setError(err.message || 'Ocurrió un error inesperado');
@@ -145,6 +119,48 @@ function RegisterForm() {
   };
 
   const selectedPlan = plans.find(p => p.id === formData.planId);
+
+  if (emailSent) {
+    return (
+      <div className="relative z-10 w-full max-w-[480px] p-4 sm:p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative p-10 sm:p-14 rounded-[3rem] sm:rounded-[4rem] flex flex-col items-center text-center shadow-2xl bg-white gap-6"
+        >
+          <div className="absolute inset-0 rounded-[3rem] sm:rounded-[4rem] overflow-hidden -z-10">
+            <div className="absolute top-1/2 left-1/2 w-[250%] aspect-square animate-aurora opacity-30" style={{ background: `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)` }} />
+            <div className="absolute inset-[2px] rounded-[2.9rem] sm:rounded-[3.9rem] bg-white/95 backdrop-blur-3xl" />
+          </div>
+
+          <div className="h-20 w-20 rounded-[2rem] bg-emerald-50 flex items-center justify-center">
+            <MailCheck size={36} className="text-emerald-500" />
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-black text-black italic uppercase tracking-tight mb-2">¡Cuenta creada!</h2>
+            <p className="text-gray-500 text-sm font-semibold leading-relaxed">
+              Te enviamos un email de confirmación a
+            </p>
+            <p className="text-[#004d4d] font-black text-sm mt-1">{formData.email}</p>
+          </div>
+
+          <div className="w-full p-4 bg-amber-50 border border-amber-100 rounded-2xl">
+            <p className="text-amber-700 text-[10px] font-black uppercase tracking-wider">
+              Debes confirmar tu correo antes de iniciar sesión. Revisa también tu carpeta de spam.
+            </p>
+          </div>
+
+          <Link
+            href="/login"
+            className="w-full py-4 rounded-[1.5rem] bg-[#001A1A] text-white font-black text-[11px] uppercase tracking-[0.3em] text-center transition-opacity hover:opacity-80"
+          >
+            Ir al inicio de sesión
+          </Link>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative z-10 w-full max-w-[640px] p-4 sm:p-6 max-h-screen overflow-y-auto no-scrollbar">
