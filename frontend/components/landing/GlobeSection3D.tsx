@@ -235,7 +235,7 @@ function GlowHeading({ children, mousePos }: { children: React.ReactNode, mouseP
         }}
       />
       <motion.div
-        className="absolute inset-0 -z-20 blur-[100px] opacity-20"
+        className="absolute inset-0 -z-20 blur-[40px] opacity-20"
         animate={{ 
           scale: [1, 1.2, 1],
           opacity: [0.1, 0.3, 0.1]
@@ -351,7 +351,7 @@ export const GlobeSection3D = () => {
             </Canvas>
           )}
           
-          <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute top-1/4 right-1/4 bg-white/[0.02] backdrop-blur-[100px] border-2 border-white/40 p-8 rounded-[3rem] space-y-2 pointer-events-none shadow-[0_40px_80px_-15px_rgba(0,77,77,0.4)] border-b-cyan/30 isolate">
+          <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute top-1/4 right-1/4 bg-white/[0.02] backdrop-blur-[40px] border-2 border-white/40 p-8 rounded-[3rem] space-y-2 pointer-events-none shadow-[0_40px_80px_-15px_rgba(0,77,77,0.4)] border-b-cyan/30 isolate">
             <div className="absolute inset-0 bg-petroleum/10 rounded-[3rem] -z-10" />
             <p className="text-cyan text-[10px] font-black uppercase tracking-[0.3em]">TRÁFICO EN VIVO</p>
             <p className="text-white text-2xl font-black italic">

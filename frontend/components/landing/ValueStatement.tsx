@@ -207,7 +207,7 @@ const Card3D = ({ pillar, index, isButtonVisible }: { pillar: any, index: number
               }}
             />
             {/* Relleno que actúa como máscara del borde */}
-            <div className="absolute inset-[3px] rounded-[4.4rem] bg-white/95 backdrop-blur-[120px]" />
+            <div className="absolute inset-[3px] rounded-[4.4rem] bg-white/95 backdrop-blur-[48px]" />
           </div>
 
           <div className="absolute inset-0 bg-gradient-to-br from-petroleum/[0.08] to-transparent rounded-[4.5rem] -z-10" />
@@ -249,7 +249,7 @@ const Card3D = ({ pillar, index, isButtonVisible }: { pillar: any, index: number
               }}
             />
             {/* Relleno que actúa como máscara del borde */}
-            <div className="absolute inset-[2px] rounded-[4.4rem] bg-white/95 backdrop-blur-[100px]" />
+            <div className="absolute inset-[2px] rounded-[4.4rem] bg-white/95 backdrop-blur-[40px]" />
           </div>
 
           <div className="absolute inset-0 bg-gradient-to-tr from-cyan/[0.05] to-petroleum/[0.05] rounded-[4.5rem] -z-10" />

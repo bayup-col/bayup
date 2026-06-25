@@ -69,7 +69,7 @@ const ProductCard3D = ({ product, onHover }: { product: typeof products[0], onHo
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="absolute w-[500px] h-[500px] bg-cyan/10 rounded-full blur-[150px] animate-pulse" />
+      <div className="absolute w-[500px] h-[500px] bg-cyan/10 rounded-full blur-[50px] animate-pulse" />
       
       {/* Contenedor Giratorio 3D */}
       <motion.div 

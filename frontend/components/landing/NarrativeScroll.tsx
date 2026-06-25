@@ -13,8 +13,13 @@ import { FloatingParticlesBackground } from './FloatingParticlesBackground';
 import { InteractiveAuraBackground } from './InteractiveAuraBackground';
 
 const AuroraBorder = () => {
+  // Misma rotacion infinita que antes, pero como animacion CSS pura (igual
+  // patron .animate-aurora que ya usan las tarjetas flip de este archivo) en
+  // vez de Framer Motion: el navegador la corre en el hilo de composicion,
+  // no en el principal. Aqui hay 5 instancias de AuroraBorder corriendo a la
+  // vez sin pausarse nunca, asi que el ahorro se multiplica.
   return (
-    <div 
+    <div
       className="absolute inset-0 rounded-[inherit] z-50 pointer-events-none"
       style={{
         mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
@@ -23,17 +28,12 @@ const AuroraBorder = () => {
         padding: '2px', // Grosor del borde aurora
       }}
     >
-      <motion.div
-        className="absolute inset-[-50%]"
-        style={{ 
-          width: '200%', 
-          height: '200%', 
-          left: '-50%', 
-          top: '-50%',
-          background: 'conic-gradient(from 0deg, transparent 0deg, transparent 60deg, #00f2ff 100deg, transparent 140deg, transparent 200deg, #004d4d 240deg, transparent 280deg)'
+      <div
+        className="absolute top-1/2 left-1/2 w-[200%] h-[200%] animate-aurora"
+        style={{
+          background: 'conic-gradient(from 0deg, transparent 0deg, transparent 60deg, #00f2ff 100deg, transparent 140deg, transparent 200deg, #004d4d 240deg, transparent 280deg)',
+          willChange: 'transform',
         }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
       />
     </div>
   );
@@ -59,7 +59,7 @@ const NarrativeFlipCard = () => {
             <div className="absolute top-1/2 left-1/2 w-[250%] aspect-square animate-aurora opacity-50 group-hover:opacity-100 transition-opacity duration-700"
               style={{ background: `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)`, willChange: 'transform' }}
             />
-            <div className="absolute inset-[3px] rounded-[4.4rem] bg-white/95 backdrop-blur-[120px]" />
+            <div className="absolute inset-[3px] rounded-[4.4rem] bg-white/95 backdrop-blur-[48px]" />
           </div>
           <div className="space-y-10 flex flex-col items-center w-full relative z-10">
             <div className="h-20 w-20 rounded-[1.5rem] bg-gradient-to-br from-[#004D4D] to-black text-white flex items-center justify-center shadow-[0_20px_40px_rgba(0,77,77,0.3)] relative">
@@ -308,7 +308,7 @@ export const NarrativeScroll = () => {
           <div className="hidden md:grid md:grid-cols-2 gap-20 items-center relative z-10 max-w-7xl mx-auto">
             <NarrativeCard className="space-y-10 group relative z-20 perspective-[1000px]">
               <div className="absolute -inset-10 bg-petroleum/5 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              <div style={{ transformStyle: "preserve-3d" }} className="relative p-12 rounded-[4.5rem] bg-white/10 backdrop-blur-[100px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate">
+              <div style={{ transformStyle: "preserve-3d" }} className="relative p-12 rounded-[4.5rem] bg-white/10 backdrop-blur-[40px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate">
                 <AuroraBorder />
                 <div className="h-24 w-24 rounded-[2rem] bg-gradient-to-br from-petroleum to-[#001A1A] flex items-center justify-center text-cyan mx-auto"><PiggyBank size={36} /></div>
                 <div className="space-y-6">
@@ -319,7 +319,7 @@ export const NarrativeScroll = () => {
               </div>
             </NarrativeCard>
             <NarrativeCard className="relative group z-20 perspective-[1000px]">
-              <div style={{ transformStyle: "preserve-3d" }} className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[120px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col gap-8 isolate text-center">
+              <div style={{ transformStyle: "preserve-3d" }} className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[48px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col gap-8 isolate text-center">
                 <AuroraBorder />
                 <div className="flex-1 bg-background rounded-[3.5rem] border border-white/40 shadow-2xl flex items-center justify-center overflow-hidden relative p-8">
                   <InteractiveDistortion src="/assets/ahorro.webp" alt="Ahorra con Bayup" className="w-full h-full relative z-10" strength={0.2} />
@@ -361,13 +361,13 @@ export const NarrativeScroll = () => {
                           {/* VERSIÓN ESCRITORIO (RESTAURADA) */}
                           <div className="hidden md:grid grid-cols-2 gap-20 items-center relative z-10 max-w-7xl mx-auto">
                             <NarrativeCard className="order-2 md:order-1 relative group z-20 perspective-[1000px]">       
-                              <div style={{ transformStyle: "preserve-3d" }} className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[120px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col items-center justify-center isolate">
+                              <div style={{ transformStyle: "preserve-3d" }} className="relative w-[450px] h-[550px] rounded-[5rem] bg-white/10 backdrop-blur-[48px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] p-12 flex flex-col items-center justify-center isolate">
                                 <AuroraBorder />
                                 <motion.img src="/assets/marketing.webp" className="w-full h-full object-contain rounded-[2rem] relative z-10" />
                               </div>
                             </NarrativeCard>
                             <NarrativeCard className="order-1 md:order-2 relative group z-20 perspective-[1000px]">
-                              <div style={{ transformStyle: "preserve-3d" }} className="relative p-12 rounded-[4.5rem] bg-white/10 backdrop-blur-[80px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate">
+                              <div style={{ transformStyle: "preserve-3d" }} className="relative p-12 rounded-[4.5rem] bg-white/10 backdrop-blur-[32px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate">
                                 <AuroraBorder />
                                 <div className="h-24 w-24 rounded-[2rem] bg-gradient-to-br from-petroleum to-[#001A1A] flex items-center justify-center text-cyan mx-auto"><Zap size={36} /></div>
                                 <div className="space-y-6">
@@ -411,7 +411,7 @@ export const NarrativeScroll = () => {
           {/* VERSIÓN ESCRITORIO (RESTAURADA) */}
           <div className="hidden md:grid md:grid-cols-2 gap-20 items-center relative z-10 max-w-7xl mx-auto">
             <NarrativeCard className="space-y-10 group relative z-20 perspective-[1000px]">
-              <div style={{ transformStyle: "preserve-3d" }} className="relative p-12 rounded-[4.5rem] bg-white/5 backdrop-blur-[100px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate">
+              <div style={{ transformStyle: "preserve-3d" }} className="relative p-12 rounded-[4.5rem] bg-white/5 backdrop-blur-[40px] border border-white/10 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.4)] space-y-10 isolate">
                 <AuroraBorder />
                 <div className="h-24 w-24 rounded-[2rem] bg-gradient-to-br from-petroleum to-[#001A1A] flex items-center justify-center text-cyan mx-auto"><LineChart size={36} /></div>
                 <div className="space-y-6">
