@@ -1,5 +1,5 @@
 # backend/crud.py
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 import uuid
 from typing import Optional, List
 import models, schemas, security
@@ -328,7 +328,11 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
     return db_order
 
 def get_orders_by_tenant(db: Session, tenant_id: uuid.UUID, skip: int = 0, limit: int = 200) -> list[models.Order]:
-    return db.query(models.Order).filter(models.Order.tenant_id == tenant_id).order_by(models.Order.created_at.desc()).offset(skip).limit(limit).all()
+    # selectinload evita el N+1: sin esto, schemas.Order.items dispara una query
+    # adicional por cada orden al serializar (confirmado: 200 órdenes -> 201 queries).
+    return db.query(models.Order).options(
+        selectinload(models.Order.items)
+    ).filter(models.Order.tenant_id == tenant_id).order_by(models.Order.created_at.desc()).offset(skip).limit(limit).all()
 
 def get_activity_logs(db: Session, limit: int = 10) -> list[models.ActivityLog]:
     return db.query(models.ActivityLog).order_by(models.ActivityLog.created_at.desc()).limit(limit).all()

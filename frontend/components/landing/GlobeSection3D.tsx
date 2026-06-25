@@ -1,11 +1,43 @@
 "use client";
 
-import React, { useRef, useMemo, useState, Suspense } from 'react';
+import React, { useRef, useMemo, useState, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Sphere, Float, Stars, PerspectiveCamera, useTexture, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { motion } from 'framer-motion';
 import { NumberTicker } from './NumberTicker';
+
+// Detecta el breakpoint real de Tailwind `lg` (1024px) para evitar montar
+// el Canvas 3D del globo que el CSS oculta de todas formas (ahorra GPU).
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mediaQuery.matches);
+
+    const handleChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  return isDesktop;
+}
+
+// Pausa el render loop de los Canvas 3D cuando la pestaña no está visible.
+function usePageVisible() {
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsVisible(document.visibilityState === 'visible');
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  return isVisible;
+}
 
 function GlobeMesh() {
   const meshRef = useRef<THREE.Group>(null);
@@ -222,6 +254,9 @@ export const GlobeSection3D = () => {
   const [headingMousePos, setHeadingMousePos] = useState({ x: 50, y: 50 });
   const [isMounted, setIsMounted] = useState(false);
   const headingRef = useRef<HTMLDivElement>(null);
+  const isDesktop = useIsDesktop();
+  const isPageVisible = usePageVisible();
+  const frameloop: 'always' | 'never' = isPageVisible ? 'always' : 'never';
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -241,7 +276,7 @@ export const GlobeSection3D = () => {
       {/* BACKGROUND CANVAS (Starfield + Particles) */}
       <div className="absolute inset-0 z-0">
         {isMounted && (
-          <Canvas camera={{ position: [0, 0, 15] }}>
+          <Canvas camera={{ position: [0, 0, 15] }} dpr={[1, 1.5]} frameloop={frameloop}>
             <MouseLight />
             <FloatingParticlesLayer />
             <InteractiveStars />
@@ -253,8 +288,8 @@ export const GlobeSection3D = () => {
 
       {/* MOBILE GLOBE BACKGROUND */}
       <div className="absolute inset-0 z-1 lg:hidden">
-        {isMounted && (
-          <Canvas>
+        {isMounted && isDesktop === false && (
+          <Canvas dpr={[1, 1.5]} frameloop={frameloop}>
             <PerspectiveCamera makeDefault position={[0, 0, 8]} />
             <OrbitControls enableZoom={false} enablePan={false} makeDefault rotateSpeed={0.5} />
             <ambientLight intensity={0.5} />
@@ -306,8 +341,8 @@ export const GlobeSection3D = () => {
 
         {/* DESKTOP GLOBE (HIDDEN ON MOBILE) */}
         <div className="hidden lg:flex relative h-[600px] items-center justify-center cursor-grab active:cursor-grabbing">
-          {isMounted && (
-            <Canvas>
+          {isMounted && isDesktop === true && (
+            <Canvas dpr={[1, 1.5]} frameloop={frameloop}>
               <PerspectiveCamera makeDefault position={[0, 0, 6]} />
               <OrbitControls enableZoom={false} enablePan={false} makeDefault rotateSpeed={0.5} enableDamping={true} dampingFactor={0.05} />
               <ambientLight intensity={0.5} />

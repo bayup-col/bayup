@@ -31,6 +31,37 @@ const GlobeSection3D = dynamic(
   { ssr: false }
 );
 
+// Monta GlobeSection3D solo cuando está cerca del viewport (lazy-mount por scroll).
+// Evita pagar el costo de 3 Canvas WebGL simultáneos antes de que el usuario llegue
+// a esta sección. El placeholder reutiliza el mismo alto/color de fondo de la
+// sección real (`h-screen w-full bg-[#050505]`) para no producir salto de layout.
+function LazyGlobeSection() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [shouldRender, setShouldRender] = useState(false);
+
+  useEffect(() => {
+    if (shouldRender || !containerRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setShouldRender(true);
+        }
+      },
+      { rootMargin: "600px" }
+    );
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [shouldRender]);
+
+  if (shouldRender) {
+    return <GlobeSection3D />;
+  }
+
+  return <div ref={containerRef} className="h-screen w-full bg-[#050505]" />;
+}
+
 export default function HomePage() {
   const { scrollY } = useScroll();
   const [hidden, setHidden] = useState(false);
@@ -278,7 +309,7 @@ export default function HomePage() {
               <NarrativeScroll />
               <TemplateShowcase />
               <MobileShoppingSection />
-              <GlobeSection3D />
+              <LazyGlobeSection />
               <Testimonials />
               <PricingCinematic />
             </main>
