@@ -520,13 +520,28 @@ export default function WebTemplatesPage() {
                   </div>
                 )}
 
-                <button onClick={create}
-                  disabled={!newForm.name || creating || (templateMode === 'html' && !htmlFiles['home'])}
-                  className="w-full h-10 rounded-2xl bg-white/8 hover:bg-white/12 border border-white/10 text-white/70 hover:text-white font-bold text-[11px] flex items-center justify-center gap-2 transition-all disabled:opacity-30">
-                  {creating
-                    ? <><RefreshCw size={12} className="animate-spin" /> Creando…</>
-                    : <><Plus size={13} /> Crear plantilla</>}
-                </button>
+                {(() => {
+                  const missingName = !newForm.name;
+                  const missingHome = templateMode === 'html' && !htmlFiles['home'];
+                  const hint = missingName && missingHome ? 'Falta el Nombre y la página Home'
+                    : missingName ? 'Falta completar el campo Nombre'
+                    : missingHome ? 'Falta subir la página Home *'
+                    : null;
+                  return (
+                    <>
+                      {hint && (
+                        <p className="text-[9px] text-rose-400/50 text-center -mb-1">{hint}</p>
+                      )}
+                      <button onClick={create}
+                        disabled={missingName || missingHome || creating}
+                        className="w-full h-10 rounded-2xl bg-white/8 hover:bg-white/12 border border-white/10 text-white/70 hover:text-white font-bold text-[11px] flex items-center justify-center gap-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                        {creating
+                          ? <><RefreshCw size={12} className="animate-spin" /> Creando…</>
+                          : <><Plus size={13} /> Crear plantilla</>}
+                      </button>
+                    </>
+                  );
+                })()}
               </motion.div>
             </div>
           </>
