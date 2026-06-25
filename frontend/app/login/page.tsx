@@ -30,7 +30,8 @@ export default function LoginPage() {
   const [isResetSuccess, setIsResetSuccess] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
-  
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
+
   const router = useRouter();
   const { login, isAuthenticated } = useAuth();
   
@@ -39,6 +40,14 @@ export default function LoginPage() {
       router.push('/dashboard');
     }
   }, [isAuthenticated, isSuccess, router]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('confirmed') === '1') {
+      setEmailConfirmed(true);
+      window.history.replaceState({}, '', '/login');
+    }
+  }, []);
 
   useEffect(() => {
     if (sessionStorage.getItem('bayup_logout_reason') === 'account_removed') {
@@ -124,6 +133,12 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Usuario</label><div className="relative"><Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" /><input type="email" placeholder="nombre@bayup.com" className="w-full pl-14 pr-6 py-5 bg-gray-50 rounded-[2rem] outline-none text-sm text-black font-bold shadow-inner" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isSuccess} /></div></div>
               <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Contraseña</label><div className="relative"><Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" /><input type={showPassword ? "text" : "password"} placeholder="••••••••" className="w-full pl-14 pr-12 py-5 bg-gray-50 rounded-[2rem] outline-none text-sm text-black font-bold shadow-inner" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={isSuccess} /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div><div className="flex justify-end pr-4 mt-1"><button type="button" onClick={() => setIsFlipped(true)} className="text-[9px] font-black text-[#004d4d]/60 uppercase tracking-tighter">Olvide mi contraseña</button></div></div>
+              {emailConfirmed && (
+                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-700 text-[10px] font-black uppercase text-center flex items-center justify-center gap-2">
+                  <CheckCircle2 size={14} className="shrink-0" />
+                  ¡Email confirmado! Ya puedes iniciar sesión
+                </motion.div>
+              )}
               {error && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-[10px] font-black uppercase text-center">{error}</motion.div>}
               <div className="pt-4 flex flex-col items-center gap-4">
                 <button type="submit" disabled={isLoading || isSuccess} className="group relative w-full overflow-visible">

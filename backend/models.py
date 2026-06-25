@@ -58,6 +58,7 @@ class User(Base):
     role = Column(String, default="admin_tienda")
     status = Column(String, default="Activo")
     is_global_staff = Column(Boolean, default=False)
+    email_confirmed = Column(Boolean, default=False)
     shop_slug = Column(String, unique=True, index=True, nullable=True) # Pilar 2: Link de tienda
     category = Column(String, default="Moda & Accesorios") # Nicho de Mercado
     hours = Column(String, default="Lun - Vie: 8am - 6pm") # Horario de operación

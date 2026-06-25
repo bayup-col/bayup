@@ -111,6 +111,29 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
     return response
 
+def _trigger_email_confirmation(email: str, password: str) -> None:
+    """Llama a Supabase Auth para que envíe el email de confirmación al nuevo usuario.
+    Falla silenciosamente si las variables de entorno no están configuradas."""
+    supabase_url = os.getenv("SUPABASE_URL")
+    anon_key = os.getenv("SUPABASE_ANON_KEY")
+    if not supabase_url or not anon_key:
+        return
+    site_url = os.getenv("SITE_URL", "https://bayup.com.co")
+    try:
+        import requests as _requests
+        _requests.post(
+            f"{supabase_url}/auth/v1/signup",
+            headers={"apikey": anon_key, "Content-Type": "application/json"},
+            json={
+                "email": email,
+                "password": password,
+                "options": {"emailRedirectTo": f"{site_url}/login?confirmed=1"},
+            },
+            timeout=8,
+        )
+    except Exception:
+        pass  # No bloquear el registro si Supabase Auth no responde
+
 class UserLoginRequest(BaseModel):
     email: str
     password: str
@@ -147,6 +170,14 @@ def login(request: Request, form_data: UserLoginRequest):
         user = crud.get_user_by_email(db, email=form_data.email)
         if not user or not security.verify_password(form_data.password, user.hashed_password):
             raise HTTPException(status_code=400, detail="Credenciales inválidas")
+
+        # Bloquear login si el email no fue confirmado (solo cuentas raíz admin_tienda)
+        is_root_admin = user.role == "admin_tienda" and not user.owner_id and not getattr(user, "is_global_staff", False)
+        if is_root_admin and not getattr(user, "email_confirmed", True):
+            raise HTTPException(
+                status_code=403,
+                detail="Debes confirmar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada y haz clic en el enlace de confirmación."
+            )
 
         if not user.is_global_staff:
             root = db.query(models.User).filter(models.User.id == user.owner_id).first() if user.owner_id else user
@@ -202,7 +233,8 @@ def register(request: Request, payload: RegisterRequest):
             full_name=payload.full_name,
         )
         user = crud.create_user(db, user=user_in)
-        return {"id": str(user.id), "email": user.email}
+        _trigger_email_confirmation(payload.email, payload.password)
+        return {"id": str(user.id), "email": user.email, "email_confirmation_sent": True}
     finally:
         db.close()
 
