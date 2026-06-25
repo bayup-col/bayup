@@ -45,6 +45,16 @@ export default function SoportePage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Activa el overlay raíz de dashboard/layout.tsx (cubre TODO el viewport real
+  // y oculta sidebar/header) en vez de animar un backdrop oscuro local — evita
+  // la doble capa desincronizada. Mismo patrón que customers/products/web-templates.
+  useEffect(() => {
+    if (selected) {
+      document.body.classList.add('modal-open');
+      return () => { document.body.classList.remove('modal-open'); };
+    }
+  }, [selected]);
+
   const filtered = useMemo(() => tickets.filter(t => {
     const q = search.toLowerCase();
     return (!q || t.title.toLowerCase().includes(q) || t.company.toLowerCase().includes(q))
@@ -183,9 +193,7 @@ export default function SoportePage() {
       <AnimatePresence>
         {selected && (
           <>
-            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
-              onClick={() => setSelected(null)}/>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setSelected(null)}/>
             <motion.div
               initial={{x:'100%'}} animate={{x:0}} exit={{x:'100%'}}
               transition={{type:'spring',damping:30,stiffness:300}}

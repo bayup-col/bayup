@@ -253,9 +253,7 @@ export default function WebTemplatesPage() {
       <AnimatePresence>
         {selected && (
           <>
-            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
-              onClick={() => setSelected(null)}/>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setSelected(null)}/>
             <motion.div
               initial={{x:'100%'}} animate={{x:0}} exit={{x:'100%'}}
               transition={{type:'spring',damping:30,stiffness:300}}
@@ -339,9 +337,7 @@ export default function WebTemplatesPage() {
       <AnimatePresence>
         {showNew && (
           <>
-            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]"
-              onClick={() => setShowNew(false)}/>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setShowNew(false)}/>
             <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
               <motion.div
                 initial={{opacity:0,scale:0.96,y:16}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.96,y:16}}

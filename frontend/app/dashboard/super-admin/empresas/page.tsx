@@ -67,6 +67,19 @@ export default function EmpresasPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Activa el overlay raíz de dashboard/layout.tsx (cubre TODO el viewport real
+  // y oculta sidebar/header) en vez de animar un backdrop oscuro local — evita
+  // la doble capa desincronizada. Mismo patrón que customers/products/web-templates.
+  // El modal de confirmación de borrado (deleteTarget) se apila SOBRE el drawer
+  // ya oscurecido por el overlay raíz, por eso conserva su propio backdrop más
+  // oscuro (bg-black/70) — es una jerarquía de 2 capas válida, no redundancia.
+  useEffect(() => {
+    if (selected || deleteTarget) {
+      document.body.classList.add('modal-open');
+      return () => { document.body.classList.remove('modal-open'); };
+    }
+  }, [selected, deleteTarget]);
+
   const filtered = useMemo(() => companies.filter(c => {
     const q = search.toLowerCase();
     return (!q || c.full_name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q))
@@ -251,9 +264,7 @@ export default function EmpresasPage() {
       <AnimatePresence>
         {selected && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
-              onClick={() => setSelected(null)}/>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setSelected(null)}/>
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
