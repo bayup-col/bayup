@@ -194,24 +194,26 @@ export default function OnboardingPage() {
         };
       }
 
-      for (const [pageKey, schema] of Object.entries(pageSchemas)) {
-        const saveRes = await fetch(`${apiBase}/shop-pages`, {
+      // Las 4 paginas (home/catalog/about/product) son independientes entre si,
+      // asi que se guardan en paralelo en vez de en cascada uno por uno.
+      const saveResults = await Promise.all(Object.entries(pageSchemas).map(([pageKey, schema]) =>
+        fetch(`${apiBase}/shop-pages`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ page_key: pageKey, schema_data: schema, template_id: selectedTemplate.id }),
-        });
-        if (!saveRes.ok) throw new Error('No se pudo instalar la plantilla');
-      }
+        })
+      ));
+      if (saveResults.some(r => !r.ok)) throw new Error('No se pudo instalar la plantilla');
 
-      // 4. Publicar las 4 paginas de inmediato
-      for (const [pageKey, schema] of Object.entries(pageSchemas)) {
-        const pubRes = await fetch(`${apiBase}/shop-pages/publish`, {
+      // 4. Publicar las 4 paginas de inmediato (tambien en paralelo)
+      const pubResults = await Promise.all(Object.entries(pageSchemas).map(([pageKey, schema]) =>
+        fetch(`${apiBase}/shop-pages/publish`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ page_key: pageKey, schema_data: schema }),
-        });
-        if (!pubRes.ok) throw new Error('No se pudo publicar tu tienda');
-      }
+        })
+      ));
+      if (pubResults.some(r => !r.ok)) throw new Error('No se pudo publicar tu tienda');
 
       // 5. Primer producto
       let productImageUrl: string | null = null;

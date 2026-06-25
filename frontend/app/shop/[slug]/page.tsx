@@ -202,28 +202,31 @@ function ShopContent() {
                 const res = await fetch(`${apiBase}/public/shop/${slug}`);
                 if (res.ok) {
                     const data = await res.json();
-                    
-                    // 2. Cargamos productos reales de esta tienda
-                    try {
-                        const prodRes = await fetch(`${apiBase}/public/stores/${data.id}/products`);
-                        if (prodRes.ok) {
-                            data.products = await prodRes.json();
-                        }
-                    } catch (e) { console.error("Error cargando productos", e); }
 
-                    // 3. Cargamos el diseño publicado para la VISTA ACTUAL
-                    try {
-                        const pageRes = await fetch(`${apiBase}/public/stores/${data.id}/pages/${view}`);
-                        if (pageRes.ok) {
-                            const pageData = await pageRes.json();
-                            if (pageData && pageData.schema_data) {
-                                data.custom_schema = pageData.schema_data;
-                            }
+                    // 2 y 3. Productos y diseño publicado solo dependen del id de la
+                    // tienda (no uno del otro), asi que se piden en paralelo en vez
+                    // de en cascada — reduce a la mitad el tiempo hasta que la
+                    // tienda publica se ve completa.
+                    const [prodResult, pageResult] = await Promise.allSettled([
+                        fetch(`${apiBase}/public/stores/${data.id}/products`),
+                        fetch(`${apiBase}/public/stores/${data.id}/pages/${view}`),
+                    ]);
+
+                    if (prodResult.status === 'fulfilled' && prodResult.value.ok) {
+                        data.products = await prodResult.value.json();
+                    } else if (prodResult.status === 'rejected') {
+                        console.error("Error cargando productos", prodResult.reason);
+                    }
+
+                    if (pageResult.status === 'fulfilled' && pageResult.value.ok) {
+                        const pageData = await pageResult.value.json();
+                        if (pageData && pageData.schema_data) {
+                            data.custom_schema = pageData.schema_data;
                         }
-                    } catch (e) {
+                    } else if (pageResult.status === 'rejected') {
                         console.warn(`Diseño para vista ${view} no publicado.`);
                     }
-                    
+
                     setShopData(data);
                 }
             } catch (error) {
