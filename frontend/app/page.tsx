@@ -16,7 +16,6 @@ const TemplateShowcase = dynamic(() => import("@/components/landing/TemplateShow
 const Testimonials = dynamic(() => import("@/components/landing/Testimonials").then(mod => mod.Testimonials));
 const PricingCinematic = dynamic(() => import("@/components/landing/PricingCinematic").then(mod => mod.PricingCinematic));
 const Footer = dynamic(() => import("@/components/landing/Footer").then(mod => mod.Footer));
-const PageLoader = dynamic(() => import("@/components/landing/PageLoader").then(mod => mod.PageLoader));
 const WhatsAppFloatingButton = dynamic(() => import("@/components/landing/WhatsAppFloatingButton").then(mod => mod.WhatsAppFloatingButton));
 const InteractiveUP = dynamic(() => import("@/components/landing/InteractiveUP").then(mod => mod.InteractiveUP));
 const ExpandableButton = dynamic(() => import("@/components/landing/ExpandableButton").then(mod => mod.ExpandableButton));
@@ -66,24 +65,8 @@ export default function HomePage() {
   const { scrollY } = useScroll();
   const [hidden, setHidden] = useState(false);
   const [isAtTop, setIsAtTop] = useState(true);
-  const [isLoading, setIsLoading] = useState(false); // Cambiado a false por defecto para evitar bloqueos
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
-
-  useEffect(() => {
-    // Solo mostrar el loader si no se ha inicializado en esta sesión
-    const isInitialized = sessionStorage.getItem("bayup_initialized");
-    if (!isInitialized) {
-      setIsLoading(true);
-    }
-  }, []);
-
-  const handleLoadingComplete = () => {
-    setIsLoading(false);
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("bayup_initialized", "true");
-    }
-  };
 
   const scaleX = useSpring(useScroll().scrollYProgress, {
     stiffness: 100,
@@ -129,16 +112,12 @@ export default function HomePage() {
   return (
     <div className="bg-background min-h-screen selection:bg-cyan selection:text-black">
       
-      <AnimatePresence mode="wait">
-        {isLoading ? (
-          <PageLoader key="loader" onComplete={handleLoadingComplete} />
-        ) : (
-          <motion.div 
-            key="main-content"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
+      <motion.div
+        key="main-content"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
             <AntigravityBackground />
 
             <motion.div 
@@ -318,9 +297,7 @@ export default function HomePage() {
 
             {/* WhatsApp Smart Floating Button */}
             <WhatsAppFloatingButton hidden={hidden} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </motion.div>
 
       <style jsx global>{`
         html {
