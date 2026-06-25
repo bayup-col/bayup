@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/context/cart-context';
+import { useToast } from '@/context/toast-context';
 
 /**
  * COMPONENTES DE ALTA FIDELIDAD - ESPECIALIZADOS POR MARCA
@@ -34,6 +35,7 @@ const scrollToSimulatedSection = (label: string) => {
 // 1. NAVBAR PREMIUM (FUNCIONAL CON CARRITO)
 export const SmartNavbar = ({ props }: { props: any }) => {
   const { items: cart, setIsCartOpen: setIsOpen } = useCart();
+  const { showToast } = useToast();
 
   return (
     <>
@@ -64,7 +66,7 @@ export const SmartNavbar = ({ props }: { props: any }) => {
                   </span>
                 )}
               </div>
-              <User size={20} className="cursor-pointer hover:text-cyan transition-colors" />
+              <User size={20} onClick={() => showToast('El inicio de sesión de clientes estará disponible en tu tienda publicada', 'info')} className="cursor-pointer hover:text-cyan transition-colors" />
             </div>
           </div>
         </div>

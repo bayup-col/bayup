@@ -24,7 +24,11 @@
         { "label": "Lifestyle", "image": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=800" },
         { "label": "Ediciones", "image": "https://images.unsplash.com/photo-1584735175315-9d5df23860e6?q=80&w=800" }
       ]}},
-      { "id": "t-products", "type": "product-grid", "props": { "title": "Últimos Lanzamientos" } }
+      { "id": "t-products", "type": "product-grid", "props": { "title": "Últimos Lanzamientos", "products": [
+        { "name": "Air Runner Pro", "category": "Running", "price": "420.000", "image": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?q=80&w=800" },
+        { "name": "Court Classic High", "category": "Basketball", "price": "385.000", "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800" },
+        { "name": "Street Edition Limitada", "category": "Ediciones", "price": "590.000", "image": "https://images.unsplash.com/photo-1584735175315-9d5df23860e6?q=80&w=800" }
+      ]}}
     ],
     "styles": {}
   },

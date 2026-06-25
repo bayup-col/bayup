@@ -43,7 +43,11 @@
       {
         "id": "comp-novedades",
         "type": "product-grid",
-        "props": { "title": "Novedades" }
+        "props": { "title": "Novedades", "products": [
+          { "name": "Laptop Workstation Pro 16\"", "category": "Portátiles", "price": "5.890.000", "image": "https://images.unsplash.com/photo-1587831990711-23ca6441447b?q=80&w=800" },
+          { "name": "Monitor UltraWide 4K 34\"", "category": "Monitores", "price": "2.450.000", "image": "https://images.unsplash.com/photo-1587831990711-23ca6441447b?q=80&w=800" },
+          { "name": "Teclado Mecánico RGB Pro", "category": "Periféricos", "price": "390.000", "image": "https://images.unsplash.com/photo-1587831990711-23ca6441447b?q=80&w=800" }
+        ] }
       },
       {
         "id": "comp-trust",

@@ -4,9 +4,58 @@ import React, { useEffect, useState } from "react";
 import { Canvas } from "../dashboard/pages/studio/internal-studio-parts/Canvas";
 import { StudioProvider } from "../dashboard/pages/studio/context";
 import { PageSchema } from "../dashboard/pages/studio/context";
+import { useCart } from "@/context/cart-context";
+import { useToast } from "@/context/toast-context";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShoppingBag, X, Trash2 } from "lucide-react";
 
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+
+// Carrito simulado: en la vista previa no hay tienda publicada todavia,
+// asi que mostramos el contenido real del carrito pero el pago final
+// solo se simula con un aviso, en vez de procesar un pedido real.
+function SimulatedCartDrawer() {
+  const { items, removeItem, total, isCartOpen, setIsCartOpen } = useCart();
+  const { showToast } = useToast();
+
+  return (
+    <AnimatePresence>
+      {isCartOpen && (
+        <div className="fixed inset-0 z-[3000] flex justify-end">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCartOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="relative w-full max-w-md bg-white h-screen shadow-2xl flex flex-col">
+            <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-[#001A1A] text-white">
+              <h3 className="text-xl font-black uppercase italic tracking-widest">Tu Selección</h3>
+              <button onClick={() => setIsCartOpen(false)} className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"><X size={20} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-8 space-y-6">
+              {items.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center opacity-30"><ShoppingBag size={64} /><p className="text-[10px] font-black uppercase mt-4">Carrito Vacío</p></div>
+              ) : items.map((item) => (
+                <div key={item.id} className="flex gap-4 p-4 bg-gray-50 rounded-[2rem] border border-gray-100">
+                  <div className="h-20 w-20 rounded-2xl overflow-hidden bg-white shrink-0"><img src={item.image} className="h-full w-full object-cover" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-black text-gray-900 line-clamp-1">{item.title}</p>
+                    <p className="text-xs font-bold text-[#004d4d] mt-1">${item.price.toLocaleString()}</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase mt-2">Cantidad: {item.quantity}</p>
+                  </div>
+                  <button onClick={() => removeItem(item.id)} className="text-gray-300 hover:text-rose-500 self-center"><Trash2 size={18} /></button>
+                </div>
+              ))}
+            </div>
+            {items.length > 0 && (
+              <div className="p-8 border-t bg-gray-50/50 space-y-6">
+                <div className="flex justify-between items-end"><p className="text-[10px] font-black text-gray-400 uppercase">Total Estimado</p><p className="text-3xl font-black text-gray-900 tracking-tighter">${total.toLocaleString()}</p></div>
+                <button onClick={() => showToast('El pago se procesará de verdad cuando publiques tu tienda', 'info')} className="w-full py-6 bg-gray-900 text-[#00f2ff] rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-black transition-all">Finalizar Compra</button>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
 
 function PreviewContent() {
   const [data, setData] = useState<PageSchema | null>(null);
@@ -87,6 +136,7 @@ function PreviewContent() {
       <StudioProvider>
         <Canvas overrideData={data} isPreview={true} />
       </StudioProvider>
+      <SimulatedCartDrawer />
     </div>
   );
 }
