@@ -79,6 +79,7 @@ export default function WebTemplatesPage() {
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewPreview, setPreviewPreview] = useState<string | null>(null);
   const [htmlFiles, setHtmlFiles] = useState<Record<string, string>>({});
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const previewInputRef = useRef<HTMLInputElement>(null);
   const htmlInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -189,6 +190,7 @@ export default function WebTemplatesPage() {
         setTemplateMode('schema');
         setPreviewFile(null); setPreviewPreview(null);
         setHtmlFiles({});
+        if (previewBlobUrl) { URL.revokeObjectURL(previewBlobUrl); setPreviewBlobUrl(null); }
         showToast('Plantilla creada ✓', 'success');
       } else {
         const err = await res.json().catch(() => ({}));
@@ -389,7 +391,10 @@ export default function WebTemplatesPage() {
       <AnimatePresence>
         {showNew && (
           <>
-            <div className="fixed inset-0 z-[9998]" onClick={() => setShowNew(false)} />
+            <div className="fixed inset-0 z-[9998]" onClick={() => {
+              setShowNew(false);
+              if (previewBlobUrl) { URL.revokeObjectURL(previewBlobUrl); setPreviewBlobUrl(null); }
+            }} />
             <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 16 }}
@@ -398,7 +403,7 @@ export default function WebTemplatesPage() {
 
                 <div className="flex justify-between items-center">
                   <h2 className="text-base font-black text-white">Nueva Plantilla</h2>
-                  <button onClick={() => setShowNew(false)}
+                  <button onClick={() => { setShowNew(false); if (previewBlobUrl) { URL.revokeObjectURL(previewBlobUrl); setPreviewBlobUrl(null); } }}
                     className="h-8 w-8 rounded-xl border border-white/8 bg-white/4 flex items-center justify-center text-white/30 hover:text-white">
                     <X size={14} />
                   </button>
@@ -415,22 +420,43 @@ export default function WebTemplatesPage() {
                   ))}
                 </div>
 
-                {/* Preview image */}
+                {/* Preview image / iframe auto-preview */}
                 <input ref={previewInputRef} type="file" accept="image/*" className="hidden" onChange={e => {
                   const f = e.target.files?.[0];
                   if (f) { setPreviewFile(f); setPreviewPreview(URL.createObjectURL(f)); }
                 }} />
-                <button onClick={() => previewInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all">
-                  {previewPreview
-                    ? <img src={previewPreview} alt="preview" className="w-full h-32 object-cover" />
-                    : <div className="p-8 flex flex-col items-center gap-2.5">
-                        <ImagePlus size={22} className="text-white/15" />
-                        <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Subir imagen de preview</p>
-                        <p className="text-[9px] text-white/15">PNG, JPG · máx 5MB</p>
-                      </div>
-                  }
-                </button>
+                {templateMode === 'html' && previewBlobUrl && !previewPreview ? (
+                  <div className="relative w-full h-40 rounded-2xl overflow-hidden border border-[#7c3aed]/20 bg-black cursor-pointer group"
+                    onClick={() => previewInputRef.current?.click()}>
+                    <iframe
+                      src={previewBlobUrl}
+                      title="preview"
+                      sandbox="allow-scripts allow-same-origin"
+                      className="absolute top-0 left-0 border-none pointer-events-none"
+                      style={{ width: '1280px', height: '800px', transform: 'scale(0.31)', transformOrigin: 'top left' }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-3">
+                      <p className="text-[9px] font-bold text-white/60 uppercase tracking-widest flex items-center gap-1.5">
+                        <ImagePlus size={10} /> Reemplazar con imagen
+                      </p>
+                    </div>
+                    <div className="absolute top-2 right-2 text-[7px] font-bold text-white/40 bg-black/50 px-2 py-0.5 rounded-md uppercase tracking-widest">
+                      Vista previa auto
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => previewInputRef.current?.click()}
+                    className="w-full border-2 border-dashed border-white/8 rounded-2xl overflow-hidden hover:border-white/15 transition-all">
+                    {previewPreview
+                      ? <img src={previewPreview} alt="preview" className="w-full h-40 object-cover" />
+                      : <div className="p-8 flex flex-col items-center gap-2.5">
+                          <ImagePlus size={22} className="text-white/15" />
+                          <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Subir imagen de preview</p>
+                          <p className="text-[9px] text-white/15">PNG, JPG · máx 5MB{templateMode === 'html' ? ' · o sube Home primero' : ''}</p>
+                        </div>
+                    }
+                  </button>
+                )}
 
                 {/* Campos base */}
                 <div className="space-y-3">
@@ -468,6 +494,11 @@ export default function WebTemplatesPage() {
                               if (!f) return;
                               const text = await readFileAsText(f);
                               setHtmlFiles(p => ({ ...p, [key]: text }));
+                              if (key === 'home') {
+                                if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+                                const blob = new Blob([text], { type: 'text/html' });
+                                setPreviewBlobUrl(URL.createObjectURL(blob));
+                              }
                             }}
                           />
                           <button

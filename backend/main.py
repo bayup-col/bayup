@@ -2413,6 +2413,26 @@ _BAYUP_SDK = """
     document.querySelectorAll('[data-bayup="store-phone"]').forEach(function(el){ el.textContent = store.phone || ''; });
     document.querySelectorAll('img[data-bayup="store-logo"]').forEach(function(el){ if(store.logo_url) el.src = store.logo_url; });
 
+    // Página de detalle de producto
+    if(PAGE === 'product'){
+      var params = new URLSearchParams(window.location.search);
+      var productId = params.get('product_id');
+      if(productId && products.length){
+        var p = products.find(function(x){ return String(x.id) === String(productId); });
+        if(p){
+          document.querySelectorAll('[data-bayup="product-name"]').forEach(function(el){ el.textContent = p.name; });
+          document.querySelectorAll('[data-bayup="product-price"]').forEach(function(el){ el.textContent = formatCOP(p.price); });
+          document.querySelectorAll('[data-bayup="product-description"]').forEach(function(el){ el.textContent = p.description || ''; });
+          document.querySelectorAll('img[data-bayup="product-image"]').forEach(function(el){ if(p.image_url&&p.image_url[0]) el.src=p.image_url[0]; });
+          document.querySelectorAll('[data-bayup-action="add-to-cart"]').forEach(function(el){
+            el.dataset.bayupProductId=String(p.id);
+            el.dataset.bayupProductName=p.name;
+            el.dataset.bayupProductPrice=String(p.price);
+          });
+        }
+      }
+    }
+
     // Grilla de productos
     var grid = document.querySelector('[data-bayup="product-grid"]');
     var cardTpl = document.querySelector('template[data-bayup="product-card-template"]');
@@ -2423,7 +2443,8 @@ _BAYUP_SDK = """
         clone.querySelectorAll('[data-bayup-card="name"]').forEach(function(el){ el.textContent = p.name; });
         clone.querySelectorAll('[data-bayup-card="price"]').forEach(function(el){ el.textContent = formatCOP(p.price); });
         clone.querySelectorAll('img[data-bayup-card="image"]').forEach(function(el){ if(p.image_url&&p.image_url[0]) el.src=p.image_url[0]; });
-        clone.querySelectorAll('[data-bayup-action="add-to-cart"]').forEach(function(el){ el.dataset.bayupProductId=p.id; el.dataset.bayupProductName=p.name; el.dataset.bayupProductPrice=p.price; });
+        clone.querySelectorAll('[data-bayup-action="add-to-cart"]').forEach(function(el){ el.dataset.bayupProductId=String(p.id); el.dataset.bayupProductName=p.name; el.dataset.bayupProductPrice=String(p.price); });
+        clone.querySelectorAll('[data-bayup-action="nav-product"]').forEach(function(el){ el.dataset.bayupProductId=String(p.id); });
         grid.appendChild(clone);
       });
     }
@@ -2433,17 +2454,38 @@ _BAYUP_SDK = """
 
   function renderCart(){
     var cart = getCart();
-    document.querySelectorAll('[data-bayup="cart-count"]').forEach(function(el){ el.textContent = cartCount(cart); });
+    var count = cartCount(cart);
+    document.querySelectorAll('[data-bayup="cart-count"]').forEach(function(el){
+      el.textContent = count || '';
+      el.style.display = count ? '' : 'none';
+    });
     document.querySelectorAll('[data-bayup="cart-total"]').forEach(function(el){ el.textContent = formatCOP(cartTotal(cart)); });
+    document.querySelectorAll('[data-bayup="cart-subtotal"]').forEach(function(el){ el.textContent = formatCOP(cartTotal(cart)); });
     var cartList = document.querySelector('[data-bayup="cart-items"]');
+    var cartRowTpl = document.querySelector('template[data-bayup="cart-row-template"]');
     if(cartList){
       cartList.innerHTML = '';
-      cart.forEach(function(item){
-        var li = document.createElement('div');
-        li.className = 'bayup-cart-item';
-        li.innerHTML = '<span>' + item.name + ' x' + item.qty + '</span><span>' + formatCOP(item.unit_price * item.qty) + '</span>';
-        cartList.appendChild(li);
-      });
+      if(!cart.length){
+        var empty = document.createElement('tr');
+        empty.innerHTML = '<td colspan="5" class="py-12 text-center text-slate-400">Tu carrito está vacío</td>';
+        cartList.appendChild(empty);
+      } else {
+        cart.forEach(function(item){
+          if(cartRowTpl){
+            var clone = cartRowTpl.content.cloneNode(true);
+            clone.querySelectorAll('[data-bayup-row="name"]').forEach(function(el){ el.textContent = item.name; });
+            clone.querySelectorAll('[data-bayup-row="price"]').forEach(function(el){ el.textContent = formatCOP(item.unit_price); });
+            clone.querySelectorAll('[data-bayup-row="subtotal"]').forEach(function(el){ el.textContent = formatCOP(item.unit_price * item.qty); });
+            clone.querySelectorAll('[data-bayup-row="qty"]').forEach(function(el){ el.textContent = String(item.qty); });
+            cartList.appendChild(clone);
+          } else {
+            var li = document.createElement('div');
+            li.className = 'bayup-cart-item';
+            li.innerHTML = '<span>' + item.name + ' x' + item.qty + '</span><span>' + formatCOP(item.unit_price * item.qty) + '</span>';
+            cartList.appendChild(li);
+          }
+        });
+      }
     }
   }
 
@@ -2481,6 +2523,8 @@ _BAYUP_SDK = """
     if(action === 'nav-catalog') window.location.href = '/html-shop/' + SLUG + '/catalog';
     if(action === 'nav-cart')    window.location.href = '/html-shop/' + SLUG + '/cart';
     if(action === 'nav-contact') window.location.href = '/html-shop/' + SLUG + '/contact';
+    if(action === 'nav-privacy') window.location.href = '/html-shop/' + SLUG + '/privacy';
+    if(action === 'nav-product') window.location.href = '/html-shop/' + SLUG + '/product?product_id=' + (el.dataset.bayupProductId||'');
   });
 
   // --- Bootstrap: carga datos de la tienda y productos ---
