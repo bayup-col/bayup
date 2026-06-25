@@ -75,9 +75,10 @@ export default function OnboardingPage() {
 
   const selectedTemplate = templates.find(t => t.id === templateId) || null;
 
-  const openPreview = () => {
-    if (!selectedTemplate) return;
-    localStorage.setItem('bayup-studio-preview', JSON.stringify(selectedTemplate.schema_data));
+  const openPreview = (tpl?: WebTemplate | null) => {
+    const target = tpl || selectedTemplate;
+    if (!target) return;
+    localStorage.setItem('bayup-studio-preview', JSON.stringify(target.schema_data));
     window.open('/studio-preview', '_blank');
   };
 
@@ -235,7 +236,7 @@ export default function OnboardingPage() {
             ))}
           </div>
           {selectedTemplate && (
-            <button onClick={openPreview}
+            <button onClick={() => openPreview()}
               className="flex items-center gap-2 h-9 px-4 rounded-full bg-[#004d4d]/5 border border-[#004d4d]/15 text-[10px] font-black uppercase tracking-widest text-[#004d4d] hover:bg-[#004d4d]/10 transition-all">
               <Eye size={13} /> Vista previa
             </button>
@@ -278,10 +279,18 @@ export default function OnboardingPage() {
                         <div className="aspect-[4/3] bg-gray-50 relative overflow-hidden">
                           {tpl.preview_url && <img src={tpl.preview_url} alt={tpl.name} className="w-full h-full object-cover" />}
                           {templateId === tpl.id && (
-                            <div className="absolute top-3 right-3 h-7 w-7 bg-[#004d4d] rounded-full flex items-center justify-center text-white shadow-lg">
+                            <div className="absolute top-3 right-3 h-7 w-7 bg-[#004d4d] rounded-full flex items-center justify-center text-white shadow-lg z-10">
                               <Check size={14} />
                             </div>
                           )}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <span
+                              onClick={(e) => { e.stopPropagation(); openPreview(tpl); }}
+                              className="flex items-center gap-2 h-10 px-5 rounded-full bg-white text-[#004d4d] text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-transform"
+                            >
+                              <Eye size={14} /> Vista previa
+                            </span>
+                          </div>
                         </div>
                         <div className="p-5 space-y-1">
                           <p className="text-sm font-black uppercase tracking-tight text-gray-900">{tpl.name}</p>
