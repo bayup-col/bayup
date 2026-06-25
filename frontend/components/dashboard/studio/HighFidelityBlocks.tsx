@@ -284,7 +284,7 @@ export const SmartFooter = ({ props }: { props: any }) => {
   const simulate = () => showToast('Esta sección estará disponible cuando publiques tu tienda', 'info');
   const openMap = () => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(props.location || 'Bogotá, Colombia')}`, '_blank');
 
-  const empresaLinks: Record<string, () => void> = { "Nuestra Historia": goAbout, "Responsabilidad": simulate, "Carreras": simulate, "Prensa": simulate };
+  const empresaLinks: Record<string, () => void> = { "Nuestra Historia": goAbout };
   const servicioLinks: Record<string, () => void> = { "Contacto": goContact, "Envíos y Devoluciones": simulate, "Garantía": simulate, "FAQ": simulate };
 
   return (
@@ -300,7 +300,7 @@ export const SmartFooter = ({ props }: { props: any }) => {
           </div>
         </div>
         <div>
-          <h6 className="font-bold text-[10px] uppercase tracking-[0.3em] mb-10 text-amber-800">Empresa</h6>
+          <h6 className="font-bold text-[10px] uppercase tracking-[0.3em] mb-10 text-amber-800">Sobre Nosotros</h6>
           <ul className="space-y-5 text-xs font-medium text-slate-500">
             {Object.entries(empresaLinks).map(([l, fn]) => <li key={l} onClick={fn} className="hover:text-black cursor-pointer transition-colors">{l}</li>)}
           </ul>
