@@ -1413,9 +1413,14 @@ async def delete_company_permanently(company_id: str, request: Request):
             raise HTTPException(status_code=404, detail="Empresa no encontrada")
 
         try:
-            # IDs de cuentas dependientes (staff + clientes de esta tienda)
-            sub_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.owner_id == target_uuid).all()]
+            # IDs y emails de cuentas dependientes (staff + clientes de esta tienda)
+            sub_users = db.query(models.User.id, models.User.email).filter(models.User.owner_id == target_uuid).all()
+            sub_user_ids = [u.id for u in sub_users]
             all_user_ids = [target_uuid] + sub_user_ids
+
+            # Recolectar emails ANTES de borrar para limpiar auth.users después
+            root_email = db.query(models.User.email).filter(models.User.id == target_uuid).scalar()
+            emails_to_purge = [e for e in ([root_email] + [u.email for u in sub_users]) if e]
 
             order_ids = [o.id for o in db.query(models.Order.id).filter(models.Order.tenant_id == target_uuid).all()]
             product_ids = [p.id for p in db.query(models.Product.id).filter(models.Product.owner_id == target_uuid).all()]
@@ -1463,6 +1468,17 @@ async def delete_company_permanently(company_id: str, request: Request):
             db.query(models.User).filter(models.User.id == target_uuid).delete(synchronize_session=False)
 
             db.commit()
+
+            # Limpiar auth.users para que el email quede libre para re-registro
+            if emails_to_purge:
+                from sqlalchemy import text as _text
+                try:
+                    for _email in emails_to_purge:
+                        db.execute(_text("DELETE FROM auth.users WHERE email = :email"), {"email": _email})
+                    db.commit()
+                except Exception:
+                    pass  # best-effort: si falla permisos, no bloquea la respuesta
+
         except Exception:
             db.rollback()
             raise HTTPException(status_code=500, detail="No se pudo eliminar la empresa por completo")
