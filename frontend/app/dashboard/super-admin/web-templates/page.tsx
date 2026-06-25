@@ -88,7 +88,34 @@ export default function WebTemplatesPage() {
   const [filterCat, setFilterCat] = useState('Todos');
   const [filterType, setFilterType] = useState<'todos' | 'free' | 'premium'>('todos');
   const [selected, setSelected] = useState<Template | null>(null);
+  const [drawerBlobUrl, setDrawerBlobUrl] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
+
+  const closeDrawer = useCallback(() => {
+    setSelected(null);
+    if (drawerBlobUrl) { URL.revokeObjectURL(drawerBlobUrl); setDrawerBlobUrl(null); }
+  }, [drawerBlobUrl]);
+
+  useEffect(() => {
+    if (!selected || selected.template_type !== 'html') {
+      setDrawerBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/web-templates/${selected.id}/preview/home`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok || cancelled) return;
+      const html = await res.text();
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      if (!cancelled) setDrawerBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id]);
 
   // Formulario nueva plantilla
   const [newForm, setNewForm] = useState({ name: '', category: '', description: '', tags: '' });
@@ -322,7 +349,7 @@ export default function WebTemplatesPage() {
       <AnimatePresence>
         {selected && (
           <>
-            <div className="fixed inset-0 z-[9998]" onClick={() => setSelected(null)} />
+            <div className="fixed inset-0 z-[9998]" onClick={closeDrawer} />
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
@@ -337,14 +364,26 @@ export default function WebTemplatesPage() {
                   </div>
                   <p className="text-[10px] text-white/25">{selected.category}</p>
                 </div>
-                <button onClick={() => setSelected(null)}
+                <button onClick={closeDrawer}
                   className="h-8 w-8 rounded-xl border border-white/8 bg-white/4 flex items-center justify-center text-white/30 hover:text-white">
                   <X size={14} />
                 </button>
               </div>
 
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-                <TemplateMock color={selected.color} name={selected.name} previewUrl={selected.preview_url} templateType={selected.template_type} />
+                {selected.template_type === 'html' && drawerBlobUrl ? (
+                  <div className="relative w-full h-40 rounded-xl overflow-hidden border border-[#7c3aed]/20 bg-black">
+                    <iframe
+                      src={drawerBlobUrl}
+                      title="preview"
+                      sandbox="allow-scripts allow-same-origin"
+                      className="absolute top-0 left-0 border-none pointer-events-none"
+                      style={{ width: '1280px', height: '800px', transform: 'scale(0.265)', transformOrigin: 'top left' }}
+                    />
+                  </div>
+                ) : (
+                  <TemplateMock color={selected.color} name={selected.name} previewUrl={selected.preview_url} templateType={selected.template_type} />
+                )}
 
                 <div className="grid grid-cols-3 gap-3">
                   {[
@@ -390,6 +429,12 @@ export default function WebTemplatesPage() {
               </div>
 
               <div className="px-6 pb-6 pt-4 border-t border-white/5 space-y-2 shrink-0">
+                {selected.template_type === 'html' && drawerBlobUrl && (
+                  <button onClick={() => window.open(drawerBlobUrl, '_blank')}
+                    className="w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-[#7c3aed]/20 text-[#7c3aed]/60 hover:bg-[#7c3aed]/8 hover:text-[#7c3aed]">
+                    <Eye size={12} /> Previsualizar en nueva pestaña
+                  </button>
+                )}
                 <button onClick={() => toggleActive(selected)}
                   className={`w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${selected.isActive ? 'border-red-500/15 text-red-400/50 hover:bg-red-500/6 hover:text-red-400' : 'border-emerald-500/15 text-emerald-400/50 hover:bg-emerald-500/6 hover:text-emerald-400'}`}>
                   {selected.isActive ? 'Desactivar' : 'Activar plantilla'}
