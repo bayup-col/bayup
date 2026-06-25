@@ -1,7 +1,73 @@
 {
   "id": "tpl-maquillaje",
   "name": "Beauty & Glow",
-  "header": { "elements": [{"type": "navbar", "props": {"logoText": "BEAUTY & GLOW", "logoColor": "#be123c"}}], "styles": {} },
-  "body": { "elements": [{"type": "hero-banner", "props": {"title": "Resalta tu Belleza", "primaryBtnBgColor": "#be123c"}}] },
-  "footer": { "elements": [{"type": "footer-premium", "props": {"bgColor": "#881337"}}], "styles": {} }
+  "header": {
+    "elements": [
+      {
+        "id": "maq-nav",
+        "type": "navbar",
+        "props": {
+          "logoText": "Beauty & Glow",
+          "logoColor": "#be123c",
+          "menuItems": ["Rostro", "Labios", "Ojos", "Sets"]
+        }
+      }
+    ],
+    "styles": {}
+  },
+  "body": {
+    "elements": [
+      {
+        "id": "maq-hero",
+        "type": "hero-banner",
+        "props": {
+          "badge": "Nueva Colección",
+          "title": "Resalta tu Belleza",
+          "subtitle": "Cosméticos de alta calidad para realzar tu belleza natural, con fórmulas pensadas para cada tipo de piel.",
+          "imageUrl": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=2000",
+          "primaryBtnText": "Descubrir Productos",
+          "primaryBtnBgColor": "#be123c"
+        }
+      },
+      {
+        "id": "maq-cats",
+        "type": "categories-grid",
+        "props": {
+          "title": "Categorías Principales",
+          "items": [
+            { "label": "Rostro", "sub": "Bases y correctores", "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800" },
+            { "label": "Labios", "sub": "Labiales y gloss", "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800" },
+            { "label": "Ojos", "sub": "Sombras y delineadores", "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800" }
+          ]
+        }
+      },
+      {
+        "id": "maq-products",
+        "type": "product-grid",
+        "props": {
+          "title": "Más Vendidos",
+          "products": [
+            { "name": "Paleta de Sombras Glow", "category": "Ojos", "price": "89.000", "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800" },
+            { "name": "Labial Mate Larga Duración", "category": "Labios", "price": "42.000", "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800" },
+            { "name": "Base Líquida Cobertura Total", "category": "Rostro", "price": "95.000", "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800" }
+          ]
+        }
+      }
+    ],
+    "styles": {}
+  },
+  "footer": {
+    "elements": [
+      {
+        "id": "maq-footer",
+        "type": "footer-premium",
+        "props": {
+          "logoText": "Beauty & Glow",
+          "description": "Belleza accesible y de calidad, para que brilles con luz propia todos los días.",
+          "bgColor": "#881337"
+        }
+      }
+    ],
+    "styles": {}
+  }
 }

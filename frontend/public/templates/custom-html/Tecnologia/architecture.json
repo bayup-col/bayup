@@ -1,7 +1,73 @@
 {
   "id": "tpl-tecno",
   "name": "Tech Engine Hub",
-  "header": { "elements": [{"type": "navbar", "props": {"logoText": "TECH HUB", "logoColor": "#06b6d4"}}], "styles": {} },
-  "body": { "elements": [{"type": "hero-banner", "props": {"title": "Next Gen Tech", "primaryBtnBgColor": "#06b6d4"}}] },
-  "footer": { "elements": [{"type": "footer-premium", "props": {"bgColor": "#083344"}}], "styles": {} }
+  "header": {
+    "elements": [
+      {
+        "id": "tec-nav",
+        "type": "navbar",
+        "props": {
+          "logoText": "Tech Engine Hub",
+          "logoColor": "#06b6d4",
+          "menuItems": ["Novedades", "Gadgets", "Accesorios", "Ofertas"]
+        }
+      }
+    ],
+    "styles": {}
+  },
+  "body": {
+    "elements": [
+      {
+        "id": "tec-hero",
+        "type": "hero-banner",
+        "props": {
+          "badge": "Innovación 2026",
+          "title": "El Futuro en tus Manos",
+          "subtitle": "Los gadgets más innovadores del mercado, con tecnología de punta y diseño futurista.",
+          "imageUrl": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=2000",
+          "primaryBtnText": "Explorar Gadgets",
+          "primaryBtnBgColor": "#06b6d4"
+        }
+      },
+      {
+        "id": "tec-cats",
+        "type": "categories-grid",
+        "props": {
+          "title": "Categorías Principales",
+          "items": [
+            { "label": "Gadgets", "sub": "Lo más innovador", "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800" },
+            { "label": "Audio", "sub": "Sonido envolvente", "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800" },
+            { "label": "Accesorios", "sub": "Complementa tu setup", "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800" }
+          ]
+        }
+      },
+      {
+        "id": "tec-products",
+        "type": "product-grid",
+        "props": {
+          "title": "Novedades",
+          "products": [
+            { "name": "Audífonos Inalámbricos Pro", "category": "Audio", "price": "280.000", "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800" },
+            { "name": "Smartwatch Serie X", "category": "Gadgets", "price": "450.000", "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800" },
+            { "name": "Power Bank 20000mAh", "category": "Accesorios", "price": "95.000", "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800" }
+          ]
+        }
+      }
+    ],
+    "styles": {}
+  },
+  "footer": {
+    "elements": [
+      {
+        "id": "tec-footer",
+        "type": "footer-premium",
+        "props": {
+          "logoText": "Tech Engine Hub",
+          "description": "La última tecnología, al alcance de tu mano, con garantía y soporte real.",
+          "bgColor": "#083344"
+        }
+      }
+    ],
+    "styles": {}
+  }
 }

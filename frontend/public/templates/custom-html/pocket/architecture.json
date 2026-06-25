@@ -1,7 +1,73 @@
 {
   "id": "tpl-pocket",
   "name": "Pocket Store Quick",
-  "header": { "elements": [{"type": "navbar", "props": {"logoText": "POCKET STORE", "logoColor": "#ef4444"}}], "styles": {} },
-  "body": { "elements": [{"type": "hero-banner", "props": {"title": "Venta Rápida", "primaryBtnBgColor": "#ef4444"}}] },
-  "footer": { "elements": [{"type": "footer-premium", "props": {"bgColor": "#7f1d1d"}}], "styles": {} }
+  "header": {
+    "elements": [
+      {
+        "id": "pkt-nav",
+        "type": "navbar",
+        "props": {
+          "logoText": "Pocket Store",
+          "logoColor": "#ef4444",
+          "menuItems": ["Ofertas", "Nuevo", "Más Vendidos"]
+        }
+      }
+    ],
+    "styles": {}
+  },
+  "body": {
+    "elements": [
+      {
+        "id": "pkt-hero",
+        "type": "hero-banner",
+        "props": {
+          "badge": "Oferta Flash",
+          "title": "Compra Rápido, Recibe Rápido",
+          "subtitle": "Productos seleccionados con envío express y atención inmediata por WhatsApp.",
+          "imageUrl": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=2000",
+          "primaryBtnText": "Ver Ofertas",
+          "primaryBtnBgColor": "#ef4444"
+        }
+      },
+      {
+        "id": "pkt-cats",
+        "type": "categories-grid",
+        "props": {
+          "title": "Explora",
+          "items": [
+            { "label": "Ofertas del Día", "sub": "Precios especiales", "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800" },
+            { "label": "Más Vendidos", "sub": "Los favoritos", "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800" },
+            { "label": "Recién Llegados", "sub": "Lo más nuevo", "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800" }
+          ]
+        }
+      },
+      {
+        "id": "pkt-products",
+        "type": "product-grid",
+        "props": {
+          "title": "Destacados",
+          "products": [
+            { "name": "Combo Especial del Día", "category": "Ofertas", "price": "49.000", "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800" },
+            { "name": "Producto Estrella", "category": "Más Vendidos", "price": "39.000", "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800" },
+            { "name": "Edición Limitada", "category": "Recién Llegados", "price": "59.000", "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800" }
+          ]
+        }
+      }
+    ],
+    "styles": {}
+  },
+  "footer": {
+    "elements": [
+      {
+        "id": "pkt-footer",
+        "type": "footer-premium",
+        "props": {
+          "logoText": "Pocket Store",
+          "description": "Compra fácil y rápido, directo desde tu celular, con atención inmediata.",
+          "bgColor": "#7f1d1d"
+        }
+      }
+    ],
+    "styles": {}
+  }
 }
