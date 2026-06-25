@@ -495,9 +495,23 @@ export default function WebTemplatesPage() {
                               const text = await readFileAsText(f);
                               setHtmlFiles(p => ({ ...p, [key]: text }));
                               if (key === 'home') {
+                                // Auto-preview
                                 if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
                                 const blob = new Blob([text], { type: 'text/html' });
                                 setPreviewBlobUrl(URL.createObjectURL(blob));
+                                // Auto-fill form fields from <meta name="bayup-*"> tags
+                                const doc = new DOMParser().parseFromString(text, 'text/html');
+                                const getMeta = (n: string) => doc.querySelector(`meta[name="${n}"]`)?.getAttribute('content') || '';
+                                const metaName = getMeta('bayup-name');
+                                const metaCategory = getMeta('bayup-category');
+                                const metaDescription = getMeta('bayup-description');
+                                const metaTags = getMeta('bayup-tags');
+                                setNewForm(p => ({
+                                  name:        metaName        || p.name,
+                                  category:    metaCategory    || p.category,
+                                  description: metaDescription || p.description,
+                                  tags:        metaTags        || p.tags,
+                                }));
                               }
                             }}
                           />
