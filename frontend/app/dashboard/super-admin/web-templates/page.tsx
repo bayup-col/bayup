@@ -9,11 +9,18 @@ import { Layout, Plus, X, Star, Trash2, Eye, Search, ImagePlus, CheckCircle2, Re
 interface Template {
   id:string; name:string; category:string; description:string;
   tags:string[]; uses:number; rating:number; isPremium:boolean; isActive:boolean; color:string;
+  preview_url?: string | null;
 }
 
-const CATS = ['Todos','Tienda','Moda','Restaurante','Tecnología','Servicios','Portfolio','Blog'];
-
-function TemplateMock({ color, name }: { color:string; name:string }) {
+function TemplateMock({ color, name, previewUrl }: { color:string; name:string; previewUrl?: string | null }) {
+  if (previewUrl) {
+    return (
+      <div className="relative h-40 rounded-xl overflow-hidden border border-white/[0.07]">
+        <img src={previewUrl} alt={name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"/>
+      </div>
+    );
+  }
   return (
     <div className="relative h-40 rounded-xl overflow-hidden border border-white/[0.07]"
       style={{ background:`linear-gradient(135deg, ${color} 0%, ${color}99 100%)` }}>
@@ -58,6 +65,8 @@ export default function WebTemplatesPage() {
   }, [token]);
 
   useEffect(() => { load(); }, [load]);
+
+  const CATS = useMemo(() => ['Todos', ...Array.from(new Set(templates.map(t => t.category).filter(Boolean))).sort()], [templates]);
 
   const filtered = useMemo(() => templates.filter(t => {
     const q = search.toLowerCase();
@@ -197,7 +206,7 @@ export default function WebTemplatesPage() {
           <motion.div key={t.id} whileHover={{ y:-3 }} transition={{ duration:0.15 }}
             className="rounded-2xl border border-white/6 bg-white/[0.02] hover:border-white/10 overflow-hidden group cursor-pointer transition-all"
             onClick={() => setSelected(t)}>
-            <TemplateMock color={t.color} name={t.name}/>
+            <TemplateMock color={t.color} name={t.name} previewUrl={t.preview_url}/>
             <div className="p-4 space-y-2.5">
               <div className="flex items-start justify-between">
                 <div>
@@ -253,7 +262,7 @@ export default function WebTemplatesPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-                <TemplateMock color={selected.color} name={selected.name}/>
+                <TemplateMock color={selected.color} name={selected.name} previewUrl={selected.preview_url}/>
 
                 <div className="grid grid-cols-3 gap-3">
                   {[
