@@ -157,6 +157,14 @@ export const Canvas = ({
     fetchData();
   }, []);
 
+  // La identidad visual de la tienda (tipografia, acento, botones) se declara
+  // una sola vez en el navbar del header (architecture.json -> header.elements
+  // -> type "navbar" -> props.variant) y se propaga aqui a todos los bloques
+  // del header/body/footer. No se usa React Context para esto porque header,
+  // body y footer se renderizan como hermanos (no anidados) mas abajo, asi
+  // que un Context.Provider en el navbar no alcanzaria a sus hermanos.
+  const storeVariant: string | undefined = pageData?.header?.elements?.find((el: any) => el.type === "navbar")?.props?.variant;
+
   if (isLoading && !isPreview) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-gray-100 space-y-6">
@@ -199,6 +207,7 @@ export const Canvas = ({
               onOpenLogin={onOpenLogin}
               tenantId={tenantId}
               productId={productId}
+              storeVariant={storeVariant}
             />
           </React.Fragment>
         ))}

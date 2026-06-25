@@ -16,6 +16,208 @@ import { useToast } from '@/context/toast-context';
  * COMPONENTES DE ALTA FIDELIDAD - ESPECIALIZADOS POR MARCA
  */
 
+// --- Sistema de variantes visuales ---
+// Cada plantilla de tienda declara `variant` en los props de su navbar/hero
+// (architecture.json) y ese valor se propaga a los demas bloques via
+// `useVariant()`. Con 9 variantes conocidas un mapa de estilos por variante
+// es suficiente: no se necesita un motor de theming generico.
+export type StoreVariant =
+  | "luxury"      // joyeria, ropa elegante: serif italica, acento ambar, outline fino
+  | "intimate"    // lenceria: serif suave, acento violeta/rose, formas redondeadas
+  | "streetwear"  // tenis: display condensada en mayusculas, alto contraste, CTA solido en bloque
+  | "flash"       // pocket: display condensada urgente, acento rojo, CTA tipo sticker
+  | "tech"        // tecnologia, computadora: geometrica, bordes rectos, acento cyan/azul
+  | "playful"     // jugueteria: redondeada, colorida, formas burbuja
+  | "editorial"   // hogar, papeleria: serif calido editorial, acento tierra
+  | "glow"        // maquillaje: display suave, acento rosa/fucsia, botones pill con gradiente
+  | "family";     // zapatos: sans robusta, acento terracota, formas amigables
+
+const VariantContext = React.createContext<StoreVariant>("luxury");
+const useVariant = () => React.useContext(VariantContext);
+
+interface VariantStyle {
+  // tipografia
+  display: string;        // clase de fuente para titulares
+  displayWeight: string;  // peso/transform del titular (uppercase, italic, etc.)
+  body: string;           // clase de fuente para parrafos/labels
+  // color de acento (texto, bordes, detalles)
+  accentText: string;
+  accentTextHover: string; // clase hover: completa (Tailwind JIT no detecta interpolacion de strings)
+  accentBorder: string;
+  accentBg: string;
+  accentBgSoft: string;
+  // botones primarios (hero, CTAs principales)
+  btnPrimary: string;
+  // botones secundarios (ver detalles, outline)
+  btnSecondary: string;
+  // badge superior del hero
+  badge: string;
+  // radios de tarjetas/imagenes
+  radiusLg: string;
+  radiusMd: string;
+  radiusSm: string;
+  // fondo de superficies oscuras (newsletter, footer si aplica)
+  darkSurface: string;
+}
+
+const VARIANT_STYLES: Record<StoreVariant, VariantStyle> = {
+  luxury: {
+    display: "font-display-luxury italic",
+    displayWeight: "font-light tracking-tighter",
+    body: "font-display-luxury italic font-light",
+    accentText: "text-amber-700",
+    accentTextHover: "hover:text-amber-700",
+    accentBorder: "border-amber-500/30",
+    accentBg: "bg-amber-700",
+    accentBgSoft: "bg-amber-500/10",
+    btnPrimary: "border border-white text-white rounded-none hover:bg-white hover:text-black",
+    btnSecondary: "border border-slate-300 text-slate-900 rounded-none hover:bg-slate-900 hover:text-white",
+    badge: "rounded-full border border-amber-500/20 bg-amber-500/10 text-amber-600",
+    radiusLg: "rounded-[2.5rem]",
+    radiusMd: "rounded-2xl",
+    radiusSm: "rounded-full",
+    darkSurface: "bg-slate-900",
+  },
+  intimate: {
+    display: "font-display-luxury italic",
+    displayWeight: "font-light tracking-tight",
+    body: "font-sans font-light",
+    accentText: "text-violet-700",
+    accentTextHover: "hover:text-violet-700",
+    accentBorder: "border-violet-300/40",
+    accentBg: "bg-violet-800",
+    accentBgSoft: "bg-violet-100",
+    btnPrimary: "bg-violet-900 text-white rounded-full hover:bg-violet-800 shadow-lg shadow-violet-900/20",
+    btnSecondary: "border border-violet-300 text-violet-900 rounded-full hover:bg-violet-900 hover:text-white",
+    badge: "rounded-full border border-violet-300/40 bg-violet-100 text-violet-800",
+    radiusLg: "rounded-[3rem]",
+    radiusMd: "rounded-[1.75rem]",
+    radiusSm: "rounded-full",
+    darkSurface: "bg-violet-950",
+  },
+  streetwear: {
+    display: "font-display-impact uppercase",
+    displayWeight: "font-bold tracking-tight",
+    body: "font-sans font-bold uppercase",
+    accentText: "text-yellow-600",
+    accentTextHover: "hover:text-yellow-600",
+    accentBorder: "border-black",
+    accentBg: "bg-black",
+    accentBgSoft: "bg-yellow-400",
+    btnPrimary: "bg-yellow-400 text-black rounded-none hover:bg-white font-display-impact uppercase tracking-wide skew-x-[-4deg]",
+    btnSecondary: "border-2 border-black text-black rounded-none hover:bg-black hover:text-white font-display-impact uppercase",
+    badge: "rounded-none border-2 border-black bg-yellow-400 text-black -skew-x-6",
+    radiusLg: "rounded-md",
+    radiusMd: "rounded-sm",
+    radiusSm: "rounded-none",
+    darkSurface: "bg-black",
+  },
+  flash: {
+    display: "font-display-impact uppercase",
+    displayWeight: "font-bold tracking-tight",
+    body: "font-sans font-extrabold uppercase",
+    accentText: "text-red-600",
+    accentTextHover: "hover:text-red-600",
+    accentBorder: "border-red-600",
+    accentBg: "bg-red-600",
+    accentBgSoft: "bg-red-50",
+    btnPrimary: "bg-red-600 text-white rounded-full hover:bg-red-700 shadow-xl shadow-red-600/30 font-display-impact uppercase tracking-wide",
+    btnSecondary: "border-2 border-red-600 text-red-600 rounded-full hover:bg-red-600 hover:text-white font-display-impact uppercase",
+    badge: "rounded-full bg-red-600 text-white animate-pulse-slow",
+    radiusLg: "rounded-[1.75rem]",
+    radiusMd: "rounded-2xl",
+    radiusSm: "rounded-full",
+    darkSurface: "bg-red-950",
+  },
+  tech: {
+    display: "font-display-tech",
+    displayWeight: "font-medium tracking-tight",
+    body: "font-display-tech",
+    accentText: "text-cyan-400",
+    accentTextHover: "hover:text-cyan-300",
+    accentBorder: "border-cyan-400/30",
+    accentBg: "bg-cyan-500",
+    accentBgSoft: "bg-cyan-500/10",
+    btnPrimary: "bg-cyan-400 text-slate-950 rounded-md hover:bg-cyan-300 shadow-lg shadow-cyan-500/30 font-display-tech",
+    btnSecondary: "border border-cyan-400/40 text-cyan-300 rounded-md hover:bg-cyan-400/10 font-display-tech",
+    badge: "rounded-md border border-cyan-400/30 bg-cyan-400/10 text-cyan-300",
+    radiusLg: "rounded-xl",
+    radiusMd: "rounded-lg",
+    radiusSm: "rounded-md",
+    darkSurface: "bg-slate-950",
+  },
+  playful: {
+    display: "font-display-playful",
+    displayWeight: "font-extrabold tracking-tight",
+    body: "font-sans font-semibold",
+    accentText: "text-pink-600",
+    accentTextHover: "hover:text-pink-600",
+    accentBorder: "border-pink-300",
+    accentBg: "bg-pink-500",
+    accentBgSoft: "bg-pink-100",
+    btnPrimary: "bg-pink-500 text-white rounded-full hover:bg-pink-600 shadow-lg shadow-pink-500/30 font-display-playful",
+    btnSecondary: "border-2 border-pink-400 text-pink-600 rounded-full hover:bg-pink-500 hover:text-white font-display-playful",
+    badge: "rounded-full bg-yellow-300 text-pink-700 font-display-playful",
+    radiusLg: "rounded-[2.5rem]",
+    radiusMd: "rounded-[2rem]",
+    radiusSm: "rounded-full",
+    darkSurface: "bg-indigo-950",
+  },
+  editorial: {
+    display: "font-display-editorial",
+    displayWeight: "font-medium tracking-tight",
+    body: "font-display-editorial font-light",
+    accentText: "text-emerald-800",
+    accentTextHover: "hover:text-emerald-800",
+    accentBorder: "border-stone-300",
+    accentBg: "bg-stone-900",
+    accentBgSoft: "bg-stone-100",
+    btnPrimary: "bg-stone-900 text-white rounded-md hover:bg-emerald-900 font-sans",
+    btnSecondary: "border border-stone-300 text-stone-800 rounded-md hover:border-stone-900 font-sans",
+    badge: "rounded-sm border border-stone-300 bg-stone-100 text-stone-700",
+    radiusLg: "rounded-2xl",
+    radiusMd: "rounded-xl",
+    radiusSm: "rounded-md",
+    darkSurface: "bg-stone-900",
+  },
+  glow: {
+    display: "font-display-playful",
+    displayWeight: "font-semibold tracking-tight",
+    body: "font-sans font-medium",
+    accentText: "text-rose-600",
+    accentTextHover: "hover:text-rose-600",
+    accentBorder: "border-rose-200",
+    accentBg: "bg-rose-500",
+    accentBgSoft: "bg-rose-100",
+    btnPrimary: "bg-gradient-to-r from-rose-500 to-fuchsia-500 text-white rounded-full hover:from-rose-600 hover:to-fuchsia-600 shadow-lg shadow-rose-500/30 font-sans font-semibold",
+    btnSecondary: "border border-rose-300 text-rose-600 rounded-full hover:bg-rose-500 hover:text-white font-sans font-semibold",
+    badge: "rounded-full bg-rose-100 text-rose-600",
+    radiusLg: "rounded-[2.5rem]",
+    radiusMd: "rounded-[1.75rem]",
+    radiusSm: "rounded-full",
+    darkSurface: "bg-rose-950",
+  },
+  family: {
+    display: "font-sans",
+    displayWeight: "font-black tracking-tight",
+    body: "font-sans font-medium",
+    accentText: "text-orange-700",
+    accentTextHover: "hover:text-orange-700",
+    accentBorder: "border-orange-300",
+    accentBg: "bg-orange-700",
+    accentBgSoft: "bg-orange-100",
+    btnPrimary: "bg-orange-700 text-white rounded-xl hover:bg-orange-800 shadow-lg shadow-orange-700/20 font-sans font-bold",
+    btnSecondary: "border border-orange-300 text-orange-800 rounded-xl hover:bg-orange-700 hover:text-white font-sans font-bold",
+    badge: "rounded-full bg-orange-100 text-orange-800",
+    radiusLg: "rounded-[2rem]",
+    radiusMd: "rounded-2xl",
+    radiusSm: "rounded-xl",
+    darkSurface: "bg-stone-900",
+  },
+};
+
+const getVariantStyle = (v: StoreVariant): VariantStyle => VARIANT_STYLES[v] || VARIANT_STYLES.luxury;
+
 // --- Filtro de catalogo simulado ---
 // El navbar y las tarjetas de categoria disparan un filtro (p.ej. "Conjuntos",
 // "Pijamas", "Basketball"); la grilla de productos lo lee y muestra solo lo
@@ -65,17 +267,35 @@ const goToSimulatedSection = (label: string, setFilter: (f: string | null) => vo
 };
 
 // 1. NAVBAR PREMIUM (FUNCIONAL CON CARRITO)
+// El navbar es el primer elemento del header en todas las plantillas, asi que
+// es quien declara `props.variant` y lo expone via VariantContext para que el
+// resto de bloques (hero, grids, footer, etc.) lean el mismo estilo sin que
+// cada architecture.json tenga que repetir la prop en todos sus elementos.
 export const SmartNavbar = ({ props }: { props: any }) => {
   const { items: cart, setIsCartOpen: setIsOpen } = useCart();
   const { showToast } = useToast();
   const { activeFilter, setActiveFilter } = useSimNav();
+  const variant: StoreVariant = props.variant || "luxury";
+  const s = getVariantStyle(variant);
+
+  const isStreetwearLike = variant === "streetwear" || variant === "flash" || variant === "tech";
 
   return (
-    <>
-      <header className="w-full border-b border-white/10 bg-white/70 backdrop-blur-xl sticky top-0 z-[200] font-sans transition-all duration-500">
+    <VariantContext.Provider value={variant}>
+      <header className={cn(
+        "w-full border-b sticky top-0 z-[200] transition-all duration-500 backdrop-blur-xl",
+        variant === "tech" ? "bg-slate-950/90 border-cyan-400/10" :
+        variant === "streetwear" ? "bg-white/95 border-black" :
+        variant === "flash" ? "bg-white/90 border-red-100" :
+        "bg-white/70 border-white/10"
+      )}>
         <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between gap-8">
           <div className="flex items-center gap-3 shrink-0">
-            <h1 className="text-2xl font-black tracking-tighter text-gray-900 uppercase italic">
+            <h1 className={cn(
+              "text-2xl tracking-tighter uppercase",
+              s.display, s.displayWeight,
+              variant === "tech" ? "text-cyan-300" : "text-gray-900"
+            )}>
               {props.logoText || 'BAYUP STORE'}
             </h1>
           </div>
@@ -84,78 +304,140 @@ export const SmartNavbar = ({ props }: { props: any }) => {
               const label = typeof item === 'string' ? item : item.label;
               const isActive = activeFilter?.toLowerCase() === label.toLowerCase();
               return (
-                <span key={i} onClick={() => goToSimulatedSection(label, setActiveFilter)} className={cn("text-[10px] font-black uppercase tracking-[0.2em] cursor-pointer transition-all", isActive ? "text-cyan" : "text-gray-500 hover:text-cyan")}>
+                <span
+                  key={i}
+                  onClick={() => goToSimulatedSection(label, setActiveFilter)}
+                  className={cn(
+                    "text-[10px] font-black uppercase tracking-[0.2em] cursor-pointer transition-all",
+                    isActive ? s.accentText : "text-gray-500",
+                    !isActive && s.accentTextHover,
+                    isStreetwearLike && "font-display-impact"
+                  )}
+                >
                   {label}
                 </span>
               );
             })}
           </nav>
           <div className="flex items-center gap-6 flex-1 justify-end">
-            <div className="flex items-center gap-6 text-gray-900">
-              <div className="relative p-3 cursor-pointer hover:scale-110 transition-transform bg-gray-100 rounded-2xl" onClick={() => setIsOpen(true)}>
+            <div className={cn("flex items-center gap-6", variant === "tech" ? "text-cyan-300" : "text-gray-900")}>
+              <div
+                className={cn(
+                  "relative p-3 cursor-pointer hover:scale-110 transition-transform",
+                  variant === "tech" ? "bg-cyan-400/10" : variant === "streetwear" ? "bg-black text-white" : "bg-gray-100",
+                  s.radiusMd
+                )}
+                onClick={() => setIsOpen(true)}
+              >
                 <ShoppingBag size={20} />
                 {cart.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-cyan text-[#001A1A] text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-lg border-2 border-white animate-in zoom-in">
+                  <span className={cn(
+                    "absolute -top-1 -right-1 text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-lg border-2 border-white animate-in zoom-in",
+                    s.accentBg, variant === "tech" ? "text-slate-950" : "text-white"
+                  )}>
                     {cart.reduce((a, b) => a + b.quantity, 0)}
                   </span>
                 )}
               </div>
-              <User size={20} onClick={() => showToast('El inicio de sesión de clientes estará disponible en tu tienda publicada', 'info')} className="cursor-pointer hover:text-cyan transition-colors" />
+              <User size={20} aria-label="Cuenta de cliente" onClick={() => showToast('El inicio de sesión de clientes estará disponible en tu tienda publicada', 'info')} className={cn("cursor-pointer transition-colors", s.accentTextHover)} />
             </div>
           </div>
         </div>
       </header>
-    </>
+    </VariantContext.Provider>
   );
 };
 
-// 2. HERO JOYERÍA
+// 2. HERO
+// El hero tambien puede declarar `props.variant` (por si en algun layout no
+// hay navbar antes, p.ej. ficha de producto embebida); si no lo declara, hereda
+// el de VariantContext que ya puso el navbar.
 export const SmartHero = ({ props }: { props: any }) => {
   const { setActiveFilter } = useSimNav();
+  const inherited = useVariant();
+  const variant: StoreVariant = props.variant || inherited;
+  const s = getVariantStyle(variant);
+
+  const isCentered = variant !== "streetwear" && variant !== "tech";
+  const heroFont = cn(s.display, s.displayWeight);
+
   return (
-    <section className="relative w-full h-[80vh] overflow-hidden flex items-center justify-center bg-slate-900 font-serif">
-      <img className="absolute inset-0 w-full h-full object-cover opacity-60" src={props.imageUrl} alt="Hero" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
-      <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
-        <span className="inline-block py-1 px-4 bg-amber-500/10 text-amber-500 text-[10px] font-bold tracking-[0.4em] uppercase rounded-full mb-8 border border-amber-500/20">
-          {props.badge || 'Exclusividad'}
-        </span>
-        <h2 className="text-6xl md:text-8xl font-light text-white mb-8 leading-none tracking-tighter italic">
-          {props.title || 'Elegancia Eterna'}
-        </h2>
-        <p className="text-lg md:text-xl text-slate-200 mb-12 max-w-2xl mx-auto font-light leading-relaxed">
-          {props.subtitle}
-        </p>
-        <button onClick={() => goToSimulatedSection('Novedades', setActiveFilter)} className="px-12 py-5 border border-white text-white rounded-none font-bold text-xs uppercase tracking-[0.3em] hover:bg-white hover:text-black transition-all">
-          {props.primaryBtnText || 'Ver Colección'}
-        </button>
-      </div>
-    </section>
+    <VariantContext.Provider value={variant}>
+      <section className={cn(
+        "relative w-full h-[80vh] overflow-hidden flex items-center",
+        isCentered ? "justify-center" : "justify-start",
+        variant === "tech" ? "bg-slate-950" : variant === "streetwear" ? "bg-black" : "bg-slate-900"
+      )}>
+        <img className={cn("absolute inset-0 w-full h-full object-cover", variant === "streetwear" || variant === "tech" ? "opacity-50" : "opacity-60")} src={props.imageUrl} alt="Hero" />
+        <div className={cn(
+          "absolute inset-0",
+          variant === "tech" ? "bg-gradient-to-r from-slate-950 via-slate-950/40 to-transparent" :
+          variant === "streetwear" ? "bg-gradient-to-t from-black via-black/30 to-black/10" :
+          "bg-gradient-to-b from-black/20 via-transparent to-black/60"
+        )} />
+        <div className={cn(
+          "relative z-10 px-6 max-w-4xl",
+          isCentered ? "text-center mx-auto" : "text-left ml-6 md:ml-16 max-w-2xl"
+        )}>
+          <span className={cn("inline-block py-1.5 px-4 text-[10px] font-bold tracking-[0.4em] uppercase mb-8", s.badge)}>
+            {props.badge || 'Exclusividad'}
+          </span>
+          <h2 className={cn(
+            "text-6xl md:text-8xl text-white mb-8 leading-none",
+            heroFont,
+            variant === "streetwear" && "drop-shadow-[4px_4px_0px_rgba(250,204,21,1)]"
+          )}>
+            {props.title || 'Elegancia Eterna'}
+          </h2>
+          <p className={cn("text-lg md:text-xl text-slate-200 mb-12 leading-relaxed", isCentered ? "max-w-2xl mx-auto" : "max-w-xl", s.body)}>
+            {props.subtitle}
+          </p>
+          <button onClick={() => goToSimulatedSection('Novedades', setActiveFilter)} className={cn("px-12 py-5 font-bold text-xs uppercase tracking-[0.3em] transition-all", s.btnPrimary)}>
+            {props.primaryBtnText || 'Ver Colección'}
+          </button>
+        </div>
+      </section>
+    </VariantContext.Provider>
   );
 };
 
-// 3. HERENCIA (NUESTRA HERENCIA)
+// 3. HERENCIA / NOSOTROS
 export const SmartHeritageBlock = ({ props }: { props: any }) => {
+  const inherited = useVariant();
+  const variant: StoreVariant = props.variant || inherited;
+  const s = getVariantStyle(variant);
+  const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
+
   return (
-    <section id="bayup-about" className="py-32 bg-white text-center px-6 font-serif">
+    <section id="bayup-about" className={cn("py-32 text-center px-6", variant === "tech" ? "bg-slate-950" : "bg-white")}>
       <div className="max-w-4xl mx-auto space-y-10">
         <div className="space-y-3">
-          <h4 className="text-amber-700 font-bold uppercase tracking-[0.4em] text-[10px]">{props.title || 'NUESTRA HERENCIA'}</h4>
-          <h3 className="text-4xl md:text-5xl font-light text-slate-900 italic">{props.subtitle || 'Maestros artesanos desde 1924'}</h3>
+          <h4 className={cn("font-bold uppercase tracking-[0.4em] text-[10px]", s.accentText)}>{props.title || 'NUESTRA HERENCIA'}</h4>
+          <h3 className={cn(
+            "text-4xl md:text-5xl",
+            s.display, s.displayWeight,
+            variant === "tech" ? "text-white" : "text-slate-900",
+            isAngular && "uppercase"
+          )}>
+            {props.subtitle || 'Maestros artesanos desde 1924'}
+          </h3>
         </div>
-        <p className="text-lg text-slate-500 font-light leading-relaxed max-w-3xl mx-auto">
+        <p className={cn("text-lg leading-relaxed max-w-3xl mx-auto", variant === "tech" ? "text-slate-400" : "text-slate-500", s.body)}>
           {props.content}
         </p>
-        <div className="h-px w-24 bg-amber-200 mx-auto mt-12"></div>
+        <div className={cn("w-24 mx-auto mt-12 border-t", s.accentBorder)}></div>
       </div>
     </section>
   );
 };
 
-// 4. GRID DE PRODUCTOS PREMIUM (FUNCIONAL)
+// 4. GRID DE PRODUCTOS (FUNCIONAL)
 export const SmartProductGrid = ({ props }: { props: any }) => {
   const { addItem: addToCart } = useCart();
   const { activeFilter } = useSimNav();
+  const inherited = useVariant();
+  const variant: StoreVariant = props.variant || inherited;
+  const s = getVariantStyle(variant);
 
   const allProducts: any[] = props.products || [];
   const filterNorm = activeFilter ? normalizeLabel(activeFilter) : null;
@@ -175,33 +457,54 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
     }
   }
 
+  const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
+  const titleCase = isAngular ? "uppercase" : "";
+  const isLuxuryLike = variant === "luxury" || variant === "intimate";
+
   return (
-    <section id="bayup-products" className="py-32 bg-white font-sans">
+    <section id="bayup-products" className={cn("py-32", variant === "tech" ? "bg-slate-950" : "bg-white")}>
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-6">
           <div>
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-cyan mb-4 block">Tendencias</span>
-            <h3 className="text-5xl font-black text-gray-900 italic tracking-tighter uppercase">{displayTitle}</h3>
+            <span className={cn("text-[10px] font-black uppercase tracking-[0.4em] mb-4 block", s.accentText)}>Tendencias</span>
+            <h3 className={cn(
+              "text-5xl tracking-tighter",
+              s.display, s.displayWeight, titleCase,
+              variant === "tech" ? "text-white" : "text-gray-900",
+              isLuxuryLike && "italic font-black"
+            )}>
+              {displayTitle}
+            </h3>
           </div>
-          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 hover:text-cyan cursor-pointer transition-all border-b border-gray-100 pb-2">Explorar todo el catálogo</span>
+          <span className={cn(
+            "text-[9px] font-black uppercase tracking-[0.2em] cursor-pointer transition-all border-b pb-2",
+            variant === "tech" ? "text-slate-500 border-slate-700" : "text-gray-400 border-gray-100",
+            s.accentTextHover
+          )}>
+            Explorar todo el catálogo
+          </span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
           {displayProducts.length === 0 ? (
-            <p className="col-span-full text-center text-gray-400 font-bold uppercase text-sm tracking-widest py-12">Próximamente nuevos productos en esta sección</p>
+            <p className={cn("col-span-full text-center font-bold uppercase text-sm tracking-widest py-12", variant === "tech" ? "text-slate-500" : "text-gray-400")}>Próximamente nuevos productos en esta sección</p>
           ) : displayProducts.map((p: any, i: number) => (
-            <motion.div 
-              key={i} 
-              initial={{ opacity: 0, y: 20 }} 
-              whileInView={{ opacity: 1, y: 0 }} 
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
               className="group flex flex-col"
             >
-              <div className="relative w-full aspect-[3/4] rounded-[2.5rem] overflow-hidden mb-8 shadow-sm group-hover:shadow-2xl transition-all duration-700 bg-gray-50">
+              <div className={cn(
+                "relative w-full aspect-[3/4] overflow-hidden mb-8 shadow-sm group-hover:shadow-2xl transition-all duration-700",
+                s.radiusLg,
+                variant === "tech" ? "bg-slate-900" : "bg-gray-50"
+              )}>
                 <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2000ms]" src={p.image} />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                
+
                 {/* BOTÓN RÁPIDO DE COMPRA */}
-                <button 
+                <button
                   onClick={() => addToCart({
                       id: p.id,
                       title: p.name,
@@ -209,22 +512,37 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
                       image: p.image,
                       quantity: 1
                   })}
-                  className="absolute bottom-8 right-8 bg-white text-gray-900 h-16 w-16 rounded-full shadow-2xl opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all flex items-center justify-center hover:bg-cyan hover:scale-110 active:scale-95"
+                  className={cn(
+                    "absolute bottom-8 right-8 h-16 w-16 shadow-2xl opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all flex items-center justify-center active:scale-95",
+                    isAngular ? "rounded-md" : "rounded-full",
+                    s.accentBg, "text-white hover:scale-110"
+                  )}
+                  aria-label="Añadir al carrito"
                 >
                   <Plus size={24} />
                 </button>
 
                 {/* ETIQUETA DE NUEVO / PLAN */}
-                <div className="absolute top-8 left-8 px-4 py-1.5 bg-white/80 backdrop-blur-md rounded-full text-[8px] font-black uppercase tracking-widest text-gray-900">
-                  Premium Item
+                <div className={cn("absolute top-8 left-8 px-4 py-1.5 text-[8px] font-black uppercase tracking-widest", s.badge)}>
+                  {p.isNew ? "Nuevo" : "Destacado"}
                 </div>
               </div>
               <div className="px-2 space-y-2">
                 <div className="flex justify-between items-start">
-                  <h4 className="text-lg font-black text-gray-900 uppercase tracking-tighter leading-tight max-w-[70%]">{p.name}</h4>
-                  <p className="text-xl font-black text-[#004d4d] italic tracking-tighter">$ {p.price.toLocaleString()}</p>
+                  <h4 className={cn(
+                    "text-lg tracking-tighter leading-tight max-w-[70%]",
+                    isAngular ? "uppercase font-black" : "font-bold",
+                    variant === "tech" ? "text-white" : "text-gray-900"
+                  )}>
+                    {p.name}
+                  </h4>
+                  <p className={cn("text-xl font-black tracking-tighter", s.accentText, isLuxuryLike && "italic")}>
+                    $ {p.price.toLocaleString()}
+                  </p>
                 </div>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.1em]">{p.category || 'Colección 2026'}</p>
+                <p className={cn("text-[10px] font-bold uppercase tracking-[0.1em]", variant === "tech" ? "text-slate-500" : "text-gray-400")}>
+                  {p.category || 'Colección 2026'}
+                </p>
               </div>
             </motion.div>
           ))}
@@ -234,21 +552,49 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
   );
 };
 
-// 5. COLECCIONES JOYERÍA
+// 5. GRID DE CATEGORIAS / COLECCIONES
 export const SmartCategoriesGrid = ({ props }: { props: any }) => {
   const { setActiveFilter } = useSimNav();
+  const inherited = useVariant();
+  const variant: StoreVariant = props.variant || inherited;
+  const s = getVariantStyle(variant);
+  const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
+  const isLuxuryLike = variant === "luxury" || variant === "intimate";
+
   return (
-    <section id="bayup-categories" className="py-32 bg-white font-serif">
+    <section id="bayup-categories" className={cn("py-32", variant === "tech" ? "bg-slate-950" : "bg-white")}>
       <div className="max-w-7xl mx-auto px-6">
-        <h3 className="text-center text-[10px] font-bold uppercase tracking-[0.5em] text-amber-700 mb-4">Descubra</h3>
-        <h2 className="text-center text-4xl font-light italic mb-20">{props.title || 'Nuestras Colecciones'}</h2>
+        <h3 className={cn("text-center text-[10px] font-bold uppercase tracking-[0.5em] mb-4", s.accentText)}>Descubra</h3>
+        <h2 className={cn(
+          "text-center text-4xl mb-20",
+          s.display, s.displayWeight,
+          isAngular && "uppercase",
+          variant === "tech" ? "text-white" : "text-slate-900"
+        )}>
+          {props.title || 'Nuestras Colecciones'}
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {(props.items || []).map((item: any, i: number) => (
-            <div key={i} className="group relative aspect-[3/4] overflow-hidden bg-slate-900 shadow-xl">
+            <div key={i} className={cn("group relative aspect-[3/4] overflow-hidden shadow-xl", isAngular ? "rounded-md" : "rounded-xl", variant === "tech" ? "bg-slate-900" : "bg-slate-900")}>
               <img className="w-full h-full object-cover opacity-60 group-hover:opacity-40 group-hover:scale-110 transition-all duration-[3000ms]" src={item.image} />
               <div className="absolute inset-0 flex flex-col items-center justify-center p-10 text-center space-y-6">
-                <h5 className="text-white text-3xl font-light italic tracking-tight">{item.label}</h5>
-                <button onClick={() => goToSimulatedSection(item.label, setActiveFilter)} className="px-6 py-3 border border-white/40 text-white text-[9px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all">Ver Detalles</button>
+                <h5 className={cn(
+                  "text-white text-3xl tracking-tight",
+                  s.display, s.displayWeight,
+                  isAngular && "uppercase",
+                  isLuxuryLike && "italic"
+                )}>
+                  {item.label}
+                </h5>
+                <button
+                  onClick={() => goToSimulatedSection(item.label, setActiveFilter)}
+                  className={cn(
+                    "px-6 py-3 text-[9px] font-bold uppercase tracking-widest transition-all border border-white/40 text-white hover:bg-white hover:text-black",
+                    isAngular ? "rounded-none" : "rounded-full"
+                  )}
+                >
+                  Ver Detalles
+                </button>
               </div>
             </div>
           ))}
@@ -258,16 +604,41 @@ export const SmartCategoriesGrid = ({ props }: { props: any }) => {
   );
 };
 
-// 6. NEWSLETTER JOYERÍA
-export const SmartNewsletter = () => {
+// 6. NEWSLETTER
+export const SmartNewsletter = ({ props }: { props?: any } = {}) => {
+  const inherited = useVariant();
+  const variant: StoreVariant = props?.variant || inherited;
+  const s = getVariantStyle(variant);
+  const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
+  const isLuxuryLike = variant === "luxury" || variant === "intimate";
+
+  const copy: Partial<Record<StoreVariant, { title: string; subtitle: string; cta: string }>> = {
+    streetwear: { title: "No te pierdas el próximo drop", subtitle: "Entérate primero de lanzamientos limitados y restocks antes que nadie.", cta: "Quiero el drop" },
+    flash: { title: "Ofertas antes que se agoten", subtitle: "Recibe alertas de precios flash directo a tu correo.", cta: "Avísame" },
+    tech: { title: "Mantente a la vanguardia", subtitle: "Novedades de producto, lanzamientos y ofertas exclusivas para early adopters.", cta: "Suscribirme" },
+    playful: { title: "Únete a la diversión", subtitle: "Sé el primero en conocer nuevos juguetes y promociones especiales para tu familia.", cta: "¡Sí, quiero!" },
+  };
+  const c = copy[variant] || { title: "Reciba nuestras novedades", subtitle: "Únase a nuestro círculo exclusivo para recibir invitaciones a eventos y colecciones privadas.", cta: "Suscribirse" };
+
   return (
-    <section className="py-32 bg-slate-900 text-white text-center px-6 font-serif">
+    <section className={cn("py-32 text-white text-center px-6", s.darkSurface)}>
       <div className="max-w-2xl mx-auto space-y-8">
-        <h3 className="text-3xl font-light italic tracking-tight">Reciba nuestras novedades</h3>
-        <p className="text-slate-400 text-sm leading-relaxed font-light">Únase a nuestro círculo exclusivo para recibir invitaciones a eventos y colecciones privadas.</p>
+        <h3 className={cn("text-3xl tracking-tight", s.display, s.displayWeight, isAngular && "uppercase", isLuxuryLike && "italic")}>
+          {c.title}
+        </h3>
+        <p className={cn("text-sm leading-relaxed", s.body, "text-white/60")}>{c.subtitle}</p>
         <div className="flex flex-col md:flex-row gap-4 mt-10">
-          <input className="flex-1 bg-white/5 border border-white/10 px-6 py-4 outline-none focus:border-amber-500 transition-colors text-sm" placeholder="Correo electrónico" />
-          <button className="bg-amber-700 hover:bg-amber-600 px-10 py-4 font-bold text-xs uppercase tracking-widest transition-all">Suscribirse</button>
+          <input
+            className={cn(
+              "flex-1 bg-white/5 border border-white/10 px-6 py-4 outline-none transition-colors text-sm text-white placeholder:text-white/40",
+              isAngular ? "rounded-none" : "rounded-full",
+              variant === "tech" ? "focus:border-cyan-400" : "focus:border-white/40"
+            )}
+            placeholder="Correo electrónico"
+          />
+          <button className={cn("px-10 py-4 font-bold text-xs uppercase tracking-widest transition-all", s.btnPrimary)}>
+            {c.cta}
+          </button>
         </div>
       </div>
     </section>
@@ -327,11 +698,16 @@ const LegalModal = ({ type, storeName, onClose }: { type: LegalDocType; storeNam
   );
 };
 
-// 7. FOOTER JOYERÍA
+// 7. FOOTER
 export const SmartFooter = ({ props }: { props: any }) => {
   const { showToast } = useToast();
   const { setActiveFilter } = useSimNav();
   const [legalModal, setLegalModal] = React.useState<LegalDocType | null>(null);
+  const inherited = useVariant();
+  const variant: StoreVariant = props.variant || inherited;
+  const s = getVariantStyle(variant);
+  const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
+  const isLuxuryLike = variant === "luxury" || variant === "intimate";
 
   const goAbout = () => goToSimulatedSection('Nosotros', setActiveFilter);
   const goContact = () => goToSimulatedSection('Contacto', setActiveFilter);
@@ -341,47 +717,66 @@ export const SmartFooter = ({ props }: { props: any }) => {
   const empresaLinks: Record<string, () => void> = { "Nuestra Historia": goAbout };
   const servicioLinks: Record<string, () => void> = { "Contacto": goContact, "Envíos y Devoluciones": simulate, "Garantía": simulate, "FAQ": simulate };
 
+  const isDarkFooter = variant === "tech" || variant === "streetwear";
+
   return (
-    <footer id="bayup-footer" className="bg-white text-slate-900 py-32 px-10 border-t border-slate-100 font-serif">
+    <footer id="bayup-footer" className={cn(
+      "py-32 px-10 border-t",
+      isDarkFooter ? cn(s.darkSurface, "text-white border-white/10") : "bg-white text-slate-900 border-slate-100"
+    )}>
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-20">
         <div className="space-y-8">
-          <h4 className="text-2xl font-extrabold uppercase italic tracking-tighter">{props.logoText || 'Tu Tienda'}</h4>
-          <p className="text-sm leading-relaxed text-slate-500 italic font-medium">{props.description || 'Gracias por visitarnos. Contáctanos para conocer más sobre nuestros productos.'}</p>
-          <div className="flex gap-6 text-slate-400">
-            <Globe size={20} className="hover:text-black cursor-pointer" onClick={simulate}/>
-            <Camera size={20} className="hover:text-black cursor-pointer" onClick={simulate}/>
-            <Mail size={20} className="hover:text-black cursor-pointer" onClick={goContact}/>
+          <h4 className={cn(
+            "text-2xl tracking-tighter",
+            s.display, s.displayWeight,
+            isAngular ? "uppercase" : "font-extrabold",
+            isLuxuryLike && "italic uppercase"
+          )}>
+            {props.logoText || 'Tu Tienda'}
+          </h4>
+          <p className={cn("text-sm leading-relaxed font-medium", s.body, isDarkFooter ? "text-white/60" : "text-slate-500")}>
+            {props.description || 'Gracias por visitarnos. Contáctanos para conocer más sobre nuestros productos.'}
+          </p>
+          <div className={cn("flex gap-6", isDarkFooter ? "text-white/40" : "text-slate-400")}>
+            <Globe size={20} aria-label="Sitio web" className={cn("cursor-pointer", isDarkFooter ? "hover:text-white" : "hover:text-black")} onClick={simulate}/>
+            <Camera size={20} aria-label="Instagram" className={cn("cursor-pointer", isDarkFooter ? "hover:text-white" : "hover:text-black")} onClick={simulate}/>
+            <Mail size={20} aria-label="Correo de contacto" className={cn("cursor-pointer", isDarkFooter ? "hover:text-white" : "hover:text-black")} onClick={goContact}/>
           </div>
         </div>
         <div>
-          <h6 className="font-bold text-[10px] uppercase tracking-[0.3em] mb-10 text-amber-800">Sobre Nosotros</h6>
-          <ul className="space-y-5 text-xs font-medium text-slate-500">
-            {Object.entries(empresaLinks).map(([l, fn]) => <li key={l} onClick={fn} className="hover:text-black cursor-pointer transition-colors">{l}</li>)}
+          <h6 className={cn("font-bold text-[10px] uppercase tracking-[0.3em] mb-10", s.accentText)}>Sobre Nosotros</h6>
+          <ul className={cn("space-y-5 text-xs font-medium", isDarkFooter ? "text-white/60" : "text-slate-500")}>
+            {Object.entries(empresaLinks).map(([l, fn]) => <li key={l} onClick={fn} className={cn("cursor-pointer transition-colors", isDarkFooter ? "hover:text-white" : "hover:text-black")}>{l}</li>)}
           </ul>
         </div>
         <div>
-          <h6 className="font-bold text-[10px] uppercase tracking-[0.3em] mb-10 text-amber-800">Servicio al Cliente</h6>
-          <ul className="space-y-5 text-xs font-medium text-slate-500">
-            {Object.entries(servicioLinks).map(([l, fn]) => <li key={l} onClick={fn} className="hover:text-black cursor-pointer transition-colors">{l}</li>)}
+          <h6 className={cn("font-bold text-[10px] uppercase tracking-[0.3em] mb-10", s.accentText)}>Servicio al Cliente</h6>
+          <ul className={cn("space-y-5 text-xs font-medium", isDarkFooter ? "text-white/60" : "text-slate-500")}>
+            {Object.entries(servicioLinks).map(([l, fn]) => <li key={l} onClick={fn} className={cn("cursor-pointer transition-colors", isDarkFooter ? "hover:text-white" : "hover:text-black")}>{l}</li>)}
           </ul>
         </div>
         <div className="space-y-8">
-          <h6 className="font-bold text-[10px] uppercase tracking-[0.3em] mb-10 text-amber-800">Ubicación</h6>
+          <h6 className={cn("font-bold text-[10px] uppercase tracking-[0.3em] mb-10", s.accentText)}>Ubicación</h6>
           <div className="space-y-4">
-            <div className="flex items-start gap-3 text-slate-500">
-              <MapPin size={18} className="text-amber-700 shrink-0" />
+            <div className={cn("flex items-start gap-3", isDarkFooter ? "text-white/60" : "text-slate-500")}>
+              <MapPin size={18} className={cn("shrink-0", s.accentText)} />
               <p className="text-sm leading-snug">{props.location || 'Bogotá, Colombia'}</p>
             </div>
-            <button onClick={openMap} className="text-[10px] font-bold uppercase tracking-widest text-amber-700 hover:text-amber-900 underline decoration-amber-200 underline-offset-8 transition-all">Ver en el mapa</button>
+            <button onClick={openMap} className={cn("text-[10px] font-bold uppercase tracking-widest underline underline-offset-8 transition-all", s.accentText)}>
+              Ver en el mapa
+            </button>
           </div>
         </div>
       </div>
-      <div className="max-w-7xl mx-auto mt-32 pt-10 border-t border-slate-100 flex flex-col md:flex-row justify-between gap-6 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">
+      <div className={cn(
+        "max-w-7xl mx-auto mt-32 pt-10 border-t flex flex-col md:flex-row justify-between gap-6 text-[9px] font-bold uppercase tracking-[0.2em]",
+        isDarkFooter ? "border-white/10 text-white/40" : "border-slate-100 text-slate-400"
+      )}>
         <p>© 2024 {props.logoText}. Todos los derechos reservados.</p>
         <div className="flex gap-8">
-          <span onClick={() => setLegalModal('privacy')} className="hover:text-black cursor-pointer">Privacidad</span>
-          <span onClick={() => setLegalModal('terms')} className="hover:text-black cursor-pointer">Términos</span>
-          <span onClick={() => setLegalModal('cookies')} className="hover:text-black cursor-pointer">Cookies</span>
+          <span onClick={() => setLegalModal('privacy')} className={cn("cursor-pointer", isDarkFooter ? "hover:text-white" : "hover:text-black")}>Privacidad</span>
+          <span onClick={() => setLegalModal('terms')} className={cn("cursor-pointer", isDarkFooter ? "hover:text-white" : "hover:text-black")}>Términos</span>
+          <span onClick={() => setLegalModal('cookies')} className={cn("cursor-pointer", isDarkFooter ? "hover:text-white" : "hover:text-black")}>Cookies</span>
         </div>
       </div>
       <AnimatePresence>
@@ -391,11 +786,16 @@ export const SmartFooter = ({ props }: { props: any }) => {
   );
 };
 
-// 9. FORMULARIO DE CONTACTO PREMIUM
+// 9. FORMULARIO DE CONTACTO
 export const SmartContactForm = ({ props, tenantId }: { props: any, tenantId?: string }) => {
   const [formData, setFormData] = React.useState({ name: '', email: '', phone: '', message: '' });
   const [isSending, setIsSending] = React.useState(false);
   const [sent, setSent] = React.useState(false);
+  const inherited = useVariant();
+  const variant: StoreVariant = props.variant || inherited;
+  const s = getVariantStyle(variant);
+  const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
+  const isLuxuryLike = variant === "luxury" || variant === "intimate";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -425,40 +825,54 @@ export const SmartContactForm = ({ props, tenantId }: { props: any, tenantId?: s
     }
   };
 
+  const inputClass = cn(
+    "w-full px-6 py-4 bg-white border border-transparent outline-none transition-all text-sm font-medium shadow-inner",
+    s.radiusMd,
+    variant === "tech" ? "focus:border-cyan-400" : variant === "streetwear" || variant === "flash" ? "focus:border-black" : "focus:border-amber-500"
+  );
+
   return (
-    <section id="bayup-contact" className="py-32 bg-white font-serif px-6">
+    <section id="bayup-contact" className={cn("py-32 px-6", variant === "tech" ? "bg-slate-950" : "bg-white")}>
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-20 space-y-4">
-          <h3 className="text-[10px] font-bold uppercase tracking-[0.5em] text-amber-700">{props.badge || 'CONTACTO'}</h3>
-          <h2 className="text-4xl md:text-5xl font-light italic text-slate-900">{props.title || 'Hablemos de su próxima joya'}</h2>
+          <h3 className={cn("text-[10px] font-bold uppercase tracking-[0.5em]", s.accentText)}>{props.badge || 'CONTACTO'}</h3>
+          <h2 className={cn(
+            "text-4xl md:text-5xl",
+            s.display, s.displayWeight,
+            isAngular && "uppercase",
+            isLuxuryLike && "italic",
+            variant === "tech" ? "text-white" : "text-slate-900"
+          )}>
+            {props.title || 'Hablemos de su próxima joya'}
+          </h2>
         </div>
 
         {sent ? (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-emerald-50 border border-emerald-100 p-12 rounded-[2rem] text-center space-y-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={cn("bg-emerald-50 border border-emerald-100 p-12 text-center space-y-6", s.radiusLg)}>
             <div className="h-20 w-20 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-lg"><CheckCheck size={40}/></div>
             <h4 className="text-2xl font-bold text-emerald-900">¡Mensaje recibido!</h4>
-            <p className="text-emerald-700/70 font-medium italic">Gracias por escribirnos. Un asesor se pondrá en contacto con usted en breve.</p>
+            <p className={cn("text-emerald-700/70 font-medium", isLuxuryLike && "italic")}>Gracias por escribirnos. Un asesor se pondrá en contacto con usted en breve.</p>
             <button onClick={() => setSent(false)} className="text-xs font-black uppercase tracking-widest text-emerald-600 hover:underline">Enviar otro mensaje</button>
           </motion.div>
         ) : (
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50 p-12 rounded-[3.5rem] border border-slate-100 shadow-sm">
+          <form onSubmit={handleSubmit} className={cn("grid grid-cols-1 md:grid-cols-2 gap-8 p-12 border shadow-sm", s.radiusLg, variant === "tech" ? "bg-slate-900 border-slate-800" : "bg-slate-50 border-slate-100")}>
             <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Nombre completo</label>
-              <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-6 py-4 bg-white border border-transparent focus:border-amber-500 outline-none transition-all text-sm font-medium rounded-2xl shadow-inner" placeholder="Ej: Julian Garcia" />
+              <label className={cn("text-[9px] font-black uppercase tracking-widest ml-2", variant === "tech" ? "text-slate-500" : "text-slate-400")}>Nombre completo</label>
+              <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className={inputClass} placeholder="Ej: Julian Garcia" />
             </div>
             <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Correo electrónico</label>
-              <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-6 py-4 bg-white border border-transparent focus:border-amber-500 outline-none transition-all text-sm font-medium rounded-2xl shadow-inner" placeholder="email@ejemplo.com" />
+              <label className={cn("text-[9px] font-black uppercase tracking-widest ml-2", variant === "tech" ? "text-slate-500" : "text-slate-400")}>Correo electrónico</label>
+              <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={inputClass} placeholder="email@ejemplo.com" />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">WhatsApp (Opcional)</label>
-              <input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-6 py-4 bg-white border border-transparent focus:border-amber-500 outline-none transition-all text-sm font-medium rounded-2xl shadow-inner" placeholder="+57 300 000 0000" />
+              <label className={cn("text-[9px] font-black uppercase tracking-widest ml-2", variant === "tech" ? "text-slate-500" : "text-slate-400")}>WhatsApp (Opcional)</label>
+              <input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={inputClass} placeholder="+57 300 000 0000" />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-2">Su mensaje</label>
-              <textarea required rows={5} value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} className="w-full px-6 py-4 bg-white border border-transparent focus:border-amber-500 outline-none transition-all text-sm font-medium rounded-2xl shadow-inner resize-none" placeholder="¿En qué podemos ayudarle?" />
+              <label className={cn("text-[9px] font-black uppercase tracking-widest ml-2", variant === "tech" ? "text-slate-500" : "text-slate-400")}>Su mensaje</label>
+              <textarea required rows={5} value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} className={cn(inputClass, "resize-none")} placeholder="¿En qué podemos ayudarle?" />
             </div>
-            <button disabled={isSending} type="submit" className="md:col-span-2 w-full py-5 bg-slate-900 text-white font-bold text-xs uppercase tracking-[0.3em] hover:bg-black transition-all shadow-xl flex items-center justify-center gap-4">
+            <button disabled={isSending} type="submit" className={cn("md:col-span-2 w-full py-5 font-bold text-xs uppercase tracking-[0.3em] transition-all shadow-xl flex items-center justify-center gap-4", s.btnPrimary)}>
               {isSending ? <Loader2 className="animate-spin" size={18}/> : <><Send size={18}/> Enviar mensaje</>}
             </button>
           </form>
@@ -469,10 +883,14 @@ export const SmartContactForm = ({ props, tenantId }: { props: any, tenantId?: s
 };
 
 // 10. FICHA DE PRODUCTO (GALERÍA + INFO + RELACIONADOS)
-export const SmartProductDetail = ({ product, relatedProducts = [] }: { product?: any, relatedProducts?: any[] }) => {
+export const SmartProductDetail = ({ product, relatedProducts = [], variant: variantProp }: { product?: any, relatedProducts?: any[], variant?: StoreVariant }) => {
   const { addItem: addToCart } = useCart();
   const [qty, setQty] = React.useState(1);
   const [activeImg, setActiveImg] = React.useState(0);
+  const inherited = useVariant();
+  const variant: StoreVariant = variantProp || inherited;
+  const s = getVariantStyle(variant);
+  const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
 
   if (!product) {
     return (
@@ -485,17 +903,17 @@ export const SmartProductDetail = ({ product, relatedProducts = [] }: { product?
   const images: string[] = (Array.isArray(product.image_url) ? product.image_url : [product.image_url || product.image]).filter(Boolean);
 
   return (
-    <section className="py-20 bg-white font-sans">
+    <section className={cn("py-20", variant === "tech" ? "bg-slate-950" : "bg-white")}>
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16">
         {/* Galería */}
         <div className="space-y-4">
-          <div className="aspect-square rounded-[2.5rem] overflow-hidden bg-gray-50">
+          <div className={cn("aspect-square overflow-hidden", s.radiusLg, variant === "tech" ? "bg-slate-900" : "bg-gray-50")}>
             {images[activeImg] && <img src={images[activeImg]} className="w-full h-full object-cover" alt={product.name} />}
           </div>
           {images.length > 1 && (
             <div className="flex gap-3">
               {images.map((img, i) => (
-                <button key={i} onClick={() => setActiveImg(i)} className={cn("h-20 w-20 rounded-2xl overflow-hidden border-2 transition-colors", activeImg === i ? "border-[#004d4d]" : "border-transparent")}>
+                <button key={i} onClick={() => setActiveImg(i)} className={cn("h-20 w-20 overflow-hidden border-2 transition-colors", s.radiusMd, activeImg === i ? s.accentBorder : "border-transparent")}>
                   <img src={img} className="w-full h-full object-cover" alt="" />
                 </button>
               ))}
@@ -505,19 +923,26 @@ export const SmartProductDetail = ({ product, relatedProducts = [] }: { product?
 
         {/* Info */}
         <div className="space-y-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">{product.category || 'Producto'}</p>
-          <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter">{product.name}</h1>
-          <p className="text-3xl font-black text-[#004d4d]">$ {Number(product.price || 0).toLocaleString()}</p>
-          {product.description && <p className="text-gray-500 leading-relaxed">{product.description}</p>}
+          <p className={cn("text-[10px] font-black uppercase tracking-[0.3em]", variant === "tech" ? "text-slate-500" : "text-gray-400")}>{product.category || 'Producto'}</p>
+          <h1 className={cn(
+            "text-4xl tracking-tighter",
+            s.display, s.displayWeight,
+            isAngular && "uppercase",
+            variant === "tech" ? "text-white" : "text-gray-900"
+          )}>
+            {product.name}
+          </h1>
+          <p className={cn("text-3xl font-black", s.accentText)}>$ {Number(product.price || 0).toLocaleString()}</p>
+          {product.description && <p className={cn("leading-relaxed", variant === "tech" ? "text-slate-400" : "text-gray-500")}>{product.description}</p>}
           <div className="flex items-center gap-4 pt-4">
-            <div className="flex items-center border border-gray-200 rounded-2xl shrink-0">
-              <button onClick={() => setQty(q => Math.max(1, q - 1))} className="h-12 w-12 flex items-center justify-center text-gray-400 hover:text-gray-900"><Minus size={16} /></button>
-              <span className="w-10 text-center font-bold text-sm">{qty}</span>
-              <button onClick={() => setQty(q => q + 1)} className="h-12 w-12 flex items-center justify-center text-gray-400 hover:text-gray-900"><Plus size={16} /></button>
+            <div className={cn("flex items-center border shrink-0", s.radiusMd, variant === "tech" ? "border-slate-700" : "border-gray-200")}>
+              <button onClick={() => setQty(q => Math.max(1, q - 1))} className={cn("h-12 w-12 flex items-center justify-center hover:text-gray-900", variant === "tech" ? "text-slate-500 hover:text-white" : "text-gray-400")} aria-label="Reducir cantidad"><Minus size={16} /></button>
+              <span className={cn("w-10 text-center font-bold text-sm", variant === "tech" && "text-white")}>{qty}</span>
+              <button onClick={() => setQty(q => q + 1)} className={cn("h-12 w-12 flex items-center justify-center hover:text-gray-900", variant === "tech" ? "text-slate-500 hover:text-white" : "text-gray-400")} aria-label="Aumentar cantidad"><Plus size={16} /></button>
             </div>
             <button
               onClick={() => addToCart({ id: product.id, title: product.name, price: product.price, image: images[0], quantity: qty })}
-              className="flex-1 h-12 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#004d4d] transition-all"
+              className={cn("flex-1 h-12 font-black text-[10px] uppercase tracking-widest transition-all", s.radiusMd, s.btnPrimary)}
             >
               Añadir al carrito
             </button>
@@ -527,15 +952,17 @@ export const SmartProductDetail = ({ product, relatedProducts = [] }: { product?
 
       {relatedProducts.length > 0 && (
         <div className="max-w-6xl mx-auto px-6 mt-24">
-          <h3 className="text-2xl font-black uppercase tracking-tighter text-gray-900 mb-8">Productos similares</h3>
+          <h3 className={cn("text-2xl tracking-tighter mb-8", s.display, s.displayWeight, isAngular && "uppercase", variant === "tech" ? "text-white" : "text-gray-900")}>
+            Productos similares
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {relatedProducts.slice(0, 4).map((p: any) => (
               <div key={p.id} className="space-y-3">
-                <div className="aspect-square rounded-2xl overflow-hidden bg-gray-50">
+                <div className={cn("aspect-square overflow-hidden", s.radiusMd, variant === "tech" ? "bg-slate-900" : "bg-gray-50")}>
                   <img src={Array.isArray(p.image_url) ? p.image_url[0] : p.image_url} className="w-full h-full object-cover" alt={p.name} />
                 </div>
-                <p className="text-xs font-bold text-gray-900 truncate">{p.name}</p>
-                <p className="text-sm font-black text-[#004d4d]">$ {Number(p.price || 0).toLocaleString()}</p>
+                <p className={cn("text-xs font-bold truncate", variant === "tech" ? "text-white" : "text-gray-900")}>{p.name}</p>
+                <p className={cn("text-sm font-black", s.accentText)}>$ {Number(p.price || 0).toLocaleString()}</p>
               </div>
             ))}
           </div>
@@ -545,7 +972,131 @@ export const SmartProductDetail = ({ product, relatedProducts = [] }: { product?
   );
 };
 
-// 11. TRUST BANNER (JOYERÍA NO LO USA SEGÚN TU HTML, PERO LO DEJAMOS POR COMPATIBILIDAD)
-export const SmartTrustBanner = ({ props }: { props?: any }) => null;
-export const SmartBentoGrid = ({ props }: { props?: any }) => null;
-export const SmartServices = ({ props }: { props?: any }) => null;
+// 11. TRUST BANNER — franja de confianza (garantia, envios, soporte, pago seguro)
+// Usado hoy por la plantilla Tecnologia (computadora) para reforzar credibilidad
+// antes del formulario de contacto. Los textos son genericos pero reales (no
+// dependen de inventario), por eso no toman props de producto.
+export const SmartTrustBanner = ({ props }: { props?: any } = {}) => {
+  const inherited = useVariant();
+  const variant: StoreVariant = props?.variant || inherited;
+  const s = getVariantStyle(variant);
+  const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
+
+  const items = props?.items || [
+    { icon: ShieldCheck, label: "Garantía oficial", sub: "En todos los productos" },
+    { icon: Truck, label: "Envío a todo el país", sub: "Rápido y rastreable" },
+    { icon: Headset, label: "Soporte real", sub: "Antes y después de tu compra" },
+    { icon: Verified, label: "Pago seguro", sub: "Tus datos siempre protegidos" },
+  ];
+
+  return (
+    <section className={cn("py-16 border-y", variant === "tech" ? "bg-slate-900 border-cyan-400/10" : "bg-slate-50 border-slate-100")}>
+      <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-10">
+        {items.map((item: any, i: number) => {
+          const Icon = item.icon || ShieldCheck;
+          return (
+            <div key={i} className="flex flex-col items-center text-center gap-3">
+              <div className={cn("h-14 w-14 flex items-center justify-center", isAngular ? "rounded-md" : "rounded-full", s.accentBgSoft, s.accentText)}>
+                <Icon size={24} />
+              </div>
+              <p className={cn("text-xs font-black uppercase tracking-wide", variant === "tech" ? "text-white" : "text-slate-900")}>{item.label}</p>
+              <p className={cn("text-[11px]", variant === "tech" ? "text-slate-500" : "text-slate-400")}>{item.sub}</p>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
+// 12. BENTO GRID — collage editorial de inspiracion (usado por Hogar para
+// mostrar ambientes/espacios en un layout asimetrico tipo revista).
+export const SmartBentoGrid = ({ props }: { props?: any } = {}) => {
+  const inherited = useVariant();
+  const variant: StoreVariant = props?.variant || inherited;
+  const s = getVariantStyle(variant);
+  const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
+
+  const items: any[] = props?.items || [];
+  if (items.length === 0) return null;
+
+  return (
+    <section className={cn("py-32 px-6", variant === "tech" ? "bg-slate-950" : "bg-white")}>
+      <div className="max-w-7xl mx-auto">
+        <h2 className={cn(
+          "text-center text-4xl mb-16",
+          s.display, s.displayWeight,
+          isAngular && "uppercase",
+          variant === "tech" ? "text-white" : "text-slate-900"
+        )}>
+          {props?.title || 'Inspiración'}
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 grid-rows-2 gap-6 h-[600px]">
+          {items.slice(0, 5).map((item: any, i: number) => (
+            <div
+              key={i}
+              className={cn(
+                "relative overflow-hidden group",
+                s.radiusLg,
+                i === 0 && "col-span-2 row-span-2",
+                i !== 0 && "col-span-1 row-span-1"
+              )}
+            >
+              <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src={item.image} alt={item.label || ''} />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent" />
+              {item.label && (
+                <p className="absolute bottom-4 left-4 text-white text-sm font-bold uppercase tracking-wide">{item.label}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// 13. SERVICES BLOCK — franja de servicios/beneficios propios del negocio
+// (usado por Hogar: diseno a medida, instalacion, asesoria, etc.)
+export const SmartServices = ({ props }: { props?: any } = {}) => {
+  const inherited = useVariant();
+  const variant: StoreVariant = props?.variant || inherited;
+  const s = getVariantStyle(variant);
+  const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
+  const isLuxuryLike = variant === "luxury" || variant === "intimate";
+
+  const services = props?.items || [
+    { icon: Ruler, label: "Asesoría a la medida", sub: "Te ayudamos a elegir lo que mejor se adapta a ti" },
+    { icon: Truck, label: "Entrega coordinada", sub: "Coordinamos contigo la fecha y el lugar de entrega" },
+    { icon: Headset, label: "Atención postventa", sub: "Resolvemos cualquier duda después de tu compra" },
+  ];
+
+  return (
+    <section className={cn("py-28 px-6", variant === "tech" ? "bg-slate-900" : "bg-slate-50")}>
+      <div className="max-w-6xl mx-auto">
+        <h2 className={cn(
+          "text-center text-3xl md:text-4xl mb-16",
+          s.display, s.displayWeight,
+          isAngular && "uppercase",
+          isLuxuryLike && "italic",
+          variant === "tech" ? "text-white" : "text-slate-900"
+        )}>
+          {props?.title || 'Nuestros Servicios'}
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          {services.map((item: any, i: number) => {
+            const Icon = item.icon || Ruler;
+            return (
+              <div key={i} className={cn("p-8 text-center space-y-4", s.radiusLg, variant === "tech" ? "bg-slate-950" : "bg-white", "shadow-sm")}>
+                <div className={cn("h-16 w-16 flex items-center justify-center mx-auto", isAngular ? "rounded-md" : "rounded-full", s.accentBgSoft, s.accentText)}>
+                  <Icon size={28} />
+                </div>
+                <h4 className={cn("text-sm font-black uppercase tracking-wide", variant === "tech" ? "text-white" : "text-slate-900")}>{item.label}</h4>
+                <p className={cn("text-sm leading-relaxed", variant === "tech" ? "text-slate-400" : "text-slate-500")}>{item.sub}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+};

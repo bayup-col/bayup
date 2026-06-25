@@ -7,6 +7,7 @@
         "id": "hogar-nav",
         "type": "navbar",
         "props": {
+          "variant": "editorial",
           "logoText": "Hogar & Estilo",
           "logoColor": "#1754cf",
           "menuItems": [
@@ -75,7 +76,29 @@
         "id": "hogar-bento",
         "type": "bento-grid",
         "props": {
-          "title": "Inspiración por Espacios"
+          "title": "Inspiración por Espacios",
+          "items": [
+            {
+              "label": "Living Acogedor",
+              "image": "https://images.unsplash.com/photo-1493809842364-78817add7ffb?q=80&w=1200"
+            },
+            {
+              "label": "Comedor Cálido",
+              "image": "https://images.unsplash.com/photo-1617104551722-3b2d51366400?q=80&w=800"
+            },
+            {
+              "label": "Dormitorio Sereno",
+              "image": "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?q=80&w=800"
+            },
+            {
+              "label": "Rincón de Lectura",
+              "image": "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?q=80&w=800"
+            },
+            {
+              "label": "Detalles de Decoración",
+              "image": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=800"
+            }
+          ]
         }
       },
       {

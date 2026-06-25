@@ -7,6 +7,7 @@
         "id": "pkt-nav",
         "type": "navbar",
         "props": {
+          "variant": "flash",
           "logoText": "Pocket Store",
           "logoColor": "#ef4444",
           "menuItems": [

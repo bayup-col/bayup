@@ -7,6 +7,7 @@
         "id": "tec-nav",
         "type": "navbar",
         "props": {
+          "variant": "tech",
           "logoText": "Tech Engine Hub",
           "logoColor": "#06b6d4",
           "menuItems": [
@@ -93,6 +94,11 @@
             }
           ]
         }
+      },
+      {
+        "id": "tecno-trust",
+        "type": "trust-banner",
+        "props": {}
       },
       {
         "id": "tecno-contact",

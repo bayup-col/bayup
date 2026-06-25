@@ -7,6 +7,7 @@
         "id": "j-nav",
         "type": "navbar",
         "props": {
+          "variant": "luxury",
           "logoText": "Joyas de Lujo",
           "menuItems": [
             "Tienda",

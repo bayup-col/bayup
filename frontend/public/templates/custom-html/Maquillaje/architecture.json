@@ -7,6 +7,7 @@
         "id": "maq-nav",
         "type": "navbar",
         "props": {
+          "variant": "glow",
           "logoText": "Beauty & Glow",
           "logoColor": "#be123c",
           "menuItems": [

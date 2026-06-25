@@ -7,6 +7,7 @@
         "id": "rop-nav",
         "type": "navbar",
         "props": {
+          "variant": "luxury",
           "logoText": "Classic Couture",
           "logoColor": "#1e1b4b",
           "menuItems": [

@@ -7,6 +7,7 @@
         "id": "comp-nav",
         "type": "navbar",
         "props": {
+          "variant": "tech",
           "logoText": "Tech Hub",
           "logoColor": "#1152d4"
         }
