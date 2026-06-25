@@ -415,3 +415,50 @@ class StoreMessage(Base):
     message = Column(String)
     status = Column(String, default="unread")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# PAGOS — abstracción agnóstica al proveedor
+#
+# Estados del ciclo de vida:
+#   pending   → pago iniciado, esperando respuesta del gateway
+#   approved  → pago confirmado por el gateway
+#   rejected  → pago rechazado por el gateway o el banco
+#   cancelled → cancelado por el usuario antes de completar
+#   refunded  → reembolsado
+#
+# El campo `gateway` identifica el proveedor usado (ej. "wompi", "payu",
+# "stripe"). Queda null hasta que se configure uno. El campo
+# `gateway_response` guarda la respuesta raw para auditoría.
+# ---------------------------------------------------------------------------
+class Payment(Base):
+    __tablename__ = "payments"
+
+    id               = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    tenant_id        = Column(GUID(), ForeignKey("users.id"), nullable=False, index=True)
+
+    # Monto e información de la transacción
+    amount           = Column(Float, nullable=False)
+    currency         = Column(String(3), default="COP", nullable=False)
+    status           = Column(String(20), default="pending", nullable=False, index=True)
+
+    # Datos del comprador (capturados en el checkout)
+    customer_name    = Column(String(255), nullable=True)
+    customer_email   = Column(String(255), nullable=True)
+    customer_phone   = Column(String(50),  nullable=True)
+
+    # Artículos del carrito: [{product_id, name, qty, unit_price}]
+    items            = Column(JSON, default=list)
+
+    # Gateway — se rellena cuando se configure un proveedor
+    gateway          = Column(String(50),  nullable=True)   # "wompi" | "payu" | "stripe" | …
+    gateway_payment_id = Column(String(255), nullable=True) # ID de la transacción en el gateway
+    gateway_redirect_url = Column(String(1024), nullable=True) # URL de redirección al gateway
+    gateway_response = Column(JSON, nullable=True)          # Respuesta raw del gateway
+
+    # Fallback: enlace de WhatsApp generado al crear el pago
+    whatsapp_url     = Column(String(1024), nullable=True)
+
+    created_at       = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at       = Column(DateTime, default=datetime.datetime.utcnow,
+                              onupdate=datetime.datetime.utcnow)

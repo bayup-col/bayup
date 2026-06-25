@@ -2177,3 +2177,197 @@ async def get_public_shop_page(request: Request, response: Response, store_id: s
         return {"page_key": page.page_key, "schema_data": page.schema_data}
     finally:
         db.close()
+
+
+# ---------------------------------------------------------------------------
+# PAGOS — capa de abstracción agnóstica al proveedor
+#
+# Estos endpoints definen el contrato de la API de pagos. La lógica
+# específica del gateway (Wompi, PayU, Stripe, etc.) se implementa dentro
+# de cada función marcada con TODO cuando se elija el proveedor.
+# ---------------------------------------------------------------------------
+
+class CheckoutItemSchema(BaseModel):
+    product_id: str
+    name: str
+    qty: int = Field(ge=1)
+    unit_price: float = Field(ge=0)
+
+class CheckoutRequest(BaseModel):
+    customer_name:  str = Field(min_length=2)
+    customer_email: str = Field(min_length=5)
+    customer_phone: str = Field(min_length=7)
+    items: list[CheckoutItemSchema] = Field(min_length=1)
+    currency: str = Field(default="COP", max_length=3)
+
+def _build_whatsapp_url(phone: str, store_name: str, items: list, total: float) -> str:
+    """Genera enlace de WhatsApp con resumen del pedido como fallback de pago."""
+    lines = [f"*Nuevo pedido — {store_name}*", ""]
+    for item in items:
+        lines.append(f"• {item['name']} × {item['qty']}  → ${item['unit_price'] * item['qty']:,.0f}")
+    lines += ["", f"*Total: ${total:,.0f} {items[0].get('currency', 'COP') if items else 'COP'}*"]
+    text = "%0A".join(lines)
+    clean_phone = phone.replace("+", "").replace(" ", "").replace("-", "")
+    return f"https://wa.me/{clean_phone}?text={text}"
+
+def _serialize_payment(p) -> dict:
+    return {
+        "id":                  str(p.id),
+        "amount":              p.amount,
+        "currency":            p.currency,
+        "status":              p.status,
+        "customer_name":       p.customer_name,
+        "customer_email":      p.customer_email,
+        "customer_phone":      p.customer_phone,
+        "items":               p.items or [],
+        "gateway":             p.gateway,
+        "gateway_payment_id":  p.gateway_payment_id,
+        "gateway_redirect_url": p.gateway_redirect_url,
+        "whatsapp_url":        p.whatsapp_url,
+        "created_at":          p.created_at.isoformat() if p.created_at else None,
+        "updated_at":          p.updated_at.isoformat() if p.updated_at else None,
+    }
+
+@app.post("/public/shop/{slug}/checkout")
+@limiter.limit("10/minute")
+async def public_checkout(slug: str, payload: CheckoutRequest, request: Request):
+    """
+    Inicia un pago desde la tienda pública. No requiere autenticación.
+    Responde con:
+      - whatsapp_url: enlace de WhatsApp como fallback (siempre presente)
+      - gateway_redirect_url: URL de redirección al gateway (null hasta configurar uno)
+      - payment_id: para consultar el estado después
+    """
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        tenant = db.query(models.User).filter(
+            models.User.shop_slug == slug,
+            models.User.status == "Activo",
+        ).first()
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tienda no encontrada")
+
+        items_dict = [i.model_dump() for i in payload.items]
+        total = sum(i["unit_price"] * i["qty"] for i in items_dict)
+
+        whatsapp_url = None
+        if tenant.phone:
+            whatsapp_url = _build_whatsapp_url(
+                tenant.phone, tenant.full_name or slug, items_dict, total
+            )
+
+        payment = models.Payment(
+            tenant_id=tenant.id,
+            amount=total,
+            currency=payload.currency,
+            status="pending",
+            customer_name=payload.customer_name,
+            customer_email=payload.customer_email,
+            customer_phone=payload.customer_phone,
+            items=items_dict,
+            gateway=None,           # TODO: asignar cuando se configure el gateway
+            gateway_redirect_url=None,  # TODO: generar URL del gateway aquí
+            whatsapp_url=whatsapp_url,
+        )
+        db.add(payment)
+        db.commit()
+        db.refresh(payment)
+
+        # TODO: cuando se configure un gateway, reemplazar esta sección:
+        #   1. Llamar a la API del gateway con amount, currency, items, customer
+        #   2. Guardar gateway_payment_id y gateway_redirect_url en el registro
+        #   3. Retornar gateway_redirect_url para redirigir al usuario
+
+        return {
+            "payment_id":          str(payment.id),
+            "status":              payment.status,
+            "amount":              payment.amount,
+            "currency":            payment.currency,
+            "whatsapp_url":        payment.whatsapp_url,
+            "gateway_redirect_url": payment.gateway_redirect_url,  # null por ahora
+        }
+    finally:
+        db.close()
+
+@app.get("/public/payment/{payment_id}")
+@limiter.limit("30/minute")
+async def get_payment_status(payment_id: str, request: Request):
+    """Consulta el estado de un pago. Usado por la tienda después del redirect del gateway."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        try:
+            pid = uuid_lib.UUID(payment_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="payment_id inválido")
+        payment = db.query(models.Payment).filter(models.Payment.id == pid).first()
+        if not payment:
+            raise HTTPException(status_code=404, detail="Pago no encontrado")
+        return {"payment_id": str(payment.id), "status": payment.status, "amount": payment.amount}
+    finally:
+        db.close()
+
+@app.post("/public/payments/webhook")
+async def payment_webhook(request: Request):
+    """
+    Recibe notificaciones del gateway de pago.
+    TODO: implementar cuando se elija el proveedor:
+      1. Verificar firma/autenticidad del webhook
+      2. Actualizar payment.status según el evento
+      3. Si approved: crear Order en el sistema de pedidos
+    """
+    # Placeholder — responde 200 para no rechazar webhooks del gateway
+    body = await request.json()
+    print(f"[PAYMENT WEBHOOK] payload recibido: {body}")
+    return {"received": True}
+
+@app.get("/admin/payments")
+async def list_admin_payments(
+    request: Request,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1),
+):
+    """Lista los pagos recibidos por la tienda del tenant autenticado."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = user.owner_id or user.id
+        payments = (
+            db.query(models.Payment)
+            .filter(models.Payment.tenant_id == tenant_id)
+            .order_by(models.Payment.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+        return [_serialize_payment(p) for p in payments]
+    finally:
+        db.close()
+
+@app.get("/admin/payments/{payment_id}")
+async def get_admin_payment(payment_id: str, request: Request):
+    """Detalle de un pago específico."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = user.owner_id or user.id
+        try:
+            pid = uuid_lib.UUID(payment_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="payment_id inválido")
+        payment = db.query(models.Payment).filter(
+            models.Payment.id == pid,
+            models.Payment.tenant_id == tenant_id,
+        ).first()
+        if not payment:
+            raise HTTPException(status_code=404, detail="Pago no encontrado")
+        return _serialize_payment(payment)
+    finally:
+        db.close()
