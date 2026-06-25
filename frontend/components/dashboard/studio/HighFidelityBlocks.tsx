@@ -339,7 +339,14 @@ export const SmartNavbar = ({ props }: { props: any }) => {
                   </span>
                 )}
               </div>
-              <User size={20} aria-label="Cuenta de cliente" onClick={() => showToast('El inicio de sesión de clientes estará disponible en tu tienda publicada', 'info')} className={cn("cursor-pointer transition-colors", s.accentTextHover)} />
+              <button
+                type="button"
+                aria-label="Cuenta de cliente"
+                onClick={() => showToast('El inicio de sesión de clientes estará disponible en tu tienda publicada', 'info')}
+                className={cn("p-3 -m-3 cursor-pointer transition-colors", s.accentTextHover)}
+              >
+                <User size={20} />
+              </button>
             </div>
           </div>
         </div>
