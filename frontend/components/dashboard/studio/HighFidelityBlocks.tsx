@@ -15,10 +15,26 @@ import { useCart } from '@/context/cart-context';
  * COMPONENTES DE ALTA FIDELIDAD - ESPECIALIZADOS POR MARCA
  */
 
+// Navegacion simulada: como estas plantillas son de una sola pagina (sin
+// rutas reales aun), el menu y los botones de "Ver Coleccion"/"Ver Drops"
+// desplazan a la seccion mas relevante dentro de la misma vista, para que
+// todo se sienta clickeable e interactivo en la vista previa.
+const scrollToSimulatedSection = (label: string) => {
+  const l = label.toLowerCase();
+  let targetId = 'bayup-products';
+  if (/(contact|contacto)/.test(l)) targetId = 'bayup-footer';
+  else if (/(nosotr|about|historia|marca|empresa)/.test(l)) targetId = 'bayup-footer';
+  else if (/(colec|producto|tienda|shop|novedad|drop|catalog|ofert)/.test(l)) targetId = 'bayup-products';
+  else if (/(inicio|home)/.test(l)) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+
+  const el = document.getElementById(targetId) || document.getElementById('bayup-categories') || document.getElementById('bayup-footer');
+  el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
 // 1. NAVBAR PREMIUM (FUNCIONAL CON CARRITO)
 export const SmartNavbar = ({ props }: { props: any }) => {
   const { items: cart, setIsCartOpen: setIsOpen } = useCart();
-  
+
   return (
     <>
       <header className="w-full border-b border-white/10 bg-white/70 backdrop-blur-xl sticky top-0 z-[200] font-sans transition-all duration-500">
@@ -29,11 +45,14 @@ export const SmartNavbar = ({ props }: { props: any }) => {
             </h1>
           </div>
           <nav className="hidden lg:flex items-center gap-10">
-            {(props.menuItems || ["Novedades", "Colecciones", "Nosotros", "Contacto"]).map((item: any, i: number) => (
-              <span key={i} className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-cyan cursor-pointer transition-all">
-                {typeof item === 'string' ? item : item.label}
-              </span>
-            ))}
+            {(props.menuItems || ["Novedades", "Colecciones", "Nosotros", "Contacto"]).map((item: any, i: number) => {
+              const label = typeof item === 'string' ? item : item.label;
+              return (
+                <span key={i} onClick={() => scrollToSimulatedSection(label)} className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-cyan cursor-pointer transition-all">
+                  {label}
+                </span>
+              );
+            })}
           </nav>
           <div className="flex items-center gap-6 flex-1 justify-end">
             <div className="flex items-center gap-6 text-gray-900">
@@ -70,7 +89,7 @@ export const SmartHero = ({ props }: { props: any }) => {
         <p className="text-lg md:text-xl text-slate-200 mb-12 max-w-2xl mx-auto font-light leading-relaxed">
           {props.subtitle}
         </p>
-        <button className="px-12 py-5 border border-white text-white rounded-none font-bold text-xs uppercase tracking-[0.3em] hover:bg-white hover:text-black transition-all">
+        <button onClick={() => scrollToSimulatedSection(props.primaryBtnText || 'Ver Colección')} className="px-12 py-5 border border-white text-white rounded-none font-bold text-xs uppercase tracking-[0.3em] hover:bg-white hover:text-black transition-all">
           {props.primaryBtnText || 'Ver Colección'}
         </button>
       </div>
@@ -101,7 +120,7 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
   const { addItem: addToCart } = useCart();
   
   return (
-    <section className="py-32 bg-white font-sans">
+    <section id="bayup-products" className="py-32 bg-white font-sans">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-6">
           <div>
@@ -160,7 +179,7 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
 // 5. COLECCIONES JOYERÍA
 export const SmartCategoriesGrid = ({ props }: { props: any }) => {
   return (
-    <section className="py-32 bg-white font-serif">
+    <section id="bayup-categories" className="py-32 bg-white font-serif">
       <div className="max-w-7xl mx-auto px-6">
         <h3 className="text-center text-[10px] font-bold uppercase tracking-[0.5em] text-amber-700 mb-4">Descubra</h3>
         <h2 className="text-center text-4xl font-light italic mb-20">{props.title || 'Nuestras Colecciones'}</h2>
@@ -170,7 +189,7 @@ export const SmartCategoriesGrid = ({ props }: { props: any }) => {
               <img className="w-full h-full object-cover opacity-60 group-hover:opacity-40 group-hover:scale-110 transition-all duration-[3000ms]" src={item.image} />
               <div className="absolute inset-0 flex flex-col items-center justify-center p-10 text-center space-y-6">
                 <h5 className="text-white text-3xl font-light italic tracking-tight">{item.label}</h5>
-                <button className="px-6 py-3 border border-white/40 text-white text-[9px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all">Ver Detalles</button>
+                <button onClick={() => scrollToSimulatedSection('productos')} className="px-6 py-3 border border-white/40 text-white text-[9px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all">Ver Detalles</button>
               </div>
             </div>
           ))}
@@ -199,11 +218,11 @@ export const SmartNewsletter = () => {
 // 7. FOOTER JOYERÍA
 export const SmartFooter = ({ props }: { props: any }) => {
   return (
-    <footer className="bg-white text-slate-900 py-32 px-10 border-t border-slate-100 font-serif">
+    <footer id="bayup-footer" className="bg-white text-slate-900 py-32 px-10 border-t border-slate-100 font-serif">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-20">
         <div className="space-y-8">
-          <h4 className="text-2xl font-extrabold uppercase italic tracking-tighter">{props.logoText || 'Joyas de Lujo'}</h4>
-          <p className="text-sm leading-relaxed text-slate-500 italic font-medium">{props.description}</p>
+          <h4 className="text-2xl font-extrabold uppercase italic tracking-tighter">{props.logoText || 'Tu Tienda'}</h4>
+          <p className="text-sm leading-relaxed text-slate-500 italic font-medium">{props.description || 'Gracias por visitarnos. Contáctanos para conocer más sobre nuestros productos.'}</p>
           <div className="flex gap-6 text-slate-400">
             <Globe size={20} className="hover:text-black cursor-pointer"/>
             <Camera size={20} className="hover:text-black cursor-pointer"/>
@@ -219,7 +238,7 @@ export const SmartFooter = ({ props }: { props: any }) => {
         <div>
           <h6 className="font-bold text-[10px] uppercase tracking-[0.3em] mb-10 text-amber-800">Servicio al Cliente</h6>
           <ul className="space-y-5 text-xs font-medium text-slate-500">
-            {["Contacto", "Envíos y Devoluciones", "Cuidado de Joyas", "FAQ"].map(l => <li key={l} className="hover:text-black cursor-pointer transition-colors">{l}</li>)}
+            {["Contacto", "Envíos y Devoluciones", "Garantía", "FAQ"].map(l => <li key={l} className="hover:text-black cursor-pointer transition-colors">{l}</li>)}
           </ul>
         </div>
         <div className="space-y-8">
@@ -227,7 +246,7 @@ export const SmartFooter = ({ props }: { props: any }) => {
           <div className="space-y-4">
             <div className="flex items-start gap-3 text-slate-500">
               <MapPin size={18} className="text-amber-700 shrink-0" />
-              <p className="text-sm leading-snug">{props.location || 'Calle Serrano 145, Madrid'}</p>
+              <p className="text-sm leading-snug">{props.location || 'Bogotá, Colombia'}</p>
             </div>
             <button className="text-[10px] font-bold uppercase tracking-widest text-amber-700 hover:text-amber-900 underline decoration-amber-200 underline-offset-8 transition-all">Ver en el mapa</button>
           </div>
