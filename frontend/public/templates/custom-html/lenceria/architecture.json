@@ -9,7 +9,12 @@
         "props": {
           "logoText": "Intimate",
           "logoColor": "#4c1d95",
-          "menuItems": ["Novedades", "Conjuntos", "Pijamas", "Ofertas"]
+          "menuItems": [
+            "Novedades",
+            "Conjuntos",
+            "Pijamas",
+            "Ofertas"
+          ]
         }
       }
     ],
@@ -30,14 +35,35 @@
         }
       },
       {
+        "id": "lenceria-heritage",
+        "type": "text-block-premium",
+        "props": {
+          "title": "Nuestra Historia",
+          "subtitle": "Comodidad y estilo, todos los días",
+          "content": "Intimate Elegance diseña piezas delicadas pensadas para acompañarte con comodidad y estilo en cada día. Creemos que la elegancia íntima no debería ser un lujo ocasional, sino una experiencia diaria."
+        }
+      },
+      {
         "id": "len-cats",
         "type": "categories-grid",
         "props": {
           "title": "Nuestras Colecciones",
           "items": [
-            { "label": "Conjuntos", "sub": "Encaje y delicadeza", "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800" },
-            { "label": "Pijamas", "sub": "Comodidad y estilo", "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800" },
-            { "label": "Básicos", "sub": "Esenciales de todos los días", "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800" }
+            {
+              "label": "Conjuntos",
+              "sub": "Encaje y delicadeza",
+              "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800"
+            },
+            {
+              "label": "Pijamas",
+              "sub": "Comodidad y estilo",
+              "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800"
+            },
+            {
+              "label": "Básicos",
+              "sub": "Esenciales de todos los días",
+              "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800"
+            }
           ]
         }
       },
@@ -47,10 +73,33 @@
         "props": {
           "title": "Novedades",
           "products": [
-            { "name": "Conjunto Encaje Francés", "category": "Conjuntos", "price": "129.000", "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800" },
-            { "name": "Pijama Satín Premium", "category": "Pijamas", "price": "98.000", "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800" },
-            { "name": "Body Lencero Elegance", "category": "Básicos", "price": "75.000", "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800" }
+            {
+              "name": "Conjunto Encaje Francés",
+              "category": "Conjuntos",
+              "price": "129.000",
+              "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800"
+            },
+            {
+              "name": "Pijama Satín Premium",
+              "category": "Pijamas",
+              "price": "98.000",
+              "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800"
+            },
+            {
+              "name": "Body Lencero Elegance",
+              "category": "Básicos",
+              "price": "75.000",
+              "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800"
+            }
           ]
+        }
+      },
+      {
+        "id": "lenceria-contact",
+        "type": "contact-form",
+        "props": {
+          "badge": "CONTACTO",
+          "title": "Hablemos de tu próxima colección"
         }
       }
     ],

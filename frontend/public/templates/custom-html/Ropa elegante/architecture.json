@@ -9,7 +9,12 @@
         "props": {
           "logoText": "Classic Couture",
           "logoColor": "#1e1b4b",
-          "menuItems": ["Mujer", "Hombre", "Eventos", "Nueva Colección"]
+          "menuItems": [
+            "Mujer",
+            "Hombre",
+            "Eventos",
+            "Nueva Colección"
+          ]
         }
       }
     ],
@@ -30,14 +35,35 @@
         }
       },
       {
+        "id": "ropa-elegante-heritage",
+        "type": "text-block-premium",
+        "props": {
+          "title": "Nuestra Historia",
+          "subtitle": "Elegancia confeccionada con dedicación",
+          "content": "Classic Couture confecciona moda formal de alta calidad para quienes entienden que la elegancia es una forma de respeto propio. Cada prenda está pensada para durar, en estilo y en confección."
+        }
+      },
+      {
         "id": "rop-cats",
         "type": "categories-grid",
         "props": {
           "title": "Nuestras Líneas",
           "items": [
-            { "label": "Mujer", "sub": "Vestidos y conjuntos", "image": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800" },
-            { "label": "Hombre", "sub": "Trajes a medida", "image": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800" },
-            { "label": "Eventos Especiales", "sub": "Colección de gala", "image": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800" }
+            {
+              "label": "Mujer",
+              "sub": "Vestidos y conjuntos",
+              "image": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800"
+            },
+            {
+              "label": "Hombre",
+              "sub": "Trajes a medida",
+              "image": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800"
+            },
+            {
+              "label": "Eventos Especiales",
+              "sub": "Colección de gala",
+              "image": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800"
+            }
           ]
         }
       },
@@ -47,10 +73,33 @@
         "props": {
           "title": "Piezas Destacadas",
           "products": [
-            { "name": "Vestido de Gala Bordado", "category": "Mujer", "price": "480.000", "image": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800" },
-            { "name": "Traje Ejecutivo a Medida", "category": "Hombre", "price": "650.000", "image": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800" },
-            { "name": "Blazer Premium en Lana", "category": "Eventos Especiales", "price": "320.000", "image": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800" }
+            {
+              "name": "Vestido de Gala Bordado",
+              "category": "Mujer",
+              "price": "480.000",
+              "image": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800"
+            },
+            {
+              "name": "Traje Ejecutivo a Medida",
+              "category": "Hombre",
+              "price": "650.000",
+              "image": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800"
+            },
+            {
+              "name": "Blazer Premium en Lana",
+              "category": "Eventos Especiales",
+              "price": "320.000",
+              "image": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800"
+            }
           ]
+        }
+      },
+      {
+        "id": "ropa-elegante-contact",
+        "type": "contact-form",
+        "props": {
+          "badge": "CONTACTO",
+          "title": "Hablemos de tu próximo look"
         }
       }
     ],

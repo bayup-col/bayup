@@ -9,7 +9,12 @@
         "props": {
           "logoText": "Tech Engine Hub",
           "logoColor": "#06b6d4",
-          "menuItems": ["Novedades", "Gadgets", "Accesorios", "Ofertas"]
+          "menuItems": [
+            "Novedades",
+            "Gadgets",
+            "Accesorios",
+            "Ofertas"
+          ]
         }
       }
     ],
@@ -30,14 +35,35 @@
         }
       },
       {
+        "id": "tecno-heritage",
+        "type": "text-block-premium",
+        "props": {
+          "title": "Nuestra Historia",
+          "subtitle": "Tecnología de punta, soporte real",
+          "content": "Tech Engine Hub conecta a nuestros clientes con la última tecnología disponible, respaldada por garantía y soporte real. No vendemos solo equipos, acompañamos cada compra con servicio genuino."
+        }
+      },
+      {
         "id": "tec-cats",
         "type": "categories-grid",
         "props": {
           "title": "Categorías Principales",
           "items": [
-            { "label": "Gadgets", "sub": "Lo más innovador", "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800" },
-            { "label": "Audio", "sub": "Sonido envolvente", "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800" },
-            { "label": "Accesorios", "sub": "Complementa tu setup", "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800" }
+            {
+              "label": "Gadgets",
+              "sub": "Lo más innovador",
+              "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800"
+            },
+            {
+              "label": "Audio",
+              "sub": "Sonido envolvente",
+              "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800"
+            },
+            {
+              "label": "Accesorios",
+              "sub": "Complementa tu setup",
+              "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800"
+            }
           ]
         }
       },
@@ -47,10 +73,33 @@
         "props": {
           "title": "Novedades",
           "products": [
-            { "name": "Audífonos Inalámbricos Pro", "category": "Audio", "price": "280.000", "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800" },
-            { "name": "Smartwatch Serie X", "category": "Gadgets", "price": "450.000", "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800" },
-            { "name": "Power Bank 20000mAh", "category": "Accesorios", "price": "95.000", "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800" }
+            {
+              "name": "Audífonos Inalámbricos Pro",
+              "category": "Audio",
+              "price": "280.000",
+              "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800"
+            },
+            {
+              "name": "Smartwatch Serie X",
+              "category": "Gadgets",
+              "price": "450.000",
+              "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800"
+            },
+            {
+              "name": "Power Bank 20000mAh",
+              "category": "Accesorios",
+              "price": "95.000",
+              "image": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800"
+            }
           ]
+        }
+      },
+      {
+        "id": "tecno-contact",
+        "type": "contact-form",
+        "props": {
+          "badge": "CONTACTO",
+          "title": "Cuéntanos qué equipo necesitas"
         }
       }
     ],

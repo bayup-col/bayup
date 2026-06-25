@@ -9,7 +9,12 @@
         "props": {
           "logoText": "Footwear Collection",
           "logoColor": "#7c2d12",
-          "menuItems": ["Mujer", "Hombre", "Niños", "Ofertas"]
+          "menuItems": [
+            "Mujer",
+            "Hombre",
+            "Niños",
+            "Ofertas"
+          ]
         }
       }
     ],
@@ -30,14 +35,35 @@
         }
       },
       {
+        "id": "zapatos-heritage",
+        "type": "text-block-premium",
+        "props": {
+          "title": "Nuestra Historia",
+          "subtitle": "Calidad en cada paso",
+          "content": "Footwear Collection selecciona calzado de calidad para cada estilo de vida. Creemos que un buen par de zapatos acompaña cada paso del camino, por eso cuidamos cada detalle de nuestra colección."
+        }
+      },
+      {
         "id": "zap-cats",
         "type": "categories-grid",
         "props": {
           "title": "Categorías Principales",
           "items": [
-            { "label": "Mujer", "sub": "Estilo y comodidad", "image": "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800" },
-            { "label": "Hombre", "sub": "Diseño y resistencia", "image": "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800" },
-            { "label": "Niños", "sub": "Calzado para crecer", "image": "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800" }
+            {
+              "label": "Mujer",
+              "sub": "Estilo y comodidad",
+              "image": "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800"
+            },
+            {
+              "label": "Hombre",
+              "sub": "Diseño y resistencia",
+              "image": "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800"
+            },
+            {
+              "label": "Niños",
+              "sub": "Calzado para crecer",
+              "image": "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800"
+            }
           ]
         }
       },
@@ -47,10 +73,33 @@
         "props": {
           "title": "Más Vendidos",
           "products": [
-            { "name": "Zapatillas Urbanas Classic", "category": "Mujer", "price": "185.000", "image": "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800" },
-            { "name": "Botas de Cuero Premium", "category": "Hombre", "price": "230.000", "image": "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800" },
-            { "name": "Sandalias Casual Verano", "category": "Niños", "price": "95.000", "image": "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800" }
+            {
+              "name": "Zapatillas Urbanas Classic",
+              "category": "Mujer",
+              "price": "185.000",
+              "image": "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800"
+            },
+            {
+              "name": "Botas de Cuero Premium",
+              "category": "Hombre",
+              "price": "230.000",
+              "image": "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800"
+            },
+            {
+              "name": "Sandalias Casual Verano",
+              "category": "Niños",
+              "price": "95.000",
+              "image": "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800"
+            }
           ]
+        }
+      },
+      {
+        "id": "zapatos-contact",
+        "type": "contact-form",
+        "props": {
+          "badge": "CONTACTO",
+          "title": "Cuéntanos qué calzado buscas"
         }
       }
     ],

@@ -9,7 +9,12 @@
         "props": {
           "logoText": "Beauty & Glow",
           "logoColor": "#be123c",
-          "menuItems": ["Rostro", "Labios", "Ojos", "Sets"]
+          "menuItems": [
+            "Rostro",
+            "Labios",
+            "Ojos",
+            "Sets"
+          ]
         }
       }
     ],
@@ -30,14 +35,35 @@
         }
       },
       {
+        "id": "maquillaje-heritage",
+        "type": "text-block-premium",
+        "props": {
+          "title": "Nuestra Historia",
+          "subtitle": "Belleza que se nota desde el primer día",
+          "content": "Beauty & Glow existe para que la belleza de calidad sea accesible para todas. Curamos cada producto pensando en quienes quieren brillar con luz propia, sin comprometer su presupuesto ni su piel."
+        }
+      },
+      {
         "id": "maq-cats",
         "type": "categories-grid",
         "props": {
           "title": "Categorías Principales",
           "items": [
-            { "label": "Rostro", "sub": "Bases y correctores", "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800" },
-            { "label": "Labios", "sub": "Labiales y gloss", "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800" },
-            { "label": "Ojos", "sub": "Sombras y delineadores", "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800" }
+            {
+              "label": "Rostro",
+              "sub": "Bases y correctores",
+              "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800"
+            },
+            {
+              "label": "Labios",
+              "sub": "Labiales y gloss",
+              "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800"
+            },
+            {
+              "label": "Ojos",
+              "sub": "Sombras y delineadores",
+              "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800"
+            }
           ]
         }
       },
@@ -47,10 +73,33 @@
         "props": {
           "title": "Más Vendidos",
           "products": [
-            { "name": "Paleta de Sombras Glow", "category": "Ojos", "price": "89.000", "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800" },
-            { "name": "Labial Mate Larga Duración", "category": "Labios", "price": "42.000", "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800" },
-            { "name": "Base Líquida Cobertura Total", "category": "Rostro", "price": "95.000", "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800" }
+            {
+              "name": "Paleta de Sombras Glow",
+              "category": "Ojos",
+              "price": "89.000",
+              "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800"
+            },
+            {
+              "name": "Labial Mate Larga Duración",
+              "category": "Labios",
+              "price": "42.000",
+              "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800"
+            },
+            {
+              "name": "Base Líquida Cobertura Total",
+              "category": "Rostro",
+              "price": "95.000",
+              "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=800"
+            }
           ]
+        }
+      },
+      {
+        "id": "maquillaje-contact",
+        "type": "contact-form",
+        "props": {
+          "badge": "CONTACTO",
+          "title": "Hablemos de tu rutina de belleza"
         }
       }
     ],

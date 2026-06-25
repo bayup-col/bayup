@@ -38,9 +38,16 @@ const normalizeLabel = (s: string) => (s || '').toLowerCase().normalize('NFD').r
 // clickeable e interactivo en la vista previa.
 const goToSimulatedSection = (label: string, setFilter: (f: string | null) => void) => {
   const l = normalizeLabel(label);
-  if (/(contact|contacto)/.test(l) || /(nosotr|about|historia|marca|empresa)/.test(l)) {
+  if (/(contact|contacto)/.test(l)) {
     setFilter(null);
-    document.getElementById('bayup-footer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const el = document.getElementById('bayup-contact') || document.getElementById('bayup-footer');
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  if (/(nosotr|about|historia|marca|empresa)/.test(l)) {
+    setFilter(null);
+    const el = document.getElementById('bayup-about') || document.getElementById('bayup-footer');
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     return;
   }
   if (/(inicio|home)$/.test(l)) {
@@ -130,7 +137,7 @@ export const SmartHero = ({ props }: { props: any }) => {
 // 3. HERENCIA (NUESTRA HERENCIA)
 export const SmartHeritageBlock = ({ props }: { props: any }) => {
   return (
-    <section className="py-32 bg-white text-center px-6 font-serif">
+    <section id="bayup-about" className="py-32 bg-white text-center px-6 font-serif">
       <div className="max-w-4xl mx-auto space-y-10">
         <div className="space-y-3">
           <h4 className="text-amber-700 font-bold uppercase tracking-[0.4em] text-[10px]">{props.title || 'NUESTRA HERENCIA'}</h4>
@@ -269,6 +276,17 @@ export const SmartNewsletter = () => {
 
 // 7. FOOTER JOYERÍA
 export const SmartFooter = ({ props }: { props: any }) => {
+  const { showToast } = useToast();
+  const { setActiveFilter } = useSimNav();
+
+  const goAbout = () => goToSimulatedSection('Nosotros', setActiveFilter);
+  const goContact = () => goToSimulatedSection('Contacto', setActiveFilter);
+  const simulate = () => showToast('Esta sección estará disponible cuando publiques tu tienda', 'info');
+  const openMap = () => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(props.location || 'Bogotá, Colombia')}`, '_blank');
+
+  const empresaLinks: Record<string, () => void> = { "Nuestra Historia": goAbout, "Responsabilidad": simulate, "Carreras": simulate, "Prensa": simulate };
+  const servicioLinks: Record<string, () => void> = { "Contacto": goContact, "Envíos y Devoluciones": simulate, "Garantía": simulate, "FAQ": simulate };
+
   return (
     <footer id="bayup-footer" className="bg-white text-slate-900 py-32 px-10 border-t border-slate-100 font-serif">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-20">
@@ -276,21 +294,21 @@ export const SmartFooter = ({ props }: { props: any }) => {
           <h4 className="text-2xl font-extrabold uppercase italic tracking-tighter">{props.logoText || 'Tu Tienda'}</h4>
           <p className="text-sm leading-relaxed text-slate-500 italic font-medium">{props.description || 'Gracias por visitarnos. Contáctanos para conocer más sobre nuestros productos.'}</p>
           <div className="flex gap-6 text-slate-400">
-            <Globe size={20} className="hover:text-black cursor-pointer"/>
-            <Camera size={20} className="hover:text-black cursor-pointer"/>
-            <Mail size={20} className="hover:text-black cursor-pointer"/>
+            <Globe size={20} className="hover:text-black cursor-pointer" onClick={simulate}/>
+            <Camera size={20} className="hover:text-black cursor-pointer" onClick={simulate}/>
+            <Mail size={20} className="hover:text-black cursor-pointer" onClick={goContact}/>
           </div>
         </div>
         <div>
           <h6 className="font-bold text-[10px] uppercase tracking-[0.3em] mb-10 text-amber-800">Empresa</h6>
           <ul className="space-y-5 text-xs font-medium text-slate-500">
-            {["Nuestra Historia", "Responsabilidad", "Carreras", "Prensa"].map(l => <li key={l} className="hover:text-black cursor-pointer transition-colors">{l}</li>)}
+            {Object.entries(empresaLinks).map(([l, fn]) => <li key={l} onClick={fn} className="hover:text-black cursor-pointer transition-colors">{l}</li>)}
           </ul>
         </div>
         <div>
           <h6 className="font-bold text-[10px] uppercase tracking-[0.3em] mb-10 text-amber-800">Servicio al Cliente</h6>
           <ul className="space-y-5 text-xs font-medium text-slate-500">
-            {["Contacto", "Envíos y Devoluciones", "Garantía", "FAQ"].map(l => <li key={l} className="hover:text-black cursor-pointer transition-colors">{l}</li>)}
+            {Object.entries(servicioLinks).map(([l, fn]) => <li key={l} onClick={fn} className="hover:text-black cursor-pointer transition-colors">{l}</li>)}
           </ul>
         </div>
         <div className="space-y-8">
@@ -300,13 +318,13 @@ export const SmartFooter = ({ props }: { props: any }) => {
               <MapPin size={18} className="text-amber-700 shrink-0" />
               <p className="text-sm leading-snug">{props.location || 'Bogotá, Colombia'}</p>
             </div>
-            <button className="text-[10px] font-bold uppercase tracking-widest text-amber-700 hover:text-amber-900 underline decoration-amber-200 underline-offset-8 transition-all">Ver en el mapa</button>
+            <button onClick={openMap} className="text-[10px] font-bold uppercase tracking-widest text-amber-700 hover:text-amber-900 underline decoration-amber-200 underline-offset-8 transition-all">Ver en el mapa</button>
           </div>
         </div>
       </div>
       <div className="max-w-7xl mx-auto mt-32 pt-10 border-t border-slate-100 flex flex-col md:flex-row justify-between gap-6 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">
         <p>© 2024 {props.logoText}. Todos los derechos reservados.</p>
-        <div className="flex gap-8"><span>Privacidad</span><span>Términos</span><span>Cookies</span></div>
+        <div className="flex gap-8"><span onClick={simulate} className="hover:text-black cursor-pointer">Privacidad</span><span onClick={simulate} className="hover:text-black cursor-pointer">Términos</span><span onClick={simulate} className="hover:text-black cursor-pointer">Cookies</span></div>
       </div>
     </footer>
   );
@@ -347,7 +365,7 @@ export const SmartContactForm = ({ props, tenantId }: { props: any, tenantId?: s
   };
 
   return (
-    <section className="py-32 bg-white font-serif px-6">
+    <section id="bayup-contact" className="py-32 bg-white font-serif px-6">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-20 space-y-4">
           <h3 className="text-[10px] font-bold uppercase tracking-[0.5em] text-amber-700">{props.badge || 'CONTACTO'}</h3>

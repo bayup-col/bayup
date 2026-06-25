@@ -9,7 +9,11 @@
         "props": {
           "logoText": "Pocket Store",
           "logoColor": "#ef4444",
-          "menuItems": ["Ofertas", "Nuevo", "Más Vendidos"]
+          "menuItems": [
+            "Ofertas",
+            "Nuevo",
+            "Más Vendidos"
+          ]
         }
       }
     ],
@@ -30,14 +34,35 @@
         }
       },
       {
+        "id": "pocket-heritage",
+        "type": "text-block-premium",
+        "props": {
+          "title": "Nuestra Historia",
+          "subtitle": "Compras rápidas, atención inmediata",
+          "content": "Pocket Store nació para simplificar tus compras: todo fácil y rápido, directo desde tu celular, con atención inmediata. Sin filas, sin complicaciones, solo lo que necesitas a un clic de distancia."
+        }
+      },
+      {
         "id": "pkt-cats",
         "type": "categories-grid",
         "props": {
           "title": "Explora",
           "items": [
-            { "label": "Ofertas del Día", "sub": "Precios especiales", "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800" },
-            { "label": "Más Vendidos", "sub": "Los favoritos", "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800" },
-            { "label": "Recién Llegados", "sub": "Lo más nuevo", "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800" }
+            {
+              "label": "Ofertas del Día",
+              "sub": "Precios especiales",
+              "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800"
+            },
+            {
+              "label": "Más Vendidos",
+              "sub": "Los favoritos",
+              "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800"
+            },
+            {
+              "label": "Recién Llegados",
+              "sub": "Lo más nuevo",
+              "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800"
+            }
           ]
         }
       },
@@ -47,10 +72,33 @@
         "props": {
           "title": "Destacados",
           "products": [
-            { "name": "Combo Especial del Día", "category": "Ofertas", "price": "49.000", "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800" },
-            { "name": "Producto Estrella", "category": "Más Vendidos", "price": "39.000", "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800" },
-            { "name": "Edición Limitada", "category": "Recién Llegados", "price": "59.000", "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800" }
+            {
+              "name": "Combo Especial del Día",
+              "category": "Ofertas",
+              "price": "49.000",
+              "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800"
+            },
+            {
+              "name": "Producto Estrella",
+              "category": "Más Vendidos",
+              "price": "39.000",
+              "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800"
+            },
+            {
+              "name": "Edición Limitada",
+              "category": "Recién Llegados",
+              "price": "59.000",
+              "image": "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=800"
+            }
           ]
+        }
+      },
+      {
+        "id": "pocket-contact",
+        "type": "contact-form",
+        "props": {
+          "badge": "CONTACTO",
+          "title": "Escríbenos, te respondemos rápido"
         }
       }
     ],

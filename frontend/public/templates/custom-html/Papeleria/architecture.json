@@ -9,7 +9,12 @@
         "props": {
           "logoText": "Stationery Master",
           "logoColor": "#15803d",
-          "menuItems": ["Escolar", "Oficina", "Arte", "Agendas"]
+          "menuItems": [
+            "Escolar",
+            "Oficina",
+            "Arte",
+            "Agendas"
+          ]
         }
       }
     ],
@@ -30,14 +35,35 @@
         }
       },
       {
+        "id": "papeleria-heritage",
+        "type": "text-block-premium",
+        "props": {
+          "title": "Nuestra Historia",
+          "subtitle": "Compañeros de cada proyecto y cada idea",
+          "content": "Stationery Master comenzó con una idea simple: los buenos materiales inspiran mejores ideas. Hoy acompañamos estudiantes, creativos y profesionales en cada proyecto, tarea y libreta en blanco esperando ser llenada."
+        }
+      },
+      {
         "id": "pap-cats",
         "type": "categories-grid",
         "props": {
           "title": "Categorías Principales",
           "items": [
-            { "label": "Escolar", "sub": "Útiles para todo el año", "image": "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?q=80&w=800" },
-            { "label": "Oficina", "sub": "Organización profesional", "image": "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?q=80&w=800" },
-            { "label": "Arte y Manualidades", "sub": "Materiales creativos", "image": "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?q=80&w=800" }
+            {
+              "label": "Escolar",
+              "sub": "Útiles para todo el año",
+              "image": "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?q=80&w=800"
+            },
+            {
+              "label": "Oficina",
+              "sub": "Organización profesional",
+              "image": "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?q=80&w=800"
+            },
+            {
+              "label": "Arte y Manualidades",
+              "sub": "Materiales creativos",
+              "image": "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?q=80&w=800"
+            }
           ]
         }
       },
@@ -47,10 +73,33 @@
         "props": {
           "title": "Más Vendidos",
           "products": [
-            { "name": "Set de Cuadernos Premium", "category": "Escolar", "price": "35.000", "image": "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?q=80&w=800" },
-            { "name": "Organizador de Escritorio", "category": "Oficina", "price": "58.000", "image": "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?q=80&w=800" },
-            { "name": "Agenda Planificadora 2026", "category": "Agendas", "price": "48.000", "image": "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?q=80&w=800" }
+            {
+              "name": "Set de Cuadernos Premium",
+              "category": "Escolar",
+              "price": "35.000",
+              "image": "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?q=80&w=800"
+            },
+            {
+              "name": "Organizador de Escritorio",
+              "category": "Oficina",
+              "price": "58.000",
+              "image": "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?q=80&w=800"
+            },
+            {
+              "name": "Agenda Planificadora 2026",
+              "category": "Agendas",
+              "price": "48.000",
+              "image": "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?q=80&w=800"
+            }
           ]
+        }
+      },
+      {
+        "id": "papeleria-contact",
+        "type": "contact-form",
+        "props": {
+          "badge": "CONTACTO",
+          "title": "Cuéntanos sobre tu próximo proyecto"
         }
       }
     ],
