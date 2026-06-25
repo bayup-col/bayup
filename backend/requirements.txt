@@ -1,5 +1,6 @@
 fastapi
 uvicorn[standard]
+sentry-sdk[fastapi]
 slowapi
 sqlalchemy
 psycopg2-binary

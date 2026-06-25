@@ -1,8 +1,9 @@
-from fastapi import Depends, FastAPI, HTTPException, status, Request, UploadFile, File
+from fastapi import Depends, FastAPI, HTTPException, status, Request, Response, UploadFile, File, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import os
 import sys
+import time
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 from pydantic import BaseModel, Field
@@ -17,6 +18,20 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stderr.reconfigure(encoding="utf-8")
 
 load_dotenv()
+
+# --- MONITOREO: SENTRY ---
+# Inerte si SENTRY_DSN no esta definido. Para activar: anadir SENTRY_DSN en el
+# panel de Render (Environment > Add Variable). No se requiere redeploy de codigo.
+import sentry_sdk as _sentry_sdk
+_sentry_dsn = os.getenv("SENTRY_DSN")
+if _sentry_dsn:
+    _sentry_sdk.init(
+        dsn=_sentry_dsn,
+        traces_sample_rate=0.2,      # 20%% de requests trazados - ajustable
+        profiles_sample_rate=0.1,
+        environment=os.getenv("APP_ENV", "production"),
+        send_default_pii=False,      # nunca enviar datos personales a Sentry
+    )
 
 # --- ARRANQUE SEGURO (SIN IMPORTACIONES CRÍTICAS ARRIBA) ---
 @asynccontextmanager
@@ -37,9 +52,32 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Bayup OS Platinum", lifespan=lifespan)
 
 # --- RATE LIMITING ---
-limiter = Limiter(key_func=get_remote_address)
+def _get_real_ip(request: Request) -> str:
+    """Lee la IP real del cliente desde X-Forwarded-For (Render inyecta este header)."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host or "127.0.0.1"
+
+limiter = Limiter(key_func=_get_real_ip)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# --- CACHE EN MEMORIA (TTL simple, sin Redis ni dependencias nuevas) ---
+# Cada entrada es una tupla (valor, expires_at_timestamp).
+_shop_cache: dict = {}       # {slug: (data_dict, expires_at)}
+_templates_cache: dict = {}  # {"list": (data_list, expires_at)}
+
+def _cache_get(store: dict, key: str):
+    """Devuelve el valor cacheado si todavía no expiró, o None si falta/expiró."""
+    entry = store.get(key)
+    if entry and entry[1] > time.time():
+        return entry[0]
+    return None
+
+def _cache_set(store: dict, key: str, value, ttl: int) -> None:
+    """Almacena value en store[key] con un TTL en segundos."""
+    store[key] = (value, time.time() + ttl)
 
 # --- CORS ---
 # NOTA: si en el futuro las tiendas activan dominio propio (custom_domain en el modelo User),
@@ -223,7 +261,7 @@ class ProductCreateRequest(BaseModel):
     variants: list = []
 
 @app.get("/products")
-async def get_products(request: Request, skip: int = 0, limit: int = 200):
+async def get_products(request: Request, skip: int = Query(default=0, ge=0), limit: int = Query(default=200, ge=1)):
     import crud, schemas
     from database import SessionLocal
     db = SessionLocal()
@@ -308,7 +346,7 @@ class OrderCreateRequest(BaseModel):
     items: list[OrderItemRequest] = []
 
 @app.get("/orders")
-async def get_orders(request: Request, skip: int = 0, limit: int = 200):
+async def get_orders(request: Request, skip: int = Query(default=0, ge=0), limit: int = Query(default=200, ge=1)):
     import crud, schemas
     from database import SessionLocal
     db = SessionLocal()
@@ -391,13 +429,13 @@ class CollectionCreateRequest(BaseModel):
     status: str = "active"
 
 @app.get("/collections")
-async def get_collections(request: Request):
+async def get_collections(request: Request, skip: int = Query(default=0, ge=0), limit: int = Query(default=200, ge=1)):
     import crud, schemas
     from database import SessionLocal
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
-        collections = crud.get_collections_by_owner(db, owner_id=_tenant_id(user))
+        collections = crud.get_collections_by_owner(db, owner_id=_tenant_id(user), skip=skip, limit=min(limit, 500))
         return [schemas.Collection.model_validate(c).model_dump(mode="json") for c in collections]
     finally:
         db.close()
@@ -417,7 +455,13 @@ async def create_collection_route(payload: CollectionCreateRequest, request: Req
 
 # --- ENDPOINTS PÚBLICOS DE TIENDA (sin auth, para el storefront /shop/[slug]) ---
 @app.get("/public/shop/{slug}")
-async def get_public_shop(slug: str):
+@limiter.limit("30/minute")
+async def get_public_shop(request: Request, response: Response, slug: str):
+    # Caché en memoria: TTL 60 s (el perfil de tienda cambia poco una vez publicado)
+    cached = _cache_get(_shop_cache, slug)
+    if cached is not None:
+        response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
+        return cached
     import crud, schemas
     from database import SessionLocal
     db = SessionLocal()
@@ -426,7 +470,7 @@ async def get_public_shop(slug: str):
         if not store or store.status == "Suspendido":
             raise HTTPException(status_code=404, detail="Tienda no encontrada")
         collections = crud.get_collections_by_owner(db, owner_id=store.id)
-        return {
+        data = {
             "id": str(store.id),
             "owner_id": str(store.id),
             "full_name": store.full_name,
@@ -439,11 +483,15 @@ async def get_public_shop(slug: str):
             "whatsapp_lines": getattr(store, "whatsapp_lines", None) or [],
             "categories": [schemas.Collection.model_validate(c).model_dump(mode="json") for c in collections],
         }
+        _cache_set(_shop_cache, slug, data, 60)
+        response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
+        return data
     finally:
         db.close()
 
 @app.get("/public/stores/{store_id}/products")
-async def get_public_store_products(store_id: str):
+@limiter.limit("30/minute")
+async def get_public_store_products(request: Request, response: Response, store_id: str):
     import crud, schemas, uuid as uuid_lib
     from database import SessionLocal
     db = SessionLocal()
@@ -453,6 +501,7 @@ async def get_public_store_products(store_id: str):
         except ValueError:
             raise HTTPException(status_code=400, detail="store_id inválido")
         products = crud.get_all_products(db, tenant_id=store_uuid, limit=500)
+        response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=120"
         return [
             schemas.Product.model_validate(p).model_dump(mode="json")
             for p in products if p.status == "active"
@@ -533,7 +582,7 @@ def _serialize_customer(u) -> dict:
     }
 
 @app.get("/admin/users")
-async def get_admin_users(request: Request):
+async def get_admin_users(request: Request, skip: int = Query(default=0, ge=0), limit: int = Query(default=200, ge=1)):
     """Lista los clientes (role='cliente') de la tienda del usuario autenticado."""
     import models
     from database import SessionLocal
@@ -544,7 +593,7 @@ async def get_admin_users(request: Request):
         customers = db.query(models.User).filter(
             models.User.owner_id == tenant_id,
             models.User.role == "cliente",
-        ).all()
+        ).offset(skip).limit(min(limit, 500)).all()
         return [_serialize_customer(c) for c in customers]
     finally:
         db.close()
@@ -854,6 +903,9 @@ async def create_admin_staff(payload: StaffCreateRequest, request: Request):
     try:
         user = await _authenticate(request, db)
         tenant_id = _tenant_id(user)
+        _ALLOWED_STAFF_ROLES = {role_id for role_id, _ in _BASE_ROLE_DEFS}
+        if payload.role not in _ALLOWED_STAFF_ROLES:
+            raise HTTPException(status_code=400, detail=f"Rol no válido. Opciones: {sorted(_ALLOWED_STAFF_ROLES)}")
         if crud.get_user_by_email(db, email=payload.email):
             raise HTTPException(status_code=400, detail="Ya existe una cuenta con ese correo")
         new_staff = models.User(
@@ -892,6 +944,9 @@ async def update_admin_staff(payload: StaffUpdateRequest, request: Request):
         if not target:
             raise HTTPException(status_code=404, detail="Miembro del staff no encontrado")
         if payload.new_role:
+            _ALLOWED_STAFF_ROLES = {role_id for role_id, _ in _BASE_ROLE_DEFS}
+            if payload.new_role not in _ALLOWED_STAFF_ROLES:
+                raise HTTPException(status_code=400, detail=f"Rol no válido. Opciones: {sorted(_ALLOWED_STAFF_ROLES)}")
             target.role = payload.new_role
         if payload.full_name:
             target.full_name = payload.full_name
@@ -1115,6 +1170,8 @@ async def update_profile(payload: UpdateProfileRequest, request: Request):
             if key in PROFILE_EDITABLE_FIELDS:
                 setattr(user, key, value)
         db.commit()
+        if user.shop_slug:
+            _shop_cache.pop(user.shop_slug, None)
         result: dict = {"ok": True}
         if email_changed:
             # El token de sesion usa el email como identificador (sub); si cambia,
@@ -1151,6 +1208,11 @@ async def upload_image(request: Request, file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="El archivo debe ser una imagen")
 
     contents = await file.read()
+
+    _IMG_MAGIC = [b'\xff\xd8\xff', b'\x89PNG\r\n\x1a\n', b'GIF87a', b'GIF89a', b'RIFF', b'WEBP']
+    if not any(contents[:8].startswith(sig) for sig in _IMG_MAGIC):
+        raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
+
     if len(contents) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="La imagen no puede superar 5MB")
 
@@ -1291,6 +1353,8 @@ async def toggle_suspend_company(company_id: str, request: Request):
             raise HTTPException(status_code=404, detail="Empresa no encontrada")
         company.status = "Activo" if company.status == "Suspendido" else "Suspendido"
         db.commit()
+        if company.shop_slug:
+            _shop_cache.pop(company.shop_slug, None)
         return {"id": str(company.id), "status": company.status}
     finally:
         db.close()
@@ -1805,6 +1869,7 @@ async def create_super_admin_web_template(payload: dict, request: Request):
         )
         db.add(template)
         db.commit()
+        _templates_cache.clear()  # invalidar caché de /web-templates
         return _serialize_template(template)
     finally:
         db.close()
@@ -1826,6 +1891,7 @@ async def toggle_super_admin_web_template(template_id: str, request: Request):
             raise HTTPException(status_code=404, detail="Plantilla no encontrada")
         template.is_active = not template.is_active
         db.commit()
+        _templates_cache.clear()  # invalidar caché de /web-templates
         return _serialize_template(template)
     finally:
         db.close()
@@ -1847,6 +1913,7 @@ async def delete_super_admin_web_template(template_id: str, request: Request):
             raise HTTPException(status_code=404, detail="Plantilla no encontrada")
         db.delete(template)
         db.commit()
+        _templates_cache.clear()  # invalidar caché de /web-templates
         return {"ok": True}
     finally:
         db.close()
@@ -1911,15 +1978,23 @@ async def update_super_admin_plan(plan_id: str, payload: PlanUpdateRequest, requ
         db.close()
 
 @app.get("/web-templates")
-async def get_web_templates(request: Request):
+async def get_web_templates(request: Request, response: Response):
     """Galeria de plantillas visible para cualquier tenant autenticado."""
     import models
     from database import SessionLocal
     db = SessionLocal()
     try:
         await _authenticate(request, db)
+        # Caché en memoria: TTL 5 min (solo cambia cuando super-admin añade/edita)
+        cached = _cache_get(_templates_cache, "list")
+        if cached is not None:
+            response.headers["Cache-Control"] = "private, max-age=300"
+            return cached
         templates = db.query(models.WebTemplate).filter(models.WebTemplate.is_active == True).order_by(models.WebTemplate.created_at.desc()).all()
-        return [_serialize_template(t) for t in templates]
+        data = [_serialize_template(t) for t in templates]
+        _cache_set(_templates_cache, "list", data, 300)
+        response.headers["Cache-Control"] = "private, max-age=300"
+        return data
     finally:
         db.close()
 
@@ -2033,7 +2108,8 @@ async def publish_shop_page(payload: ShopPagePublishRequest, request: Request):
         db.close()
 
 @app.get("/public/stores/{store_id}/pages/{page_key}")
-async def get_public_shop_page(store_id: str, page_key: str):
+@limiter.limit("30/minute")
+async def get_public_shop_page(request: Request, response: Response, store_id: str, page_key: str):
     import models, uuid as uuid_lib
     from database import SessionLocal
     db = SessionLocal()
@@ -2049,6 +2125,7 @@ async def get_public_shop_page(store_id: str, page_key: str):
         ).first()
         if not page:
             raise HTTPException(status_code=404, detail="Página no publicada")
+        response.headers["Cache-Control"] = "public, max-age=120, stale-while-revalidate=600"
         return {"page_key": page.page_key, "schema_data": page.schema_data}
     finally:
         db.close()

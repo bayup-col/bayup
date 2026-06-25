@@ -32,13 +32,13 @@ def get_user_by_email(db: Session, email: str) -> models.User | None:
             
         # Fallback: Si el ORM falla por esquema corrupto, intentamos SQL plano básico
         result = db.execute(
-            text("SELECT id, email, full_name, hashed_password, role, status, shop_slug, logo_url, plan_id FROM users WHERE LOWER(email) = :email"),
+            text("SELECT id, email, full_name, hashed_password, role, status, shop_slug, logo_url, plan_id, owner_id, is_global_staff FROM users WHERE LOWER(email) = :email"),
             {"email": email.lower().strip()}
         ).first()
-        
+
         if not result:
             return None
-            
+
         # Creamos un usuario con datos mínimos para permitir el acceso
         return models.User(
             id=result.id,
@@ -49,7 +49,9 @@ def get_user_by_email(db: Session, email: str) -> models.User | None:
             status=result.status,
             shop_slug=result.shop_slug,
             logo_url=result.logo_url,
-            plan_id=getattr(result, 'plan_id', None)
+            plan_id=getattr(result, 'plan_id', None),
+            owner_id=getattr(result, 'owner_id', None),
+            is_global_staff=getattr(result, 'is_global_staff', False),
         )
     except Exception as e:
         print(f"⚠️ Crítico en Búsqueda de Usuario ({email}): {e}")
@@ -357,8 +359,8 @@ def create_collection(db: Session, collection: schemas.CollectionCreate, owner_i
     db.refresh(db_col)
     return db_col
 
-def get_collections_by_owner(db: Session, owner_id: uuid.UUID) -> list[models.Collection]:
-    return db.query(models.Collection).filter(models.Collection.owner_id == owner_id).order_by(models.Collection.id.desc()).all()
+def get_collections_by_owner(db: Session, owner_id: uuid.UUID, skip: int = 0, limit: int = 500) -> list[models.Collection]:
+    return db.query(models.Collection).filter(models.Collection.owner_id == owner_id).order_by(models.Collection.id.desc()).offset(skip).limit(limit).all()
 
 def delete_collection(db: Session, collection_id: uuid.UUID, owner_id: uuid.UUID):
     db_col = db.query(models.Collection).filter(models.Collection.id == collection_id, models.Collection.owner_id == owner_id).first()
