@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
+import { useSuperAdminTheme } from "@/context/super-admin-theme-context";
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2, Search, X, Eye, RefreshCw, Globe,
@@ -25,11 +26,15 @@ interface Company {
   stats?: { total_sales: number; total_products: number; total_orders: number };
 }
 
+const AVATAR_COLORS_DARK  = ['#004d4d','#1e1b4b','#14532d','#7c2d12','#1e3a5f'];
+const AVATAR_COLORS_LIGHT = ['#0d9488','#4f46e5','#16a34a','#ea580c','#2563eb'];
+
 function Avatar({ name, size = 8 }: { name: string; size?: number }) {
-  const colors = ['#004d4d','#1e1b4b','#14532d','#7c2d12','#1e3a5f'];
+  const { saTheme } = useSuperAdminTheme();
+  const colors = saTheme === 'light' ? AVATAR_COLORS_LIGHT : AVATAR_COLORS_DARK;
   const idx = name.charCodeAt(0) % colors.length;
   return (
-    <div className={`h-${size} w-${size} rounded-xl flex items-center justify-center shrink-0 text-white font-black text-sm`}
+    <div className={`h-${size} w-${size} rounded-xl flex items-center justify-center shrink-0 text-white font-black text-sm shadow-sm`}
       style={{ backgroundColor: colors[idx] }}>
       {name.charAt(0).toUpperCase()}
     </div>
