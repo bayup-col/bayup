@@ -53,6 +53,17 @@ export default function WebTemplatesPage() {
   const [showNew,      setShowNew]      = useState(false);
   const [newForm,      setNewForm]      = useState({ name:'', category:'', description:'', tags:'' });
 
+  // Activa el overlay raíz de dashboard/layout.tsx (cubre TODO el viewport real,
+  // sin las interferencias de overflow que sufre un overlay anidado dentro de
+  // <main>) y oculta el header flotante + sidebar mientras hay un modal abierto.
+  // Mismo patrón que customers/products/shipping/reports/gastos.
+  useEffect(() => {
+    if (selected || showNew) {
+      document.body.classList.add('modal-open');
+      return () => { document.body.classList.remove('modal-open'); };
+    }
+  }, [selected, showNew]);
+
   const load = useCallback(async () => {
     if (!token) return;
     setLoading(true);
@@ -331,44 +342,47 @@ export default function WebTemplatesPage() {
             <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]"
               onClick={() => setShowNew(false)}/>
-            <motion.div
-              initial={{opacity:0,scale:0.96,y:16}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.96,y:16}}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] bg-[#080c0c] border border-white/8 rounded-3xl shadow-2xl z-[9999] p-7 space-y-5">
-              <div className="flex justify-between items-center">
-                <h2 className="text-base font-black text-white">Nueva Plantilla</h2>
-                <button onClick={() => setShowNew(false)}
-                  className="h-8 w-8 rounded-xl border border-white/8 bg-white/4 flex items-center justify-center text-white/30 hover:text-white">
-                  <X size={14}/>
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+              <motion.div
+                initial={{opacity:0,scale:0.96,y:16}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.96,y:16}}
+                onClick={e => e.stopPropagation()}
+                className="w-full max-w-[440px] my-auto bg-[#080c0c] border border-white/8 rounded-3xl shadow-2xl p-7 space-y-5">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-base font-black text-white">Nueva Plantilla</h2>
+                  <button onClick={() => setShowNew(false)}
+                    className="h-8 w-8 rounded-xl border border-white/8 bg-white/4 flex items-center justify-center text-white/30 hover:text-white">
+                    <X size={14}/>
+                  </button>
+                </div>
+
+                <div className="border-2 border-dashed border-white/8 rounded-2xl p-8 flex flex-col items-center gap-2.5 hover:border-white/15 transition-all cursor-pointer">
+                  <ImagePlus size={22} className="text-white/15"/>
+                  <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Subir imagen de preview</p>
+                  <p className="text-[9px] text-white/15">PNG, JPG · máx 5MB</p>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    { key:'name',        label:'Nombre',      ph:'ej. StorePro Dark' },
+                    { key:'category',    label:'Categoría',   ph:'ej. Tienda, Moda, Restaurante' },
+                    { key:'description', label:'Descripción', ph:'Descripción breve' },
+                    { key:'tags',        label:'Tags',        ph:'dark, ecommerce, premium (comas)' },
+                  ].map(f => (
+                    <div key={f.key} className="space-y-1.5">
+                      <label className="text-[8px] font-bold text-white/20 uppercase tracking-widest">{f.label}</label>
+                      <input value={(newForm as any)[f.key]} onChange={e => setNewForm(p => ({...p,[f.key]:e.target.value}))}
+                        placeholder={f.ph}
+                        className="w-full h-9 px-3.5 bg-white/4 border border-white/8 rounded-xl outline-none text-[12px] text-white/60 placeholder:text-white/15 focus:border-white/15 transition-all"/>
+                    </div>
+                  ))}
+                </div>
+
+                <button onClick={create} disabled={!newForm.name}
+                  className="w-full h-10 rounded-2xl bg-white/8 hover:bg-white/12 border border-white/10 text-white/70 hover:text-white font-bold text-[11px] flex items-center justify-center gap-2 transition-all disabled:opacity-30">
+                  <Plus size={13}/> Crear plantilla
                 </button>
-              </div>
-
-              <div className="border-2 border-dashed border-white/8 rounded-2xl p-8 flex flex-col items-center gap-2.5 hover:border-white/15 transition-all cursor-pointer">
-                <ImagePlus size={22} className="text-white/15"/>
-                <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Subir imagen de preview</p>
-                <p className="text-[9px] text-white/15">PNG, JPG · máx 5MB</p>
-              </div>
-
-              <div className="space-y-3">
-                {[
-                  { key:'name',        label:'Nombre',      ph:'ej. StorePro Dark' },
-                  { key:'category',    label:'Categoría',   ph:'ej. Tienda, Moda, Restaurante' },
-                  { key:'description', label:'Descripción', ph:'Descripción breve' },
-                  { key:'tags',        label:'Tags',        ph:'dark, ecommerce, premium (comas)' },
-                ].map(f => (
-                  <div key={f.key} className="space-y-1.5">
-                    <label className="text-[8px] font-bold text-white/20 uppercase tracking-widest">{f.label}</label>
-                    <input value={(newForm as any)[f.key]} onChange={e => setNewForm(p => ({...p,[f.key]:e.target.value}))}
-                      placeholder={f.ph}
-                      className="w-full h-9 px-3.5 bg-white/4 border border-white/8 rounded-xl outline-none text-[12px] text-white/60 placeholder:text-white/15 focus:border-white/15 transition-all"/>
-                  </div>
-                ))}
-              </div>
-
-              <button onClick={create} disabled={!newForm.name}
-                className="w-full h-10 rounded-2xl bg-white/8 hover:bg-white/12 border border-white/10 text-white/70 hover:text-white font-bold text-[11px] flex items-center justify-center gap-2 transition-all disabled:opacity-30">
-                <Plus size={13}/> Crear plantilla
-              </button>
-            </motion.div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>
