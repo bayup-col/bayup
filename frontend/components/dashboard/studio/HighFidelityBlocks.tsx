@@ -218,6 +218,19 @@ const VARIANT_STYLES: Record<StoreVariant, VariantStyle> = {
 
 const getVariantStyle = (v: StoreVariant): VariantStyle => VARIANT_STYLES[v] || VARIANT_STYLES.luxury;
 
+// Texto blanco o negro segun el brillo del color de fondo elegido a mano,
+// para que un boton con color personalizado siga siendo legible.
+const getReadableTextColor = (hex?: string): string => {
+  if (!hex) return '#ffffff';
+  const clean = hex.replace('#', '');
+  if (clean.length !== 6) return '#ffffff';
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? '#0A1A1A' : '#ffffff';
+};
+
 // --- Filtro de catalogo simulado ---
 // El navbar y las tarjetas de categoria disparan un filtro (p.ej. "Conjuntos",
 // "Pijamas", "Basketball"); la grilla de productos lo lee y muestra solo lo
@@ -278,6 +291,14 @@ export const SmartNavbar = ({ props }: { props: any }) => {
   const variant: StoreVariant = props.variant || "luxury";
   const s = getVariantStyle(variant);
 
+  // Colores y tipografía elegidos a mano por el comerciante (editor de
+  // plantilla). Si no los definió, se usan los del preset de variante de
+  // siempre — esto es 100% opcional y nunca rompe el resto de las tiendas
+  // que no pasan estas props (Canvas/CanvasElements no las envía hoy).
+  const primaryColor: string | undefined = props.colors?.primary;
+  const fontFamily: string | undefined = props.fontFamily;
+  const logoStyle = { ...(primaryColor ? { color: primaryColor } : {}), ...(fontFamily ? { fontFamily } : {}) };
+
   const isStreetwearLike = variant === "streetwear" || variant === "flash" || variant === "tech";
 
   return (
@@ -291,11 +312,17 @@ export const SmartNavbar = ({ props }: { props: any }) => {
       )}>
         <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between gap-8">
           <div className="flex items-center gap-3 shrink-0">
-            <h1 className={cn(
-              "text-2xl tracking-tighter uppercase",
-              s.display, s.displayWeight,
-              variant === "tech" ? "text-cyan-300" : "text-gray-900"
-            )}>
+            {props.logoUrl ? (
+              <img src={props.logoUrl} alt={props.logoText || 'Logo'} className="h-10 w-10 rounded-xl object-cover" />
+            ) : null}
+            <h1
+              className={cn(
+                "text-2xl tracking-tighter uppercase",
+                s.display, s.displayWeight,
+                !primaryColor && (variant === "tech" ? "text-cyan-300" : "text-gray-900")
+              )}
+              style={logoStyle}
+            >
               {props.logoText || 'BAYUP STORE'}
             </h1>
           </div>
@@ -309,10 +336,11 @@ export const SmartNavbar = ({ props }: { props: any }) => {
                   onClick={() => goToSimulatedSection(label, setActiveFilter)}
                   className={cn(
                     "text-[10px] font-black uppercase tracking-[0.2em] cursor-pointer transition-all",
-                    isActive ? s.accentText : "text-gray-500",
-                    !isActive && s.accentTextHover,
+                    !primaryColor && (isActive ? s.accentText : "text-gray-500"),
+                    !isActive && !primaryColor && s.accentTextHover,
                     isStreetwearLike && "font-display-impact"
                   )}
+                  style={{ ...(primaryColor ? { color: isActive ? primaryColor : `${primaryColor}99` } : {}), ...(fontFamily ? { fontFamily } : {}) }}
                 >
                   {label}
                 </span>
@@ -320,7 +348,7 @@ export const SmartNavbar = ({ props }: { props: any }) => {
             })}
           </nav>
           <div className="flex items-center gap-6 flex-1 justify-end">
-            <div className={cn("flex items-center gap-6", variant === "tech" ? "text-cyan-300" : "text-gray-900")}>
+            <div className={cn("flex items-center gap-6", !primaryColor && (variant === "tech" ? "text-cyan-300" : "text-gray-900"))} style={primaryColor ? { color: primaryColor } : undefined}>
               <div
                 className={cn(
                   "relative p-3 cursor-pointer hover:scale-110 transition-transform",
@@ -368,6 +396,13 @@ export const SmartHero = ({ props }: { props: any }) => {
   const isCentered = variant !== "streetwear" && variant !== "tech";
   const heroFont = cn(s.display, s.displayWeight);
 
+  const colors = props.colors as { primary?: string; secondary?: string; button?: string; text?: string } | undefined;
+  const fontFamily: string | undefined = props.fontFamily;
+  const titleStyle = fontFamily ? { fontFamily } : undefined;
+  const subtitleStyle = { ...(colors?.text ? { color: colors.text } : {}), ...(fontFamily ? { fontFamily } : {}) };
+  const badgeStyle = colors?.secondary ? { backgroundColor: `${colors.secondary}1a`, borderColor: `${colors.secondary}66`, color: colors.secondary } : undefined;
+  const btnStyle = colors?.button ? { backgroundColor: colors.button, color: getReadableTextColor(colors.button) } : undefined;
+
   return (
     <VariantContext.Provider value={variant}>
       <section className={cn(
@@ -386,20 +421,20 @@ export const SmartHero = ({ props }: { props: any }) => {
           "relative z-10 px-6 max-w-4xl",
           isCentered ? "text-center mx-auto" : "text-left ml-6 md:ml-16 max-w-2xl"
         )}>
-          <span className={cn("inline-block py-1.5 px-4 text-[10px] font-bold tracking-[0.4em] uppercase mb-8", s.badge)}>
+          <span className={cn("inline-block py-1.5 px-4 text-[10px] font-bold tracking-[0.4em] uppercase mb-8 border", !colors?.secondary && s.badge, colors?.secondary && "border")} style={badgeStyle}>
             {props.badge || 'Exclusividad'}
           </span>
           <h2 className={cn(
             "text-6xl md:text-8xl text-white mb-8 leading-none",
             heroFont,
             variant === "streetwear" && "drop-shadow-[4px_4px_0px_rgba(250,204,21,1)]"
-          )}>
+          )} style={titleStyle}>
             {props.title || 'Elegancia Eterna'}
           </h2>
-          <p className={cn("text-lg md:text-xl text-slate-200 mb-12 leading-relaxed", isCentered ? "max-w-2xl mx-auto" : "max-w-xl", s.body)}>
+          <p className={cn("text-lg md:text-xl mb-12 leading-relaxed", !colors?.text && "text-slate-200", isCentered ? "max-w-2xl mx-auto" : "max-w-xl", s.body)} style={subtitleStyle}>
             {props.subtitle}
           </p>
-          <button onClick={() => goToSimulatedSection('Novedades', setActiveFilter)} className={cn("px-12 py-5 font-bold text-xs uppercase tracking-[0.3em] transition-all", s.btnPrimary)}>
+          <button onClick={() => goToSimulatedSection('Novedades', setActiveFilter)} className={cn("px-12 py-5 font-bold text-xs uppercase tracking-[0.3em] transition-all", !colors?.button && s.btnPrimary, colors?.button && "rounded-full")} style={{ ...btnStyle, ...titleStyle }}>
             {props.primaryBtnText || 'Ver Colección'}
           </button>
         </div>
@@ -468,18 +503,33 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
   const titleCase = isAngular ? "uppercase" : "";
   const isLuxuryLike = variant === "luxury" || variant === "intimate";
 
+  const colors = props.colors as { primary?: string; secondary?: string; button?: string; text?: string } | undefined;
+  const fontFamily: string | undefined = props.fontFamily;
+  const titleStyle = { ...(colors?.primary ? { color: colors.primary } : {}), ...(fontFamily ? { fontFamily } : {}) };
+  const priceStyle = { ...(colors?.primary ? { color: colors.primary } : {}), ...(fontFamily ? { fontFamily } : {}) };
+  const badgeStyle = colors?.secondary ? { backgroundColor: `${colors.secondary}1a`, color: colors.secondary } : undefined;
+  const nameStyle = fontFamily ? { fontFamily } : undefined;
+  const categoryStyle = colors?.text ? { color: colors.text } : undefined;
+
+  // Forma de las tarjetas de producto, elegida a mano en el editor. Si no se
+  // define, se usa el radio del preset de variante de siempre.
+  const cardShape: 'square' | 'soft' | 'round' | undefined = props.cardShape;
+  const cardRadiusPx = cardShape === 'square' ? '0.5rem' : cardShape === 'round' ? '3rem' : cardShape === 'soft' ? '1.5rem' : undefined;
+  const badgeText: string | undefined = props.badgeText;
+  const showCategory = props.showCategory !== false;
+
   return (
     <section id="bayup-products" className={cn("py-32", variant === "tech" ? "bg-slate-950" : "bg-white")}>
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-6">
           <div>
-            <span className={cn("text-[10px] font-black uppercase tracking-[0.4em] mb-4 block", s.accentText)}>Tendencias</span>
+            <span className={cn("text-[10px] font-black uppercase tracking-[0.4em] mb-4 block", !colors?.primary && s.accentText)} style={colors?.primary ? { color: colors.primary } : undefined}>Tendencias</span>
             <h3 className={cn(
               "text-5xl tracking-tighter",
               s.display, s.displayWeight, titleCase,
-              variant === "tech" ? "text-white" : "text-gray-900",
+              !colors?.primary && (variant === "tech" ? "text-white" : "text-gray-900"),
               isLuxuryLike && "italic font-black"
-            )}>
+            )} style={titleStyle}>
               {displayTitle}
             </h3>
           </div>
@@ -502,11 +552,14 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
               transition={{ delay: i * 0.1 }}
               className="group flex flex-col"
             >
-              <div className={cn(
-                "relative w-full aspect-[3/4] overflow-hidden mb-8 shadow-sm group-hover:shadow-2xl transition-all duration-700",
-                s.radiusLg,
-                variant === "tech" ? "bg-slate-900" : "bg-gray-50"
-              )}>
+              <div
+                className={cn(
+                  "relative w-full aspect-[3/4] overflow-hidden mb-8 shadow-sm group-hover:shadow-2xl transition-all duration-700",
+                  !cardRadiusPx && s.radiusLg,
+                  variant === "tech" ? "bg-slate-900" : "bg-gray-50"
+                )}
+                style={cardRadiusPx ? { borderRadius: cardRadiusPx } : undefined}
+              >
                 <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2000ms]" src={p.image} />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
 
@@ -522,16 +575,17 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
                   className={cn(
                     "absolute bottom-8 right-8 h-16 w-16 shadow-2xl opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all flex items-center justify-center active:scale-95",
                     isAngular ? "rounded-md" : "rounded-full",
-                    s.accentBg, "text-white hover:scale-110"
+                    !colors?.button && s.accentBg, !colors?.button && "text-white", "hover:scale-110"
                   )}
+                  style={colors?.button ? { backgroundColor: colors.button, color: getReadableTextColor(colors.button) } : undefined}
                   aria-label="Añadir al carrito"
                 >
                   <Plus size={24} />
                 </button>
 
                 {/* ETIQUETA DE NUEVO / PLAN */}
-                <div className={cn("absolute top-8 left-8 px-4 py-1.5 text-[8px] font-black uppercase tracking-widest", s.badge)}>
-                  {p.isNew ? "Nuevo" : "Destacado"}
+                <div className={cn("absolute top-8 left-8 px-4 py-1.5 text-[8px] font-black uppercase tracking-widest", !badgeStyle && s.badge)} style={badgeStyle}>
+                  {badgeText || (p.isNew ? "Nuevo" : "Destacado")}
                 </div>
               </div>
               <div className="px-2 space-y-2">
@@ -539,17 +593,19 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
                   <h4 className={cn(
                     "text-lg tracking-tighter leading-tight max-w-[70%]",
                     isAngular ? "uppercase font-black" : "font-bold",
-                    variant === "tech" ? "text-white" : "text-gray-900"
-                  )}>
+                    !colors?.primary && (variant === "tech" ? "text-white" : "text-gray-900")
+                  )} style={{ ...(colors?.primary ? { color: colors.primary } : {}), ...nameStyle }}>
                     {p.name}
                   </h4>
-                  <p className={cn("text-xl font-black tracking-tighter", s.accentText, isLuxuryLike && "italic")}>
+                  <p className={cn("text-xl font-black tracking-tighter", !colors?.primary && s.accentText, isLuxuryLike && "italic")} style={priceStyle}>
                     $ {p.price.toLocaleString()}
                   </p>
                 </div>
-                <p className={cn("text-[10px] font-bold uppercase tracking-[0.1em]", variant === "tech" ? "text-slate-500" : "text-gray-400")}>
-                  {p.category || 'Colección 2026'}
-                </p>
+                {showCategory && (
+                  <p className={cn("text-[10px] font-bold uppercase tracking-[0.1em]", !categoryStyle && (variant === "tech" ? "text-slate-500" : "text-gray-400"))} style={categoryStyle}>
+                    {p.category || 'Colección 2026'}
+                  </p>
+                )}
               </div>
             </motion.div>
           ))}

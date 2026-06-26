@@ -84,7 +84,8 @@ export default function HomePage() {
   const navLinks = [
     { label: 'Inicio', href: '/' },
     { label: 'Planes', href: '/planes' },
-    { label: 'Nosotros', href: '/acerca' }
+    { label: 'Nosotros', href: '/acerca' },
+    { label: 'Contáctanos', href: '/contacto' }
   ];
 
   return (
@@ -215,7 +216,8 @@ export default function HomePage() {
                       {[
                         { label: 'Inicio', href: '/' },
                         { label: 'Planes', href: '/planes' },
-                        { label: 'Nosotros', href: '/acerca' }
+                        { label: 'Nosotros', href: '/acerca' },
+                        { label: 'Contáctanos', href: '/contacto' }
                       ].map((item) => (
                         <Link 
                           key={item.label} 

@@ -73,7 +73,7 @@ export const TemplateShowcase = ({ compact = false }: { compact?: boolean }) => 
 
           <div className={`flex flex-row justify-center gap-4 md:gap-16 ${compact ? 'pt-3' : 'pt-8'} relative z-50 w-full px-2`}>
             {[
-              { icon: <Library size={20} />, label: "+80 plantillas" },
+              { icon: <Library size={20} />, label: "Plantillas" },
               { icon: <Palette size={20} />, label: "Personalización" },
               { icon: <Zap size={20} />, label: "Cero Código" }
             ].map((f, i) => (

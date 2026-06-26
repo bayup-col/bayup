@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from "@/context/auth-context";
 import { InteractiveUP } from "@/components/landing/InteractiveUP";
 import { GlassyButton } from "@/components/landing/GlassyButton";
-import { Lock, Mail, Loader2, Ghost, Home, ArrowLeft, Send, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { Lock, Mail, Loader2, Ghost, Home, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { apiRequest } from '@/lib/api';
 import { AuthShowcase, loginShowcaseSlides } from "@/components/landing/AuthShowcase";
+import { signInWithGoogle } from "@/lib/supabaseClient";
 
 const FloatingParticlesBackground = dynamic(
   () => import("@/components/landing/FloatingParticlesBackground").then((mod) => mod.FloatingParticlesBackground),
@@ -107,11 +108,13 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleLogin = () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!supabaseUrl) { setError('Login con Google no está configurado aún'); return; }
-    const redirectTo = `${window.location.origin}/auth/callback`;
-    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
+  const handleGoogleLogin = async () => {
+    setError(null);
+    try {
+      await signInWithGoogle('/auth/callback');
+    } catch (err: any) {
+      setError(err.message || 'No se pudo iniciar sesión con Google.');
+    }
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -134,38 +137,59 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col lg:flex-row bg-[#FAFAFA]">
+    <div className="relative h-screen w-full flex flex-col lg:flex-row bg-[#FAFAFA] overflow-hidden">
       <div className="fixed top-4 left-4 sm:top-8 sm:left-8 z-[100]"><GlassyButton href="/" variant="light"><Home size={18} /></GlassyButton></div>
 
-      <div className="relative w-full lg:w-1/2 min-h-screen flex items-center justify-center overflow-y-auto py-10">
+      <div className="relative w-full lg:w-1/2 h-full flex items-center justify-center overflow-y-auto py-6">
         <FloatingParticlesBackground />
         <div className="relative z-10 w-full max-w-[480px] p-4 sm:p-6 perspective-[2000px]">
-        <motion.div animate={{ rotateY: isFlipped ? 180 : 0 }} transition={{ duration: 0.8 }} style={{ transformStyle: "preserve-3d" }} className="relative w-full h-[620px] sm:h-[650px]">
-          <div className="absolute inset-0 backface-hidden bg-white p-7 sm:p-12 rounded-[2.5rem] sm:rounded-[4rem] flex flex-col shadow-2xl overflow-hidden" style={{ backfaceVisibility: "hidden" }}>
-            <div className="absolute inset-0 rounded-[4rem] overflow-hidden -z-10"><div className="absolute top-1/2 left-1/2 w-[250%] aspect-square animate-aurora opacity-40" style={{ background: `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)` }} /><div className="absolute inset-[2px] rounded-[3.9rem] bg-white/90 backdrop-blur-3xl" /></div>
-            <div className="text-center mb-7 sm:mb-12"><div className="text-4xl font-black text-black italic tracking-tighter mb-4 flex items-center justify-center"><span>BAY</span><InteractiveUP /></div><p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.15em]">Vender inteligente es vender con Bayup</p></div>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Usuario</label><div className="relative"><Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" /><input type="email" placeholder="nombre@bayup.com" className="w-full pl-14 pr-6 py-5 bg-gray-50 rounded-[2rem] outline-none text-sm text-black font-bold shadow-inner" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isSuccess} /></div></div>
-              <div className="space-y-2"><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Contraseña</label><div className="relative"><Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" /><input type={showPassword ? "text" : "password"} placeholder="••••••••" className="w-full pl-14 pr-12 py-5 bg-gray-50 rounded-[2rem] outline-none text-sm text-black font-bold shadow-inner" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={isSuccess} /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div><div className="flex justify-end pr-4 mt-1"><button type="button" onClick={() => setIsFlipped(true)} className="text-[9px] font-black text-[#004d4d]/60 uppercase tracking-tighter">Olvide mi contraseña</button></div></div>
+        <motion.div animate={{ rotateY: isFlipped ? 180 : 0 }} transition={{ duration: 0.8 }} style={{ transformStyle: "preserve-3d" }} className="relative w-full h-[660px] sm:h-[680px]">
+          <div className="absolute inset-0 backface-hidden bg-white/80 backdrop-blur-2xl border border-white/60 p-7 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] flex flex-col justify-center shadow-[0_40px_90px_-20px_rgba(0,0,0,0.12)] overflow-hidden" style={{ backfaceVisibility: "hidden" }}>
+            {/* Línea de acento superior + glow ambiental, estático (no gira) para una sensación futurista pero calma */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-cyan/60 to-transparent" />
+            <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-72 h-72 bg-cyan/10 rounded-full blur-[80px] pointer-events-none" />
+
+            <div className="text-center mb-6 sm:mb-8 relative z-10">
+              <div className="text-3xl font-black text-black italic tracking-tighter mb-2 flex items-center justify-center"><span>BAY</span><InteractiveUP /></div>
+              <p className="text-gray-400 text-xs font-light tracking-[0.1em]">Vender inteligente es vender con Bayup</p>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4">Usuario</label>
+                <div className="relative group">
+                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 transition-colors group-focus-within:text-cyan" />
+                  <input type="email" placeholder="nombre@bayup.com" className="w-full pl-14 pr-6 py-4 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isSuccess} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4">Contraseña</label>
+                <div className="relative group">
+                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 transition-colors group-focus-within:text-cyan" />
+                  <input type={showPassword ? "text" : "password"} placeholder="••••••••" className="w-full pl-14 pr-12 py-4 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={isSuccess} />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-cyan transition-colors">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                </div>
+                <div className="flex justify-end pr-4 pt-1"><button type="button" onClick={() => setIsFlipped(true)} className="text-xs font-medium text-gray-400 hover:text-cyan transition-colors">Olvidé mi contraseña</button></div>
+              </div>
               {emailConfirmed && (
-                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-700 text-[10px] font-black uppercase text-center flex items-center justify-center gap-2">
+                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-700 text-xs font-medium text-center flex items-center justify-center gap-2">
                   <CheckCircle2 size={14} className="shrink-0" />
                   ¡Email confirmado! Ya puedes iniciar sesión
                 </motion.div>
               )}
-              {error && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-[10px] font-black uppercase text-center">{error}</motion.div>}
-              <div className="pt-4 flex flex-col items-center gap-4">
+              {error && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-xs font-medium text-center">{error}</motion.div>}
+              <div className="pt-2 flex flex-col items-center gap-3">
                 <button type="submit" disabled={isLoading || isSuccess} className="group relative w-full overflow-visible">
-                  <motion.div animate={{ backgroundColor: isSuccess ? "#004d4d" : "#001A1A" }} className="relative w-full py-6 rounded-[2rem] overflow-hidden">
-                    <div className="relative z-10 flex items-center justify-center min-h-[24px]">
+                  <motion.div animate={{ backgroundColor: isSuccess ? "#004d4d" : "#0A1A1A" }} className="relative w-full py-3.5 rounded-full overflow-hidden shadow-[0_15px_35px_-10px_rgba(0,0,0,0.3)]">
+                    <div className="relative z-10 flex items-center justify-center min-h-[20px]">
                       <AnimatePresence mode="wait">
-                        {isSuccess ? <motion.div key="ghost" animate={{ y: [0, -80, 0], opacity: 1, scale: [0.5, 1.5, 1] }} onAnimationComplete={() => { setTimeout(() => { if (redirectUrl) router.push(redirectUrl); }, 300); }} className="text-white"><Ghost size={38} strokeWidth={2.5} /></motion.div> 
-                        : isLoading ? <Loader2 className="w-6 h-6 animate-spin text-[#00F2FF]" /> 
-                        : <span className="font-black text-[11px] uppercase tracking-[0.3em] text-white">Acceder al Sistema</span>}
+                        {isSuccess ? <motion.div key="ghost" animate={{ y: [0, -80, 0], opacity: 1, scale: [0.5, 1.5, 1] }} onAnimationComplete={() => { setTimeout(() => { if (redirectUrl) router.push(redirectUrl); }, 300); }} className="text-white"><Ghost size={32} strokeWidth={2.5} /></motion.div>
+                        : isLoading ? <Loader2 className="w-5 h-5 animate-spin text-cyan" />
+                        : <span className="font-medium text-sm tracking-wide text-white">Iniciar Sesión</span>}
                       </AnimatePresence>
                     </div>
                   </motion.div>
                 </button>
+<<<<<<< HEAD
                 <div className="w-full flex items-center gap-3 my-1">
                   <div className="flex-1 h-px bg-gray-100" />
                   <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">o</span>
@@ -176,13 +200,54 @@ export default function LoginPage() {
                   Continuar con Google
                 </button>
                 <div className="flex flex-col items-center gap-2 mt-4"><p className="text-gray-400 text-[9px] font-bold uppercase tracking-wider text-center">¿No tienes cuenta aún? <Link href="/register" className="text-[#004d4d] hover:underline">Regístrate ahora</Link></p></div>
+=======
+
+                <div className="flex items-center gap-3 w-full">
+                  <div className="h-px flex-1 bg-gray-200" />
+                  <span className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.1em]">o continúa con</span>
+                  <div className="h-px flex-1 bg-gray-200" />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={isLoading || isSuccess}
+                  className="w-full py-3.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                >
+                  <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.71v2.26h2.91A8.78 8.78 0 0 0 17.64 9.2Z" fill="#4285F4" />
+                    <path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.26c-.81.54-1.85.86-3.05.86-2.34 0-4.32-1.58-5.03-3.71H.95v2.33A8.997 8.997 0 0 0 9 18Z" fill="#34A853" />
+                    <path d="M3.97 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.95a8.997 8.997 0 0 0 0 8.08l3.02-2.33Z" fill="#FBBC05" />
+                    <path d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A8.59 8.59 0 0 0 9 0 8.997 8.997 0 0 0 .95 4.96l3.02 2.33C4.68 5.16 6.66 3.58 9 3.58Z" fill="#EA4335" />
+                  </svg>
+                  <span className="text-sm font-medium text-gray-700">Continuar con Google</span>
+                </button>
+
+                <p className="text-gray-400 text-xs font-light text-center mt-3">¿No tienes cuenta aún? <Link href="/register" className="text-petroleum font-medium hover:text-cyan transition-colors">Regístrate ahora</Link></p>
+>>>>>>> adb13bf8460d327d64ca5406fdec0b41e652e78e
               </div>
             </form>
           </div>
           {/* CARA POSTERIOR: RECUPERACIÓN */}
-          <div className="absolute inset-0 backface-hidden bg-white p-7 sm:p-12 rounded-[2.5rem] sm:rounded-[4rem] flex flex-col shadow-2xl overflow-hidden" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
-            <div className="text-center mb-7 sm:mb-12"><div className="text-4xl font-black text-black italic mb-4 flex items-center justify-center"><span>BAY</span><InteractiveUP /></div><h3 className="text-xl font-black italic uppercase text-black">¿Olvidaste tu acceso?</h3></div>
-            <form onSubmit={handleResetPassword} className="space-y-8"><div className="space-y-2"><label className="text-[9px] font-black text-gray-400 ml-4">Tu Correo de Registro</label><div className="relative"><Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" /><input type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} className="w-full pl-14 pr-6 py-5 bg-gray-50 rounded-[2rem] outline-none text-sm text-black font-bold shadow-inner" required /></div></div><button type="submit" className="w-full py-6 rounded-[2rem] bg-black text-white font-black text-[11px] uppercase tracking-[0.3em]">Enviar Acceso</button><button type="button" onClick={() => setIsFlipped(false)} className="flex items-center gap-2 text-[10px] font-black text-gray-400 mx-auto uppercase">Regresar</button></form>
+          <div className="absolute inset-0 backface-hidden bg-white/80 backdrop-blur-2xl border border-white/60 p-7 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] flex flex-col justify-center shadow-[0_40px_90px_-20px_rgba(0,0,0,0.12)] overflow-hidden" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-cyan/60 to-transparent" />
+            <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-72 h-72 bg-cyan/10 rounded-full blur-[80px] pointer-events-none" />
+
+            <div className="text-center mb-9 sm:mb-12 relative z-10">
+              <div className="text-3xl font-black text-black italic tracking-tighter mb-3 flex items-center justify-center"><span>BAY</span><InteractiveUP /></div>
+              <h3 className="text-xl font-light text-black">¿Olvidaste tu acceso?</h3>
+            </div>
+            <form onSubmit={handleResetPassword} className="space-y-6 relative z-10">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4">Tu correo de registro</label>
+                <div className="relative group">
+                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 transition-colors group-focus-within:text-cyan" />
+                  <input type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} className="w-full pl-14 pr-6 py-4 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white" required />
+                </div>
+              </div>
+              <button type="submit" className="w-full py-4 rounded-full bg-[#0A1A1A] text-white font-medium text-sm tracking-wide shadow-[0_15px_35px_-10px_rgba(0,0,0,0.3)]">Enviar Acceso</button>
+              <button type="button" onClick={() => setIsFlipped(false)} className="flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-cyan transition-colors mx-auto">Regresar</button>
+            </form>
           </div>
         </motion.div>
         </div>

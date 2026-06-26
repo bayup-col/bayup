@@ -9,7 +9,8 @@ import { InteractiveUP } from "./landing/InteractiveUP";
 const navLinks = [
   { label: 'Inicio', href: '/' },
   { label: 'Planes', href: '/planes' },
-  { label: 'Nosotros', href: '/acerca' }
+  { label: 'Nosotros', href: '/acerca' },
+  { label: 'Contáctanos', href: '/contacto' }
 ];
 
 export const Navbar = () => {
