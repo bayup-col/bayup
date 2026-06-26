@@ -143,44 +143,40 @@ export default function InvoicingPage() {
   // ── Data loading ──
   const loadData = useCallback(async () => {
     if (!token) return;
-    try {
-      const [pRes, userData] = await Promise.all([
-        apiRequest<any[]>('/products', { token }),
-        apiRequest<any>('/auth/me', { token })
-      ]);
-      if (userData) setCompanyData(userData);
-      if (pRes) setProducts(pRes);
-    } catch {}
+    const isProduction = window.location.hostname.includes('railway.app') || window.location.hostname.includes('bayup.com');
 
-    try {
-      const isProduction = window.location.hostname.includes('railway.app') || window.location.hostname.includes('bayup.com');
-      if (!isProduction) {
-        const cRes = await apiRequest<any[]>('/collections', { token }).catch(() => []);
-        if (cRes && Array.isArray(cRes)) setCategories(['Todas', ...cRes.map((c: any) => c.title || c.name)]);
-      } else {
-        setCategories(['Todas', 'General', 'Nueva Colección']);
-      }
-    } catch {}
+    const [pRes, userData, cRes, oRes] = await Promise.allSettled([
+      apiRequest<any[]>('/products', { token }),
+      apiRequest<any>('/auth/me', { token }),
+      isProduction ? Promise.resolve([]) : apiRequest<any[]>('/collections', { token }),
+      apiRequest<any[]>('/orders', { token }),
+    ]);
 
-    try {
-      const oRes = await apiRequest<any[]>('/orders', { token }).catch(() => []);
-      if (oRes && Array.isArray(oRes)) {
-        const sorted = [...oRes].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-        const mapped = sorted.map((o, i) => ({
-          id: o.id,
-          invoice_num: `#${String(i + 1).padStart(4, '0')}`,
-          date: o.created_at,
-          customer: o.customer_name || 'Cliente',
-          customer_email: o.customer_email,
-          customer_phone: o.customer_phone,
-          customer_city: o.customer_city,
-          source: o.source || 'pos',
-          payment_method: o.payment_method || 'cash',
-          total: o.total_price || 0
-        })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setHistory(mapped);
-      }
-    } catch {}
+    if (userData.status === 'fulfilled' && userData.value) setCompanyData(userData.value);
+    if (pRes.status === 'fulfilled' && pRes.value) setProducts(pRes.value);
+
+    if (isProduction) {
+      setCategories(['Todas', 'General', 'Nueva Colección']);
+    } else if (cRes.status === 'fulfilled' && Array.isArray(cRes.value)) {
+      setCategories(['Todas', ...cRes.value.map((c: any) => c.title || c.name)]);
+    }
+
+    if (oRes.status === 'fulfilled' && Array.isArray(oRes.value)) {
+      const sorted = [...oRes.value].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const mapped = sorted.map((o, i) => ({
+        id: o.id,
+        invoice_num: `#${String(i + 1).padStart(4, '0')}`,
+        date: o.created_at,
+        customer: o.customer_name || 'Cliente',
+        customer_email: o.customer_email,
+        customer_phone: o.customer_phone,
+        customer_city: o.customer_city,
+        source: o.source || 'pos',
+        payment_method: o.payment_method || 'cash',
+        total: o.total_price || 0
+      })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setHistory(mapped);
+    }
   }, [token]);
 
   useEffect(() => { loadData(); }, [loadData]);

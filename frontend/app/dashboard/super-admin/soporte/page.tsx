@@ -1,41 +1,59 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import {
   MessageSquare, Search, X, CheckCircle2, Clock,
-  AlertTriangle, Send, Building2, User, Tag
+  AlertTriangle, Send, Building2, User, Tag, RefreshCw
 } from 'lucide-react';
 
-const fmtDate = (d: string) => new Date(d).toLocaleDateString('es-CO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+const fmtDate = (d: string|null) => d ? new Date(d).toLocaleDateString('es-CO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
 
 interface Ticket {
-  id:string; title:string; company:string; userEmail:string;
+  id:string; title:string; company:string; userEmail:string|null;
   priority:'Alta'|'Media'|'Baja'; status:'Abierto'|'En proceso'|'Resuelto';
-  category:string; createdAt:string;
+  category:string; createdAt:string|null;
   messages: { sender:'usuario'|'soporte'; text:string; time:string }[];
 }
-
-const MOCK: Ticket[] = [
-  { id:'TKT-001', title:'No puedo acceder a mi tienda',        company:'Moda Express SAS',    userEmail:'carlos@modaexpress.co', priority:'Alta',  status:'Abierto',    category:'Acceso',      createdAt:'2026-06-20T09:12:00', messages:[{sender:'usuario',text:'Error 401 al iniciar sesión',time:'09:12'},{sender:'soporte',text:'Revisando tu caso ahora mismo.',time:'09:15'}] },
-  { id:'TKT-002', title:'Facturas no llegan al correo',        company:'TechStore Colombia',  userEmail:'ana@techstore.co',      priority:'Media', status:'En proceso', category:'Facturación', createdAt:'2026-06-19T14:30:00', messages:[{sender:'usuario',text:'Las facturas no se envían',time:'14:30'}] },
-  { id:'TKT-003', title:'Quiero cambiar al plan Empresa',      company:'Papelería Creativa',  userEmail:'roberto@papeleria.co',  priority:'Baja',  status:'Resuelto',   category:'Planes',      createdAt:'2026-06-18T10:00:00', messages:[{sender:'usuario',text:'Quiero upgrade',time:'10:00'},{sender:'soporte',text:'Plan Empresa activado ✓',time:'10:45'}] },
-  { id:'TKT-004', title:'Error al importar CSV de productos',  company:'Distribuidora Omega', userEmail:'omega@distribuidora.co',priority:'Media', status:'Abierto',    category:'Productos',   createdAt:'2026-06-20T07:55:00', messages:[{sender:'usuario',text:'El CSV falla en columna precio',time:'07:55'}] },
-  { id:'TKT-005', title:'Dominio no apunta a la tienda',       company:'Boutique Eleganza',   userEmail:'eleganza@moda.co',      priority:'Alta',  status:'En proceso', category:'Dominio',     createdAt:'2026-06-19T16:20:00', messages:[{sender:'usuario',text:'El dominio no carga',time:'16:20'},{sender:'soporte',text:'DNS tarda hasta 48h en propagarse.',time:'16:35'}] },
-];
 
 const PR_COLOR: Record<string,string> = { Alta:'#ef4444', Media:'#f59e0b', Baja:'#6b7280' };
 const ST_COLOR: Record<string,string> = { Abierto:'#00f2ff', 'En proceso':'#f59e0b', Resuelto:'#10b981' };
 const ST_ICON:  Record<string,any>    = { Abierto:<AlertTriangle size={9}/>, 'En proceso':<Clock size={9}/>, Resuelto:<CheckCircle2 size={9}/> };
 
 export default function SoportePage() {
-  const { showToast } = useToast();
-  const [tickets,  setTickets]  = useState<Ticket[]>(MOCK);
+  const { token }      = useAuth();
+  const { showToast }  = useToast();
+  const [tickets,  setTickets]  = useState<Ticket[]>([]);
+  const [loading,  setLoading]  = useState(false);
   const [search,   setSearch]   = useState('');
   const [filterSt, setFilterSt] = useState('');
   const [selected, setSelected] = useState<Ticket|null>(null);
   const [reply,    setReply]    = useState('');
+
+  const load = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/support/tickets`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) { const d = await res.json(); setTickets(Array.isArray(d) ? d : []); }
+    } catch {}
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Activa el overlay raíz de dashboard/layout.tsx (cubre TODO el viewport real
+  // y oculta sidebar/header) en vez de animar un backdrop oscuro local — evita
+  // la doble capa desincronizada. Mismo patrón que customers/products/web-templates.
+  useEffect(() => {
+    if (selected) {
+      document.body.classList.add('modal-open');
+      return () => { document.body.classList.remove('modal-open'); };
+    }
+  }, [selected]);
 
   const filtered = useMemo(() => tickets.filter(t => {
     const q = search.toLowerCase();
@@ -43,22 +61,48 @@ export default function SoportePage() {
       && (!filterSt || t.status === filterSt);
   }), [tickets, search, filterSt]);
 
-  const sendReply = () => {
-    if (!reply.trim() || !selected) return;
-    const msg = { sender: 'soporte' as const, text: reply, time: new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) };
-    const upd  = { ...selected, messages:[...selected.messages,msg], status: selected.status==='Abierto' ? 'En proceso' as const : selected.status };
-    setTickets(p => p.map(t => t.id===selected.id ? upd : t));
-    setSelected(upd);
-    setReply('');
-    showToast('Respuesta enviada','success');
+  const sendReply = async () => {
+    if (!reply.trim() || !selected || !token) return;
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/support/tickets/${selected.id}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text: reply }),
+      });
+      if (res.ok) {
+        const upd = await res.json();
+        setTickets(p => p.map(t => t.id===selected.id ? upd : t));
+        setSelected(upd);
+        setReply('');
+        showToast('Respuesta enviada','success');
+      } else {
+        showToast('No se pudo enviar la respuesta','error');
+      }
+    } catch {
+      showToast('No se pudo enviar la respuesta','error');
+    }
   };
 
-  const resolve = () => {
-    if (!selected) return;
-    const upd = { ...selected, status:'Resuelto' as const };
-    setTickets(p => p.map(t => t.id===selected.id ? upd : t));
-    setSelected(upd);
-    showToast('Ticket resuelto ✓','success');
+  const resolve = async () => {
+    if (!selected || !token) return;
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/support/tickets/${selected.id}/resolve`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const upd = await res.json();
+        setTickets(p => p.map(t => t.id===selected.id ? upd : t));
+        setSelected(upd);
+        showToast('Ticket resuelto ✓','success');
+      } else {
+        showToast('No se pudo resolver el ticket','error');
+      }
+    } catch {
+      showToast('No se pudo resolver el ticket','error');
+    }
   };
 
   return (
@@ -69,6 +113,10 @@ export default function SoportePage() {
           <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.25em] mb-2">Centro de soporte · Multi-tenant</p>
           <h1 className="text-4xl font-black text-white tracking-tight">Soporte</h1>
         </div>
+        <button onClick={load}
+          className="h-9 w-9 rounded-xl border border-white/8 bg-white/3 hover:bg-white/8 flex items-center justify-center text-white/30 hover:text-white/70 transition-all">
+          <RefreshCw size={13} className={loading ? 'animate-spin' : ''}/>
+        </button>
       </div>
 
       {/* KPIs */}
@@ -105,13 +153,19 @@ export default function SoportePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-[auto_2fr_1.5fr_1fr_1fr_1fr] gap-4 px-5 py-2.5 border-b border-white/[0.04]">
+        <div className="overflow-x-auto">
+        <div className="grid grid-cols-[auto_2fr_1.5fr_1fr_1fr_1fr] gap-4 px-5 py-2.5 border-b border-white/[0.04] min-w-[760px]">
           {['ID','Asunto','Empresa','Prioridad','Estado','Fecha'].map((h,i) => (
             <p key={i} className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">{h}</p>
           ))}
         </div>
 
-        <div className="divide-y divide-white/[0.04]">
+        <div className="divide-y divide-white/[0.04] min-w-[760px]">
+          {filtered.length === 0 && (
+            <div className="px-5 py-10 text-center text-[10px] text-white/20">
+              {tickets.length === 0 ? 'Aún no hay tickets de soporte' : 'Sin resultados para el filtro aplicado'}
+            </div>
+          )}
           {filtered.map(t => (
             <div key={t.id}
               className="grid grid-cols-[auto_2fr_1.5fr_1fr_1fr_1fr] gap-4 items-center px-5 py-3.5 hover:bg-white/[0.025] transition-all cursor-pointer"
@@ -132,15 +186,14 @@ export default function SoportePage() {
             </div>
           ))}
         </div>
+        </div>
       </div>
 
       {/* Drawer ticket */}
       <AnimatePresence>
         {selected && (
           <>
-            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
-              onClick={() => setSelected(null)}/>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setSelected(null)}/>
             <motion.div
               initial={{x:'100%'}} animate={{x:0}} exit={{x:'100%'}}
               transition={{type:'spring',damping:30,stiffness:300}}

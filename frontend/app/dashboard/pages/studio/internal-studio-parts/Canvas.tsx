@@ -7,6 +7,13 @@ import { useDroppable } from "@dnd-kit/core";
 import { DraggableCanvasElement } from "./CanvasElements";
 import { Lock, Unlock } from "lucide-react";
 import { CheckoutStudio } from "./CheckoutStudio";
+import { SimulatedStoreProvider } from "@/components/dashboard/studio/HighFidelityBlocks";
+
+const viewportWidths: Record<string, string> = {
+  desktop: "max-w-none",
+  tablet: "max-w-[768px] mx-auto",
+  mobile: "max-w-[390px] mx-auto",
+};
 
 const DroppableSection = ({ section, headerRef, children, activeSection, setActiveSection, isPreview = false }: any) => {
   const { setNodeRef, isOver } = useDroppable({ id: section, disabled: isPreview });
@@ -90,22 +97,26 @@ const InsertionPoint = ({ section, index }: any) => {
   );
 };
 
-export const Canvas = ({ 
-  overrideData = null, 
-  isPreview = false, 
-  initialProducts = null, 
+export const Canvas = ({
+  overrideData = null,
+  isPreview = false,
+  initialProducts = null,
   initialCategories = null,
   onOpenCart = null,
   onOpenLogin = null,
-  tenantId = null
-}: { 
-  overrideData?: any, 
-  isPreview?: boolean, 
-  initialProducts?: any[] | null, 
+  tenantId = null,
+  productId = null,
+  hideHeader = false
+}: {
+  overrideData?: any,
+  isPreview?: boolean,
+  initialProducts?: any[] | null,
   initialCategories?: any[] | null,
   onOpenCart?: (() => void) | null,
   onOpenLogin?: (() => void) | null,
-  tenantId?: string | null
+  tenantId?: string | null,
+  productId?: string | null,
+  hideHeader?: boolean
 }) => {
   const studio = useStudio();
   const { isLoading, activeSection, setActiveSection, selectElement, selectedElementId, removeElement, viewport, pageKey } = studio;
@@ -146,6 +157,14 @@ export const Canvas = ({
     fetchData();
   }, []);
 
+  // La identidad visual de la tienda (tipografia, acento, botones) se declara
+  // una sola vez en el navbar del header (architecture.json -> header.elements
+  // -> type "navbar" -> props.variant) y se propaga aqui a todos los bloques
+  // del header/body/footer. No se usa React Context para esto porque header,
+  // body y footer se renderizan como hermanos (no anidados) mas abajo, asi
+  // que un Context.Provider en el navbar no alcanzaria a sus hermanos.
+  const storeVariant: string | undefined = pageData?.header?.elements?.find((el: any) => el.type === "navbar")?.props?.variant;
+
   if (isLoading && !isPreview) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-gray-100 space-y-6">
@@ -181,12 +200,14 @@ export const Canvas = ({
               selectElement={selectElement} 
               setActiveSection={setActiveSection} 
               removeElement={removeElement} 
-              realCategories={realCategories} 
-              realProducts={realProducts} 
-              isPreview={isPreview} 
+              realCategories={realCategories}
+              realProducts={realProducts}
+              isPreview={isPreview}
               onOpenCart={onOpenCart}
               onOpenLogin={onOpenLogin}
               tenantId={tenantId}
+              productId={productId}
+              storeVariant={storeVariant}
             />
           </React.Fragment>
         ))}
@@ -199,9 +220,13 @@ export const Canvas = ({
     <div className={cn("flex-1 overflow-y-auto overflow-x-hidden scroll-smooth flex flex-col items-center", isPreview ? "bg-white p-0 w-full" : "bg-gray-100 p-8")}>
       <style>{` @keyframes marquee-loop { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } } .animate-marquee-loop { animation: marquee-loop 20s linear infinite; } `}</style>
       <div className={cn("w-full transition-all duration-500", !isPreview ? viewportWidths[viewport] : "max-w-none")}>
-        <DroppableSection section="header" headerRef={headerRef} activeSection={activeSection} setActiveSection={setActiveSection} isPreview={isPreview}>{renderElements("header")}</DroppableSection>
-        <DroppableSection section="body" headerRef={bodyRef} activeSection={activeSection} setActiveSection={setActiveSection} isPreview={isPreview}>{renderElements("body")}</DroppableSection>
-        <DroppableSection section="footer" headerRef={footerRef} activeSection={activeSection} setActiveSection={setActiveSection} isPreview={isPreview}>{renderElements("footer")}</DroppableSection>
+        <SimulatedStoreProvider>
+          {!hideHeader && (
+            <DroppableSection section="header" headerRef={headerRef} activeSection={activeSection} setActiveSection={setActiveSection} isPreview={isPreview}>{renderElements("header")}</DroppableSection>
+          )}
+          <DroppableSection section="body" headerRef={bodyRef} activeSection={activeSection} setActiveSection={setActiveSection} isPreview={isPreview}>{renderElements("body")}</DroppableSection>
+          <DroppableSection section="footer" headerRef={footerRef} activeSection={activeSection} setActiveSection={setActiveSection} isPreview={isPreview}>{renderElements("footer")}</DroppableSection>
+        </SimulatedStoreProvider>
       </div>
     </div>
   );

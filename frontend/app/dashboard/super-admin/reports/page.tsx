@@ -1,46 +1,47 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Download, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
 
 const fmtCOP = (n: number) => `$${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(n || 0)}`;
 
-const DATA: Record<string, any> = {
-  dia:    { rev: 2800000,   orders:38,   users:4,   companies:1,  delta:12 },
-  semana: { rev: 18500000,  orders:260,  users:22,  companies:3,  delta:8  },
-  mes:    { rev: 52800000,  orders:720,  users:89,  companies:8,  delta:16 },
-  año:    { rev: 344000000, orders:4968, users:580, companies:48, delta:34 },
-};
+interface Kpis { rev: number; com: number; orders: number; users: number; companies: number; delta: number; }
+interface TopRow { name: string; rev: number; pct: number; plan: string; }
+interface SectorRow { label: string; pct: number; color: string; }
+interface ActivityPoint { h: number; v: number; }
 
-const TOP = [
-  { name:'Electrónicos Futuro', rev:130000000, pct:38, plan:'Empresa' },
-  { name:'TechStore Colombia',  rev:90000000,  pct:26, plan:'Empresa' },
-  { name:'Distribuidora Omega', rev:62000000,  pct:18, plan:'Empresa' },
-  { name:'Moda Express SAS',    rev:35000000,  pct:10, plan:'Pro'     },
-  { name:'Boutique Eleganza',   rev:18000000,  pct:5,  plan:'Pro'     },
-  { name:'Otros',               rev:9000000,   pct:3,  plan:'—'       },
-];
-
-const SECTORS = [
-  { label:'Tecnología',   pct:42, color:'#00f2ff' },
-  { label:'Moda',         pct:24, color:'#7c3aed' },
-  { label:'Distribución', pct:18, color:'#10b981' },
-  { label:'Moda/Lujo',   pct:10, color:'#f59e0b'  },
-  { label:'Otros',        pct:6,  color:'#6b7280'  },
-];
-
-const ACTIVITY = Array.from({length:24}, (_,h) => ({
-  h,
-  v: h>=8&&h<=12 ? 0.5+Math.random()*0.5
-   : h>=14&&h<=19 ? 0.6+Math.random()*0.4
-   : h>=20&&h<=22 ? 0.2+Math.random()*0.3
-   : 0.03+Math.random()*0.12
-}));
+const EMPTY_KPIS: Kpis = { rev: 0, com: 0, orders: 0, users: 0, companies: 0, delta: 0 };
+const EMPTY_ACTIVITY: ActivityPoint[] = Array.from({ length: 24 }, (_, h) => ({ h, v: 0 }));
 
 export default function ReportsPage() {
+  const { token } = useAuth();
   const [period, setPeriod] = useState<'dia'|'semana'|'mes'|'año'>('mes');
-  const d = DATA[period];
+  const [d, setD] = useState<Kpis>(EMPTY_KPIS);
+  const [TOP, setTOP] = useState<TopRow[]>([]);
+  const [SECTORS, setSECTORS] = useState<SectorRow[]>([]);
+  const [ACTIVITY, setACTIVITY] = useState<ActivityPoint[]>(EMPTY_ACTIVITY);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/reports?period=${period}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        setD(data?.kpis || EMPTY_KPIS);
+        setTOP(data?.top || []);
+        setSECTORS(data?.sectors || []);
+        if (data?.activity?.length) setACTIVITY(data.activity);
+      }
+    } catch {}
+    setLoading(false);
+  }, [token, period]);
+
+  useEffect(() => { load(); }, [load]);
 
   return (
     <div className="space-y-6 pb-12">
@@ -74,8 +75,8 @@ export default function ReportsPage() {
           <div key={k.label} className="rounded-2xl border border-white/6 bg-white/[0.02] p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="h-2 w-2 rounded-full" style={{ backgroundColor: k.color }}/>
-              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[#10b981]/10 text-[#10b981] flex items-center gap-0.5">
-                <ArrowUpRight size={9}/>{d.delta}%
+              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5 ${d.delta < 0 ? 'bg-red-500/10 text-red-400' : 'bg-[#10b981]/10 text-[#10b981]'}`}>
+                {d.delta < 0 ? <ArrowDownRight size={9}/> : <ArrowUpRight size={9}/>}{Math.abs(d.delta)}%
               </span>
             </div>
             <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.15em] mb-1.5">{k.label}</p>
@@ -85,7 +86,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Dos columnas */}
-      <div className="grid grid-cols-[1.3fr_1fr] gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5">
 
         {/* Top empresas */}
         <div className="rounded-2xl border border-white/6 bg-white/[0.02] overflow-hidden">
@@ -93,6 +94,9 @@ export default function ReportsPage() {
             <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">Top empresas · {period}</p>
           </div>
           <div className="divide-y divide-white/[0.04]">
+            {TOP.length === 0 && (
+              <div className="px-5 py-8 text-center text-[10px] text-white/20">Sin ventas en este periodo</div>
+            )}
             {TOP.map((c,i) => (
               <div key={c.name} className="px-5 py-3.5 flex items-center gap-3 hover:bg-white/[0.025] transition-all">
                 <span className="text-[10px] font-black text-white/15 w-5 shrink-0">#{i+1}</span>
@@ -118,6 +122,9 @@ export default function ReportsPage() {
           <div className="rounded-2xl border border-white/6 bg-white/[0.02] p-5">
             <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-4">Por sector</p>
             <div className="space-y-3">
+              {SECTORS.length === 0 && (
+                <p className="text-[10px] text-white/20 text-center py-2">Sin datos en este periodo</p>
+              )}
               {SECTORS.map(s => (
                 <div key={s.label}>
                   <div className="flex justify-between mb-1.5">
@@ -136,8 +143,8 @@ export default function ReportsPage() {
 
           {/* Comisión */}
           <div className="rounded-2xl border border-[#00f2ff]/10 bg-[#00f2ff]/[0.03] p-5">
-            <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-3">Comisión Bayup (3%)</p>
-            <p className="text-3xl font-black text-[#00f2ff]/80">{fmtCOP(d.rev*0.03)}</p>
+            <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-3">Comisión Bayup</p>
+            <p className="text-3xl font-black text-[#00f2ff]/80">{fmtCOP(d.com)}</p>
             <p className="text-[10px] text-white/20 mt-1.5">sobre {fmtCOP(d.rev)} facturados · {period}</p>
           </div>
         </div>

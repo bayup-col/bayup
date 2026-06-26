@@ -1,16 +1,19 @@
 // Centralized API Client - Dynamic Base URL detection
 const getApiBaseUrl = () => {
-    const PRODUCTION_URL = "https://exciting-optimism-production-4624.up.railway.app";
-    
+    // Fallback solo si NEXT_PUBLIC_API_URL no está configurada en el entorno de despliegue
+    const PRODUCTION_URL = "https://bayup-backend.onrender.com";
+
     if (typeof window !== 'undefined') {
         const hostname = window.location.hostname;
         // Si es localhost o IP local, USAR SIEMPRE EL MOTOR LOCAL
         if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('192.168.')) {
             return 'http://localhost:8000';
         }
-        return PRODUCTION_URL;
+        // Cualquier otro dominio (producción, túneles de desarrollo, previews de Vercel):
+        // usar la variable de entorno configurada, y solo si falta, el fallback de producción.
+        return process.env.NEXT_PUBLIC_API_URL || PRODUCTION_URL;
     }
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    return process.env.NEXT_PUBLIC_API_URL || PRODUCTION_URL;
 };
 
 interface RequestOptions extends RequestInit {
@@ -65,14 +68,17 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
 // SERVICES
 export const userService = {
     getMe: (token: string) => apiRequest<any>('/auth/me', { token }),
-    getAll: (token: string) => apiRequest<any[]>('/admin/users', { token }),
-    create: (token: string, data: any) => 
-        apiRequest('/admin/users', { method: 'POST', token, body: JSON.stringify(data) }),
-    updateDetails: (token: string, data: any) => 
+    getAll: (token: string) => apiRequest<any[]>('/admin/staff', { token }),
+    create: (token: string, data: any) =>
+        apiRequest('/admin/staff', { method: 'POST', token, body: JSON.stringify(data) }),
+    updateDetails: (token: string, data: any) =>
         apiRequest('/admin/update-user', { method: 'POST', token, body: JSON.stringify(data) }),
     delete: (token: string, userId: string) =>
-        apiRequest(`/admin/users/${userId}`, { method: 'DELETE', token }),
+        apiRequest(`/admin/staff/${userId}`, { method: 'DELETE', token }),
     getLogs: (token: string) => apiRequest<any[]>('/admin/logs', { token }),
+    getRoles: (token: string) => apiRequest<any[]>('/admin/roles', { token }),
+    updateRole: (token: string, roleId: string, data: any) =>
+        apiRequest(`/admin/roles/${roleId}`, { method: 'PUT', token, body: JSON.stringify(data) }),
 };
 
 export const productService = {

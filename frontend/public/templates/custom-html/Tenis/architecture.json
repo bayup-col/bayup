@@ -2,7 +2,17 @@
   "id": "tpl-tenis",
   "name": "Urban Sneakers",
   "header": {
-    "elements": [{ "id": "t-nav", "type": "navbar", "props": { "logoText": "Urban Sneakers", "logoColor": "#000000" } }],
+    "elements": [
+      {
+        "id": "t-nav",
+        "type": "navbar",
+        "props": {
+          "variant": "streetwear",
+          "logoText": "Urban Sneakers",
+          "logoColor": "#000000"
+        }
+      }
+    ],
     "styles": {}
   },
   "body": {
@@ -18,18 +28,89 @@
           "primaryBtnText": "Ver Drops"
         }
       },
-      { "id": "t-cats", "type": "categories-grid", "props": { "title": "Marcas Top", "items": [
-        { "label": "Basketball", "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800" },
-        { "label": "Running", "image": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?q=80&w=800" },
-        { "label": "Lifestyle", "image": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=800" },
-        { "label": "Ediciones", "image": "https://images.unsplash.com/photo-1584735175315-9d5df23860e6?q=80&w=800" }
-      ]}},
-      { "id": "t-products", "type": "product-grid", "props": { "title": "Últimos Lanzamientos" } }
+      {
+        "id": "tenis-heritage",
+        "type": "text-block-premium",
+        "props": {
+          "title": "Nuestra Historia",
+          "subtitle": "Cultura sneaker desde la calle",
+          "content": "Urban Sneakers nació en la calle y para la calle. Somos el destino de quienes viven la cultura sneaker, con ediciones limitadas y lanzamientos que marcan tendencia en moda urbana."
+        }
+      },
+      {
+        "id": "t-cats",
+        "type": "categories-grid",
+        "props": {
+          "title": "Marcas Top",
+          "items": [
+            {
+              "label": "Basketball",
+              "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800"
+            },
+            {
+              "label": "Running",
+              "image": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?q=80&w=800"
+            },
+            {
+              "label": "Lifestyle",
+              "image": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=800"
+            },
+            {
+              "label": "Ediciones",
+              "image": "https://images.unsplash.com/photo-1584735175315-9d5df23860e6?q=80&w=800"
+            }
+          ]
+        }
+      },
+      {
+        "id": "t-products",
+        "type": "product-grid",
+        "props": {
+          "title": "Últimos Lanzamientos",
+          "products": [
+            {
+              "name": "Air Runner Pro",
+              "category": "Running",
+              "price": "420.000",
+              "image": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?q=80&w=800"
+            },
+            {
+              "name": "Court Classic High",
+              "category": "Basketball",
+              "price": "385.000",
+              "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800"
+            },
+            {
+              "name": "Street Edition Limitada",
+              "category": "Ediciones",
+              "price": "590.000",
+              "image": "https://images.unsplash.com/photo-1584735175315-9d5df23860e6?q=80&w=800"
+            }
+          ]
+        }
+      },
+      {
+        "id": "tenis-contact",
+        "type": "contact-form",
+        "props": {
+          "badge": "CONTACTO",
+          "title": "Hablemos de tu próximo par"
+        }
+      }
     ],
     "styles": {}
   },
   "footer": {
-    "elements": [{ "id": "t-footer", "type": "footer-premium", "props": { "logoText": "Urban Sneakers", "description": "Tu destino número uno para la cultura sneaker y moda urbana." } }],
+    "elements": [
+      {
+        "id": "t-footer",
+        "type": "footer-premium",
+        "props": {
+          "logoText": "Urban Sneakers",
+          "description": "Tu destino número uno para la cultura sneaker y moda urbana."
+        }
+      }
+    ],
     "styles": {}
   }
 }

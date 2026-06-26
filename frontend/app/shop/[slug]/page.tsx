@@ -202,28 +202,31 @@ function ShopContent() {
                 const res = await fetch(`${apiBase}/public/shop/${slug}`);
                 if (res.ok) {
                     const data = await res.json();
-                    
-                    // 2. Cargamos productos reales de esta tienda
-                    try {
-                        const prodRes = await fetch(`${apiBase}/public/stores/${data.id}/products`);
-                        if (prodRes.ok) {
-                            data.products = await prodRes.json();
-                        }
-                    } catch (e) { console.error("Error cargando productos", e); }
 
-                    // 3. Cargamos el diseño publicado para la VISTA ACTUAL
-                    try {
-                        const pageRes = await fetch(`${apiBase}/public/stores/${data.id}/pages/${view}`);
-                        if (pageRes.ok) {
-                            const pageData = await pageRes.json();
-                            if (pageData && pageData.schema_data) {
-                                data.custom_schema = pageData.schema_data;
-                            }
+                    // 2 y 3. Productos y diseño publicado solo dependen del id de la
+                    // tienda (no uno del otro), asi que se piden en paralelo en vez
+                    // de en cascada — reduce a la mitad el tiempo hasta que la
+                    // tienda publica se ve completa.
+                    const [prodResult, pageResult] = await Promise.allSettled([
+                        fetch(`${apiBase}/public/stores/${data.id}/products`),
+                        fetch(`${apiBase}/public/stores/${data.id}/pages/${view}`),
+                    ]);
+
+                    if (prodResult.status === 'fulfilled' && prodResult.value.ok) {
+                        data.products = await prodResult.value.json();
+                    } else if (prodResult.status === 'rejected') {
+                        console.error("Error cargando productos", prodResult.reason);
+                    }
+
+                    if (pageResult.status === 'fulfilled' && pageResult.value.ok) {
+                        const pageData = await pageResult.value.json();
+                        if (pageData && pageData.schema_data) {
+                            data.custom_schema = pageData.schema_data;
                         }
-                    } catch (e) {
+                    } else if (pageResult.status === 'rejected') {
                         console.warn(`Diseño para vista ${view} no publicado.`);
                     }
-                    
+
                     setShopData(data);
                 }
             } catch (error) {
@@ -254,12 +257,15 @@ function ShopContent() {
         <div className="min-h-screen bg-[#FAFAFA] text-slate-900 font-sans selection:bg-[#00f2ff] selection:text-black relative">
             
             {/* --- NAVEGACIÓN UNIVERSAL --- */}
-            <motion.nav style={{ backgroundColor: navBg }} className="fixed top-0 w-full z-[1000] border-b border-white/10 backdrop-blur-md h-24 flex items-center px-6">
+            <motion.nav style={{ backgroundColor: navBg }} className="fixed top-0 w-full z-[1000] border-b border-white/10 backdrop-blur-md h-20 lg:h-24 flex items-center px-4 lg:px-6">
                 <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
-                    <div className="flex items-center gap-10">
-                        <div onClick={() => router.push(`/shop/${slug}`)} className="flex items-center gap-3 cursor-pointer">
-                            <div className="h-10 w-10 bg-[#004d4d] rounded-xl flex items-center justify-center text-[#00f2ff] font-black">{shopData.full_name?.charAt(0) || 'B'}</div>
-                            <h1 className="text-xl font-black italic uppercase tracking-tighter">{shopData.full_name}</h1>
+                    <div className="flex items-center gap-4 lg:gap-10 min-w-0">
+                        <button onClick={() => setIsMenuOpen(o => !o)} className="lg:hidden h-10 w-10 -ml-2 rounded-xl flex items-center justify-center text-gray-700 shrink-0">
+                            {isMenuOpen ? <X size={20}/> : <Menu size={20}/>}
+                        </button>
+                        <div onClick={() => router.push(`/shop/${slug}`)} className="flex items-center gap-3 cursor-pointer min-w-0">
+                            <div className="h-9 w-9 lg:h-10 lg:w-10 bg-[#004d4d] rounded-xl flex items-center justify-center text-[#00f2ff] font-black shrink-0">{shopData.full_name?.charAt(0) || 'B'}</div>
+                            <h1 className="text-base lg:text-xl font-black italic uppercase tracking-tighter truncate">{shopData.full_name}</h1>
                         </div>
                         <nav className="hidden lg:flex items-center gap-8">
                             <button onClick={() => router.push(`/shop/${slug}?view=home`)} className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${view === 'home' ? 'text-[#004d4d]' : 'text-gray-400 hover:text-black'}`}>Inicio</button>
@@ -267,18 +273,40 @@ function ShopContent() {
                             <button onClick={() => router.push(`/shop/${slug}?view=about`)} className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${view === 'about' ? 'text-[#004d4d]' : 'text-gray-400 hover:text-black'}`}>Nosotros</button>
                         </nav>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 lg:gap-4 shrink-0">
                         <div className="hidden md:flex items-center bg-gray-100 rounded-2xl px-4 h-12">
                             <Search size={16} className="text-gray-400" />
                             <input value={searchTerm} onChange={e => { setSearchTerm(e.target.value); if(view !== 'catalog') router.push(`/shop/${slug}?view=catalog`); }} placeholder="Buscar producto..." className="bg-transparent border-none outline-none px-3 text-sm font-bold w-40 focus:w-60 transition-all" />
                         </div>
-                        <button onClick={() => setIsCartOpen(true)} className="h-14 w-14 rounded-2xl bg-[#004d4d] text-[#00f2ff] flex items-center justify-center shadow-lg relative active:scale-90 transition-all">
-                            <ShoppingBag size={24} />
+                        <button onClick={() => setIsCartOpen(true)} className="h-11 w-11 lg:h-14 lg:w-14 rounded-2xl bg-[#004d4d] text-[#00f2ff] flex items-center justify-center shadow-lg relative active:scale-90 transition-all">
+                            <ShoppingBag size={20} className="lg:hidden" />
+                            <ShoppingBag size={24} className="hidden lg:block" />
                             {cart.length > 0 && <span className="absolute -top-2 -right-2 h-6 w-6 bg-[#00f2ff] text-[#004d4d] text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">{cart.length}</span>}
                         </button>
                     </div>
                 </div>
             </motion.nav>
+
+            {/* --- MENÚ MÓVIL --- */}
+            <AnimatePresence>
+                {isMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                        className="lg:hidden fixed top-20 left-0 w-full z-[999] bg-white border-b border-gray-100 shadow-xl px-6 py-6 space-y-4"
+                    >
+                        <div className="flex items-center bg-gray-100 rounded-2xl px-4 h-12">
+                            <Search size={16} className="text-gray-400" />
+                            <input value={searchTerm} onChange={e => { setSearchTerm(e.target.value); if(view !== 'catalog') router.push(`/shop/${slug}?view=catalog`); }} placeholder="Buscar producto..." className="bg-transparent border-none outline-none px-3 text-sm font-bold w-full" />
+                        </div>
+                        {[['home','Inicio'],['catalog','Catálogo'],['about','Nosotros']].map(([v, label]) => (
+                            <button key={v} onClick={() => { router.push(`/shop/${slug}?view=${v}`); setIsMenuOpen(false); }}
+                                className={`w-full text-left py-3 text-sm font-black uppercase tracking-widest transition-colors ${view === v ? 'text-[#004d4d]' : 'text-gray-400'}`}>
+                                {label}
+                            </button>
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* --- PANEL DE FILTROS (GLASSMORPHISM) --- */}
             <AnimatePresence>
@@ -308,20 +336,71 @@ function ShopContent() {
             </AnimatePresence>
 
             {/* --- MOTOR DE RENDERIZADO (STUDIO VS DEFAULT) --- */}
-            <main className="pt-24 min-h-screen">
+            <main className="pt-20 lg:pt-24 min-h-screen">
                 {shopData.custom_schema ? (
                     <StudioProvider>
-                        <Canvas 
-                            overrideData={shopData.custom_schema} 
-                            isPreview={true} 
+                        <Canvas
+                            overrideData={shopData.custom_schema}
+                            isPreview={true}
                             initialProducts={shopData.products}
                             initialCategories={shopData.categories}
                             onOpenCart={() => setIsCartOpen(true)}
                             tenantId={shopData.owner_id}
+                            productId={productId}
+                            hideHeader
                         />
                     </StudioProvider>
                 ) : (
-                    view === 'catalog' ? (
+                    view === 'home' ? (
+                        <section className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                            <div className="max-w-7xl mx-auto px-6 py-24 text-center">
+                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#004d4d] mb-4">{shopData.category || 'Tienda Bayup'}</p>
+                                <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none">{shopData.full_name}</h1>
+                                <p className="text-gray-400 mt-6 font-medium text-lg max-w-xl mx-auto">Descubre nuestra selección de productos, pensados para ti.</p>
+                                <button onClick={() => router.push(`/shop/${slug}?view=catalog`)} className="mt-10 inline-flex items-center gap-3 px-10 py-5 bg-gray-900 text-[#00f2ff] rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-2xl hover:bg-black hover:-translate-y-1 transition-all">Ver Catálogo <ArrowRight size={16}/></button>
+                            </div>
+                            {(shopData.products || []).length > 0 && (
+                                <div className="max-w-7xl mx-auto px-6 pb-24">
+                                    <h2 className="text-2xl font-black uppercase tracking-tighter mb-8">Destacados</h2>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+                                        {(shopData.products || []).slice(0, 4).map((product: any) => (
+                                            <div key={product.id} onClick={() => router.push(`/shop/${slug}?view=product&id=${product.id}`)} className="bg-white rounded-[3.5rem] p-5 border border-gray-100 shadow-sm group cursor-pointer hover:shadow-2xl transition-all duration-500">
+                                                <div className="aspect-[4/5] bg-gray-50 rounded-[2.8rem] mb-8 overflow-hidden relative">
+                                                    <img src={Array.isArray(product.image_url) ? product.image_url[0] : product.image_url} loading="lazy" decoding="async" className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                                </div>
+                                                <div className="px-2 space-y-2">
+                                                    <h4 className="text-xl font-black text-gray-900 uppercase tracking-tighter leading-tight line-clamp-1">{product.name}</h4>
+                                                    <p className="text-2xl font-black text-[#004d4d] tracking-tighter">${Number(product.price).toLocaleString()}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </section>
+                    ) : view === 'about' ? (
+                        <section className="max-w-3xl mx-auto px-6 py-24 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#004d4d] mb-4">Sobre Nosotros</p>
+                            <h1 className="text-4xl md:text-5xl font-black italic tracking-tighter uppercase leading-tight">{shopData.full_name}</h1>
+                            <p className="text-gray-500 mt-6 font-medium text-lg leading-relaxed">
+                                {shopData.category ? `Somos una tienda especializada en ${shopData.category}.` : 'Bienvenido a nuestra tienda.'} Trabajamos para ofrecerte productos de calidad y una experiencia de compra confiable.
+                            </p>
+                            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                {shopData.hours && (
+                                    <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
+                                        <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2">Horario</p>
+                                        <p className="text-sm font-bold text-gray-900">{shopData.hours}</p>
+                                    </div>
+                                )}
+                                {shopData.phone && (
+                                    <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
+                                        <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2">Contacto</p>
+                                        <p className="text-sm font-bold text-gray-900">{shopData.phone}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+                    ) : view === 'catalog' ? (
                         <section className="max-w-7xl mx-auto px-6 py-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
                             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
                                 <div>
@@ -334,7 +413,7 @@ function ShopContent() {
                                 {filteredProducts.map((product: any) => (
                                     <div key={product.id} onClick={() => router.push(`/shop/${slug}?view=product&id=${product.id}`)} className="bg-white rounded-[3.5rem] p-5 border border-gray-100 shadow-sm group cursor-pointer hover:shadow-2xl transition-all duration-500">
                                         <div className="aspect-[4/5] bg-gray-50 rounded-[2.8rem] mb-8 overflow-hidden relative">
-                                            <img src={Array.isArray(product.image_url) ? product.image_url[0] : product.image_url} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                            <img src={Array.isArray(product.image_url) ? product.image_url[0] : product.image_url} loading="lazy" decoding="async" className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                                             <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity"><div className="h-12 w-12 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg"><Eye size={20} className="text-[#004d4d]"/></div></div>
                                         </div>
                                         <div className="px-2 space-y-2">
@@ -401,15 +480,15 @@ function ShopContent() {
                 {isCheckoutOpen && (
                     <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCheckoutOpen(false)} className="absolute inset-0 bg-[#001A1A]/90 backdrop-blur-xl" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="relative bg-white w-full max-w-xl rounded-[4rem] shadow-3xl p-12 overflow-hidden border border-white/20">
-                            <h3 className="text-3xl font-black italic uppercase tracking-tighter text-[#001A1A] mb-8">Información de <span className="text-[#004d4d]">Envío</span></h3>
-                            <form onSubmit={handlePlaceOrder} className="space-y-6">
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 40 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="relative bg-white w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-[2rem] sm:rounded-[4rem] shadow-3xl p-6 sm:p-12 border border-white/20">
+                            <h3 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-[#001A1A] mb-8">Información de <span className="text-[#004d4d]">Envío</span></h3>
+                            <form onSubmit={handlePlaceOrder} className="space-y-4 sm:space-y-6">
                                 <input required placeholder="Nombre Completo" value={customerData.name} onChange={e => setCustomerData({...customerData, name: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <input required placeholder="WhatsApp" maxLength={10} value={customerData.phone} onChange={e => setCustomerData({...customerData, phone: e.target.value.replace(/\D/g,'')})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
                                     <input required type="email" placeholder="Email" value={customerData.email} onChange={e => setCustomerData({...customerData, email: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <input required placeholder="Dirección" value={customerData.address} onChange={e => setCustomerData({...customerData, address: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
                                     <input required placeholder="Ciudad" value={customerData.city} onChange={e => setCustomerData({...customerData, city: e.target.value})} className="w-full p-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-[#004d4d] outline-none text-sm font-bold shadow-inner" />
                                 </div>

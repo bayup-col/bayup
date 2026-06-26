@@ -5,8 +5,8 @@ import crud, schemas, security
 def create_user():
     db = SessionLocal()
     email = "sebas@sebas.com"
-    password = "123" # O la contraseña que tú desees, usaré esta de ejemplo
-    
+    password = security.generate_random_password()
+
     # Verificar si ya existe
     existing_user = crud.get_user_by_email(db, email=email)
     if existing_user:
@@ -27,7 +27,7 @@ def create_user():
     user.role = "admin_tienda"
     db.commit()
     
-    print(f"User {email} created successfully with Store Admin role.")
+    print(f"User {email} created successfully with Store Admin role. Password: {password}")
     db.close()
 
 if __name__ == "__main__":

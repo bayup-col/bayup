@@ -1,7 +1,123 @@
 {
   "id": "tpl-lenceria",
   "name": "Intimate Elegance",
-  "header": { "elements": [{"type": "navbar", "props": {"logoText": "INTIMATE", "logoColor": "#4c1d95"}}], "styles": {} },
-  "body": { "elements": [{"type": "hero-banner", "props": {"title": "Elegancia Íntima", "primaryBtnBgColor": "#4c1d95"}}] },
-  "footer": { "elements": [{"type": "footer-premium", "props": {"bgColor": "#2e1065"}}], "styles": {} }
+  "header": {
+    "elements": [
+      {
+        "id": "len-nav",
+        "type": "navbar",
+        "props": {
+          "variant": "intimate",
+          "logoText": "Intimate",
+          "logoColor": "#4c1d95",
+          "menuItems": [
+            "Novedades",
+            "Conjuntos",
+            "Pijamas",
+            "Ofertas"
+          ]
+        }
+      }
+    ],
+    "styles": {}
+  },
+  "body": {
+    "elements": [
+      {
+        "id": "len-hero",
+        "type": "hero-banner",
+        "props": {
+          "badge": "Colección Privée",
+          "title": "Elegancia Íntima",
+          "subtitle": "Piezas delicadas diseñadas para realzar tu confianza, con materiales suaves y un ajuste perfecto.",
+          "imageUrl": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=2000",
+          "primaryBtnText": "Ver Colección",
+          "primaryBtnBgColor": "#4c1d95"
+        }
+      },
+      {
+        "id": "lenceria-heritage",
+        "type": "text-block-premium",
+        "props": {
+          "title": "Nuestra Historia",
+          "subtitle": "Comodidad y estilo, todos los días",
+          "content": "Intimate Elegance diseña piezas delicadas pensadas para acompañarte con comodidad y estilo en cada día. Creemos que la elegancia íntima no debería ser un lujo ocasional, sino una experiencia diaria."
+        }
+      },
+      {
+        "id": "len-cats",
+        "type": "categories-grid",
+        "props": {
+          "title": "Nuestras Colecciones",
+          "items": [
+            {
+              "label": "Conjuntos",
+              "sub": "Encaje y delicadeza",
+              "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800"
+            },
+            {
+              "label": "Pijamas",
+              "sub": "Comodidad y estilo",
+              "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800"
+            },
+            {
+              "label": "Básicos",
+              "sub": "Esenciales de todos los días",
+              "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800"
+            }
+          ]
+        }
+      },
+      {
+        "id": "len-products",
+        "type": "product-grid",
+        "props": {
+          "title": "Novedades",
+          "products": [
+            {
+              "name": "Conjunto Encaje Francés",
+              "category": "Conjuntos",
+              "price": "129.000",
+              "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800"
+            },
+            {
+              "name": "Pijama Satín Premium",
+              "category": "Pijamas",
+              "price": "98.000",
+              "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800"
+            },
+            {
+              "name": "Body Lencero Elegance",
+              "category": "Básicos",
+              "price": "75.000",
+              "image": "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?q=80&w=800"
+            }
+          ]
+        }
+      },
+      {
+        "id": "lenceria-contact",
+        "type": "contact-form",
+        "props": {
+          "badge": "CONTACTO",
+          "title": "Hablemos de tu próxima colección"
+        }
+      }
+    ],
+    "styles": {}
+  },
+  "footer": {
+    "elements": [
+      {
+        "id": "len-footer",
+        "type": "footer-premium",
+        "props": {
+          "logoText": "Intimate Elegance",
+          "description": "Diseños delicados pensados para acompañarte con comodidad y estilo, todos los días.",
+          "bgColor": "#2e1065"
+        }
+      }
+    ],
+    "styles": {}
+  }
 }

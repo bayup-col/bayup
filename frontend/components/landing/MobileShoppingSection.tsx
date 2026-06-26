@@ -35,8 +35,8 @@ export const MobileShoppingSection = () => {
 
   return (
     <section className="py-20 md:py-40 bg-surface relative overflow-hidden isolate shadow-inner">
-      <div className="absolute top-1/2 left-1/4 w-[700px] h-[700px] bg-petroleum/10 rounded-full blur-[180px] -z-10 animate-pulse" />
-      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-cyan/5 rounded-full blur-[150px] -z-10" />
+      <div className="absolute top-1/2 left-1/4 w-[700px] h-[700px] bg-petroleum/10 rounded-full blur-[60px] -z-10 animate-pulse" />
+      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-cyan/5 rounded-full blur-[50px] -z-10" />
 
       {/* ... (Imagen de fondo sorpresa se mantiene igual) */}
       <motion.div
@@ -86,8 +86,8 @@ export const MobileShoppingSection = () => {
             className="w-full max-w-5xl mx-auto mt-16 p-6 md:p-16 rounded-[3rem] md:rounded-[4rem] bg-white/10 backdrop-blur-2xl border border-white/20 shadow-[0_80px_150px_-30px_rgba(0,0,0,0.3)] relative overflow-hidden group/table"
           >
             {/* Background Aura Glow */}
-            <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan/10 rounded-full blur-[100px] pointer-events-none" />
-            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-petroleum/10 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan/10 rounded-full blur-[40px] pointer-events-none" />
+            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-petroleum/10 rounded-full blur-[40px] pointer-events-none" />
 
             <div className="w-full">
               {/* Header de la Tabla */}

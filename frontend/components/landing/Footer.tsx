@@ -60,7 +60,7 @@ export const Footer = () => {
     <footer className="py-24 bg-[#0A0A0B] relative overflow-hidden isolate shadow-2xl">
       {/* Efecto de Reflejo y Profundidad (Verde Petróleo) */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-cyan/30 to-transparent" />
-      <div className="absolute top-0 left-1/4 w-[600px] h-[300px] bg-petroleum/20 rounded-full blur-[120px] -z-10 opacity-50" />
+      <div className="absolute top-0 left-1/4 w-[600px] h-[300px] bg-petroleum/20 rounded-full blur-[48px] -z-10 opacity-50" />
       
       <div className="container mx-auto px-6 md:px-12 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-16 mb-16 md:mb-24">
@@ -128,7 +128,7 @@ export const Footer = () => {
       </div>
 
       {/* Brillo decorativo final */}
-      <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-petroleum/10 rounded-full blur-[150px]" />
+      <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-petroleum/10 rounded-full blur-[50px]" />
     </footer>
   );
 };

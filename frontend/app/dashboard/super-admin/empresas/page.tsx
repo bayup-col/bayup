@@ -3,12 +3,13 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
+import { useSuperAdminTheme } from "@/context/super-admin-theme-context";
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2, Search, X, Eye, RefreshCw, Globe,
   DollarSign, Phone, Mail, MapPin, Store, Copy,
   Ban, Play, Calendar, TrendingUp, ChevronRight,
-  Filter, Users, ShoppingCart
+  Filter, Users, ShoppingCart, Trash2, AlertTriangle, Loader2
 } from 'lucide-react';
 
 const fmtCOP  = (n: number) => `$${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(n || 0)}`;
@@ -25,22 +26,15 @@ interface Company {
   stats?: { total_sales: number; total_products: number; total_orders: number };
 }
 
-const MOCK: Company[] = [
-  { id:'1', full_name:'Moda Express SAS',      email:'info@modaexpress.co',   status:'Activo',     created_at:'2024-03-12', phone:'+57 300 123 4567', city:'Bogotá',       shop_slug:'moda-express',         plan:{name:'Pro',     price:149000}, stats:{total_sales:18500000, total_products:124, total_orders:340} },
-  { id:'2', full_name:'TechStore Colombia',    email:'ventas@techstore.co',   status:'Activo',     created_at:'2024-05-01', phone:'+57 315 987 6543', city:'Medellín',     shop_slug:'techstore-co',          plan:{name:'Empresa', price:299000}, stats:{total_sales:52000000, total_products:87,  total_orders:890} },
-  { id:'3', full_name:'Panadería La Delicia',  email:'pedidos@ladelicia.co',  status:'Activo',     created_at:'2024-07-20', city:'Cali',              shop_slug:'la-delicia',           plan:{name:'Free'},              stats:{total_sales:1200000,  total_products:22,  total_orders:65}  },
-  { id:'4', full_name:'Ferretería El Martillo',email:'ferrreteria@elm.co',    status:'Suspendido', created_at:'2024-01-10', city:'Barranquilla',      shop_slug:'el-martillo',           plan:{name:'Básico',price:79000},  stats:{total_sales:0,         total_products:310, total_orders:0}   },
-  { id:'5', full_name:'Papelería Creativa',    email:'hola@papeleria.co',     status:'Activo',     created_at:'2024-11-03', city:'Bucaramanga',       shop_slug:'papeleria-creativa',    plan:{name:'Pro',     price:149000}, stats:{total_sales:7300000,  total_products:58,  total_orders:142} },
-  { id:'6', full_name:'Distribuidora Omega',   email:'omega@distribuidora.co',status:'Activo',     created_at:'2025-01-15', city:'Pereira',           shop_slug:'distribuidora-omega',   plan:{name:'Empresa', price:299000}, stats:{total_sales:31000000, total_products:440, total_orders:520} },
-  { id:'7', full_name:'Boutique Eleganza',     email:'eleganza@moda.co',      status:'Activo',     created_at:'2025-03-08', city:'Cartagena',         shop_slug:'eleganza-boutique',     plan:{name:'Pro',     price:149000}, stats:{total_sales:9800000,  total_products:63,  total_orders:210} },
-  { id:'8', full_name:'Electrónicos Futuro',   email:'futuro@electr.co',      status:'Activo',     created_at:'2025-05-20', city:'Bogotá',            shop_slug:'electronicos-futuro',   plan:{name:'Empresa', price:299000}, stats:{total_sales:74000000, total_products:198, total_orders:1240}},
-];
+const AVATAR_COLORS_DARK  = ['#004d4d','#1e1b4b','#14532d','#7c2d12','#1e3a5f'];
+const AVATAR_COLORS_LIGHT = ['#0d9488','#4f46e5','#16a34a','#ea580c','#2563eb'];
 
 function Avatar({ name, size = 8 }: { name: string; size?: number }) {
-  const colors = ['#004d4d','#1e1b4b','#14532d','#7c2d12','#1e3a5f'];
+  const { saTheme } = useSuperAdminTheme();
+  const colors = saTheme === 'light' ? AVATAR_COLORS_LIGHT : AVATAR_COLORS_DARK;
   const idx = name.charCodeAt(0) % colors.length;
   return (
-    <div className={`h-${size} w-${size} rounded-xl flex items-center justify-center shrink-0 text-white font-black text-sm`}
+    <div className={`h-${size} w-${size} rounded-xl flex items-center justify-center shrink-0 text-white font-black text-sm shadow-sm`}
       style={{ backgroundColor: colors[idx] }}>
       {name.charAt(0).toUpperCase()}
     </div>
@@ -50,11 +44,15 @@ function Avatar({ name, size = 8 }: { name: string; size?: number }) {
 export default function EmpresasPage() {
   const { token }     = useAuth();
   const { showToast } = useToast();
-  const [companies,  setCompanies]  = useState<Company[]>(MOCK);
+  const [companies,  setCompanies]  = useState<Company[]>([]);
   const [loading,    setLoading]    = useState(false);
   const [search,     setSearch]     = useState('');
   const [filterPlan, setFilterPlan] = useState('');
   const [selected,   setSelected]   = useState<Company | null>(null);
+  const [isToggling, setIsToggling] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Company | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -62,12 +60,25 @@ export default function EmpresasPage() {
     try {
       const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const res  = await fetch(`${base}/super-admin/companies`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) { const d = await res.json(); if (d?.length) setCompanies(d); }
+      if (res.ok) { const d = await res.json(); setCompanies(Array.isArray(d) ? d : []); }
     } catch {}
     setLoading(false);
   }, [token]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Activa el overlay raíz de dashboard/layout.tsx (cubre TODO el viewport real
+  // y oculta sidebar/header) en vez de animar un backdrop oscuro local — evita
+  // la doble capa desincronizada. Mismo patrón que customers/products/web-templates.
+  // El modal de confirmación de borrado (deleteTarget) se apila SOBRE el drawer
+  // ya oscurecido por el overlay raíz, por eso conserva su propio backdrop más
+  // oscuro (bg-black/70) — es una jerarquía de 2 capas válida, no redundancia.
+  useEffect(() => {
+    if (selected || deleteTarget) {
+      document.body.classList.add('modal-open');
+      return () => { document.body.classList.remove('modal-open'); };
+    }
+  }, [selected, deleteTarget]);
 
   const filtered = useMemo(() => companies.filter(c => {
     const q = search.toLowerCase();
@@ -78,11 +89,51 @@ export default function EmpresasPage() {
   const totalRev  = useMemo(() => companies.reduce((a,c) => a + (c.stats?.total_sales||0), 0), [companies]);
   const activeCount = companies.filter(c => c.status === 'Activo').length;
 
-  const toggle = (c: Company) => {
-    const s = c.status === 'Activo' ? 'Suspendido' : 'Activo';
-    setCompanies(p => p.map(x => x.id===c.id ? {...x,status:s} : x));
-    setSelected(p => p?.id===c.id ? {...p,status:s} : p);
-    showToast(s === 'Activo' ? 'Empresa reactivada' : 'Empresa suspendida', s==='Activo'?'success':'error');
+  const toggle = async (c: Company) => {
+    if (!token || isToggling) return;
+    setIsToggling(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/companies/${c.id}/suspend`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const { status } = await res.json();
+        setCompanies(p => p.map(x => x.id === c.id ? { ...x, status } : x));
+        setSelected(p => p?.id === c.id ? { ...p, status } : p);
+        showToast(status === 'Activo' ? 'Empresa reactivada' : 'Empresa suspendida — su tienda pública ya no es accesible', status === 'Activo' ? 'success' : 'info');
+      } else {
+        showToast('No se pudo cambiar el estado', 'error');
+      }
+    } catch {
+      showToast('No se pudo cambiar el estado', 'error');
+    }
+    setIsToggling(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!token || !deleteTarget || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/companies/${deleteTarget.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setCompanies(p => p.filter(x => x.id !== deleteTarget.id));
+        showToast('Empresa eliminada permanentemente', 'success');
+        setDeleteTarget(null);
+        setDeleteConfirmText('');
+        setSelected(null);
+      } else {
+        showToast('No se pudo eliminar la empresa', 'error');
+      }
+    } catch {
+      showToast('No se pudo eliminar la empresa', 'error');
+    }
+    setIsDeleting(false);
   };
 
   return (
@@ -143,14 +194,20 @@ export default function EmpresasPage() {
         </div>
 
         {/* Cabeceras */}
-        <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_40px] gap-4 px-5 py-2.5 border-b border-white/[0.04]">
+        <div className="overflow-x-auto">
+        <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_1fr_40px] gap-4 px-5 py-2.5 border-b border-white/[0.04] min-w-[820px]">
           {['Empresa','Contacto','Plan','Ventas','Estado','Registro',''].map((h,i) => (
             <p key={i} className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">{h}</p>
           ))}
         </div>
 
         {/* Filas */}
-        <div className="divide-y divide-white/[0.04]">
+        <div className="divide-y divide-white/[0.04] min-w-[820px]">
+          {filtered.length === 0 && (
+            <div className="px-5 py-10 text-center text-[10px] text-white/20">
+              {companies.length === 0 ? 'Aún no hay empresas registradas' : 'Sin resultados para el filtro aplicado'}
+            </div>
+          )}
           {filtered.map(c => {
             const planColor = PLAN_COLORS[c.plan?.name||'Free']||'#6b7280';
             const isActive  = c.status === 'Activo';
@@ -193,6 +250,7 @@ export default function EmpresasPage() {
             );
           })}
         </div>
+        </div>
 
         {filtered.length > 0 && (
           <div className="px-5 py-3 border-t border-white/[0.04] flex justify-between">
@@ -206,9 +264,7 @@ export default function EmpresasPage() {
       <AnimatePresence>
         {selected && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
-              onClick={() => setSelected(null)}/>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setSelected(null)}/>
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
@@ -292,17 +348,64 @@ export default function EmpresasPage() {
                     <Globe size={12}/> Ver tienda pública
                   </button>
                 )}
-                <button onClick={() => toggle(selected)}
-                  className={`w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${
+                <button onClick={() => toggle(selected)} disabled={isToggling}
+                  className={`w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border disabled:opacity-50 ${
                     selected.status === 'Activo'
                       ? 'border-red-500/15 text-red-400/60 hover:bg-red-500/8 hover:text-red-400'
                       : 'border-emerald-500/15 text-emerald-400/60 hover:bg-emerald-500/8 hover:text-emerald-400'
                   }`}>
-                  {selected.status === 'Activo' ? <><Ban size={12}/>Suspender</> : <><Play size={12}/>Reactivar</>}
+                  {isToggling ? <Loader2 size={12} className="animate-spin"/> : selected.status === 'Activo' ? <><Ban size={12}/>Suspender</> : <><Play size={12}/>Reactivar</>}
+                </button>
+                <button onClick={() => { setDeleteTarget(selected); setDeleteConfirmText(''); }}
+                  className="w-full h-10 rounded-2xl border border-red-500/10 text-red-500/40 hover:bg-red-500/8 hover:text-red-500 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                  <Trash2 size={12}/> Eliminar permanentemente
                 </button>
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Modal confirmación de borrado permanente ── */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => !isDeleting && setDeleteTarget(null)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="relative bg-[#0a0f0f] border border-red-500/20 rounded-3xl w-full max-w-md p-7 space-y-5 shadow-2xl">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-400 shrink-0">
+                  <AlertTriangle size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">Eliminar permanentemente</h3>
+                  <p className="text-[10px] text-white/30 mt-0.5">Esta acción no se puede deshacer</p>
+                </div>
+              </div>
+              <p className="text-[12px] text-white/50 leading-relaxed">
+                Se borrará <span className="text-white font-bold">{deleteTarget.full_name}</span> y todos sus datos: productos, pedidos, páginas publicadas, tickets de soporte, envíos, gastos y cuentas de su equipo. No hay forma de recuperarlo.
+              </p>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
+                  Escribe <span className="text-red-400">ELIMINAR</span> para confirmar
+                </label>
+                <input value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)}
+                  className="w-full h-10 px-3.5 bg-white/5 border border-white/10 rounded-xl text-[12px] text-white outline-none focus:border-red-500/40" />
+              </div>
+              <div className="flex gap-2.5">
+                <button onClick={() => setDeleteTarget(null)} disabled={isDeleting}
+                  className="flex-1 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 font-black text-[9px] uppercase tracking-widest transition-all disabled:opacity-50">
+                  Cancelar
+                </button>
+                <button onClick={confirmDelete} disabled={deleteConfirmText !== 'ELIMINAR' || isDeleting}
+                  className="flex-1 h-10 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-400 font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-30">
+                  {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Eliminar
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

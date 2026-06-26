@@ -58,7 +58,7 @@ const PricingCard = ({ plan, i }: { plan: any, i: number }) => {
               willChange: 'transform'
             }}
           />
-          <div className={`absolute inset-[2.5px] rounded-[3.4rem] md:rounded-[4.4rem] backdrop-blur-[100px] ${plan.popular ? 'bg-petroleum' : 'bg-white/95'}`} />
+          <div className={`absolute inset-[2.5px] rounded-[3.4rem] md:rounded-[4.4rem] backdrop-blur-[40px] ${plan.popular ? 'bg-petroleum' : 'bg-white/95'}`} />
         </div>
 
         {plan.popular && (
@@ -137,7 +137,7 @@ export const PricingCinematic = () => {
 
   return (
     <section id="planes" className="py-20 md:py-40 bg-surface relative overflow-hidden isolate shadow-inner">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-petroleum/5 rounded-full blur-[180px] -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-petroleum/5 rounded-full blur-[60px] -z-10" />
       <div className="container mx-auto px-6 md:px-12 text-center">
         <div className="max-w-4xl mx-auto mb-16 md:mb-24 space-y-6">
           <h2 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-black italic tracking-tighter uppercase leading-none flex items-center justify-center gap-4 whitespace-nowrap">

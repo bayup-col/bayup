@@ -7,8 +7,14 @@
         "id": "j-nav",
         "type": "navbar",
         "props": {
+          "variant": "luxury",
           "logoText": "Joyas de Lujo",
-          "menuItems": ["Tienda", "Colecciones", "Herencia", "Contacto"]
+          "menuItems": [
+            "Tienda",
+            "Colecciones",
+            "Herencia",
+            "Contacto"
+          ]
         }
       }
     ],
@@ -42,9 +48,24 @@
         "props": {
           "title": "Novedades",
           "products": [
-            { "name": "Anillo de Diamantes 'Solitaire'", "category": "Oro de 18k · 1.5 Quilates", "price": "4.500", "image": "https://images.unsplash.com/photo-1605100804763-247f67b3f41e?q=80&w=800" },
-            { "name": "Brazalete de Oro Blanco 18k", "category": "Edición Limitada · Colección Lumière", "price": "3.200", "image": "https://images.unsplash.com/photo-1599643478123-242f153782a1?q=80&w=800" },
-            { "name": "Pendientes de Zafiro Real", "category": "Alta Joyería · Zafiros de Ceilán", "price": "5.800", "image": "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=800" }
+            {
+              "name": "Anillo de Diamantes 'Solitaire'",
+              "category": "Oro de 18k · 1.5 Quilates",
+              "price": "4.500",
+              "image": "https://images.unsplash.com/photo-1605100804763-247f67b3f41e?q=80&w=800"
+            },
+            {
+              "name": "Brazalete de Oro Blanco 18k",
+              "category": "Edición Limitada · Colección Lumière",
+              "price": "3.200",
+              "image": "https://images.unsplash.com/photo-1599643478123-242f153782a1?q=80&w=800"
+            },
+            {
+              "name": "Pendientes de Zafiro Real",
+              "category": "Alta Joyería · Zafiros de Ceilán",
+              "price": "5.800",
+              "image": "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=800"
+            }
           ]
         }
       },
@@ -54,9 +75,18 @@
         "props": {
           "title": "Nuestras Colecciones",
           "items": [
-            { "label": "Anillos de Compromiso", "image": "https://images.unsplash.com/photo-1586822330090-c3828d44dc3e?q=80&w=800" },
-            { "label": "Alta Joyería", "image": "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?q=80&w=800" },
-            { "label": "Relojes de Lujo", "image": "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?q=80&w=800" }
+            {
+              "label": "Anillos de Compromiso",
+              "image": "https://images.unsplash.com/photo-1586822330090-c3828d44dc3e?q=80&w=800"
+            },
+            {
+              "label": "Alta Joyería",
+              "image": "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?q=80&w=800"
+            },
+            {
+              "label": "Relojes de Lujo",
+              "image": "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?q=80&w=800"
+            }
           ]
         }
       },
@@ -64,6 +94,14 @@
         "id": "j-news",
         "type": "newsletter",
         "props": {}
+      },
+      {
+        "id": "joyeria-contact",
+        "type": "contact-form",
+        "props": {
+          "badge": "CONTACTO",
+          "title": "Hablemos de su próxima joya"
+        }
       }
     ],
     "styles": {}

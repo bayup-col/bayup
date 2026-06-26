@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { AuthProvider } from "@/context/auth-context";
 import { ToastProvider } from "@/context/toast-context";
 import { ThemeProvider } from "@/context/theme-context";
+import { SuperAdminThemeProvider } from "@/context/super-admin-theme-context";
 import { CartProvider } from "@/context/cart-context";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -22,11 +23,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <ToastProvider>
-          <CartProvider>
-            {children}
-          </CartProvider>
-        </ToastProvider>
+        <SuperAdminThemeProvider>
+          <ToastProvider>
+            <CartProvider>
+              {children}
+            </CartProvider>
+          </ToastProvider>
+        </SuperAdminThemeProvider>
       </ThemeProvider>
     </AuthProvider>
   );

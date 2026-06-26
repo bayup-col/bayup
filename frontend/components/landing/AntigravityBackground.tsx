@@ -1,8 +1,22 @@
 "use client";
 
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+
+function usePageVisible() {
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsVisible(document.visibilityState === 'visible');
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  return isVisible;
+}
 
 function Particles({ count = 150 }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
@@ -69,9 +83,15 @@ function Particles({ count = 150 }) {
 }
 
 export const AntigravityBackground = () => {
+  const isPageVisible = usePageVisible();
+
   return (
     <div className="fixed inset-0 z-0 pointer-events-none opacity-40">
-      <Canvas camera={{ position: [0, 0, 20], fov: 75 }}>
+      <Canvas
+        camera={{ position: [0, 0, 20], fov: 75 }}
+        dpr={[1, 1.5]}
+        frameloop={isPageVisible ? 'always' : 'never'}
+      >
         <ambientLight intensity={0.5} />
         <pointLight position={[100, 10, -50]} intensity={20} color="#00f2ff" />
         <pointLight position={[-100, -100, -100]} intensity={10} color="#004d4d" />

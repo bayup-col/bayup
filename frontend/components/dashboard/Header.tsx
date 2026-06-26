@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Bot, Moon, Sun, DollarSign, Truck, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/context/theme-context';
+import { useSuperAdminTheme } from '@/context/super-admin-theme-context';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
 
@@ -31,6 +32,7 @@ export const DashboardHeader = ({
     setIsBaytOpen
 }: HeaderProps) => {
     const { theme, toggleTheme } = useTheme();
+    const { saTheme, toggleSaTheme } = useSuperAdminTheme();
     const { token, userPlan, isGlobalStaff } = useAuth();
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
@@ -62,7 +64,15 @@ export const DashboardHeader = ({
             if (!token) { if (intervalId) clearInterval(intervalId); return; }
             try {
                 const isProduction = window.location.hostname.includes('railway.app') || window.location.hostname.includes('bayup.com');
-                const data = await apiRequest<any[]>('/notifications', { token }).catch(() => {
+                const data = await apiRequest<any[]>('/notifications', { token }).catch((err: any) => {
+                    // La cuenta fue eliminada/desactivada mientras la pestaña estaba abierta:
+                    // el backend rechaza el token porque el usuario ya no existe.
+                    if (err?.message === 'Could not validate credentials') {
+                        if (intervalId) clearInterval(intervalId);
+                        sessionStorage.setItem('bayup_logout_reason', 'account_removed');
+                        logout();
+                        return null;
+                    }
                     if (isProduction && intervalId) clearInterval(intervalId);
                     return null;
                 });
@@ -79,7 +89,7 @@ export const DashboardHeader = ({
         fetchNotifications();
         intervalId = setInterval(fetchNotifications, 30000);
         return () => { if (intervalId) clearInterval(intervalId); };
-    }, [token]);
+    }, [token, logout]);
 
     // Ocultar al abrir modal
     useEffect(() => {
@@ -97,8 +107,10 @@ export const DashboardHeader = ({
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
+    const isSuperAdminDark = isSuperAdminZone && saTheme === 'dark';
+
     const getNotificationStyles = (type: string) => {
-        if (isSuperAdminZone) {
+        if (isSuperAdminDark) {
             switch (type) {
                 case 'success': return { icon: <DollarSign size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
                 case 'logistics': return { icon: <Truck size={14} className="text-cyan" />, bg: 'bg-cyan/10' };
@@ -125,12 +137,28 @@ export const DashboardHeader = ({
                 style={{ pointerEvents: visible ? 'auto' : 'none' }}
             >
                 <div className="flex items-center gap-2">
+                    {/* Toggle claro/oscuro — exclusivo de la zona Super-Admin */}
+                    {isSuperAdminZone && (
+                        <button
+                            onClick={toggleSaTheme}
+                            aria-label={saTheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+                            title={saTheme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+                            className={`h-10 w-10 rounded-2xl flex items-center justify-center shadow-lg border transition-all duration-200 hover:scale-105 active:scale-95 ${
+                                saTheme === 'dark'
+                                ? 'bg-[#001A1A]/90 border-white/10 text-white/40 hover:text-[#00f2ff]'
+                                : 'bg-white/90 border-gray-200 text-[#004d4d]/50 hover:text-[#004d4d]'
+                            }`}
+                        >
+                            {saTheme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
+                        </button>
+                    )}
+
                     {/* Campana */}
                     <div className="relative">
                         <button
                             onClick={() => setNotificationsOpen(!notificationsOpen)}
                             className={`h-10 w-10 rounded-2xl flex items-center justify-center shadow-lg border transition-all duration-200 hover:scale-105 active:scale-95 relative ${
-                                isSuperAdminZone
+                                isSuperAdminDark
                                 ? 'bg-[#001A1A]/90 border-white/10 text-white/40 hover:text-[#00f2ff]'
                                 : 'bg-white/90 border-white text-[#004d4d]/50 hover:text-[#004d4d]'
                             }`}
@@ -138,7 +166,7 @@ export const DashboardHeader = ({
                             <Bell size={17} />
                             {unreadCount > 0 && (
                                 <span className={`absolute top-1.5 right-1.5 h-2 w-2 rounded-full border-2 animate-ping ${
-                                    isSuperAdminZone ? 'bg-[#00f2ff] border-[#001A1A]' : 'bg-rose-500 border-white'
+                                    isSuperAdminDark ? 'bg-[#00f2ff] border-[#001A1A]' : 'bg-rose-500 border-white'
                                 }`} />
                             )}
                         </button>
@@ -153,25 +181,25 @@ export const DashboardHeader = ({
                                         exit={{ opacity: 0, y: 8, scale: 0.96 }}
                                         transition={{ duration: 0.18 }}
                                         className={`absolute right-0 mt-3 w-80 backdrop-blur-3xl rounded-3xl shadow-2xl border overflow-hidden z-[110] ${
-                                            isSuperAdminZone ? 'bg-[#001A1A]/95 border-white/5' : 'bg-white/95 border-gray-100'
+                                            isSuperAdminDark ? 'bg-[#001A1A]/95 border-white/5' : 'bg-white/95 border-gray-100'
                                         }`}
                                     >
-                                        <div className={`px-5 py-4 border-b flex items-center justify-between ${isSuperAdminZone ? 'border-white/5' : 'border-gray-100'}`}>
-                                            <h3 className={`text-[10px] font-semibold tracking-[0.2em] uppercase ${isSuperAdminZone ? 'text-white/40' : 'text-[#004d4d]'}`}>Notificaciones</h3>
+                                        <div className={`px-5 py-4 border-b flex items-center justify-between ${isSuperAdminDark ? 'border-white/5' : 'border-gray-100'}`}>
+                                            <h3 className={`text-[10px] font-semibold tracking-[0.2em] uppercase ${isSuperAdminDark ? 'text-white/40' : 'text-[#004d4d]'}`}>Notificaciones</h3>
                                             {unreadCount > 0 && (
-                                                <span className={`text-white text-[8px] font-bold px-2 py-0.5 rounded-full ${isSuperAdminZone ? 'bg-[#00f2ff]/80' : 'bg-emerald-500'}`}>{unreadCount}</span>
+                                                <span className={`text-white text-[8px] font-bold px-2 py-0.5 rounded-full ${isSuperAdminDark ? 'bg-[#00f2ff]/80' : 'bg-emerald-500'}`}>{unreadCount}</span>
                                             )}
                                         </div>
                                         <div className="max-h-[320px] overflow-y-auto">
                                             {notifications.length === 0 ? (
-                                                <div className={`p-10 text-center text-[10px] font-medium ${isSuperAdminZone ? 'text-white/20' : 'text-gray-400'}`}>Sin notificaciones</div>
+                                                <div className={`p-10 text-center text-[10px] font-medium ${isSuperAdminDark ? 'text-white/20' : 'text-gray-400'}`}>Sin notificaciones</div>
                                             ) : notifications.map((n) => {
                                                 const styles = getNotificationStyles(n.type);
                                                 return (
-                                                    <div key={n.id} className={`px-5 py-4 border-b flex gap-3 transition-colors ${isSuperAdminZone ? 'border-white/5 hover:bg-white/5' : 'border-gray-50 hover:bg-gray-50/80'} ${!n.is_read ? '' : 'opacity-40'}`}>
+                                                    <div key={n.id} className={`px-5 py-4 border-b flex gap-3 transition-colors ${isSuperAdminDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-50 hover:bg-gray-50/80'} ${!n.is_read ? '' : 'opacity-40'}`}>
                                                         <div className={`h-8 w-8 shrink-0 rounded-xl flex items-center justify-center ${styles.bg}`}>{styles.icon}</div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className={`text-[11px] font-semibold truncate ${isSuperAdminZone ? 'text-white/80' : 'text-gray-800'}`}>{n.title}</p>
+                                                            <p className={`text-[11px] font-semibold truncate ${isSuperAdminDark ? 'text-white/80' : 'text-gray-800'}`}>{n.title}</p>
                                                             <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-2">{n.message}</p>
                                                         </div>
                                                     </div>

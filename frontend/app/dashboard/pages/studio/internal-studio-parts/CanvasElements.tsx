@@ -5,23 +5,29 @@ import { motion } from "framer-motion";
 import { Trash2, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStudio } from "../context";
-import { SmartNavbar, SmartHero, SmartProductGrid, SmartCategoriesGrid, SmartFooter, SmartTrustBanner, SmartBentoGrid, SmartServices, SmartHeritageBlock, SmartNewsletter, SmartContactForm } from "@/components/dashboard/studio/HighFidelityBlocks";
+import { SmartNavbar, SmartHero, SmartProductGrid, SmartCategoriesGrid, SmartFooter, SmartTrustBanner, SmartBentoGrid, SmartServices, SmartHeritageBlock, SmartNewsletter, SmartContactForm, SmartProductDetail } from "@/components/dashboard/studio/HighFidelityBlocks";
 
-export const DraggableCanvasElement = ({ 
-  el, 
-  section, 
-  selectedElementId, 
-  selectElement, 
-  setActiveSection, 
-  removeElement, 
+export const DraggableCanvasElement = ({
+  el,
+  section,
+  selectedElementId,
+  selectElement,
+  setActiveSection,
+  removeElement,
   isPreview = false,
   tenantId = null,
+  productId = null,
   realProducts = [],
-  realCategories = []
+  realCategories = [],
+  storeVariant = undefined
 }: any) => {
   const { viewport } = useStudio();
-  
+
+  // El variant del navbar (ver Canvas.tsx) es el default de toda la pagina;
+  // si el elemento ya trae su propio `variant` en el architecture.json, ese
+  // gana (permite, por ejemplo, una excepcion puntual en un bloque).
   const elProps = {
+    ...(storeVariant ? { variant: storeVariant } : {}),
     ...el.props,
     ...(el.props.responsiveOverrides?.[viewport] || {})
   };
@@ -62,10 +68,20 @@ export const DraggableCanvasElement = ({
         {el.type === "bento-grid" && <SmartBentoGrid props={elProps} />}
         {el.type === "product-grid" && <SmartProductGrid props={{ ...elProps, products: elProps.products || realProducts.slice(0, elProps.itemsCount || 8).map((p: any) => ({ id: p.id, name: p.name, price: p.price, image: Array.isArray(p.image_url) ? p.image_url[0] : p.image_url, category: p.category })) }} />}
         {el.type === "contact-form" && <SmartContactForm props={elProps} tenantId={tenantId} />}
-        {el.type === "newsletter" && <SmartNewsletter />}
-        {el.type === "services-block" && <SmartServices />}
-        {el.type === "trust-banner" && <SmartTrustBanner />}
+        {el.type === "newsletter" && <SmartNewsletter props={elProps} />}
+        {el.type === "services-block" && <SmartServices props={elProps} />}
+        {el.type === "trust-banner" && <SmartTrustBanner props={elProps} />}
         {el.type === "footer-premium" && <SmartFooter props={elProps} />}
+        {el.type === "product-detail" && (() => {
+          const activeProduct = realProducts.find((p: any) => p.id === productId) || realProducts[0];
+          return (
+            <SmartProductDetail
+              product={activeProduct}
+              relatedProducts={realProducts.filter((p: any) => p.id !== activeProduct?.id)}
+              variant={elProps.variant}
+            />
+          );
+        })()}
         
         {el.type === "announcement-bar" && (
           <div className="w-full overflow-hidden flex items-center bg-gray-900 h-10 text-white text-[10px] font-bold uppercase justify-center">

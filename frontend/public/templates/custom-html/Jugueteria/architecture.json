@@ -1,7 +1,123 @@
 {
   "id": "tpl-jugueteria",
   "name": "Kids World Fun",
-  "header": { "elements": [{"type": "navbar", "props": {"logoText": "KIDS WORLD", "logoColor": "#ec4899"}}], "styles": {} },
-  "body": { "elements": [{"type": "hero-banner", "props": {"title": "Diversión sin Fin", "primaryBtnBgColor": "#ec4899"}}] },
-  "footer": { "elements": [{"type": "footer-premium", "props": {"bgColor": "#be185d"}}], "styles": {} }
+  "header": {
+    "elements": [
+      {
+        "id": "jug-nav",
+        "type": "navbar",
+        "props": {
+          "variant": "playful",
+          "logoText": "Kids World",
+          "logoColor": "#ec4899",
+          "menuItems": [
+            "Juguetes",
+            "Educativos",
+            "Bebés",
+            "Ofertas"
+          ]
+        }
+      }
+    ],
+    "styles": {}
+  },
+  "body": {
+    "elements": [
+      {
+        "id": "jug-hero",
+        "type": "hero-banner",
+        "props": {
+          "badge": "Diversión sin Límites",
+          "title": "Un Mundo de Diversión",
+          "subtitle": "Juguetes educativos y divertidos para que los más pequeños exploren, aprendan y se diviertan cada día.",
+          "imageUrl": "https://images.unsplash.com/photo-1532330393533-443990a51d10?q=80&w=2000",
+          "primaryBtnText": "Explorar Juguetes",
+          "primaryBtnBgColor": "#ec4899"
+        }
+      },
+      {
+        "id": "jugueteria-heritage",
+        "type": "text-block-premium",
+        "props": {
+          "title": "Nuestra Historia",
+          "subtitle": "Diversión segura desde el primer día",
+          "content": "En Kids World creemos que cada juguete debe acompañar el crecimiento de un niño con seguridad y alegría. Seleccionamos cuidadosamente cada producto para que las familias puedan jugar con total confianza, en cada etapa."
+        }
+      },
+      {
+        "id": "jug-cats",
+        "type": "categories-grid",
+        "props": {
+          "title": "Categorías Principales",
+          "items": [
+            {
+              "label": "Educativos",
+              "sub": "Aprender jugando",
+              "image": "https://images.unsplash.com/photo-1532330393533-443990a51d10?q=80&w=800"
+            },
+            {
+              "label": "Aire Libre",
+              "sub": "Diversión sin límites",
+              "image": "https://images.unsplash.com/photo-1532330393533-443990a51d10?q=80&w=800"
+            },
+            {
+              "label": "Bebés",
+              "sub": "Primera infancia",
+              "image": "https://images.unsplash.com/photo-1532330393533-443990a51d10?q=80&w=800"
+            }
+          ]
+        }
+      },
+      {
+        "id": "jug-products",
+        "type": "product-grid",
+        "props": {
+          "title": "Más Vendidos",
+          "products": [
+            {
+              "name": "Set de Bloques Didácticos",
+              "category": "Educativos",
+              "price": "89.000",
+              "image": "https://images.unsplash.com/photo-1532330393533-443990a51d10?q=80&w=800"
+            },
+            {
+              "name": "Peluche Gigante Oso",
+              "category": "Peluches",
+              "price": "65.000",
+              "image": "https://images.unsplash.com/photo-1532330393533-443990a51d10?q=80&w=800"
+            },
+            {
+              "name": "Triciclo Evolutivo 3 en 1",
+              "category": "Aire Libre",
+              "price": "210.000",
+              "image": "https://images.unsplash.com/photo-1532330393533-443990a51d10?q=80&w=800"
+            }
+          ]
+        }
+      },
+      {
+        "id": "jugueteria-contact",
+        "type": "contact-form",
+        "props": {
+          "badge": "CONTACTO",
+          "title": "Cuéntanos cómo podemos ayudarte"
+        }
+      }
+    ],
+    "styles": {}
+  },
+  "footer": {
+    "elements": [
+      {
+        "id": "jug-footer",
+        "type": "footer-premium",
+        "props": {
+          "logoText": "Kids World",
+          "description": "Juguetes seguros y divertidos para acompañar el crecimiento de tus hijos, en cada etapa.",
+          "bgColor": "#be185d"
+        }
+      }
+    ],
+    "styles": {}
+  }
 }

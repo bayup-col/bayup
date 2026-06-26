@@ -11,6 +11,14 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-sans)", "sans-serif"],
+        // Tipografias de display para el sistema de variantes de plantillas de
+        // tienda (ver HighFidelityBlocks.tsx). Cada token resuelve una identidad
+        // de nicho distinta sin tocar la tipografia base de TecnoPlaza OS.
+        "display-luxury": ["var(--font-display-luxury)", "serif"], // Playfair Display — joyeria, ropa elegante, lenceria
+        "display-editorial": ["var(--font-display-editorial)", "serif"], // Fraunces — hogar, papeleria
+        "display-playful": ["var(--font-display-playful)", "sans-serif"], // Baloo 2 — jugueteria
+        "display-impact": ["var(--font-display-impact)", "sans-serif"], // Oswald — tenis, pocket
+        "display-tech": ["var(--font-display-tech)", "sans-serif"], // Space Grotesk — tecnologia, computadora
       },
       colors: {
         background: "#FAFAFA",

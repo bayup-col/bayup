@@ -1,29 +1,26 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
-import { Layout, Plus, X, Star, Trash2, Eye, Search, ImagePlus, CheckCircle2 } from 'lucide-react';
+import { Layout, Plus, X, Star, Trash2, Eye, Search, ImagePlus, CheckCircle2, RefreshCw } from 'lucide-react';
 
 interface Template {
   id:string; name:string; category:string; description:string;
   tags:string[]; uses:number; rating:number; isPremium:boolean; isActive:boolean; color:string;
+  preview_url?: string | null;
 }
 
-const MOCK: Template[] = [
-  { id:'1', name:'StorePro Dark',     category:'Tienda',      description:'Tienda oscura premium con diseño moderno y animaciones sutiles', tags:['dark','ecommerce','premium'],  uses:24, rating:4.8, isPremium:true,  isActive:true,  color:'#001a1a' },
-  { id:'2', name:'Moda Minimal',      category:'Moda',        description:'Diseño limpio y elegante para marcas de moda y lifestyle',      tags:['fashion','minimal','clean'],   uses:18, rating:4.6, isPremium:false, isActive:true,  color:'#1a0a2e' },
-  { id:'3', name:'RestaurantX',       category:'Restaurante', description:'Menú digital interactivo con sistema de reservas integrado',     tags:['food','menu','reservas'],      uses:31, rating:4.9, isPremium:true,  isActive:true,  color:'#1a0a00' },
-  { id:'4', name:'TechCorp',          category:'Tecnología',  description:'Catálogo de productos tech con filtros y búsqueda avanzada',    tags:['tech','catalog','filters'],   uses:12, rating:4.3, isPremium:false, isActive:true,  color:'#001020' },
-  { id:'5', name:'ServicePro',        category:'Servicios',   description:'Página de servicios con calendario de citas integrado',         tags:['services','booking','B2B'],   uses:9,  rating:4.1, isPremium:false, isActive:false, color:'#0a1a0a' },
-  { id:'6', name:'Portfolio Creator', category:'Portfolio',   description:'Portafolio visual para creativos y freelancers',                tags:['portfolio','creative','art'],  uses:7,  rating:4.5, isPremium:true,  isActive:true,  color:'#1a001a' },
-  { id:'7', name:'Fashion Luxe',      category:'Moda',        description:'Alta moda con animaciones premium y experiencia de lujo',       tags:['luxury','fashion','animate'], uses:15, rating:4.7, isPremium:true,  isActive:true,  color:'#1a0510' },
-  { id:'8', name:'Blog Magazine',     category:'Blog',        description:'Blog estilo revista con artículos destacados y categorías',     tags:['blog','magazine','content'],  uses:5,  rating:3.9, isPremium:false, isActive:true,  color:'#0a0a1a' },
-];
-
-const CATS = ['Todos','Tienda','Moda','Restaurante','Tecnología','Servicios','Portfolio','Blog'];
-
-function TemplateMock({ color, name }: { color:string; name:string }) {
+function TemplateMock({ color, name, previewUrl }: { color:string; name:string; previewUrl?: string | null }) {
+  if (previewUrl) {
+    return (
+      <div className="relative h-40 rounded-xl overflow-hidden border border-white/[0.07]">
+        <img src={previewUrl} alt={name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"/>
+      </div>
+    );
+  }
   return (
     <div className="relative h-40 rounded-xl overflow-hidden border border-white/[0.07]"
       style={{ background:`linear-gradient(135deg, ${color} 0%, ${color}99 100%)` }}>
@@ -45,14 +42,42 @@ function TemplateMock({ color, name }: { color:string; name:string }) {
 }
 
 export default function WebTemplatesPage() {
-  const { showToast } = useToast();
-  const [templates,    setTemplates]    = useState<Template[]>(MOCK);
+  const { token }      = useAuth();
+  const { showToast }  = useToast();
+  const [templates,    setTemplates]    = useState<Template[]>([]);
+  const [loading,       setLoading]      = useState(false);
   const [search,       setSearch]       = useState('');
   const [filterCat,    setFilterCat]    = useState('Todos');
   const [filterType,   setFilterType]   = useState<'todos'|'free'|'premium'>('todos');
   const [selected,     setSelected]     = useState<Template|null>(null);
   const [showNew,      setShowNew]      = useState(false);
   const [newForm,      setNewForm]      = useState({ name:'', category:'', description:'', tags:'' });
+
+  // Activa el overlay raíz de dashboard/layout.tsx (cubre TODO el viewport real,
+  // sin las interferencias de overflow que sufre un overlay anidado dentro de
+  // <main>) y oculta el header flotante + sidebar mientras hay un modal abierto.
+  // Mismo patrón que customers/products/shipping/reports/gastos.
+  useEffect(() => {
+    if (selected || showNew) {
+      document.body.classList.add('modal-open');
+      return () => { document.body.classList.remove('modal-open'); };
+    }
+  }, [selected, showNew]);
+
+  const load = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/web-templates`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) { const d = await res.json(); setTemplates(Array.isArray(d) ? d : []); }
+    } catch {}
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const CATS = useMemo(() => ['Todos', ...Array.from(new Set(templates.map(t => t.category).filter(Boolean))).sort()], [templates]);
 
   const filtered = useMemo(() => templates.filter(t => {
     const q = search.toLowerCase();
@@ -61,25 +86,62 @@ export default function WebTemplatesPage() {
       && (filterType==='todos' || (filterType==='premium' ? t.isPremium : !t.isPremium));
   }), [templates, search, filterCat, filterType]);
 
-  const toggleActive = (t: Template) => {
-    setTemplates(p => p.map(x => x.id===t.id ? {...x,isActive:!x.isActive} : x));
-    setSelected(s => s?.id===t.id ? {...s,isActive:!s.isActive} : s);
-    showToast(t.isActive ? 'Plantilla desactivada' : 'Plantilla activada','success');
+  const toggleActive = async (t: Template) => {
+    if (!token) return;
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/web-templates/${t.id}/toggle`, {
+        method: 'PUT', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const upd = await res.json();
+        setTemplates(p => p.map(x => x.id===t.id ? upd : x));
+        setSelected(s => s?.id===t.id ? upd : s);
+        showToast(upd.isActive ? 'Plantilla activada' : 'Plantilla desactivada','success');
+      }
+    } catch {
+      showToast('No se pudo actualizar la plantilla','error');
+    }
   };
 
-  const del = (t: Template) => {
-    setTemplates(p => p.filter(x => x.id!==t.id));
-    setSelected(null);
-    showToast('Plantilla eliminada','success');
+  const del = async (t: Template) => {
+    if (!token) return;
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/web-templates/${t.id}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setTemplates(p => p.filter(x => x.id!==t.id));
+        setSelected(null);
+        showToast('Plantilla eliminada','success');
+      }
+    } catch {
+      showToast('No se pudo eliminar la plantilla','error');
+    }
   };
 
-  const create = () => {
-    if (!newForm.name) return;
-    const t: Template = { id:Date.now().toString(), name:newForm.name, category:newForm.category||'General', description:newForm.description, tags:newForm.tags.split(',').map(s=>s.trim()).filter(Boolean), uses:0, rating:0, isPremium:false, isActive:true, color:'#0f1a1a' };
-    setTemplates(p => [t, ...p]);
-    setShowNew(false);
-    setNewForm({name:'',category:'',description:'',tags:''});
-    showToast('Plantilla creada ✓','success');
+  const create = async () => {
+    if (!newForm.name || !token) return;
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${base}/super-admin/web-templates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(newForm),
+      });
+      if (res.ok) {
+        const t = await res.json();
+        setTemplates(p => [t, ...p]);
+        setShowNew(false);
+        setNewForm({name:'',category:'',description:'',tags:''});
+        showToast('Plantilla creada ✓','success');
+      } else {
+        showToast('No se pudo crear la plantilla','error');
+      }
+    } catch {
+      showToast('No se pudo crear la plantilla','error');
+    }
   };
 
   return (
@@ -90,10 +152,16 @@ export default function WebTemplatesPage() {
           <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.25em] mb-2">Biblioteca · Templates</p>
           <h1 className="text-4xl font-black text-white tracking-tight">Plantillas Web</h1>
         </div>
-        <button onClick={() => setShowNew(true)}
-          className="h-9 px-5 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 text-white/70 hover:text-white font-bold text-[11px] flex items-center gap-2 transition-all">
-          <Plus size={14}/> Nueva plantilla
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={load}
+            className="h-9 w-9 rounded-xl border border-white/8 bg-white/3 hover:bg-white/8 flex items-center justify-center text-white/30 hover:text-white/70 transition-all">
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''}/>
+          </button>
+          <button onClick={() => setShowNew(true)}
+            className="h-9 px-5 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 text-white/70 hover:text-white font-bold text-[11px] flex items-center gap-2 transition-all">
+            <Plus size={14}/> Nueva plantilla
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -139,12 +207,17 @@ export default function WebTemplatesPage() {
       </div>
 
       {/* Grid */}
+      {filtered.length === 0 && (
+        <div className="rounded-2xl border border-white/6 bg-white/[0.02] py-14 text-center text-[10px] text-white/20">
+          {templates.length === 0 ? 'Aún no hay plantillas creadas' : 'Sin resultados para el filtro aplicado'}
+        </div>
+      )}
       <div className="grid grid-cols-4 gap-4">
         {filtered.map(t => (
           <motion.div key={t.id} whileHover={{ y:-3 }} transition={{ duration:0.15 }}
             className="rounded-2xl border border-white/6 bg-white/[0.02] hover:border-white/10 overflow-hidden group cursor-pointer transition-all"
             onClick={() => setSelected(t)}>
-            <TemplateMock color={t.color} name={t.name}/>
+            <TemplateMock color={t.color} name={t.name} previewUrl={t.preview_url}/>
             <div className="p-4 space-y-2.5">
               <div className="flex items-start justify-between">
                 <div>
@@ -180,9 +253,7 @@ export default function WebTemplatesPage() {
       <AnimatePresence>
         {selected && (
           <>
-            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
-              onClick={() => setSelected(null)}/>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setSelected(null)}/>
             <motion.div
               initial={{x:'100%'}} animate={{x:0}} exit={{x:'100%'}}
               transition={{type:'spring',damping:30,stiffness:300}}
@@ -200,7 +271,7 @@ export default function WebTemplatesPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-                <TemplateMock color={selected.color} name={selected.name}/>
+                <TemplateMock color={selected.color} name={selected.name} previewUrl={selected.preview_url}/>
 
                 <div className="grid grid-cols-3 gap-3">
                   {[
@@ -266,47 +337,48 @@ export default function WebTemplatesPage() {
       <AnimatePresence>
         {showNew && (
           <>
-            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]"
-              onClick={() => setShowNew(false)}/>
-            <motion.div
-              initial={{opacity:0,scale:0.96,y:16}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.96,y:16}}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] bg-[#080c0c] border border-white/8 rounded-3xl shadow-2xl z-[9999] p-7 space-y-5">
-              <div className="flex justify-between items-center">
-                <h2 className="text-base font-black text-white">Nueva Plantilla</h2>
-                <button onClick={() => setShowNew(false)}
-                  className="h-8 w-8 rounded-xl border border-white/8 bg-white/4 flex items-center justify-center text-white/30 hover:text-white">
-                  <X size={14}/>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setShowNew(false)}/>
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+              <motion.div
+                initial={{opacity:0,scale:0.96,y:16}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.96,y:16}}
+                onClick={e => e.stopPropagation()}
+                className="w-full max-w-[440px] my-auto bg-[#080c0c] border border-white/8 rounded-3xl shadow-2xl p-7 space-y-5">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-base font-black text-white">Nueva Plantilla</h2>
+                  <button onClick={() => setShowNew(false)}
+                    className="h-8 w-8 rounded-xl border border-white/8 bg-white/4 flex items-center justify-center text-white/30 hover:text-white">
+                    <X size={14}/>
+                  </button>
+                </div>
+
+                <div className="border-2 border-dashed border-white/8 rounded-2xl p-8 flex flex-col items-center gap-2.5 hover:border-white/15 transition-all cursor-pointer">
+                  <ImagePlus size={22} className="text-white/15"/>
+                  <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Subir imagen de preview</p>
+                  <p className="text-[9px] text-white/15">PNG, JPG · máx 5MB</p>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    { key:'name',        label:'Nombre',      ph:'ej. StorePro Dark' },
+                    { key:'category',    label:'Categoría',   ph:'ej. Tienda, Moda, Restaurante' },
+                    { key:'description', label:'Descripción', ph:'Descripción breve' },
+                    { key:'tags',        label:'Tags',        ph:'dark, ecommerce, premium (comas)' },
+                  ].map(f => (
+                    <div key={f.key} className="space-y-1.5">
+                      <label className="text-[8px] font-bold text-white/20 uppercase tracking-widest">{f.label}</label>
+                      <input value={(newForm as any)[f.key]} onChange={e => setNewForm(p => ({...p,[f.key]:e.target.value}))}
+                        placeholder={f.ph}
+                        className="w-full h-9 px-3.5 bg-white/4 border border-white/8 rounded-xl outline-none text-[12px] text-white/60 placeholder:text-white/15 focus:border-white/15 transition-all"/>
+                    </div>
+                  ))}
+                </div>
+
+                <button onClick={create} disabled={!newForm.name}
+                  className="w-full h-10 rounded-2xl bg-white/8 hover:bg-white/12 border border-white/10 text-white/70 hover:text-white font-bold text-[11px] flex items-center justify-center gap-2 transition-all disabled:opacity-30">
+                  <Plus size={13}/> Crear plantilla
                 </button>
-              </div>
-
-              <div className="border-2 border-dashed border-white/8 rounded-2xl p-8 flex flex-col items-center gap-2.5 hover:border-white/15 transition-all cursor-pointer">
-                <ImagePlus size={22} className="text-white/15"/>
-                <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Subir imagen de preview</p>
-                <p className="text-[9px] text-white/15">PNG, JPG · máx 5MB</p>
-              </div>
-
-              <div className="space-y-3">
-                {[
-                  { key:'name',        label:'Nombre',      ph:'ej. StorePro Dark' },
-                  { key:'category',    label:'Categoría',   ph:'ej. Tienda, Moda, Restaurante' },
-                  { key:'description', label:'Descripción', ph:'Descripción breve' },
-                  { key:'tags',        label:'Tags',        ph:'dark, ecommerce, premium (comas)' },
-                ].map(f => (
-                  <div key={f.key} className="space-y-1.5">
-                    <label className="text-[8px] font-bold text-white/20 uppercase tracking-widest">{f.label}</label>
-                    <input value={(newForm as any)[f.key]} onChange={e => setNewForm(p => ({...p,[f.key]:e.target.value}))}
-                      placeholder={f.ph}
-                      className="w-full h-9 px-3.5 bg-white/4 border border-white/8 rounded-xl outline-none text-[12px] text-white/60 placeholder:text-white/15 focus:border-white/15 transition-all"/>
-                  </div>
-                ))}
-              </div>
-
-              <button onClick={create} disabled={!newForm.name}
-                className="w-full h-10 rounded-2xl bg-white/8 hover:bg-white/12 border border-white/10 text-white/70 hover:text-white font-bold text-[11px] flex items-center justify-center gap-2 transition-all disabled:opacity-30">
-                <Plus size={13}/> Crear plantilla
-              </button>
-            </motion.div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>

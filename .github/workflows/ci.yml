@@ -2,9 +2,9 @@ name: BaseCommerce CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, development ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, development ]
 
 jobs:
   lint-and-test-backend:
@@ -12,6 +12,9 @@ jobs:
     defaults:
       run:
         working-directory: ./backend
+    env:
+      # Valor solo para que los tests puedan importar security.py; no es un secreto real.
+      SECRET_KEY: ci-test-secret-key-not-for-production-use
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -25,7 +28,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Lint with flake8
-        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
       - name: Test with pytest
         run: pytest
@@ -49,6 +52,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # TODO: quitar el "|| true" cuando se resuelvan los warnings preexistentes
+      # (img sin next/image, hooks con dependencias faltantes) — hoy bloquearía
+      # cualquier PR por deuda técnica no relacionada con el cambio que se está revisando.
       - name: Lint with ESLint
         run: npm run lint || true
 

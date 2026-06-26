@@ -7,7 +7,7 @@ import { useToast } from "@/context/toast-context";
 
 // --- Tipos ---
 export type SectionType = "header" | "body" | "footer";
-export type ComponentType = "text" | "button" | "image" | "product-grid" | "hero-banner" | "video" | "announcement-bar" | "navbar" | "custom-block" | "cards" | "product-master-view" | "footer-premium" | "categories-grid";
+export type ComponentType = "text" | "button" | "image" | "product-grid" | "hero-banner" | "video" | "announcement-bar" | "navbar" | "custom-block" | "cards" | "product-master-view" | "footer-premium" | "categories-grid" | "text-block-premium" | "contact-form" | "product-detail";
 
 export interface StudioElement {
   id: string;
@@ -85,7 +85,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
       // 1. Cargar Perfil (para el Slug)
       if (token) {
         try {
-          const uRes = await fetch(`${apiBase}/users/me`, {
+          const uRes = await fetch(`${apiBase}/auth/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (uRes.ok) {
@@ -95,8 +95,25 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
         } catch (e) {}
       }
       
-      // 2. Lógica de Plantillas Locales
-      if (templateId && templateId.startsWith('tpl-')) {
+      // 2. Cargar Diseño de DB (fuente de verdad: incluye los cambios ya guardados)
+      let loadedFromDb = false;
+      if (token) {
+        try {
+          const res = await fetch(`${apiBase}/shop-pages/${pageKey}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.schema_data) {
+              setPagesData(prev => ({ ...prev, [pageKey]: data.schema_data }));
+              loadedFromDb = true;
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 3. Si la DB aun no tiene nada guardado para esta pagina, sembramos desde la plantilla local
+      if (!loadedFromDb && templateId && templateId.startsWith('tpl-')) {
         const idToFolder: any = {
           'tpl-comp': 'computadora', 'tpl-hogar': 'Hogar', 'tpl-joyeria': 'Joyeria',
           'tpl-jugueteria': 'Jugueteria', 'tpl-lenceria': 'lenceria', 'tpl-maquillaje': 'Maquillaje',
@@ -109,27 +126,12 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
             const res = await fetch(`/templates/custom-html/${folder}/architecture.json`);
             if (res.ok) {
               const schema = await res.json();
-              setPagesData({ [pageKey]: schema });
-              setIsLoading(false);
-              return;
+              setPagesData(prev => ({ ...prev, [pageKey]: schema }));
             }
           } catch (e) {}
         }
       }
 
-      // 3. Cargar Diseño de DB
-      if (token) {
-        try {
-          const res = await fetch(`${apiBase}/shop-pages/${pageKey}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.schema_data) setPagesData(prev => ({ ...prev, [pageKey]: data.schema_data }));
-          }
-        } catch (e) {}
-      }
-      
       setIsLoading(false);
     };
 

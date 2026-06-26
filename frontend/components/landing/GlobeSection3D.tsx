@@ -1,11 +1,43 @@
 "use client";
 
-import React, { useRef, useMemo, useState, Suspense } from 'react';
+import React, { useRef, useMemo, useState, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Sphere, Float, Stars, PerspectiveCamera, useTexture, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { motion } from 'framer-motion';
 import { NumberTicker } from './NumberTicker';
+
+// Detecta el breakpoint real de Tailwind `lg` (1024px) para evitar montar
+// el Canvas 3D del globo que el CSS oculta de todas formas (ahorra GPU).
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mediaQuery.matches);
+
+    const handleChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  return isDesktop;
+}
+
+// Pausa el render loop de los Canvas 3D cuando la pestaña no está visible.
+function usePageVisible() {
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsVisible(document.visibilityState === 'visible');
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  return isVisible;
+}
 
 function GlobeMesh() {
   const meshRef = useRef<THREE.Group>(null);
@@ -203,7 +235,7 @@ function GlowHeading({ children, mousePos }: { children: React.ReactNode, mouseP
         }}
       />
       <motion.div
-        className="absolute inset-0 -z-20 blur-[100px] opacity-20"
+        className="absolute inset-0 -z-20 blur-[40px] opacity-20"
         animate={{ 
           scale: [1, 1.2, 1],
           opacity: [0.1, 0.3, 0.1]
@@ -222,6 +254,9 @@ export const GlobeSection3D = () => {
   const [headingMousePos, setHeadingMousePos] = useState({ x: 50, y: 50 });
   const [isMounted, setIsMounted] = useState(false);
   const headingRef = useRef<HTMLDivElement>(null);
+  const isDesktop = useIsDesktop();
+  const isPageVisible = usePageVisible();
+  const frameloop: 'always' | 'never' = isPageVisible ? 'always' : 'never';
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -241,7 +276,7 @@ export const GlobeSection3D = () => {
       {/* BACKGROUND CANVAS (Starfield + Particles) */}
       <div className="absolute inset-0 z-0">
         {isMounted && (
-          <Canvas camera={{ position: [0, 0, 15] }}>
+          <Canvas camera={{ position: [0, 0, 15] }} dpr={[1, 1.5]} frameloop={frameloop}>
             <MouseLight />
             <FloatingParticlesLayer />
             <InteractiveStars />
@@ -253,8 +288,8 @@ export const GlobeSection3D = () => {
 
       {/* MOBILE GLOBE BACKGROUND */}
       <div className="absolute inset-0 z-1 lg:hidden">
-        {isMounted && (
-          <Canvas>
+        {isMounted && isDesktop === false && (
+          <Canvas dpr={[1, 1.5]} frameloop={frameloop}>
             <PerspectiveCamera makeDefault position={[0, 0, 8]} />
             <OrbitControls enableZoom={false} enablePan={false} makeDefault rotateSpeed={0.5} />
             <ambientLight intensity={0.5} />
@@ -306,8 +341,8 @@ export const GlobeSection3D = () => {
 
         {/* DESKTOP GLOBE (HIDDEN ON MOBILE) */}
         <div className="hidden lg:flex relative h-[600px] items-center justify-center cursor-grab active:cursor-grabbing">
-          {isMounted && (
-            <Canvas>
+          {isMounted && isDesktop === true && (
+            <Canvas dpr={[1, 1.5]} frameloop={frameloop}>
               <PerspectiveCamera makeDefault position={[0, 0, 6]} />
               <OrbitControls enableZoom={false} enablePan={false} makeDefault rotateSpeed={0.5} enableDamping={true} dampingFactor={0.05} />
               <ambientLight intensity={0.5} />
@@ -316,7 +351,7 @@ export const GlobeSection3D = () => {
             </Canvas>
           )}
           
-          <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute top-1/4 right-1/4 bg-white/[0.02] backdrop-blur-[100px] border-2 border-white/40 p-8 rounded-[3rem] space-y-2 pointer-events-none shadow-[0_40px_80px_-15px_rgba(0,77,77,0.4)] border-b-cyan/30 isolate">
+          <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute top-1/4 right-1/4 bg-white/[0.02] backdrop-blur-[40px] border-2 border-white/40 p-8 rounded-[3rem] space-y-2 pointer-events-none shadow-[0_40px_80px_-15px_rgba(0,77,77,0.4)] border-b-cyan/30 isolate">
             <div className="absolute inset-0 bg-petroleum/10 rounded-[3rem] -z-10" />
             <p className="text-cyan text-[10px] font-black uppercase tracking-[0.3em]">TRÁFICO EN VIVO</p>
             <p className="text-white text-2xl font-black italic">

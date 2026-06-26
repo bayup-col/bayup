@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/context/theme-context';
+import { useSuperAdminTheme } from '@/context/super-admin-theme-context';
 import { DashboardHeader } from '@/components/dashboard/Header';
 import UserSettingsModal from '@/components/dashboard/UserSettingsModal';
 import { BaytAssistant } from '@/components/dashboard/BaytAssistant';
@@ -15,7 +16,7 @@ import {
   LogOut, Eye, ShieldCheck, Building2, Users, Wallet, Headset,
   Layout, BarChart3, Code, Activity,
   ChevronLeft, ChevronRight,
-  UserCheck, Coins, HelpCircle, Lock
+  UserCheck, Coins, HelpCircle, Lock, Menu, X, CreditCard
 } from 'lucide-react';
 
 // Componente externo memoizado — evita re-mount en cada render del layout
@@ -79,19 +80,21 @@ const PlanBadge = ({ planName, userPlan }: { planName: string; userPlan: any }) 
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { 
-    userEmail: authEmail, 
-    userRole: authRole, 
+  const {
+    userEmail: authEmail,
+    userRole: authRole,
     userName: authName,
     shopSlug: authSlug,
-    token, 
-    logout, 
-    userPlan, 
-    isGlobalStaff, 
-    isAuthenticated, 
-    isLoading 
+    token,
+    logout,
+    userPlan,
+    isGlobalStaff,
+    onboardingCompleted,
+    isAuthenticated,
+    isLoading
   } = useAuth();
   const { theme } = useTheme();
+  const { saTheme } = useSuperAdminTheme();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -102,6 +105,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [isAnyModalOpen, setIsAnyModalOpen] = useState(false);
   const [isSidebarHidden, setIsSidebarHidden] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Cierra el drawer móvil al navegar
+  useEffect(() => { setIsMobileSidebarOpen(false); }, [pathname]);
 
   // Monitor de modales abiertos (solo MutationObserver, sin polling)
   // modal-open   → oculta sidebar + muestra overlay oscuro (modales flotantes)
@@ -127,7 +134,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       if (!isLoading && !isAuthenticated) router.replace('/login');
   }, [isAuthenticated, isLoading, router]);
 
-  if (isLoading || !isAuthenticated) {
+  // Onboarding obligatorio: si el vendedor (no staff) aun no publico su tienda,
+  // lo primero que ve es el asistente de plantilla + datos, no el panel.
+  const isStaffAccount = isGlobalStaff || authRole?.toUpperCase() === 'SUPER_ADMIN';
+  const needsOnboarding = !isStaffAccount && !onboardingCompleted;
+  useEffect(() => {
+      if (!isLoading && isAuthenticated && needsOnboarding) router.replace('/onboarding');
+  }, [isLoading, isAuthenticated, needsOnboarding, router]);
+
+  // Bloquea por ahora el editor visual libre (Studio) y la galeria de plantillas
+  // para vendedores normales: solo eligen plantilla durante el onboarding.
+  const isStudioRoute = pathname?.startsWith('/dashboard/pages') || pathname?.startsWith('/dashboard/my-store');
+  useEffect(() => {
+      if (!isLoading && isAuthenticated && !isStaffAccount && isStudioRoute) router.replace('/dashboard');
+  }, [isLoading, isAuthenticated, isStaffAccount, isStudioRoute, router]);
+
+  if (isLoading || !isAuthenticated || needsOnboarding || (!isStaffAccount && isStudioRoute)) {
       return (
         <div className="h-screen w-screen flex items-center justify-center bg-[#FAFAFA]">
             <div className="text-2xl font-bold tracking-[0.15em] text-[#004d4d] animate-pulse uppercase">BAYUP</div>
@@ -149,9 +171,35 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className={`h-screen w-full flex overflow-hidden ${isSuperAdminZone ? 'bg-[#001212]' : theme === 'dark' ? 'bg-[#001212]' : 'bg-[#F0F2F5]'}`}>
+    <div
+      data-sa-theme={isSuperAdminZone ? saTheme : undefined}
+      className={`h-screen w-full flex overflow-hidden ${isSuperAdminZone ? (saTheme === 'light' ? 'bg-[#F4F6F7]' : 'bg-[#001212]') : theme === 'dark' ? 'bg-[#001212]' : 'bg-[#F0F2F5]'}`}>
 
-      {/* ── SIDEBAR — pegado esquina, sin margen ── */}
+      {/* Botón hamburguesa — solo móvil */}
+      {!isMobileSidebarOpen && (
+        <button
+          onClick={() => setIsMobileSidebarOpen(true)}
+          className="md:hidden fixed top-5 left-5 z-[60] h-10 w-10 rounded-2xl bg-[#001e1e] border border-white/10 shadow-lg flex items-center justify-center text-white/70"
+          title="Abrir menú"
+        >
+          <Menu size={18} />
+        </button>
+      )}
+
+      {/* Overlay — solo móvil, cierra el drawer al tocar fuera */}
+      {isMobileSidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/55 backdrop-blur-sm z-40"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* ── SIDEBAR — drawer en móvil, fijo en escritorio ── */}
+      <div
+        className={`fixed md:relative inset-y-0 left-0 z-50 md:z-30 transition-transform duration-300 ease-in-out ${
+          isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0`}
+      >
       <div
         style={{
           width: isSidebarCollapsed ? 64 : 256,
@@ -160,8 +208,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           transform: isSidebarHidden ? 'translateX(-16px)' : 'translateX(0)',
           pointerEvents: isSidebarHidden ? 'none' : 'auto',
         }}
-        className="relative h-full flex-shrink-0 bg-[#001e1e] flex flex-col shadow-xl z-30"
+        className="relative h-full flex-shrink-0 bg-[#001e1e] flex flex-col shadow-xl"
       >
+        <button
+          onClick={() => setIsMobileSidebarOpen(false)}
+          className="md:hidden absolute top-4 right-4 h-7 w-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white z-10"
+          title="Cerrar menú"
+        >
+          <X size={14} />
+        </button>
         {/* ── LOGO TOP ── */}
         <div className={`flex items-center h-16 px-5 shrink-0 ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
           {!isSidebarCollapsed ? (
@@ -189,8 +244,37 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           )}
         </div>
 
-        {/* ── TIENDA PILL ── */}
-        {!isSuperAdminZone && (
+        {/* ── MI TIENDA WEB (editor) ── */}
+        {/* Oculto temporalmente: por ahora el vendedor solo elige plantilla en el onboarding, no personaliza libremente. No borrar. */}
+        {false && !isSuperAdminZone && !isGlobalStaff && (
+          <div className="px-3 mb-2 shrink-0">
+            {!isSidebarCollapsed ? (
+              <button
+                onClick={() => router.push('/dashboard/my-store')}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-colors duration-150 group ${getLinkClass('/dashboard/my-store')}`}
+              >
+                <div className="h-7 w-7 rounded-lg bg-[#004d4d] flex items-center justify-center shrink-0">
+                  <Layout size={13} className="text-[#00f2ff]" />
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-[8px] font-semibold text-white/30 uppercase tracking-widest">Diseño</p>
+                  <p className="text-[11px] font-semibold truncate">Mi Tienda Web</p>
+                </div>
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push('/dashboard/my-store')}
+                className="w-full h-9 rounded-xl bg-[#004d4d]/40 hover:bg-[#004d4d]/70 flex items-center justify-center transition-colors duration-150"
+                title="Mi Tienda Web"
+              >
+                <Layout size={15} className="text-[#00f2ff]" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── TIENDA PILL (vista previa) ── */}
+        {!isSuperAdminZone && !isGlobalStaff && authSlug && (
           <div className="px-3 mb-2 shrink-0">
             {!isSidebarCollapsed ? (
               <button
@@ -238,6 +322,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <MenuItem href="/dashboard/super-admin/users" label="Usuarios" icon={<Users size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/users')} />
               {!isSidebarCollapsed && <p className="px-3 text-[8px] font-bold text-white/15 uppercase tracking-[0.3em] mt-4 mb-1.5">Plataforma</p>}
               <MenuItem href="/dashboard/super-admin/web-templates" label="Plantillas Web" icon={<Layout size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/web-templates')} />
+              <MenuItem href="/dashboard/super-admin/planes" label="Planes" icon={<CreditCard size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/planes')} />
               <MenuItem href="/dashboard/super-admin/soporte" label="Soporte" icon={<Headset size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/soporte')} />
               <MenuItem href="/dashboard/super-admin/reports" label="Reportes" icon={<BarChart3 size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/reports')} />
               {!isSidebarCollapsed && <p className="px-3 text-[8px] font-bold text-white/15 uppercase tracking-[0.3em] mt-4 mb-1.5">Sistema</p>}
@@ -279,17 +364,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
       </div>
+      </div>
 
       {/* ── MAIN CONTENT ── */}
       <div className="flex-1 flex flex-col min-w-0 relative overflow-hidden">
         <DashboardHeader pathname={pathname} userEmail={authEmail} userRole={authRole} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} logout={logout} setIsUserSettingsOpen={setIsUserSettingsOpen} isBaytOpen={isBaytOpen} setIsBaytOpen={setIsBaytOpen} />
-        <main className={`flex-1 overflow-y-auto pt-24 px-6 pb-6 relative ${isSuperAdminZone ? 'bg-[#001212]' : ''}`}>
+        <main className={`flex-1 overflow-y-auto pt-20 sm:pt-24 px-3 sm:px-6 pb-6 relative ${isSuperAdminZone ? (saTheme === 'light' ? 'bg-[#F4F6F7]' : 'bg-[#001212]') : ''}`}>
           <div className="max-w-[1600px] mx-auto">{children}</div>
         </main>
       </div>
 
       <UserSettingsModal isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} />
-      {isGlobalStaff && !isSuperAdminZone && <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />}
+      {/* Oculto temporalmente para el MVP — no es necesario aún, se retoma después. No borrar. */}
+      {false && isGlobalStaff && !isSuperAdminZone && <BaytAssistant isOpen={isBaytOpen} setIsOpen={setIsBaytOpen} />}
       <SupportWidget isSupportOpen={isSupportOpen} setIsSupportOpen={setIsSupportOpen} />
 
       {/* Overlay raíz — cubre TODO el viewport sin interferencias de overflow/transform */}

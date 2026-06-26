@@ -142,7 +142,7 @@ export default function SuperAdminDashboard() {
 
       {/* ── Dos columnas: módulos + estado ── */}
       <motion.div {...FADE_UP} transition={{ duration: 0.4, delay: 0.1 }}
-        className="grid grid-cols-[1.4fr_1fr] gap-6">
+        className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
 
         {/* Módulos */}
         <div className="space-y-3">

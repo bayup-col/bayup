@@ -506,18 +506,20 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                                 </div>
 
                                 <div className="opacity-40 grayscale pointer-events-none">
+                                    {/* Oculto temporalmente para el MVP — Bayup se mantiene en modo claro fijo. No borrar. */}
+                                    {false && (
                                     <section className="space-y-4">
                                         <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
                                             <Moon size={12} className="text-gray-900"/> Personalización Visual
                                         </h4>
                                         <div className="grid grid-cols-2 gap-4">
-                                            <button 
+                                            <button
                                                 className={`p-6 rounded-3xl border transition-all flex flex-col items-center gap-3 ${theme === 'light' ? 'bg-[#004d4d]/5 border-[#004d4d] text-[#004d4d]' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
                                             >
                                                 <Sun size={24} />
                                                 <span className="text-[10px] font-black uppercase tracking-widest">Modo Claro</span>
                                             </button>
-                                            <button 
+                                            <button
                                                 className={`p-6 rounded-3xl border transition-all flex flex-col items-center gap-3 ${theme === 'dark' ? 'bg-[#004d4d]/5 border-[#004d4d] text-[#004d4d]' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}
                                             >
                                                 <Moon size={24} />
@@ -525,6 +527,7 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                                             </button>
                                         </div>
                                     </section>
+                                    )}
 
                                     <section className="space-y-4">
                                         <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">

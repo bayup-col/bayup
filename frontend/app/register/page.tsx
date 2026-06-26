@@ -118,15 +118,18 @@ function RegisterForm() {
         const loginData = await loginResponse.json();
         const userData = loginData.user;
         login(
-          loginData.access_token, 
-          formData.email, 
+          loginData.access_token,
+          formData.email,
           userData.role || 'admin_tienda',
           userData.permissions || {},
           userData.plan || null,
           userData.is_global_staff || false,
           userData.shop_slug || "",
           userData.full_name || "",
-          userData.logo_url || ""
+          userData.logo_url || "",
+          "",
+          "",
+          !!userData.onboarding_completed
         );
       }
 
@@ -144,13 +147,13 @@ function RegisterForm() {
   const selectedPlan = plans.find(p => p.id === formData.planId);
 
   return (
-    <div className="relative z-10 w-full max-w-[640px] p-6 max-h-screen overflow-y-auto no-scrollbar">
-        <motion.div 
+    <div className="relative z-10 w-full max-w-[640px] p-4 sm:p-6 max-h-screen overflow-y-auto no-scrollbar">
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative p-10 md:p-12 rounded-[4rem] overflow-hidden group transition-all duration-700 isolate flex flex-col shadow-[0_40px_80px_-15px_rgba(0,0,0,0.08)] bg-white"
+          className="relative p-6 sm:p-10 md:p-12 rounded-[2.5rem] sm:rounded-[4rem] overflow-hidden group transition-all duration-700 isolate flex flex-col shadow-[0_40px_80px_-15px_rgba(0,0,0,0.08)] bg-white"
         >
-          <div className="absolute inset-0 rounded-[4rem] overflow-hidden -z-10">
+          <div className="absolute inset-0 rounded-[2.5rem] sm:rounded-[4rem] overflow-hidden -z-10">
             <div 
               className="absolute top-1/2 left-1/2 w-[250%] aspect-square animate-aurora opacity-40 transition-opacity duration-700"
               style={{
@@ -158,7 +161,7 @@ function RegisterForm() {
                 willChange: 'transform'
               }}
             />
-            <div className="absolute inset-[2px] rounded-[3.9rem] bg-white/90 backdrop-blur-3xl" />
+            <div className="absolute inset-[2px] rounded-[2.4rem] sm:rounded-[3.9rem] bg-white/90 backdrop-blur-3xl" />
           </div>
 
           <div className="text-center mb-8">
@@ -292,7 +295,7 @@ function RegisterForm() {
                   <div className="relative z-10 flex items-center justify-center min-h-[24px]">
                     <AnimatePresence mode="wait">
                       {isSuccess ? (
-                        <motion.div key="ghost-jump" initial={{ y: 20, opacity: 0, scale: 0.5 }} animate={{ y: [0, -80, 0], opacity: 1, scale: [0.5, 1.5, 1], rotate: [0, 15, -15, 0] }} transition={{ duration: 1.2, times: [0, 0.5, 1], ease: "easeInOut" }} onAnimationComplete={() => { setTimeout(() => { router.push('/dashboard'); }, 300); }} className="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]" >
+                        <motion.div key="ghost-jump" initial={{ y: 20, opacity: 0, scale: 0.5 }} animate={{ y: [0, -80, 0], opacity: 1, scale: [0.5, 1.5, 1], rotate: [0, 15, -15, 0] }} transition={{ duration: 1.2, times: [0, 0.5, 1], ease: "easeInOut" }} onAnimationComplete={() => { setTimeout(() => { router.push('/onboarding'); }, 300); }} className="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]" >
                           <Ghost size={38} strokeWidth={2.5} />
                         </motion.div>
                       ) : isLoading ? (
@@ -329,7 +332,7 @@ export default function RegisterPage() {
       <FloatingParticlesBackground />
 
       {/* Botón de Regreso a Home (Elegante y blanco premium) */}
-      <div className="fixed top-8 left-8 z-[100]">
+      <div className="fixed top-4 left-4 sm:top-8 sm:left-8 z-[100]">
         <GlassyButton href="/" variant="light">
           <Home size={18} />
         </GlassyButton>

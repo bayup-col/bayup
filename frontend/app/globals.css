@@ -116,3 +116,191 @@
 .dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 242, 255, 0.25);
 }
+
+/* ==========================================================================
+   SUPER-ADMIN — MODO CLARO (toggle independiente del tema general)
+   ==========================================================================
+   La zona /dashboard/super-admin/** es oscura por defecto ("centro de
+   comando": fondo casi negro + texto blanco a baja opacidad). El usuario
+   puede alternar a un modo claro con el botón del header. Ese estado vive en
+   SuperAdminThemeContext y se refleja como atributo `data-sa-theme="light"`
+   en el contenedor raíz de dashboard/layout.tsx — atributo que NUNCA está
+   presente fuera de super-admin, así que estas reglas no pueden filtrarse
+   al dashboard tenant-facing ni al sidebar que ambos comparten.
+
+   Estrategia: en vez de reescribir cientos de instancias de
+   text-white/N · border-white/N · bg-white/N en los ~20 archivos de página,
+   se sobreescriben aquí las utilidades de Tailwind ya usadas (mismo patrón
+   que ".dark .bg-white" más arriba en este archivo). Único punto de control.
+   ========================================================================== */
+
+[data-sa-theme="light"] {
+  color-scheme: light;
+}
+
+/* Fondo de página y "glass cards" oscuras → superficie clara con borde sutil */
+/* Nota: bg-[#001111] (observability) y bg-[#002222] (apis) son "islas oscuras"
+   decorativas (paneles tipo terminal/consola) dentro de páginas ya claras por
+   diseño — se excluyen a propósito para no romper esa metáfora visual. */
+[data-sa-theme="light"] .bg-\[\#001212\],
+[data-sa-theme="light"] .bg-\[\#001e1e\],
+[data-sa-theme="light"] .bg-\[\#001a1a\]\/90,
+[data-sa-theme="light"] .bg-\[\#001A1A\]\/90,
+[data-sa-theme="light"] .bg-\[\#001A1A\]\/95,
+[data-sa-theme="light"] .bg-\[\#080c0c\],
+[data-sa-theme="light"] .bg-\[\#0a0f0f\],
+[data-sa-theme="light"] .bg-\[\#0f1a1a\] {
+  background-color: #FFFFFF !important;
+  border-color: rgba(15, 35, 35, 0.10) !important;
+}
+
+/* Fondos "glass" translúcidos sobre el fondo oscuro → superficies grises muy claras */
+[data-sa-theme="light"] .bg-white\/3,
+[data-sa-theme="light"] .bg-white\/4,
+[data-sa-theme="light"] .bg-white\/5,
+[data-sa-theme="light"] .bg-white\/8,
+[data-sa-theme="light"] .bg-white\/10,
+[data-sa-theme="light"] .bg-white\/12,
+[data-sa-theme="light"] .bg-white\/\[0\.015\],
+[data-sa-theme="light"] .bg-white\/\[0\.02\],
+[data-sa-theme="light"] .bg-white\/\[0\.025\],
+[data-sa-theme="light"] .bg-white\/\[0\.03\],
+[data-sa-theme="light"] .bg-white\/\[0\.04\] {
+  background-color: rgba(15, 35, 35, 0.035) !important;
+}
+[data-sa-theme="light"] .hover\:bg-white\/5:hover,
+[data-sa-theme="light"] .hover\:bg-white\/6:hover,
+[data-sa-theme="light"] .hover\:bg-white\/8:hover,
+[data-sa-theme="light"] .hover\:bg-white\/10:hover,
+[data-sa-theme="light"] .hover\:bg-white\/12:hover,
+[data-sa-theme="light"] .hover\:bg-white\/\[0\.025\]:hover,
+[data-sa-theme="light"] .hover\:bg-white\/\[0\.04\]:hover {
+  background-color: rgba(15, 35, 35, 0.06) !important;
+}
+[data-sa-theme="light"] .bg-white\/20 { background-color: rgba(15, 35, 35, 0.10) !important; }
+[data-sa-theme="light"] .bg-white\/50 { background-color: rgba(15, 35, 35, 0.35) !important; }
+[data-sa-theme="light"] .bg-white\/80 { background-color: rgba(15, 35, 35, 0.65) !important; }
+
+/* Bordes sobre fondo oscuro → bordes grises sutiles sobre fondo claro */
+[data-sa-theme="light"] .border-white\/5,
+[data-sa-theme="light"] .border-white\/6,
+[data-sa-theme="light"] .border-white\/8,
+[data-sa-theme="light"] .border-white\/10,
+[data-sa-theme="light"] .border-white\/12,
+[data-sa-theme="light"] .border-white\/15,
+[data-sa-theme="light"] .border-white\/20,
+[data-sa-theme="light"] .border-white\/\[0\.04\],
+[data-sa-theme="light"] .border-white\/\[0\.07\] {
+  border-color: rgba(15, 35, 35, 0.10) !important;
+}
+[data-sa-theme="light"] .divide-white\/\[0\.04\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(15, 35, 35, 0.08) !important;
+}
+
+/* Escala de texto blanco-a-opacidad → escala de grafito con contraste AA sobre blanco/gris claro */
+[data-sa-theme="light"] .text-white { color: #0F2323 !important; }
+[data-sa-theme="light"] .text-white\/80 { color: rgba(15, 35, 35, 0.88) !important; }
+[data-sa-theme="light"] .text-white\/70 { color: rgba(15, 35, 35, 0.80) !important; }
+[data-sa-theme="light"] .text-white\/60 { color: rgba(15, 35, 35, 0.72) !important; }
+[data-sa-theme="light"] .text-white\/50 { color: rgba(15, 35, 35, 0.64) !important; }
+[data-sa-theme="light"] .text-white\/40 { color: rgba(15, 35, 35, 0.56) !important; }
+[data-sa-theme="light"] .text-white\/30 { color: rgba(15, 35, 35, 0.48) !important; }
+[data-sa-theme="light"] .text-white\/25 { color: rgba(15, 35, 35, 0.44) !important; }
+[data-sa-theme="light"] .text-white\/20 { color: rgba(15, 35, 35, 0.40) !important; }
+[data-sa-theme="light"] .text-white\/15 { color: rgba(15, 35, 35, 0.36) !important; }
+[data-sa-theme="light"] .placeholder\:text-white\/15::placeholder { color: rgba(15, 35, 35, 0.30) !important; }
+[data-sa-theme="light"] .placeholder\:text-white\/20::placeholder { color: rgba(15, 35, 35, 0.32) !important; }
+[data-sa-theme="light"] .hover\:text-white:hover { color: #0F2323 !important; }
+[data-sa-theme="light"] .hover\:text-white\/70:hover,
+[data-sa-theme="light"] .hover\:text-white\/60:hover,
+[data-sa-theme="light"] .hover\:text-white\/50:hover,
+[data-sa-theme="light"] .hover\:text-white\/40:hover { color: rgba(15, 35, 35, 0.85) !important; }
+
+/* Acento cian: en fondos de chip (10–15% opacidad) funciona igual en ambos modos.
+   Como color de texto sólido, #00f2ff no cumple contraste AA sobre blanco —
+   se oscurece a un teal legible que conserva la identidad de marca.
+   Se cubren ambas variantes de mayúscula/minúscula porque Tailwind genera la
+   clase arbitraria tal cual aparece escrita en cada archivo fuente. */
+[data-sa-theme="light"] .text-\[\#00f2ff\],
+[data-sa-theme="light"] .text-\[\#00F2FF\] { color: #00838f !important; }
+[data-sa-theme="light"] .text-\[\#00f2ff\]\/80,
+[data-sa-theme="light"] .text-\[\#00f2ff\]\/70,
+[data-sa-theme="light"] .text-\[\#00F2FF\]\/80,
+[data-sa-theme="light"] .text-\[\#00F2FF\]\/70 { color: #007f8a !important; }
+[data-sa-theme="light"] .text-\[\#00f2ff\]\/60,
+[data-sa-theme="light"] .text-\[\#00f2ff\]\/50,
+[data-sa-theme="light"] .text-\[\#00F2FF\]\/60,
+[data-sa-theme="light"] .text-\[\#00F2FF\]\/50 { color: #0a8f99 !important; }
+[data-sa-theme="light"] .hover\:text-\[\#00f2ff\]:hover,
+[data-sa-theme="light"] .hover\:text-\[\#00F2FF\]:hover,
+[data-sa-theme="light"] .group-hover\:text-\[\#00f2ff\]:hover { color: #006c75 !important; }
+[data-sa-theme="light"] .bg-\[\#00F2FF\]\/10,
+[data-sa-theme="light"] .bg-\[\#00f2ff\]\/10 { background-color: rgba(0, 131, 143, 0.10) !important; }
+
+/* Overlays de modal (bg-black/N) se mantienen oscuros en ambos modos — son
+   capas de foco sobre el viewport, no parte del lienzo de la página. */
+
+/* Protección: páginas secundarias legacy (afiliados, apis, observability,
+   risk, legal, feature-flags, companies, web-analytics, editor de plantillas)
+   ya son claras por diseño (bg-white/bg-gray-50/text-gray-900) pero tienen
+   paneles puntuales deliberadamente oscuros — botones bg-gray-900, headers
+   con gradiente gray-900→gray-800, consola bg-[#001111]/bg-[#002222]. Esas
+   "islas oscuras" deben conservar su texto blanco sin importar el toggle,
+   porque su fondo oscuro no se ve afectado por estas reglas. */
+[data-sa-theme="light"] header.bg-\[\#001A1A\],
+[data-sa-theme="light"] header.bg-\[\#001A1A\] .text-white,
+[data-sa-theme="light"] header.bg-\[\#001A1A\] .text-white\/40,
+[data-sa-theme="light"] header.bg-\[\#001A1A\] .text-white\/20 {
+  background-color: #001A1A !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+}
+[data-sa-theme="light"] header.bg-\[\#001A1A\] .bg-white\/5,
+[data-sa-theme="light"] header.bg-\[\#001A1A\] .bg-white\/10,
+[data-sa-theme="light"] header.bg-\[\#001A1A\] .border-white\/10 {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+}
+[data-sa-theme="light"] .bg-\[\#001A1A\]\/80 {
+  background-color: rgba(0, 26, 26, 0.80) !important;
+}
+[data-sa-theme="light"] .bg-gray-900.text-white,
+[data-sa-theme="light"] .bg-gray-900 .text-white,
+[data-sa-theme="light"] .bg-gray-900 .text-white\/50,
+[data-sa-theme="light"] .bg-gray-900 .hover\:text-white:hover,
+[data-sa-theme="light"] .bg-black.text-white,
+[data-sa-theme="light"] .bg-gradient-to-r.from-gray-900.text-white,
+[data-sa-theme="light"] .bg-gradient-to-r.from-gray-900 .text-white\/50,
+[data-sa-theme="light"] .bg-gradient-to-r.from-gray-900 .hover\:text-white:hover,
+[data-sa-theme="light"] .bg-\[\#001111\] .text-white\/50,
+[data-sa-theme="light"] .bg-\[\#001111\] .text-white\/30,
+[data-sa-theme="light"] .bg-\[\#002222\] .text-white,
+[data-sa-theme="light"] .bg-\[\#002222\] .text-\[\#00ffff\] {
+  color: #ffffff !important;
+}
+[data-sa-theme="light"] .bg-\[\#002222\] .bg-white\/5,
+[data-sa-theme="light"] .bg-\[\#002222\] .bg-white\/10,
+[data-sa-theme="light"] .bg-\[\#002222\] .border-white\/10 {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+}
+
+/* Inputs y selects con fondo "glass" oscuro → fondo blanco con borde definido */
+[data-sa-theme="light"] input.bg-white\/5,
+[data-sa-theme="light"] input.bg-white\/4,
+[data-sa-theme="light"] textarea.bg-white\/5,
+[data-sa-theme="light"] input.bg-transparent {
+  color: #0F2323 !important;
+}
+[data-sa-theme="light"] input::placeholder,
+[data-sa-theme="light"] textarea::placeholder {
+  color: rgba(15, 35, 35, 0.30) !important;
+}
+
+/* Scrollbar sutil también en modo claro de super-admin (hereda de la regla light por defecto) */
+[data-sa-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(15, 35, 35, 0.12);
+}
+[data-sa-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 131, 143, 0.3);
+}
