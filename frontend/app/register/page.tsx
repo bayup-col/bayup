@@ -123,7 +123,7 @@ function RegisterForm() {
   const handleGoogleSignup = async () => {
     setError(null);
     try {
-      await signInWithGoogle('/onboarding');
+      await signInWithGoogle('/auth/callback');
     } catch (err: any) {
       setError(err.message || 'No se pudo continuar con Google.');
     }

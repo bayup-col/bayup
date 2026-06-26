@@ -137,7 +137,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   // Onboarding obligatorio: si el vendedor (no staff) aun no publico su tienda,
   // lo primero que ve es el asistente de plantilla + datos, no el panel.
   const isStaffAccount = isGlobalStaff || authRole?.toUpperCase() === 'SUPER_ADMIN';
-  const needsOnboarding = !isStaffAccount && !onboardingCompleted;
+  const needsOnboarding = !isStaffAccount && !onboardingCompleted && !isSuperAdminZone;
   useEffect(() => {
       if (!isLoading && isAuthenticated && needsOnboarding) router.replace('/onboarding');
   }, [isLoading, isAuthenticated, needsOnboarding, router]);

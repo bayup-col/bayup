@@ -94,6 +94,9 @@ class User(Base):
     acquisition_channel = Column(String, nullable=True)
     # Estandarizado arriba como customer_city para persistencia total
     
+    password_reset_token = Column(String, nullable=True)
+    password_reset_expires = Column(DateTime, nullable=True)
+
     plan_id = Column(GUID(), ForeignKey("plans.id"))
     plan = relationship("Plan", back_populates="users", lazy="select")
     products = relationship("Product", back_populates="owner")

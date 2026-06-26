@@ -92,6 +92,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // rechaza el token (401) porque el usuario ya no existe. A diferencia de
       // un fallo de red transitorio, esto debe cerrar la sesion de inmediato.
       if (e?.message === 'Could not validate credentials') {
+        // Solo cerrar sesión si este es aún el token activo.
+        // Si login() ya reemplazó el token (p.ej. tras Google OAuth), ignorar.
+        const currentToken = localStorage.getItem('token');
+        if (currentToken && currentToken !== authToken) return;
         sessionStorage.setItem('bayup_logout_reason', 'account_removed');
         setToken(null);
         setUserEmail(null);
@@ -174,6 +178,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('userAddress', address);
     localStorage.setItem('onboardingCompleted', onboardingDone ? 'true' : 'false');
     if (plan) localStorage.setItem('userPlan', JSON.stringify(plan));
+    // sessionStorage no se borra con localStorage.clear() — bandera segura para logout
+    if (isGlobal) sessionStorage.setItem('isSuperAdminSession', 'true');
+    else sessionStorage.removeItem('isSuperAdminSession');
 
     if (logo) {
       setUserLogo(logo);
@@ -224,6 +231,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    const wasStaff = sessionStorage.getItem('isSuperAdminSession') === 'true'
+                     || localStorage.getItem('isGlobalStaff') === 'true';
     setToken(null);
     setUserEmail(null);
     setUserName(null);
@@ -236,9 +245,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setShopSlug(null);
     setIsGlobalStaff(false);
     setOnboardingCompleted(false);
+    sessionStorage.removeItem('isSuperAdminSession');
     localStorage.clear();
-    router.push('/login');
-  }, [router]);
+    // Hard redirect: evita que el useEffect de DashboardLayout (isAuthenticated → /login)
+    // sobreescriba la navegación hacia /bayup-family con un router.replace posterior.
+    window.location.href = wasStaff ? '/bayup-family' : '/login';
+  }, []);
 
   const isAuthenticated = !!token;
 
