@@ -1,146 +1,165 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Layout, CheckCircle2, Eye, Loader2, Sparkles, Monitor } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CheckCircle2, Eye, Loader2, Monitor } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
-import { CUSTOM_HTML_TEMPLATES } from '@/lib/custom-templates';
 
-export default function ClientTemplatesGallery() {
-    const { token } = useAuth();
+export default function TenantTemplatesGallery() {
+    const { token, shopSlug } = useAuth();
     const { showToast } = useToast();
-    const [dbTemplates, setTemplates] = useState<any[]>([]);
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [currentTemplateId, setCurrentTemplateId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSelecting, setIsSelecting] = useState<string | null>(null);
 
-    // Combinamos las plantillas locales con las de la base de datos
-    // Usamos un Map para evitar duplicados si ya se sincronizaron
-    const allTemplates = [
-        ...CUSTOM_HTML_TEMPLATES.map(t => ({ ...t, isLocal: true })),
-        ...dbTemplates.filter(dt => !CUSTOM_HTML_TEMPLATES.some(lt => lt.name === dt.name))
-    ];
-
     useEffect(() => {
-        const fetchTemplates = async () => {
-            try {
-                const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-                const res = await fetch(`${apiBase}/web-templates`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    setTemplates(data);
-                }
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        if (token) fetchTemplates();
+        if (!token) return;
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        Promise.all([
+            fetch(`${apiBase}/web-templates`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+            fetch(`${apiBase}/shop-pages/home`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({})),
+        ]).then(([tpls, page]) => {
+            setTemplates((Array.isArray(tpls) ? tpls : []).filter((t: any) => t.template_type === 'html'));
+            setCurrentTemplateId((page as any)?.template_id || null);
+        }).catch(console.error)
+          .finally(() => setIsLoading(false));
     }, [token]);
 
-    const handleSelectTemplate = async (template: any) => {
-        setIsSelecting(template.id);
+    const handleSelect = async (tpl: any) => {
+        if (isSelecting || tpl.id === currentTemplateId) return;
+        setIsSelecting(tpl.id);
         try {
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-            
-            // Si es local, primero debemos obtener su architecture.json
-            let schema = template.schema_data;
-            if (template.isLocal) {
-                const resJson = await fetch(`/templates/custom-html/${template.folderPath}/architecture.json`);
-                if (resJson.ok) schema = await resJson.json();
-            }
-
-            // CLONACIÓN: Guardamos el schema en las páginas del cliente
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
             const res = await fetch(`${apiBase}/shop-pages`, {
                 method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    page_key: 'home',
-                    schema_data: schema,
-                    template_id: template.id // Guardamos el ID de la plantilla
-                })
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ page_key: 'home', schema_data: {}, template_id: tpl.id }),
             });
-
             if (res.ok) {
-                showToast(`¡Diseño "${template.name}" instalado con éxito!`, "success");
-                // PASAMOS EL ID PARA QUE EL EDITOR SEPA QUÉ CARGAR
-                window.location.href = `/dashboard/pages/studio?page=home&id=${template.id}`;
+                setCurrentTemplateId(tpl.id);
+                showToast(`Plantilla "${tpl.name}" aplicada a tu tienda`, 'success');
             } else {
-                throw new Error("Error al clonar plantilla");
+                showToast('No se pudo cambiar la plantilla', 'error');
             }
-        } catch (e) {
-            showToast("No se pudo instalar la plantilla", "error");
+        } catch {
+            showToast('Error de conexión', 'error');
         } finally {
             setIsSelecting(null);
         }
     };
 
+    const openPreview = (tplId: string) => {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        window.open(`${apiBase}/web-templates/${tplId}/preview/home?token=${encodeURIComponent(token || '')}`, '_blank');
+    };
+
     if (isLoading) {
         return (
-            <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
-                <Loader2 className="animate-spin text-[#00f2ff]" size={48} />
-                <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.3em]">Cargando Catálogo de Diseños...</p>
+            <div className="h-[60vh] flex items-center justify-center">
+                <Loader2 className="animate-spin text-[#00f2ff]" size={40} />
             </div>
         );
     }
 
     return (
-        <div className="max-w-[1400px] mx-auto pb-32 space-y-12 animate-in fade-in duration-1000 p-6">
-            <div className="space-y-4">
-                <h1 className="text-5xl font-black text-[#004d4d] tracking-tight uppercase italic">Elige tu Diseño</h1>
-                <p className="text-gray-500 font-medium text-lg italic">Selecciona una arquitectura maestra y personalízala para tu marca.</p>
+        <div className="max-w-5xl mx-auto p-6 space-y-8">
+            <div>
+                <h1 className="text-3xl font-black text-white tracking-tight">Plantilla de Tienda</h1>
+                <p className="text-white/50 mt-1 text-sm">
+                    Elige el diseño que usará tu tienda web. El cambio se aplica de inmediato.
+                </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {allTemplates.map((tpl, i) => (
-                    <motion.div 
-                        key={tpl.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.1 }}
-                        className="group bg-white rounded-[3rem] border border-gray-100 overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500"
-                    >
-                        <div className="aspect-video relative overflow-hidden bg-gray-50">
-                            <img src={tpl.preview_url || tpl.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
-                        </div>
-
-                        <div className="p-10 space-y-6">
-                            <div>
-                                <div className="flex justify-between items-start">
-                                    <h3 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter">{tpl.name}</h3>
-                                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[8px] font-black uppercase border border-emerald-100">{tpl.category}</span>
+            {templates.length === 0 ? (
+                <div className="py-20 text-center text-white/30 text-sm">
+                    No hay plantillas disponibles en este momento.
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {templates.map(tpl => {
+                        const isActive = tpl.id === currentTemplateId;
+                        return (
+                            <div
+                                key={tpl.id}
+                                className={`rounded-2xl border overflow-hidden transition-all ${
+                                    isActive
+                                        ? 'border-[#00f2ff] shadow-[0_0_0_2px_rgba(0,242,255,0.2)]'
+                                        : 'border-white/10 hover:border-white/20'
+                                } bg-white/5`}
+                            >
+                                <div className="aspect-video bg-black/30 relative overflow-hidden">
+                                    {tpl.preview_url ? (
+                                        <img
+                                            src={tpl.preview_url}
+                                            alt={tpl.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="absolute inset-0 flex items-center justify-center text-white/10">
+                                            <Monitor size={40} />
+                                        </div>
+                                    )}
+                                    {isActive && (
+                                        <div className="absolute top-2 right-2 bg-[#00f2ff] text-[#004d4d] text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-widest flex items-center gap-1">
+                                            <CheckCircle2 size={10} /> Activa
+                                        </div>
+                                    )}
                                 </div>
-                                <p className="text-sm text-gray-400 mt-2 line-clamp-2">{tpl.description}</p>
-                            </div>
 
-                            <div className="pt-6 border-t border-gray-50 flex flex-col gap-3">
-                                <button 
-                                    onClick={() => handleSelectTemplate(tpl)}
-                                    disabled={isSelecting !== null}
-                                    className="w-full py-4 bg-[#004d4d] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#00f2ff] hover:text-[#004d4d] transition-all flex items-center justify-center gap-3 shadow-xl"
-                                >
-                                    {isSelecting === tpl.id ? <Loader2 className="animate-spin" /> : <><Sparkles size={16} /> Personalizar esta Plantilla</>}
-                                </button>
-                                
-                                <a 
-                                    href={tpl.isLocal ? `/templates/custom-html/${tpl.folderPath}/code.html` : '#'} 
-                                    target="_blank"
-                                    className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-gray-100 transition-all text-center"
-                                >
-                                    <Monitor size={16} /> Vista Previa
-                                </a>
+                                <div className="p-4 space-y-3">
+                                    <div>
+                                        <h3 className="text-sm font-bold text-white">{tpl.name}</h3>
+                                        {tpl.description && (
+                                            <p className="text-[11px] text-white/40 mt-0.5 line-clamp-2">{tpl.description}</p>
+                                        )}
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => openPreview(tpl.id)}
+                                            className="flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-white/10 text-white/50 hover:text-white hover:border-white/20 flex items-center justify-center gap-1.5 transition-all"
+                                        >
+                                            <Eye size={12} /> Previsualizar
+                                        </button>
+                                        <button
+                                            onClick={() => handleSelect(tpl)}
+                                            disabled={isActive || isSelecting !== null}
+                                            className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                                                isActive
+                                                    ? 'bg-[#00f2ff]/10 text-[#00f2ff] cursor-default'
+                                                    : isSelecting === tpl.id
+                                                    ? 'bg-[#004d4d] text-[#00f2ff] opacity-70 cursor-wait'
+                                                    : 'bg-[#004d4d] text-[#00f2ff] hover:bg-[#006666]'
+                                            }`}
+                                        >
+                                            {isSelecting === tpl.id ? (
+                                                <Loader2 size={12} className="animate-spin" />
+                                            ) : isActive ? (
+                                                <><CheckCircle2 size={12} /> Activa</>
+                                            ) : (
+                                                'Seleccionar'
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </motion.div>
-                ))}
-            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {shopSlug && (
+                <div className="pt-4 text-center">
+                    <a
+                        href={`/html-shop/${shopSlug}`}
+                        target="_blank"
+                        className="text-[11px] text-white/30 hover:text-white/60 underline transition-colors"
+                    >
+                        Ver mi tienda →
+                    </a>
+                </div>
+            )}
         </div>
     );
 }
