@@ -224,17 +224,34 @@ export default function LoginPage() {
               <div className="text-3xl font-black text-black italic tracking-tighter mb-3 flex items-center justify-center"><span>BAY</span><InteractiveUP /></div>
               <h3 className="text-xl font-light text-black">¿Olvidaste tu acceso?</h3>
             </div>
-            <form onSubmit={handleResetPassword} className="space-y-6 relative z-10">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4">Tu correo de registro</label>
-                <div className="relative group">
-                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 transition-colors group-focus-within:text-cyan" />
-                  <input type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} className="w-full pl-14 pr-6 py-4 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white" required />
+
+            {isResetSuccess ? (
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 flex flex-col items-center gap-5 text-center">
+                <div className="h-16 w-16 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                  <CheckCircle2 size={32} className="text-emerald-500" />
                 </div>
-              </div>
-              <button type="submit" className="w-full py-4 rounded-full bg-[#0A1A1A] text-white font-medium text-sm tracking-wide shadow-[0_15px_35px_-10px_rgba(0,0,0,0.3)]">Enviar Acceso</button>
-              <button type="button" onClick={() => setIsFlipped(false)} className="flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-cyan transition-colors mx-auto">Regresar</button>
-            </form>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">¡Correo enviado!</p>
+                  <p className="text-xs text-gray-400 mt-1.5 leading-relaxed">Revisa tu bandeja de entrada en <span className="font-medium text-gray-600">{resetEmail}</span> y sigue el enlace para restablecer tu acceso.</p>
+                </div>
+                <button type="button" onClick={() => { setIsFlipped(false); setIsResetSuccess(false); setResetEmail(''); }} className="text-xs font-medium text-gray-400 hover:text-cyan transition-colors mt-2">Volver al inicio de sesión</button>
+              </motion.div>
+            ) : (
+              <form onSubmit={handleResetPassword} className="space-y-6 relative z-10">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4">Tu correo de registro</label>
+                  <div className="relative group">
+                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 transition-colors group-focus-within:text-cyan" />
+                    <input type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} className="w-full pl-14 pr-6 py-4 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white" required disabled={isLoading} />
+                  </div>
+                </div>
+                <button type="submit" disabled={isLoading} className="w-full py-4 rounded-full bg-[#0A1A1A] text-white font-medium text-sm tracking-wide shadow-[0_15px_35px_-10px_rgba(0,0,0,0.3)] disabled:opacity-60 flex items-center justify-center gap-2">
+                  {isLoading ? <Loader2 size={16} className="animate-spin" /> : null}
+                  {isLoading ? 'Enviando...' : 'Enviar Acceso'}
+                </button>
+                <button type="button" onClick={() => setIsFlipped(false)} className="flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-cyan transition-colors mx-auto">Regresar</button>
+              </form>
+            )}
           </div>
         </motion.div>
         </div>
