@@ -19,55 +19,31 @@ export const GlassButton = ({ children, href, onClick, className = "", icon, var
 
   const content = (
     <motion.div
-      whileHover={{ scale: 1.02, y: -2 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ scale: 1.015, y: -1 }}
+      whileTap={{ scale: 0.985 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
       className={`
-        relative px-10 py-5 rounded-2xl 
-        backdrop-blur-xl 
-        border 
-        shadow-xl 
-        flex items-center justify-center gap-3 
+        relative px-9 py-4 rounded-full
+        border
+        flex items-center justify-center gap-2.5
         cursor-pointer overflow-hidden group
         transition-all duration-300
-        ${isPrimary 
-          ? 'bg-[#00F2FF] border-[#00F2FF]/50 shadow-[0_15px_35px_-5px_rgba(0,242,255,0.4)] text-[#004D4D] hover:bg-[#00D9E5]' 
-          : isDark 
-            ? 'bg-white/25 border-white/30 shadow-black/10 text-white hover:bg-white/35' 
-            : 'bg-white/30 border-white/60 shadow-gray-200/50 text-gray-900 hover:bg-white/50'
+        ${isPrimary
+          ? 'bg-[#00F2FF] border-white/30 shadow-[0_8px_24px_-6px_rgba(0,242,255,0.35)] text-[#003333] hover:shadow-[0_12px_32px_-6px_rgba(0,242,255,0.5)] hover:bg-[#1AF5FF]'
+          : isDark
+            ? 'bg-white/10 backdrop-blur-xl border-white/15 text-white hover:bg-white/[0.15] hover:border-white/25'
+            : 'bg-white/40 backdrop-blur-xl border-gray-200/60 text-gray-900 hover:bg-white/60'
         }
         ${className}
       `}
     >
-      {/* Glossy Gradient Overlay */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${isPrimary ? 'from-white/40 to-transparent' : isDark ? 'from-white/10 to-transparent' : 'from-white/40 to-transparent'} opacity-100`} />
-      
-      {/* Animated Shine & Star Pulse */}
-      <div className="absolute inset-0 -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/30 to-transparent z-10" />
-      
-      {/* Star Pulse Animation */}
-      <motion.div 
-        animate={{ 
-          opacity: [0.2, 0.6, 0.2],
-          scale: [1, 1.05, 1]
-        }}
-        transition={{ 
-          duration: 3, 
-          repeat: Infinity, 
-          ease: "easeInOut" 
-        }}
-        className={`absolute inset-0 bg-gradient-to-r ${isPrimary ? 'from-white/40 via-transparent to-white/40' : 'from-white/10 via-transparent to-white/10'} pointer-events-none`}
-      />
-
       {/* Content */}
       <div className="relative z-20 flex items-center gap-2">
          {icon}
-         <span className={`font-black text-[12px] md:text-[10px] uppercase tracking-[0.2em] md:tracking-[0.3em] ${isPrimary ? 'text-[#004D4D]' : isDark ? 'text-white' : 'text-gray-900'} group-hover:tracking-[0.35em] transition-all duration-300`}>
+         <span className={`font-semibold text-[13px] tracking-wide ${isPrimary ? 'text-[#003333]' : isDark ? 'text-white' : 'text-gray-900'}`}>
           {children}
          </span>
       </div>
-      
-      {/* Inner Glow */}
-      <div className={`absolute inset-0 rounded-2xl shadow-[inset_0_0_20px_rgba(255,255,255,0.2)] pointer-events-none`} />
     </motion.div>
   );
 

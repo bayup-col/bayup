@@ -10,12 +10,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { apiRequest } from '@/lib/api';
+import { AuthShowcase, loginShowcaseSlides } from "@/components/landing/AuthShowcase";
 
 const FloatingParticlesBackground = dynamic(
   () => import("@/components/landing/FloatingParticlesBackground").then((mod) => mod.FloatingParticlesBackground),
-  { 
+  {
     ssr: false,
-    loading: () => <div className="fixed inset-0 bg-[#FAFAFA]" /> 
+    loading: () => <div className="fixed inset-0 bg-[#FAFAFA]" />
   }
 );
 
@@ -113,10 +114,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-y-auto py-10 bg-[#FAFAFA]">
-      <FloatingParticlesBackground />
+    <div className="relative min-h-screen w-full flex flex-col lg:flex-row bg-[#FAFAFA]">
       <div className="fixed top-4 left-4 sm:top-8 sm:left-8 z-[100]"><GlassyButton href="/" variant="light"><Home size={18} /></GlassyButton></div>
-      <div className="relative z-10 w-full max-w-[480px] p-4 sm:p-6 perspective-[2000px]">
+
+      <div className="relative w-full lg:w-1/2 min-h-screen flex items-center justify-center overflow-y-auto py-10">
+        <FloatingParticlesBackground />
+        <div className="relative z-10 w-full max-w-[480px] p-4 sm:p-6 perspective-[2000px]">
         <motion.div animate={{ rotateY: isFlipped ? 180 : 0 }} transition={{ duration: 0.8 }} style={{ transformStyle: "preserve-3d" }} className="relative w-full h-[620px] sm:h-[650px]">
           <div className="absolute inset-0 backface-hidden bg-white p-7 sm:p-12 rounded-[2.5rem] sm:rounded-[4rem] flex flex-col shadow-2xl overflow-hidden" style={{ backfaceVisibility: "hidden" }}>
             <div className="absolute inset-0 rounded-[4rem] overflow-hidden -z-10"><div className="absolute top-1/2 left-1/2 w-[250%] aspect-square animate-aurora opacity-40" style={{ background: `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)` }} /><div className="absolute inset-[2px] rounded-[3.9rem] bg-white/90 backdrop-blur-3xl" /></div>
@@ -147,7 +150,11 @@ export default function LoginPage() {
             <form onSubmit={handleResetPassword} className="space-y-8"><div className="space-y-2"><label className="text-[9px] font-black text-gray-400 ml-4">Tu Correo de Registro</label><div className="relative"><Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" /><input type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} className="w-full pl-14 pr-6 py-5 bg-gray-50 rounded-[2rem] outline-none text-sm text-black font-bold shadow-inner" required /></div></div><button type="submit" className="w-full py-6 rounded-[2rem] bg-black text-white font-black text-[11px] uppercase tracking-[0.3em]">Enviar Acceso</button><button type="button" onClick={() => setIsFlipped(false)} className="flex items-center gap-2 text-[10px] font-black text-gray-400 mx-auto uppercase">Regresar</button></form>
           </div>
         </motion.div>
+        </div>
       </div>
+
+      <AuthShowcase slides={loginShowcaseSlides} />
+
       <style jsx global>{` @keyframes aurora-border { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } } .animate-aurora { animation: aurora-border 6s linear infinite; } `}</style>
     </div>
   );

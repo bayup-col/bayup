@@ -1,11 +1,16 @@
 "use client";
 
-import { motion, useScroll, useMotionValueEvent, AnimatePresence } from "framer-motion";
+import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { User } from "lucide-react";
+import { User, Menu } from "lucide-react";
 import { InteractiveUP } from "./landing/InteractiveUP";
-import { ExpandableButton } from "./landing/ExpandableButton";
+
+const navLinks = [
+  { label: 'Inicio', href: '/' },
+  { label: 'Planes', href: '/planes' },
+  { label: 'Nosotros', href: '/acerca' }
+];
 
 export const Navbar = () => {
   const { scrollY } = useScroll();
@@ -25,62 +30,67 @@ export const Navbar = () => {
   });
 
   return (
-    <motion.nav 
+    <motion.nav
       initial="visible"
       animate={hidden ? "hidden" : "visible"}
       variants={{
         visible: { y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
         hidden: { y: "-100%", transition: { duration: 0.3, ease: "easeInOut" } },
       }}
-      className={`fixed top-0 w-full z-[100] pointer-events-none transition-all duration-500 ${isAtTop ? 'py-10' : 'py-6'}`}
+      className={`fixed top-0 w-full z-[100] transition-all duration-500 ${isAtTop ? 'py-6' : 'py-4'}`}
     >
-      <div className="container mx-auto px-12 grid grid-cols-3 items-center">
-        
-        {/* Columna 1: Logo */}
-        <Link href="/" className="pointer-events-auto">
-          <motion.div 
-            className={`text-2xl font-black italic tracking-tighter cursor-pointer w-fit transition-colors duration-500 ${isAtTop ? 'text-white' : 'text-black'}`}
-          >
-            <span>BAY</span><InteractiveUP />
-          </motion.div>
-        </Link>
-        
-        {/* Columna 2: Links */}
-        <div className="hidden md:flex items-center justify-center">
-          <div className={`flex items-center gap-12 px-10 py-4 rounded-full border border-white/40 bg-white/20 backdrop-blur-xl shadow-sm transition-all duration-500 pointer-events-auto ${isAtTop ? '' : 'border-gray-100 bg-white/40 shadow-md'}`}>
-            {[
-              { label: 'Afiliados', href: '/afiliados' },
-              { label: 'Inicio', href: '/' },
-              { label: 'Planes', href: '/planes' }
-            ].map((item) => (
-              <Link 
-                key={item.label} 
-                href={item.href} 
-                className={`text-[12px] font-black uppercase tracking-[0.5em] transition-all duration-500 relative group ${isAtTop ? 'text-white hover:text-cyan' : 'text-gray-500 hover:text-black'}`}
-              >
-                {item.label}
-                <span className={`absolute -bottom-1 left-0 h-[1.5px] bg-cyan transition-all duration-500 group-hover:w-full ${item.label === 'Inicio' ? 'w-full' : 'w-0'}`}></span>
-              </Link>
-            ))}
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="flex items-center justify-between bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full px-5 md:px-8 py-3 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)]">
+
+          {/* LADO IZQUIERDO: Logo */}
+          <div className="flex items-center gap-4 pointer-events-auto">
+            <button className="md:hidden p-1 text-white">
+              <Menu size={22} />
+            </button>
+
+            <Link href="/" className="flex items-center text-lg font-black italic tracking-tighter text-white">
+              <span>BAY</span>
+              <InteractiveUP />
+            </Link>
           </div>
-        </div>
 
-        {/* Columna 3: CTA Derecha */}
-        <div className="flex justify-end pointer-events-auto items-center gap-6">
-          <ExpandableButton 
-            href="/register" 
-            variant="primary" 
-            baseText="REGÍSTRATE" 
-            expandedText="GRATIS" 
-          />
+          {/* CENTRO: Menu Desktop */}
+          <div className="hidden md:flex items-center justify-center pointer-events-auto">
+            <div className="flex items-center gap-8">
+              {navLinks.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-300"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </div>
 
-          <ExpandableButton 
-            href="/login" 
-            variant="ghost" 
-            expandedText="INICIAR SESIÓN" 
-            className={isAtTop ? "text-white" : "text-black"}
-            icon={<User size={22} className={isAtTop ? "text-white" : "text-black"} />} 
-          />
+          {/* DERECHA: CTAs Desktop */}
+          <div className="hidden md:flex justify-end pointer-events-auto items-center gap-3">
+            <Link
+              href="/login"
+              className="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-300 px-3"
+            >
+              Iniciar sesión
+            </Link>
+            <Link
+              href="/register"
+              className="bg-white text-black text-sm font-semibold rounded-full px-5 py-2 hover:bg-gray-200 transition-colors duration-300 whitespace-nowrap"
+            >
+              Regístrate
+            </Link>
+          </div>
+
+          {/* CTA Móvil */}
+          <div className="md:hidden pointer-events-auto">
+             <Link href="/login" className="p-1 text-white">
+                <User size={22} />
+             </Link>
+          </div>
         </div>
       </div>
     </motion.nav>

@@ -11,14 +11,9 @@ import { useState, useRef, useEffect } from "react";
 const HeroLight = dynamic(() => import("@/components/landing/HeroLight").then(mod => mod.HeroLight));
 const ValueStatement = dynamic(() => import("@/components/landing/ValueStatement").then(mod => mod.ValueStatement));
 const NarrativeScroll = dynamic(() => import("@/components/landing/NarrativeScroll").then(mod => mod.NarrativeScroll));
-const MobileShoppingSection = dynamic(() => import("@/components/landing/MobileShoppingSection").then(mod => mod.MobileShoppingSection));
-const TemplateShowcase = dynamic(() => import("@/components/landing/TemplateShowcase").then(mod => mod.TemplateShowcase));
-const Testimonials = dynamic(() => import("@/components/landing/Testimonials").then(mod => mod.Testimonials));
-const PricingCinematic = dynamic(() => import("@/components/landing/PricingCinematic").then(mod => mod.PricingCinematic));
 const Footer = dynamic(() => import("@/components/landing/Footer").then(mod => mod.Footer));
 const WhatsAppFloatingButton = dynamic(() => import("@/components/landing/WhatsAppFloatingButton").then(mod => mod.WhatsAppFloatingButton));
 const InteractiveUP = dynamic(() => import("@/components/landing/InteractiveUP").then(mod => mod.InteractiveUP));
-const ExpandableButton = dynamic(() => import("@/components/landing/ExpandableButton").then(mod => mod.ExpandableButton));
 
 const AntigravityBackground = dynamic(
   () => import("@/components/landing/AntigravityBackground").then((mod) => mod.AntigravityBackground),
@@ -74,9 +69,7 @@ export default function HomePage() {
     restDelta: 0.001
   });
 
-  // Lógica de Header Inteligente con Animación Asimétrica y Cambio de Color
-  const [headerColor, setHeaderColor] = useState<'white' | 'black'>('white');
-
+  // Lógica de Header Inteligente: barra negra fija, solo se oculta/muestra con el scroll
   useMotionValueEvent(scrollY, "change", (latest) => {
     const previous = lastScrollY.current;
     if (latest > previous && latest > 150) {
@@ -86,27 +79,12 @@ export default function HomePage() {
     }
     setIsAtTop(latest < 50);
     lastScrollY.current = latest;
-
-    // Lógica de cambio de color según secciones (Valores aproximados de scroll)
-    // 0-900: Hero (Oscuro) -> White
-    // 1700-3800: Narrative (Oscuro) -> White
-    // 5200-6500: Globe (Oscuro) -> White
-    // Resto: Claro -> Black
-    if (latest < 900) {
-      setHeaderColor('white');
-    } else if (latest > 1700 && latest < 3800) {
-       setHeaderColor('white');
-    } else if (latest > 5200 && latest < 6500) {
-       setHeaderColor('white');
-    } else {
-       setHeaderColor('black');
-    }
   });
 
   const navLinks = [
-    { label: 'Afiliados', href: '/afiliados' },
     { label: 'Inicio', href: '/' },
-    { label: 'Planes', href: '/planes' }
+    { label: 'Planes', href: '/planes' },
+    { label: 'Nosotros', href: '/acerca' }
   ];
 
   return (
@@ -139,71 +117,63 @@ export default function HomePage() {
                   transition: { duration: 0.3, ease: "easeInOut" } 
                 },
               }}
-              className={`fixed top-0 w-full z-[100] transition-all duration-500 ${isAtTop ? 'py-10' : 'py-6'}`}
+              className={`fixed top-0 w-full z-[100] transition-all duration-500 ${isAtTop ? 'py-6' : 'py-4'}`}
             >
-              <div className="container mx-auto px-6 md:px-12 flex items-center justify-between">
-                
-                {/* LADO IZQUIERDO: Hamburguesa (Solo Móvil) y Logo */}
-                <div className="flex items-center gap-4 pointer-events-auto">
-                  <button 
-                    onClick={() => setIsMobileMenuOpen(true)}
-                    className={`md:hidden p-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur-md transition-all duration-500 ${headerColor === 'white' ? 'text-white' : 'text-black'}`}
-                  >
-                    <Menu size={24} className={headerColor === 'white' ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
-                  </button>
+              <div className="container mx-auto px-4 md:px-6">
+                <div className="flex items-center justify-between bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full px-5 md:px-8 py-3 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)]">
 
-                  <Link href="/">
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className={`text-2xl font-black italic tracking-tighter cursor-pointer w-fit transition-all duration-500 flex items-center`}
+                  {/* LADO IZQUIERDO: Hamburguesa (Solo Móvil) y Logo */}
+                  <div className="flex items-center gap-4 pointer-events-auto">
+                    <button
+                      onClick={() => setIsMobileMenuOpen(true)}
+                      className="md:hidden p-1 text-white"
                     >
-                      <span className={`transition-all duration-500 ${
-                        headerColor === 'white' ? "text-white" : "text-black"
-                      }`}>BAY</span>
+                      <Menu size={22} />
+                    </button>
+
+                    <Link href="/" className="flex items-center text-lg font-black italic tracking-tighter text-white">
+                      <span>BAY</span>
                       <InteractiveUP />
-                    </motion.div>
-                  </Link>
-                </div>
-                
-                {/* CENTRO: Menu Desktop */}
-                <div className="hidden md:flex items-center justify-center pointer-events-auto">
-                  <div className={`flex items-center gap-12 px-10 py-4 rounded-full border bg-white/20 backdrop-blur-xl shadow-sm transition-all duration-500 ${headerColor === 'white' ? 'border-white/40 text-white' : 'border-gray-200 bg-white/60 text-black shadow-md'}`}>
-                    {navLinks.map((item) => (
-                      <Link 
-                        key={item.label} 
-                        href={item.href} 
-                        className={`text-[12px] font-black uppercase tracking-[0.5em] transition-all duration-500 relative group ${headerColor === 'white' ? 'text-white hover:text-cyan' : 'text-gray-600 hover:text-black'}`}
-                      >
-                        {item.label}
-                        <span className={`absolute -bottom-1 left-0 h-[1.5px] bg-cyan transition-all duration-500 group-hover:w-full ${item.label === 'Inicio' ? 'w-full' : 'w-0'}`}></span>
-                      </Link>
-                    ))}
+                    </Link>
                   </div>
-                </div>
 
-                {/* DERECHA: CTAs Desktop */}
-                <div className="hidden md:flex justify-end pointer-events-auto items-center gap-6">
-                  <ExpandableButton 
-                    href="/register" 
-                    variant="primary" 
-                    baseText="REGÍSTRATE" 
-                    expandedText="GRATIS" 
-                  />
-                  <ExpandableButton 
-                    href="/login" 
-                    variant="ghost" 
-                    expandedText="INICIAR SESIÓN" 
-                    className={headerColor === 'white' ? "text-white hover:bg-white/10" : "text-black hover:bg-black/5"}
-                    icon={<User size={22} className={headerColor === 'white' ? "text-white" : "text-black"} />} 
-                  />
-                </div>
+                  {/* CENTRO: Menu Desktop */}
+                  <div className="hidden md:flex items-center justify-center pointer-events-auto">
+                    <div className="flex items-center gap-8">
+                      {navLinks.map((item) => (
+                        <Link
+                          key={item.label}
+                          href={item.href}
+                          className="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-300"
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
 
-                {/* CTA Móvil (Solo icono login para ahorrar espacio) */}
-                <div className="md:hidden pointer-events-auto">
-                   <Link href="/login" className={`p-2 rounded-xl transition-all duration-500 ${headerColor === 'white' ? 'text-white' : 'text-black'}`}>
-                      <User size={24} className={headerColor === 'white' ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
-                   </Link>
+                  {/* DERECHA: CTAs Desktop */}
+                  <div className="hidden md:flex justify-end pointer-events-auto items-center gap-3">
+                    <Link
+                      href="/login"
+                      className="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-300 px-3"
+                    >
+                      Iniciar sesión
+                    </Link>
+                    <Link
+                      href="/register"
+                      className="bg-white text-black text-sm font-semibold rounded-full px-5 py-2 hover:bg-gray-200 transition-colors duration-300 whitespace-nowrap"
+                    >
+                      Regístrate
+                    </Link>
+                  </div>
+
+                  {/* CTA Móvil (Solo icono login para ahorrar espacio) */}
+                  <div className="md:hidden pointer-events-auto">
+                     <Link href="/login" className="p-1 text-white">
+                        <User size={22} />
+                     </Link>
+                  </div>
                 </div>
               </div>
             </motion.nav>
@@ -245,7 +215,7 @@ export default function HomePage() {
                       {[
                         { label: 'Inicio', href: '/' },
                         { label: 'Planes', href: '/planes' },
-                        { label: 'Afiliados', href: '/afiliados' }
+                        { label: 'Nosotros', href: '/acerca' }
                       ].map((item) => (
                         <Link 
                           key={item.label} 
@@ -286,11 +256,7 @@ export default function HomePage() {
               <HeroLight />
               <ValueStatement />
               <NarrativeScroll />
-              <TemplateShowcase />
-              <MobileShoppingSection />
               <LazyGlobeSection />
-              <Testimonials />
-              <PricingCinematic />
             </main>
 
             <Footer />
@@ -301,7 +267,9 @@ export default function HomePage() {
 
       <style jsx global>{`
         html {
-          scroll-behavior: smooth;
+          /* "scroll-behavior: smooth" se quitó a propósito: choca con el
+             scroll-jacking de GSAP ScrollTrigger (sección horizontal fija)
+             y genera saltos/tirones en vez de scroll fluido. */
           background-color: #FAFAFA;
         }
         body {

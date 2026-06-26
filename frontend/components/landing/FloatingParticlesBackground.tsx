@@ -2,6 +2,8 @@
 
 import React, { useEffect, useRef } from "react";
 
+const MAX_LINK_DISTANCE = 120;
+
 export const FloatingParticlesBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouse = useRef({ x: -1000, y: -1000 });
@@ -15,12 +17,8 @@ export const FloatingParticlesBackground = () => {
 
     let animationFrameId: number;
     let particles: Particle[] = [];
-
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      init();
-    };
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let paused = false;
 
     class Particle {
       x: number;
@@ -33,12 +31,9 @@ export const FloatingParticlesBackground = () => {
       constructor() {
         this.x = Math.random() * canvas!.width;
         this.y = Math.random() * canvas!.height;
-        // Partículas un poco más grandes para que se noten
-        this.size = Math.random() * 2 + 0.5;
-        // Movimiento suave
-        this.speedX = (Math.random() - 0.5) * 0.3;
-        this.speedY = (Math.random() - 0.5) * 0.3;
-        // Opacidad más alta para visibilidad
+        this.size = (Math.random() * 2 + 0.5) * dpr;
+        this.speedX = (Math.random() - 0.5) * 0.3 * dpr;
+        this.speedY = (Math.random() - 0.5) * 0.3 * dpr;
         this.opacity = Math.random() * 0.4 + 0.1;
       }
 
@@ -49,12 +44,12 @@ export const FloatingParticlesBackground = () => {
         const dx = mouse.current.x - this.x;
         const dy = mouse.current.y - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         // Repulsión suave
-        if (distance < 150) {
+        if (distance < 150 * dpr) {
           const forceDirectionX = dx / distance;
           const forceDirectionY = dy / distance;
-          const force = (150 - distance) / 150;
+          const force = (150 * dpr - distance) / (150 * dpr);
           this.x -= forceDirectionX * force * 2;
           this.y -= forceDirectionY * force * 2;
         }
@@ -69,7 +64,6 @@ export const FloatingParticlesBackground = () => {
         if (!ctx) return;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        // Cambio a color CIAN para visibilidad
         ctx.fillStyle = `rgba(0, 242, 255, ${this.opacity})`;
         ctx.fill();
       }
@@ -77,46 +71,90 @@ export const FloatingParticlesBackground = () => {
 
     const init = () => {
       particles = [];
-      // Mayor densidad
-      const numberOfParticles = (canvas.width * canvas.height) / 8000;
+      // Densidad acotada: en pantallas grandes evita disparar el número de
+      // partículas (y por tanto los pares a comparar) sin límite.
+      const numberOfParticles = Math.min(
+        Math.floor((canvas.width * canvas.height) / (9000 * dpr * dpr)),
+        140
+      );
       for (let i = 0; i < numberOfParticles; i++) {
         particles.push(new Particle());
       }
     };
 
-    const drawLines = () => {
-      for (let a = 0; a < particles.length; a++) {
-        for (let b = a + 1; b < particles.length; b++) {
-          const dx = particles[a].x - particles[b].x;
-          const dy = particles[a].y - particles[b].y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
+    const resizeCanvas = () => {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = `${window.innerWidth}px`;
+      canvas.style.height = `${window.innerHeight}px`;
+      init();
+    };
 
-          if (distance < 120) {
-            const opacity = (1 - distance / 120) * 0.2;
-            ctx!.beginPath();
-            ctx!.strokeStyle = `rgba(0, 242, 255, ${opacity})`;
-            ctx!.lineWidth = 0.5;
-            ctx!.moveTo(particles[a].x, particles[a].y);
-            ctx!.lineTo(particles[b].x, particles[b].y);
-            ctx!.stroke();
+    // Conecta partículas cercanas usando un grid espacial en vez de comparar
+    // cada par (O(n²)): así con 100+ partículas no se dispara el costo por
+    // frame y el scroll/animaciones encima dejan de sentirse "trabados".
+    const drawLines = () => {
+      if (!ctx) return;
+      const cellSize = MAX_LINK_DISTANCE * dpr;
+      const grid = new Map<string, Particle[]>();
+
+      const cellKey = (x: number, y: number) => `${Math.floor(x / cellSize)}:${Math.floor(y / cellSize)}`;
+
+      for (const p of particles) {
+        const key = cellKey(p.x, p.y);
+        const bucket = grid.get(key);
+        if (bucket) bucket.push(p);
+        else grid.set(key, [p]);
+      }
+
+      const maxDist = cellSize;
+
+      for (const p of particles) {
+        const cx = Math.floor(p.x / cellSize);
+        const cy = Math.floor(p.y / cellSize);
+
+        for (let ox = -1; ox <= 1; ox++) {
+          for (let oy = -1; oy <= 1; oy++) {
+            const neighbors = grid.get(`${cx + ox}:${cy + oy}`);
+            if (!neighbors) continue;
+
+            for (const other of neighbors) {
+              if (other === p) continue;
+              const dx = p.x - other.x;
+              const dy = p.y - other.y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+
+              if (distance < maxDist) {
+                const opacity = (1 - distance / maxDist) * 0.2;
+                ctx.beginPath();
+                ctx.strokeStyle = `rgba(0, 242, 255, ${opacity})`;
+                ctx.lineWidth = 0.5 * dpr;
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(other.x, other.y);
+                ctx.stroke();
+              }
+            }
           }
         }
       }
     };
 
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach((particle) => {
-        particle.update();
-        particle.draw();
-      });
-      drawLines();
+      if (!paused) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach((particle) => {
+          particle.update();
+          particle.draw();
+        });
+        drawLines();
+      }
       animationFrameId = requestAnimationFrame(animate);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      mouse.current.x = e.clientX;
-      mouse.current.y = e.clientY;
+      mouse.current.x = e.clientX * dpr;
+      mouse.current.y = e.clientY * dpr;
     };
 
     const handleMouseLeave = () => {
@@ -124,17 +162,30 @@ export const FloatingParticlesBackground = () => {
       mouse.current.y = -1000;
     };
 
+    const handleVisibilityChange = () => {
+      paused = document.hidden;
+    };
+
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(resizeCanvas, 150);
+    };
+
     resizeCanvas();
     animate();
 
-    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("resize", handleResize);
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseleave", handleMouseLeave);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      window.removeEventListener("resize", resizeCanvas);
+      window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseleave", handleMouseLeave);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearTimeout(resizeTimer);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);

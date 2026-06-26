@@ -24,8 +24,8 @@ export const ExpandableButton = ({ href, baseText, expandedText, icon, variant =
         onHoverEnd={() => setIsHovered(false)}
         className={`
           relative flex items-center overflow-hidden rounded-full transition-all duration-500 cursor-pointer
-          ${isPrimary 
-            ? 'bg-black text-white shadow-lg border border-white/10' 
+          ${isPrimary
+            ? 'bg-[#00F2FF] text-[#004D4D] shadow-[0_15px_35px_-8px_rgba(0,242,255,0.5)] border border-white/40 hover:bg-[#00D9E5]'
             : 'bg-transparent text-black hover:bg-gray-100/50'
           }
         `}
@@ -66,7 +66,7 @@ export const ExpandableButton = ({ href, baseText, expandedText, icon, variant =
                     animate={{ opacity: 1, width: "auto", x: 0 }}
                     exit={{ opacity: 0, width: 0, x: -5 }}
                     transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className={`overflow-hidden pl-1 ${isPrimary ? 'text-[#00F2FF] drop-shadow-[0_0_8px_rgba(0,242,255,0.5)]' : 'text-current'}`}
+                    className={`overflow-hidden pl-1 ${isPrimary ? 'text-white drop-shadow-[0_0_8px_rgba(0,77,77,0.3)]' : 'text-current'}`}
                   >
                     {expandedText}
                   </motion.span>

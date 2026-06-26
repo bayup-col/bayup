@@ -234,14 +234,10 @@ export const HeroLight = () => {
           {/* BOTONES 3D BOOK APILADOS */}
           <div className="flex flex-col gap-6 pt-6 items-center lg:items-start w-full">
             <div className="flex flex-col items-center lg:items-start w-full px-8 md:px-0">
-              <div className="relative group scale-110 md:scale-100 w-full md:w-fit flex justify-center">
-                {/* Sombra masiva para efecto 3D real */}
-                <div className="absolute -inset-1 bg-cyan/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
-                <div className="relative shadow-[0_30px_60px_-10px_rgba(0,0,0,0.5)] rounded-2xl group-hover:shadow-[0_40px_80px_-15px_rgba(0,242,255,0.4)] transition-all duration-500 w-full md:w-auto">
-                  <GlassButton href="/register" variant="primary" className="w-full md:w-auto py-6 md:py-5">
-                    Empieza ahora
-                  </GlassButton>
-                </div>
+              <div className="w-full md:w-fit flex justify-center">
+                <GlassButton href="/register" variant="primary" className="w-full md:w-auto px-12 py-4">
+                  Empieza ahora
+                </GlassButton>
               </div>
               
               {/* Texto de confianza debajo del botón */}

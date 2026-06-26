@@ -9,6 +9,7 @@ import { Lock, Mail, Loader2, Ghost, User, Phone, ShieldCheck, LayoutGrid, Chevr
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { AuthShowcase, registerShowcaseSlides } from "@/components/landing/AuthShowcase";
 
 const FloatingParticlesBackground = dynamic(
   () => import("@/components/landing/FloatingParticlesBackground").then((mod) => mod.FloatingParticlesBackground),
@@ -178,62 +179,62 @@ function RegisterForm() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4 transition-colors group-focus-within:text-[#004d4d]">Nombre *</label>
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4 transition-colors group-focus-within:text-cyan">Nombre *</label>
                 <div className="relative group">
-                  <User className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-[#004d4d]" />
-                  <input type="text" name="firstName" placeholder="Ej. Juan" className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none text-xs text-black font-bold transition-all focus:bg-white shadow-inner" value={formData.firstName} onChange={handleChange} required disabled={isSuccess || isLoading} />
+                  <User className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-cyan" />
+                  <input type="text" name="firstName" placeholder="Ej. Juan" className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white shadow-inner" value={formData.firstName} onChange={handleChange} required disabled={isSuccess || isLoading} />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4 transition-colors group-focus-within:text-[#004d4d]">Apellido</label>
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4 transition-colors group-focus-within:text-cyan">Apellido</label>
                 <div className="relative group">
-                  <User className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-[#004d4d]" />
-                  <input type="text" name="lastName" placeholder="Ej. Pérez" className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none text-xs text-black font-bold transition-all focus:bg-white shadow-inner" value={formData.lastName} onChange={handleChange} disabled={isSuccess || isLoading} />
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4 transition-colors group-focus-within:text-[#004d4d]">Correo Electrónico *</label>
-                <div className="relative group">
-                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-[#004d4d]" />
-                  <input type="email" name="email" placeholder="juan@bayup.com" className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none text-xs text-black font-bold transition-all focus:bg-white shadow-inner" value={formData.email} onChange={handleChange} required disabled={isSuccess || isLoading} />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4 transition-colors group-focus-within:text-[#004d4d]">Número Telefónico</label>
-                <div className="relative group">
-                  <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-[#004d4d]" />
-                  <input type="tel" name="phone" placeholder="+57 300..." className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none text-xs text-black font-bold transition-all focus:bg-white shadow-inner" value={formData.phone} onChange={handleChange} disabled={isSuccess || isLoading} />
+                  <User className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-cyan" />
+                  <input type="text" name="lastName" placeholder="Ej. Pérez" className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white shadow-inner" value={formData.lastName} onChange={handleChange} disabled={isSuccess || isLoading} />
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4 transition-colors group-focus-within:text-[#004d4d]">Código de Afiliado</label>
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4 transition-colors group-focus-within:text-cyan">Correo Electrónico *</label>
                 <div className="relative group">
-                  <ShieldCheck className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-[#004d4d]" />
-                  <input type="text" name="affiliateCode" placeholder="Opcional" className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none text-xs text-black font-bold transition-all focus:bg-white shadow-inner" value={formData.affiliateCode} onChange={handleChange} disabled={isSuccess || isLoading} />
+                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-cyan" />
+                  <input type="email" name="email" placeholder="juan@bayup.com" className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white shadow-inner" value={formData.email} onChange={handleChange} required disabled={isSuccess || isLoading} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4 transition-colors group-focus-within:text-cyan">Número Telefónico</label>
+                <div className="relative group">
+                  <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-cyan" />
+                  <input type="tel" name="phone" placeholder="+57 300..." className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white shadow-inner" value={formData.phone} onChange={handleChange} disabled={isSuccess || isLoading} />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4 transition-colors group-focus-within:text-cyan">Código de Afiliado</label>
+                <div className="relative group">
+                  <ShieldCheck className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-cyan" />
+                  <input type="text" name="affiliateCode" placeholder="Opcional" className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white shadow-inner" value={formData.affiliateCode} onChange={handleChange} disabled={isSuccess || isLoading} />
                 </div>
               </div>
               <div className="space-y-1.5 relative">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Seleccionar Plan *</label>
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4">Seleccionar Plan *</label>
                 <div className="relative">
-                  <button type="button" onClick={() => setIsPlanOpen(!isPlanOpen)} disabled={isSuccess || isLoading} className="w-full flex items-center justify-between pl-12 pr-5 py-3 bg-gray-50 border border-transparent hover:border-[#004d4d]/20 rounded-2xl outline-none transition-all shadow-inner group" >
-                    <LayoutGrid className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 group-hover:text-[#004d4d] transition-colors" />
-                    <span className={`text-xs font-bold ${selectedPlan ? 'text-black' : 'text-gray-400'}`}> {selectedPlan ? selectedPlan.name : 'Selecciona un motor'} </span>
+                  <button type="button" onClick={() => setIsPlanOpen(!isPlanOpen)} disabled={isSuccess || isLoading} className="w-full flex items-center justify-between pl-12 pr-5 py-3 bg-gray-50 border border-transparent hover:border-cyan/40 rounded-2xl outline-none transition-all shadow-inner group" >
+                    <LayoutGrid className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 group-hover:text-cyan transition-colors" />
+                    <span className={`text-sm font-medium ${selectedPlan ? 'text-black' : 'text-gray-400'}`}> {selectedPlan ? selectedPlan.name : 'Selecciona un motor'} </span>
                     <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isPlanOpen ? 'rotate-180' : ''}`} />
                   </button>
                   <AnimatePresence>
                     {isPlanOpen && (
-                      <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 5, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute top-full left-0 right-0 z-50 p-2 mt-1 bg-white/80 backdrop-blur-2xl border border-[#004d4d]/10 rounded-3xl shadow-[0_20px_40px_-10px_rgba(0,77,77,0.15)] overflow-hidden" >
+                      <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 5, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute top-full left-0 right-0 z-50 p-2 mt-1 bg-white/95 backdrop-blur-2xl border border-gray-100 rounded-3xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] overflow-hidden" >
                         <div className="space-y-1">
                           {plans.map((p) => (
-                            <button key={p.id} type="button" onClick={() => selectPlan(p)} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all ${formData.planId === p.id ? 'bg-[#004d4d] text-white' : 'hover:bg-[#004d4d]/5 text-gray-600'}`} >
+                            <button key={p.id} type="button" onClick={() => selectPlan(p)} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-medium transition-all ${formData.planId === p.id ? 'bg-[#0A1A1A] text-white' : 'hover:bg-cyan/5 text-gray-600'}`} >
                               <span>{p.name}</span>
-                              {formData.planId === p.id && <Check className="w-3.5 h-3.5" />}
+                              {formData.planId === p.id && <Check className="w-3.5 h-3.5 text-cyan" />}
                             </button>
                           ))}
                         </div>
@@ -242,17 +243,17 @@ function RegisterForm() {
                   </AnimatePresence>
                 </div>
                 <div className="flex justify-end mt-1 pr-2">
-                  <Link href="/planes" className="text-[8px] font-black text-[#004d4d]/60 hover:text-[#004d4d] uppercase tracking-widest underline underline-offset-2 transition-colors"> Ver planes </Link>
+                  <Link href="/planes" className="text-[10px] font-medium text-gray-400 hover:text-cyan uppercase tracking-[0.1em] underline underline-offset-2 transition-colors"> Ver planes </Link>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4 transition-colors group-focus-within:text-[#004d4d]">Contraseña *</label>
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4 transition-colors group-focus-within:text-cyan">Contraseña *</label>
                 <div className="relative group">
-                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-[#004d4d]" />
-                  <input type={showPassword ? "text" : "password"} name="password" placeholder="••••••••" className="w-full pl-14 pr-12 py-3 bg-gray-50 border border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none text-xs text-black font-bold transition-all focus:bg-white shadow-inner" value={formData.password} onChange={handleChange} required disabled={isSuccess || isLoading} />
+                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-cyan" />
+                  <input type={showPassword ? "text" : "password"} name="password" placeholder="••••••••" className="w-full pl-14 pr-12 py-3 bg-gray-50 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white shadow-inner" value={formData.password} onChange={handleChange} required disabled={isSuccess || isLoading} />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -263,10 +264,10 @@ function RegisterForm() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4 transition-colors group-focus-within:text-[#004d4d]">Confirmar *</label>
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4 transition-colors group-focus-within:text-cyan">Confirmar *</label>
                 <div className="relative group">
-                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-[#004d4d]" />
-                  <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" placeholder="••••••••" className="w-full pl-14 pr-12 py-3 bg-gray-50 border border-transparent focus:border-[#004d4d]/20 rounded-2xl outline-none text-xs text-black font-bold transition-all focus:bg-white shadow-inner" value={formData.confirmPassword} onChange={handleChange} required disabled={isSuccess || isLoading} />
+                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-cyan" />
+                  <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" placeholder="••••••••" className="w-full pl-14 pr-12 py-3 bg-gray-50 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white shadow-inner" value={formData.confirmPassword} onChange={handleChange} required disabled={isSuccess || isLoading} />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -279,10 +280,10 @@ function RegisterForm() {
             </div>
 
             <div className="pt-2 flex items-center gap-3 px-4">
-              <button type="button" onClick={() => setAcceptedTerms(!acceptedTerms)} className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${acceptedTerms ? 'bg-[#004d4d] border-[#004d4d]' : 'bg-gray-50 border-gray-200'}`} >
-                {acceptedTerms && <Check className="w-3.5 h-3.5 text-white stroke-[4]" />}
+              <button type="button" onClick={() => setAcceptedTerms(!acceptedTerms)} className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all flex-shrink-0 ${acceptedTerms ? 'bg-cyan border-cyan' : 'bg-gray-50 border-gray-200'}`} >
+                {acceptedTerms && <Check className="w-3.5 h-3.5 text-[#003333] stroke-[4]" />}
               </button>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter"> Acepto <Link href="/terms" className="text-[#004d4d] hover:text-[#00F2FF] underline underline-offset-2">términos y condiciones</Link> * </p>
+              <p className="text-sm text-gray-500 font-light"> Acepto los <Link href="/terms" className="text-petroleum font-medium hover:text-cyan underline underline-offset-2">términos y condiciones</Link> * </p>
             </div>
 
             {error && (
@@ -327,9 +328,7 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <div className="fixed inset-0 w-full h-screen flex items-center justify-center overflow-hidden bg-[#FAFAFA] selection:bg-[#00F2FF] selection:text-black">
-      
-      <FloatingParticlesBackground />
+    <div className="relative min-h-screen w-full flex flex-col lg:flex-row bg-[#FAFAFA] selection:bg-[#00F2FF] selection:text-black">
 
       {/* Botón de Regreso a Home (Elegante y blanco premium) */}
       <div className="fixed top-4 left-4 sm:top-8 sm:left-8 z-[100]">
@@ -338,9 +337,14 @@ export default function RegisterPage() {
         </GlassyButton>
       </div>
 
-      <Suspense fallback={<div className="text-black font-black uppercase tracking-widest">Cargando Terminal...</div>}>
-        <RegisterForm />
-      </Suspense>
+      <div className="relative w-full lg:w-1/2 min-h-screen flex items-center justify-center overflow-y-auto py-10">
+        <FloatingParticlesBackground />
+        <Suspense fallback={<div className="text-black font-black uppercase tracking-widest">Cargando Terminal...</div>}>
+          <RegisterForm />
+        </Suspense>
+      </div>
+
+      <AuthShowcase slides={registerShowcaseSlides} />
 
       <style jsx global>{`
         @keyframes aurora-border { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
