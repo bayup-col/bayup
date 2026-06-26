@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 import os
 import sys
 import time
+import requests as _requests
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 from pydantic import BaseModel, Field
@@ -236,6 +238,118 @@ def register(request: Request, payload: RegisterRequest):
         user = crud.create_user(db, user=user_in)
         _trigger_email_confirmation(payload.email, payload.password)
         return {"id": str(user.id), "email": user.email, "email_confirmation_sent": True}
+    finally:
+        db.close()
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=6)
+
+@app.post("/auth/forgot-password")
+@limiter.limit("3/minute")
+def forgot_password(request: Request, payload: ForgotPasswordRequest):
+    import models, email_service, secrets as _secrets
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = db.query(models.User).filter(models.User.email == payload.email).first()
+        # Siempre devuelve 200 para no filtrar si el email existe
+        if user:
+            token = _secrets.token_urlsafe(32)
+            user.password_reset_token = token
+            user.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
+            db.commit()
+            email_service.send_password_reset(user.email, token)
+        return {"ok": True, "message": "Si el correo existe, recibirás un enlace en los próximos minutos."}
+    finally:
+        db.close()
+
+@app.post("/auth/reset-password")
+@limiter.limit("5/minute")
+def reset_password(request: Request, payload: ResetPasswordRequest):
+    import models, security as sec_mod
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = db.query(models.User).filter(
+            models.User.password_reset_token == payload.token
+        ).first()
+        if not user or not user.password_reset_expires:
+            raise HTTPException(status_code=400, detail="Token inválido o expirado")
+        if user.password_reset_expires < datetime.utcnow():
+            raise HTTPException(status_code=400, detail="El enlace expiró. Solicita uno nuevo.")
+        user.hashed_password = sec_mod.get_password_hash(payload.new_password)
+        user.password_reset_token = None
+        user.password_reset_expires = None
+        db.commit()
+        return {"ok": True}
+    finally:
+        db.close()
+
+class GoogleAuthRequest(BaseModel):
+    access_token: str
+
+@app.post("/auth/google")
+@limiter.limit("10/minute")
+async def auth_google(request: Request, payload: GoogleAuthRequest):
+    import models, crud, security as sec_mod, secrets as _secrets
+    from database import SessionLocal
+    supabase_url = os.getenv("SUPABASE_URL")
+    anon_key = os.getenv("SUPABASE_ANON_KEY")
+    if not supabase_url or not anon_key:
+        raise HTTPException(status_code=503, detail="OAuth no configurado en el servidor")
+    try:
+        resp = _requests.get(
+            f"{supabase_url}/auth/v1/user",
+            headers={"apikey": anon_key, "Authorization": f"Bearer {payload.access_token}"},
+            timeout=8,
+        )
+    except Exception:
+        raise HTTPException(status_code=503, detail="No se pudo contactar Supabase")
+    if not resp.ok:
+        raise HTTPException(status_code=401, detail="Token de Google inválido o expirado")
+    sb_user = resp.json()
+    email = sb_user.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="No se pudo obtener el email de Google")
+    db = SessionLocal()
+    try:
+        user = crud.get_user_by_email(db, email)
+        if not user:
+            from schemas import UserCreate
+            meta = sb_user.get("user_metadata") or {}
+            full_name = meta.get("full_name") or meta.get("name") or email.split("@")[0]
+            user_in = UserCreate(email=email, password=_secrets.token_hex(32), full_name=full_name)
+            user = crud.create_user(db, user=user_in)
+            db.commit()
+            db.refresh(user)
+        if getattr(user, "status", "Activo") != "Activo":
+            raise HTTPException(status_code=403, detail="Cuenta suspendida")
+        jwt_token = sec_mod.create_access_token(data={"sub": user.email})
+        plan = None
+        if user.plan_id:
+            plan_obj = db.query(models.Plan).filter(models.Plan.id == user.plan_id).first()
+            if plan_obj:
+                plan = {"name": plan_obj.name}
+        return {
+            "access_token": jwt_token,
+            "token_type": "bearer",
+            "user": {
+                "id": str(user.id),
+                "email": user.email,
+                "full_name": user.full_name or "",
+                "role": user.role or "admin_tienda",
+                "is_global_staff": bool(getattr(user, "is_global_staff", False)),
+                "shop_slug": user.shop_slug or "",
+                "logo_url": getattr(user, "logo_url", "") or "",
+                "permissions": getattr(user, "permissions", {}) or {},
+                "plan": plan,
+                "onboarding_completed": bool(getattr(user, "onboarding_completed", False)),
+            },
+        }
     finally:
         db.close()
 
