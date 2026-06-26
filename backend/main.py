@@ -1954,6 +1954,47 @@ async def get_super_admin_web_template(template_id: str, request: Request):
     finally:
         db.close()
 
+@app.get("/super-admin/web-templates/{template_id}/live-preview/{page_key}", response_class=HTMLResponse)
+async def live_preview_template_page(template_id: str, page_key: str, request: Request, token: str = Query(None)):
+    """Preview navegable de plantilla HTML con SDK de demostración y datos mock."""
+    import models, uuid as uuid_lib, security as sec_mod
+    from database import SessionLocal
+    from fastapi import Query as _Query
+    db = SessionLocal()
+    try:
+        if token:
+            try:
+                user = await sec_mod.get_current_user(token=token, db=db)
+            except Exception:
+                raise HTTPException(status_code=401, detail="Token inválido o expirado")
+        else:
+            user = await _authenticate(request, db)
+        _require_super_admin(user)
+        try:
+            target_uuid = uuid_lib.UUID(template_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="template_id inválido")
+        template = db.query(models.WebTemplate).filter(models.WebTemplate.id == target_uuid).first()
+        if not template or getattr(template, "template_type", "schema") != "html":
+            raise HTTPException(status_code=404, detail="Plantilla HTML no encontrada")
+        html_pages = getattr(template, "html_pages", None) or {}
+        html = html_pages.get(page_key) or html_pages.get("home")
+        if not html:
+            raise HTTPException(status_code=404, detail=f"Página '{page_key}' no encontrada")
+        base_url = str(request.base_url).rstrip("/")
+        tok = token or ""
+        preview_sdk = _BAYUP_PREVIEW_SDK \
+            .replace("__TPLID__", template_id) \
+            .replace("__TOK__", tok) \
+            .replace("__BASE__", base_url)
+        if "</head>" in html:
+            html = html.replace("</head>", preview_sdk + "</head>", 1)
+        else:
+            html = preview_sdk + html
+        return HTMLResponse(content=html)
+    finally:
+        db.close()
+
 @app.put("/super-admin/web-templates/{template_id}/toggle")
 async def toggle_super_admin_web_template(template_id: str, request: Request):
     import models, uuid as uuid_lib
@@ -2434,6 +2475,136 @@ async def get_admin_payment(payment_id: str, request: Request):
 # ---------------------------------------------------------------------------
 # TIENDAS HTML — sirve plantillas HTML nativas con bayup.js inyectado
 # ---------------------------------------------------------------------------
+
+_BAYUP_PREVIEW_SDK = """
+<script id="bayup-preview-sdk">
+(function(){
+  var TPLID='__TPLID__',TOK='__TOK__',BASE='__BASE__';
+  var params=new URLSearchParams(window.location.search);
+  var PID=params.get('product_id');
+  var STORE={name:'Mi Tienda Demo',phone:'573000000000'};
+  var PRODUCTS=[
+    {id:'1',name:'Vestido Elegante',price:189900,img:'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=500&fit=crop&auto=format'},
+    {id:'2',name:'Blusa Premium',price:89900,img:'https://images.unsplash.com/photo-1551803091-e20673f15770?w=400&h=500&fit=crop&auto=format'},
+    {id:'3',name:'Falda Minimalista',price:129900,img:'https://images.unsplash.com/photo-1594938298603-c8148c4b4a35?w=400&h=500&fit=crop&auto=format'},
+    {id:'4',name:'Blazer Moderno',price:249900,img:'https://images.unsplash.com/photo-1594226801341-41427b4e5c22?w=400&h=500&fit=crop&auto=format'},
+    {id:'5',name:'Pantalon Formal',price:149900,img:'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=400&h=500&fit=crop&auto=format'},
+    {id:'6',name:'Conjunto Casual',price:199900,img:'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?w=400&h=500&fit=crop&auto=format'}
+  ];
+  var CKEY='bayup_preview_cart';
+  function go(page,extra){
+    var u=BASE+'/super-admin/web-templates/'+TPLID+'/live-preview/'+page+'?token='+encodeURIComponent(TOK);
+    if(extra)u+='&'+extra;
+    window.location.href=u;
+  }
+  function fmt(n){return '$'+n.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g,'.');}
+  function getCart(){try{return JSON.parse(localStorage.getItem(CKEY)||'[]');}catch(e){return[];}}
+  function saveCart(c){localStorage.setItem(CKEY,JSON.stringify(c));}
+  function badge(){
+    var n=getCart().reduce(function(s,i){return s+i.qty;},0);
+    document.querySelectorAll('[data-bayup="cart-count"]').forEach(function(el){
+      el.textContent=n;el.style.display=n?'':'none';
+    });
+  }
+  function fillStore(){
+    document.querySelectorAll('[data-bayup="store-name"]').forEach(function(el){el.textContent=STORE.name;});
+    document.querySelectorAll('[data-bayup="store-phone"]').forEach(function(el){el.textContent='+57 300 000 0000';});
+  }
+  function fillGrid(){
+    var grid=document.querySelector('[data-bayup="product-grid"]');
+    var tmpl=document.querySelector('template[data-bayup="product-card-template"]');
+    if(!grid||!tmpl)return;
+    grid.innerHTML='';
+    PRODUCTS.forEach(function(p){
+      var c=tmpl.content.cloneNode(true);
+      var img=c.querySelector('[data-bayup-card="image"]');
+      var nm=c.querySelector('[data-bayup-card="name"]');
+      var pr=c.querySelector('[data-bayup-card="price"]');
+      var ab=c.querySelector('[data-bayup-action="add-to-cart"]');
+      var nb=c.querySelector('[data-bayup-action="nav-product"]');
+      if(img){img.src=p.img;img.alt=p.name;}
+      if(nm)nm.textContent=p.name;
+      if(pr)pr.textContent=fmt(p.price);
+      if(ab)ab.dataset.bayupProductId=p.id;
+      if(nb)nb.dataset.bayupProductId=p.id;
+      grid.appendChild(c);
+    });
+  }
+  function fillProduct(){
+    if(!PID)return;
+    var p=PRODUCTS.find(function(x){return x.id===PID;})||PRODUCTS[0];
+    document.querySelectorAll('[data-bayup="product-name"]').forEach(function(el){el.textContent=p.name;});
+    document.querySelectorAll('[data-bayup="product-price"]').forEach(function(el){el.textContent=fmt(p.price);});
+    document.querySelectorAll('[data-bayup="product-description"]').forEach(function(el){el.textContent='Descripcion de muestra para '+p.name+'.';});
+    document.querySelectorAll('img[data-bayup="product-image"]').forEach(function(el){el.src=p.img;el.alt=p.name;});
+    var ab=document.querySelector('[data-bayup-action="add-to-cart"]');
+    if(ab)ab.dataset.bayupProductId=p.id;
+  }
+  function fillCart(){
+    var tbody=document.querySelector('[data-bayup="cart-items"]');
+    var tmpl=document.querySelector('template[data-bayup="cart-row-template"]');
+    if(!tbody)return;
+    var cart=getCart();
+    tbody.innerHTML='';
+    if(!cart.length){
+      var r=document.createElement('tr');
+      r.innerHTML='<td colspan="4" style="text-align:center;padding:2rem;color:#9ca3af;">El carrito esta vacio</td>';
+      tbody.appendChild(r);
+    }else{
+      cart.forEach(function(item){
+        if(!tmpl)return;
+        var c=tmpl.content.cloneNode(true);
+        var fn=function(s,v){var e=c.querySelector('[data-bayup-row="'+s+'"]');if(e)e.textContent=v;};
+        fn('name',item.name);fn('price',fmt(item.price));fn('qty',item.qty);fn('subtotal',fmt(item.price*item.qty));
+        tbody.appendChild(c);
+      });
+    }
+    var total=cart.reduce(function(s,i){return s+i.price*i.qty;},0);
+    document.querySelectorAll('[data-bayup="cart-subtotal"],[data-bayup="cart-total"]').forEach(function(el){el.textContent=fmt(total);});
+  }
+  function bindActions(){
+    document.addEventListener('click',function(e){
+      var el=e.target.closest('[data-bayup-action]');
+      if(!el)return;
+      var a=el.dataset.bayupAction;
+      var MAP={
+        'nav-home':'home','nav-catalog':'catalog','nav-contact':'contact',
+        'nav-privacy':'privacy','nav-cart':'cart'
+      };
+      if(MAP[a]){e.preventDefault();go(MAP[a]);return;}
+      if(a==='nav-product'){
+        e.preventDefault();go('product','product_id='+(el.dataset.bayupProductId||'1'));return;
+      }
+      if(a==='add-to-cart'){
+        var pid=el.dataset.bayupProductId;
+        var p=PRODUCTS.find(function(x){return x.id===pid;})||PRODUCTS[0];
+        var cart=getCart();
+        var ex=cart.find(function(i){return i.id===p.id;});
+        if(ex)ex.qty++;else cart.push({id:p.id,name:p.name,price:p.price,qty:1});
+        saveCart(cart);badge();fillCart();
+        var orig=el.textContent;el.textContent='\\u2713 Agregado';
+        setTimeout(function(){el.textContent=orig;},1200);
+        return;
+      }
+      if(a==='checkout'){
+        e.preventDefault();
+        var cart=getCart();
+        if(!cart.length){alert('El carrito esta vacio (DEMO)');return;}
+        var msg='*Pedido Demo*\\n'+cart.map(function(i){return '- '+i.name+' x'+i.qty+' = '+fmt(i.price*i.qty);}).join('\\n');
+        window.open('https://wa.me/'+STORE.phone+'?text='+encodeURIComponent(msg),'_blank');
+      }
+    });
+  }
+  function init(){fillStore();fillGrid();fillProduct();fillCart();badge();bindActions();}
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
+  // Banner de modo demo
+  var bar=document.createElement('div');
+  bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#7c3aed;color:#fff;text-align:center;padding:6px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;';
+  bar.textContent='\\u25B6 MODO PREVIEW — datos de demostración';
+  document.body.prepend(bar);
+})();
+</script>
+"""
 
 _BAYUP_SDK = """
 <script id="bayup-sdk">

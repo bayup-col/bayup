@@ -500,10 +500,13 @@ export default function WebTemplatesPage() {
               <div className="px-6 pb-6 pt-4 border-t border-white/5 space-y-2 shrink-0">
                 {selected.template_type === 'html' && (
                   <button
-                    onClick={() => drawerBlobUrl && window.open(drawerBlobUrl, '_blank')}
-                    disabled={drawerPreviewLoading || !drawerBlobUrl}
-                    className="w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-[#7c3aed]/20 text-[#7c3aed]/60 hover:bg-[#7c3aed]/8 hover:text-[#7c3aed] disabled:opacity-30 disabled:cursor-not-allowed">
-                    <Eye size={12} /> {drawerPreviewLoading ? 'Cargando preview…' : 'Previsualizar en nueva pestaña'}
+                    onClick={() => {
+                      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                      const url = `${base}/super-admin/web-templates/${selected.id}/live-preview/home?token=${encodeURIComponent(token || '')}`;
+                      window.open(url, '_blank');
+                    }}
+                    className="w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-[#7c3aed]/20 text-[#7c3aed]/60 hover:bg-[#7c3aed]/8 hover:text-[#7c3aed]">
+                    <Eye size={12} /> Previsualizar en nueva pestaña
                   </button>
                 )}
 
