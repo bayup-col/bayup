@@ -112,16 +112,17 @@ export default function WebTemplatesPage() {
     (async () => {
       try {
         const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${base}/super-admin/web-templates/${selected.id}/preview/home`, {
+        const res = await fetch(`${base}/super-admin/web-templates/${selected.id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (cancelled) return;
-        if (res.ok) {
-          const html = await res.text();
-          const blob = new Blob([html], { type: 'text/html' });
-          const url = URL.createObjectURL(blob);
-          if (!cancelled) setDrawerBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
-        }
+        if (cancelled || !res.ok) return;
+        const data = await res.json();
+        const pages: Record<string, string> = data.html_pages || {};
+        const html = pages['home'] || pages[Object.keys(pages)[0]] || '';
+        if (!html) return;
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        if (!cancelled) setDrawerBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
       } finally {
         if (!cancelled) setDrawerPreviewLoading(false);
       }

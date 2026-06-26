@@ -1921,7 +1921,7 @@ async def create_super_admin_web_template(payload: dict, request: Request):
             category=payload.get("category") or "General",
             description=payload.get("description") or "",
             tags=tags or [],
-            is_active=True,
+            is_active=False,
             is_premium=False,
             color=payload.get("color") or "#0f1a1a",
             template_type=template_type,
@@ -1931,6 +1931,26 @@ async def create_super_admin_web_template(payload: dict, request: Request):
         db.commit()
         _templates_cache.clear()
         return _serialize_template(template)
+    finally:
+        db.close()
+
+@app.get("/super-admin/web-templates/{template_id}")
+async def get_super_admin_web_template(template_id: str, request: Request):
+    """Devuelve una plantilla completa con html_pages para previsualización."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        try:
+            target_uuid = uuid_lib.UUID(template_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="template_id inválido")
+        template = db.query(models.WebTemplate).filter(models.WebTemplate.id == target_uuid).first()
+        if not template:
+            raise HTTPException(status_code=404, detail="Plantilla no encontrada")
+        return _serialize_template(template, include_html=True)
     finally:
         db.close()
 
@@ -1977,6 +1997,32 @@ async def delete_super_admin_web_template(template_id: str, request: Request):
         return {"ok": True}
     finally:
         db.close()
+
+
+@app.get("/super-admin/web-templates/{template_id}/preview/{page_key}", response_class=HTMLResponse)
+async def preview_template_html_page(template_id: str, page_key: str, request: Request):
+    """Devuelve el HTML crudo de una página de plantilla para previsualización."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        try:
+            target_uuid = uuid_lib.UUID(template_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="template_id inválido")
+        template = db.query(models.WebTemplate).filter(models.WebTemplate.id == target_uuid).first()
+        if not template or getattr(template, "template_type", "schema") != "html":
+            raise HTTPException(status_code=404, detail="Plantilla HTML no encontrada")
+        html_pages = getattr(template, "html_pages", None) or {}
+        html = html_pages.get(page_key) or html_pages.get("home")
+        if not html:
+            raise HTTPException(status_code=404, detail=f"Página '{page_key}' no encontrada")
+        return HTMLResponse(content=html)
+    finally:
+        db.close()
+
 
 # ── PLANES ────────────────────────────────────────────────────────────────
 def _serialize_plan(p):
