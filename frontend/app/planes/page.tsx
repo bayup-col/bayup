@@ -311,7 +311,7 @@ export default function PlanesPage() {
       <Navbar />
 
       {/* HERO CINEMÁTICO */}
-      <section className="relative h-[85vh] min-h-[640px] w-full flex items-center justify-center overflow-hidden bg-[#050505]">
+      <section className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-[#050505]">
         <motion.div
           initial={{ scale: 1 }}
           animate={{ scale: 1.08 }}
@@ -370,6 +370,20 @@ export default function PlanesPage() {
             ))}
           </motion.div>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2"
+        >
+          <span className="text-[10px] font-medium uppercase tracking-[0.25em] text-white/40">Descubre más</span>
+          <motion.div
+            animate={{ y: [0, 6, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+            className="w-px h-8 bg-gradient-to-b from-white/50 to-transparent"
+          />
+        </motion.div>
       </section>
 
       {/* GRID DE PLANES */}
