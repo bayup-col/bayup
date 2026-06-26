@@ -56,13 +56,24 @@ export default function OnboardingPage() {
   });
 
   // Paso 2
-  const [storeName, setStoreName] = useState('');
+  const [storeName, setStoreName] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return sessionStorage.getItem('bayup_ob_store_name') || '';
+  });
   const [slug, setSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [phone, setPhone] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return sessionStorage.getItem('bayup_ob_logo_preview') || null;
+  });
+  const [logoUrl, setLogoUrl] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return sessionStorage.getItem('bayup_ob_logo_url') || null;
+  });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Paso 3
@@ -94,13 +105,47 @@ export default function OnboardingPage() {
     if (templateId) sessionStorage.setItem('bayup_ob_template', templateId);
     else sessionStorage.removeItem('bayup_ob_template');
   }, [templateId]);
+  useEffect(() => { sessionStorage.setItem('bayup_ob_store_name', storeName); }, [storeName]);
+  useEffect(() => {
+    if (logoPreview) sessionStorage.setItem('bayup_ob_logo_preview', logoPreview);
+    else sessionStorage.removeItem('bayup_ob_logo_preview');
+  }, [logoPreview]);
+  useEffect(() => {
+    if (logoUrl) sessionStorage.setItem('bayup_ob_logo_url', logoUrl);
+    else sessionStorage.removeItem('bayup_ob_logo_url');
+  }, [logoUrl]);
 
   const selectedTemplate = templates.find(t => t.id === templateId) || null;
+
+  // Ediciones del comerciante por plantilla (banner, menú, estilo visual,
+  // productos de muestra), hechas en /onboarding/editor. Se guardan en
+  // sessionStorage por id de plantilla para sobrevivir la navegación entre
+  // esa página y esta. Si no hay edición, se usa el esquema original.
+  const [schemaOverrides, setSchemaOverrides] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (templates.length === 0) return;
+    const hydrated: Record<string, any> = {};
+    templates.forEach(tpl => {
+      const raw = sessionStorage.getItem(`bayup_ob_schema_override_${tpl.id}`);
+      if (raw) {
+        try { hydrated[tpl.id] = JSON.parse(raw); } catch {}
+      }
+    });
+    if (Object.keys(hydrated).length > 0) setSchemaOverrides(prev => ({ ...hydrated, ...prev }));
+  }, [templates]);
+
+  const schemaFor = (tpl: WebTemplate) => schemaOverrides[tpl.id] || tpl.schema_data;
+
+  const openEditor = (tpl: WebTemplate) => {
+    setTemplateId(tpl.id);
+    router.push(`/onboarding/editor?templateId=${tpl.id}`);
+  };
 
   const openPreview = (tpl?: WebTemplate | null) => {
     const target = tpl || selectedTemplate;
     if (!target) return;
-    localStorage.setItem('bayup-studio-preview', JSON.stringify(target.schema_data));
+    localStorage.setItem('bayup-studio-preview', JSON.stringify(schemaFor(target)));
     window.open('/studio-preview', '_blank');
   };
 
@@ -146,6 +191,18 @@ export default function OnboardingPage() {
     }
   };
 
+  const handleLogoPick = async (file: File) => {
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+    setUploadingLogo(true);
+    try {
+      const url = await uploadImage(file);
+      setLogoUrl(url);
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const canContinueStep1 = !!templateId;
   const canContinueStep2 = storeName.trim().length > 0 && slug.trim().length > 0 && phone.trim().length > 0;
   const canPublish = productName.trim().length > 0 && Number(productPrice) > 0;
@@ -167,10 +224,11 @@ export default function OnboardingPage() {
     if (!selectedTemplate) { setStep(0); return; }
     setIsPublishing(true);
     try {
-      // 1. Logo (opcional)
-      let logoUrl: string | null = null;
-      if (logoFile) {
-        logoUrl = await uploadImage(logoFile);
+      // 1. Logo (opcional) — si ya se subió al elegirlo (o desde el editor),
+      // se reutiliza esa URL en vez de volver a subir el archivo.
+      let finalLogoUrl: string | null = logoUrl;
+      if (!finalLogoUrl && logoFile) {
+        finalLogoUrl = await uploadImage(logoFile);
       }
 
       // 2. Datos de la tienda
@@ -182,7 +240,7 @@ export default function OnboardingPage() {
           shop_slug: slug.trim(),
           category,
           phone: phone.trim(),
-          ...(logoUrl ? { logo_url: logoUrl } : {}),
+          ...(finalLogoUrl ? { logo_url: finalLogoUrl } : {}),
         }),
       });
       if (!profileRes.ok) {
@@ -190,11 +248,26 @@ export default function OnboardingPage() {
         throw new Error(err.detail || 'No se pudo guardar la información de tu tienda');
       }
 
-      // 3. Instalar la plantilla elegida en Home
-      const architecture = selectedTemplate.schema_data || {};
+      // 3. Instalar la plantilla elegida en Home, reemplazando el nombre/logo
+      // de muestra del diseño por los datos reales que el usuario acaba de
+      // ingresar. Sin esto, la tienda publicada sale con el texto/logo de
+      // fábrica de la plantilla en vez de la marca del comerciante.
+      const architecture = schemaFor(selectedTemplate) || {};
+      const brandedSection = (section: any) => {
+        if (!section?.elements) return section;
+        return {
+          ...section,
+          elements: section.elements.map((el: any) =>
+            (el.type === 'navbar' || el.type === 'footer-premium')
+              ? { ...el, props: { ...el.props, logoText: storeName.trim(), ...(finalLogoUrl ? { logoUrl: finalLogoUrl } : {}) } }
+              : el
+          ),
+        };
+      };
+
       const homeSchema = {
-        header: architecture.header || { elements: [], styles: {} },
-        footer: architecture.footer || { elements: [], styles: {} },
+        header: brandedSection(architecture.header || { elements: [], styles: {} }),
+        footer: brandedSection(architecture.footer || { elements: [], styles: {} }),
         body: architecture.body || { elements: [], styles: {} },
       };
 
@@ -253,10 +326,14 @@ export default function OnboardingPage() {
       });
       if (!completeRes.ok) throw new Error('No se pudo finalizar el proceso');
 
-      updateUser({ name: storeName.trim(), slug: slug.trim(), logo: logoUrl || undefined });
+      updateUser({ name: storeName.trim(), slug: slug.trim(), logo: finalLogoUrl || undefined });
       setOnboardingCompleted(true);
       sessionStorage.removeItem('bayup_ob_step');
       sessionStorage.removeItem('bayup_ob_template');
+      sessionStorage.removeItem('bayup_ob_store_name');
+      sessionStorage.removeItem('bayup_ob_logo_preview');
+      sessionStorage.removeItem('bayup_ob_logo_url');
+      templates.forEach(t => sessionStorage.removeItem(`bayup_ob_schema_override_${t.id}`));
       showToast('¡Tu tienda ya está publicada! 🚀', 'success');
       router.push('/dashboard');
     } catch (e: any) {
@@ -280,28 +357,22 @@ export default function OnboardingPage() {
       <header className="h-20 flex items-center justify-between px-6 md:px-10 border-b border-gray-100 bg-white/80 backdrop-blur-md shrink-0">
         <div className="text-xl font-black italic tracking-tighter">
           <span className="text-black">BAY</span>
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00b2bd] to-[#00f2ff]">UP.</span>
+          <span className="text-cyan">UP.</span>
         </div>
         <div className="flex items-center gap-6">
           <div className="hidden sm:flex items-center gap-3">
             {STEPS.map((label, i) => (
               <div key={label} className="flex items-center gap-2">
-                <div className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-black border-2 transition-all ${
-                  i < step ? 'bg-[#004d4d] border-[#004d4d] text-white' : i === step ? 'border-[#004d4d] text-[#004d4d]' : 'border-gray-200 text-gray-300'
+                <div className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-medium border transition-all ${
+                  i < step ? 'bg-[#0A1A1A] border-[#0A1A1A] text-white' : i === step ? 'border-cyan text-petroleum' : 'border-gray-200 text-gray-300'
                 }`}>
                   {i < step ? <Check size={13} /> : i + 1}
                 </div>
-                <span className={`text-[10px] font-black uppercase tracking-widest ${i === step ? 'text-[#004d4d]' : 'text-gray-300'}`}>{label}</span>
+                <span className={`text-[11px] font-medium uppercase tracking-[0.1em] ${i === step ? 'text-petroleum' : 'text-gray-300'}`}>{label}</span>
                 {i < STEPS.length - 1 && <div className="w-8 h-px bg-gray-200 mx-1" />}
               </div>
             ))}
           </div>
-          {selectedTemplate && (
-            <button onClick={() => openPreview()}
-              className="flex items-center gap-2 h-9 px-4 rounded-full bg-[#004d4d]/5 border border-[#004d4d]/15 text-[10px] font-black uppercase tracking-widest text-[#004d4d] hover:bg-[#004d4d]/10 transition-all">
-              <Eye size={13} /> Vista previa
-            </button>
-          )}
           <button onClick={logout} className="text-gray-300 hover:text-rose-500 transition-colors" title="Cerrar sesión">
             <LogOut size={18} />
           </button>
@@ -314,11 +385,16 @@ export default function OnboardingPage() {
           <AnimatePresence mode="wait">
             {step === 0 && (
               <motion.div key="s1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-10">
-                <div className="space-y-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00b2bd]">Paso 1 de 3</p>
-                  <h1 className="text-4xl md:text-5xl font-black italic uppercase tracking-tighter text-[#001A1A]">Elige tu plantilla</h1>
-                  <p className="text-gray-500 font-medium max-w-xl">Selecciona el diseño con el que quieres lanzar tu tienda hoy mismo. Podrás pedir más diseños y personalizaciones más adelante.</p>
-                  <button onClick={openEditAccount} className="text-[11px] font-bold text-gray-400 hover:text-[#004d4d] underline decoration-gray-200 underline-offset-4 transition-colors">
+                <div className="space-y-4">
+                  <span className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.25em] text-petroleum/50">
+                    <span className="h-px w-6 bg-petroleum/30" />
+                    Paso 1 de 3
+                  </span>
+                  <h1 className="text-4xl md:text-5xl font-light text-[#0A1A1A] tracking-tight">
+                    Elige tu <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00b2bd] to-[#004d4d]">plantilla.</span>
+                  </h1>
+                  <p className="text-gray-500 font-light max-w-xl leading-relaxed">Selecciona el diseño con el que quieres lanzar tu tienda hoy mismo. Podrás pedir más diseños y personalizaciones más adelante.</p>
+                  <button onClick={openEditAccount} className="text-xs font-medium text-gray-400 hover:text-cyan underline decoration-gray-200 underline-offset-4 transition-colors">
                     ¿Tu nombre o correo de registro están mal? Corrígelos aquí
                   </button>
                 </div>
@@ -327,7 +403,7 @@ export default function OnboardingPage() {
                     <Loader2 size={28} className="animate-spin" />
                   </div>
                 ) : templates.length === 0 ? (
-                  <div className="py-20 text-center text-sm font-medium text-gray-400">
+                  <div className="py-20 text-center text-sm font-light text-gray-400">
                     No hay plantillas disponibles por ahora. Contacta a soporte.
                   </div>
                 ) : (
@@ -336,29 +412,35 @@ export default function OnboardingPage() {
                       <button
                         key={tpl.id}
                         onClick={() => setTemplateId(tpl.id)}
-                        className={`group text-left rounded-[2rem] overflow-hidden border-2 transition-all bg-white ${
-                          templateId === tpl.id ? 'border-[#004d4d] shadow-2xl scale-[1.02]' : 'border-gray-100 hover:border-[#004d4d]/30 shadow-sm'
+                        className={`group text-left rounded-[1.75rem] overflow-hidden border transition-all duration-300 bg-white ${
+                          templateId === tpl.id ? 'border-cyan/60 shadow-[0_25px_60px_-15px_rgba(0,242,255,0.25)] -translate-y-1' : 'border-gray-100 hover:border-cyan/30 hover:-translate-y-0.5 shadow-sm'
                         }`}
                       >
                         <div className="aspect-[4/3] bg-gray-50 relative overflow-hidden">
-                          {tpl.preview_url && <img src={tpl.preview_url} alt={tpl.name} className="w-full h-full object-cover" />}
+                          {tpl.preview_url && <img src={tpl.preview_url} alt={tpl.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />}
                           {templateId === tpl.id && (
-                            <div className="absolute top-3 right-3 h-7 w-7 bg-[#004d4d] rounded-full flex items-center justify-center text-white shadow-lg z-10">
+                            <div className="absolute top-3 right-3 h-7 w-7 bg-cyan rounded-full flex items-center justify-center text-[#0A1A1A] shadow-lg z-10">
                               <Check size={14} />
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                             <span
                               onClick={(e) => { e.stopPropagation(); openPreview(tpl); }}
-                              className="flex items-center gap-2 h-10 px-5 rounded-full bg-white text-[#004d4d] text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-transform"
+                              className="flex items-center gap-2 h-10 px-5 rounded-full bg-white text-petroleum text-xs font-medium shadow-xl hover:scale-105 transition-transform"
                             >
                               <Eye size={14} /> Vista previa
+                            </span>
+                            <span
+                              onClick={(e) => { e.stopPropagation(); openEditor(tpl); }}
+                              className="flex items-center gap-2 h-10 px-5 rounded-full bg-cyan text-[#0A1A1A] text-xs font-medium shadow-xl hover:scale-105 transition-transform"
+                            >
+                              <Edit3 size={14} /> Editar
                             </span>
                           </div>
                         </div>
                         <div className="p-5 space-y-1">
-                          <p className="text-sm font-black uppercase tracking-tight text-gray-900">{tpl.name}</p>
-                          <p className="text-[11px] text-gray-400 font-medium line-clamp-2">{tpl.description}</p>
+                          <p className="text-sm font-medium text-gray-900">{tpl.name}</p>
+                          <p className="text-xs text-gray-400 font-light line-clamp-2">{tpl.description}</p>
                         </div>
                       </button>
                     ))}
@@ -369,56 +451,61 @@ export default function OnboardingPage() {
 
             {step === 1 && (
               <motion.div key="s2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-10 max-w-xl">
-                <div className="space-y-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00b2bd]">Paso 2 de 3</p>
-                  <h1 className="text-4xl md:text-5xl font-black italic uppercase tracking-tighter text-[#001A1A]">Datos de tu tienda</h1>
-                  <p className="text-gray-500 font-medium">Con esto ya queda lista la información básica para publicar. Lo demás (NIT, horarios, redes) lo completas después en Config Tienda.</p>
+                <div className="space-y-4">
+                  <span className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.25em] text-petroleum/50">
+                    <span className="h-px w-6 bg-petroleum/30" />
+                    Paso 2 de 3
+                  </span>
+                  <h1 className="text-4xl md:text-5xl font-light text-[#0A1A1A] tracking-tight">
+                    Datos de <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00b2bd] to-[#004d4d]">tu tienda.</span>
+                  </h1>
+                  <p className="text-gray-500 font-light leading-relaxed">Con esto ya queda lista la información básica para publicar. Lo demás (NIT, horarios, redes) lo completas después en Config Tienda.</p>
                 </div>
 
                 <div className="flex items-center gap-5">
                   <button
                     onClick={() => logoInputRef.current?.click()}
-                    className="h-20 w-20 rounded-3xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 overflow-hidden shrink-0 hover:border-[#004d4d]/30 transition-all"
+                    className="h-20 w-20 rounded-3xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 overflow-hidden shrink-0 hover:border-cyan/40 transition-all"
                   >
-                    {logoPreview ? <img src={logoPreview} className="w-full h-full object-cover" alt="Logo" /> : <ImageIcon size={24} />}
+                    {uploadingLogo ? <Loader2 size={20} className="animate-spin" /> : logoPreview ? <img src={logoPreview} className="w-full h-full object-cover" alt="Logo" /> : <ImageIcon size={24} />}
                   </button>
                   <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={e => {
                     const f = e.target.files?.[0];
-                    if (f) { setLogoFile(f); setLogoPreview(URL.createObjectURL(f)); }
+                    if (f) handleLogoPick(f);
                   }} />
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Logo (opcional)</p>
-                    <p className="text-[11px] text-gray-400 mt-1">Puedes agregarlo ahora o más tarde.</p>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-gray-400">Logo (opcional)</p>
+                    <p className="text-xs text-gray-400 font-light mt-1">Puedes agregarlo ahora o más tarde.</p>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre de tu tienda *</label>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Nombre de tu tienda *</label>
                   <input value={storeName} onChange={e => handleStoreNameChange(e.target.value)} placeholder="Ej. Tech Hub Colombia"
-                    className="w-full p-4 bg-white border border-gray-200 rounded-2xl outline-none text-sm font-bold focus:border-[#004d4d] shadow-sm transition-all" />
+                    className="w-full p-4 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm font-medium transition-all focus:bg-white" />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">URL de tu tienda *</label>
-                  <div className="flex items-center gap-2 p-4 bg-white border border-gray-200 rounded-2xl shadow-sm focus-within:border-[#004d4d] transition-all">
-                    <span className="text-[12px] font-bold text-gray-300 shrink-0">bayup.com.co/shop/</span>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">URL de tu tienda *</label>
+                  <div className="flex items-center gap-2 p-4 bg-gray-50/80 border border-transparent focus-within:border-cyan/40 rounded-2xl transition-all focus-within:bg-white">
+                    <span className="text-xs font-medium text-gray-400 shrink-0">bayup.com.co/shop/</span>
                     <input value={slug} onChange={e => { setSlugTouched(true); setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); }}
-                      placeholder="mi-tienda" className="flex-1 outline-none text-sm font-bold bg-transparent" />
+                      placeholder="mi-tienda" className="flex-1 outline-none text-sm font-medium bg-transparent" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Categoría *</label>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Categoría *</label>
                     <select value={category} onChange={e => setCategory(e.target.value)}
-                      className="w-full p-4 bg-white border border-gray-200 rounded-2xl outline-none text-sm font-bold focus:border-[#004d4d] shadow-sm transition-all">
+                      className="w-full p-4 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm font-medium transition-all focus:bg-white">
                       {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">WhatsApp de tu tienda *</label>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">WhatsApp de tu tienda *</label>
                     <input value={phone} onChange={e => setPhone(e.target.value.replace(/[^\d+]/g, ''))} placeholder="3000000000"
-                      className="w-full p-4 bg-white border border-gray-200 rounded-2xl outline-none text-sm font-bold focus:border-[#004d4d] shadow-sm transition-all" />
+                      className="w-full p-4 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm font-medium transition-all focus:bg-white" />
                   </div>
                 </div>
               </motion.div>
@@ -426,16 +513,21 @@ export default function OnboardingPage() {
 
             {step === 2 && (
               <motion.div key="s3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-10 max-w-xl">
-                <div className="space-y-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00b2bd]">Paso 3 de 3</p>
-                  <h1 className="text-4xl md:text-5xl font-black italic uppercase tracking-tighter text-[#001A1A]">Tu primer producto</h1>
-                  <p className="text-gray-500 font-medium">Para que tu tienda no se vea vacía el día que la publiques. Podrás subir el resto del catálogo después.</p>
+                <div className="space-y-4">
+                  <span className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.25em] text-petroleum/50">
+                    <span className="h-px w-6 bg-petroleum/30" />
+                    Paso 3 de 3
+                  </span>
+                  <h1 className="text-4xl md:text-5xl font-light text-[#0A1A1A] tracking-tight">
+                    Tu primer <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-[#004d4d] via-[#00b2bd] to-[#004d4d]">producto.</span>
+                  </h1>
+                  <p className="text-gray-500 font-light leading-relaxed">Para que tu tienda no se vea vacía el día que la publiques. Podrás subir el resto del catálogo después.</p>
                 </div>
 
                 <div className="flex items-center gap-5">
                   <button
                     onClick={() => productImageInputRef.current?.click()}
-                    className="h-24 w-24 rounded-3xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 overflow-hidden shrink-0 hover:border-[#004d4d]/30 transition-all"
+                    className="h-24 w-24 rounded-3xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 overflow-hidden shrink-0 hover:border-cyan/40 transition-all"
                   >
                     {productImagePreview ? <img src={productImagePreview} className="w-full h-full object-cover" alt="Producto" /> : <ImageIcon size={28} />}
                   </button>
@@ -444,27 +536,27 @@ export default function OnboardingPage() {
                     if (f) { setProductImageFile(f); setProductImagePreview(URL.createObjectURL(f)); }
                   }} />
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Foto del producto (opcional)</p>
-                    <p className="text-[11px] text-gray-400 mt-1">Recomendado para que se vea bien en tu catálogo.</p>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-gray-400">Foto del producto (opcional)</p>
+                    <p className="text-xs text-gray-400 font-light mt-1">Recomendado para que se vea bien en tu catálogo.</p>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre del producto *</label>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Nombre del producto *</label>
                   <input value={productName} onChange={e => setProductName(e.target.value)} placeholder="Ej. Camiseta Premium"
-                    className="w-full p-4 bg-white border border-gray-200 rounded-2xl outline-none text-sm font-bold focus:border-[#004d4d] shadow-sm transition-all" />
+                    className="w-full p-4 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm font-medium transition-all focus:bg-white" />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Precio (COP) *</label>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Precio (COP) *</label>
                   <input type="number" min="0" value={productPrice} onChange={e => setProductPrice(e.target.value)} placeholder="50000"
-                    className="w-full p-4 bg-white border border-gray-200 rounded-2xl outline-none text-sm font-bold focus:border-[#004d4d] shadow-sm transition-all" />
+                    className="w-full p-4 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm font-medium transition-all focus:bg-white" />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Descripción (opcional)</label>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Descripción (opcional)</label>
                   <textarea value={productDescription} onChange={e => setProductDescription(e.target.value)} rows={3} placeholder="Describe brevemente tu producto..."
-                    className="w-full p-4 bg-white border border-gray-200 rounded-2xl outline-none text-sm font-medium focus:border-[#004d4d] shadow-sm transition-all resize-none" />
+                    className="w-full p-4 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm font-medium transition-all focus:bg-white resize-none" />
                 </div>
               </motion.div>
             )}
@@ -475,7 +567,7 @@ export default function OnboardingPage() {
             {step === 0 ? (
               <button
                 onClick={openEditAccount}
-                className="flex items-center gap-2 px-6 py-4 rounded-2xl text-gray-400 font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-all"
+                className="flex items-center gap-2 px-6 py-4 rounded-full text-gray-400 font-medium text-xs hover:text-gray-900 transition-all"
               >
                 <Edit3 size={14} /> Editar mis datos
               </button>
@@ -483,7 +575,7 @@ export default function OnboardingPage() {
               <button
                 onClick={() => setStep(s => s - 1)}
                 disabled={isPublishing}
-                className="flex items-center gap-2 px-6 py-4 rounded-2xl text-gray-400 font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-all disabled:opacity-30"
+                className="flex items-center gap-2 px-6 py-4 rounded-full text-gray-400 font-medium text-xs hover:text-gray-900 transition-all disabled:opacity-30"
               >
                 <ChevronLeft size={16} /> Atrás
               </button>
@@ -493,20 +585,20 @@ export default function OnboardingPage() {
               <button
                 onClick={() => setStep(s => s + 1)}
                 disabled={(step === 0 && !canContinueStep1) || (step === 1 && !canContinueStep2)}
-                className="flex items-center gap-3 px-10 py-5 bg-[#001A1A] text-white rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-3 px-9 py-4 bg-[#0A1A1A] text-white rounded-full font-medium text-sm tracking-wide shadow-[0_15px_35px_-10px_rgba(0,0,0,0.3)] hover:bg-black transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                Continuar <ChevronRight size={16} className="text-[#00f2ff]" />
+                Continuar <ChevronRight size={16} className="text-cyan" />
               </button>
             ) : (
               <button
                 onClick={handlePublish}
                 disabled={!canPublish || isPublishing}
-                className="flex items-center gap-3 px-10 py-5 bg-[#004d4d] text-white rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-[#003838] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex items-center gap-3 px-9 py-4 bg-cyan text-[#0A1A1A] rounded-full font-medium text-sm tracking-wide shadow-[0_15px_35px_-10px_rgba(0,242,255,0.4)] hover:bg-[#1AF5FF] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 {isPublishing ? (
                   <><Loader2 size={18} className="animate-spin" /> Publicando tu tienda...</>
                 ) : (
-                  <><Rocket size={18} className="text-[#00f2ff]" /> Publicar mi tienda</>
+                  <><Rocket size={18} /> Publicar mi tienda</>
                 )}
               </button>
             )}
@@ -528,25 +620,25 @@ export default function OnboardingPage() {
                 className="w-full max-w-md my-auto bg-white rounded-[2rem] shadow-2xl p-8 space-y-6"
               >
                 <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-black text-[#001A1A]">Corregir mis datos</h2>
+                  <h2 className="text-xl font-light text-[#0A1A1A]">Corregir mis datos</h2>
                   <button onClick={() => setShowEditAccount(false)} className="h-8 w-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-900">
                     <X size={16} />
                   </button>
                 </div>
-                <p className="text-[12px] text-gray-400 font-medium -mt-2">Estos son los datos con los que creaste tu cuenta. Puedes corregirlos sin perder tu avance.</p>
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Nombre</label>
+                <p className="text-xs text-gray-400 font-light -mt-2">Estos son los datos con los que creaste tu cuenta. Puedes corregirlos sin perder tu avance.</p>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Nombre</label>
                   <input value={accountName} onChange={e => setAccountName(e.target.value)}
-                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none text-sm font-bold focus:border-[#004d4d] transition-all" />
+                    className="w-full p-4 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm font-medium transition-all focus:bg-white" />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Correo electrónico</label>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Correo electrónico</label>
                   <input type="email" value={accountEmail} onChange={e => setAccountEmail(e.target.value)}
-                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none text-sm font-bold focus:border-[#004d4d] transition-all" />
+                    className="w-full p-4 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm font-medium transition-all focus:bg-white" />
                 </div>
                 <button onClick={saveAccount} disabled={savingAccount || !accountName.trim() || !accountEmail.trim()}
-                  className="w-full flex items-center justify-center gap-2 py-4 bg-[#001A1A] text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-black transition-all disabled:opacity-40">
-                  {savingAccount ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} className="text-[#00f2ff]" />}
+                  className="w-full flex items-center justify-center gap-2 py-4 bg-[#0A1A1A] text-white rounded-full font-medium text-sm tracking-wide hover:bg-black transition-all disabled:opacity-40">
+                  {savingAccount ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} className="text-cyan" />}
                   Guardar cambios
                 </button>
               </motion.div>
