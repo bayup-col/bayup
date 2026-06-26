@@ -32,7 +32,10 @@ export default function OnboardingPage() {
   const { token, isAuthenticated, isLoading, userName, userEmail, updateUser, refreshToken, setOnboardingCompleted, logout } = useAuth();
   const { showToast } = useToast();
 
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    return Number(sessionStorage.getItem('bayup_ob_step') || 0);
+  });
   const [isPublishing, setIsPublishing] = useState(false);
 
   // Correccion de los datos del registro (nombre/correo), accesible desde el
@@ -47,7 +50,10 @@ export default function OnboardingPage() {
   // Paso 1
   const [templates, setTemplates] = useState<WebTemplate[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
-  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [templateId, setTemplateId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return sessionStorage.getItem('bayup_ob_template') || null;
+  });
 
   // Paso 2
   const [storeName, setStoreName] = useState('');
@@ -81,6 +87,13 @@ export default function OnboardingPage() {
       .catch(() => setTemplates([]))
       .finally(() => setTemplatesLoading(false));
   }, [token, apiBase]);
+
+  // Persistir progreso del onboarding en sessionStorage
+  useEffect(() => { sessionStorage.setItem('bayup_ob_step', String(step)); }, [step]);
+  useEffect(() => {
+    if (templateId) sessionStorage.setItem('bayup_ob_template', templateId);
+    else sessionStorage.removeItem('bayup_ob_template');
+  }, [templateId]);
 
   const selectedTemplate = templates.find(t => t.id === templateId) || null;
 
@@ -242,6 +255,8 @@ export default function OnboardingPage() {
 
       updateUser({ name: storeName.trim(), slug: slug.trim(), logo: logoUrl || undefined });
       setOnboardingCompleted(true);
+      sessionStorage.removeItem('bayup_ob_step');
+      sessionStorage.removeItem('bayup_ob_template');
       showToast('¡Tu tienda ya está publicada! 🚀', 'success');
       router.push('/dashboard');
     } catch (e: any) {
@@ -457,13 +472,22 @@ export default function OnboardingPage() {
 
           {/* NAVEGACION */}
           <div className="flex items-center justify-between mt-14 max-w-xl">
-            <button
-              onClick={() => setStep(s => Math.max(0, s - 1))}
-              disabled={step === 0 || isPublishing}
-              className="flex items-center gap-2 px-6 py-4 rounded-2xl text-gray-400 font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-all disabled:opacity-0"
-            >
-              <ChevronLeft size={16} /> Atrás
-            </button>
+            {step === 0 ? (
+              <button
+                onClick={openEditAccount}
+                className="flex items-center gap-2 px-6 py-4 rounded-2xl text-gray-400 font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-all"
+              >
+                <Edit3 size={14} /> Editar mis datos
+              </button>
+            ) : (
+              <button
+                onClick={() => setStep(s => s - 1)}
+                disabled={isPublishing}
+                className="flex items-center gap-2 px-6 py-4 rounded-2xl text-gray-400 font-black text-[10px] uppercase tracking-widest hover:text-gray-900 transition-all disabled:opacity-30"
+              >
+                <ChevronLeft size={16} /> Atrás
+              </button>
+            )}
 
             {step < 2 ? (
               <button

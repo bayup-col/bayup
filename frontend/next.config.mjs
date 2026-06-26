@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     env: {
@@ -17,4 +19,13 @@ const nextConfig = {
     }
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+    // No imprime output de Sentry durante el build
+    silent: true,
+    // No expone source maps en el bundle publico (las sube a Sentry de forma privada)
+    hideSourceMaps: true,
+    // Desactiva el logger de Sentry en cliente para reducir bundle size
+    disableLogger: true,
+    // Desactiva el tunnel automático para no añadir una ruta /monitoring al backend
+    tunnelRoute: undefined,
+});

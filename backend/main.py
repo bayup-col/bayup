@@ -1,8 +1,10 @@
-from fastapi import Depends, FastAPI, HTTPException, status, Request, UploadFile, File
+from fastapi import Depends, FastAPI, HTTPException, status, Request, Response, UploadFile, File, Query
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import os
 import sys
+import time
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 from pydantic import BaseModel, Field
@@ -17,6 +19,20 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stderr.reconfigure(encoding="utf-8")
 
 load_dotenv()
+
+# --- MONITOREO: SENTRY ---
+# Inerte si SENTRY_DSN no esta definido. Para activar: anadir SENTRY_DSN en el
+# panel de Render (Environment > Add Variable). No se requiere redeploy de codigo.
+import sentry_sdk as _sentry_sdk
+_sentry_dsn = os.getenv("SENTRY_DSN")
+if _sentry_dsn:
+    _sentry_sdk.init(
+        dsn=_sentry_dsn,
+        traces_sample_rate=0.2,      # 20%% de requests trazados - ajustable
+        profiles_sample_rate=0.1,
+        environment=os.getenv("APP_ENV", "production"),
+        send_default_pii=False,      # nunca enviar datos personales a Sentry
+    )
 
 # --- ARRANQUE SEGURO (SIN IMPORTACIONES CRÍTICAS ARRIBA) ---
 @asynccontextmanager
@@ -37,9 +53,32 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Bayup OS Platinum", lifespan=lifespan)
 
 # --- RATE LIMITING ---
-limiter = Limiter(key_func=get_remote_address)
+def _get_real_ip(request: Request) -> str:
+    """Lee la IP real del cliente desde X-Forwarded-For (Render inyecta este header)."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host or "127.0.0.1"
+
+limiter = Limiter(key_func=_get_real_ip)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# --- CACHE EN MEMORIA (TTL simple, sin Redis ni dependencias nuevas) ---
+# Cada entrada es una tupla (valor, expires_at_timestamp).
+_shop_cache: dict = {}       # {slug: (data_dict, expires_at)}
+_templates_cache: dict = {}  # {"list": (data_list, expires_at)}
+
+def _cache_get(store: dict, key: str):
+    """Devuelve el valor cacheado si todavía no expiró, o None si falta/expiró."""
+    entry = store.get(key)
+    if entry and entry[1] > time.time():
+        return entry[0]
+    return None
+
+def _cache_set(store: dict, key: str, value, ttl: int) -> None:
+    """Almacena value en store[key] con un TTL en segundos."""
+    store[key] = (value, time.time() + ttl)
 
 # --- CORS ---
 # NOTA: si en el futuro las tiendas activan dominio propio (custom_domain en el modelo User),
@@ -72,6 +111,29 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
     return response
+
+def _trigger_email_confirmation(email: str, password: str) -> None:
+    """Llama a Supabase Auth para que envíe el email de confirmación al nuevo usuario.
+    Falla silenciosamente si las variables de entorno no están configuradas."""
+    supabase_url = os.getenv("SUPABASE_URL")
+    anon_key = os.getenv("SUPABASE_ANON_KEY")
+    if not supabase_url or not anon_key:
+        return
+    site_url = os.getenv("SITE_URL", "https://bayup.com.co")
+    try:
+        import requests as _requests
+        _requests.post(
+            f"{supabase_url}/auth/v1/signup",
+            headers={"apikey": anon_key, "Content-Type": "application/json"},
+            json={
+                "email": email,
+                "password": password,
+                "options": {"emailRedirectTo": f"{site_url}/login?confirmed=1"},
+            },
+            timeout=8,
+        )
+    except Exception:
+        pass  # No bloquear el registro si Supabase Auth no responde
 
 class UserLoginRequest(BaseModel):
     email: str
@@ -109,6 +171,14 @@ def login(request: Request, form_data: UserLoginRequest):
         user = crud.get_user_by_email(db, email=form_data.email)
         if not user or not security.verify_password(form_data.password, user.hashed_password):
             raise HTTPException(status_code=400, detail="Credenciales inválidas")
+
+        # Bloquear login si el email no fue confirmado (solo cuentas raíz admin_tienda)
+        is_root_admin = user.role == "admin_tienda" and not user.owner_id and not getattr(user, "is_global_staff", False)
+        if is_root_admin and not getattr(user, "email_confirmed", True):
+            raise HTTPException(
+                status_code=403,
+                detail="Debes confirmar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada y haz clic en el enlace de confirmación."
+            )
 
         if not user.is_global_staff:
             root = db.query(models.User).filter(models.User.id == user.owner_id).first() if user.owner_id else user
@@ -164,7 +234,8 @@ def register(request: Request, payload: RegisterRequest):
             full_name=payload.full_name,
         )
         user = crud.create_user(db, user=user_in)
-        return {"id": str(user.id), "email": user.email}
+        _trigger_email_confirmation(payload.email, payload.password)
+        return {"id": str(user.id), "email": user.email, "email_confirmation_sent": True}
     finally:
         db.close()
 
@@ -223,7 +294,7 @@ class ProductCreateRequest(BaseModel):
     variants: list = []
 
 @app.get("/products")
-async def get_products(request: Request, skip: int = 0, limit: int = 200):
+async def get_products(request: Request, skip: int = Query(default=0, ge=0), limit: int = Query(default=200, ge=1)):
     import crud, schemas
     from database import SessionLocal
     db = SessionLocal()
@@ -308,7 +379,7 @@ class OrderCreateRequest(BaseModel):
     items: list[OrderItemRequest] = []
 
 @app.get("/orders")
-async def get_orders(request: Request, skip: int = 0, limit: int = 200):
+async def get_orders(request: Request, skip: int = Query(default=0, ge=0), limit: int = Query(default=200, ge=1)):
     import crud, schemas
     from database import SessionLocal
     db = SessionLocal()
@@ -391,13 +462,13 @@ class CollectionCreateRequest(BaseModel):
     status: str = "active"
 
 @app.get("/collections")
-async def get_collections(request: Request):
+async def get_collections(request: Request, skip: int = Query(default=0, ge=0), limit: int = Query(default=200, ge=1)):
     import crud, schemas
     from database import SessionLocal
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
-        collections = crud.get_collections_by_owner(db, owner_id=_tenant_id(user))
+        collections = crud.get_collections_by_owner(db, owner_id=_tenant_id(user), skip=skip, limit=min(limit, 500))
         return [schemas.Collection.model_validate(c).model_dump(mode="json") for c in collections]
     finally:
         db.close()
@@ -417,7 +488,13 @@ async def create_collection_route(payload: CollectionCreateRequest, request: Req
 
 # --- ENDPOINTS PÚBLICOS DE TIENDA (sin auth, para el storefront /shop/[slug]) ---
 @app.get("/public/shop/{slug}")
-async def get_public_shop(slug: str):
+@limiter.limit("30/minute")
+async def get_public_shop(request: Request, response: Response, slug: str):
+    # Caché en memoria: TTL 60 s (el perfil de tienda cambia poco una vez publicado)
+    cached = _cache_get(_shop_cache, slug)
+    if cached is not None:
+        response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
+        return cached
     import crud, schemas
     from database import SessionLocal
     db = SessionLocal()
@@ -426,7 +503,7 @@ async def get_public_shop(slug: str):
         if not store or store.status == "Suspendido":
             raise HTTPException(status_code=404, detail="Tienda no encontrada")
         collections = crud.get_collections_by_owner(db, owner_id=store.id)
-        return {
+        data = {
             "id": str(store.id),
             "owner_id": str(store.id),
             "full_name": store.full_name,
@@ -439,11 +516,15 @@ async def get_public_shop(slug: str):
             "whatsapp_lines": getattr(store, "whatsapp_lines", None) or [],
             "categories": [schemas.Collection.model_validate(c).model_dump(mode="json") for c in collections],
         }
+        _cache_set(_shop_cache, slug, data, 60)
+        response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
+        return data
     finally:
         db.close()
 
 @app.get("/public/stores/{store_id}/products")
-async def get_public_store_products(store_id: str):
+@limiter.limit("30/minute")
+async def get_public_store_products(request: Request, response: Response, store_id: str):
     import crud, schemas, uuid as uuid_lib
     from database import SessionLocal
     db = SessionLocal()
@@ -453,6 +534,7 @@ async def get_public_store_products(store_id: str):
         except ValueError:
             raise HTTPException(status_code=400, detail="store_id inválido")
         products = crud.get_all_products(db, tenant_id=store_uuid, limit=500)
+        response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=120"
         return [
             schemas.Product.model_validate(p).model_dump(mode="json")
             for p in products if p.status == "active"
@@ -533,7 +615,7 @@ def _serialize_customer(u) -> dict:
     }
 
 @app.get("/admin/users")
-async def get_admin_users(request: Request):
+async def get_admin_users(request: Request, skip: int = Query(default=0, ge=0), limit: int = Query(default=200, ge=1)):
     """Lista los clientes (role='cliente') de la tienda del usuario autenticado."""
     import models
     from database import SessionLocal
@@ -544,7 +626,7 @@ async def get_admin_users(request: Request):
         customers = db.query(models.User).filter(
             models.User.owner_id == tenant_id,
             models.User.role == "cliente",
-        ).all()
+        ).offset(skip).limit(min(limit, 500)).all()
         return [_serialize_customer(c) for c in customers]
     finally:
         db.close()
@@ -854,6 +936,9 @@ async def create_admin_staff(payload: StaffCreateRequest, request: Request):
     try:
         user = await _authenticate(request, db)
         tenant_id = _tenant_id(user)
+        _ALLOWED_STAFF_ROLES = {role_id for role_id, _ in _BASE_ROLE_DEFS}
+        if payload.role not in _ALLOWED_STAFF_ROLES:
+            raise HTTPException(status_code=400, detail=f"Rol no válido. Opciones: {sorted(_ALLOWED_STAFF_ROLES)}")
         if crud.get_user_by_email(db, email=payload.email):
             raise HTTPException(status_code=400, detail="Ya existe una cuenta con ese correo")
         new_staff = models.User(
@@ -892,6 +977,9 @@ async def update_admin_staff(payload: StaffUpdateRequest, request: Request):
         if not target:
             raise HTTPException(status_code=404, detail="Miembro del staff no encontrado")
         if payload.new_role:
+            _ALLOWED_STAFF_ROLES = {role_id for role_id, _ in _BASE_ROLE_DEFS}
+            if payload.new_role not in _ALLOWED_STAFF_ROLES:
+                raise HTTPException(status_code=400, detail=f"Rol no válido. Opciones: {sorted(_ALLOWED_STAFF_ROLES)}")
             target.role = payload.new_role
         if payload.full_name:
             target.full_name = payload.full_name
@@ -1115,6 +1203,8 @@ async def update_profile(payload: UpdateProfileRequest, request: Request):
             if key in PROFILE_EDITABLE_FIELDS:
                 setattr(user, key, value)
         db.commit()
+        if user.shop_slug:
+            _shop_cache.pop(user.shop_slug, None)
         result: dict = {"ok": True}
         if email_changed:
             # El token de sesion usa el email como identificador (sub); si cambia,
@@ -1151,6 +1241,11 @@ async def upload_image(request: Request, file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="El archivo debe ser una imagen")
 
     contents = await file.read()
+
+    _IMG_MAGIC = [b'\xff\xd8\xff', b'\x89PNG\r\n\x1a\n', b'GIF87a', b'GIF89a', b'RIFF', b'WEBP']
+    if not any(contents[:8].startswith(sig) for sig in _IMG_MAGIC):
+        raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
+
     if len(contents) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="La imagen no puede superar 5MB")
 
@@ -1291,6 +1386,8 @@ async def toggle_suspend_company(company_id: str, request: Request):
             raise HTTPException(status_code=404, detail="Empresa no encontrada")
         company.status = "Activo" if company.status == "Suspendido" else "Suspendido"
         db.commit()
+        if company.shop_slug:
+            _shop_cache.pop(company.shop_slug, None)
         return {"id": str(company.id), "status": company.status}
     finally:
         db.close()
@@ -1317,9 +1414,14 @@ async def delete_company_permanently(company_id: str, request: Request):
             raise HTTPException(status_code=404, detail="Empresa no encontrada")
 
         try:
-            # IDs de cuentas dependientes (staff + clientes de esta tienda)
-            sub_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.owner_id == target_uuid).all()]
+            # IDs y emails de cuentas dependientes (staff + clientes de esta tienda)
+            sub_users = db.query(models.User.id, models.User.email).filter(models.User.owner_id == target_uuid).all()
+            sub_user_ids = [u.id for u in sub_users]
             all_user_ids = [target_uuid] + sub_user_ids
+
+            # Recolectar emails ANTES de borrar para limpiar auth.users después
+            root_email = db.query(models.User.email).filter(models.User.id == target_uuid).scalar()
+            emails_to_purge = [e for e in ([root_email] + [u.email for u in sub_users]) if e]
 
             order_ids = [o.id for o in db.query(models.Order.id).filter(models.Order.tenant_id == target_uuid).all()]
             product_ids = [p.id for p in db.query(models.Product.id).filter(models.Product.owner_id == target_uuid).all()]
@@ -1367,6 +1469,17 @@ async def delete_company_permanently(company_id: str, request: Request):
             db.query(models.User).filter(models.User.id == target_uuid).delete(synchronize_session=False)
 
             db.commit()
+
+            # Limpiar auth.users para que el email quede libre para re-registro
+            if emails_to_purge:
+                from sqlalchemy import text as _text
+                try:
+                    for _email in emails_to_purge:
+                        db.execute(_text("DELETE FROM auth.users WHERE email = :email"), {"email": _email})
+                    db.commit()
+                except Exception:
+                    pass  # best-effort: si falla permisos, no bloquea la respuesta
+
         except Exception:
             db.rollback()
             raise HTTPException(status_code=500, detail="No se pudo eliminar la empresa por completo")
@@ -1751,8 +1864,8 @@ async def reply_my_support_ticket(ticket_id: str, payload: dict, request: Reques
     finally:
         db.close()
 
-def _serialize_template(t):
-    return {
+def _serialize_template(t, include_html: bool = False):
+    d = {
         "id": str(t.id),
         "name": t.name,
         "category": t.category or "General",
@@ -1765,7 +1878,10 @@ def _serialize_template(t):
         "color": t.color or "#0f1a1a",
         "preview_url": t.preview_url,
         "schema_data": t.schema_data,
+        "template_type": getattr(t, "template_type", "schema") or "schema",
+        "html_pages": list((getattr(t, "html_pages", None) or {}).keys()) if not include_html else (getattr(t, "html_pages", None) or {}),
     }
+    return d
 
 @app.get("/super-admin/web-templates")
 async def get_super_admin_web_templates(request: Request):
@@ -1794,18 +1910,88 @@ async def create_super_admin_web_template(payload: dict, request: Request):
         tags = payload.get("tags")
         if isinstance(tags, str):
             tags = [s.strip() for s in tags.split(",") if s.strip()]
+        template_type = payload.get("template_type") or "schema"
+        if template_type not in ("schema", "html"):
+            raise HTTPException(status_code=400, detail="template_type debe ser 'schema' o 'html'")
+        html_pages = payload.get("html_pages") or None
+        if template_type == "html" and not html_pages:
+            raise HTTPException(status_code=400, detail="Se requiere al menos la página 'home' para plantillas HTML")
         template = models.WebTemplate(
             name=name,
             category=payload.get("category") or "General",
             description=payload.get("description") or "",
             tags=tags or [],
-            is_active=True,
+            is_active=False,
             is_premium=False,
             color=payload.get("color") or "#0f1a1a",
+            template_type=template_type,
+            html_pages=html_pages,
         )
         db.add(template)
         db.commit()
+        _templates_cache.clear()
         return _serialize_template(template)
+    finally:
+        db.close()
+
+@app.get("/super-admin/web-templates/{template_id}")
+async def get_super_admin_web_template(template_id: str, request: Request):
+    """Devuelve una plantilla completa con html_pages para previsualización."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        try:
+            target_uuid = uuid_lib.UUID(template_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="template_id inválido")
+        template = db.query(models.WebTemplate).filter(models.WebTemplate.id == target_uuid).first()
+        if not template:
+            raise HTTPException(status_code=404, detail="Plantilla no encontrada")
+        return _serialize_template(template, include_html=True)
+    finally:
+        db.close()
+
+@app.get("/super-admin/web-templates/{template_id}/live-preview/{page_key}", response_class=HTMLResponse)
+async def live_preview_template_page(template_id: str, page_key: str, request: Request, token: str = Query(None)):
+    """Preview navegable de plantilla HTML con SDK de demostración y datos mock."""
+    import models, uuid as uuid_lib, security as sec_mod
+    from database import SessionLocal
+    from fastapi import Query as _Query
+    db = SessionLocal()
+    try:
+        if token:
+            try:
+                user = await sec_mod.get_current_user(token=token, db=db)
+            except Exception:
+                raise HTTPException(status_code=401, detail="Token inválido o expirado")
+        else:
+            user = await _authenticate(request, db)
+        _require_super_admin(user)
+        try:
+            target_uuid = uuid_lib.UUID(template_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="template_id inválido")
+        template = db.query(models.WebTemplate).filter(models.WebTemplate.id == target_uuid).first()
+        if not template or getattr(template, "template_type", "schema") != "html":
+            raise HTTPException(status_code=404, detail="Plantilla HTML no encontrada")
+        html_pages = getattr(template, "html_pages", None) or {}
+        html = html_pages.get(page_key) or html_pages.get("home")
+        if not html:
+            raise HTTPException(status_code=404, detail=f"Página '{page_key}' no encontrada")
+        base_url = str(request.base_url).rstrip("/")
+        tok = token or ""
+        preview_sdk = _BAYUP_PREVIEW_SDK \
+            .replace("__TPLID__", template_id) \
+            .replace("__TOK__", tok) \
+            .replace("__BASE__", base_url)
+        if "</head>" in html:
+            html = html.replace("</head>", preview_sdk + "</head>", 1)
+        else:
+            html = preview_sdk + html
+        return HTMLResponse(content=html)
     finally:
         db.close()
 
@@ -1826,6 +2012,7 @@ async def toggle_super_admin_web_template(template_id: str, request: Request):
             raise HTTPException(status_code=404, detail="Plantilla no encontrada")
         template.is_active = not template.is_active
         db.commit()
+        _templates_cache.clear()  # invalidar caché de /web-templates
         return _serialize_template(template)
     finally:
         db.close()
@@ -1847,9 +2034,36 @@ async def delete_super_admin_web_template(template_id: str, request: Request):
             raise HTTPException(status_code=404, detail="Plantilla no encontrada")
         db.delete(template)
         db.commit()
+        _templates_cache.clear()  # invalidar caché de /web-templates
         return {"ok": True}
     finally:
         db.close()
+
+
+@app.get("/super-admin/web-templates/{template_id}/preview/{page_key}", response_class=HTMLResponse)
+async def preview_template_html_page(template_id: str, page_key: str, request: Request):
+    """Devuelve el HTML crudo de una página de plantilla para previsualización."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        try:
+            target_uuid = uuid_lib.UUID(template_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="template_id inválido")
+        template = db.query(models.WebTemplate).filter(models.WebTemplate.id == target_uuid).first()
+        if not template or getattr(template, "template_type", "schema") != "html":
+            raise HTTPException(status_code=404, detail="Plantilla HTML no encontrada")
+        html_pages = getattr(template, "html_pages", None) or {}
+        html = html_pages.get(page_key) or html_pages.get("home")
+        if not html:
+            raise HTTPException(status_code=404, detail=f"Página '{page_key}' no encontrada")
+        return HTMLResponse(content=html)
+    finally:
+        db.close()
+
 
 # ── PLANES ────────────────────────────────────────────────────────────────
 def _serialize_plan(p):
@@ -1911,15 +2125,23 @@ async def update_super_admin_plan(plan_id: str, payload: PlanUpdateRequest, requ
         db.close()
 
 @app.get("/web-templates")
-async def get_web_templates(request: Request):
+async def get_web_templates(request: Request, response: Response):
     """Galeria de plantillas visible para cualquier tenant autenticado."""
     import models
     from database import SessionLocal
     db = SessionLocal()
     try:
         await _authenticate(request, db)
+        # Caché en memoria: TTL 5 min (solo cambia cuando super-admin añade/edita)
+        cached = _cache_get(_templates_cache, "list")
+        if cached is not None:
+            response.headers["Cache-Control"] = "private, max-age=300"
+            return cached
         templates = db.query(models.WebTemplate).filter(models.WebTemplate.is_active == True).order_by(models.WebTemplate.created_at.desc()).all()
-        return [_serialize_template(t) for t in templates]
+        data = [_serialize_template(t) for t in templates]
+        _cache_set(_templates_cache, "list", data, 300)
+        response.headers["Cache-Control"] = "private, max-age=300"
+        return data
     finally:
         db.close()
 
@@ -2033,7 +2255,8 @@ async def publish_shop_page(payload: ShopPagePublishRequest, request: Request):
         db.close()
 
 @app.get("/public/stores/{store_id}/pages/{page_key}")
-async def get_public_shop_page(store_id: str, page_key: str):
+@limiter.limit("30/minute")
+async def get_public_shop_page(request: Request, response: Response, store_id: str, page_key: str):
     import models, uuid as uuid_lib
     from database import SessionLocal
     db = SessionLocal()
@@ -2049,6 +2272,637 @@ async def get_public_shop_page(store_id: str, page_key: str):
         ).first()
         if not page:
             raise HTTPException(status_code=404, detail="Página no publicada")
+        response.headers["Cache-Control"] = "public, max-age=120, stale-while-revalidate=600"
         return {"page_key": page.page_key, "schema_data": page.schema_data}
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
+# PAGOS — capa de abstracción agnóstica al proveedor
+#
+# Estos endpoints definen el contrato de la API de pagos. La lógica
+# específica del gateway (Wompi, PayU, Stripe, etc.) se implementa dentro
+# de cada función marcada con TODO cuando se elija el proveedor.
+# ---------------------------------------------------------------------------
+
+class CheckoutItemSchema(BaseModel):
+    product_id: str
+    name: str
+    qty: int = Field(ge=1)
+    unit_price: float = Field(ge=0)
+
+class CheckoutRequest(BaseModel):
+    customer_name:  str = Field(min_length=2)
+    customer_email: str = Field(min_length=5)
+    customer_phone: str = Field(min_length=7)
+    items: list[CheckoutItemSchema] = Field(min_length=1)
+    currency: str = Field(default="COP", max_length=3)
+
+def _build_whatsapp_url(phone: str, store_name: str, items: list, total: float) -> str:
+    """Genera enlace de WhatsApp con resumen del pedido como fallback de pago."""
+    lines = [f"*Nuevo pedido — {store_name}*", ""]
+    for item in items:
+        lines.append(f"• {item['name']} × {item['qty']}  → ${item['unit_price'] * item['qty']:,.0f}")
+    lines += ["", f"*Total: ${total:,.0f} {items[0].get('currency', 'COP') if items else 'COP'}*"]
+    text = "%0A".join(lines)
+    clean_phone = phone.replace("+", "").replace(" ", "").replace("-", "")
+    return f"https://wa.me/{clean_phone}?text={text}"
+
+def _serialize_payment(p) -> dict:
+    return {
+        "id":                  str(p.id),
+        "amount":              p.amount,
+        "currency":            p.currency,
+        "status":              p.status,
+        "customer_name":       p.customer_name,
+        "customer_email":      p.customer_email,
+        "customer_phone":      p.customer_phone,
+        "items":               p.items or [],
+        "gateway":             p.gateway,
+        "gateway_payment_id":  p.gateway_payment_id,
+        "gateway_redirect_url": p.gateway_redirect_url,
+        "whatsapp_url":        p.whatsapp_url,
+        "created_at":          p.created_at.isoformat() if p.created_at else None,
+        "updated_at":          p.updated_at.isoformat() if p.updated_at else None,
+    }
+
+@app.post("/public/shop/{slug}/checkout")
+@limiter.limit("10/minute")
+async def public_checkout(slug: str, payload: CheckoutRequest, request: Request):
+    """
+    Inicia un pago desde la tienda pública. No requiere autenticación.
+    Responde con:
+      - whatsapp_url: enlace de WhatsApp como fallback (siempre presente)
+      - gateway_redirect_url: URL de redirección al gateway (null hasta configurar uno)
+      - payment_id: para consultar el estado después
+    """
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        tenant = db.query(models.User).filter(
+            models.User.shop_slug == slug,
+            models.User.status == "Activo",
+        ).first()
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tienda no encontrada")
+
+        items_dict = [i.model_dump() for i in payload.items]
+        total = sum(i["unit_price"] * i["qty"] for i in items_dict)
+
+        whatsapp_url = None
+        if tenant.phone:
+            whatsapp_url = _build_whatsapp_url(
+                tenant.phone, tenant.full_name or slug, items_dict, total
+            )
+
+        payment = models.Payment(
+            tenant_id=tenant.id,
+            amount=total,
+            currency=payload.currency,
+            status="pending",
+            customer_name=payload.customer_name,
+            customer_email=payload.customer_email,
+            customer_phone=payload.customer_phone,
+            items=items_dict,
+            gateway=None,           # TODO: asignar cuando se configure el gateway
+            gateway_redirect_url=None,  # TODO: generar URL del gateway aquí
+            whatsapp_url=whatsapp_url,
+        )
+        db.add(payment)
+        db.commit()
+        db.refresh(payment)
+
+        # TODO: cuando se configure un gateway, reemplazar esta sección:
+        #   1. Llamar a la API del gateway con amount, currency, items, customer
+        #   2. Guardar gateway_payment_id y gateway_redirect_url en el registro
+        #   3. Retornar gateway_redirect_url para redirigir al usuario
+
+        return {
+            "payment_id":          str(payment.id),
+            "status":              payment.status,
+            "amount":              payment.amount,
+            "currency":            payment.currency,
+            "whatsapp_url":        payment.whatsapp_url,
+            "gateway_redirect_url": payment.gateway_redirect_url,  # null por ahora
+        }
+    finally:
+        db.close()
+
+@app.get("/public/payment/{payment_id}")
+@limiter.limit("30/minute")
+async def get_payment_status(payment_id: str, request: Request):
+    """Consulta el estado de un pago. Usado por la tienda después del redirect del gateway."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        try:
+            pid = uuid_lib.UUID(payment_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="payment_id inválido")
+        payment = db.query(models.Payment).filter(models.Payment.id == pid).first()
+        if not payment:
+            raise HTTPException(status_code=404, detail="Pago no encontrado")
+        return {"payment_id": str(payment.id), "status": payment.status, "amount": payment.amount}
+    finally:
+        db.close()
+
+@app.post("/public/payments/webhook")
+async def payment_webhook(request: Request):
+    """
+    Recibe notificaciones del gateway de pago.
+    TODO: implementar cuando se elija el proveedor:
+      1. Verificar firma/autenticidad del webhook
+      2. Actualizar payment.status según el evento
+      3. Si approved: crear Order en el sistema de pedidos
+    """
+    # Placeholder — responde 200 para no rechazar webhooks del gateway
+    body = await request.json()
+    print(f"[PAYMENT WEBHOOK] payload recibido: {body}")
+    return {"received": True}
+
+@app.get("/admin/payments")
+async def list_admin_payments(
+    request: Request,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1),
+):
+    """Lista los pagos recibidos por la tienda del tenant autenticado."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = user.owner_id or user.id
+        payments = (
+            db.query(models.Payment)
+            .filter(models.Payment.tenant_id == tenant_id)
+            .order_by(models.Payment.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+        return [_serialize_payment(p) for p in payments]
+    finally:
+        db.close()
+
+@app.get("/admin/payments/{payment_id}")
+async def get_admin_payment(payment_id: str, request: Request):
+    """Detalle de un pago específico."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = user.owner_id or user.id
+        try:
+            pid = uuid_lib.UUID(payment_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="payment_id inválido")
+        payment = db.query(models.Payment).filter(
+            models.Payment.id == pid,
+            models.Payment.tenant_id == tenant_id,
+        ).first()
+        if not payment:
+            raise HTTPException(status_code=404, detail="Pago no encontrado")
+        return _serialize_payment(payment)
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
+# TIENDAS HTML — sirve plantillas HTML nativas con bayup.js inyectado
+# ---------------------------------------------------------------------------
+
+_BAYUP_PREVIEW_SDK = """
+<script id="bayup-preview-sdk">
+(function(){
+  var TPLID='__TPLID__',TOK='__TOK__',BASE='__BASE__';
+  var params=new URLSearchParams(window.location.search);
+  var PID=params.get('product_id');
+  var STORE={name:'Mi Tienda Demo',phone:'573000000000'};
+  var PRODUCTS=[
+    {id:'1',name:'Vestido Elegante',price:189900,img:'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=500&fit=crop&auto=format'},
+    {id:'2',name:'Blusa Premium',price:89900,img:'https://images.unsplash.com/photo-1551803091-e20673f15770?w=400&h=500&fit=crop&auto=format'},
+    {id:'3',name:'Falda Minimalista',price:129900,img:'https://images.unsplash.com/photo-1594938298603-c8148c4b4a35?w=400&h=500&fit=crop&auto=format'},
+    {id:'4',name:'Blazer Moderno',price:249900,img:'https://images.unsplash.com/photo-1594226801341-41427b4e5c22?w=400&h=500&fit=crop&auto=format'},
+    {id:'5',name:'Pantalon Formal',price:149900,img:'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=400&h=500&fit=crop&auto=format'},
+    {id:'6',name:'Conjunto Casual',price:199900,img:'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?w=400&h=500&fit=crop&auto=format'}
+  ];
+  var CKEY='bayup_preview_cart';
+  function go(page,extra){
+    var u=BASE+'/super-admin/web-templates/'+TPLID+'/live-preview/'+page+'?token='+encodeURIComponent(TOK);
+    if(extra)u+='&'+extra;
+    window.location.href=u;
+  }
+  function fmt(n){return '$'+n.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g,'.');}
+  function getCart(){try{return JSON.parse(localStorage.getItem(CKEY)||'[]');}catch(e){return[];}}
+  function saveCart(c){localStorage.setItem(CKEY,JSON.stringify(c));}
+  function badge(){
+    var n=getCart().reduce(function(s,i){return s+i.qty;},0);
+    document.querySelectorAll('[data-bayup="cart-count"]').forEach(function(el){
+      el.textContent=n;el.style.display=n?'':'none';
+    });
+  }
+  function fillStore(){
+    document.querySelectorAll('[data-bayup="store-name"]').forEach(function(el){el.textContent=STORE.name;});
+    document.querySelectorAll('[data-bayup="store-phone"]').forEach(function(el){el.textContent='+57 300 000 0000';});
+  }
+  function fillGrid(){
+    var grid=document.querySelector('[data-bayup="product-grid"]');
+    var tmpl=document.querySelector('template[data-bayup="product-card-template"]');
+    if(!grid||!tmpl)return;
+    grid.innerHTML='';
+    PRODUCTS.forEach(function(p){
+      var c=tmpl.content.cloneNode(true);
+      var img=c.querySelector('[data-bayup-card="image"]');
+      var nm=c.querySelector('[data-bayup-card="name"]');
+      var pr=c.querySelector('[data-bayup-card="price"]');
+      var ab=c.querySelector('[data-bayup-action="add-to-cart"]');
+      var nb=c.querySelector('[data-bayup-action="nav-product"]');
+      if(img){img.src=p.img;img.alt=p.name;}
+      if(nm)nm.textContent=p.name;
+      if(pr)pr.textContent=fmt(p.price);
+      if(ab)ab.dataset.bayupProductId=p.id;
+      if(nb)nb.dataset.bayupProductId=p.id;
+      grid.appendChild(c);
+    });
+  }
+  function fillProduct(){
+    if(!PID)return;
+    var p=PRODUCTS.find(function(x){return x.id===PID;})||PRODUCTS[0];
+    document.querySelectorAll('[data-bayup="product-name"]').forEach(function(el){el.textContent=p.name;});
+    document.querySelectorAll('[data-bayup="product-price"]').forEach(function(el){el.textContent=fmt(p.price);});
+    document.querySelectorAll('[data-bayup="product-description"]').forEach(function(el){el.textContent='Descripcion de muestra para '+p.name+'.';});
+    document.querySelectorAll('img[data-bayup="product-image"]').forEach(function(el){el.src=p.img;el.alt=p.name;});
+    var ab=document.querySelector('[data-bayup-action="add-to-cart"]');
+    if(ab)ab.dataset.bayupProductId=p.id;
+  }
+  function fillCart(){
+    var tbody=document.querySelector('[data-bayup="cart-items"]');
+    var tmpl=document.querySelector('template[data-bayup="cart-row-template"]');
+    if(!tbody)return;
+    var cart=getCart();
+    tbody.innerHTML='';
+    if(!cart.length){
+      var r=document.createElement('tr');
+      r.innerHTML='<td colspan="4" style="text-align:center;padding:2rem;color:#9ca3af;">El carrito esta vacio</td>';
+      tbody.appendChild(r);
+    }else{
+      cart.forEach(function(item){
+        if(!tmpl)return;
+        var c=tmpl.content.cloneNode(true);
+        var fn=function(s,v){var e=c.querySelector('[data-bayup-row="'+s+'"]');if(e)e.textContent=v;};
+        fn('name',item.name);fn('price',fmt(item.price));fn('qty',item.qty);fn('subtotal',fmt(item.price*item.qty));
+        tbody.appendChild(c);
+      });
+    }
+    var total=cart.reduce(function(s,i){return s+i.price*i.qty;},0);
+    document.querySelectorAll('[data-bayup="cart-subtotal"],[data-bayup="cart-total"]').forEach(function(el){el.textContent=fmt(total);});
+  }
+  function bindActions(){
+    document.addEventListener('click',function(e){
+      var el=e.target.closest('[data-bayup-action]');
+      if(!el)return;
+      var a=el.dataset.bayupAction;
+      var MAP={
+        'nav-home':'home','nav-catalog':'catalog','nav-contact':'contact',
+        'nav-privacy':'privacy','nav-cart':'cart'
+      };
+      if(MAP[a]){e.preventDefault();go(MAP[a]);return;}
+      if(a==='nav-product'){
+        e.preventDefault();go('product','product_id='+(el.dataset.bayupProductId||'1'));return;
+      }
+      if(a==='add-to-cart'){
+        var pid=el.dataset.bayupProductId;
+        var p=PRODUCTS.find(function(x){return x.id===pid;})||PRODUCTS[0];
+        var cart=getCart();
+        var ex=cart.find(function(i){return i.id===p.id;});
+        if(ex)ex.qty++;else cart.push({id:p.id,name:p.name,price:p.price,qty:1});
+        saveCart(cart);badge();fillCart();
+        var orig=el.textContent;el.textContent='\\u2713 Agregado';
+        setTimeout(function(){el.textContent=orig;},1200);
+        return;
+      }
+      if(a==='checkout'){
+        e.preventDefault();
+        var cart=getCart();
+        if(!cart.length){alert('El carrito esta vacio (DEMO)');return;}
+        var msg='*Pedido Demo*\\n'+cart.map(function(i){return '- '+i.name+' x'+i.qty+' = '+fmt(i.price*i.qty);}).join('\\n');
+        window.open('https://wa.me/'+STORE.phone+'?text='+encodeURIComponent(msg),'_blank');
+      }
+    });
+  }
+  function init(){fillStore();fillGrid();fillProduct();fillCart();badge();bindActions();}
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
+  // Banner de modo demo
+  var bar=document.createElement('div');
+  bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#7c3aed;color:#fff;text-align:center;padding:6px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;';
+  bar.textContent='\\u25B6 MODO PREVIEW — datos de demostración';
+  document.body.prepend(bar);
+})();
+</script>
+"""
+
+_BAYUP_SDK = """
+<script id="bayup-sdk">
+(function(){
+  const SLUG = document.documentElement.dataset.bayupSlug || '';
+  const API  = document.documentElement.dataset.bayupApi  || '';
+  const PAGE = document.documentElement.dataset.bayupPage || 'home';
+
+  // --- Estado del carrito en localStorage ---
+  const CART_KEY = 'bayup_cart_' + SLUG;
+  function getCart(){ try{ return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); }catch(e){ return []; } }
+  function saveCart(c){ localStorage.setItem(CART_KEY, JSON.stringify(c)); }
+
+  function cartTotal(cart){ return cart.reduce(function(s,i){ return s + i.unit_price * i.qty; }, 0); }
+  function cartCount(cart){ return cart.reduce(function(s,i){ return s + i.qty; }, 0); }
+
+  function formatCOP(n){ return '$' + Math.round(n).toLocaleString('es-CO'); }
+
+  // --- Actualiza todos los elementos del DOM ---
+  function render(store, products){
+    // Nombre e info de tienda
+    document.querySelectorAll('[data-bayup="store-name"]').forEach(function(el){ el.textContent = store.full_name || store.name || SLUG; });
+    document.querySelectorAll('[data-bayup="store-phone"]').forEach(function(el){ el.textContent = store.phone || ''; });
+    document.querySelectorAll('img[data-bayup="store-logo"]').forEach(function(el){ if(store.logo_url) el.src = store.logo_url; });
+
+    // Página de detalle de producto
+    if(PAGE === 'product'){
+      var params = new URLSearchParams(window.location.search);
+      var productId = params.get('product_id');
+      if(productId && products.length){
+        var p = products.find(function(x){ return String(x.id) === String(productId); });
+        if(p){
+          document.querySelectorAll('[data-bayup="product-name"]').forEach(function(el){ el.textContent = p.name; });
+          document.querySelectorAll('[data-bayup="product-price"]').forEach(function(el){ el.textContent = formatCOP(p.price); });
+          document.querySelectorAll('[data-bayup="product-description"]').forEach(function(el){ el.textContent = p.description || ''; });
+          document.querySelectorAll('img[data-bayup="product-image"]').forEach(function(el){ if(p.image_url&&p.image_url[0]) el.src=p.image_url[0]; });
+          document.querySelectorAll('[data-bayup-action="add-to-cart"]').forEach(function(el){
+            el.dataset.bayupProductId=String(p.id);
+            el.dataset.bayupProductName=p.name;
+            el.dataset.bayupProductPrice=String(p.price);
+          });
+        }
+      }
+    }
+
+    // Grilla de productos
+    var grid = document.querySelector('[data-bayup="product-grid"]');
+    var cardTpl = document.querySelector('template[data-bayup="product-card-template"]');
+    if(grid && cardTpl && products.length){
+      grid.innerHTML = '';
+      products.forEach(function(p){
+        var clone = cardTpl.content.cloneNode(true);
+        clone.querySelectorAll('[data-bayup-card="name"]').forEach(function(el){ el.textContent = p.name; });
+        clone.querySelectorAll('[data-bayup-card="price"]').forEach(function(el){ el.textContent = formatCOP(p.price); });
+        clone.querySelectorAll('img[data-bayup-card="image"]').forEach(function(el){ if(p.image_url&&p.image_url[0]) el.src=p.image_url[0]; });
+        clone.querySelectorAll('[data-bayup-action="add-to-cart"]').forEach(function(el){ el.dataset.bayupProductId=String(p.id); el.dataset.bayupProductName=p.name; el.dataset.bayupProductPrice=String(p.price); });
+        clone.querySelectorAll('[data-bayup-action="nav-product"]').forEach(function(el){ el.dataset.bayupProductId=String(p.id); });
+        grid.appendChild(clone);
+      });
+    }
+
+    renderCart();
+  }
+
+  function renderCart(){
+    var cart = getCart();
+    var count = cartCount(cart);
+    document.querySelectorAll('[data-bayup="cart-count"]').forEach(function(el){
+      el.textContent = count || '';
+      el.style.display = count ? '' : 'none';
+    });
+    document.querySelectorAll('[data-bayup="cart-total"]').forEach(function(el){ el.textContent = formatCOP(cartTotal(cart)); });
+    document.querySelectorAll('[data-bayup="cart-subtotal"]').forEach(function(el){ el.textContent = formatCOP(cartTotal(cart)); });
+    var cartList = document.querySelector('[data-bayup="cart-items"]');
+    var cartRowTpl = document.querySelector('template[data-bayup="cart-row-template"]');
+    if(cartList){
+      cartList.innerHTML = '';
+      if(!cart.length){
+        var empty = document.createElement('tr');
+        empty.innerHTML = '<td colspan="5" class="py-12 text-center text-slate-400">Tu carrito está vacío</td>';
+        cartList.appendChild(empty);
+      } else {
+        cart.forEach(function(item){
+          if(cartRowTpl){
+            var clone = cartRowTpl.content.cloneNode(true);
+            clone.querySelectorAll('[data-bayup-row="name"]').forEach(function(el){ el.textContent = item.name; });
+            clone.querySelectorAll('[data-bayup-row="price"]').forEach(function(el){ el.textContent = formatCOP(item.unit_price); });
+            clone.querySelectorAll('[data-bayup-row="subtotal"]').forEach(function(el){ el.textContent = formatCOP(item.unit_price * item.qty); });
+            clone.querySelectorAll('[data-bayup-row="qty"]').forEach(function(el){ el.textContent = String(item.qty); });
+            cartList.appendChild(clone);
+          } else {
+            var li = document.createElement('div');
+            li.className = 'bayup-cart-item';
+            li.innerHTML = '<span>' + item.name + ' x' + item.qty + '</span><span>' + formatCOP(item.unit_price * item.qty) + '</span>';
+            cartList.appendChild(li);
+          }
+        });
+      }
+    }
+  }
+
+  // --- Acciones globales (delegación de eventos) ---
+  document.addEventListener('click', function(e){
+    var el = e.target.closest('[data-bayup-action]');
+    if(!el) return;
+    var action = el.dataset.bayupAction;
+
+    if(action === 'add-to-cart'){
+      var cart = getCart();
+      var id = el.dataset.bayupProductId;
+      var existing = cart.find(function(i){ return i.product_id === id; });
+      if(existing){ existing.qty += 1; }
+      else{ cart.push({ product_id:id, name:el.dataset.bayupProductName, unit_price:Number(el.dataset.bayupProductPrice), qty:1 }); }
+      saveCart(cart);
+      renderCart();
+      el.textContent = '✓ Añadido';
+      setTimeout(function(){ el.textContent = 'Agregar'; }, 1200);
+    }
+
+    if(action === 'checkout'){
+      var cart = getCart();
+      if(!cart.length){ alert('Tu carrito está vacío'); return; }
+      var phone = document.documentElement.dataset.bayupPhone || '';
+      var lines  = ['*Nuevo pedido*',''];
+      cart.forEach(function(i){ lines.push('• ' + i.name + ' ×' + i.qty + '  → ' + formatCOP(i.unit_price * i.qty)); });
+      lines.push('','*Total: ' + formatCOP(cartTotal(cart)) + ' COP*');
+      var text  = encodeURIComponent(lines.join('\\n'));
+      var clean = phone.replace(/[^0-9]/g,'');
+      window.open('https://wa.me/' + clean + '?text=' + text, '_blank');
+    }
+
+    if(action === 'nav-home')    window.location.href = '/html-shop/' + SLUG + '/home';
+    if(action === 'nav-catalog') window.location.href = '/html-shop/' + SLUG + '/catalog';
+    if(action === 'nav-cart')    window.location.href = '/html-shop/' + SLUG + '/cart';
+    if(action === 'nav-contact') window.location.href = '/html-shop/' + SLUG + '/contact';
+    if(action === 'nav-privacy') window.location.href = '/html-shop/' + SLUG + '/privacy';
+    if(action === 'nav-product') window.location.href = '/html-shop/' + SLUG + '/product?product_id=' + (el.dataset.bayupProductId||'');
+  });
+
+  // --- Bootstrap: carga datos de la tienda y productos ---
+  async function init(){
+    try{
+      var [storeRes, productsRes] = await Promise.all([
+        fetch(API + '/public/shop-info/' + SLUG),
+        fetch(API + '/public/shop/' + SLUG + '/products?limit=100'),
+      ]);
+      var store    = storeRes.ok    ? await storeRes.json()    : {};
+      var products = productsRes.ok ? await productsRes.json() : [];
+      render(store, Array.isArray(products) ? products : []);
+    } catch(err){
+      console.warn('[Bayup SDK] Error cargando datos:', err);
+    }
+  }
+
+  if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); }
+  else { init(); }
+})();
+</script>
+"""
+
+def _inject_sdk(html: str, slug: str, page_key: str, phone: str, api_url: str) -> str:
+    """Inyecta bayup.js y los data attributes necesarios en el <html> y <head>."""
+    sdk_attrs = (
+        f' data-bayup-slug="{slug}"'
+        f' data-bayup-page="{page_key}"'
+        f' data-bayup-api="{api_url}"'
+        f' data-bayup-phone="{phone}"'
+    )
+    # Agrega atributos al <html>
+    import re
+    html = re.sub(r'<html([^>]*?)>', f'<html\\1{sdk_attrs}>', html, count=1, flags=re.IGNORECASE)
+    # Inyecta el SDK justo antes de </body>
+    html = re.sub(r'</body>', _BAYUP_SDK + '\n</body>', html, count=1, flags=re.IGNORECASE)
+    return html
+
+
+@app.get("/html-shop/{slug}", response_class=HTMLResponse)
+@app.get("/html-shop/{slug}/{page_key}", response_class=HTMLResponse)
+@limiter.limit("30/minute")
+async def serve_html_shop(request: Request, slug: str, page_key: str = "home"):
+    """Sirve la tienda HTML con bayup.js inyectado."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        tenant = db.query(models.User).filter(
+            models.User.shop_slug == slug,
+            models.User.status == "Activo",
+        ).first()
+        if not tenant:
+            return HTMLResponse("<h1>Tienda no encontrada</h1>", status_code=404)
+
+        # Busca la plantilla HTML activa instalada en la tienda
+        shop_page = db.query(models.ShopPage).filter(
+            models.ShopPage.tenant_id == tenant.id,
+            models.ShopPage.is_published == True,
+        ).first()
+        template_id = shop_page.template_id if shop_page else None
+
+        html_template = None
+        if template_id:
+            import uuid as _uuid
+            try:
+                tid = _uuid.UUID(template_id)
+                html_template = db.query(models.WebTemplate).filter(
+                    models.WebTemplate.id == tid,
+                    models.WebTemplate.template_type == "html",
+                ).first()
+            except (ValueError, Exception):
+                pass
+
+        if not html_template or not html_template.html_pages:
+            return HTMLResponse("<h1>Esta tienda no tiene una plantilla HTML configurada.</h1>", status_code=404)
+
+        pages = html_template.html_pages or {}
+        # Fallback: home si la página pedida no existe
+        html_content = pages.get(page_key) or pages.get("home") or ""
+        if not html_content:
+            return HTMLResponse("<h1>Página no encontrada</h1>", status_code=404)
+
+        api_url = os.getenv("SITE_URL", "https://bayup.com.co").rstrip("/")
+        api_url = os.getenv("NEXT_PUBLIC_API_URL", api_url)
+        backend_url = os.getenv("BACKEND_URL", "https://api-bayup.onrender.com")
+
+        html_out = _inject_sdk(
+            html_content,
+            slug=slug,
+            page_key=page_key,
+            phone=tenant.phone or "",
+            api_url=backend_url,
+        )
+        return HTMLResponse(content=html_out, status_code=200)
+    finally:
+        db.close()
+
+
+@app.get("/public/shop-info/{slug}")
+@limiter.limit("60/minute")
+async def get_public_shop_info(request: Request, slug: str):
+    """Info pública de una tienda (nombre, logo, teléfono, categoría)."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        tenant = db.query(models.User).filter(
+            models.User.shop_slug == slug,
+            models.User.status == "Activo",
+        ).first()
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tienda no encontrada")
+        return {
+            "name": tenant.full_name,
+            "slug": tenant.shop_slug,
+            "logo_url": tenant.logo_url,
+            "phone": tenant.phone,
+            "category": tenant.category,
+            "story": tenant.story,
+            "social_links": tenant.social_links or {},
+        }
+    finally:
+        db.close()
+
+
+@app.get("/public/shop/{slug}/products")
+@limiter.limit("60/minute")
+async def get_public_shop_products(
+    request: Request,
+    slug: str,
+    limit: int = Query(default=100, ge=1),
+    skip: int = Query(default=0, ge=0),
+):
+    """Catálogo público de productos de una tienda."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        tenant = db.query(models.User).filter(
+            models.User.shop_slug == slug,
+            models.User.status == "Activo",
+        ).first()
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tienda no encontrada")
+        products = (
+            db.query(models.Product)
+            .filter(models.Product.owner_id == tenant.id, models.Product.status == "active")
+            .offset(skip).limit(limit).all()
+        )
+        return [
+            {
+                "id": str(p.id),
+                "name": p.name,
+                "price": p.price,
+                "description": p.description,
+                "image_url": p.image_url or [],
+                "category": p.category,
+                "sku": p.sku,
+            }
+            for p in products
+        ]
     finally:
         db.close()

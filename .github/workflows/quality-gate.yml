@@ -1,0 +1,152 @@
+name: Quality Gate
+
+on:
+  push:
+    branches: [development]
+  pull_request:
+    branches: [development]
+
+jobs:
+  # ── 1. Typecheck TypeScript ──────────────────────────────────────────────
+  typecheck-frontend:
+    name: TypeScript typecheck (frontend)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    outputs:
+      tsc_outcome: ${{ steps.tsc.outcome }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # continue-on-error: true porque hay 7 errores de tipos preexistentes conocidos
+      # (no relacionados con cambios recientes). Se reporta el resultado en el comentario
+      # del PR pero NO bloquea el merge.
+      - name: TypeScript typecheck
+        id: tsc
+        run: npx tsc --noEmit -p tsconfig.json
+        continue-on-error: true
+
+  # ── 2. Python syntax check (backend) ────────────────────────────────────
+  syntax-backend:
+    name: Python syntax check (backend)
+    runs-on: ubuntu-latest
+    outputs:
+      py_outcome: ${{ steps.pycheck.outcome }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@0b93645e9fea7318ecaed2de359a6d35dfe2c04e  # v5.3.0
+        with:
+          python-version: "3.11"
+
+      - name: Check Python syntax
+        id: pycheck
+        run: |
+          python -c "
+          import ast, sys
+          files = [
+              'backend/main.py',
+              'backend/crud.py',
+              'backend/models.py',
+              'backend/security.py',
+          ]
+          errors = []
+          for f in files:
+              try:
+                  ast.parse(open(f, encoding='utf-8').read())
+                  print(f'OK  {f}')
+              except SyntaxError as e:
+                  errors.append(f'FAIL {f}: {e}')
+                  print(f'FAIL {f}: {e}', file=sys.stderr)
+          if errors:
+              sys.exit(1)
+          print('All files passed syntax check.')
+          "
+
+  # ── 3. PR comment con resumen ────────────────────────────────────────────
+  pr-comment:
+    name: Post PR summary comment
+    runs-on: ubuntu-latest
+    needs: [typecheck-frontend, syntax-backend]
+    # Solo en Pull Requests (no en push directo a development)
+    if: github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Build summary comment
+        id: build_summary
+        run: |
+          TSC="${{ needs.typecheck-frontend.outputs.tsc_outcome }}"
+          PY="${{ needs.syntax-backend.outputs.py_outcome }}"
+
+          tsc_icon="✅"
+          tsc_msg="Sin errores nuevos"
+          if [ "$TSC" = "failure" ]; then
+            tsc_icon="⚠️"
+            tsc_msg="Hay errores de tipos (puede incluir deuda preexistente — revisar el log)"
+          fi
+
+          py_icon="✅"
+          py_msg="Sintaxis válida"
+          if [ "$PY" = "failure" ]; then
+            py_icon="❌"
+            py_msg="Error de sintaxis Python — bloquea el despliegue"
+          fi
+
+          cat <<EOF > /tmp/comment.md
+          ## Resumen de Quality Gate
+
+          | Check | Estado | Detalle |
+          |-------|--------|---------|
+          | TypeScript typecheck | $tsc_icon | $tsc_msg |
+          | Python syntax (backend) | $py_icon | $py_msg |
+
+          > **Nota:** el typecheck de TS usa \`continue-on-error\` — los errores de tipos no bloquean el merge pero deben revisarse.
+          > El check de sintaxis Python SÍ bloquea si falla.
+          EOF
+
+          echo "comment_path=/tmp/comment.md" >> $GITHUB_OUTPUT
+
+      - name: Post comment on PR
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('/tmp/comment.md', 'utf8');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            // Actualiza el comentario si ya existe, para no hacer spam
+            const existing = comments.find(c =>
+              c.user.login === 'github-actions[bot]' &&
+              c.body.includes('Resumen de Quality Gate')
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
