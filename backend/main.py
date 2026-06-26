@@ -237,6 +237,11 @@ def register(request: Request, payload: RegisterRequest):
         )
         user = crud.create_user(db, user=user_in)
         _trigger_email_confirmation(payload.email, payload.password)
+        try:
+            import email_service as _es
+            _es.send_welcome_email(user.email, user.full_name or payload.email.split("@")[0], confirmed=False)
+        except Exception:
+            pass
         return {"id": str(user.id), "email": user.email, "email_confirmation_sent": True}
     finally:
         db.close()
@@ -326,6 +331,11 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
             user = crud.create_user(db, user=user_in)
             db.commit()
             db.refresh(user)
+            try:
+                import email_service as _es
+                _es.send_welcome_email(user.email, full_name, confirmed=True)
+            except Exception:
+                pass
         if getattr(user, "status", "Activo") != "Activo":
             raise HTTPException(status_code=403, detail="Cuenta suspendida")
         jwt_token = sec_mod.create_access_token(data={"sub": user.email})
@@ -705,6 +715,16 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
             ],
         )
         db_order = crud.create_order(db, order=order_in, customer_id=None, tenant_id=tenant_uuid)
+        if payload.customer_email:
+            try:
+                import email_service as _es, threading
+                threading.Thread(
+                    target=_es.send_order_confirmation,
+                    args=(payload.customer_email, payload.customer_name, str(db_order.id)),
+                    daemon=True,
+                ).start()
+            except Exception:
+                pass
         return schemas.Order.model_validate(db_order).model_dump(mode="json")
     except ValueError:
         raise HTTPException(status_code=400, detail="product_variant_id inválido")
@@ -1066,6 +1086,12 @@ async def create_admin_staff(payload: StaffCreateRequest, request: Request):
         db.add(new_staff)
         db.commit()
         _log_staff_activity(db, models, tenant_id, user, "CREATE_USER", f"Invitó a {payload.full_name} ({payload.email}) como {payload.role}", target_id=str(new_staff.id))
+        try:
+            import email_service as _es
+            inviter_name = getattr(user, "full_name", None) or user.email
+            _es.send_staff_invitation(payload.email, payload.full_name, inviter_name)
+        except Exception:
+            pass
         return _serialize_staff_member(new_staff)
     finally:
         db.close()
