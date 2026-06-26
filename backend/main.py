@@ -2145,6 +2145,50 @@ async def get_web_templates(request: Request, response: Response):
     finally:
         db.close()
 
+@app.get("/web-templates/{template_id}/preview/{page_key}", response_class=HTMLResponse)
+async def public_preview_template_page(template_id: str, page_key: str, request: Request, token: str = Query(None)):
+    """Preview navegable de plantilla HTML para cualquier usuario autenticado."""
+    import models, uuid as uuid_lib, security as sec_mod
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        if token:
+            try:
+                user = await sec_mod.get_current_user(token=token, db=db)
+            except Exception:
+                raise HTTPException(status_code=401, detail="Token inválido o expirado")
+        else:
+            user = await _authenticate(request, db)
+        try:
+            target_uuid = uuid_lib.UUID(template_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="template_id inválido")
+        template = db.query(models.WebTemplate).filter(
+            models.WebTemplate.id == target_uuid,
+            models.WebTemplate.is_active == True,
+        ).first()
+        if not template or getattr(template, "template_type", "schema") != "html":
+            raise HTTPException(status_code=404, detail="Plantilla HTML no encontrada")
+        html_pages = getattr(template, "html_pages", None) or {}
+        html = html_pages.get(page_key) or html_pages.get("home")
+        if not html:
+            raise HTTPException(status_code=404, detail=f"Página '{page_key}' no encontrada")
+        base_url = str(request.base_url).rstrip("/")
+        tok = token or ""
+        preview_sdk = _BAYUP_PREVIEW_SDK \
+            .replace("__TPLID__", template_id) \
+            .replace("__TOK__", tok) \
+            .replace("__BASE__", base_url) \
+            .replace("/super-admin/web-templates/", "/web-templates/") \
+            .replace("/live-preview/", "/preview/")
+        if "</head>" in html:
+            html = html.replace("</head>", preview_sdk + "</head>", 1)
+        else:
+            html = preview_sdk + html
+        return HTMLResponse(content=html)
+    finally:
+        db.close()
+
 def _serialize_shop_page(p):
     return {
         "id": str(p.id),
