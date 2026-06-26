@@ -2,14 +2,14 @@ services:
   - type: web
     name: bayup-backend
     env: python
-    plan: free
+    plan: starter          # $7/mes — siempre activo, sin cold start, 0.5 CPU / 512MB
     buildCommand: pip install -r backend/requirements.txt
     startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port 10000 --workers 2
     envVars:
       - key: PORT
         value: 10000
       - key: DATABASE_URL
-        sync: false # Aquí pondrás la URL de Supabase en el dashboard de Render
+        sync: false        # Usar la URL del Transaction Pooler de Supabase (puerto 6543)
       - key: SECRET_KEY
         generateValue: true
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
