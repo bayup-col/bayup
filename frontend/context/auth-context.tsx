@@ -178,6 +178,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('userAddress', address);
     localStorage.setItem('onboardingCompleted', onboardingDone ? 'true' : 'false');
     if (plan) localStorage.setItem('userPlan', JSON.stringify(plan));
+    // sessionStorage no se borra con localStorage.clear() — bandera segura para logout
+    if (isGlobal) sessionStorage.setItem('isSuperAdminSession', 'true');
+    else sessionStorage.removeItem('isSuperAdminSession');
 
     if (logo) {
       setUserLogo(logo);
@@ -228,7 +231,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    const wasStaff = localStorage.getItem('isGlobalStaff') === 'true';
+    const wasStaff = sessionStorage.getItem('isSuperAdminSession') === 'true'
+                     || localStorage.getItem('isGlobalStaff') === 'true';
     setToken(null);
     setUserEmail(null);
     setUserName(null);
@@ -241,6 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setShopSlug(null);
     setIsGlobalStaff(false);
     setOnboardingCompleted(false);
+    sessionStorage.removeItem('isSuperAdminSession');
     localStorage.clear();
     router.push(wasStaff ? '/bayup-family' : '/login');
   }, [router]);
