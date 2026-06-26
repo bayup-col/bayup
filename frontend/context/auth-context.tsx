@@ -228,7 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    const wasStaff = isGlobalStaff;
+    const wasStaff = localStorage.getItem('isGlobalStaff') === 'true';
     setToken(null);
     setUserEmail(null);
     setUserName(null);
@@ -243,7 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setOnboardingCompleted(false);
     localStorage.clear();
     router.push(wasStaff ? '/bayup-family' : '/login');
-  }, [router, isGlobalStaff]);
+  }, [router]);
 
   const isAuthenticated = !!token;
 
