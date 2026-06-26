@@ -247,8 +247,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setOnboardingCompleted(false);
     sessionStorage.removeItem('isSuperAdminSession');
     localStorage.clear();
-    router.push(wasStaff ? '/bayup-family' : '/login');
-  }, [router]);
+    // Hard redirect: evita que el useEffect de DashboardLayout (isAuthenticated → /login)
+    // sobreescriba la navegación hacia /bayup-family con un router.replace posterior.
+    window.location.href = wasStaff ? '/bayup-family' : '/login';
+  }, []);
 
   const isAuthenticated = !!token;
 
