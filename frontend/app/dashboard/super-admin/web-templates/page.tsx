@@ -87,31 +87,44 @@ export default function WebTemplatesPage() {
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('Todos');
   const [filterType, setFilterType] = useState<'todos' | 'free' | 'premium'>('todos');
+  const [filterActive, setFilterActive] = useState<'todas' | 'activas' | 'inactivas'>('todas');
   const [selected, setSelected] = useState<Template | null>(null);
   const [drawerBlobUrl, setDrawerBlobUrl] = useState<string | null>(null);
+  const [drawerPreviewLoading, setDrawerPreviewLoading] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'toggle' | 'delete' | null>(null);
   const [showNew, setShowNew] = useState(false);
 
   const closeDrawer = useCallback(() => {
     setSelected(null);
-    if (drawerBlobUrl) { URL.revokeObjectURL(drawerBlobUrl); setDrawerBlobUrl(null); }
-  }, [drawerBlobUrl]);
+    setConfirmAction(null);
+    setDrawerBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+  }, []);
 
   useEffect(() => {
+    setConfirmAction(null);
     if (!selected || selected.template_type !== 'html') {
       setDrawerBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+      setDrawerPreviewLoading(false);
       return;
     }
     let cancelled = false;
+    setDrawerPreviewLoading(true);
     (async () => {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const res = await fetch(`${base}/super-admin/web-templates/${selected.id}/preview/home`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok || cancelled) return;
-      const html = await res.text();
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      if (!cancelled) setDrawerBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
+      try {
+        const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${base}/super-admin/web-templates/${selected.id}/preview/home`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (cancelled) return;
+        if (res.ok) {
+          const html = await res.text();
+          const blob = new Blob([html], { type: 'text/html' });
+          const url = URL.createObjectURL(blob);
+          if (!cancelled) setDrawerBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
+        }
+      } finally {
+        if (!cancelled) setDrawerPreviewLoading(false);
+      }
     })();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -154,11 +167,13 @@ export default function WebTemplatesPage() {
     const q = search.toLowerCase();
     return (!q || t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q))
       && (filterCat === 'Todos' || t.category === filterCat)
-      && (filterType === 'todos' || (filterType === 'premium' ? t.isPremium : !t.isPremium));
-  }), [templates, search, filterCat, filterType]);
+      && (filterType === 'todos' || (filterType === 'premium' ? t.isPremium : !t.isPremium))
+      && (filterActive === 'todas' || (filterActive === 'activas' ? t.isActive : !t.isActive));
+  }), [templates, search, filterCat, filterType, filterActive]);
 
   const toggleActive = async (t: Template) => {
     if (!token) return;
+    setConfirmAction(null);
     try {
       const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const res = await fetch(`${base}/super-admin/web-templates/${t.id}/toggle`, {
@@ -166,8 +181,8 @@ export default function WebTemplatesPage() {
       });
       if (res.ok) {
         const upd = await res.json();
-        setTemplates(p => p.map(x => x.id === t.id ? upd : x));
-        setSelected(s => s?.id === t.id ? upd : s);
+        setTemplates(p => p.map(x => x.id === t.id ? { ...x, isActive: upd.isActive } : x));
+        setSelected(s => s?.id === t.id ? { ...s, isActive: upd.isActive } : s);
         showToast(upd.isActive ? 'Plantilla activada' : 'Plantilla desactivada', 'success');
       }
     } catch { showToast('No se pudo actualizar la plantilla', 'error'); }
@@ -175,12 +190,19 @@ export default function WebTemplatesPage() {
 
   const del = async (t: Template) => {
     if (!token) return;
+    setConfirmAction(null);
     try {
       const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const res = await fetch(`${base}/super-admin/web-templates/${t.id}`, {
         method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) { setTemplates(p => p.filter(x => x.id !== t.id)); setSelected(null); showToast('Plantilla eliminada', 'success'); }
+      if (res.ok) {
+        setTemplates(p => p.filter(x => x.id !== t.id));
+        closeDrawer();
+        showToast('Plantilla eliminada', 'success');
+      } else {
+        showToast('No se pudo eliminar la plantilla', 'error');
+      }
     } catch { showToast('No se pudo eliminar la plantilla', 'error'); }
   };
 
@@ -303,6 +325,14 @@ export default function WebTemplatesPage() {
             </button>
           ))}
         </div>
+        <div className="flex gap-1.5">
+          {([['todas', 'Todas'], ['activas', 'Activas'], ['inactivas', 'Inactivas']] as const).map(([v, l]) => (
+            <button key={v} onClick={() => setFilterActive(v)}
+              className={`h-8 px-3 rounded-lg text-[9px] font-bold transition-all ${filterActive === v ? 'bg-emerald-500/12 text-emerald-400 border border-emerald-500/20' : 'text-white/25 hover:text-white/50'}`}>
+              {l}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Grid */}
@@ -371,15 +401,26 @@ export default function WebTemplatesPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-                {selected.template_type === 'html' && drawerBlobUrl ? (
-                  <div className="relative w-full h-40 rounded-xl overflow-hidden border border-[#7c3aed]/20 bg-black">
-                    <iframe
-                      src={drawerBlobUrl}
-                      title="preview"
-                      sandbox="allow-scripts allow-same-origin"
-                      className="absolute top-0 left-0 border-none pointer-events-none"
-                      style={{ width: '1280px', height: '800px', transform: 'scale(0.265)', transformOrigin: 'top left' }}
-                    />
+                {selected.template_type === 'html' ? (
+                  <div className="relative w-full h-40 rounded-xl overflow-hidden border border-[#7c3aed]/20 bg-black flex items-center justify-center">
+                    {drawerBlobUrl ? (
+                      <iframe
+                        src={drawerBlobUrl}
+                        title="preview"
+                        sandbox="allow-scripts allow-same-origin"
+                        className="absolute top-0 left-0 border-none pointer-events-none"
+                        style={{ width: '1280px', height: '800px', transform: 'scale(0.265)', transformOrigin: 'top left' }}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-white/20">
+                        {drawerPreviewLoading ? (
+                          <RefreshCw size={16} className="animate-spin" />
+                        ) : (
+                          <Code2 size={20} />
+                        )}
+                        <span className="text-[9px]">{drawerPreviewLoading ? 'Cargando…' : 'Sin preview'}</span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <TemplateMock color={selected.color} name={selected.name} previewUrl={selected.preview_url} templateType={selected.template_type} />
@@ -429,20 +470,57 @@ export default function WebTemplatesPage() {
               </div>
 
               <div className="px-6 pb-6 pt-4 border-t border-white/5 space-y-2 shrink-0">
-                {selected.template_type === 'html' && drawerBlobUrl && (
-                  <button onClick={() => window.open(drawerBlobUrl, '_blank')}
-                    className="w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-[#7c3aed]/20 text-[#7c3aed]/60 hover:bg-[#7c3aed]/8 hover:text-[#7c3aed]">
-                    <Eye size={12} /> Previsualizar en nueva pestaña
+                {selected.template_type === 'html' && (
+                  <button
+                    onClick={() => drawerBlobUrl && window.open(drawerBlobUrl, '_blank')}
+                    disabled={drawerPreviewLoading || !drawerBlobUrl}
+                    className="w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-[#7c3aed]/20 text-[#7c3aed]/60 hover:bg-[#7c3aed]/8 hover:text-[#7c3aed] disabled:opacity-30 disabled:cursor-not-allowed">
+                    <Eye size={12} /> {drawerPreviewLoading ? 'Cargando preview…' : 'Previsualizar en nueva pestaña'}
                   </button>
                 )}
-                <button onClick={() => toggleActive(selected)}
-                  className={`w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${selected.isActive ? 'border-red-500/15 text-red-400/50 hover:bg-red-500/6 hover:text-red-400' : 'border-emerald-500/15 text-emerald-400/50 hover:bg-emerald-500/6 hover:text-emerald-400'}`}>
-                  {selected.isActive ? 'Desactivar' : 'Activar plantilla'}
-                </button>
-                <button onClick={() => del(selected)}
-                  className="w-full h-8 rounded-xl text-white/15 hover:text-red-400/50 text-[9px] font-bold flex items-center justify-center gap-1.5 transition-all">
-                  <Trash2 size={10} /> Eliminar
-                </button>
+
+                {confirmAction === 'toggle' ? (
+                  <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3 space-y-2">
+                    <p className="text-[10px] text-amber-400/80 text-center">
+                      ¿{selected.isActive ? 'Desactivar' : 'Activar'} esta plantilla?
+                    </p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setConfirmAction(null)}
+                        className="flex-1 h-8 rounded-xl border border-white/8 text-white/30 text-[9px] font-bold hover:text-white/60 transition-all">
+                        Cancelar
+                      </button>
+                      <button onClick={() => toggleActive(selected)}
+                        className={`flex-1 h-8 rounded-xl text-[9px] font-black transition-all ${selected.isActive ? 'bg-red-500/15 text-red-400 hover:bg-red-500/25' : 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25'}`}>
+                        Sí, {selected.isActive ? 'desactivar' : 'activar'}
+                      </button>
+                    </div>
+                  </div>
+                ) : confirmAction === 'delete' ? (
+                  <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-3 space-y-2">
+                    <p className="text-[10px] text-red-400/80 text-center">¿Eliminar &ldquo;{selected.name}&rdquo; permanentemente?</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setConfirmAction(null)}
+                        className="flex-1 h-8 rounded-xl border border-white/8 text-white/30 text-[9px] font-bold hover:text-white/60 transition-all">
+                        Cancelar
+                      </button>
+                      <button onClick={() => del(selected)}
+                        className="flex-1 h-8 rounded-xl bg-red-500/15 text-red-400 hover:bg-red-500/25 text-[9px] font-black transition-all">
+                        Sí, eliminar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <button onClick={() => setConfirmAction('toggle')}
+                      className={`w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${selected.isActive ? 'border-red-500/15 text-red-400/50 hover:bg-red-500/6 hover:text-red-400' : 'border-emerald-500/15 text-emerald-400/50 hover:bg-emerald-500/6 hover:text-emerald-400'}`}>
+                      {selected.isActive ? 'Desactivar' : 'Activar plantilla'}
+                    </button>
+                    <button onClick={() => setConfirmAction('delete')}
+                      className="w-full h-8 rounded-xl text-white/15 hover:text-red-400/50 text-[9px] font-bold flex items-center justify-center gap-1.5 transition-all">
+                      <Trash2 size={10} /> Eliminar
+                    </button>
+                  </>
+                )}
               </div>
             </motion.div>
           </>
