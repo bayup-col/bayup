@@ -16,6 +16,20 @@ const CATEGORIES = [
   'Mascotas', 'Deportes', 'Alimentos', 'Joyería', 'Arte & Diseño',
 ];
 
+// Menú estándar de cualquier e-commerce. Las plantillas traen categorías de
+// muestra (Mujer/Hombre/Niños/Ofertas) que no aplican a todos los rubros —
+// se normalizan aquí, una sola vez al cargar las plantillas, para que tanto
+// el editor de onboarding como la tienda publicada usen siempre estos items.
+const STANDARD_MENU_ITEMS = ['Inicio', 'Colecciones', 'Productos', 'Nosotros'];
+
+const withStandardMenu = (tpl: WebTemplate): WebTemplate => {
+  if (!tpl.schema_data?.header?.elements) return tpl;
+  const schema_data = JSON.parse(JSON.stringify(tpl.schema_data));
+  const navbarEl = (schema_data.header.elements || []).find((el: any) => el.type === 'navbar');
+  if (navbarEl) navbarEl.props = { ...navbarEl.props, menuItems: STANDARD_MENU_ITEMS };
+  return { ...tpl, schema_data };
+};
+
 const STEPS = ['Plantilla', 'Tu tienda', 'Tu primer producto'];
 
 interface WebTemplate {
@@ -94,7 +108,7 @@ export default function OnboardingPage() {
     if (!token) return;
     fetch(`${apiBase}/web-templates`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.ok ? res.json() : [])
-      .then(data => setTemplates(Array.isArray(data) ? data : []))
+      .then(data => setTemplates(Array.isArray(data) ? data.map(withStandardMenu) : []))
       .catch(() => setTemplates([]))
       .finally(() => setTemplatesLoading(false));
   }, [token, apiBase]);

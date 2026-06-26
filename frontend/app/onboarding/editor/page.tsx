@@ -6,20 +6,34 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Check, Loader2, Image as ImageIcon, Type, LayoutTemplate, ShoppingBag,
   Menu as MenuIcon, Palette, Plus, Trash2, Monitor, Smartphone, Sparkles, ChevronDown, Tag, Eye, EyeOff,
-  ChevronsLeft, ChevronsRight, GripVertical
+  ChevronsLeft, ChevronsRight, GripVertical, PanelBottom, MoveVertical, MoveHorizontal
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
-import { SmartNavbar, SmartHero, SmartProductGrid } from '@/components/dashboard/studio/HighFidelityBlocks';
+import { SmartNavbar, SmartHero, SmartProductGrid, SmartFooter, SmartContactForm, SmartProductDetail, SmartHeritageBlock, EditorPreviewNavProvider, EXTRA_ICON_OPTIONS } from '@/components/dashboard/studio/HighFidelityBlocks';
+import { buildDefaultBodyElements } from '@/lib/default-page-schemas';
 
-type TabKey = 'marca' | 'menu' | 'estilo' | 'banner' | 'productos';
+type TabKey = 'marca' | 'menu' | 'estilo-superior' | 'estilo' | 'banner' | 'productos' | 'footer' | 'estilo-final';
 
 const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: 'marca', label: 'Marca y logo', icon: ImageIcon },
   { key: 'menu', label: 'Menú', icon: MenuIcon },
+  { key: 'estilo-superior', label: 'Estilo del menú', icon: Palette },
   { key: 'estilo', label: 'Estilo visual', icon: Palette },
   { key: 'banner', label: 'Banners', icon: LayoutTemplate },
   { key: 'productos', label: 'Productos', icon: ShoppingBag },
+  { key: 'footer', label: 'Pie de página', icon: PanelBottom },
+  { key: 'estilo-final', label: 'Estilo del pie', icon: Palette },
+];
+
+// La página se edita en 3 bloques que reflejan dónde aparece cada cosa en
+// la tienda publicada: arriba del todo (navbar), el cuerpo (todo lo demás)
+// y el cierre (footer). Cada bloque tiene su PROPIO color/tipografía/tamaño,
+// independiente de los otros dos — así el menú puede ser negro y el pie azul.
+const TAB_GROUPS: { group: string; desc: string; keys: TabKey[] }[] = [
+  { group: 'Superior', desc: 'El menú de navegación', keys: ['marca', 'menu', 'estilo-superior'] },
+  { group: 'Centro', desc: 'Estilo, banners y productos', keys: ['estilo', 'banner', 'productos'] },
+  { group: 'Final', desc: 'El pie de página', keys: ['footer', 'estilo-final'] },
 ];
 
 // Tipografías reales ya cargadas en toda la app (next/font, ver app/layout.tsx)
@@ -35,6 +49,13 @@ const FONT_OPTIONS = [
 ];
 
 const DEFAULT_COLORS = { primary: '#0A1A1A', secondary: '#00B2BD', button: '#00F2FF', text: '#6B7280' };
+
+// El tamaño de tipografía ya no es chico/mediano/grande fijo: es un
+// porcentaje continuo (100 = tamaño original de la plantilla) que se
+// multiplica contra el tamaño base de cada texto en HighFidelityBlocks.
+const FONT_SIZE_MIN = 60;
+const FONT_SIZE_MAX = 160;
+const FONT_SIZE_DEFAULT = 100;
 
 const CARD_SHAPES = [
   { key: 'square', label: 'Cuadradas', radius: '0.25rem' },
@@ -78,6 +99,180 @@ const AccordionRow = ({
   </div>
 );
 
+// Editor de colores/tipografía/tamaño reutilizado en Superior, Centro y
+// Final: cada sección de la página guarda su propio estilo (independiente
+// de las otras), pero el control visual es el mismo en los 3 lugares.
+const STYLE_COLOR_ROWS = [
+  { key: 'principal', label: 'Color principal', desc: 'Títulos y textos destacados', colorKey: 'primary' as const },
+  { key: 'secundario', label: 'Color secundario', desc: 'Etiquetas y detalles sutiles', colorKey: 'secondary' as const },
+  { key: 'boton', label: 'Color de botones', desc: 'Botones de compra y llamados a la acción', colorKey: 'button' as const },
+  { key: 'texto-color', label: 'Color de texto', desc: 'Subtítulos y textos normales', colorKey: 'text' as const },
+];
+
+const StyleEditorPanel = ({
+  prefix, colors, fontFamily, fontSize, updateColor, setFontFamily, setFontSize, openSection, toggleSection,
+  onlyPrimaryColor = false, position, setPosition, navSize, setNavSize, horizontalPosition, setHorizontalPosition,
+  hideTypography = false,
+}: {
+  prefix: string;
+  colors: { primary: string; secondary: string; button: string; text: string };
+  fontFamily?: string;
+  fontSize: number;
+  updateColor: (key: 'primary' | 'secondary' | 'button' | 'text', value: string) => void;
+  setFontFamily: (value: string) => void;
+  setFontSize: (value: number) => void;
+  openSection: string | null;
+  toggleSection: (key: string) => void;
+  onlyPrimaryColor?: boolean;
+  navSize?: number;
+  setNavSize?: (value: number) => void;
+  position?: number;
+  setPosition?: (value: number) => void;
+  horizontalPosition?: number;
+  setHorizontalPosition?: (value: number) => void;
+  hideTypography?: boolean;
+}) => (
+  <div className="space-y-2.5">
+    {(onlyPrimaryColor ? STYLE_COLOR_ROWS.filter(r => r.colorKey === 'primary') : STYLE_COLOR_ROWS).map(row => (
+      <AccordionRow
+        key={row.key}
+        isOpen={openSection === `${prefix}-${row.key}`}
+        onToggle={() => toggleSection(`${prefix}-${row.key}`)}
+        label={row.label}
+        desc={row.desc}
+        preview={<span className="h-7 w-7 rounded-full shrink-0 border border-black/5" style={{ backgroundColor: colors[row.colorKey] }} />}
+      >
+        <div className="flex items-center gap-3 p-2 rounded-xl bg-gray-50/80 border border-transparent focus-within:border-cyan/40 transition-all">
+          <input type="color" value={colors[row.colorKey]} onChange={e => updateColor(row.colorKey, e.target.value)} className="h-10 w-10 rounded-full cursor-pointer border-none bg-transparent shrink-0 color-swatch-round" />
+          <input value={colors[row.colorKey]} onChange={e => updateColor(row.colorKey, e.target.value)} className="flex-1 bg-transparent outline-none text-sm font-medium uppercase tracking-wide text-gray-700" />
+        </div>
+      </AccordionRow>
+    ))}
+
+    {!hideTypography && (
+      <AccordionRow
+        isOpen={openSection === `${prefix}-tipografia`}
+        onToggle={() => toggleSection(`${prefix}-tipografia`)}
+        label="Tipografía"
+        desc={FONT_OPTIONS.find(f => f.value === fontFamily)?.label || 'Inter'}
+        preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400"><Type size={14} /></span>}
+      >
+        <div className="space-y-2">
+          {FONT_OPTIONS.map(f => (
+            <button
+              key={f.value}
+              onClick={() => setFontFamily(f.value)}
+              className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
+                fontFamily === f.value ? 'border-cyan/60 bg-cyan/5 ring-1 ring-cyan/20' : 'border-gray-100 hover:border-gray-200'
+              }`}
+            >
+              <span>
+                <p className="text-base text-gray-900" style={{ fontFamily: f.value }}>{f.label}</p>
+                <p className="text-[11px] text-gray-400 font-light">{f.desc}</p>
+              </span>
+              {fontFamily === f.value && <Check size={16} className="text-petroleum shrink-0" />}
+            </button>
+          ))}
+        </div>
+      </AccordionRow>
+    )}
+
+    {!hideTypography && (
+      <AccordionRow
+        isOpen={openSection === `${prefix}-tamano`}
+        onToggle={() => toggleSection(`${prefix}-tamano`)}
+        label="Tamaño de tipografía"
+        desc={`${fontSize}%`}
+        preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400 font-black text-[11px]">Aa</span>}
+      >
+        <div className="flex items-center gap-4 px-1">
+          <span className="text-xs font-black text-gray-400 shrink-0" style={{ fontSize: '11px' }}>Aa</span>
+          <input
+            type="range"
+            min={FONT_SIZE_MIN}
+            max={FONT_SIZE_MAX}
+            value={fontSize}
+            onChange={e => setFontSize(Number(e.target.value))}
+            className="flex-1 h-1.5 rounded-full bg-gray-200 accent-cyan cursor-pointer"
+          />
+          <span className="text-2xl font-black text-gray-700 shrink-0" style={{ fontSize: '26px' }}>Aa</span>
+        </div>
+        <p className="text-center text-xs font-medium text-gray-500 mt-3">{fontSize}%</p>
+      </AccordionRow>
+    )}
+
+    {setHorizontalPosition && (
+      <AccordionRow
+        isOpen={openSection === `${prefix}-posicion-h`}
+        onToggle={() => toggleSection(`${prefix}-posicion-h`)}
+        label="Posición horizontal"
+        desc="Mueve el texto a la izquierda o derecha"
+        preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400"><MoveHorizontal size={14} /></span>}
+      >
+        <div className="flex items-center gap-4 px-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Izquierda</span>
+          <input
+            type="range"
+            min={-60}
+            max={60}
+            value={horizontalPosition ?? 0}
+            onChange={e => setHorizontalPosition(Number(e.target.value))}
+            className="flex-1 h-1.5 rounded-full bg-gray-200 accent-cyan cursor-pointer"
+          />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Derecha</span>
+        </div>
+      </AccordionRow>
+    )}
+
+    {setPosition && (
+      <AccordionRow
+        isOpen={openSection === `${prefix}-posicion`}
+        onToggle={() => toggleSection(`${prefix}-posicion`)}
+        label="Posición"
+        desc="Sube o baja toda la sección"
+        preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400"><MoveVertical size={14} /></span>}
+      >
+        <div className="flex items-center gap-4 px-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Abajo</span>
+          <input
+            type="range"
+            min={-30}
+            max={30}
+            value={position ?? 0}
+            onChange={e => setPosition(Number(e.target.value))}
+            className="flex-1 h-1.5 rounded-full bg-gray-200 accent-cyan cursor-pointer"
+          />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Arriba</span>
+        </div>
+      </AccordionRow>
+    )}
+
+    {setNavSize && (
+      <AccordionRow
+        isOpen={openSection === `${prefix}-navsize`}
+        onToggle={() => toggleSection(`${prefix}-navsize`)}
+        label="Tamaño del navbar"
+        desc={`${navSize ?? 100}%`}
+        preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400"><LayoutTemplate size={14} /></span>}
+      >
+        <div className="flex items-center gap-4 px-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Chico</span>
+          <input
+            type="range"
+            min={40}
+            max={160}
+            value={navSize ?? 100}
+            onChange={e => setNavSize(Number(e.target.value))}
+            className="flex-1 h-1.5 rounded-full bg-gray-200 accent-cyan cursor-pointer"
+          />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Grande</span>
+        </div>
+        <p className="text-center text-xs font-medium text-gray-500 mt-3">{navSize ?? 100}%</p>
+      </AccordionRow>
+    )}
+  </div>
+);
+
 function EditorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -112,6 +307,18 @@ function EditorContent() {
   const [draggedBannerId, setDraggedBannerId] = useState<string | null>(null);
   const [draggedProductIndex, setDraggedProductIndex] = useState<number | null>(null);
 
+  // La tienda todavía no está publicada (no hay slug real), así que el menú
+  // no puede navegar a una URL — en su lugar cambia esta vista previa local
+  // entre las 4 páginas que el onboarding ya publica al terminar, usando el
+  // mismo contenido por defecto (buildDefaultBodyElements) que se instala
+  // de verdad en catálogo/nosotros/producto.
+  const [previewView, setPreviewView] = useState<'home' | 'catalog' | 'about' | 'product'>('home');
+  const previewScrollRef = useRef<HTMLDivElement>(null);
+  // Si el comerciante estaba scrolleado hacia abajo en una página y cambia
+  // de vista desde el menú, sin esto el contenido nuevo cambia pero la
+  // posición de scroll queda igual — da la sensación de que "no pasó nada".
+  useEffect(() => { previewScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }, [previewView]);
+
   useEffect(() => {
     if (!token || !templateId) return;
     fetch(`${apiBase}/web-templates`, { headers: { Authorization: `Bearer ${token}` } })
@@ -121,8 +328,15 @@ function EditorContent() {
         if (!tpl) { setLoading(false); return; }
         setTemplateName(tpl.name);
         const overrideRaw = sessionStorage.getItem(`bayup_ob_schema_override_${templateId}`);
-        const schema = overrideRaw ? JSON.parse(overrideRaw) : tpl.schema_data;
-        setDraft(JSON.parse(JSON.stringify(schema)));
+        const schema = JSON.parse(JSON.stringify(overrideRaw ? JSON.parse(overrideRaw) : tpl.schema_data));
+        // Sin override guardado todavía: normalizamos el menú a los items
+        // estándar de e-commerce (igual que en app/onboarding/page.tsx), para
+        // que lo que se edita aquí coincida con lo que finalmente se publica.
+        if (!overrideRaw) {
+          const navbarEl = (schema?.header?.elements || []).find((el: any) => el.type === 'navbar');
+          if (navbarEl) navbarEl.props = { ...navbarEl.props, menuItems: ['Inicio', 'Colecciones', 'Productos', 'Nosotros'] };
+        }
+        setDraft(schema);
       })
       .finally(() => setLoading(false));
   }, [token, templateId, apiBase]);
@@ -161,12 +375,6 @@ function EditorContent() {
   const footerEl = findEl(draft.footer, 'footer-premium');
   const extraBanners: any[] = (draft.body?.elements || []).filter((el: any) => el.type === 'hero-banner' && el.props?.isExtra);
   const storeVariant: string | undefined = navbarEl?.props?.variant;
-  // Colores y tipografía elegidos a mano se guardan en el navbar (que actúa
-  // como la "fuente de verdad" del estilo de toda la tienda) y desde ahí se
-  // propagan al banner y la grilla de productos en la vista previa, igual
-  // que ya hacíamos con el `variant` de las plantillas.
-  const storeColors = { ...DEFAULT_COLORS, ...(navbarEl?.props?.colors || {}) };
-  const storeFontFamily: string | undefined = navbarEl?.props?.fontFamily;
 
   const updateElProps = (section: 'header' | 'body' | 'footer', elId: string, patch: Record<string, any>) => {
     setDraft((prev: any) => ({
@@ -178,12 +386,81 @@ function EditorContent() {
     }));
   };
 
-  const updateColor = (key: 'primary' | 'secondary' | 'button' | 'text', value: string) => {
-    if (!navbarEl) return;
-    updateElProps('header', navbarEl.id, { colors: { ...storeColors, [key]: value } });
+  // Cada zona de la página (Superior=navbar, Centro=hero/banners/productos,
+  // Final=footer) guarda su propio color/tipografía/tamaño en el elemento
+  // que la representa, totalmente independiente de las otras dos zonas.
+  const buildStyleControls = (section: 'header' | 'body' | 'footer', el: any) => {
+    const colors = { ...DEFAULT_COLORS, ...(el?.props?.colors || {}) };
+    const fontFamily: string | undefined = el?.props?.fontFamily;
+    const fontSize: number = typeof el?.props?.fontSize === 'number' ? el.props.fontSize : FONT_SIZE_DEFAULT;
+    const updateColor = (key: 'primary' | 'secondary' | 'button' | 'text', value: string) => {
+      if (el) updateElProps(section, el.id, { colors: { ...colors, [key]: value } });
+    };
+    const setFontFamily = (value: string) => { if (el) updateElProps(section, el.id, { fontFamily: value }); };
+    const setFontSize = (value: number) => { if (el) updateElProps(section, el.id, { fontSize: value }); };
+    return { colors, fontFamily, fontSize, updateColor, setFontFamily, setFontSize };
   };
-  const setFontFamily = (fontFamily: string) => {
-    if (navbarEl) updateElProps('header', navbarEl.id, { fontFamily });
+
+  const navStyle = buildStyleControls('header', navbarEl);
+  const centroStyle = buildStyleControls('body', heroEl);
+  const footerStyle = buildStyleControls('footer', footerEl);
+
+  // Posición vertical del menú: a la derecha se desplaza hacia arriba
+  // (translateY negativo), a la izquierda hacia abajo (translateY positivo).
+  const navPosition: number = typeof navbarEl?.props?.position === 'number' ? navbarEl.props.position : 0;
+  const setNavPosition = (value: number) => navbarEl && updateElProps('header', navbarEl.id, { position: value });
+
+  // Tamaño del navbar: porcentaje sobre su alto base (96px), a la derecha
+  // crece, a la izquierda se achica.
+  const navSize: number = typeof navbarEl?.props?.navSize === 'number' ? navbarEl.props.navSize : 100;
+  const setNavSize = (value: number) => navbarEl && updateElProps('header', navbarEl.id, { navSize: value });
+
+  // Posición horizontal del texto del logo: a la derecha se mueve a la
+  // derecha, a la izquierda se mueve a la izquierda.
+  const navHorizontalPosition: number = typeof navbarEl?.props?.horizontalPosition === 'number' ? navbarEl.props.horizontalPosition : 0;
+  const setNavHorizontalPosition = (value: number) => navbarEl && updateElProps('header', navbarEl.id, { horizontalPosition: value });
+
+  // Tamaño y posición de la imagen del logo (independiente del texto del
+  // nombre de la tienda): tamaño en %, y desplazamiento vertical/horizontal
+  // en px para poder subirlo/bajarlo o moverlo a la izquierda/derecha.
+  const logoSize: number = typeof navbarEl?.props?.logoSize === 'number' ? navbarEl.props.logoSize : 100;
+  const setLogoSize = (value: number) => navbarEl && updateElProps('header', navbarEl.id, { logoSize: value });
+  const logoOffsetY: number = typeof navbarEl?.props?.logoOffsetY === 'number' ? navbarEl.props.logoOffsetY : 0;
+  const setLogoOffsetY = (value: number) => navbarEl && updateElProps('header', navbarEl.id, { logoOffsetY: value });
+  const logoOffsetX: number = typeof navbarEl?.props?.logoOffsetX === 'number' ? navbarEl.props.logoOffsetX : 0;
+  const setLogoOffsetX = (value: number) => navbarEl && updateElProps('header', navbarEl.id, { logoOffsetX: value });
+
+  // Estilo de los ÍTEMS del menú (Mujer/Hombre/...), totalmente separado del
+  // logo: se guarda en sus propias claves (itemsColors/itemsFontFamily/...)
+  // para que cambiarlo desde la pestaña "Menú" no toque el logo ni el resto
+  // del navbar, y viceversa desde "Estilo del menú".
+  const itemsColors = { ...DEFAULT_COLORS, ...(navbarEl?.props?.itemsColors || {}) };
+  const updateItemsColor = (key: 'primary' | 'secondary' | 'button' | 'text', value: string) => {
+    if (navbarEl) updateElProps('header', navbarEl.id, { itemsColors: { ...itemsColors, [key]: value } });
+  };
+  const itemsFontFamily: string | undefined = navbarEl?.props?.itemsFontFamily;
+  const setItemsFontFamily = (value: string) => { if (navbarEl) updateElProps('header', navbarEl.id, { itemsFontFamily: value }); };
+  const itemsFontSize: number = typeof navbarEl?.props?.itemsFontSize === 'number' ? navbarEl.props.itemsFontSize : FONT_SIZE_DEFAULT;
+  const setItemsFontSize = (value: number) => { if (navbarEl) updateElProps('header', navbarEl.id, { itemsFontSize: value }); };
+  const itemsHorizontalPosition: number = typeof navbarEl?.props?.itemsHorizontalPosition === 'number' ? navbarEl.props.itemsHorizontalPosition : 0;
+  const setItemsHorizontalPosition = (value: number) => { if (navbarEl) updateElProps('header', navbarEl.id, { itemsHorizontalPosition: value }); };
+  const itemsVerticalPosition: number = typeof navbarEl?.props?.itemsVerticalPosition === 'number' ? navbarEl.props.itemsVerticalPosition : 0;
+  const setItemsVerticalPosition = (value: number) => { if (navbarEl) updateElProps('header', navbarEl.id, { itemsVerticalPosition: value }); };
+
+  // Color de fondo de la barra completa del navbar (distinto del color de
+  // texto/logo) y los íconos que aparecen a la derecha (carrito, cuenta, y
+  // hasta 3 íconos extra elegibles de una lista corta).
+  const barColor: string = navbarEl?.props?.barColor || '#FFFFFF';
+  const setBarColor = (value: string) => navbarEl && updateElProps('header', navbarEl.id, { barColor: value });
+  const showCartIcon: boolean = navbarEl?.props?.showCartIcon !== false;
+  const showAccountIcon: boolean = navbarEl?.props?.showAccountIcon !== false;
+  const extraIcons: string[] = navbarEl?.props?.extraIcons || [];
+  const toggleCartIcon = () => navbarEl && updateElProps('header', navbarEl.id, { showCartIcon: !showCartIcon });
+  const toggleAccountIcon = () => navbarEl && updateElProps('header', navbarEl.id, { showAccountIcon: !showAccountIcon });
+  const toggleExtraIcon = (key: string) => {
+    if (!navbarEl) return;
+    const next = extraIcons.includes(key) ? extraIcons.filter(k => k !== key) : [...extraIcons, key];
+    updateElProps('header', navbarEl.id, { extraIcons: next });
   };
 
   const updateMenuItem = (index: number, value: string) => {
@@ -346,7 +623,10 @@ function EditorContent() {
     router.push('/onboarding');
   };
 
-  const previewNavbarProps = { ...navbarEl?.props, logoText: storeName.trim() || navbarEl?.props?.logoText, logoUrl: logoPreview || undefined };
+  // Sin nombre de tienda todavía no mostramos el de muestra de la plantilla
+  // (ej. "Footwear Collection") — vacío de verdad hasta que el comerciante
+  // escriba el suyo, para no confundirlo pensando que ya quedó guardado.
+  const previewNavbarProps = { ...navbarEl?.props, logoText: storeName.trim(), logoUrl: logoPreview || undefined };
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[#FAFAFA] overflow-hidden">
@@ -381,21 +661,32 @@ function EditorContent() {
       </header>
 
       <div className="flex-1 flex min-h-0">
-        {/* RAIL DE PESTAÑAS */}
-        <div className="w-[240px] bg-white border-r border-gray-100 shrink-0 p-3 space-y-1">
-          {TABS.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                tab === t.key ? 'bg-gray-50 text-petroleum ring-1 ring-cyan/20' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50/60'
-              }`}
-            >
-              <span className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${tab === t.key ? 'bg-cyan/10 text-petroleum' : 'bg-gray-100 text-gray-400'}`}>
-                <t.icon size={15} />
-              </span>
-              {t.label}
-            </button>
+        {/* RAIL DE PESTAÑAS, agrupado por la zona real de la página que edita */}
+        <div className="w-[240px] bg-white border-r border-gray-100 shrink-0 p-3 space-y-5 overflow-y-auto">
+          {TAB_GROUPS.map(g => (
+            <div key={g.group} className="space-y-1">
+              <div className="px-4 pt-1 pb-0.5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-300">{g.group}</p>
+                <p className="text-[10px] text-gray-300 font-light">{g.desc}</p>
+              </div>
+              {g.keys.map(key => {
+                const t = TABS.find(tb => tb.key === key)!;
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => setTab(t.key)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                      tab === t.key ? 'bg-gray-50 text-petroleum ring-1 ring-cyan/20' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50/60'
+                    }`}
+                  >
+                    <span className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${tab === t.key ? 'bg-cyan/10 text-petroleum' : 'bg-gray-100 text-gray-400'}`}>
+                      <t.icon size={15} />
+                    </span>
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
           ))}
         </div>
 
@@ -430,6 +721,51 @@ function EditorContent() {
                 <input value={storeName} onChange={e => setStoreName(e.target.value)} placeholder="Ej. Tech Hub Colombia"
                   className="w-full p-3.5 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-xl outline-none text-sm font-medium transition-all focus:bg-white" />
               </div>
+
+              <div className="space-y-2.5 pt-2">
+                <AccordionRow
+                  isOpen={openSection === 'logo-tamano'}
+                  onToggle={() => toggleSection('logo-tamano')}
+                  label="Tamaño del logo"
+                  desc={`${logoSize}%`}
+                  preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400"><ImageIcon size={13} /></span>}
+                >
+                  <div className="flex items-center gap-4 px-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Chico</span>
+                    <input type="range" min={50} max={200} value={logoSize} onChange={e => setLogoSize(Number(e.target.value))} className="flex-1 h-1.5 rounded-full bg-gray-200 accent-cyan cursor-pointer" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Grande</span>
+                  </div>
+                  <p className="text-center text-xs font-medium text-gray-500 mt-3">{logoSize}%</p>
+                </AccordionRow>
+
+                <AccordionRow
+                  isOpen={openSection === 'logo-posicion-v'}
+                  onToggle={() => toggleSection('logo-posicion-v')}
+                  label="Posición vertical"
+                  desc="Sube o baja el logo"
+                  preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400"><MoveVertical size={13} /></span>}
+                >
+                  <div className="flex items-center gap-4 px-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Abajo</span>
+                    <input type="range" min={-30} max={30} value={logoOffsetY} onChange={e => setLogoOffsetY(Number(e.target.value))} className="flex-1 h-1.5 rounded-full bg-gray-200 accent-cyan cursor-pointer" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Arriba</span>
+                  </div>
+                </AccordionRow>
+
+                <AccordionRow
+                  isOpen={openSection === 'logo-posicion-h'}
+                  onToggle={() => toggleSection('logo-posicion-h')}
+                  label="Posición horizontal"
+                  desc="Mueve el logo a la izquierda o derecha"
+                  preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400"><MoveHorizontal size={13} /></span>}
+                >
+                  <div className="flex items-center gap-4 px-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Izquierda</span>
+                    <input type="range" min={-30} max={30} value={logoOffsetX} onChange={e => setLogoOffsetX(Number(e.target.value))} className="flex-1 h-1.5 rounded-full bg-gray-200 accent-cyan cursor-pointer" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Derecha</span>
+                  </div>
+                </AccordionRow>
+              </div>
             </div>
           )}
 
@@ -453,6 +789,115 @@ function EditorContent() {
               <button onClick={addMenuItem} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-gray-200 text-xs font-medium text-gray-400 hover:border-cyan/40 hover:text-petroleum transition-all">
                 <Plus size={14} /> Agregar ítem
               </button>
+
+              <div className="space-y-1 pt-3">
+                <p className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Estilo de estos ítems</p>
+                <p className="text-[11px] text-gray-400 font-light ml-1">Solo afecta Mujer/Hombre/Niños/Ofertas — no toca el logo ni el resto del navbar.</p>
+              </div>
+              <StyleEditorPanel
+                prefix="superior-menu"
+                colors={itemsColors}
+                fontFamily={itemsFontFamily}
+                fontSize={itemsFontSize}
+                updateColor={updateItemsColor}
+                setFontFamily={setItemsFontFamily}
+                setFontSize={setItemsFontSize}
+                openSection={openSection}
+                toggleSection={toggleSection}
+                onlyPrimaryColor
+                horizontalPosition={itemsHorizontalPosition}
+                setHorizontalPosition={setItemsHorizontalPosition}
+                position={itemsVerticalPosition}
+                setPosition={setItemsVerticalPosition}
+              />
+            </div>
+          )}
+
+          {tab === 'estilo-superior' && (
+            <div className="space-y-5">
+              <div className="space-y-1">
+                <h3 className="text-base font-medium text-[#0A1A1A]">Estilo del menú</h3>
+                <p className="text-xs text-gray-400 font-light leading-relaxed">Color y tipografía solo del menú de navegación, independiente del resto de la página.</p>
+              </div>
+              <StyleEditorPanel
+                prefix="superior"
+                colors={navStyle.colors}
+                fontFamily={navStyle.fontFamily}
+                fontSize={navStyle.fontSize}
+                updateColor={navStyle.updateColor}
+                setFontFamily={navStyle.setFontFamily}
+                setFontSize={navStyle.setFontSize}
+                openSection={openSection}
+                toggleSection={toggleSection}
+                onlyPrimaryColor
+                hideTypography
+                position={navPosition}
+                setPosition={setNavPosition}
+                navSize={navSize}
+                setNavSize={setNavSize}
+              />
+
+              <div className="space-y-2.5">
+                <AccordionRow
+                  isOpen={openSection === 'superior-bar-color'}
+                  onToggle={() => toggleSection('superior-bar-color')}
+                  label="Color de la barra"
+                  desc="Fondo completo del navbar"
+                  preview={<span className="h-7 w-7 rounded-full shrink-0 border border-black/5" style={{ backgroundColor: barColor }} />}
+                >
+                  <div className="flex items-center gap-3 p-2 rounded-xl bg-gray-50/80 border border-transparent focus-within:border-cyan/40 transition-all">
+                    <input type="color" value={barColor} onChange={e => setBarColor(e.target.value)} className="h-10 w-10 rounded-full cursor-pointer border-none bg-transparent shrink-0 color-swatch-round" />
+                    <input value={barColor} onChange={e => setBarColor(e.target.value)} className="flex-1 bg-transparent outline-none text-sm font-medium uppercase tracking-wide text-gray-700" />
+                  </div>
+                </AccordionRow>
+
+                <AccordionRow
+                  isOpen={openSection === 'superior-iconos'}
+                  onToggle={() => toggleSection('superior-iconos')}
+                  label="Íconos de la barra"
+                  desc="Carrito, cuenta y otros íconos"
+                  preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400"><ShoppingBag size={13} /></span>}
+                >
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <button onClick={toggleCartIcon} className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50/60 hover:bg-gray-50 transition-colors">
+                        <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                          {showCartIcon ? <Eye size={15} className="text-petroleum" /> : <EyeOff size={15} className="text-gray-400" />} Carrito
+                        </span>
+                        <span className={`h-5 w-9 rounded-full p-0.5 transition-colors ${showCartIcon ? 'bg-cyan' : 'bg-gray-200'}`}>
+                          <span className={`h-4 w-4 rounded-full bg-white block transition-transform ${showCartIcon ? 'translate-x-4' : ''}`} />
+                        </span>
+                      </button>
+                      <button onClick={toggleAccountIcon} className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50/60 hover:bg-gray-50 transition-colors">
+                        <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                          {showAccountIcon ? <Eye size={15} className="text-petroleum" /> : <EyeOff size={15} className="text-gray-400" />} Cuenta de cliente
+                        </span>
+                        <span className={`h-5 w-9 rounded-full p-0.5 transition-colors ${showAccountIcon ? 'bg-cyan' : 'bg-gray-200'}`}>
+                          <span className={`h-4 w-4 rounded-full bg-white block transition-transform ${showAccountIcon ? 'translate-x-4' : ''}`} />
+                        </span>
+                      </button>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Agregar ícono</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {EXTRA_ICON_OPTIONS.map(opt => {
+                          const active = extraIcons.includes(opt.key);
+                          return (
+                            <button
+                              key={opt.key}
+                              onClick={() => toggleExtraIcon(opt.key)}
+                              className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all ${active ? 'border-cyan/60 bg-cyan/5 ring-1 ring-cyan/20' : 'border-gray-100 hover:border-gray-200'}`}
+                            >
+                              <opt.Icon size={16} className={active ? 'text-petroleum' : 'text-gray-400'} />
+                              <span className="text-[10px] font-medium text-gray-600">{opt.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </AccordionRow>
+              </div>
             </div>
           )}
 
@@ -460,88 +905,19 @@ function EditorContent() {
             <div className="space-y-5">
               <div className="space-y-1">
                 <h3 className="text-base font-medium text-[#0A1A1A]">Estilo visual</h3>
-                <p className="text-xs text-gray-400 font-light leading-relaxed">Elige a mano los colores y la tipografía de toda tu tienda.</p>
+                <p className="text-xs text-gray-400 font-light leading-relaxed">Color y tipografía del banner principal, los banners adicionales y la grilla de productos — independiente del menú y del pie de página.</p>
               </div>
-
-              <div className="space-y-2.5">
-                <AccordionRow
-                  isOpen={openSection === 'principal'}
-                  onToggle={() => toggleSection('principal')}
-                  label="Color principal"
-                  desc="Títulos y textos destacados"
-                  preview={<span className="h-7 w-7 rounded-full shrink-0 border border-black/5" style={{ backgroundColor: storeColors.primary }} />}
-                >
-                  <div className="flex items-center gap-3 p-2 rounded-xl bg-gray-50/80 border border-transparent focus-within:border-cyan/40 transition-all">
-                    <input type="color" value={storeColors.primary} onChange={e => updateColor('primary', e.target.value)} className="h-10 w-10 rounded-full cursor-pointer border-none bg-transparent shrink-0 color-swatch-round" />
-                    <input value={storeColors.primary} onChange={e => updateColor('primary', e.target.value)} className="flex-1 bg-transparent outline-none text-sm font-medium uppercase tracking-wide text-gray-700" />
-                  </div>
-                </AccordionRow>
-
-                <AccordionRow
-                  isOpen={openSection === 'secundario'}
-                  onToggle={() => toggleSection('secundario')}
-                  label="Color secundario"
-                  desc="Etiquetas y detalles sutiles"
-                  preview={<span className="h-7 w-7 rounded-full shrink-0 border border-black/5" style={{ backgroundColor: storeColors.secondary }} />}
-                >
-                  <div className="flex items-center gap-3 p-2 rounded-xl bg-gray-50/80 border border-transparent focus-within:border-cyan/40 transition-all">
-                    <input type="color" value={storeColors.secondary} onChange={e => updateColor('secondary', e.target.value)} className="h-10 w-10 rounded-full cursor-pointer border-none bg-transparent shrink-0 color-swatch-round" />
-                    <input value={storeColors.secondary} onChange={e => updateColor('secondary', e.target.value)} className="flex-1 bg-transparent outline-none text-sm font-medium uppercase tracking-wide text-gray-700" />
-                  </div>
-                </AccordionRow>
-
-                <AccordionRow
-                  isOpen={openSection === 'boton'}
-                  onToggle={() => toggleSection('boton')}
-                  label="Color de botones"
-                  desc="Botones de compra y llamados a la acción"
-                  preview={<span className="h-7 w-7 rounded-full shrink-0 border border-black/5" style={{ backgroundColor: storeColors.button }} />}
-                >
-                  <div className="flex items-center gap-3 p-2 rounded-xl bg-gray-50/80 border border-transparent focus-within:border-cyan/40 transition-all">
-                    <input type="color" value={storeColors.button} onChange={e => updateColor('button', e.target.value)} className="h-10 w-10 rounded-full cursor-pointer border-none bg-transparent shrink-0 color-swatch-round" />
-                    <input value={storeColors.button} onChange={e => updateColor('button', e.target.value)} className="flex-1 bg-transparent outline-none text-sm font-medium uppercase tracking-wide text-gray-700" />
-                  </div>
-                </AccordionRow>
-
-                <AccordionRow
-                  isOpen={openSection === 'texto-color'}
-                  onToggle={() => toggleSection('texto-color')}
-                  label="Color de texto"
-                  desc="Subtítulos y textos normales"
-                  preview={<span className="h-7 w-7 rounded-full shrink-0 border border-black/5" style={{ backgroundColor: storeColors.text }} />}
-                >
-                  <div className="flex items-center gap-3 p-2 rounded-xl bg-gray-50/80 border border-transparent focus-within:border-cyan/40 transition-all">
-                    <input type="color" value={storeColors.text} onChange={e => updateColor('text', e.target.value)} className="h-10 w-10 rounded-full cursor-pointer border-none bg-transparent shrink-0 color-swatch-round" />
-                    <input value={storeColors.text} onChange={e => updateColor('text', e.target.value)} className="flex-1 bg-transparent outline-none text-sm font-medium uppercase tracking-wide text-gray-700" />
-                  </div>
-                </AccordionRow>
-
-                <AccordionRow
-                  isOpen={openSection === 'tipografia'}
-                  onToggle={() => toggleSection('tipografia')}
-                  label="Tipografía"
-                  desc={FONT_OPTIONS.find(f => f.value === storeFontFamily)?.label || 'Inter'}
-                  preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400"><Type size={14} /></span>}
-                >
-                  <div className="space-y-2">
-                    {FONT_OPTIONS.map(f => (
-                      <button
-                        key={f.value}
-                        onClick={() => setFontFamily(f.value)}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
-                          storeFontFamily === f.value ? 'border-cyan/60 bg-cyan/5 ring-1 ring-cyan/20' : 'border-gray-100 hover:border-gray-200'
-                        }`}
-                      >
-                        <span>
-                          <p className="text-base text-gray-900" style={{ fontFamily: f.value }}>{f.label}</p>
-                          <p className="text-[11px] text-gray-400 font-light">{f.desc}</p>
-                        </span>
-                        {storeFontFamily === f.value && <Check size={16} className="text-petroleum shrink-0" />}
-                      </button>
-                    ))}
-                  </div>
-                </AccordionRow>
-              </div>
+              <StyleEditorPanel
+                prefix="centro"
+                colors={centroStyle.colors}
+                fontFamily={centroStyle.fontFamily}
+                fontSize={centroStyle.fontSize}
+                updateColor={centroStyle.updateColor}
+                setFontFamily={centroStyle.setFontFamily}
+                setFontSize={centroStyle.setFontSize}
+                openSection={openSection}
+                toggleSection={toggleSection}
+              />
             </div>
           )}
 
@@ -754,6 +1130,46 @@ function EditorContent() {
               }} />
             </div>
           )}
+
+          {tab === 'footer' && footerEl && (
+            <div className="space-y-5">
+              <div className="space-y-1">
+                <h3 className="text-base font-medium text-[#0A1A1A]">Pie de página</h3>
+                <p className="text-xs text-gray-400 font-light leading-relaxed">El cierre de tu página: descripción de la tienda y ubicación. El nombre se toma automáticamente de "Marca y logo".</p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Descripción corta</label>
+                <textarea rows={3} value={footerEl.props.description || ''} onChange={e => updateElProps('footer', footerEl.id, { description: e.target.value })}
+                  className="w-full p-3.5 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-xl outline-none text-sm font-medium transition-all focus:bg-white resize-none" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Ubicación</label>
+                <input value={footerEl.props.location || ''} onChange={e => updateElProps('footer', footerEl.id, { location: e.target.value })}
+                  placeholder="Bogotá, Colombia"
+                  className="w-full p-3.5 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-xl outline-none text-sm font-medium transition-all focus:bg-white" />
+              </div>
+            </div>
+          )}
+
+          {tab === 'estilo-final' && (
+            <div className="space-y-5">
+              <div className="space-y-1">
+                <h3 className="text-base font-medium text-[#0A1A1A]">Estilo del pie</h3>
+                <p className="text-xs text-gray-400 font-light leading-relaxed">Color y tipografía solo del pie de página, independiente del resto de la tienda.</p>
+              </div>
+              <StyleEditorPanel
+                prefix="final"
+                colors={footerStyle.colors}
+                fontFamily={footerStyle.fontFamily}
+                fontSize={footerStyle.fontSize}
+                updateColor={footerStyle.updateColor}
+                setFontFamily={footerStyle.setFontFamily}
+                setFontSize={footerStyle.setFontSize}
+                openSection={openSection}
+                toggleSection={toggleSection}
+              />
+            </div>
+          )}
         </div>
         )}
 
@@ -768,7 +1184,7 @@ function EditorContent() {
         )}
 
         {/* VISTA PREVIA */}
-        <div className="flex-1 bg-gray-100/60 overflow-y-auto flex justify-center p-8">
+        <div ref={previewScrollRef} className="flex-1 bg-gray-100/60 overflow-y-auto flex justify-center p-8">
           <div className={`bg-white rounded-[1.25rem] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.15)] overflow-hidden shrink-0 h-fit transition-all ${device === 'desktop' ? 'w-full max-w-[1100px]' : 'w-[400px]'}`}>
             <div className="h-10 bg-gray-50 flex items-center gap-2 px-4 border-b border-gray-200">
               <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
@@ -776,44 +1192,70 @@ function EditorContent() {
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
             </div>
             <div className="relative">
-              {navbarEl && <SmartNavbar props={previewNavbarProps} />}
+              <EditorPreviewNavProvider value={setPreviewView}>
+                {navbarEl && (
+                  <div style={navPosition ? { transform: `translateY(${-navPosition}px)`, position: 'relative', zIndex: 50 } : undefined}>
+                    <SmartNavbar props={previewNavbarProps} />
+                  </div>
+                )}
 
-              {(draft.body?.elements || []).map((el: any) => {
-                if (el.type === 'hero-banner') {
-                  const isExtra = !!el.props?.isExtra;
-                  return (
-                    <div
-                      key={el.id}
-                      className={`relative transition-opacity ${draggedBannerId === el.id ? 'opacity-40' : ''}`}
-                    >
-                      {isExtra && (
-                        <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5">
-                          <span
-                            onPointerDown={e => handleBannerGripPointerDown(e, el.id)}
-                            title="Arrastra para mover este banner"
-                            className="h-8 w-8 rounded-full bg-black/45 backdrop-blur flex items-center justify-center text-white cursor-grab active:cursor-grabbing touch-none"
-                            style={{ touchAction: 'none' }}
-                          >
-                            <GripVertical size={14} />
-                          </span>
-                          <button onClick={() => removeExtraBanner(el.id)} className="h-8 w-8 rounded-full bg-black/45 backdrop-blur hover:bg-rose-500 flex items-center justify-center text-white transition-colors">
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      )}
-                      <SmartHero props={{ ...el.props, variant: el.props.variant || storeVariant, colors: storeColors, fontFamily: storeFontFamily }} />
-                    </div>
-                  );
-                }
-                if (el.type === 'product-grid') {
-                  return (
-                    <div key={el.id}>
-                      <SmartProductGrid props={{ ...el.props, variant: el.props.variant || storeVariant, colors: storeColors, fontFamily: storeFontFamily }} />
-                    </div>
-                  );
-                }
-                return null;
-              })}
+                {previewView !== 'home' && (
+                  <div className="bg-amber-50 border-b border-amber-100 px-6 py-2 text-center">
+                    <p className="text-[11px] font-medium text-amber-700">
+                      Vista previa de <strong>{previewView === 'catalog' ? 'Colecciones' : previewView === 'about' ? 'Nosotros' : 'Producto'}</strong> — así se ve esta página por defecto. Volvé a "Inicio" para seguir editando el banner principal.
+                    </p>
+                  </div>
+                )}
+
+                {previewView === 'home' && (draft.body?.elements || []).map((el: any) => {
+                  if (el.type === 'hero-banner') {
+                    const isExtra = !!el.props?.isExtra;
+                    return (
+                      <div
+                        key={el.id}
+                        className={`relative transition-opacity ${draggedBannerId === el.id ? 'opacity-40' : ''}`}
+                      >
+                        {isExtra && (
+                          <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5">
+                            <span
+                              onPointerDown={e => handleBannerGripPointerDown(e, el.id)}
+                              title="Arrastra para mover este banner"
+                              className="h-8 w-8 rounded-full bg-black/45 backdrop-blur flex items-center justify-center text-white cursor-grab active:cursor-grabbing touch-none"
+                              style={{ touchAction: 'none' }}
+                            >
+                              <GripVertical size={14} />
+                            </span>
+                            <button onClick={() => removeExtraBanner(el.id)} className="h-8 w-8 rounded-full bg-black/45 backdrop-blur hover:bg-rose-500 flex items-center justify-center text-white transition-colors">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        )}
+                        <SmartHero props={{ ...el.props, variant: el.props.variant || storeVariant, colors: centroStyle.colors, fontFamily: centroStyle.fontFamily, fontSize: centroStyle.fontSize }} />
+                      </div>
+                    );
+                  }
+                  if (el.type === 'product-grid') {
+                    return (
+                      <div key={el.id}>
+                        <SmartProductGrid props={{ ...el.props, variant: el.props.variant || storeVariant, colors: centroStyle.colors, fontFamily: centroStyle.fontFamily, fontSize: centroStyle.fontSize }} />
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+
+                {previewView !== 'home' && buildDefaultBodyElements(previewView).map((el: any) => {
+                  const sharedProps = { ...el.props, variant: storeVariant, colors: centroStyle.colors, fontFamily: centroStyle.fontFamily, fontSize: centroStyle.fontSize };
+                  if (el.type === 'hero-banner') return <SmartHero key={el.id} props={{ ...sharedProps, imageUrl: heroEl?.props?.imageUrl }} />;
+                  if (el.type === 'product-grid') return <SmartProductGrid key={el.id} props={{ ...sharedProps, products: productGridEl?.props?.products || [] }} />;
+                  if (el.type === 'text-block-premium') return <SmartHeritageBlock key={el.id} props={sharedProps} />;
+                  if (el.type === 'contact-form') return <SmartContactForm key={el.id} props={sharedProps} />;
+                  if (el.type === 'product-detail') return <SmartProductDetail key={el.id} product={productGridEl?.props?.products?.[0]} variant={storeVariant as any} />;
+                  return null;
+                })}
+
+                {footerEl && <SmartFooter props={{ ...footerEl.props, logoText: storeName.trim() || footerEl.props.logoText, variant: footerEl.props.variant || storeVariant }} />}
+              </EditorPreviewNavProvider>
             </div>
           </div>
         </div>

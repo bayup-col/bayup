@@ -60,7 +60,16 @@ function SimulatedCartDrawer() {
 function PreviewContent() {
   const [data, setData] = useState<PageSchema | null>(null);
   const searchParams = useSearchParams();
-  const templateId = searchParams.get("template_id") || localStorage.getItem("last_preview_template_id");
+  // localStorage no existe durante el render en el servidor (Next.js sigue
+  // haciendo un paso de SSR incluso para componentes "use client" antes de
+  // hidratar) — leerlo directo en el cuerpo del componente puede disparar
+  // "localStorage.getItem is not a function". Se difiere a un estado que
+  // solo se calcula en el navegador.
+  const [storedTemplateId, setStoredTemplateId] = useState<string | null>(null);
+  useEffect(() => {
+    setStoredTemplateId(localStorage.getItem("last_preview_template_id"));
+  }, []);
+  const templateId = searchParams.get("template_id") || storedTemplateId;
   const pageKey = searchParams.get("page") || "home";
 
   useEffect(() => {

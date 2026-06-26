@@ -3,12 +3,13 @@
 import React from 'react';
 import { 
   ShoppingBag, User, Search, Terminal, Grid, ArrowRight, PlayCircle, 
-  ChevronLeft, ChevronRight, ShoppingCart, Verified, Truck, Headset,
+  ChevronLeft, ChevronRight, ChevronDown, ShoppingCart, Verified, Truck, Headset,
   Facebook, Instagram, Twitter, Languages, Mail, Share2, ShieldCheck,
   LayoutGrid, Heart, Camera, Send, Ruler, MapPin, Globe, CheckCheck, Loader2, X, Plus, Minus
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter, useParams } from 'next/navigation';
 import { useCart } from '@/context/cart-context';
 import { useToast } from '@/context/toast-context';
 
@@ -31,6 +32,18 @@ export type StoreVariant =
   | "editorial"   // hogar, papeleria: serif calido editorial, acento tierra
   | "glow"        // maquillaje: display suave, acento rosa/fucsia, botones pill con gradiente
   | "family";     // zapatos: sans robusta, acento terracota, formas amigables
+
+// Íconos extra que el comerciante puede agregar a la derecha del navbar
+// (favoritos, buscar, idioma, etc.), elegidos a mano en el editor. Se
+// exporta la misma lista para que el editor de onboarding use exactamente
+// estos mismos íconos/etiquetas en su selector, sin duplicar imports.
+export const EXTRA_ICON_OPTIONS: { key: string; label: string; Icon: any }[] = [
+  { key: 'heart', label: 'Favoritos', Icon: Heart },
+  { key: 'search', label: 'Buscar', Icon: Search },
+  { key: 'globe', label: 'Idioma', Icon: Globe },
+  { key: 'mail', label: 'Correo', Icon: Mail },
+  { key: 'share2', label: 'Compartir', Icon: Share2 },
+];
 
 const VariantContext = React.createContext<StoreVariant>("luxury");
 const useVariant = () => React.useContext(VariantContext);
@@ -231,6 +244,16 @@ const getReadableTextColor = (hex?: string): string => {
   return luminance > 0.6 ? '#0A1A1A' : '#ffffff';
 };
 
+// Tamaño de tipografía elegido a mano en el editor: un porcentaje continuo
+// (barra deslizante, 100 = tamaño original de la plantilla) que se multiplica
+// contra el tamaño base de cada texto. Como las clases de Tailwind ya fijan
+// el tamaño por breakpoint, un valor inline es la única forma de que el
+// control tenga efecto real.
+const scaledRem = (baseRem: number, fontSizePct?: number) => `${baseRem * ((fontSizePct ?? 100) / 100)}rem`;
+const LOGO_TEXT_BASE_REM = 1.5;
+const HERO_TITLE_BASE_REM = 4.5;
+const SECTION_TITLE_BASE_REM = 2.5;
+
 // --- Filtro de catalogo simulado ---
 // El navbar y las tarjetas de categoria disparan un filtro (p.ej. "Conjuntos",
 // "Pijamas", "Basketball"); la grilla de productos lo lee y muestra solo lo
@@ -279,6 +302,69 @@ const goToSimulatedSection = (label: string, setFilter: (f: string | null) => vo
   }, 50);
 };
 
+// Permite que el editor de onboarding (que NO tiene un `slug` real todavia,
+// porque la tienda no esta publicada) "intercepte" la navegacion del menu y
+// cambie su propia vista previa local (home/catalog/about/product) en vez
+// de navegar a una URL real. Si no hay ningun Provider de esto en el arbol
+// (caso normal: tienda publicada, o Studio del dashboard sin esta funcion),
+// el valor es `null` y todo sigue funcionando como antes.
+const EditorPreviewNavContext = React.createContext<((pageKey: 'home' | 'catalog' | 'about' | 'product') => void) | null>(null);
+export const EditorPreviewNavProvider = EditorPreviewNavContext.Provider;
+
+const labelToPageKey = (label: string): 'home' | 'catalog' | 'about' | 'product' => {
+  const l = normalizeLabel(label);
+  if (/(contact|contacto|nosotr|about|historia|marca|empresa)/.test(l)) return 'about';
+  if (/(inicio|home)$/.test(l)) return 'home';
+  // "Productos" lleva a la ficha de un producto puntual (distinto de
+  // "Colecciones", que muestra la grilla completa) para que ambos items se
+  // vean realmente diferentes.
+  if (/producto/.test(l)) return 'product';
+  return 'catalog';
+};
+
+// Navegacion real: la tienda publicada vive en /shop/[slug] y ya tiene 4
+// paginas reales (home/catalog/about/product) publicadas desde el
+// onboarding (ver app/onboarding/page.tsx -> handlePublish). Si detectamos
+// ese `slug` en la ruta navegamos de verdad entre ellas; si no hay slug
+// (editor de onboarding, Studio del dashboard) no existe una pagina real a
+// donde ir, asi que mantenemos la simulacion de scroll/filtro de siempre —
+// salvo que el editor de onboarding haya puesto un EditorPreviewNavContext.
+const useSmartNavigation = (setFilter: (f: string | null) => void) => {
+  const router = useRouter();
+  const params = useParams();
+  const slug = typeof params?.slug === 'string' ? params.slug : undefined;
+  const editorNav = React.useContext(EditorPreviewNavContext);
+
+  return (label: string) => {
+    if (editorNav) {
+      editorNav(labelToPageKey(label));
+      return;
+    }
+    if (!slug) {
+      goToSimulatedSection(label, setFilter);
+      return;
+    }
+    const pageKey = labelToPageKey(label);
+    router.push(pageKey === 'home' ? `/shop/${slug}` : `/shop/${slug}?view=${pageKey}`);
+  };
+};
+
+// Navega a la ficha de un producto especifico (tarjeta de producto en la
+// grilla). Sin `slug` real ni EditorPreviewNavContext no hay una pagina de
+// producto a donde ir, asi que en el editor/preview simplemente no hace
+// nada nuevo.
+const useProductNavigation = () => {
+  const router = useRouter();
+  const params = useParams();
+  const slug = typeof params?.slug === 'string' ? params.slug : undefined;
+  const editorNav = React.useContext(EditorPreviewNavContext);
+  return (productId: string) => {
+    if (editorNav) { editorNav('product'); return; }
+    if (!slug) return;
+    router.push(`/shop/${slug}?view=product&id=${productId}`);
+  };
+};
+
 // 1. NAVBAR PREMIUM (FUNCIONAL CON CARRITO)
 // El navbar es el primer elemento del header en todas las plantillas, asi que
 // es quien declara `props.variant` y lo expone via VariantContext para que el
@@ -288,6 +374,7 @@ export const SmartNavbar = ({ props }: { props: any }) => {
   const { items: cart, setIsCartOpen: setIsOpen } = useCart();
   const { showToast } = useToast();
   const { activeFilter, setActiveFilter } = useSimNav();
+  const goTo = useSmartNavigation(setActiveFilter);
   const variant: StoreVariant = props.variant || "luxury";
   const s = getVariantStyle(variant);
 
@@ -297,34 +384,75 @@ export const SmartNavbar = ({ props }: { props: any }) => {
   // que no pasan estas props (Canvas/CanvasElements no las envía hoy).
   const primaryColor: string | undefined = props.colors?.primary;
   const fontFamily: string | undefined = props.fontFamily;
-  const logoStyle = { ...(primaryColor ? { color: primaryColor } : {}), ...(fontFamily ? { fontFamily } : {}) };
+  const logoStyle = {
+    ...(primaryColor ? { color: primaryColor } : {}),
+    ...(fontFamily ? { fontFamily } : {}),
+    ...(props.fontSize ? { fontSize: scaledRem(LOGO_TEXT_BASE_REM, props.fontSize) } : {}),
+    ...(props.horizontalPosition ? { transform: `translateX(${props.horizontalPosition}px)` } : {}),
+  };
 
   const isStreetwearLike = variant === "streetwear" || variant === "flash" || variant === "tech";
 
+  // Alto del navbar elegido a mano (porcentaje sobre 96px = h-24). Igual que
+  // el resto de los controles de tamaño, un valor inline es la única forma
+  // de que el slider tenga efecto real sobre la clase Tailwind fija.
+  const navHeightStyle = props.navSize ? { height: `${96 * (props.navSize / 100)}px` } : undefined;
+
+  // Los ÍTEMS del menú (Mujer/Hombre/...) tienen su propio color, tipografía,
+  // tamaño y posición horizontal — totalmente separados del logo, así editar
+  // uno no afecta al otro.
+  const itemsPrimaryColor: string | undefined = props.itemsColors?.primary;
+  const itemsFontFamily: string | undefined = props.itemsFontFamily;
+  const ITEM_TEXT_BASE_REM = 0.625;
+  const menuItemStyle = {
+    ...(itemsFontFamily ? { fontFamily: itemsFontFamily } : {}),
+    ...(props.itemsFontSize ? { fontSize: scaledRem(ITEM_TEXT_BASE_REM, props.itemsFontSize) } : {}),
+    ...((props.itemsHorizontalPosition || props.itemsVerticalPosition) ? { transform: `translate(${props.itemsHorizontalPosition || 0}px, ${-(props.itemsVerticalPosition || 0)}px)` } : {}),
+  };
+
+  // Color de fondo de la barra, elegido a mano en el editor. Sobrescribe el
+  // fondo translúcido del preset de variante con un color sólido.
+  const barStyle = props.barColor ? { backgroundColor: props.barColor } : undefined;
+
   return (
     <VariantContext.Provider value={variant}>
-      <header className={cn(
-        "w-full border-b sticky top-0 z-[200] transition-all duration-500 backdrop-blur-xl",
-        variant === "tech" ? "bg-slate-950/90 border-cyan-400/10" :
-        variant === "streetwear" ? "bg-white/95 border-black" :
-        variant === "flash" ? "bg-white/90 border-red-100" :
-        "bg-white/70 border-white/10"
-      )}>
-        <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between gap-8">
+      <header
+        className={cn(
+          "w-full border-b sticky top-0 z-[200] transition-all duration-500",
+          !props.barColor && "backdrop-blur-xl",
+          !props.barColor && (variant === "tech" ? "bg-slate-950/90 border-cyan-400/10" :
+          variant === "streetwear" ? "bg-white/95 border-black" :
+          variant === "flash" ? "bg-white/90 border-red-100" :
+          "bg-white/70 border-white/10")
+        )}
+        style={barStyle}
+      >
+        <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between gap-8" style={navHeightStyle}>
           <div className="flex items-center gap-3 shrink-0">
             {props.logoUrl ? (
-              <img src={props.logoUrl} alt={props.logoText || 'Logo'} className="h-10 w-10 rounded-xl object-cover" />
+              <img
+                src={props.logoUrl}
+                alt={props.logoText || 'Logo'}
+                className="rounded-xl object-cover shrink-0"
+                style={{
+                  height: `${40 * ((props.logoSize ?? 100) / 100)}px`,
+                  width: `${40 * ((props.logoSize ?? 100) / 100)}px`,
+                  transform: (props.logoOffsetX || props.logoOffsetY) ? `translate(${props.logoOffsetX || 0}px, ${-(props.logoOffsetY || 0)}px)` : undefined,
+                }}
+              />
             ) : null}
-            <h1
-              className={cn(
-                "text-2xl tracking-tighter uppercase",
-                s.display, s.displayWeight,
-                !primaryColor && (variant === "tech" ? "text-cyan-300" : "text-gray-900")
-              )}
-              style={logoStyle}
-            >
-              {props.logoText || 'BAYUP STORE'}
-            </h1>
+            {props.logoText && (
+              <h1
+                className={cn(
+                  "text-2xl tracking-tighter uppercase",
+                  s.display, s.displayWeight,
+                  !primaryColor && (variant === "tech" ? "text-cyan-300" : "text-gray-900")
+                )}
+                style={logoStyle}
+              >
+                {props.logoText}
+              </h1>
+            )}
           </div>
           <nav className="hidden lg:flex items-center gap-10">
             {(props.menuItems || ["Novedades", "Colecciones", "Nosotros", "Contacto"]).map((item: any, i: number) => {
@@ -333,14 +461,14 @@ export const SmartNavbar = ({ props }: { props: any }) => {
               return (
                 <span
                   key={i}
-                  onClick={() => goToSimulatedSection(label, setActiveFilter)}
+                  onClick={() => goTo(label)}
                   className={cn(
                     "text-[10px] font-black uppercase tracking-[0.2em] cursor-pointer transition-all",
-                    !primaryColor && (isActive ? s.accentText : "text-gray-500"),
-                    !isActive && !primaryColor && s.accentTextHover,
+                    !itemsPrimaryColor && (isActive ? s.accentText : "text-gray-500"),
+                    !isActive && !itemsPrimaryColor && s.accentTextHover,
                     isStreetwearLike && "font-display-impact"
                   )}
-                  style={{ ...(primaryColor ? { color: isActive ? primaryColor : `${primaryColor}99` } : {}), ...(fontFamily ? { fontFamily } : {}) }}
+                  style={{ ...(itemsPrimaryColor ? { color: isActive ? itemsPrimaryColor : `${itemsPrimaryColor}99` } : {}), ...menuItemStyle }}
                 >
                   {label}
                 </span>
@@ -349,32 +477,51 @@ export const SmartNavbar = ({ props }: { props: any }) => {
           </nav>
           <div className="flex items-center gap-6 flex-1 justify-end">
             <div className={cn("flex items-center gap-6", !primaryColor && (variant === "tech" ? "text-cyan-300" : "text-gray-900"))} style={primaryColor ? { color: primaryColor } : undefined}>
-              <div
-                className={cn(
-                  "relative p-3 cursor-pointer hover:scale-110 transition-transform",
-                  variant === "tech" ? "bg-cyan-400/10" : variant === "streetwear" ? "bg-black text-white" : "bg-gray-100",
-                  s.radiusMd
-                )}
-                onClick={() => setIsOpen(true)}
-              >
-                <ShoppingBag size={20} />
-                {cart.length > 0 && (
-                  <span className={cn(
-                    "absolute -top-1 -right-1 text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-lg border-2 border-white animate-in zoom-in",
-                    s.accentBg, variant === "tech" ? "text-slate-950" : "text-white"
-                  )}>
-                    {cart.reduce((a, b) => a + b.quantity, 0)}
-                  </span>
-                )}
-              </div>
-              <button
-                type="button"
-                aria-label="Cuenta de cliente"
-                onClick={() => showToast('El inicio de sesión de clientes estará disponible en tu tienda publicada', 'info')}
-                className={cn("p-3 -m-3 cursor-pointer transition-colors", s.accentTextHover)}
-              >
-                <User size={20} />
-              </button>
+              {props.showCartIcon !== false && (
+                <div
+                  className={cn(
+                    "relative p-3 cursor-pointer hover:scale-110 transition-transform",
+                    variant === "tech" ? "bg-cyan-400/10" : variant === "streetwear" ? "bg-black text-white" : "bg-gray-100",
+                    s.radiusMd
+                  )}
+                  onClick={() => setIsOpen(true)}
+                >
+                  <ShoppingBag size={20} />
+                  {cart.length > 0 && (
+                    <span className={cn(
+                      "absolute -top-1 -right-1 text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-lg border-2 border-white animate-in zoom-in",
+                      s.accentBg, variant === "tech" ? "text-slate-950" : "text-white"
+                    )}>
+                      {cart.reduce((a, b) => a + b.quantity, 0)}
+                    </span>
+                  )}
+                </div>
+              )}
+              {props.showAccountIcon !== false && (
+                <button
+                  type="button"
+                  aria-label="Cuenta de cliente"
+                  onClick={() => showToast('El inicio de sesión de clientes estará disponible en tu tienda publicada', 'info')}
+                  className={cn("p-3 -m-3 cursor-pointer transition-colors", s.accentTextHover)}
+                >
+                  <User size={20} />
+                </button>
+              )}
+              {(props.extraIcons || []).map((iconKey: string) => {
+                const opt = EXTRA_ICON_OPTIONS.find(o => o.key === iconKey);
+                if (!opt) return null;
+                return (
+                  <button
+                    key={iconKey}
+                    type="button"
+                    aria-label={opt.label}
+                    onClick={() => showToast(`${opt.label}: disponible cuando publiques tu tienda`, 'info')}
+                    className={cn("p-3 -m-3 cursor-pointer transition-colors", s.accentTextHover)}
+                  >
+                    <opt.Icon size={20} />
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -389,6 +536,7 @@ export const SmartNavbar = ({ props }: { props: any }) => {
 // el de VariantContext que ya puso el navbar.
 export const SmartHero = ({ props }: { props: any }) => {
   const { setActiveFilter } = useSimNav();
+  const goTo = useSmartNavigation(setActiveFilter);
   const inherited = useVariant();
   const variant: StoreVariant = props.variant || inherited;
   const s = getVariantStyle(variant);
@@ -398,7 +546,11 @@ export const SmartHero = ({ props }: { props: any }) => {
 
   const colors = props.colors as { primary?: string; secondary?: string; button?: string; text?: string } | undefined;
   const fontFamily: string | undefined = props.fontFamily;
-  const titleStyle = fontFamily ? { fontFamily } : undefined;
+  const fontFamilyStyle = fontFamily ? { fontFamily } : undefined;
+  const titleStyle = {
+    ...(fontFamily ? { fontFamily } : {}),
+    ...(props.fontSize ? { fontSize: scaledRem(HERO_TITLE_BASE_REM, props.fontSize) } : {}),
+  };
   const subtitleStyle = { ...(colors?.text ? { color: colors.text } : {}), ...(fontFamily ? { fontFamily } : {}) };
   const badgeStyle = colors?.secondary ? { backgroundColor: `${colors.secondary}1a`, borderColor: `${colors.secondary}66`, color: colors.secondary } : undefined;
   const btnStyle = colors?.button ? { backgroundColor: colors.button, color: getReadableTextColor(colors.button) } : undefined;
@@ -434,7 +586,7 @@ export const SmartHero = ({ props }: { props: any }) => {
           <p className={cn("text-lg md:text-xl mb-12 leading-relaxed", !colors?.text && "text-slate-200", isCentered ? "max-w-2xl mx-auto" : "max-w-xl", s.body)} style={subtitleStyle}>
             {props.subtitle}
           </p>
-          <button onClick={() => goToSimulatedSection('Novedades', setActiveFilter)} className={cn("px-12 py-5 font-bold text-xs uppercase tracking-[0.3em] transition-all", !colors?.button && s.btnPrimary, colors?.button && "rounded-full")} style={{ ...btnStyle, ...titleStyle }}>
+          <button onClick={() => goTo('Novedades')} className={cn("px-12 py-5 font-bold text-xs uppercase tracking-[0.3em] transition-all", !colors?.button && s.btnPrimary, colors?.button && "rounded-full")} style={{ ...btnStyle, ...fontFamilyStyle }}>
             {props.primaryBtnText || 'Ver Colección'}
           </button>
         </div>
@@ -477,6 +629,7 @@ export const SmartHeritageBlock = ({ props }: { props: any }) => {
 export const SmartProductGrid = ({ props }: { props: any }) => {
   const { addItem: addToCart } = useCart();
   const { activeFilter } = useSimNav();
+  const goToProduct = useProductNavigation();
   const inherited = useVariant();
   const variant: StoreVariant = props.variant || inherited;
   const s = getVariantStyle(variant);
@@ -505,7 +658,11 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
 
   const colors = props.colors as { primary?: string; secondary?: string; button?: string; text?: string } | undefined;
   const fontFamily: string | undefined = props.fontFamily;
-  const titleStyle = { ...(colors?.primary ? { color: colors.primary } : {}), ...(fontFamily ? { fontFamily } : {}) };
+  const titleStyle = {
+    ...(colors?.primary ? { color: colors.primary } : {}),
+    ...(fontFamily ? { fontFamily } : {}),
+    ...(props.fontSize ? { fontSize: scaledRem(SECTION_TITLE_BASE_REM, props.fontSize) } : {}),
+  };
   const priceStyle = { ...(colors?.primary ? { color: colors.primary } : {}), ...(fontFamily ? { fontFamily } : {}) };
   const badgeStyle = colors?.secondary ? { backgroundColor: `${colors.secondary}1a`, color: colors.secondary } : undefined;
   const nameStyle = fontFamily ? { fontFamily } : undefined;
@@ -553,8 +710,9 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
               className="group flex flex-col"
             >
               <div
+                onClick={() => goToProduct(p.id)}
                 className={cn(
-                  "relative w-full aspect-[3/4] overflow-hidden mb-8 shadow-sm group-hover:shadow-2xl transition-all duration-700",
+                  "relative w-full aspect-[3/4] overflow-hidden mb-8 shadow-sm group-hover:shadow-2xl transition-all duration-700 cursor-pointer",
                   !cardRadiusPx && s.radiusLg,
                   variant === "tech" ? "bg-slate-900" : "bg-gray-50"
                 )}
@@ -565,13 +723,16 @@ export const SmartProductGrid = ({ props }: { props: any }) => {
 
                 {/* BOTÓN RÁPIDO DE COMPRA */}
                 <button
-                  onClick={() => addToCart({
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addToCart({
                       id: p.id,
                       title: p.name,
                       price: p.price,
                       image: p.image,
                       quantity: 1
-                  })}
+                    });
+                  }}
                   className={cn(
                     "absolute bottom-8 right-8 h-16 w-16 shadow-2xl opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all flex items-center justify-center active:scale-95",
                     isAngular ? "rounded-md" : "rounded-full",
@@ -765,6 +926,7 @@ const LegalModal = ({ type, storeName, onClose }: { type: LegalDocType; storeNam
 export const SmartFooter = ({ props }: { props: any }) => {
   const { showToast } = useToast();
   const { setActiveFilter } = useSimNav();
+  const goTo = useSmartNavigation(setActiveFilter);
   const [legalModal, setLegalModal] = React.useState<LegalDocType | null>(null);
   const inherited = useVariant();
   const variant: StoreVariant = props.variant || inherited;
@@ -772,8 +934,8 @@ export const SmartFooter = ({ props }: { props: any }) => {
   const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
   const isLuxuryLike = variant === "luxury" || variant === "intimate";
 
-  const goAbout = () => goToSimulatedSection('Nosotros', setActiveFilter);
-  const goContact = () => goToSimulatedSection('Contacto', setActiveFilter);
+  const goAbout = () => goTo('Nosotros');
+  const goContact = () => goTo('Contacto');
   const simulate = () => showToast('Esta sección estará disponible cuando publiques tu tienda', 'info');
   const openMap = () => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(props.location || 'Bogotá, Colombia')}`, '_blank');
 
@@ -781,6 +943,15 @@ export const SmartFooter = ({ props }: { props: any }) => {
   const servicioLinks: Record<string, () => void> = { "Contacto": goContact, "Envíos y Devoluciones": simulate, "Garantía": simulate, "FAQ": simulate };
 
   const isDarkFooter = variant === "tech" || variant === "streetwear";
+
+  const colors = props.colors as { primary?: string; secondary?: string; button?: string; text?: string } | undefined;
+  const fontFamily: string | undefined = props.fontFamily;
+  const logoStyle = {
+    ...(colors?.primary ? { color: colors.primary } : {}),
+    ...(fontFamily ? { fontFamily } : {}),
+    ...(props.fontSize ? { fontSize: scaledRem(SECTION_TITLE_BASE_REM, props.fontSize) } : {}),
+  };
+  const descriptionStyle = { ...(colors?.text ? { color: colors.text } : {}), ...(fontFamily ? { fontFamily } : {}) };
 
   return (
     <footer id="bayup-footer" className={cn(
@@ -792,12 +963,12 @@ export const SmartFooter = ({ props }: { props: any }) => {
           <h4 className={cn(
             "text-2xl tracking-tighter",
             s.display, s.displayWeight,
-            isAngular ? "uppercase" : "font-extrabold",
-            isLuxuryLike && "italic uppercase"
-          )}>
+            !colors?.primary && (isAngular ? "uppercase" : "font-extrabold"),
+            !colors?.primary && isLuxuryLike && "italic uppercase"
+          )} style={logoStyle}>
             {props.logoText || 'Tu Tienda'}
           </h4>
-          <p className={cn("text-sm leading-relaxed font-medium", s.body, isDarkFooter ? "text-white/60" : "text-slate-500")}>
+          <p className={cn("text-sm leading-relaxed font-medium", s.body, !colors?.text && (isDarkFooter ? "text-white/60" : "text-slate-500"))} style={descriptionStyle}>
             {props.description || 'Gracias por visitarnos. Contáctanos para conocer más sobre nuestros productos.'}
           </p>
           <div className={cn("flex gap-6", isDarkFooter ? "text-white/40" : "text-slate-400")}>
@@ -945,15 +1116,41 @@ export const SmartContactForm = ({ props, tenantId }: { props: any, tenantId?: s
   );
 };
 
-// 10. FICHA DE PRODUCTO (GALERÍA + INFO + RELACIONADOS)
+// Acordeon simple usado en la ficha de producto (Material y cuidado /
+// Envios y devoluciones) — colapsado por defecto, igual que en cualquier
+// e-commerce de referencia.
+const ProductDetailAccordion = ({ title, children, isDark }: { title: string; children: React.ReactNode; isDark: boolean }) => {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className={cn("border-t", isDark ? "border-slate-800" : "border-gray-100")}>
+      <button onClick={() => setOpen(o => !o)} className={cn("w-full flex items-center justify-between py-5 text-left text-xs font-bold uppercase tracking-widest transition-colors", isDark ? "text-white" : "text-gray-900")}>
+        {title}
+        <ChevronDown size={15} className={cn("shrink-0 transition-transform", isDark ? "text-slate-500" : "text-gray-400", open && "rotate-180")} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
+            <p className={cn("pb-5 text-sm leading-relaxed", isDark ? "text-slate-400" : "text-gray-500")}>{children}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// 10. FICHA DE PRODUCTO (BREADCRUMB + GALERÍA + INFO + ACORDEONES + RELACIONADOS)
 export const SmartProductDetail = ({ product, relatedProducts = [], variant: variantProp }: { product?: any, relatedProducts?: any[], variant?: StoreVariant }) => {
   const { addItem: addToCart } = useCart();
+  const goTo = useSmartNavigation(() => {});
+  const goToProduct = useProductNavigation();
   const [qty, setQty] = React.useState(1);
   const [activeImg, setActiveImg] = React.useState(0);
+  const [activeColor, setActiveColor] = React.useState(0);
   const inherited = useVariant();
   const variant: StoreVariant = variantProp || inherited;
   const s = getVariantStyle(variant);
   const isAngular = variant === "streetwear" || variant === "flash" || variant === "tech";
+  const isDark = variant === "tech";
 
   if (!product) {
     return (
@@ -964,73 +1161,127 @@ export const SmartProductDetail = ({ product, relatedProducts = [], variant: var
   }
 
   const images: string[] = (Array.isArray(product.image_url) ? product.image_url : [product.image_url || product.image]).filter(Boolean);
+  const colors: string[] | undefined = product.colors;
 
   return (
-    <section className={cn("py-20", variant === "tech" ? "bg-slate-950" : "bg-white")}>
-      <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16">
-        {/* Galería */}
-        <div className="space-y-4">
-          <div className={cn("aspect-square overflow-hidden", s.radiusLg, variant === "tech" ? "bg-slate-900" : "bg-gray-50")}>
-            {images[activeImg] && <img src={images[activeImg]} className="w-full h-full object-cover" alt={product.name} />}
+    <section className={cn("py-16", isDark ? "bg-slate-950" : "bg-white")}>
+      <div className="max-w-6xl mx-auto px-6">
+        {/* BREADCRUMB */}
+        <div className={cn("flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest mb-10", isDark ? "text-slate-500" : "text-gray-400")}>
+          <span onClick={() => goTo('Inicio')} className={cn("cursor-pointer transition-colors", isDark ? "hover:text-white" : "hover:text-gray-900")}>Inicio</span>
+          <ChevronRight size={10} />
+          <span onClick={() => goTo('Colecciones')} className={cn("cursor-pointer transition-colors", isDark ? "hover:text-white" : "hover:text-gray-900")}>{product.category || 'Colección'}</span>
+          <ChevronRight size={10} />
+          <span className={cn(isDark ? "text-slate-300" : "text-gray-600", "truncate max-w-[160px]")}>{product.name}</span>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+          {/* Galería */}
+          <div className="space-y-4">
+            <div className={cn("aspect-square overflow-hidden", s.radiusLg, isDark ? "bg-slate-900" : "bg-gray-50")}>
+              {images[activeImg] && <img src={images[activeImg]} className="w-full h-full object-cover" alt={product.name} />}
+            </div>
+            {images.length > 1 && (
+              <div className="flex gap-3">
+                {images.map((img, i) => (
+                  <button key={i} onClick={() => setActiveImg(i)} className={cn("h-20 w-20 overflow-hidden border-2 transition-colors shrink-0", s.radiusMd, activeImg === i ? s.accentBorder : "border-transparent")}>
+                    <img src={img} className="w-full h-full object-cover" alt="" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          {images.length > 1 && (
-            <div className="flex gap-3">
-              {images.map((img, i) => (
-                <button key={i} onClick={() => setActiveImg(i)} className={cn("h-20 w-20 overflow-hidden border-2 transition-colors", s.radiusMd, activeImg === i ? s.accentBorder : "border-transparent")}>
-                  <img src={img} className="w-full h-full object-cover" alt="" />
-                </button>
+
+          {/* Info */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <span className={cn("inline-block py-1.5 px-3.5 text-[9px] font-black uppercase tracking-[0.25em] border", s.badge)}>
+                {product.badge || 'Edición Limitada'}
+              </span>
+              {(product.stock ?? 1) > 0 ? (
+                <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600">En stock</span>
+              ) : (
+                <span className="text-[9px] font-black uppercase tracking-widest text-rose-500">Agotado</span>
+              )}
+            </div>
+
+            <h1 className={cn(
+              "text-4xl tracking-tighter",
+              s.display, s.displayWeight,
+              isAngular && "uppercase",
+              isDark ? "text-white" : "text-gray-900"
+            )}>
+              {product.name}
+            </h1>
+            <p className={cn("text-3xl font-black", s.accentText)}>$ {Number(product.price || 0).toLocaleString()}</p>
+            {product.description && <p className={cn("leading-relaxed", isDark ? "text-slate-400" : "text-gray-500")}>{product.description}</p>}
+
+            {colors && colors.length > 0 && (
+              <div className="space-y-2 pt-2">
+                <p className={cn("text-[10px] font-black uppercase tracking-widest", isDark ? "text-slate-500" : "text-gray-400")}>Color</p>
+                <div className="flex items-center gap-2.5">
+                  {colors.map((c, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveColor(i)}
+                      aria-label={`Color ${i + 1}`}
+                      className={cn("h-8 w-8 rounded-full border-2 transition-all", activeColor === i ? s.accentBorder : "border-transparent")}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-4 pt-4">
+              <div className={cn("flex items-center border shrink-0", s.radiusMd, isDark ? "border-slate-700" : "border-gray-200")}>
+                <button onClick={() => setQty(q => Math.max(1, q - 1))} className={cn("h-12 w-12 flex items-center justify-center hover:text-gray-900", isDark ? "text-slate-500 hover:text-white" : "text-gray-400")} aria-label="Reducir cantidad"><Minus size={16} /></button>
+                <span className={cn("w-10 text-center font-bold text-sm", isDark && "text-white")}>{qty}</span>
+                <button onClick={() => setQty(q => q + 1)} className={cn("h-12 w-12 flex items-center justify-center hover:text-gray-900", isDark ? "text-slate-500 hover:text-white" : "text-gray-400")} aria-label="Aumentar cantidad"><Plus size={16} /></button>
+              </div>
+              <button
+                onClick={() => addToCart({ id: product.id, title: product.name, price: product.price, image: images[0], quantity: qty })}
+                className={cn("flex-1 h-12 font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2", s.radiusMd, s.btnPrimary)}
+              >
+                <ShoppingBag size={15} /> Añadir al carrito
+              </button>
+            </div>
+
+            <div className="pt-2">
+              <ProductDetailAccordion title="Material y cuidado" isDark={isDark}>
+                {product.materialInfo || 'Elaborado con materiales seleccionados por su durabilidad y calidad. Para conservarlo en buen estado, evita la exposición prolongada al sol y la humedad, y guárdalo en un lugar seco.'}
+              </ProductDetailAccordion>
+              <ProductDetailAccordion title="Envíos y devoluciones" isDark={isDark}>
+                {product.shippingInfo || 'Envíos a todo el país en 2-5 días hábiles. Si no quedas conforme, tienes 30 días desde la entrega para solicitar un cambio o devolución sin costo adicional.'}
+              </ProductDetailAccordion>
+            </div>
+          </div>
+        </div>
+
+        {relatedProducts.length > 0 && (
+          <div className="mt-24">
+            <div className="flex items-end justify-between mb-8">
+              <h3 className={cn("text-2xl tracking-tighter", s.display, s.displayWeight, isAngular && "uppercase", isDark ? "text-white" : "text-gray-900")}>
+                Completa el look
+              </h3>
+              <span onClick={() => goTo('Colecciones')} className={cn("text-[10px] font-black uppercase tracking-widest cursor-pointer border-b pb-1 transition-colors", isDark ? "text-slate-500 border-slate-700 hover:text-white" : "text-gray-400 border-gray-200 hover:text-gray-900")}>
+                Ver todo
+              </span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {relatedProducts.slice(0, 4).map((p: any) => (
+                <div key={p.id} onClick={() => goToProduct(p.id)} className="space-y-3 cursor-pointer group">
+                  <div className={cn("aspect-square overflow-hidden", s.radiusMd, isDark ? "bg-slate-900" : "bg-gray-50")}>
+                    <img src={Array.isArray(p.image_url) ? p.image_url[0] : p.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={p.name} />
+                  </div>
+                  <p className={cn("text-xs font-bold truncate", isDark ? "text-white" : "text-gray-900")}>{p.name}</p>
+                  <p className={cn("text-sm font-black", s.accentText)}>$ {Number(p.price || 0).toLocaleString()}</p>
+                </div>
               ))}
             </div>
-          )}
-        </div>
-
-        {/* Info */}
-        <div className="space-y-6">
-          <p className={cn("text-[10px] font-black uppercase tracking-[0.3em]", variant === "tech" ? "text-slate-500" : "text-gray-400")}>{product.category || 'Producto'}</p>
-          <h1 className={cn(
-            "text-4xl tracking-tighter",
-            s.display, s.displayWeight,
-            isAngular && "uppercase",
-            variant === "tech" ? "text-white" : "text-gray-900"
-          )}>
-            {product.name}
-          </h1>
-          <p className={cn("text-3xl font-black", s.accentText)}>$ {Number(product.price || 0).toLocaleString()}</p>
-          {product.description && <p className={cn("leading-relaxed", variant === "tech" ? "text-slate-400" : "text-gray-500")}>{product.description}</p>}
-          <div className="flex items-center gap-4 pt-4">
-            <div className={cn("flex items-center border shrink-0", s.radiusMd, variant === "tech" ? "border-slate-700" : "border-gray-200")}>
-              <button onClick={() => setQty(q => Math.max(1, q - 1))} className={cn("h-12 w-12 flex items-center justify-center hover:text-gray-900", variant === "tech" ? "text-slate-500 hover:text-white" : "text-gray-400")} aria-label="Reducir cantidad"><Minus size={16} /></button>
-              <span className={cn("w-10 text-center font-bold text-sm", variant === "tech" && "text-white")}>{qty}</span>
-              <button onClick={() => setQty(q => q + 1)} className={cn("h-12 w-12 flex items-center justify-center hover:text-gray-900", variant === "tech" ? "text-slate-500 hover:text-white" : "text-gray-400")} aria-label="Aumentar cantidad"><Plus size={16} /></button>
-            </div>
-            <button
-              onClick={() => addToCart({ id: product.id, title: product.name, price: product.price, image: images[0], quantity: qty })}
-              className={cn("flex-1 h-12 font-black text-[10px] uppercase tracking-widest transition-all", s.radiusMd, s.btnPrimary)}
-            >
-              Añadir al carrito
-            </button>
           </div>
-        </div>
+        )}
       </div>
-
-      {relatedProducts.length > 0 && (
-        <div className="max-w-6xl mx-auto px-6 mt-24">
-          <h3 className={cn("text-2xl tracking-tighter mb-8", s.display, s.displayWeight, isAngular && "uppercase", variant === "tech" ? "text-white" : "text-gray-900")}>
-            Productos similares
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {relatedProducts.slice(0, 4).map((p: any) => (
-              <div key={p.id} className="space-y-3">
-                <div className={cn("aspect-square overflow-hidden", s.radiusMd, variant === "tech" ? "bg-slate-900" : "bg-gray-50")}>
-                  <img src={Array.isArray(p.image_url) ? p.image_url[0] : p.image_url} className="w-full h-full object-cover" alt={p.name} />
-                </div>
-                <p className={cn("text-xs font-bold truncate", variant === "tech" ? "text-white" : "text-gray-900")}>{p.name}</p>
-                <p className={cn("text-sm font-black", s.accentText)}>$ {Number(p.price || 0).toLocaleString()}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </section>
   );
 };
