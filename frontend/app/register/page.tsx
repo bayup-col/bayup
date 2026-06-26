@@ -10,12 +10,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { AuthShowcase, registerShowcaseSlides } from "@/components/landing/AuthShowcase";
+import { signInWithGoogle } from "@/lib/supabaseClient";
 
 const FloatingParticlesBackground = dynamic(
   () => import("@/components/landing/FloatingParticlesBackground").then((mod) => mod.FloatingParticlesBackground),
   { 
     ssr: false,
-    loading: () => <div className="fixed inset-0 bg-[#FAFAFA]" /> 
+    loading: () => <div className="fixed inset-0 bg-white" /> 
   }
 );
 
@@ -119,6 +120,15 @@ function RegisterForm() {
     }
   };
 
+  const handleGoogleSignup = async () => {
+    setError(null);
+    try {
+      await signInWithGoogle('/onboarding');
+    } catch (err: any) {
+      setError(err.message || 'No se pudo continuar con Google.');
+    }
+  };
+
   const selectedPlan = plans.find(p => p.id === formData.planId);
 
   if (emailSent) {
@@ -127,34 +137,32 @@ function RegisterForm() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative p-10 sm:p-14 rounded-[3rem] sm:rounded-[4rem] flex flex-col items-center text-center shadow-2xl bg-white gap-6"
+          className="relative p-10 sm:p-14 rounded-[2.5rem] sm:rounded-[3rem] flex flex-col items-center text-center bg-white/80 backdrop-blur-2xl border border-white/60 shadow-[0_40px_90px_-20px_rgba(0,0,0,0.12)] gap-6 overflow-hidden"
         >
-          <div className="absolute inset-0 rounded-[3rem] sm:rounded-[4rem] overflow-hidden -z-10">
-            <div className="absolute top-1/2 left-1/2 w-[250%] aspect-square animate-aurora opacity-30" style={{ background: `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)` }} />
-            <div className="absolute inset-[2px] rounded-[2.9rem] sm:rounded-[3.9rem] bg-white/95 backdrop-blur-3xl" />
-          </div>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-cyan/60 to-transparent" />
+          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-72 h-72 bg-cyan/10 rounded-full blur-[80px] pointer-events-none" />
 
-          <div className="h-20 w-20 rounded-[2rem] bg-emerald-50 flex items-center justify-center">
+          <div className="relative z-10 h-20 w-20 rounded-[2rem] bg-emerald-50 flex items-center justify-center">
             <MailCheck size={36} className="text-emerald-500" />
           </div>
 
-          <div>
-            <h2 className="text-2xl font-black text-black italic uppercase tracking-tight mb-2">¡Cuenta creada!</h2>
-            <p className="text-gray-500 text-sm font-semibold leading-relaxed">
+          <div className="relative z-10">
+            <h2 className="text-2xl font-light text-black mb-2">¡Cuenta creada!</h2>
+            <p className="text-gray-500 text-sm font-light leading-relaxed">
               Te enviamos un email de confirmación a
             </p>
-            <p className="text-[#004d4d] font-black text-sm mt-1">{formData.email}</p>
+            <p className="text-petroleum font-medium text-sm mt-1">{formData.email}</p>
           </div>
 
-          <div className="w-full p-4 bg-amber-50 border border-amber-100 rounded-2xl">
-            <p className="text-amber-700 text-[10px] font-black uppercase tracking-wider">
+          <div className="relative z-10 w-full p-4 bg-amber-50 border border-amber-100 rounded-2xl">
+            <p className="text-amber-700 text-xs font-medium">
               Debes confirmar tu correo antes de iniciar sesión. Revisa también tu carpeta de spam.
             </p>
           </div>
 
           <Link
             href="/login"
-            className="w-full py-4 rounded-[1.5rem] bg-[#001A1A] text-white font-black text-[11px] uppercase tracking-[0.3em] text-center transition-opacity hover:opacity-80"
+            className="relative z-10 w-full py-4 rounded-full bg-[#0A1A1A] text-white font-medium text-sm tracking-wide text-center transition-opacity hover:opacity-80 shadow-[0_15px_35px_-10px_rgba(0,0,0,0.3)]"
           >
             Ir al inicio de sesión
           </Link>
@@ -164,35 +172,28 @@ function RegisterForm() {
   }
 
   return (
-    <div className="relative z-10 w-full max-w-[640px] p-4 sm:p-6 max-h-screen overflow-y-auto no-scrollbar">
+    <div className="relative z-10 w-full max-w-[640px] p-4 sm:p-6 m-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative p-6 sm:p-10 md:p-12 rounded-[2.5rem] sm:rounded-[4rem] overflow-hidden group transition-all duration-700 isolate flex flex-col shadow-[0_40px_80px_-15px_rgba(0,0,0,0.08)] bg-white"
+          className="relative p-7 sm:p-10 md:p-12 rounded-[2.5rem] sm:rounded-[3rem] overflow-hidden transition-all duration-700 isolate flex flex-col bg-white/80 backdrop-blur-2xl border border-white/60 shadow-[0_40px_90px_-20px_rgba(0,0,0,0.12)]"
         >
-          <div className="absolute inset-0 rounded-[2.5rem] sm:rounded-[4rem] overflow-hidden -z-10">
-            <div 
-              className="absolute top-1/2 left-1/2 w-[250%] aspect-square animate-aurora opacity-40 transition-opacity duration-700"
-              style={{
-                background: `conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #00f2ff 320deg, #004d4d 360deg)`,
-                willChange: 'transform'
-              }}
-            />
-            <div className="absolute inset-[2px] rounded-[2.4rem] sm:rounded-[3.9rem] bg-white/90 backdrop-blur-3xl" />
-          </div>
+          {/* Línea de acento superior + glow ambiental, estático (no gira) */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-cyan/60 to-transparent" />
+          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-72 h-72 bg-cyan/10 rounded-full blur-[80px] pointer-events-none" />
 
-          <div className="text-center mb-8">
+          <div className="text-center mb-8 relative z-10">
             <Link href="/" className="inline-block group/logo">
-              <div className="text-4xl font-black text-black italic tracking-tighter mb-2 flex items-center justify-center transition-transform duration-500 group-hover/logo:scale-105">
+              <div className="text-3xl font-black text-black italic tracking-tighter mb-2 flex items-center justify-center transition-transform duration-500 group-hover/logo:scale-105">
                 <span>BAY</span><InteractiveUP />
               </div>
             </Link>
-            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.15em] leading-relaxed">
+            <p className="text-gray-400 text-xs font-light tracking-[0.1em]">
               Vender inteligente es vender con Bayup
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4 transition-colors group-focus-within:text-cyan">Nombre *</label>
@@ -306,21 +307,21 @@ function RegisterForm() {
               <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-[10px] font-black uppercase text-center">{error}</motion.div>
             )}
 
-            <div className="pt-4 flex flex-col items-center">
-              <button type="submit" disabled={isLoading || isSuccess} className="group relative w-full overflow-visible mb-6">
-                <motion.div animate={{ scale: isSuccess ? [1, 1.02, 1] : 1, backgroundColor: isSuccess ? "#004d4d" : "#001A1A", boxShadow: isSuccess ? "0 0 40px rgba(0, 77, 77, 0.4)" : "none" }} transition={{ duration: 0.4 }} className="relative w-full py-5 rounded-[2rem] overflow-hidden isolate" >
-                  <div className="relative z-10 flex items-center justify-center min-h-[24px]">
+            <div className="pt-2 flex flex-col items-center">
+              <button type="submit" disabled={isLoading || isSuccess} className="group relative w-full overflow-visible mb-3">
+                <motion.div animate={{ scale: isSuccess ? [1, 1.02, 1] : 1, backgroundColor: isSuccess ? "#004d4d" : "#0A1A1A", boxShadow: isSuccess ? "0 0 40px rgba(0, 77, 77, 0.4)" : "none" }} transition={{ duration: 0.4 }} className="relative w-full py-3.5 rounded-full overflow-hidden isolate shadow-[0_15px_35px_-10px_rgba(0,0,0,0.3)]" >
+                  <div className="relative z-10 flex items-center justify-center min-h-[20px]">
                     <AnimatePresence mode="wait">
                       {isSuccess ? (
                         <motion.div key="ghost-jump" initial={{ y: 20, opacity: 0, scale: 0.5 }} animate={{ y: [0, -80, 0], opacity: 1, scale: [0.5, 1.5, 1], rotate: [0, 15, -15, 0] }} transition={{ duration: 1.2, times: [0, 0.5, 1], ease: "easeInOut" }} onAnimationComplete={() => { setTimeout(() => { router.push('/onboarding'); }, 300); }} className="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]" >
-                          <Ghost size={38} strokeWidth={2.5} />
+                          <Ghost size={32} strokeWidth={2.5} />
                         </motion.div>
                       ) : isLoading ? (
                         <motion.div key="loader" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
-                          <Loader2 className="w-6 h-6 animate-spin text-[#00F2FF]" />
+                          <Loader2 className="w-5 h-5 animate-spin text-cyan" />
                         </motion.div>
                       ) : (
-                        <motion.span key="text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="font-black text-[11px] uppercase tracking-[0.3em] text-white">Unirme ahora</motion.span>
+                        <motion.span key="text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="font-medium text-sm tracking-wide text-white">Unirme ahora</motion.span>
                       )}
                     </AnimatePresence>
                   </div>
@@ -332,9 +333,28 @@ function RegisterForm() {
                 </motion.div>
               </button>
 
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-gray-400 text-[9px] font-bold uppercase tracking-wider text-center"> ¿Ya tienes una cuenta? <Link href="/login" className="text-[#004d4d] hover:text-[#00F2FF] transition-colors hover:underline underline-offset-4">Inicia sesión</Link> </p>
+              <div className="flex items-center gap-3 w-full mb-3">
+                <div className="h-px flex-1 bg-gray-200" />
+                <span className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.1em]">o continúa con</span>
+                <div className="h-px flex-1 bg-gray-200" />
               </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleSignup}
+                disabled={isLoading || isSuccess}
+                className="w-full py-3.5 mb-3 rounded-full border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.71v2.26h2.91A8.78 8.78 0 0 0 17.64 9.2Z" fill="#4285F4" />
+                  <path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.26c-.81.54-1.85.86-3.05.86-2.34 0-4.32-1.58-5.03-3.71H.95v2.33A8.997 8.997 0 0 0 9 18Z" fill="#34A853" />
+                  <path d="M3.97 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.95a8.997 8.997 0 0 0 0 8.08l3.02-2.33Z" fill="#FBBC05" />
+                  <path d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A8.59 8.59 0 0 0 9 0 8.997 8.997 0 0 0 .95 4.96l3.02 2.33C4.68 5.16 6.66 3.58 9 3.58Z" fill="#EA4335" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700">Registrarme con Google</span>
+              </button>
+
+              <p className="text-gray-400 text-xs font-light text-center mt-1"> ¿Ya tienes una cuenta? <Link href="/login" className="text-petroleum font-medium hover:text-cyan transition-colors">Inicia sesión</Link> </p>
             </div>
           </form>
         </motion.div>
@@ -344,7 +364,7 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <div className="relative min-h-screen w-full flex flex-col lg:flex-row bg-[#FAFAFA] selection:bg-[#00F2FF] selection:text-black">
+    <div className="relative h-screen w-full flex flex-col lg:flex-row bg-white selection:bg-[#00F2FF] selection:text-black overflow-hidden">
 
       {/* Botón de Regreso a Home (Elegante y blanco premium) */}
       <div className="fixed top-4 left-4 sm:top-8 sm:left-8 z-[100]">
@@ -353,7 +373,7 @@ export default function RegisterPage() {
         </GlassyButton>
       </div>
 
-      <div className="relative w-full lg:w-1/2 min-h-screen flex items-center justify-center overflow-y-auto py-10">
+      <div className="relative w-full lg:w-1/2 h-full flex justify-center overflow-y-auto py-10">
         <FloatingParticlesBackground />
         <Suspense fallback={<div className="text-black font-black uppercase tracking-widest">Cargando Terminal...</div>}>
           <RegisterForm />
