@@ -284,7 +284,7 @@ def login(request: Request, form_data: UserLoginRequest):
             value=access_token,
             httponly=True,
             secure=is_prod,
-            samesite="none",
+            samesite="lax",
             max_age=3600,  # 1 hora
             path="/",
         )
@@ -293,7 +293,7 @@ def login(request: Request, form_data: UserLoginRequest):
             value=_create_refresh_token(user.email),
             httponly=True,
             secure=is_prod,
-            samesite="none",
+            samesite="lax",
             max_age=30 * 24 * 3600,  # 30 días
             path="/auth/refresh",
         )
@@ -368,7 +368,7 @@ async def refresh_token_endpoint(request: Request):
             value=new_access_token,
             httponly=True,
             secure=is_prod,
-            samesite="none",
+            samesite="lax",
             max_age=3600,
             path="/",
         )
@@ -506,7 +506,7 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
             value=jwt_token,
             httponly=True,
             secure=is_prod,
-            samesite="none",
+            samesite="lax",
             max_age=3600,
             path="/",
         )
@@ -515,7 +515,7 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
             value=_create_refresh_token(user.email),
             httponly=True,
             secure=is_prod,
-            samesite="none",
+            samesite="lax",
             max_age=30 * 24 * 3600,
             path="/auth/refresh",
         )
