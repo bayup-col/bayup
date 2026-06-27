@@ -6,14 +6,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Check, Loader2, Image as ImageIcon, Type, LayoutTemplate, ShoppingBag,
   Menu as MenuIcon, Palette, Plus, Trash2, Monitor, Smartphone, Sparkles, ChevronDown, Tag, Eye, EyeOff,
-  ChevronsLeft, ChevronsRight, GripVertical, PanelBottom, MoveVertical, MoveHorizontal
+  ChevronsLeft, ChevronsRight, GripVertical, PanelBottom, MoveVertical, MoveHorizontal, MousePointerClick, Link2
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
-import { SmartNavbar, SmartHero, SmartProductGrid, SmartFooter, SmartContactForm, SmartProductDetail, SmartHeritageBlock, EditorPreviewNavProvider, EXTRA_ICON_OPTIONS } from '@/components/dashboard/studio/HighFidelityBlocks';
+import { SmartNavbar, SmartHero, SmartProductGrid, SmartFooter, SmartContactForm, SmartProductDetail, SmartHeritageBlock, SmartCustomButton, EditorPreviewNavProvider, EXTRA_ICON_OPTIONS } from '@/components/dashboard/studio/HighFidelityBlocks';
 import { buildDefaultBodyElements } from '@/lib/default-page-schemas';
 
-type TabKey = 'marca' | 'menu' | 'estilo-superior' | 'estilo' | 'banner' | 'productos' | 'footer' | 'estilo-final';
+type TabKey = 'marca' | 'menu' | 'estilo-superior' | 'estilo' | 'banner' | 'productos' | 'botones' | 'footer' | 'estilo-final';
 
 const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: 'marca', label: 'Marca y logo', icon: ImageIcon },
@@ -22,6 +22,7 @@ const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: 'estilo', label: 'Estilo visual', icon: Palette },
   { key: 'banner', label: 'Banners', icon: LayoutTemplate },
   { key: 'productos', label: 'Productos', icon: ShoppingBag },
+  { key: 'botones', label: 'Botones', icon: MousePointerClick },
   { key: 'footer', label: 'Pie de página', icon: PanelBottom },
   { key: 'estilo-final', label: 'Estilo del pie', icon: Palette },
 ];
@@ -32,7 +33,7 @@ const TABS: { key: TabKey; label: string; icon: any }[] = [
 // independiente de los otros dos — así el menú puede ser negro y el pie azul.
 const TAB_GROUPS: { group: string; desc: string; keys: TabKey[] }[] = [
   { group: 'Superior', desc: 'El menú de navegación', keys: ['marca', 'menu', 'estilo-superior'] },
-  { group: 'Centro', desc: 'Estilo, banners y productos', keys: ['estilo', 'banner', 'productos'] },
+  { group: 'Centro', desc: 'Estilo, banners y productos', keys: ['estilo', 'banner', 'productos', 'botones'] },
   { group: 'Final', desc: 'El pie de página', keys: ['footer', 'estilo-final'] },
 ];
 
@@ -277,9 +278,16 @@ function EditorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const templateId = searchParams.get('templateId');
-  const { token } = useAuth();
+  const { token, isAuthenticated, isLoading: authLoading } = useAuth();
   const { showToast } = useToast();
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+  // Sin esto, si la sesión expiró o se borró el storage del navegador, esta
+  // página se quedaba colgada en el spinner para siempre en vez de mandar a
+  // iniciar sesión de nuevo (el fetch de la plantilla nunca corre sin token).
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/login');
+  }, [authLoading, isAuthenticated, router]);
 
   const [loading, setLoading] = useState(true);
   const [templateName, setTemplateName] = useState('');
@@ -306,6 +314,7 @@ function EditorContent() {
   const [uploadingExtraId, setUploadingExtraId] = useState<string | null>(null);
   const [draggedBannerId, setDraggedBannerId] = useState<string | null>(null);
   const [draggedProductIndex, setDraggedProductIndex] = useState<number | null>(null);
+  const bodyContainerRef = useRef<HTMLDivElement>(null);
 
   // La tienda todavía no está publicada (no hay slug real), así que el menú
   // no puede navegar a una URL — en su lugar cambia esta vista previa local
@@ -374,6 +383,7 @@ function EditorContent() {
   const productGridEl = findEl(draft.body, 'product-grid');
   const footerEl = findEl(draft.footer, 'footer-premium');
   const extraBanners: any[] = (draft.body?.elements || []).filter((el: any) => el.type === 'hero-banner' && el.props?.isExtra);
+  const customButtons: any[] = (draft.body?.elements || []).filter((el: any) => el.type === 'custom-button');
   const storeVariant: string | undefined = navbarEl?.props?.variant;
 
   const updateElProps = (section: 'header' | 'body' | 'footer', elId: string, patch: Record<string, any>) => {
@@ -528,6 +538,54 @@ function EditorContent() {
   };
   const removeExtraBanner = (id: string) => {
     setDraft((prev: any) => ({ ...prev, body: { ...prev.body, elements: (prev.body.elements || []).filter((el: any) => el.id !== id) } }));
+  };
+
+  // Botones personalizados: cada uno es su propio elemento del body, con
+  // color/tipografía/tamaño/forma/posición y una URL real de destino.
+  const addCustomButton = () => {
+    const id = `button-${Date.now()}`;
+    const newButton = {
+      id,
+      type: 'custom-button',
+      props: { text: 'Nuevo botón', url: '', bgColor: '#0A1A1A', textColor: '#FFFFFF', fontSize: FONT_SIZE_DEFAULT, shape: 'soft' },
+    };
+    setDraft((prev: any) => ({ ...prev, body: { ...prev.body, elements: [...(prev.body.elements || []), newButton] } }));
+    setOpenSection(id);
+  };
+  const removeCustomButton = (id: string) => {
+    setDraft((prev: any) => ({ ...prev, body: { ...prev.body, elements: (prev.body.elements || []).filter((el: any) => el.id !== id) } }));
+  };
+
+  // Arrastre libre: el botón se puede soltar en cualquier punto de la
+  // página (incluso encima de un banner o de la grilla), porque se posiciona
+  // con coordenadas absolutas relativas al contenedor completo de la vista
+  // previa, no en el flujo normal del documento.
+  const handleButtonDragPointerDown = (e: React.PointerEvent, btn: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const container = bodyContainerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    let origX = btn.props.posX;
+    let origY = btn.props.posY;
+    if (typeof origX !== 'number' || typeof origY !== 'number') {
+      // Estaba centrado (sin posición guardada todavía): convertimos a una
+      // coordenada absoluta real justo donde está el cursor para arrancar.
+      origX = e.clientX - rect.left;
+      origY = e.clientY - rect.top;
+    }
+    try { (e.target as Element).setPointerCapture?.(e.pointerId); } catch {}
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const onMove = (ev: PointerEvent) => {
+      updateElProps('body', btn.id, { posX: origX + (ev.clientX - startX), posY: origY + (ev.clientY - startY) });
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
   };
   // Arrastre continuo: en cada movimiento del mouse se recalcula el índice
   // según la posición vertical del cursor frente a las demás secciones, así
@@ -1131,6 +1189,119 @@ function EditorContent() {
             </div>
           )}
 
+          {tab === 'botones' && (
+            <div className="space-y-5">
+              <div className="space-y-1">
+                <h3 className="text-base font-medium text-[#0A1A1A]">Botones</h3>
+                <p className="text-xs text-gray-400 font-light leading-relaxed">Crea botones a tu medida: color, tamaño, tipografía, forma, posición y a dónde envían al hacer clic.</p>
+              </div>
+
+              <div className="space-y-2.5">
+                {customButtons.map((b, i) => (
+                  <AccordionRow
+                    key={b.id}
+                    isOpen={openSection === b.id}
+                    onToggle={() => toggleSection(b.id)}
+                    label={b.props.text || `Botón ${i + 1}`}
+                    desc={b.props.url || 'Sin URL de destino'}
+                    preview={<span className="h-7 w-7 rounded-lg shrink-0 flex items-center justify-center text-white text-[9px] font-bold" style={{ backgroundColor: b.props.bgColor || '#0A1A1A' }}>Aa</span>}
+                  >
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Texto del botón</label>
+                        <input value={b.props.text || ''} onChange={e => updateElProps('body', b.id, { text: e.target.value })}
+                          className="w-full p-3.5 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-xl outline-none text-sm font-medium transition-all focus:bg-white" />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1 flex items-center gap-1.5"><Link2 size={11} /> URL de destino</label>
+                        <input value={b.props.url || ''} onChange={e => updateElProps('body', b.id, { url: e.target.value })}
+                          placeholder="https://... o /colecciones"
+                          className="w-full p-3.5 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-xl outline-none text-sm font-medium transition-all focus:bg-white" />
+                        <p className="text-[11px] text-gray-400 font-light ml-1">Una URL completa (https://...) abre en otra pestaña. Una ruta como /colecciones navega dentro de tu tienda.</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Color de fondo</label>
+                          <div className="flex items-center gap-2 p-2 rounded-xl bg-gray-50/80 border border-transparent focus-within:border-cyan/40 transition-all">
+                            <input type="color" value={b.props.bgColor || '#0A1A1A'} onChange={e => updateElProps('body', b.id, { bgColor: e.target.value })} className="h-9 w-9 rounded-full cursor-pointer border-none bg-transparent shrink-0 color-swatch-round" />
+                            <input value={b.props.bgColor || '#0A1A1A'} onChange={e => updateElProps('body', b.id, { bgColor: e.target.value })} className="flex-1 min-w-0 bg-transparent outline-none text-xs font-medium uppercase tracking-wide text-gray-700" />
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Color de texto</label>
+                          <div className="flex items-center gap-2 p-2 rounded-xl bg-gray-50/80 border border-transparent focus-within:border-cyan/40 transition-all">
+                            <input type="color" value={b.props.textColor || '#FFFFFF'} onChange={e => updateElProps('body', b.id, { textColor: e.target.value })} className="h-9 w-9 rounded-full cursor-pointer border-none bg-transparent shrink-0 color-swatch-round" />
+                            <input value={b.props.textColor || '#FFFFFF'} onChange={e => updateElProps('body', b.id, { textColor: e.target.value })} className="flex-1 min-w-0 bg-transparent outline-none text-xs font-medium uppercase tracking-wide text-gray-700" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Tipografía</label>
+                        <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                          {FONT_OPTIONS.map(f => (
+                            <button
+                              key={f.value}
+                              onClick={() => updateElProps('body', b.id, { fontFamily: f.value })}
+                              className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left transition-all ${
+                                b.props.fontFamily === f.value ? 'border-cyan/60 bg-cyan/5 ring-1 ring-cyan/20' : 'border-gray-100 hover:border-gray-200'
+                              }`}
+                            >
+                              <span className="text-sm text-gray-900" style={{ fontFamily: f.value }}>{f.label}</span>
+                              {b.props.fontFamily === f.value && <Check size={14} className="text-petroleum shrink-0" />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Tamaño del texto</label>
+                        <div className="flex items-center gap-4 px-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Chico</span>
+                          <input type="range" min={FONT_SIZE_MIN} max={FONT_SIZE_MAX} value={b.props.fontSize ?? FONT_SIZE_DEFAULT} onChange={e => updateElProps('body', b.id, { fontSize: Number(e.target.value) })} className="flex-1 h-1.5 rounded-full bg-gray-200 accent-cyan cursor-pointer" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Grande</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Forma</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {CARD_SHAPES.map(shape => (
+                            <button
+                              key={shape.key}
+                              onClick={() => updateElProps('body', b.id, { shape: shape.key })}
+                              className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all ${
+                                (b.props.shape || 'soft') === shape.key ? 'border-cyan/60 bg-cyan/5 ring-1 ring-cyan/20' : 'border-gray-100 hover:border-gray-200'
+                              }`}
+                            >
+                              <span className="h-6 w-10 bg-gray-300" style={{ borderRadius: shape.radius }} />
+                              <span className="text-[10px] font-medium text-gray-600">{shape.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5 p-3 rounded-xl bg-cyan/5 border border-cyan/20">
+                        <MousePointerClick size={15} className="text-petroleum shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-petroleum/80 font-medium leading-relaxed">Arrastra este botón directamente en la vista previa para ubicarlo donde quieras — incluso encima de un banner o de la grilla de productos.</p>
+                      </div>
+
+                      <button onClick={() => removeCustomButton(b.id)} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-rose-200 text-xs font-medium text-rose-400 hover:bg-rose-50 transition-all">
+                        <Trash2 size={13} /> Eliminar botón
+                      </button>
+                    </div>
+                  </AccordionRow>
+                ))}
+
+                <button onClick={addCustomButton} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border border-dashed border-gray-200 text-xs font-medium text-gray-400 hover:border-cyan/40 hover:text-petroleum transition-all">
+                  <Plus size={14} /> Nuevo botón
+                </button>
+              </div>
+            </div>
+          )}
+
           {tab === 'footer' && footerEl && (
             <div className="space-y-5">
               <div className="space-y-1">
@@ -1191,7 +1362,7 @@ function EditorContent() {
               <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
             </div>
-            <div className="relative">
+            <div className="relative" ref={bodyContainerRef}>
               <EditorPreviewNavProvider value={setPreviewView}>
                 {navbarEl && (
                   <div style={navPosition ? { transform: `translateY(${-navPosition}px)`, position: 'relative', zIndex: 50 } : undefined}>
@@ -1239,6 +1410,16 @@ function EditorContent() {
                       <div key={el.id}>
                         <SmartProductGrid props={{ ...el.props, variant: el.props.variant || storeVariant, colors: centroStyle.colors, fontFamily: centroStyle.fontFamily, fontSize: centroStyle.fontSize }} />
                       </div>
+                    );
+                  }
+                  if (el.type === 'custom-button') {
+                    return (
+                      <SmartCustomButton
+                        key={el.id}
+                        props={el.props}
+                        onDragHandlePointerDown={e => handleButtonDragPointerDown(e, el)}
+                        onRemove={() => removeCustomButton(el.id)}
+                      />
                     );
                   }
                   return null;

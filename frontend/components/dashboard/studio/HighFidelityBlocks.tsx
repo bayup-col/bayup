@@ -1286,6 +1286,65 @@ export const SmartProductDetail = ({ product, relatedProducts = [], variant: var
   );
 };
 
+// 10.5 BOTÓN PERSONALIZADO — creado a mano en el editor, con su propio
+// color, tipografía, tamaño, forma, posición y una URL de destino real
+// (interna -> navega dentro de la tienda; externa -> abre en pestaña nueva).
+const CUSTOM_BUTTON_RADIUS: Record<string, string> = { square: '0.375rem', soft: '0.75rem', round: '9999px' };
+// `onDragHandlePointerDown` solo lo pasa el editor de onboarding (para poder
+// arrastrar el botón con el mouse sobre el resto de la página); en la
+// tienda publicada nunca se pasa, así que el botón queda fijo donde se dejó
+// y nunca es "arrastrable" para un visitante real.
+export const SmartCustomButton = ({ props, onDragHandlePointerDown, onRemove }: { props: any; onDragHandlePointerDown?: (e: React.PointerEvent) => void; onRemove?: () => void }) => {
+  const router = useRouter();
+  const params = useParams();
+  const slug = typeof params?.slug === 'string' ? params.slug : undefined;
+
+  const handleClick = () => {
+    if (onDragHandlePointerDown) return; // en el editor el clic no navega, solo se arrastra
+    const url: string | undefined = props.url;
+    if (!url) return;
+    if (/^https?:\/\//.test(url)) { window.open(url, '_blank'); return; }
+    if (slug) router.push(url.startsWith('/') ? url : `/shop/${slug}/${url}`);
+  };
+
+  const style: React.CSSProperties = {
+    backgroundColor: props.bgColor || '#0A1A1A',
+    color: props.textColor || '#FFFFFF',
+    borderRadius: CUSTOM_BUTTON_RADIUS[props.shape] || CUSTOM_BUTTON_RADIUS.soft,
+    ...(props.fontFamily ? { fontFamily: props.fontFamily } : {}),
+    ...(props.fontSize ? { fontSize: scaledRem(0.8, props.fontSize) } : {}),
+  };
+
+  // Posición libre: se guarda en px relativos a la sección donde vive el
+  // botón (header/body/footer, el primer ancestro con `position: relative`).
+  // Sin posición guardada todavía, arranca centrado.
+  const hasPos = typeof props.posX === 'number' && typeof props.posY === 'number';
+  const wrapperStyle: React.CSSProperties = hasPos
+    ? { position: 'absolute', left: props.posX, top: props.posY, zIndex: 30 }
+    : { position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 30 };
+
+  return (
+    <div
+      style={wrapperStyle}
+      onPointerDown={onDragHandlePointerDown}
+      className={cn("group/btn", onDragHandlePointerDown && "cursor-grab active:cursor-grabbing touch-none")}
+    >
+      {onRemove && (
+        <button
+          onPointerDown={e => e.stopPropagation()}
+          onClick={onRemove}
+          className="absolute -top-3 -right-3 h-6 w-6 rounded-full bg-black/60 hover:bg-rose-500 text-white flex items-center justify-center opacity-0 group-hover/btn:opacity-100 transition-opacity z-10"
+        >
+          <X size={11} />
+        </button>
+      )}
+      <button onClick={handleClick} style={style} className="px-9 py-4 font-bold uppercase tracking-widest shadow-md hover:opacity-90 active:scale-95 transition-all whitespace-nowrap">
+        {props.text || 'Nuevo botón'}
+      </button>
+    </div>
+  );
+};
+
 // 11. TRUST BANNER — franja de confianza (garantia, envios, soporte, pago seguro)
 // Usado hoy por la plantilla Tecnologia (computadora) para reforzar credibilidad
 // antes del formulario de contacto. Los textos son genericos pero reales (no
