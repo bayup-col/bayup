@@ -1676,22 +1676,43 @@ async def get_super_admin_companies(request: Request):
         user = await _authenticate(request, db)
         _require_super_admin(user)
 
-        companies = db.query(models.User).filter(
-            models.User.role == "admin_tienda",
-            models.User.owner_id.is_(None),
-        ).all()
-
+        # Un JOIN por tienda en vez de 4 queries N×1
+        order_stats = (
+            db.query(
+                models.Order.tenant_id,
+                func.coalesce(func.sum(models.Order.total_price), 0.0).label("total_sales"),
+                func.coalesce(func.sum(models.Order.commission_amount), 0.0).label("total_commission"),
+                func.count(models.Order.id).label("total_orders"),
+            )
+            .group_by(models.Order.tenant_id)
+            .subquery()
+        )
+        product_stats = (
+            db.query(
+                models.Product.owner_id,
+                func.count(models.Product.id).label("total_products"),
+            )
+            .group_by(models.Product.owner_id)
+            .subquery()
+        )
+        rows = (
+            db.query(
+                models.User,
+                func.coalesce(order_stats.c.total_sales, 0.0).label("total_sales"),
+                func.coalesce(order_stats.c.total_commission, 0.0).label("total_commission"),
+                func.coalesce(order_stats.c.total_orders, 0).label("total_orders"),
+                func.coalesce(product_stats.c.total_products, 0).label("total_products"),
+            )
+            .outerjoin(order_stats, models.User.id == order_stats.c.tenant_id)
+            .outerjoin(product_stats, models.User.id == product_stats.c.owner_id)
+            .filter(
+                models.User.role == "admin_tienda",
+                models.User.owner_id.is_(None),
+            )
+            .all()
+        )
         result = []
-        for c in companies:
-            total_sales = db.query(func.coalesce(func.sum(models.Order.total_price), 0.0)).filter(
-                models.Order.tenant_id == c.id
-            ).scalar() or 0.0
-            total_commission = db.query(func.coalesce(func.sum(models.Order.commission_amount), 0.0)).filter(
-                models.Order.tenant_id == c.id
-            ).scalar() or 0.0
-            total_orders = db.query(models.Order).filter(models.Order.tenant_id == c.id).count()
-            total_products = db.query(models.Product).filter(models.Product.owner_id == c.id).count()
-
+        for c, total_sales, total_commission, total_orders, total_products in rows:
             result.append({
                 "id": str(c.id),
                 "full_name": c.full_name,
@@ -1703,10 +1724,10 @@ async def get_super_admin_companies(request: Request):
                 "shop_slug": c.shop_slug,
                 "plan": {"name": c.plan.name, "price": c.plan.monthly_fee} if c.plan else None,
                 "stats": {
-                    "total_sales": total_sales,
-                    "total_products": total_products,
-                    "total_orders": total_orders,
-                    "total_commission": total_commission,
+                    "total_sales": float(total_sales),
+                    "total_products": int(total_products),
+                    "total_orders": int(total_orders),
+                    "total_commission": float(total_commission),
                 },
             })
         return result
@@ -2345,11 +2366,10 @@ async def live_preview_template_page(
     template_id: str,
     page_key: str,
     request: Request,
-    token: str = Query(None),           # legacy: JWT en query param (deprecado, ALTA-004)
-    preview_token: str = Query(None),   # nuevo: token opaco de corta vida
+    preview_token: str = Query(None),   # token opaco de corta vida (ALTA-004)
 ):
     """Preview navegable de plantilla HTML con SDK de demostración y datos mock."""
-    import models, uuid as uuid_lib, security as sec_mod
+    import models, uuid as uuid_lib
     from database import SessionLocal
     db = SessionLocal()
     try:
@@ -2360,16 +2380,8 @@ async def live_preview_template_page(
                 raise HTTPException(status_code=401, detail="Preview token inválido o expirado")
             user = db.query(models.User).filter(models.User.email == email).first()
             _require_super_admin(user)
-        elif token:
-            # Soporte legacy: JWT en URL (deprecado — migrar a /preview-token)
-            logger.warning("JWT expuesto en URL de preview para template %s — migrar a preview_token", template_id)
-            try:
-                user = await sec_mod.get_current_user(request=request, token=token, db=db)
-            except Exception:
-                raise HTTPException(status_code=401, detail="Token inválido o expirado")
-            _require_super_admin(user)
         else:
-            # Sin token en URL: autenticar vía cookie httpOnly o Authorization header
+            # Autenticar vía cookie httpOnly o Authorization header
             user = await _authenticate(request, db)
             _require_super_admin(user)
         try:
@@ -2744,6 +2756,7 @@ class CheckoutRequest(BaseModel):
     customer_phone: str = Field(min_length=7)
     items: list[CheckoutItemSchema] = Field(min_length=1)
     currency: str = Field(default="COP", max_length=3)
+    idempotency_key: str | None = Field(default=None, max_length=128)
 
 def _build_whatsapp_url(phone: str, store_name: str, items: list, total: float) -> str:
     """Genera enlace de WhatsApp con resumen del pedido como fallback de pago."""
@@ -2794,6 +2807,22 @@ async def public_checkout(slug: str, payload: CheckoutRequest, request: Request)
         if not tenant:
             raise HTTPException(status_code=404, detail="Tienda no encontrada")
 
+        # Idempotencia: evitar duplicados por doble-clic o retry del cliente
+        if payload.idempotency_key:
+            existing = db.query(models.Payment).filter(
+                models.Payment.tenant_id == tenant.id,
+                models.Payment.idempotency_key == payload.idempotency_key,
+            ).first()
+            if existing:
+                return {
+                    "payment_id":           str(existing.id),
+                    "status":               existing.status,
+                    "amount":               existing.amount,
+                    "currency":             existing.currency,
+                    "whatsapp_url":         existing.whatsapp_url,
+                    "gateway_redirect_url": existing.gateway_redirect_url,
+                }
+
         # CRIT-002: calcular unit_price desde DB; ignorar el precio enviado por el cliente
         items_dict = []
         total = 0.0
@@ -2838,6 +2867,7 @@ async def public_checkout(slug: str, payload: CheckoutRequest, request: Request)
             gateway=None,           # TODO: asignar cuando se configure el gateway
             gateway_redirect_url=None,  # TODO: generar URL del gateway aquí
             whatsapp_url=whatsapp_url,
+            idempotency_key=payload.idempotency_key,
         )
         db.add(payment)
         db.commit()

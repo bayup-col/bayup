@@ -48,7 +48,6 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
                 if (refreshRes.ok) {
                     const refreshData = await refreshRes.json();
                     const newToken = refreshData.access_token;
-                    if (newToken) localStorage.setItem('token', newToken);
                     const retryHeaders = { ...headers };
                     if (newToken) retryHeaders['Authorization'] = `Bearer ${newToken}`;
                     response = await fetch(fullUrl, { ...config, headers: retryHeaders });
@@ -57,7 +56,6 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
         }
 
         if (!response.ok) {
-            if (response.status === 401) localStorage.removeItem('token');
             let errorMsg = `Error ${response.status}`;
             try {
                 const errorData = await response.json();
@@ -81,7 +79,7 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
 
 // SERVICES
 export const userService = {
-    getMe: (token: string) => apiRequest<any>('/auth/me', { token }),
+    getMe: (token?: string | null) => apiRequest<any>('/auth/me', { token }),
     getAll: (token: string) => apiRequest<any[]>('/admin/staff', { token }),
     create: (token: string, data: any) =>
         apiRequest('/admin/staff', { method: 'POST', token, body: JSON.stringify(data) }),

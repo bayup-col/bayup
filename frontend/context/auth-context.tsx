@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   // Función para cargar perfil desde el servidor y sincronizar
-  const syncProfile = useCallback(async (authToken: string) => {
+  const syncProfile = useCallback(async (authToken?: string | null) => {
     try {
       const data = await userService.getMe(authToken);
       if (data) {
@@ -119,11 +119,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       useEffect(() => {
       const loadStorage = async () => {
       try {
-        const storedToken = localStorage.getItem('token');
         const storedEmail = localStorage.getItem('userEmail');
 
-        if (storedToken && storedEmail) {
-          setToken(storedToken);
+        if (storedEmail) {
+          // Cargar datos no-sensibles inmediatamente (UI rápida)
           setUserEmail(storedEmail);
           setUserName(localStorage.getItem('userName'));
           setUserRole(localStorage.getItem('userRole'));
@@ -138,12 +137,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (storedPerms) setUserPermissions(JSON.parse(storedPerms));
           if (storedPlan) setUserPlan(JSON.parse(storedPlan));
-          // CRIT-005: isGlobalStaff NO se lee de localStorage — es manipulable desde consola.
-          // Se establece únicamente desde syncProfile (/auth/me) o desde login() con token validado.
           if (storedOnboarding) setOnboardingCompleted(storedOnboarding === 'true');
 
-          // Sincronización proactiva con el servidor (Fallo silencioso)
-          syncProfile(storedToken);
+          // Restaurar sesión vía cookie httpOnly (token nunca viaja en localStorage)
+          try {
+            const isLocal = typeof window !== 'undefined' &&
+              (window.location.hostname === 'localhost' ||
+               window.location.hostname === '127.0.0.1' ||
+               window.location.hostname.includes('192.168.'));
+            const apiBase = isLocal
+              ? 'http://localhost:8000'
+              : (process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co');
+            const refreshRes = await fetch(`${apiBase}/auth/refresh`, {
+              method: 'POST',
+              credentials: 'include',
+            });
+            if (refreshRes.ok) {
+              const data = await refreshRes.json();
+              setToken(data.access_token); // solo en memoria, nunca en localStorage
+              syncProfile(data.access_token);
+            } else {
+              // Cookie caducada: limpiar estado local
+              localStorage.clear();
+              setUserEmail(null); setUserName(null); setUserRole(null);
+              setUserLogo(null); setUserNit(null); setUserAddress(null);
+              setUserPermissions(null); setUserPlan(null); setShopSlug(null);
+            }
+          } catch {
+            // Error de red transitorio: mantener datos de UI pero sin token activo
+          }
         }
       } catch (e) {
         // Error de carga silencioso
@@ -167,7 +189,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserAddress(address);
     setOnboardingCompleted(onboardingDone);
 
-    localStorage.setItem('token', newToken);
     localStorage.setItem('userEmail', email);
     localStorage.setItem('userName', name);
     localStorage.setItem('userRole', role);
@@ -222,8 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // resolver a ningun usuario y el backend emite uno nuevo en la misma
   // respuesta. Esto lo guarda sin forzar un logout/relogin completo.
   const refreshToken = useCallback((newToken: string, newEmail?: string) => {
-    setToken(newToken);
-    localStorage.setItem('token', newToken);
+    setToken(newToken); // solo en memoria
     if (newEmail) {
       setUserEmail(newEmail);
       localStorage.setItem('userEmail', newEmail);
