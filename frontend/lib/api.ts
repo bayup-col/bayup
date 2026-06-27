@@ -1,7 +1,7 @@
 // Centralized API Client - Dynamic Base URL detection
 const getApiBaseUrl = () => {
     // Fallback solo si NEXT_PUBLIC_API_URL no está configurada en el entorno de despliegue
-    const PRODUCTION_URL = "https://bayup-backend.onrender.com";
+    const PRODUCTION_URL = "https://api.bayup.com.co";
 
     if (typeof window !== 'undefined') {
         const hostname = window.location.hostname;

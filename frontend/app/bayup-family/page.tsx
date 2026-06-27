@@ -28,7 +28,7 @@ export default function BayupFamilyLogin() {
                  window.location.hostname.includes('192.168.'));
             const apiBase = isLocal
                 ? 'http://localhost:8000'
-                : (process.env.NEXT_PUBLIC_API_URL || 'https://bayup-backend.onrender.com');
+                : (process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co');
             
             const response = await fetch(`${apiBase}/auth/login`, {
                 method: 'POST',

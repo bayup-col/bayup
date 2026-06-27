@@ -31,7 +31,7 @@ export default function ResetPasswordPage() {
                 (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
             const apiBase = isLocal
                 ? 'http://localhost:8000'
-                : (process.env.NEXT_PUBLIC_API_URL || 'https://bayup-backend.onrender.com');
+                : (process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co');
             const res = await fetch(`${apiBase}/auth/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

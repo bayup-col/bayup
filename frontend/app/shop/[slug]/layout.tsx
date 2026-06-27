@@ -7,7 +7,7 @@ interface Props {
 }
 
 async function getShopData(slug: string) {
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://bayup-backend.onrender.com';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
   try {
     const res = await fetch(`${apiBase}/public/shop/${slug}`, { next: { revalidate: 3600 } });
     if (!res.ok) return null;

@@ -249,7 +249,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Limpiar cookies httpOnly en el servidor (fire-and-forget, no bloqueante)
     const apiBase = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
       ? 'http://localhost:8000'
-      : (process.env.NEXT_PUBLIC_API_URL || 'https://bayup-backend.onrender.com');
+      : (process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co');
     fetch(`${apiBase}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
     // Hard redirect: evita race condition con DashboardLayout useEffect (isAuthenticated → /login)
     window.location.href = wasStaff ? '/bayup-family' : '/login';

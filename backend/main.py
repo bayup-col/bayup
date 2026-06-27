@@ -225,7 +225,8 @@ def health_check(request: Request):
         db.execute(text("SELECT 1"))
         return {"status": "ok", "database": "connected"}
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Base de datos no disponible: {e}")
+        logger.error("Health check DB failed: %s", e)
+        raise HTTPException(status_code=503, detail="Base de datos no disponible")
     finally:
         db.close()
 
@@ -338,6 +339,7 @@ def register(request: Request, payload: RegisterRequest):
         db.close()
 
 @app.post("/auth/refresh")
+@limiter.limit("10/minute")
 async def refresh_token_endpoint(request: Request):
     """Renueva el access token usando el refresh token de la cookie httpOnly (CRIT-004)."""
     import security as sec_mod
@@ -1305,6 +1307,7 @@ async def update_admin_staff(payload: StaffUpdateRequest, request: Request):
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
+        _require_admin_role(user)
         tenant_id = _tenant_id(user)
         target = db.query(models.User).filter(
             models.User.email == payload.email,
@@ -1334,6 +1337,7 @@ async def delete_admin_staff(staff_id: str, request: Request):
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
+        _require_admin_role(user)
         tenant_id = _tenant_id(user)
         try:
             target_uuid = uuid_lib.UUID(staff_id)

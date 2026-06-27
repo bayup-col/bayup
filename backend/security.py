@@ -90,6 +90,8 @@ async def get_current_user(
 
     try:
         payload = jwt.decode(actual_token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") == "refresh":
+            raise credentials_exception
         email = payload.get("sub")
     except JWTError:
         raise credentials_exception
