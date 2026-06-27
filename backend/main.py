@@ -2665,6 +2665,8 @@ async def get_admin_payment(payment_id: str, request: Request):
 # ---------------------------------------------------------------------------
 
 _BAYUP_PREVIEW_SDK = """
+<meta name="google" content="notranslate">
+<meta name="translate" content="no">
 <script id="bayup-preview-sdk">
 (function(){
   var TPLID='__TPLID__',TOK='__TOK__',BASE='__BASE__';
@@ -2961,10 +2963,11 @@ def _inject_sdk(html: str, slug: str, page_key: str, phone: str, api_url: str) -
         f' data-bayup-api="{api_url}"'
         f' data-bayup-phone="{phone}"'
     )
-    # Agrega atributos al <html>
     import re
     html = re.sub(r'<html([^>]*?)>', f'<html\\1{sdk_attrs}>', html, count=1, flags=re.IGNORECASE)
-    # Inyecta el SDK justo antes de </body>
+    # Bloquea auto-traducción del navegador (Chrome/Edge rompen el layout al traducir)
+    no_translate = '<meta name="google" content="notranslate"><meta name="translate" content="no">'
+    html = re.sub(r'</head>', no_translate + '\n</head>', html, count=1, flags=re.IGNORECASE)
     html = re.sub(r'</body>', _BAYUP_SDK + '\n</body>', html, count=1, flags=re.IGNORECASE)
     return html
 
