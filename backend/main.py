@@ -422,7 +422,10 @@ def reset_password(request: Request, payload: ResetPasswordRequest):
         ).first()
         if not user or not user.password_reset_expires:
             raise HTTPException(status_code=400, detail="Token inválido o expirado")
-        if user.password_reset_expires < datetime.now(timezone.utc).replace(tzinfo=None):
+        expires = user.password_reset_expires
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if expires < datetime.now(timezone.utc):
             raise HTTPException(status_code=400, detail="El enlace expiró. Solicita uno nuevo.")
         user.hashed_password = sec_mod.get_password_hash(payload.new_password)
         user.password_reset_token = None
