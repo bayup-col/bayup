@@ -335,16 +335,23 @@ const useSmartNavigation = (setFilter: (f: string | null) => void) => {
   const slug = typeof params?.slug === 'string' ? params.slug : undefined;
   const editorNav = React.useContext(EditorPreviewNavContext);
 
-  return (label: string) => {
+  // `url` es la URL real que el comerciante eligió a mano para este ítem
+  // (editor "Menú" → campo de URL). Una externa (http/https) abre en pestaña
+  // nueva tal cual. Una interna todavía no puede crear una página nueva de
+  // verdad (la tienda solo tiene 4 páginas reales: home/catalog/about/
+  // product), así que se interpreta su texto para mandar a la más parecida
+  // en vez de dar un 404 — sigue siendo mejor que ignorarla por completo.
+  return (label: string, url?: string) => {
+    if (url && /^https?:\/\//.test(url)) { window.open(url, '_blank'); return; }
     if (editorNav) {
-      editorNav(labelToPageKey(label));
+      editorNav(labelToPageKey(url || label));
       return;
     }
     if (!slug) {
       goToSimulatedSection(label, setFilter);
       return;
     }
-    const pageKey = labelToPageKey(label);
+    const pageKey = labelToPageKey(url || label);
     router.push(pageKey === 'home' ? `/shop/${slug}` : `/shop/${slug}?view=${pageKey}`);
   };
 };
@@ -457,11 +464,12 @@ export const SmartNavbar = ({ props }: { props: any }) => {
           <nav className="hidden lg:flex items-center gap-10">
             {(props.menuItems || ["Novedades", "Colecciones", "Nosotros", "Contacto"]).map((item: any, i: number) => {
               const label = typeof item === 'string' ? item : item.label;
+              const itemUrl = typeof item === 'string' ? undefined : item.url;
               const isActive = activeFilter?.toLowerCase() === label.toLowerCase();
               return (
                 <span
                   key={i}
-                  onClick={() => goTo(label)}
+                  onClick={() => goTo(label, itemUrl)}
                   className={cn(
                     "text-[10px] font-black uppercase tracking-[0.2em] cursor-pointer transition-all",
                     !itemsPrimaryColor && (isActive ? s.accentText : "text-gray-500"),
@@ -573,22 +581,30 @@ export const SmartHero = ({ props }: { props: any }) => {
           "relative z-10 px-6 max-w-4xl",
           isCentered ? "text-center mx-auto" : "text-left ml-6 md:ml-16 max-w-2xl"
         )}>
-          <span className={cn("inline-block py-1.5 px-4 text-[10px] font-bold tracking-[0.4em] uppercase mb-8 border", !colors?.secondary && s.badge, colors?.secondary && "border")} style={badgeStyle}>
-            {props.badge || 'Exclusividad'}
-          </span>
-          <h2 className={cn(
-            "text-6xl md:text-8xl text-white mb-8 leading-none",
-            heroFont,
-            variant === "streetwear" && "drop-shadow-[4px_4px_0px_rgba(250,204,21,1)]"
-          )} style={titleStyle}>
-            {props.title || 'Elegancia Eterna'}
-          </h2>
-          <p className={cn("text-lg md:text-xl mb-12 leading-relaxed", !colors?.text && "text-slate-200", isCentered ? "max-w-2xl mx-auto" : "max-w-xl", s.body)} style={subtitleStyle}>
-            {props.subtitle}
-          </p>
-          <button onClick={() => goTo('Novedades')} className={cn("px-12 py-5 font-bold text-xs uppercase tracking-[0.3em] transition-all", !colors?.button && s.btnPrimary, colors?.button && "rounded-full")} style={{ ...btnStyle, ...fontFamilyStyle }}>
-            {props.primaryBtnText || 'Ver Colección'}
-          </button>
+          {props.badge && (
+            <span className={cn("inline-block py-1.5 px-4 text-[10px] font-bold tracking-[0.4em] uppercase mb-8 border", !colors?.secondary && s.badge, colors?.secondary && "border")} style={badgeStyle}>
+              {props.badge}
+            </span>
+          )}
+          {props.title && (
+            <h2 className={cn(
+              "text-6xl md:text-8xl text-white mb-8 leading-none",
+              heroFont,
+              variant === "streetwear" && "drop-shadow-[4px_4px_0px_rgba(250,204,21,1)]"
+            )} style={titleStyle}>
+              {props.title}
+            </h2>
+          )}
+          {props.subtitle && (
+            <p className={cn("text-lg md:text-xl mb-12 leading-relaxed", !colors?.text && "text-slate-200", isCentered ? "max-w-2xl mx-auto" : "max-w-xl", s.body)} style={subtitleStyle}>
+              {props.subtitle}
+            </p>
+          )}
+          {props.primaryBtnText && (
+            <button onClick={() => goTo('Novedades')} className={cn("px-12 py-5 font-bold text-xs uppercase tracking-[0.3em] transition-all", !colors?.button && s.btnPrimary, colors?.button && "rounded-full")} style={{ ...btnStyle, ...fontFamilyStyle }}>
+              {props.primaryBtnText}
+            </button>
+          )}
         </div>
       </section>
     </VariantContext.Provider>
@@ -1341,6 +1357,57 @@ export const SmartCustomButton = ({ props, onDragHandlePointerDown, onRemove }: 
       <button onClick={handleClick} style={style} className="px-9 py-4 font-bold uppercase tracking-widest shadow-md hover:opacity-90 active:scale-95 transition-all whitespace-nowrap">
         {props.text || 'Nuevo botón'}
       </button>
+    </div>
+  );
+};
+
+// 10.6 IMAGEN/VIDEO PERSONALIZADO — misma idea que el botón: posición libre
+// (arrastrable en el editor) y tamaño a mano, para poder superponerlo sobre
+// cualquier otra parte de la página.
+export const SmartCustomMedia = ({ props, onDragHandlePointerDown, onRemove }: { props: any; onDragHandlePointerDown?: (e: React.PointerEvent) => void; onRemove?: () => void }) => {
+  const hasPos = typeof props.posX === 'number' && typeof props.posY === 'number';
+  const size = props.size || 240;
+  const wrapperStyle: React.CSSProperties = {
+    position: 'absolute',
+    width: `${size}px`,
+    zIndex: 25,
+    ...(hasPos ? { left: props.posX, top: props.posY } : { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }),
+  };
+  const mediaRadius = CUSTOM_BUTTON_RADIUS[props.shape] || CUSTOM_BUTTON_RADIUS.soft;
+
+  return (
+    <div
+      style={wrapperStyle}
+      onPointerDown={onDragHandlePointerDown}
+      className={cn("group/media", onDragHandlePointerDown && "cursor-grab active:cursor-grabbing touch-none")}
+    >
+      {onRemove && (
+        <button
+          onPointerDown={e => e.stopPropagation()}
+          onClick={onRemove}
+          className="absolute -top-3 -right-3 h-6 w-6 rounded-full bg-black/60 hover:bg-rose-500 text-white flex items-center justify-center opacity-0 group-hover/media:opacity-100 transition-opacity z-10"
+        >
+          <X size={11} />
+        </button>
+      )}
+      {props.mediaUrl ? (
+        props.mediaType === 'video' ? (
+          <video
+            src={props.mediaUrl}
+            controls={!onDragHandlePointerDown}
+            muted
+            playsInline
+            className="w-full h-auto shadow-md object-cover pointer-events-auto"
+            style={{ borderRadius: mediaRadius }}
+          />
+        ) : (
+          <img src={props.mediaUrl} alt="" className="w-full h-auto shadow-md object-cover" style={{ borderRadius: mediaRadius }} />
+        )
+      ) : (
+        <div className="w-full aspect-[4/3] bg-gray-100 border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 text-[10px] font-bold uppercase tracking-widest" style={{ borderRadius: mediaRadius }}>
+          Sin imagen
+        </div>
+      )}
     </div>
   );
 };

@@ -4,16 +4,16 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, Check, Loader2, Image as ImageIcon, Type, LayoutTemplate, ShoppingBag,
+  ArrowLeft, Check, Loader2, Image as ImageIcon, Images, Type, LayoutTemplate, ShoppingBag,
   Menu as MenuIcon, Palette, Plus, Trash2, Monitor, Smartphone, Sparkles, ChevronDown, Tag, Eye, EyeOff,
-  ChevronsLeft, ChevronsRight, GripVertical, PanelBottom, MoveVertical, MoveHorizontal, MousePointerClick, Link2
+  ChevronsLeft, ChevronsRight, GripVertical, PanelBottom, MoveVertical, MoveHorizontal, MousePointerClick, Link2, Video
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
-import { SmartNavbar, SmartHero, SmartProductGrid, SmartFooter, SmartContactForm, SmartProductDetail, SmartHeritageBlock, SmartCustomButton, EditorPreviewNavProvider, EXTRA_ICON_OPTIONS } from '@/components/dashboard/studio/HighFidelityBlocks';
+import { SmartNavbar, SmartHero, SmartProductGrid, SmartFooter, SmartContactForm, SmartProductDetail, SmartHeritageBlock, SmartCustomButton, SmartCustomMedia, EditorPreviewNavProvider, EXTRA_ICON_OPTIONS } from '@/components/dashboard/studio/HighFidelityBlocks';
 import { buildDefaultBodyElements } from '@/lib/default-page-schemas';
 
-type TabKey = 'marca' | 'menu' | 'estilo-superior' | 'estilo' | 'banner' | 'productos' | 'botones' | 'footer' | 'estilo-final';
+type TabKey = 'marca' | 'menu' | 'estilo-superior' | 'estilo' | 'banner' | 'productos' | 'botones' | 'imagenes' | 'footer' | 'estilo-final';
 
 const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: 'marca', label: 'Marca y logo', icon: ImageIcon },
@@ -23,6 +23,7 @@ const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: 'banner', label: 'Banners', icon: LayoutTemplate },
   { key: 'productos', label: 'Productos', icon: ShoppingBag },
   { key: 'botones', label: 'Botones', icon: MousePointerClick },
+  { key: 'imagenes', label: 'Imágenes', icon: Images },
   { key: 'footer', label: 'Pie de página', icon: PanelBottom },
   { key: 'estilo-final', label: 'Estilo del pie', icon: Palette },
 ];
@@ -33,7 +34,7 @@ const TABS: { key: TabKey; label: string; icon: any }[] = [
 // independiente de los otros dos — así el menú puede ser negro y el pie azul.
 const TAB_GROUPS: { group: string; desc: string; keys: TabKey[] }[] = [
   { group: 'Superior', desc: 'El menú de navegación', keys: ['marca', 'menu', 'estilo-superior'] },
-  { group: 'Centro', desc: 'Estilo, banners y productos', keys: ['estilo', 'banner', 'productos', 'botones'] },
+  { group: 'Centro', desc: 'Estilo, banners y productos', keys: ['estilo', 'banner', 'productos', 'botones', 'imagenes'] },
   { group: 'Final', desc: 'El pie de página', keys: ['footer', 'estilo-final'] },
 ];
 
@@ -65,6 +66,19 @@ const CARD_SHAPES = [
 ];
 
 const findEl = (section: any, type: string) => (section?.elements || []).find((el: any) => el.type === type);
+
+// Genera una ruta a partir del nombre del ítem ("Ofertas de Verano" -> "/ofertas-de-verano")
+// para que cada ítem nuevo del menú quede con una URL real por defecto sin
+// que el comerciante tenga que pensarla — pero siempre se puede sobrescribir.
+const slugifyMenuUrl = (label: string) => {
+  const slug = (label || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-');
+  return slug ? `/${slug}` : '';
+};
 
 // Fila de acordeón reutilizable: encabezado siempre visible (con una vista
 // previa del valor actual) que despliega el control real al hacer click.
@@ -111,8 +125,8 @@ const STYLE_COLOR_ROWS = [
 ];
 
 const StyleEditorPanel = ({
-  prefix, colors, fontFamily, fontSize, updateColor, setFontFamily, setFontSize, openSection, toggleSection,
-  onlyPrimaryColor = false, position, setPosition, navSize, setNavSize, horizontalPosition, setHorizontalPosition,
+  prefix, colors, fontFamily, fontSize, updateColor, setFontFamily, setFontSize,
+  onlyPrimaryColor = false, hiddenColorKeys, position, setPosition, navSize, setNavSize, horizontalPosition, setHorizontalPosition,
   hideTypography = false,
 }: {
   prefix: string;
@@ -122,9 +136,8 @@ const StyleEditorPanel = ({
   updateColor: (key: 'primary' | 'secondary' | 'button' | 'text', value: string) => void;
   setFontFamily: (value: string) => void;
   setFontSize: (value: number) => void;
-  openSection: string | null;
-  toggleSection: (key: string) => void;
   onlyPrimaryColor?: boolean;
+  hiddenColorKeys?: ('primary' | 'secondary' | 'button' | 'text')[];
   navSize?: number;
   setNavSize?: (value: number) => void;
   position?: number;
@@ -132,13 +145,25 @@ const StyleEditorPanel = ({
   horizontalPosition?: number;
   setHorizontalPosition?: (value: number) => void;
   hideTypography?: boolean;
-}) => (
+}) => {
+  // Estado de apertura PROPIO de este panel, en vez de compartir el
+  // `openSection` de la página: si este panel vive anidado dentro de otro
+  // acordeón (ej. dentro de "Banner adicional 1"), usar el mismo estado
+  // global hacía que abrir "Tipografía" aquí cerrara el acordeón padre
+  // (porque ya no coincidía con el id que lo mantenía abierto).
+  const [openRow, setOpenRow] = useState<string | null>(null);
+  const toggleRow = (key: string) => setOpenRow(prev => (prev === key ? null : key));
+
+  return (
   <div className="space-y-2.5">
-    {(onlyPrimaryColor ? STYLE_COLOR_ROWS.filter(r => r.colorKey === 'primary') : STYLE_COLOR_ROWS).map(row => (
+    {(onlyPrimaryColor
+      ? STYLE_COLOR_ROWS.filter(r => r.colorKey === 'primary')
+      : STYLE_COLOR_ROWS.filter(r => !(hiddenColorKeys || []).includes(r.colorKey))
+    ).map(row => (
       <AccordionRow
         key={row.key}
-        isOpen={openSection === `${prefix}-${row.key}`}
-        onToggle={() => toggleSection(`${prefix}-${row.key}`)}
+        isOpen={openRow === row.key}
+        onToggle={() => toggleRow(row.key)}
         label={row.label}
         desc={row.desc}
         preview={<span className="h-7 w-7 rounded-full shrink-0 border border-black/5" style={{ backgroundColor: colors[row.colorKey] }} />}
@@ -152,8 +177,8 @@ const StyleEditorPanel = ({
 
     {!hideTypography && (
       <AccordionRow
-        isOpen={openSection === `${prefix}-tipografia`}
-        onToggle={() => toggleSection(`${prefix}-tipografia`)}
+        isOpen={openRow === 'tipografia'}
+        onToggle={() => toggleRow('tipografia')}
         label="Tipografía"
         desc={FONT_OPTIONS.find(f => f.value === fontFamily)?.label || 'Inter'}
         preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400"><Type size={14} /></span>}
@@ -180,8 +205,8 @@ const StyleEditorPanel = ({
 
     {!hideTypography && (
       <AccordionRow
-        isOpen={openSection === `${prefix}-tamano`}
-        onToggle={() => toggleSection(`${prefix}-tamano`)}
+        isOpen={openRow === 'tamano'}
+        onToggle={() => toggleRow('tamano')}
         label="Tamaño de tipografía"
         desc={`${fontSize}%`}
         preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400 font-black text-[11px]">Aa</span>}
@@ -204,8 +229,8 @@ const StyleEditorPanel = ({
 
     {setHorizontalPosition && (
       <AccordionRow
-        isOpen={openSection === `${prefix}-posicion-h`}
-        onToggle={() => toggleSection(`${prefix}-posicion-h`)}
+        isOpen={openRow === 'posicion-h'}
+        onToggle={() => toggleRow('posicion-h')}
         label="Posición horizontal"
         desc="Mueve el texto a la izquierda o derecha"
         preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400"><MoveHorizontal size={14} /></span>}
@@ -227,8 +252,8 @@ const StyleEditorPanel = ({
 
     {setPosition && (
       <AccordionRow
-        isOpen={openSection === `${prefix}-posicion`}
-        onToggle={() => toggleSection(`${prefix}-posicion`)}
+        isOpen={openRow === 'posicion'}
+        onToggle={() => toggleRow('posicion')}
         label="Posición"
         desc="Sube o baja toda la sección"
         preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400"><MoveVertical size={14} /></span>}
@@ -250,8 +275,8 @@ const StyleEditorPanel = ({
 
     {setNavSize && (
       <AccordionRow
-        isOpen={openSection === `${prefix}-navsize`}
-        onToggle={() => toggleSection(`${prefix}-navsize`)}
+        isOpen={openRow === 'navsize'}
+        onToggle={() => toggleRow('navsize')}
         label="Tamaño del navbar"
         desc={`${navSize ?? 100}%`}
         preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 flex items-center justify-center text-gray-400"><LayoutTemplate size={14} /></span>}
@@ -272,7 +297,8 @@ const StyleEditorPanel = ({
       </AccordionRow>
     )}
   </div>
-);
+  );
+};
 
 function EditorContent() {
   const router = useRouter();
@@ -312,6 +338,9 @@ function EditorContent() {
   const extraFileRef = useRef<HTMLInputElement>(null);
   const [extraFileTarget, setExtraFileTarget] = useState<string | null>(null);
   const [uploadingExtraId, setUploadingExtraId] = useState<string | null>(null);
+  const mediaFileRef = useRef<HTMLInputElement>(null);
+  const [mediaFileTarget, setMediaFileTarget] = useState<string | null>(null);
+  const [uploadingMediaId, setUploadingMediaId] = useState<string | null>(null);
   const [draggedBannerId, setDraggedBannerId] = useState<string | null>(null);
   const [draggedProductIndex, setDraggedProductIndex] = useState<number | null>(null);
   const bodyContainerRef = useRef<HTMLDivElement>(null);
@@ -384,6 +413,7 @@ function EditorContent() {
   const footerEl = findEl(draft.footer, 'footer-premium');
   const extraBanners: any[] = (draft.body?.elements || []).filter((el: any) => el.type === 'hero-banner' && el.props?.isExtra);
   const customButtons: any[] = (draft.body?.elements || []).filter((el: any) => el.type === 'custom-button');
+  const customMedia: any[] = (draft.body?.elements || []).filter((el: any) => el.type === 'custom-media');
   const storeVariant: string | undefined = navbarEl?.props?.variant;
 
   const updateElProps = (section: 'header' | 'body' | 'footer', elId: string, patch: Record<string, any>) => {
@@ -414,6 +444,27 @@ function EditorContent() {
   const navStyle = buildStyleControls('header', navbarEl);
   const centroStyle = buildStyleControls('body', heroEl);
   const footerStyle = buildStyleControls('footer', footerEl);
+
+  // Estilo INDIVIDUAL de cada banner (principal o adicional): si el banner
+  // no definió su propio color/tipografía/tamaño todavía, hereda el de
+  // "Estilo visual" (centroStyle) para no romper lo que ya se veía — pero
+  // en cuanto se toca acá, queda guardado en ESE banner puntual, sin afectar
+  // a los demás.
+  const buildBannerStyle = (el: any) => {
+    const colors = { ...centroStyle.colors, ...(el?.props?.colors || {}) };
+    const fontFamily: string | undefined = el?.props?.fontFamily ?? centroStyle.fontFamily;
+    const fontSize: number = typeof el?.props?.fontSize === 'number' ? el.props.fontSize : centroStyle.fontSize;
+    const position: number = typeof el?.props?.position === 'number' ? el.props.position : 0;
+    const horizontalPosition: number = typeof el?.props?.horizontalPosition === 'number' ? el.props.horizontalPosition : 0;
+    const updateColor = (key: 'primary' | 'secondary' | 'button' | 'text', value: string) => {
+      if (el) updateElProps('body', el.id, { colors: { ...colors, [key]: value } });
+    };
+    const setFontFamily = (value: string) => { if (el) updateElProps('body', el.id, { fontFamily: value }); };
+    const setFontSize = (value: number) => { if (el) updateElProps('body', el.id, { fontSize: value }); };
+    const setPosition = (value: number) => { if (el) updateElProps('body', el.id, { position: value }); };
+    const setHorizontalPosition = (value: number) => { if (el) updateElProps('body', el.id, { horizontalPosition: value }); };
+    return { colors, fontFamily, fontSize, position, horizontalPosition, updateColor, setFontFamily, setFontSize, setPosition, setHorizontalPosition };
+  };
 
   // Posición vertical del menú: a la derecha se desplaza hacia arriba
   // (translateY negativo), a la izquierda hacia abajo (translateY positivo).
@@ -473,13 +524,29 @@ function EditorContent() {
     updateElProps('header', navbarEl.id, { extraIcons: next });
   };
 
-  const updateMenuItem = (index: number, value: string) => {
+  // Cada ítem del menú es { label, url }. Si el comerciante todavía no
+  // tocó la URL a mano (sigue siendo la generada automáticamente a partir
+  // del texto anterior), cambiar el texto la regenera sola; en cuanto la
+  // edita manualmente, dejamos de tocarla.
+  const updateMenuItemLabel = (index: number, label: string) => {
     if (!navbarEl) return;
     const items = [...(navbarEl.props.menuItems || [])];
-    items[index] = value;
+    const current = items[index];
+    const prevLabel = typeof current === 'string' ? current : current?.label;
+    const prevUrl = typeof current === 'string' ? '' : (current?.url || '');
+    const autoUrl = typeof current === 'string' ? true : current?.urlIsAuto !== false;
+    items[index] = { label, url: autoUrl ? slugifyMenuUrl(label) : prevUrl, urlIsAuto: autoUrl };
     updateElProps('header', navbarEl.id, { menuItems: items });
   };
-  const addMenuItem = () => navbarEl && updateElProps('header', navbarEl.id, { menuItems: [...(navbarEl.props.menuItems || []), 'Nuevo ítem'] });
+  const updateMenuItemUrl = (index: number, url: string) => {
+    if (!navbarEl) return;
+    const items = [...(navbarEl.props.menuItems || [])];
+    const current = items[index];
+    const label = typeof current === 'string' ? current : current?.label;
+    items[index] = { label, url, urlIsAuto: false };
+    updateElProps('header', navbarEl.id, { menuItems: items });
+  };
+  const addMenuItem = () => navbarEl && updateElProps('header', navbarEl.id, { menuItems: [...(navbarEl.props.menuItems || []), { label: 'Nuevo ítem', url: slugifyMenuUrl('Nuevo ítem'), urlIsAuto: true }] });
   const removeMenuItem = (index: number) => {
     if (!navbarEl) return;
     const items = [...(navbarEl.props.menuItems || [])];
@@ -556,18 +623,40 @@ function EditorContent() {
     setDraft((prev: any) => ({ ...prev, body: { ...prev.body, elements: (prev.body.elements || []).filter((el: any) => el.id !== id) } }));
   };
 
+  // Imágenes/videos personalizados: igual que los botones, posición libre.
+  // El video es por URL (mp4 directo) porque hoy solo se pueden subir
+  // archivos de imagen — pegar un link evita tener que tocar el backend.
+  const addCustomMedia = () => {
+    const id = `media-${Date.now()}`;
+    const newMedia = { id, type: 'custom-media', props: { mediaUrl: '', mediaType: 'image', size: 240, shape: 'soft' } };
+    setDraft((prev: any) => ({ ...prev, body: { ...prev.body, elements: [...(prev.body.elements || []), newMedia] } }));
+    setOpenSection(id);
+  };
+  const removeCustomMedia = (id: string) => {
+    setDraft((prev: any) => ({ ...prev, body: { ...prev.body, elements: (prev.body.elements || []).filter((el: any) => el.id !== id) } }));
+  };
+  const handleMediaImagePick = async (file: File, id: string) => {
+    setUploadingMediaId(id);
+    const url = await uploadImage(file);
+    setUploadingMediaId(null);
+    if (url) updateElProps('body', id, { mediaUrl: url, mediaType: 'image' });
+  };
+
   // Arrastre libre: el botón se puede soltar en cualquier punto de la
   // página (incluso encima de un banner o de la grilla), porque se posiciona
   // con coordenadas absolutas relativas al contenedor completo de la vista
   // previa, no en el flujo normal del documento.
-  const handleButtonDragPointerDown = (e: React.PointerEvent, btn: any) => {
+  // Compartido por botones e imágenes/videos: ambos son elementos de
+  // posición libre (left/top absolutos), así que el mismo arrastre les
+  // sirve a los dos.
+  const handleFreeDragPointerDown = (e: React.PointerEvent, el: any) => {
     e.preventDefault();
     e.stopPropagation();
     const container = bodyContainerRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
-    let origX = btn.props.posX;
-    let origY = btn.props.posY;
+    let origX = el.props.posX;
+    let origY = el.props.posY;
     if (typeof origX !== 'number' || typeof origY !== 'number') {
       // Estaba centrado (sin posición guardada todavía): convertimos a una
       // coordenada absoluta real justo donde está el cursor para arrancar.
@@ -578,7 +667,7 @@ function EditorContent() {
     const startX = e.clientX;
     const startY = e.clientY;
     const onMove = (ev: PointerEvent) => {
-      updateElProps('body', btn.id, { posX: origX + (ev.clientX - startX), posY: origY + (ev.clientY - startY) });
+      updateElProps('body', el.id, { posX: origX + (ev.clientX - startX), posY: origY + (ev.clientY - startY) });
     };
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
@@ -833,16 +922,27 @@ function EditorContent() {
                 <h3 className="text-base font-medium text-[#0A1A1A]">Menú de navegación</h3>
                 <p className="text-xs text-gray-400 font-light leading-relaxed">Edita las opciones del menú de tu tienda.</p>
               </div>
-              <div className="space-y-2.5">
-                {(navbarEl.props.menuItems || []).map((item: any, i: number) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input value={typeof item === 'string' ? item : item.label} onChange={e => updateMenuItem(i, e.target.value)}
-                      className="flex-1 p-3 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-xl outline-none text-sm font-medium transition-all focus:bg-white" />
-                    <button onClick={() => removeMenuItem(i)} className="h-9 w-9 shrink-0 rounded-xl flex items-center justify-center text-gray-300 hover:text-rose-500 hover:bg-rose-50 transition-colors">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                {(navbarEl.props.menuItems || []).map((item: any, i: number) => {
+                  const label = typeof item === 'string' ? item : item.label;
+                  const url = typeof item === 'string' ? '' : (item.url || '');
+                  return (
+                    <div key={i} className="p-3 rounded-xl bg-gray-50/60 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input value={label} onChange={e => updateMenuItemLabel(i, e.target.value)} placeholder="Texto del ítem"
+                          className="flex-1 p-2.5 bg-white border border-transparent focus:border-cyan/40 rounded-lg outline-none text-sm font-medium transition-all" />
+                        <button onClick={() => removeMenuItem(i)} className="h-9 w-9 shrink-0 rounded-lg flex items-center justify-center text-gray-300 hover:text-rose-500 hover:bg-rose-50 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1.5 pl-1">
+                        <Link2 size={12} className="text-gray-400 shrink-0" />
+                        <input value={url} onChange={e => updateMenuItemUrl(i, e.target.value)} placeholder="/ruta-de-la-pagina o https://..."
+                          className="flex-1 p-1.5 bg-transparent border-b border-gray-200 focus:border-cyan/60 outline-none text-xs font-medium text-gray-500 transition-all" />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               <button onClick={addMenuItem} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-gray-200 text-xs font-medium text-gray-400 hover:border-cyan/40 hover:text-petroleum transition-all">
                 <Plus size={14} /> Agregar ítem
@@ -860,8 +960,6 @@ function EditorContent() {
                 updateColor={updateItemsColor}
                 setFontFamily={setItemsFontFamily}
                 setFontSize={setItemsFontSize}
-                openSection={openSection}
-                toggleSection={toggleSection}
                 onlyPrimaryColor
                 horizontalPosition={itemsHorizontalPosition}
                 setHorizontalPosition={setItemsHorizontalPosition}
@@ -885,8 +983,6 @@ function EditorContent() {
                 updateColor={navStyle.updateColor}
                 setFontFamily={navStyle.setFontFamily}
                 setFontSize={navStyle.setFontSize}
-                openSection={openSection}
-                toggleSection={toggleSection}
                 onlyPrimaryColor
                 hideTypography
                 position={navPosition}
@@ -973,8 +1069,6 @@ function EditorContent() {
                 updateColor={centroStyle.updateColor}
                 setFontFamily={centroStyle.setFontFamily}
                 setFontSize={centroStyle.setFontSize}
-                openSection={openSection}
-                toggleSection={toggleSection}
               />
             </div>
           )}
@@ -1023,6 +1117,30 @@ function EditorContent() {
                       <input value={heroEl.props.primaryBtnText || ''} onChange={e => updateElProps('body', heroEl.id, { primaryBtnText: e.target.value })}
                         className="w-full p-3.5 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-xl outline-none text-sm font-medium transition-all focus:bg-white" />
                     </div>
+
+                    <div className="pt-2 space-y-1">
+                      <p className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Estilo de este banner</p>
+                      <p className="text-[11px] text-gray-400 font-light ml-1">Independiente del resto — si no lo tocas, hereda el de "Estilo visual".</p>
+                    </div>
+                    {(() => {
+                      const heroStyle = buildBannerStyle(heroEl);
+                      return (
+                        <StyleEditorPanel
+                          prefix={`banner-${heroEl.id}`}
+                          hiddenColorKeys={['primary', 'secondary', 'button']}
+                          colors={heroStyle.colors}
+                          fontFamily={heroStyle.fontFamily}
+                          fontSize={heroStyle.fontSize}
+                          updateColor={heroStyle.updateColor}
+                          setFontFamily={heroStyle.setFontFamily}
+                          setFontSize={heroStyle.setFontSize}
+                          position={heroStyle.position}
+                          setPosition={heroStyle.setPosition}
+                          horizontalPosition={heroStyle.horizontalPosition}
+                          setHorizontalPosition={heroStyle.setHorizontalPosition}
+                        />
+                      );
+                    })()}
                   </div>
                 </AccordionRow>
 
@@ -1068,6 +1186,31 @@ function EditorContent() {
                         <input value={b.props.primaryBtnText || ''} onChange={e => updateElProps('body', b.id, { primaryBtnText: e.target.value })}
                           className="w-full p-3.5 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-xl outline-none text-sm font-medium transition-all focus:bg-white" />
                       </div>
+
+                      <div className="pt-2 space-y-1">
+                        <p className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Estilo de este banner</p>
+                        <p className="text-[11px] text-gray-400 font-light ml-1">Independiente del resto — si no lo tocas, hereda el de "Estilo visual".</p>
+                      </div>
+                      {(() => {
+                        const extraStyle = buildBannerStyle(b);
+                        return (
+                          <StyleEditorPanel
+                            prefix={`banner-${b.id}`}
+                            hiddenColorKeys={['primary', 'secondary', 'button']}
+                            colors={extraStyle.colors}
+                            fontFamily={extraStyle.fontFamily}
+                            fontSize={extraStyle.fontSize}
+                            updateColor={extraStyle.updateColor}
+                            setFontFamily={extraStyle.setFontFamily}
+                            setFontSize={extraStyle.setFontSize}
+                            position={extraStyle.position}
+                            setPosition={extraStyle.setPosition}
+                            horizontalPosition={extraStyle.horizontalPosition}
+                            setHorizontalPosition={extraStyle.setHorizontalPosition}
+                          />
+                        );
+                      })()}
+
                       <button onClick={() => removeExtraBanner(b.id)} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-rose-200 text-xs font-medium text-rose-400 hover:bg-rose-50 transition-all">
                         <Trash2 size={13} /> Eliminar banner
                       </button>
@@ -1302,6 +1445,105 @@ function EditorContent() {
             </div>
           )}
 
+          {tab === 'imagenes' && (
+            <div className="space-y-5">
+              <div className="space-y-1">
+                <h3 className="text-base font-medium text-[#0A1A1A]">Imágenes</h3>
+                <p className="text-xs text-gray-400 font-light leading-relaxed">Sube imágenes o pega el link de un video y ubícalos donde quieras, encima de cualquier otra parte de la página.</p>
+              </div>
+
+              <div className="space-y-2.5">
+                {customMedia.map((m, i) => (
+                  <AccordionRow
+                    key={m.id}
+                    isOpen={openSection === m.id}
+                    onToggle={() => toggleSection(m.id)}
+                    label={`${m.props.mediaType === 'video' ? 'Video' : 'Imagen'} ${i + 1}`}
+                    desc={m.props.mediaUrl ? 'Cargado' : 'Sin contenido todavía'}
+                    preview={<span className="h-7 w-7 rounded-lg shrink-0 bg-gray-100 overflow-hidden flex items-center justify-center text-gray-400">{m.props.mediaType === 'video' ? <Video size={13} /> : (m.props.mediaUrl ? <img src={m.props.mediaUrl} className="w-full h-full object-cover" /> : <ImageIcon size={13} />)}</span>}
+                  >
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => updateElProps('body', m.id, { mediaType: 'image', mediaUrl: m.props.mediaType === 'video' ? '' : m.props.mediaUrl })}
+                          className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-medium transition-all ${(m.props.mediaType || 'image') === 'image' ? 'border-cyan/60 bg-cyan/5 ring-1 ring-cyan/20' : 'border-gray-100 hover:border-gray-200'}`}
+                        >
+                          <ImageIcon size={14} /> Imagen
+                        </button>
+                        <button
+                          onClick={() => updateElProps('body', m.id, { mediaType: 'video', mediaUrl: m.props.mediaType === 'image' ? '' : m.props.mediaUrl })}
+                          className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-medium transition-all ${m.props.mediaType === 'video' ? 'border-cyan/60 bg-cyan/5 ring-1 ring-cyan/20' : 'border-gray-100 hover:border-gray-200'}`}
+                        >
+                          <Video size={14} /> Video
+                        </button>
+                      </div>
+
+                      {m.props.mediaType === 'video' ? (
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">URL del video (.mp4)</label>
+                          <input value={m.props.mediaUrl || ''} onChange={e => updateElProps('body', m.id, { mediaUrl: e.target.value })}
+                            placeholder="https://.../video.mp4"
+                            className="w-full p-3 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-xl outline-none text-sm font-medium transition-all focus:bg-white" />
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Imagen</label>
+                          <button onClick={() => { setMediaFileTarget(m.id); mediaFileRef.current?.click(); }} disabled={uploadingMediaId === m.id}
+                            className="w-full h-28 rounded-xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 overflow-hidden relative hover:border-cyan/40 transition-all">
+                            {uploadingMediaId === m.id ? <Loader2 size={20} className="animate-spin text-petroleum" /> : m.props.mediaUrl ? <img src={m.props.mediaUrl} className="w-full h-full object-cover" alt="" /> : <ImageIcon size={22} />}
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Tamaño</label>
+                        <div className="flex items-center gap-4 px-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Chico</span>
+                          <input type="range" min={80} max={600} value={m.props.size ?? 240} onChange={e => updateElProps('body', m.id, { size: Number(e.target.value) })} className="flex-1 h-1.5 rounded-full bg-gray-200 accent-cyan cursor-pointer" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 shrink-0">Grande</span>
+                        </div>
+                        <p className="text-center text-xs font-medium text-gray-500 mt-1">{m.props.size ?? 240}px de ancho</p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Bordes</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {CARD_SHAPES.map(shape => (
+                            <button
+                              key={shape.key}
+                              onClick={() => updateElProps('body', m.id, { shape: shape.key })}
+                              className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all ${
+                                (m.props.shape || 'soft') === shape.key ? 'border-cyan/60 bg-cyan/5 ring-1 ring-cyan/20' : 'border-gray-100 hover:border-gray-200'
+                              }`}
+                            >
+                              <span className="h-6 w-10 bg-gray-300" style={{ borderRadius: shape.radius }} />
+                              <span className="text-[10px] font-medium text-gray-600">{shape.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5 p-3 rounded-xl bg-cyan/5 border border-cyan/20">
+                        <MousePointerClick size={15} className="text-petroleum shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-petroleum/80 font-medium leading-relaxed">Arrastra esta imagen/video directamente en la vista previa para ubicarla donde quieras, encima de cualquier otra parte de la página.</p>
+                      </div>
+
+                      <button onClick={() => removeCustomMedia(m.id)} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-rose-200 text-xs font-medium text-rose-400 hover:bg-rose-50 transition-all">
+                        <Trash2 size={13} /> Eliminar
+                      </button>
+                    </div>
+                  </AccordionRow>
+                ))}
+
+                <input ref={mediaFileRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f && mediaFileTarget) handleMediaImagePick(f, mediaFileTarget); }} />
+
+                <button onClick={addCustomMedia} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border border-dashed border-gray-200 text-xs font-medium text-gray-400 hover:border-cyan/40 hover:text-petroleum transition-all">
+                  <Plus size={14} /> Nueva imagen o video
+                </button>
+              </div>
+            </div>
+          )}
+
           {tab === 'footer' && footerEl && (
             <div className="space-y-5">
               <div className="space-y-1">
@@ -1336,8 +1578,6 @@ function EditorContent() {
                 updateColor={footerStyle.updateColor}
                 setFontFamily={footerStyle.setFontFamily}
                 setFontSize={footerStyle.setFontSize}
-                openSection={openSection}
-                toggleSection={toggleSection}
               />
             </div>
           )}
@@ -1381,10 +1621,15 @@ function EditorContent() {
                 {previewView === 'home' && (draft.body?.elements || []).map((el: any) => {
                   if (el.type === 'hero-banner') {
                     const isExtra = !!el.props?.isExtra;
+                    const bStyle = buildBannerStyle(el);
+                    const bannerTransform = (bStyle.position || bStyle.horizontalPosition)
+                      ? `translate(${bStyle.horizontalPosition}px, ${-bStyle.position}px)`
+                      : undefined;
                     return (
                       <div
                         key={el.id}
                         className={`relative transition-opacity ${draggedBannerId === el.id ? 'opacity-40' : ''}`}
+                        style={bannerTransform ? { transform: bannerTransform } : undefined}
                       >
                         {isExtra && (
                           <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5">
@@ -1401,7 +1646,7 @@ function EditorContent() {
                             </button>
                           </div>
                         )}
-                        <SmartHero props={{ ...el.props, variant: el.props.variant || storeVariant, colors: centroStyle.colors, fontFamily: centroStyle.fontFamily, fontSize: centroStyle.fontSize }} />
+                        <SmartHero props={{ ...el.props, variant: el.props.variant || storeVariant, colors: bStyle.colors, fontFamily: bStyle.fontFamily, fontSize: bStyle.fontSize }} />
                       </div>
                     );
                   }
@@ -1417,8 +1662,18 @@ function EditorContent() {
                       <SmartCustomButton
                         key={el.id}
                         props={el.props}
-                        onDragHandlePointerDown={e => handleButtonDragPointerDown(e, el)}
+                        onDragHandlePointerDown={e => handleFreeDragPointerDown(e, el)}
                         onRemove={() => removeCustomButton(el.id)}
+                      />
+                    );
+                  }
+                  if (el.type === 'custom-media') {
+                    return (
+                      <SmartCustomMedia
+                        key={el.id}
+                        props={el.props}
+                        onDragHandlePointerDown={e => handleFreeDragPointerDown(e, el)}
+                        onRemove={() => removeCustomMedia(el.id)}
                       />
                     );
                   }

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Trash2, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStudio } from "../context";
-import { SmartNavbar, SmartHero, SmartProductGrid, SmartCategoriesGrid, SmartFooter, SmartTrustBanner, SmartBentoGrid, SmartServices, SmartHeritageBlock, SmartNewsletter, SmartContactForm, SmartProductDetail, SmartCustomButton } from "@/components/dashboard/studio/HighFidelityBlocks";
+import { SmartNavbar, SmartHero, SmartProductGrid, SmartCategoriesGrid, SmartFooter, SmartTrustBanner, SmartBentoGrid, SmartServices, SmartHeritageBlock, SmartNewsletter, SmartContactForm, SmartProductDetail, SmartCustomButton, SmartCustomMedia } from "@/components/dashboard/studio/HighFidelityBlocks";
 
 export const DraggableCanvasElement = ({
   el,
@@ -51,7 +51,7 @@ export const DraggableCanvasElement = ({
         // cajita también fuera "relative", la posición guardada quedaría
         // relativa al lugar equivocado y no coincidiría con lo que se ve en
         // el editor de onboarding.
-        el.type !== "custom-button" && "relative",
+        el.type !== "custom-button" && el.type !== "custom-media" && "relative",
         !isPreview && (isSelected ? "ring-4 ring-[#00f2ff] ring-inset z-[100] scale-[1.01] shadow-2xl" : "hover:ring-2 hover:ring-blue-300")
       )}
     >
@@ -78,6 +78,7 @@ export const DraggableCanvasElement = ({
         {el.type === "services-block" && <SmartServices props={elProps} />}
         {el.type === "trust-banner" && <SmartTrustBanner props={elProps} />}
         {el.type === "custom-button" && <SmartCustomButton props={elProps} />}
+        {el.type === "custom-media" && <SmartCustomMedia props={elProps} />}
         {el.type === "footer-premium" && <SmartFooter props={elProps} />}
         {el.type === "product-detail" && (() => {
           const activeProduct = realProducts.find((p: any) => p.id === productId) || realProducts[0];
