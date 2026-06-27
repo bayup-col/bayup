@@ -430,6 +430,7 @@ def reset_password(request: Request, payload: ResetPasswordRequest):
         user.hashed_password = sec_mod.get_password_hash(payload.new_password)
         user.password_reset_token = None
         user.password_reset_expires = None
+        user.email_confirmed = True
         db.commit()
         return {"ok": True}
     finally:
@@ -477,6 +478,10 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
                 _es.send_welcome_email(user.email, full_name, confirmed=True)
             except Exception:
                 pass
+        # Google ya verificó el email — marcar como confirmado si no lo estaba
+        if not getattr(user, "email_confirmed", False):
+            user.email_confirmed = True
+            db.commit()
         if getattr(user, "status", "Activo") != "Activo":
             raise HTTPException(status_code=403, detail="Cuenta suspendida")
         jwt_token = sec_mod.create_access_token(data={"sub": user.email})
