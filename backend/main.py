@@ -284,7 +284,7 @@ def login(request: Request, form_data: UserLoginRequest):
             value=access_token,
             httponly=True,
             secure=is_prod,
-            samesite="strict",
+            samesite="none",
             max_age=3600,  # 1 hora
             path="/",
         )
@@ -293,7 +293,7 @@ def login(request: Request, form_data: UserLoginRequest):
             value=_create_refresh_token(user.email),
             httponly=True,
             secure=is_prod,
-            samesite="strict",
+            samesite="none",
             max_age=30 * 24 * 3600,  # 30 días
             path="/auth/refresh",
         )
@@ -368,7 +368,7 @@ async def refresh_token_endpoint(request: Request):
             value=new_access_token,
             httponly=True,
             secure=is_prod,
-            samesite="strict",
+            samesite="none",
             max_age=3600,
             path="/",
         )
