@@ -96,6 +96,8 @@ class User(Base):
     
     password_reset_token = Column(String, nullable=True)
     password_reset_expires = Column(DateTime, nullable=True)
+    email_confirmation_token   = Column(String(255), nullable=True)
+    email_confirmation_expires = Column(DateTime, nullable=True)
 
     plan_id = Column(GUID(), ForeignKey("plans.id"))
     plan = relationship("Plan", back_populates="users", lazy="select")

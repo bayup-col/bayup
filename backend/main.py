@@ -50,17 +50,18 @@ if _sentry_dsn:
 # --- ARRANQUE SEGURO (SIN IMPORTACIONES CRÍTICAS ARRIBA) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Inicialización diferida para evitar Error 502 en Railway
-    def init_task():
-        try:
-            from database import engine
-            import models
-            models.Base.metadata.create_all(bind=engine)
-            logger.info("Motor Bayup: Infraestructura Sincronizada")
-        except Exception as e:
-            logger.warning("Motor Bayup: Aviso en arranque: %s", e)
-            
-    threading.Thread(target=init_task, daemon=True).start()
+    # Solo SQLite (desarrollo local): Alembic gestiona el esquema en producción
+    db_url = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
+    if db_url.startswith("sqlite"):
+        def init_sqlite():
+            try:
+                from database import engine
+                import models
+                models.Base.metadata.create_all(bind=engine)
+                logger.info("Motor Bayup: tablas SQLite sincronizadas")
+            except Exception as e:
+                logger.warning("Motor Bayup: Aviso SQLite: %s", e)
+        threading.Thread(target=init_sqlite, daemon=True).start()
     yield
 
 app = FastAPI(title="Bayup OS Platinum", lifespan=lifespan)
@@ -176,33 +177,25 @@ async def security_headers_middleware(request: Request, call_next):
     )
     return response
 
-def _trigger_email_confirmation(email: str, password: str) -> None:  # noqa: ARG001
-    """Llama a Supabase Auth para que envíe el email de confirmación al nuevo usuario.
-    MED-006: Se usa una contraseña aleatoria (nunca la real del usuario) para que
-    Supabase Auth no tenga acceso a las credenciales reales del sistema.
-    Falla silenciosamente si las variables de entorno no están configuradas."""
-    import secrets as _sec_auth
-    supabase_url = os.getenv("SUPABASE_URL")
-    anon_key = os.getenv("SUPABASE_ANON_KEY")
-    if not supabase_url or not anon_key:
-        return
-    site_url = os.getenv("SITE_URL", "https://bayup.com.co")
-    # MED-006: contraseña aleatoria — Supabase Auth no necesita la contraseña real
-    random_password = _sec_auth.token_urlsafe(32)
+def _trigger_email_confirmation(email: str, name: str) -> None:
+    """Genera token propio y envía email de confirmación vía Resend. Falla silenciosamente."""
+    import secrets as _sec_conf, email_service as _es_conf
+    from database import SessionLocal as _SL_conf
+    import models as _m_conf
+    db_conf = _SL_conf()
     try:
-        import requests as _requests
-        _requests.post(
-            f"{supabase_url}/auth/v1/signup",
-            headers={"apikey": anon_key, "Content-Type": "application/json"},
-            json={
-                "email": email,
-                "password": random_password,
-                "options": {"emailRedirectTo": f"{site_url}/login?confirmed=1"},
-            },
-            timeout=8,
-        )
-    except Exception:
-        pass  # No bloquear el registro si Supabase Auth no responde
+        user = db_conf.query(_m_conf.User).filter(_m_conf.User.email == email).first()
+        if not user:
+            return
+        token = _sec_conf.token_urlsafe(32)
+        user.email_confirmation_token = token
+        user.email_confirmation_expires = datetime.now(timezone.utc) + timedelta(hours=24)
+        db_conf.commit()
+        _es_conf.send_email_confirmation(email, name, token)
+    except Exception as e:
+        logger.warning("Email confirmation send error: %s", e)
+    finally:
+        db_conf.close()
 
 class UserLoginRequest(BaseModel):
     email: EmailStr
@@ -328,12 +321,8 @@ def register(request: Request, payload: RegisterRequest):
             full_name=payload.full_name,
         )
         user = crud.create_user(db, user=user_in)
-        _trigger_email_confirmation(payload.email, payload.password)
-        try:
-            import email_service as _es
-            _es.send_welcome_email(user.email, user.full_name or payload.email.split("@")[0], confirmed=False)
-        except Exception:
-            pass
+        name = user.full_name or payload.email.split("@")[0]
+        threading.Thread(target=_trigger_email_confirmation, args=(user.email, name), daemon=True).start()
         return {"id": str(user.id), "email": user.email, "email_confirmation_sent": True}
     finally:
         db.close()
@@ -385,6 +374,34 @@ async def logout_endpoint(request: Request):
     response.delete_cookie("bayup_access_token", path="/")
     response.delete_cookie("bayup_refresh_token", path="/auth/refresh")
     return response
+
+@app.get("/auth/confirm-email")
+@limiter.limit("10/minute")
+async def confirm_email_endpoint(token: str = Query(...), request: Request = None):
+    """Valida el token de confirmación de email y activa la cuenta."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = db.query(models.User).filter(
+            models.User.email_confirmation_token == token
+        ).first()
+        if not user:
+            raise HTTPException(status_code=400, detail="Enlace de confirmación inválido.")
+        expires = user.email_confirmation_expires
+        if expires:
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if expires < datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="El enlace expiró. Regístrate de nuevo o solicita reenvío.")
+        user.email_confirmed = True
+        user.email_confirmation_token = None
+        user.email_confirmation_expires = None
+        db.commit()
+        return {"message": "Correo confirmado. Ya puedes iniciar sesión."}
+    finally:
+        db.close()
+
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
@@ -2891,8 +2908,13 @@ async def public_checkout(slug: str, payload: CheckoutRequest, request: Request)
 
 @app.get("/public/payment/{payment_id}")
 @limiter.limit("30/minute")
-async def get_payment_status(payment_id: str, request: Request):
-    """Consulta el estado de un pago. Usado por la tienda después del redirect del gateway."""
+async def get_payment_status(
+    payment_id: str,
+    request: Request,
+    slug: str = Query(None),
+):
+    """Consulta el estado de un pago. Usado por la tienda después del redirect del gateway.
+    Si se provee slug, valida que el pago pertenece a esa tienda (aislamiento tenant)."""
     import models, uuid as uuid_lib
     from database import SessionLocal
     db = SessionLocal()
@@ -2904,7 +2926,18 @@ async def get_payment_status(payment_id: str, request: Request):
         payment = db.query(models.Payment).filter(models.Payment.id == pid).first()
         if not payment:
             raise HTTPException(status_code=404, detail="Pago no encontrado")
-        return {"payment_id": str(payment.id), "status": payment.status, "amount": payment.amount}
+        if slug:
+            tenant = db.query(models.User).filter(models.User.shop_slug == slug).first()
+            if not tenant or payment.tenant_id != tenant.id:
+                raise HTTPException(status_code=404, detail="Pago no encontrado")
+            return {
+                "payment_id": str(payment.id),
+                "status":     payment.status,
+                "amount":     payment.amount,
+                "currency":   payment.currency,
+            }
+        # Sin slug: solo estado, sin datos financieros
+        return {"payment_id": str(payment.id), "status": payment.status}
     finally:
         db.close()
 

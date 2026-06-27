@@ -90,5 +90,14 @@ def send_affiliate_welcome(email: str, name: str) -> bool:
         {_btn("Ver mi panel de afiliado", f"{_SITE}/afiliado/dashboard")}
     """)
 
+def send_email_confirmation(email: str, name: str, token: str) -> bool:
+    link = f"{_SITE}/confirm-email?token={token}"
+    return _send(email, "Confirma tu correo — Bayup", f"""
+        <h2 style="color:#004d4d;margin:0 0 8px">Confirma tu correo</h2>
+        <p style="color:#555">Hola <strong>{name}</strong>, haz clic en el botón para activar tu cuenta Bayup. El enlace es válido por <strong>24 horas</strong>.</p>
+        {_btn("Confirmar mi correo", link)}
+        <p style="color:#aaa;font-size:12px;margin-top:20px">Si no creaste esta cuenta, ignora este mensaje.</p>
+    """)
+
 def send_email(to: str, subject: str, html: str) -> bool:
     return _send(to, subject, html)
