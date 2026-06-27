@@ -2,6 +2,8 @@ from fastapi import Depends, FastAPI, HTTPException, status, Request, Response, 
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from jose import JWTError, jwt
+import logging
 import os
 import sys
 import time
@@ -20,6 +22,14 @@ from slowapi.errors import RateLimitExceeded
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
+
+# --- LOGGING ESTRUCTURADO (BAJA-002) ---
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("bayup")
 
 load_dotenv()
 
@@ -46,9 +56,9 @@ async def lifespan(app: FastAPI):
             from database import engine
             import models
             models.Base.metadata.create_all(bind=engine)
-            print("✅ Motor Bayup: Infraestructura Sincronizada")
+            logger.info("Motor Bayup: Infraestructura Sincronizada")
         except Exception as e:
-            print(f"⚠️ Motor Bayup: Aviso en arranque: {e}")
+            logger.warning("Motor Bayup: Aviso en arranque: %s", e)
             
     threading.Thread(target=init_task, daemon=True).start()
     yield
@@ -96,6 +106,35 @@ def _cache_set(store: dict, key: str, value, ttl: int, max_size: int = 500) -> N
         for k in keys_to_delete:
             del store[k]
 
+# --- PREVIEW TOKENS DE CORTA VIDA (ALTA-004) ---
+# Evita exponer el JWT completo en la URL de preview (queda en logs de servidor).
+# {preview_token: (user_email, expires_at_timestamp)}
+import time as _time
+import secrets as _secrets
+_preview_tokens: dict[str, tuple[str, float]] = {}
+
+def _create_preview_token(user_email: str) -> str:
+    """Genera un token opaco de 5 minutos para acceso al preview sin JWT en URL."""
+    tok = _secrets.token_urlsafe(32)
+    _preview_tokens[tok] = (user_email, _time.time() + 300)
+    # Limpieza lazy de tokens expirados para evitar crecimiento ilimitado
+    now = _time.time()
+    expired = [k for k, (_, exp) in _preview_tokens.items() if exp < now]
+    for k in expired:
+        del _preview_tokens[k]
+    return tok
+
+def _validate_preview_token(token: str) -> str | None:
+    """Retorna el email del usuario si el preview token es válido, None si no."""
+    entry = _preview_tokens.get(token)
+    if not entry:
+        return None
+    email, expires_at = entry
+    if _time.time() > expires_at:
+        del _preview_tokens[token]
+        return None
+    return email
+
 # --- CORS ---
 # NOTA: si en el futuro las tiendas activan dominio propio (custom_domain en el modelo User),
 # esta whitelist estática no los cubrirá — habrá que validar el origen dinámicamente contra la DB.
@@ -113,7 +152,7 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     # ALTA-002: regex más específica para evitar que cualquier subdominio de vercel.app sea aceptado
     allow_origin_regex=r"https://bayup-[a-z0-9]+-bayup-col\.vercel\.app",
-    allow_credentials=False,
+    allow_credentials=True,  # CRIT-004: requerido para enviar/recibir cookies httpOnly
     # BAJA-001: métodos explícitos en lugar de wildcard
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
@@ -217,9 +256,9 @@ def login(request: Request, form_data: UserLoginRequest):
                 raise HTTPException(status_code=403, detail="Esta tienda ha sido suspendida. Contacta a soporte Bayup.")
 
         access_token = security.create_access_token(data={"sub": user.email})
-        
-        return {
-            "access_token": access_token, 
+
+        payload = {
+            "access_token": access_token,
             "token_type": "bearer",
             "user": {
                 "email": user.email,
@@ -236,6 +275,29 @@ def login(request: Request, form_data: UserLoginRequest):
                 "onboarding_completed": bool(getattr(user, 'onboarding_completed', False)),
             }
         }
+        # CRIT-004: emitir cookies httpOnly además del JSON para mayor seguridad
+        from security import create_refresh_token as _create_refresh_token
+        is_prod = os.getenv("APP_ENV", "production") == "production"
+        response = JSONResponse(content=payload)
+        response.set_cookie(
+            key="bayup_access_token",
+            value=access_token,
+            httponly=True,
+            secure=is_prod,
+            samesite="strict",
+            max_age=3600,  # 1 hora
+            path="/",
+        )
+        response.set_cookie(
+            key="bayup_refresh_token",
+            value=_create_refresh_token(user.email),
+            httponly=True,
+            secure=is_prod,
+            samesite="strict",
+            max_age=30 * 24 * 3600,  # 30 días
+            path="/auth/refresh",
+        )
+        return response
     finally:
         db.close()
 
@@ -274,6 +336,53 @@ def register(request: Request, payload: RegisterRequest):
         return {"id": str(user.id), "email": user.email, "email_confirmation_sent": True}
     finally:
         db.close()
+
+@app.post("/auth/refresh")
+async def refresh_token_endpoint(request: Request):
+    """Renueva el access token usando el refresh token de la cookie httpOnly (CRIT-004)."""
+    import security as sec_mod
+    from database import SessionLocal
+    import models
+    refresh_tok = request.cookies.get("bayup_refresh_token")
+    if not refresh_tok:
+        raise HTTPException(status_code=401, detail="No refresh token")
+    try:
+        payload = jwt.decode(refresh_tok, sec_mod.SECRET_KEY, algorithms=[sec_mod.ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Token inválido")
+        email = payload.get("sub")
+        if not email:
+            raise HTTPException(status_code=401, detail="Token inválido")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Refresh token expirado o inválido")
+    db = SessionLocal()
+    try:
+        user = db.query(models.User).filter(models.User.email == email).first()
+        if not user or user.status != "Activo":
+            raise HTTPException(status_code=401, detail="Usuario no encontrado o inactivo")
+        new_access_token = sec_mod.create_access_token({"sub": email})
+        is_prod = os.getenv("APP_ENV", "production") == "production"
+        response = JSONResponse(content={"access_token": new_access_token, "token_type": "bearer"})
+        response.set_cookie(
+            key="bayup_access_token",
+            value=new_access_token,
+            httponly=True,
+            secure=is_prod,
+            samesite="strict",
+            max_age=3600,
+            path="/",
+        )
+        return response
+    finally:
+        db.close()
+
+@app.post("/auth/logout")
+async def logout_endpoint(request: Request):
+    """Invalida las cookies de sesión. CRIT-004."""
+    response = JSONResponse(content={"ok": True})
+    response.delete_cookie("bayup_access_token", path="/")
+    response.delete_cookie("bayup_refresh_token", path="/auth/refresh")
+    return response
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
@@ -403,10 +512,15 @@ def _get_bearer_token(request: Request) -> str:
 
 async def _authenticate(request: Request, db):
     """Reutiliza security.get_current_user pasando los valores explícitamente
-    (evita la resolución vía Depends, ya que estas rutas manejan su propia sesión)."""
+    (evita la resolución vía Depends, ya que estas rutas manejan su propia sesión).
+    CRIT-004: extrae el Bearer token de forma no-fatal; get_current_user evaluará
+    también la cookie httpOnly como alternativa."""
     import security
-    token = _get_bearer_token(request)
-    return await security.get_current_user(token=token, db=db)
+    auth_header = request.headers.get("Authorization", "")
+    token: str | None = None
+    if auth_header.lower().startswith("bearer ") and len(auth_header) > 7:
+        token = auth_header[7:].strip() or None
+    return await security.get_current_user(request=request, token=token, db=db)
 
 def _tenant_id(user):
     return user.owner_id or user.id
@@ -2169,22 +2283,61 @@ async def get_super_admin_web_template(template_id: str, request: Request):
     finally:
         db.close()
 
+@app.post("/super-admin/web-templates/{template_id}/preview-token")
+async def generate_preview_token(template_id: str, request: Request):
+    """Genera un token opaco de corta vida (5 min) para acceder al live-preview
+    sin exponer el JWT completo en la URL (ALTA-004)."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+        # Verificar que la plantilla exista antes de emitir el token
+        try:
+            target_uuid = uuid_lib.UUID(template_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="template_id inválido")
+        template = db.query(models.WebTemplate).filter(models.WebTemplate.id == target_uuid).first()
+        if not template:
+            raise HTTPException(status_code=404, detail="Plantilla no encontrada")
+        preview_tok = _create_preview_token(user.email)
+        return {"preview_token": preview_tok, "expires_in": 300}
+    finally:
+        db.close()
+
 @app.get("/super-admin/web-templates/{template_id}/live-preview/{page_key}", response_class=HTMLResponse)
-async def live_preview_template_page(template_id: str, page_key: str, request: Request, token: str = Query(None)):
+async def live_preview_template_page(
+    template_id: str,
+    page_key: str,
+    request: Request,
+    token: str = Query(None),           # legacy: JWT en query param (deprecado, ALTA-004)
+    preview_token: str = Query(None),   # nuevo: token opaco de corta vida
+):
     """Preview navegable de plantilla HTML con SDK de demostración y datos mock."""
     import models, uuid as uuid_lib, security as sec_mod
     from database import SessionLocal
-    from fastapi import Query as _Query
     db = SessionLocal()
     try:
-        if token:
+        if preview_token:
+            # ALTA-004: token opaco de corta vida — no expone JWT en URL ni en logs
+            email = _validate_preview_token(preview_token)
+            if not email:
+                raise HTTPException(status_code=401, detail="Preview token inválido o expirado")
+            user = db.query(models.User).filter(models.User.email == email).first()
+            _require_super_admin(user)
+        elif token:
+            # Soporte legacy: JWT en URL (deprecado — migrar a /preview-token)
+            logger.warning("JWT expuesto en URL de preview para template %s — migrar a preview_token", template_id)
             try:
-                user = await sec_mod.get_current_user(token=token, db=db)
+                user = await sec_mod.get_current_user(request=request, token=token, db=db)
             except Exception:
                 raise HTTPException(status_code=401, detail="Token inválido o expirado")
+            _require_super_admin(user)
         else:
+            # Sin token en URL: autenticar vía cookie httpOnly o Authorization header
             user = await _authenticate(request, db)
-        _require_super_admin(user)
+            _require_super_admin(user)
         try:
             target_uuid = uuid_lib.UUID(template_id)
         except ValueError:
@@ -2369,7 +2522,7 @@ async def public_preview_template_page(template_id: str, page_key: str, request:
     try:
         if token:
             try:
-                user = await sec_mod.get_current_user(token=token, db=db)
+                user = await sec_mod.get_current_user(request=request, token=token, db=db)
             except Exception:
                 raise HTTPException(status_code=401, detail="Token inválido o expirado")
         else:

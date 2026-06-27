@@ -23,19 +23,38 @@ interface RequestOptions extends RequestInit {
 export async function apiRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { token, ...customConfig } = options;
     const baseUrl = getApiBaseUrl();
-    
+
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
     if (!(customConfig.body instanceof FormData)) headers['Content-Type'] = 'application/json';
     if (customConfig.headers) Object.assign(headers, customConfig.headers);
 
-    const config: RequestInit = { ...customConfig, headers };
+    // credentials: 'include' envía las cookies httpOnly automáticamente en cada request
+    const config: RequestInit = { ...customConfig, headers, credentials: 'include' };
 
     try {
         const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
         const fullUrl = `${baseUrl}${cleanEndpoint}`;
-        
-        const response = await fetch(fullUrl, config);
+
+        let response = await fetch(fullUrl, config);
+
+        // Auto-refresh: si el access token expiró, intentar renovarlo con el refresh token (cookie)
+        if (response.status === 401 && endpoint !== '/auth/refresh' && endpoint !== '/auth/login') {
+            try {
+                const refreshRes = await fetch(`${baseUrl}/auth/refresh`, {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+                if (refreshRes.ok) {
+                    const refreshData = await refreshRes.json();
+                    const newToken = refreshData.access_token;
+                    if (newToken) localStorage.setItem('token', newToken);
+                    const retryHeaders = { ...headers };
+                    if (newToken) retryHeaders['Authorization'] = `Bearer ${newToken}`;
+                    response = await fetch(fullUrl, { ...config, headers: retryHeaders });
+                }
+            } catch {}
+        }
 
         if (!response.ok) {
             if (response.status === 401) localStorage.removeItem('token');
@@ -50,17 +69,12 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
         }
         return await response.json();
     } catch (error: any) {
-        // DETECCIÓN MAESTRA DE PRODUCCIÓN: Railway o Dominio Propio
-        const isProduction = typeof window !== 'undefined' && 
-                            (window.location.hostname.includes('railway.app') || 
+        const isProduction = typeof window !== 'undefined' &&
+                            (window.location.hostname.includes('railway.app') ||
                              window.location.hostname.includes('bayup.com'));
-
-        // En producción, silenciamos TODOS los errores de red/API para mantener la consola limpia
-        // Esto es crítico cuando el backend está reiniciando (502) o desplegando (404)
         if (!isProduction) {
             console.error(`[API] Fallo en ${endpoint}:`, error.message);
         }
-        
         throw error;
     }
 }

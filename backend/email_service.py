@@ -1,5 +1,8 @@
+import logging
 import os
 import requests as _requests
+
+logger = logging.getLogger("bayup.email")
 
 _RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 _FROM = os.getenv("RESEND_FROM_EMAIL", "Bayup <noreply@bayup.com.co>")
@@ -24,7 +27,7 @@ def _btn(text: str, url: str) -> str:
 def _send(to: str, subject: str, content: str) -> bool:
     html = _BASE_STYLE.format(content=content)
     if not _RESEND_API_KEY:
-        print(f"[Email MOCK — sin RESEND_API_KEY] To: {to} | {subject}")
+        logger.warning("Email MOCK (sin RESEND_API_KEY) — To: %s | %s", to, subject)
         return False
     try:
         r = _requests.post(
@@ -34,10 +37,10 @@ def _send(to: str, subject: str, content: str) -> bool:
             timeout=10,
         )
         if not r.ok:
-            print(f"[Email ERROR] {r.status_code}: {r.text}")
+            logger.error("Email ERROR %s: %s", r.status_code, r.text)
         return r.ok
     except Exception as e:
-        print(f"[Email ERROR] {e}")
+        logger.error("Email ERROR: %s", e)
         return False
 
 def send_welcome_email(email: str, name: str, confirmed: bool = False) -> bool:
