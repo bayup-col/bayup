@@ -27,7 +27,11 @@ export default function ResetPasswordPage() {
         setIsLoading(true);
         setError('');
         try {
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const isLocal = typeof window !== 'undefined' &&
+                (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+            const apiBase = isLocal
+                ? 'http://localhost:8000'
+                : (process.env.NEXT_PUBLIC_API_URL || 'https://bayup-backend.onrender.com');
             const res = await fetch(`${apiBase}/auth/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -37,11 +41,17 @@ export default function ResetPasswordPage() {
                 setSuccess(true);
                 setTimeout(() => router.push('/login'), 3000);
             } else {
-                const data = await res.json();
-                setError(data.detail || 'Error al restablecer la contraseña');
+                let msg = 'Error al restablecer la contraseña';
+                try {
+                    const data = await res.json();
+                    msg = data.detail || msg;
+                } catch {}
+                setError(msg);
             }
-        } catch {
-            setError('Error de conexión. Intenta de nuevo.');
+        } catch (err: any) {
+            setError(err?.message?.includes('fetch') || err?.name === 'TypeError'
+                ? 'No se pudo conectar al servidor. Verifica tu conexión.'
+                : 'Error al restablecer la contraseña. Intenta de nuevo.');
         } finally {
             setIsLoading(false);
         }

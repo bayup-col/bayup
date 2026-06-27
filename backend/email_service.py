@@ -40,12 +40,21 @@ def _send(to: str, subject: str, content: str) -> bool:
         print(f"[Email ERROR] {e}")
         return False
 
-def send_welcome_email(email: str, name: str) -> bool:
-    return _send(email, "¡Bienvenido a Bayup!", f"""
-        <h2 style="color:#004d4d;margin:0 0 8px">¡Hola, {name}!</h2>
-        <p style="color:#555">Tu cuenta en Bayup está lista. Entra al dashboard y configura tu tienda para empezar a vender.</p>
-        {_btn("Ir a mi Dashboard", f"{_SITE}/dashboard")}
-    """)
+def send_welcome_email(email: str, name: str, confirmed: bool = False) -> bool:
+    if confirmed:
+        body = f"""
+            <h2 style="color:#004d4d;margin:0 0 8px">¡Bienvenido, {name}!</h2>
+            <p style="color:#555">Tu cuenta en Bayup está activa. Entra al dashboard, configura tu tienda y empieza a vender.</p>
+            {_btn("Ir a mi Dashboard", f"{_SITE}/dashboard")}
+        """
+    else:
+        body = f"""
+            <h2 style="color:#004d4d;margin:0 0 8px">¡Hola, {name}!</h2>
+            <p style="color:#555">Tu cuenta fue registrada en Bayup. <strong>Confirma tu correo electrónico</strong> usando el enlace que te acabamos de enviar para activar tu acceso al dashboard.</p>
+            <p style="color:#888;font-size:12px;margin-top:12px">Una vez confirmado, podrás configurar tu tienda y empezar a vender.</p>
+            {_btn("Ir al inicio de sesión", f"{_SITE}/login")}
+        """
+    return _send(email, "¡Bienvenido a Bayup!", body)
 
 def send_password_reset(email: str, token: str) -> bool:
     link = f"{_SITE}/reset-password?token={token}"
