@@ -134,12 +134,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           const storedPerms = localStorage.getItem('userPermissions');
           const storedPlan = localStorage.getItem('userPlan');
-          const storedIsGlobal = localStorage.getItem('isGlobalStaff');
           const storedOnboarding = localStorage.getItem('onboardingCompleted');
 
           if (storedPerms) setUserPermissions(JSON.parse(storedPerms));
           if (storedPlan) setUserPlan(JSON.parse(storedPlan));
-          if (storedIsGlobal) setIsGlobalStaff(storedIsGlobal === 'true');
+          // CRIT-005: isGlobalStaff NO se lee de localStorage — es manipulable desde consola.
+          // Se establece únicamente desde syncProfile (/auth/me) o desde login() con token validado.
           if (storedOnboarding) setOnboardingCompleted(storedOnboarding === 'true');
 
           // Sincronización proactiva con el servidor (Fallo silencioso)
@@ -172,7 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('userName', name);
     localStorage.setItem('userRole', role);
     localStorage.setItem('userPermissions', JSON.stringify(permissions));
-    localStorage.setItem('isGlobalStaff', isGlobal ? 'true' : 'false');
+    // isGlobalStaff se mantiene solo en memoria (React state) — no en localStorage.
     localStorage.setItem('shopSlug', safeSlug);
     localStorage.setItem('userNit', nit);
     localStorage.setItem('userAddress', address);
@@ -231,8 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    const wasStaff = sessionStorage.getItem('isSuperAdminSession') === 'true'
-                     || localStorage.getItem('isGlobalStaff') === 'true';
+    const wasStaff = sessionStorage.getItem('isSuperAdminSession') === 'true';
     setToken(null);
     setUserEmail(null);
     setUserName(null);

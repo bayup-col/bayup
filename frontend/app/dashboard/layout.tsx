@@ -148,6 +148,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       if (!isLoading && isAuthenticated && !isStaffAccount && isStudioRoute) router.replace('/dashboard');
   }, [isLoading, isAuthenticated, isStaffAccount, isStudioRoute, router]);
 
+  // CRIT-006 / ALTA-005: Guard de rutas super-admin en cliente.
+  // Un usuario autenticado pero sin is_global_staff no debe ver el panel global.
+  useEffect(() => {
+      if (!isLoading && isAuthenticated && isSuperAdminZone && !isStaffAccount) {
+          router.replace('/dashboard');
+      }
+  }, [isLoading, isAuthenticated, isSuperAdminZone, isStaffAccount, router]);
+
   if (isLoading || !isAuthenticated || needsOnboarding || (!isStaffAccount && isStudioRoute)) {
       return (
         <div className="h-screen w-screen flex items-center justify-center bg-[#FAFAFA]">
@@ -158,7 +166,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   // LOGICA DE SEGURIDAD POR PLAN (ESTRICTA)
   const planName = userPlan?.name || "Básico";
-  const isEnterprise = authEmail === 'dntonline13@gmail.com' || planName === "Empresa";
+  const isEnterprise = planName === "Empresa";
   const isPro = planName === "Pro";
   const showExtraModules = isEnterprise || isPro || isGlobalStaff || authRole === 'SUPER_ADMIN';
 
