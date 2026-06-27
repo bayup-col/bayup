@@ -482,7 +482,9 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
             plan_obj = db.query(models.Plan).filter(models.Plan.id == user.plan_id).first()
             if plan_obj:
                 plan = {"name": plan_obj.name}
-        return {
+        from security import create_refresh_token as _create_refresh_token
+        is_prod = os.getenv("APP_ENV", "production") == "production"
+        payload = {
             "access_token": jwt_token,
             "token_type": "bearer",
             "user": {
@@ -498,6 +500,26 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
                 "onboarding_completed": bool(getattr(user, "onboarding_completed", False)),
             },
         }
+        response = JSONResponse(content=payload)
+        response.set_cookie(
+            key="bayup_access_token",
+            value=jwt_token,
+            httponly=True,
+            secure=is_prod,
+            samesite="none",
+            max_age=3600,
+            path="/",
+        )
+        response.set_cookie(
+            key="bayup_refresh_token",
+            value=_create_refresh_token(user.email),
+            httponly=True,
+            secure=is_prod,
+            samesite="none",
+            max_age=30 * 24 * 3600,
+            path="/auth/refresh",
+        )
+        return response
     finally:
         db.close()
 
