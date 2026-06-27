@@ -1,5 +1,5 @@
 from fastapi import Depends, FastAPI, HTTPException, status, Request, Response, UploadFile, File, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import os
@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 from pydantic import BaseModel, Field
 import threading
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
@@ -64,7 +64,11 @@ def _get_real_ip(request: Request) -> str:
 
 limiter = Limiter(key_func=_get_real_ip)
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+def _json_rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(status_code=429, content={"detail": "Demasiados intentos. Espera un momento e intenta de nuevo."})
+
+app.add_exception_handler(RateLimitExceeded, _json_rate_limit_handler)
 
 # --- CACHE EN MEMORIA (TTL simple, sin Redis ni dependencias nuevas) ---
 # Cada entrada es una tupla (valor, expires_at_timestamp).
