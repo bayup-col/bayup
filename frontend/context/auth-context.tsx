@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { userService } from '@/lib/api';
 
@@ -43,11 +43,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
+  // Nonce para descartar respuestas de syncProfile obsoletas. Cada llamada a
+  // login() incrementa el nonce; cualquier syncProfile en vuelo con nonce viejo
+  // ignora sus resultados (evita race condition loadStorage vs login).
+  const profileEpochRef = useRef(0);
 
   // Función para cargar perfil desde el servidor y sincronizar
   const syncProfile = useCallback(async (authToken?: string | null) => {
+    const epoch = profileEpochRef.current;
     try {
       const data = await userService.getMe(authToken);
+      // Si login() se llamó mientras esta petición estaba en vuelo, descartamos
+      // los datos obsoletos para evitar sobrescribir isGlobalStaff.
+      if (profileEpochRef.current !== epoch) return;
       if (data) {
         if (data.logo_url) {
           setUserLogo(data.logo_url);
@@ -176,6 +184,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [syncProfile]);
 
   const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "", logo: string = "", nit: string = "", address: string = "", onboardingDone: boolean = false) => {
+    // Invalidar cualquier syncProfile en vuelo (ej. loadStorage con sesión anterior)
+    profileEpochRef.current += 1;
     setToken(newToken);
     setUserEmail(email);
     setUserName(name);
