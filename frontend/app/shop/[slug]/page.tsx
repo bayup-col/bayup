@@ -220,8 +220,9 @@ function ShopContent() {
 
                     if (pageResult.status === 'fulfilled' && pageResult.value.ok) {
                         const pageData = await pageResult.value.json();
-                        if (pageData && pageData.schema_data) {
-                            data.custom_schema = pageData.schema_data;
+                        const sd = pageData?.schema_data;
+                        if (sd && (sd.header || sd.body || sd.footer)) {
+                            data.custom_schema = sd;
                         }
                     } else if (pageResult.status === 'rejected') {
                         console.warn(`Diseño para vista ${view} no publicado.`);
