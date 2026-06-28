@@ -443,7 +443,7 @@ def forgot_password(request: Request, payload: ForgotPasswordRequest):
         if user:
             token = _secrets.token_urlsafe(32)
             user.password_reset_token = token
-            user.password_reset_expires = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
+            user.password_reset_expires = datetime.now(timezone.utc) + timedelta(hours=1)
             db.commit()
             email_service.send_password_reset(user.email, token)
         return {"ok": True, "message": "Si el correo existe, recibirás un enlace en los próximos minutos."}
@@ -1685,9 +1685,9 @@ async def get_super_admin_stats(request: Request):
         total_revenue = db.query(func.coalesce(func.sum(models.Order.total_price), 0.0)).scalar() or 0.0
         total_commission = db.query(func.coalesce(func.sum(models.Order.commission_amount), 0.0)).scalar() or 0.0
 
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
-        today_start = datetime(now.year, now.month, now.day)
-        month_start = datetime(now.year, now.month, 1)
+        now = datetime.now(timezone.utc)
+        today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+        month_start = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
 
         commission_today = db.query(func.coalesce(func.sum(models.Order.commission_amount), 0.0)).filter(
             models.Order.created_at >= today_start
@@ -1912,7 +1912,7 @@ async def delete_company_permanently(company_id: str, request: Request):
 
 def _last_n_months(n: int = 12):
     from datetime import datetime, timezone
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(timezone.utc)
     year, month = now.year, now.month
     out = []
     for _ in range(n):
@@ -2007,7 +2007,7 @@ async def get_super_admin_reports(request: Request, period: str = "mes"):
         user = await _authenticate(request, db)
         _require_super_admin(user)
 
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(timezone.utc)
         span_days = {"dia": 1, "semana": 7, "mes": 30, "año": 365}.get(period, 30)
         start = now - timedelta(days=span_days)
         prev_start = now - timedelta(days=span_days * 2)
