@@ -51,7 +51,7 @@ export default function TenantTemplatesGallery() {
 
     const openPreview = (tplId: string) => {
         const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        window.open(`${apiBase}/web-templates/${tplId}/preview/home?token=${encodeURIComponent(token || '')}`, '_blank');
+        window.open(`${apiBase}/web-templates/${tplId}/preview/home`, '_blank');
     };
 
     if (isLoading) {
