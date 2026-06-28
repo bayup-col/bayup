@@ -39,6 +39,7 @@ interface WebTemplate {
   category: string;
   preview_url: string | null;
   schema_data: any;
+  template_type?: string;
 }
 
 export default function OnboardingPage() {
@@ -108,7 +109,7 @@ export default function OnboardingPage() {
     if (!token) return;
     fetch(`${apiBase}/web-templates`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.ok ? res.json() : [])
-      .then(data => setTemplates(Array.isArray(data) ? data.filter((t: any) => t.template_type !== 'html').map(withStandardMenu) : []))
+      .then(data => setTemplates(Array.isArray(data) ? data.map(withStandardMenu) : []))
       .catch(() => setTemplates([]))
       .finally(() => setTemplatesLoading(false));
   }, [token, apiBase]);
@@ -159,6 +160,10 @@ export default function OnboardingPage() {
   const openPreview = (tpl?: WebTemplate | null) => {
     const target = tpl || selectedTemplate;
     if (!target) return;
+    if (target.template_type === 'html') {
+      window.open(`${apiBase}/web-templates/${target.id}/preview/home`, '_blank');
+      return;
+    }
     localStorage.setItem('bayup-studio-preview', JSON.stringify(schemaFor(target)));
     window.open('/studio-preview', '_blank');
   };
@@ -444,12 +449,14 @@ export default function OnboardingPage() {
                             >
                               <Eye size={14} /> Vista previa
                             </span>
-                            <span
-                              onClick={(e) => { e.stopPropagation(); openEditor(tpl); }}
-                              className="flex items-center gap-2 h-10 px-5 rounded-full bg-cyan text-[#0A1A1A] text-xs font-medium shadow-xl hover:scale-105 transition-transform"
-                            >
-                              <Edit3 size={14} /> Editar
-                            </span>
+                            {tpl.template_type !== 'html' && (
+                              <span
+                                onClick={(e) => { e.stopPropagation(); openEditor(tpl); }}
+                                className="flex items-center gap-2 h-10 px-5 rounded-full bg-cyan text-[#0A1A1A] text-xs font-medium shadow-xl hover:scale-105 transition-transform"
+                              >
+                                <Edit3 size={14} /> Editar
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="p-5 space-y-1">

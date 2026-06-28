@@ -88,7 +88,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         if (data.is_global_staff !== undefined) {
             setIsGlobalStaff(data.is_global_staff);
-            // isGlobalStaff solo en memoria React — no en localStorage (dato privilegiado)
+            // isGlobalStaff solo en memoria React — no en localStorage (dato privilegiado).
+            // Sí se restaura en sessionStorage para que logout() pueda redirigir a /bayup-family
+            // incluso si el staff abrió el dashboard en una pestaña nueva (sessionStorage es por-pestaña).
+            if (data.is_global_staff) sessionStorage.setItem('isSuperAdminSession', 'true');
         }
         if (data.onboarding_completed !== undefined) {
             setOnboardingCompleted(!!data.onboarding_completed);
