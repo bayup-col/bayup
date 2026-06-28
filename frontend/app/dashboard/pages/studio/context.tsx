@@ -104,8 +104,14 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
           });
           if (res.ok) {
             const data = await res.json();
-            if (data.schema_data) {
-              setPagesData(prev => ({ ...prev, [pageKey]: data.schema_data }));
+            if (data.schema_data && (data.schema_data.header || data.schema_data.body || data.schema_data.footer)) {
+              const raw = data.schema_data;
+              const merged: PageSchema = {
+                header: raw.header ? { elements: raw.header.elements || [], styles: raw.header.styles || {} } : DEFAULT_SCHEMA.header,
+                body:   raw.body   ? { elements: raw.body.elements   || [], styles: raw.body.styles   || {} } : DEFAULT_SCHEMA.body,
+                footer: raw.footer ? { elements: raw.footer.elements || [], styles: raw.footer.styles || {} } : DEFAULT_SCHEMA.footer,
+              };
+              setPagesData(prev => ({ ...prev, [pageKey]: merged }));
               loadedFromDb = true;
             }
           }
@@ -148,7 +154,8 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
   const updateElement = (section: SectionType, id: string, newProps: Record<string, any>) => {
     setPagesData(prev => {
       const page = prev[pageKey] || DEFAULT_SCHEMA;
-      const elements = page[section].elements.map(el => el.id === id ? { ...el, props: { ...el.props, ...newProps } } : el);
+      const sectionData = page[section] || DEFAULT_SCHEMA[section];
+      const elements = sectionData.elements.map(el => el.id === id ? { ...el, props: { ...el.props, ...newProps } } : el);
       return { ...prev, [pageKey]: { ...page, [section]: { ...page[section], elements } } };
     });
   };
