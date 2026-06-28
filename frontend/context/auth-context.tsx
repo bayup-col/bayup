@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         if (data.is_global_staff !== undefined) {
             setIsGlobalStaff(data.is_global_staff);
-            localStorage.setItem('isGlobalStaff', String(data.is_global_staff));
+            // isGlobalStaff solo en memoria React — no en localStorage (dato privilegiado)
         }
         if (data.onboarding_completed !== undefined) {
             setOnboardingCompleted(!!data.onboarding_completed);

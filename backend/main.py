@@ -156,7 +156,7 @@ app.add_middleware(
     allow_credentials=True,  # CRIT-004: requerido para enviar/recibir cookies httpOnly
     # BAJA-001: métodos explícitos en lugar de wildcard
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
     expose_headers=["Content-Length"],
 )
 
@@ -401,6 +401,27 @@ async def confirm_email_endpoint(token: str = Query(...), request: Request = Non
         return {"message": "Correo confirmado. Ya puedes iniciar sesión."}
     finally:
         db.close()
+
+class ResendConfirmationRequest(BaseModel):
+    email: EmailStr
+
+@app.post("/auth/resend-confirmation")
+@limiter.limit("3/minute")
+async def resend_email_confirmation(payload: ResendConfirmationRequest, request: Request):
+    """Reenvía el email de confirmación. Siempre responde 200 (no revela si el email existe)."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = db.query(models.User).filter(models.User.email == payload.email).first()
+        if user and not user.email_confirmed:
+            name = user.full_name or payload.email.split("@")[0]
+            threading.Thread(target=_trigger_email_confirmation, args=(user.email, name), daemon=True).start()
+    except Exception:
+        pass
+    finally:
+        db.close()
+    return {"message": "Si el correo existe y no está confirmado, recibirás un nuevo enlace."}
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -1567,9 +1588,22 @@ async def update_profile(payload: UpdateProfileRequest, request: Request):
         result: dict = {"ok": True}
         if email_changed:
             # El token de sesion usa el email como identificador (sub); si cambia,
-            # el token viejo deja de resolver a ningun usuario y la app fuerza un
-            # logout automatico. Emitimos uno nuevo para que la sesion siga viva.
+            # el token viejo deja de resolver a ningun usuario. Emitimos nuevo
+            # access_token Y nuevo refresh_token cookie para mantener la sesion.
             result["access_token"] = security.create_access_token(data={"sub": user.email})
+            new_refresh = security.create_refresh_token(user.email)
+            is_prod = os.getenv("APP_ENV", "production") == "production"
+            response = JSONResponse(content=result)
+            response.set_cookie(
+                key="bayup_refresh_token",
+                value=new_refresh,
+                httponly=True,
+                secure=is_prod,
+                samesite="lax",
+                max_age=30 * 24 * 3600,
+                path="/auth/refresh",
+            )
+            return response
         return result
     finally:
         db.close()
@@ -2413,7 +2447,7 @@ async def live_preview_template_page(
         if not html:
             raise HTTPException(status_code=404, detail=f"Página '{page_key}' no encontrada")
         base_url = str(request.base_url).rstrip("/")
-        tok = token or ""
+        tok = preview_token or ""
         preview_sdk = _BAYUP_PREVIEW_SDK \
             .replace("__TPLID__", template_id) \
             .replace("__TOK__", tok) \
@@ -2577,19 +2611,13 @@ async def get_web_templates(request: Request, response: Response):
         db.close()
 
 @app.get("/web-templates/{template_id}/preview/{page_key}", response_class=HTMLResponse)
-async def public_preview_template_page(template_id: str, page_key: str, request: Request, token: str = Query(None)):
-    """Preview navegable de plantilla HTML para cualquier usuario autenticado."""
-    import models, uuid as uuid_lib, security as sec_mod
+async def public_preview_template_page(template_id: str, page_key: str, request: Request):
+    """Preview navegable de plantilla HTML — solo autenticación por cookie/header (sin JWT en URL)."""
+    import models, uuid as uuid_lib
     from database import SessionLocal
     db = SessionLocal()
     try:
-        if token:
-            try:
-                user = await sec_mod.get_current_user(request=request, token=token, db=db)
-            except Exception:
-                raise HTTPException(status_code=401, detail="Token inválido o expirado")
-        else:
-            user = await _authenticate(request, db)
+        user = await _authenticate(request, db)
         try:
             target_uuid = uuid_lib.UUID(template_id)
         except ValueError:
@@ -2605,13 +2633,15 @@ async def public_preview_template_page(template_id: str, page_key: str, request:
         if not html:
             raise HTTPException(status_code=404, detail=f"Página '{page_key}' no encontrada")
         base_url = str(request.base_url).rstrip("/")
-        tok = token or ""
+        # No se inyecta JWT en la URL — la navegación entre páginas usa cookie httpOnly
         preview_sdk = _BAYUP_PREVIEW_SDK \
             .replace("__TPLID__", template_id) \
-            .replace("__TOK__", tok) \
+            .replace("__TOK__", "") \
             .replace("__BASE__", base_url) \
             .replace("/super-admin/web-templates/", "/web-templates/") \
-            .replace("/live-preview/", "/preview/")
+            .replace("/live-preview/", "/preview/") \
+            .replace("+'?token='+encodeURIComponent(TOK)", "") \
+            .replace("if(extra)u+='&'+extra", "if(extra)u+=(u.indexOf('?')>=0?'&':'?')+extra")
         if "</head>" in html:
             html = html.replace("</head>", preview_sdk + "</head>", 1)
         else:
