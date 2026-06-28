@@ -108,7 +108,7 @@ export default function OnboardingPage() {
     if (!token) return;
     fetch(`${apiBase}/web-templates`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.ok ? res.json() : [])
-      .then(data => setTemplates(Array.isArray(data) ? data.map(withStandardMenu) : []))
+      .then(data => setTemplates(Array.isArray(data) ? data.filter((t: any) => t.template_type !== 'html').map(withStandardMenu) : []))
       .catch(() => setTemplates([]))
       .finally(() => setTemplatesLoading(false));
   }, [token, apiBase]);

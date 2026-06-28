@@ -363,7 +363,7 @@ function EditorContent() {
       .then(res => res.ok ? res.json() : [])
       .then((list: any[]) => {
         const tpl = (list || []).find(t => t.id === templateId);
-        if (!tpl) { setLoading(false); return; }
+        if (!tpl || !tpl.schema_data || tpl.template_type === 'html') { setLoading(false); return; }
         setTemplateName(tpl.name);
         const overrideRaw = sessionStorage.getItem(`bayup_ob_schema_override_${templateId}`);
         const schema = JSON.parse(JSON.stringify(overrideRaw ? JSON.parse(overrideRaw) : tpl.schema_data));
@@ -399,10 +399,21 @@ function EditorContent() {
     }
   };
 
-  if (loading || !draft) {
+  if (loading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-[#FAFAFA]">
         <Loader2 size={28} className="animate-spin text-petroleum" />
+      </div>
+    );
+  }
+
+  if (!draft) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#FAFAFA] gap-4">
+        <p className="text-sm font-medium text-gray-500">Esta plantilla no está disponible para edición.</p>
+        <button onClick={() => router.push('/onboarding')} className="px-5 py-2.5 bg-[#004d4d] text-white rounded-xl text-xs font-bold">
+          Volver al inicio
+        </button>
       </div>
     );
   }
