@@ -1835,14 +1835,6 @@ async def get_super_admin_companies(request: Request):
         user = await _authenticate(request, db)
         _require_super_admin(user)
 
-<<<<<<< HEAD
-        companies = db.query(models.User).filter(
-            models.User.role == "admin_tienda",
-            models.User.owner_id.is_(None),
-            models.User.status != "Pendiente",
-        ).all()
-
-=======
         # Un JOIN por tienda en vez de 4 queries N×1
         order_stats = (
             db.query(
@@ -1875,10 +1867,13 @@ async def get_super_admin_companies(request: Request):
             .filter(
                 models.User.role == "admin_tienda",
                 models.User.owner_id.is_(None),
+                # Los registros pendientes de aprobación viven en el módulo
+                # "Registros", no en "Empresas" — recién aparecen aquí cuando
+                # el equipo Bayup los aprueba.
+                models.User.status != "Pendiente",
             )
             .all()
         )
->>>>>>> 38d1b1c1c46be2a0cad5f77b50a26a5c03f06541
         result = []
         for c, total_sales, total_commission, total_orders, total_products in rows:
             result.append({

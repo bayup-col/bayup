@@ -172,14 +172,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (storedStatus) setUserStatus(storedStatus);
           if (storedReviewerNotes) setReviewerNotes(storedReviewerNotes);
 
-<<<<<<< HEAD
-          // Sincronización con el servidor — se espera (await) antes de
-          // terminar de cargar. Sin esto, `isLoading` pasaba a false antes
-          // de que llegara la respuesta de /auth/me, y cualquier guard que
-          // dependa de `userStatus` (ej. el de "Pendiente" en /onboarding)
-          // se evaluaba con el valor viejo guardado en localStorage.
-          await syncProfile(storedToken);
-=======
           // Restaurar sesión vía cookie httpOnly (token nunca viaja en localStorage)
           try {
             const isLocal = typeof window !== 'undefined' &&
@@ -196,7 +188,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (refreshRes.ok) {
               const data = await refreshRes.json();
               setToken(data.access_token); // solo en memoria, nunca en localStorage
-              syncProfile(data.access_token);
+              // Se espera (await) antes de terminar de cargar. Sin esto,
+              // `isLoading` pasaba a false antes de que llegara la respuesta
+              // de /auth/me, y cualquier guard que dependa de `userStatus`
+              // (ej. el de "Pendiente" en /onboarding) se evaluaba con el
+              // valor viejo guardado en localStorage.
+              await syncProfile(data.access_token);
             } else {
               // Cookie caducada: limpiar estado local
               localStorage.clear();
@@ -207,7 +204,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch {
             // Error de red transitorio: mantener datos de UI pero sin token activo
           }
->>>>>>> 38d1b1c1c46be2a0cad5f77b50a26a5c03f06541
         }
       } catch (e) {
         // Error de carga silencioso
@@ -217,13 +213,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };    loadStorage();
   }, [syncProfile]);
 
-<<<<<<< HEAD
   const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "", logo: string = "", nit: string = "", address: string = "", onboardingDone: boolean = false, status: string = "Activo") => {
-=======
-  const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "", logo: string = "", nit: string = "", address: string = "", onboardingDone: boolean = false) => {
     // Invalidar cualquier syncProfile en vuelo (ej. loadStorage con sesión anterior)
     profileEpochRef.current += 1;
->>>>>>> 38d1b1c1c46be2a0cad5f77b50a26a5c03f06541
     setToken(newToken);
     setUserEmail(email);
     setUserName(name);

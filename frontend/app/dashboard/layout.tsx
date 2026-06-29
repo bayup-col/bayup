@@ -156,9 +156,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       if (!isLoading && isAuthenticated && !isStaffAccount && isStudioRoute) router.replace('/dashboard');
   }, [isLoading, isAuthenticated, isStaffAccount, isStudioRoute, router]);
 
-<<<<<<< HEAD
-  if (isLoading || !isAuthenticated || isPendingApproval || needsOnboarding || (!isStaffAccount && isStudioRoute)) {
-=======
   // CRIT-006 / ALTA-005: Guard de rutas super-admin en cliente.
   // Un usuario autenticado pero sin is_global_staff no debe ver el panel global.
   useEffect(() => {
@@ -167,8 +164,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       }
   }, [isLoading, isAuthenticated, isSuperAdminZone, isStaffAccount, router]);
 
-  if (isLoading || !isAuthenticated || needsOnboarding || (!isStaffAccount && isStudioRoute)) {
->>>>>>> 38d1b1c1c46be2a0cad5f77b50a26a5c03f06541
+  if (isLoading || !isAuthenticated || isPendingApproval || needsOnboarding || (!isStaffAccount && isStudioRoute)) {
       return (
         <div className="h-screen w-screen flex items-center justify-center bg-[#FAFAFA]">
             <div className="text-2xl font-bold tracking-[0.15em] text-[#004d4d] animate-pulse uppercase">BAYUP</div>

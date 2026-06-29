@@ -368,19 +368,16 @@ function EditorContent() {
       .then(res => res.ok ? res.json() : [])
       .then((list: any[]) => {
         const tpl = (list || []).find(t => t.id === templateId);
-<<<<<<< HEAD
-        if (!tpl) {
-          // Sin esto, una plantilla inactiva o inexistente dejaba esta
-          // página colgada en el spinner para siempre (loading=false pero
-          // draft=null cae igual en el guard de carga).
+        if (!tpl || !tpl.schema_data || tpl.template_type === 'html') {
+          // Sin esto, una plantilla inactiva, inexistente o tipo HTML (que
+          // no tiene schema_data — este editor solo edita plantillas
+          // schema) dejaba esta página colgada en el spinner para siempre
+          // (loading=false pero draft=null cae igual en el guard de carga).
           setLoading(false);
-          showToast('No se encontró esa plantilla o está inactiva', 'error');
+          showToast(!tpl ? 'No se encontró esa plantilla o está inactiva' : 'Esa plantilla es de tipo HTML — no se puede editar acá', 'error');
           router.push(backToOnboardingUrl);
           return;
         }
-=======
-        if (!tpl || !tpl.schema_data || tpl.template_type === 'html') { setLoading(false); return; }
->>>>>>> 38d1b1c1c46be2a0cad5f77b50a26a5c03f06541
         setTemplateName(tpl.name);
         const overrideRaw = sessionStorage.getItem(`bayup_ob_schema_override_${templateId}`);
         const schema = JSON.parse(JSON.stringify(overrideRaw ? JSON.parse(overrideRaw) : tpl.schema_data));
