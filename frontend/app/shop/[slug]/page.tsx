@@ -223,6 +223,11 @@ function ShopContent() {
                         if (pageData && pageData.schema_data) {
                             data.custom_schema = pageData.schema_data;
                         }
+                        // Plantilla tipo HTML: no tiene schema_data, el backend
+                        // devuelve el HTML crudo de esta página puntual.
+                        if (pageData && pageData.html) {
+                            data.custom_html = pageData.html;
+                        }
                     } else if (pageResult.status === 'rejected') {
                         console.warn(`Diseño para vista ${view} no publicado.`);
                     }
@@ -337,7 +342,12 @@ function ShopContent() {
 
             {/* --- MOTOR DE RENDERIZADO (STUDIO VS DEFAULT) --- */}
             <main className="pt-20 lg:pt-24 min-h-screen">
-                {shopData.custom_schema ? (
+                {shopData.custom_html ? (
+                    // Plantilla tipo HTML curada por el equipo Bayup (no es
+                    // contenido subido por el usuario final, por eso el
+                    // riesgo de inyección es bajo) — se renderiza tal cual.
+                    <div dangerouslySetInnerHTML={{ __html: shopData.custom_html }} />
+                ) : shopData.custom_schema ? (
                     <StudioProvider>
                         <Canvas
                             overrideData={shopData.custom_schema}

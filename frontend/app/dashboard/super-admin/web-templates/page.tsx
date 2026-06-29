@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback, useRef, memo } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
-import { Layout, Plus, X, Star, Trash2, Eye, Search, ImagePlus, CheckCircle2, RefreshCw, Code2, FileCode2, Upload } from 'lucide-react';
+import { Layout, Plus, X, Star, Trash2, Eye, Search, ImagePlus, CheckCircle2, RefreshCw, Code2, FileCode2, Upload, Edit3 } from 'lucide-react';
 
 interface Template {
   id: string; name: string; category: string; description: string;
@@ -107,6 +108,7 @@ function TemplateMock({ color, name, previewUrl, templateType }: { color: string
 export default function WebTemplatesPage() {
   const { token } = useAuth();
   const { showToast } = useToast();
+  const router = useRouter();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -125,6 +127,20 @@ export default function WebTemplatesPage() {
     setSelected(null);
     setConfirmAction(null);
   }, []);
+
+  // "Vista previa" rápida desde la tarjeta: para plantillas schema reutiliza
+  // el mismo mecanismo que el onboarding (localStorage + /studio-preview);
+  // para HTML abre el live-preview real del backend en una pestaña nueva.
+  const openTemplatePreview = useCallback((t: Template) => {
+    if (t.template_type === 'html') {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const url = `${base}/super-admin/web-templates/${t.id}/live-preview/home?token=${encodeURIComponent(token || '')}`;
+      window.open(url, '_blank');
+      return;
+    }
+    localStorage.setItem('bayup-studio-preview', JSON.stringify((t as any).schema_data));
+    window.open('/studio-preview', '_blank');
+  }, [token]);
 
   // Carga el preview HTML para un template; lo guarda en el cache htmlPreviews
   const fetchHtmlPreview = useCallback(async (templateId: string) => {
@@ -382,10 +398,28 @@ export default function WebTemplatesPage() {
           <motion.div key={t.id} whileHover={{ y: -3 }} transition={{ duration: 0.15 }}
             className="rounded-2xl border border-white/6 bg-white/[0.02] hover:border-white/10 overflow-hidden group cursor-pointer transition-all"
             onClick={() => setSelected(t)}>
-            {t.template_type === 'html' && htmlPreviews[t.id]
-              ? <div className="relative h-40 overflow-hidden border-b border-white/5"><HtmlPreviewFrame src={htmlPreviews[t.id]} h={160} /></div>
-              : <TemplateMock color={t.color} name={t.name} previewUrl={t.preview_url} templateType={t.template_type} />
-            }
+            <div className="relative">
+              {t.template_type === 'html' && htmlPreviews[t.id]
+                ? <div className="relative h-40 overflow-hidden border-b border-white/5"><HtmlPreviewFrame src={htmlPreviews[t.id]} h={160} /></div>
+                : <TemplateMock color={t.color} name={t.name} previewUrl={t.preview_url} templateType={t.template_type} />
+              }
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                <button
+                  onClick={(e) => { e.stopPropagation(); openTemplatePreview(t); }}
+                  className="flex items-center gap-2 h-9 px-4 rounded-full bg-white text-[#0a1a1a] text-[10px] font-bold uppercase tracking-wide shadow-xl hover:scale-105 transition-transform"
+                >
+                  <Eye size={12} /> Vista previa
+                </button>
+                {t.template_type !== 'html' && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); router.push(`/onboarding/editor?templateId=${t.id}`); }}
+                    className="flex items-center gap-2 h-9 px-4 rounded-full bg-[#00f2ff] text-[#0a1a1a] text-[10px] font-bold uppercase tracking-wide shadow-xl hover:scale-105 transition-transform"
+                  >
+                    <Edit3 size={12} /> Editar
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="p-4 space-y-2.5">
               <div className="flex items-start justify-between">
                 <div>
@@ -498,6 +532,14 @@ export default function WebTemplatesPage() {
               </div>
 
               <div className="px-6 pb-6 pt-4 border-t border-white/5 space-y-2 shrink-0">
+                {selected.template_type !== 'html' && (
+                  <button
+                    onClick={() => router.push(`/onboarding/editor?templateId=${selected.id}`)}
+                    className="w-full h-10 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all bg-cyan/15 border border-cyan/30 text-cyan hover:bg-cyan/25">
+                    <Edit3 size={12} /> Editar plantilla
+                  </button>
+                )}
+
                 {selected.template_type === 'html' && (
                   <button
                     onClick={() => {

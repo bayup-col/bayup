@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException, status, Request, Response, UploadFile, File, Query
+from fastapi import Depends, FastAPI, HTTPException, status, Request, Response, UploadFile, File, Query, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -209,6 +209,8 @@ def login(request: Request, form_data: UserLoginRequest):
                 "shop_slug": getattr(user, 'shop_slug', ""),
                 "logo_url": getattr(user, 'logo_url', ""),
                 "onboarding_completed": bool(getattr(user, 'onboarding_completed', False)),
+                "status": getattr(user, 'status', 'Activo'),
+                "reviewer_notes": getattr(user, 'reviewer_notes', None),
             }
         }
     finally:
@@ -234,10 +236,14 @@ def register(request: Request, payload: RegisterRequest):
         if existing:
             raise HTTPException(status_code=400, detail="Ya existe una cuenta con ese correo")
 
+        # Nuevo registro queda "Pendiente" hasta que el equipo Bayup lo
+        # configure y apruebe manualmente desde el módulo "Registros" del
+        # super admin (flujo temporal mientras el editor no es público).
         user_in = schemas.UserCreate(
             email=payload.email,
             password=payload.password,
             full_name=payload.full_name,
+            status="Pendiente",
         )
         user = crud.create_user(db, user=user_in)
         _trigger_email_confirmation(payload.email, payload.password)
@@ -386,6 +392,24 @@ async def _authenticate(request: Request, db):
 def _tenant_id(user):
     return user.owner_id or user.id
 
+def _resolve_target_user(db, caller, target_user_id: str | None):
+    """Flujo "Registros": un super-admin puede configurar la tienda de OTRO
+    usuario (uno pendiente de aprobación) pasando `target_user_id`, en vez
+    de operar sobre sí mismo. Sin ese campo, comportamiento idéntico a
+    siempre — opera sobre el usuario autenticado."""
+    if not target_user_id:
+        return caller
+    _require_super_admin(caller)
+    import models, uuid as uuid_lib
+    try:
+        target_uuid = uuid_lib.UUID(target_user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="target_user_id inválido")
+    target = db.query(models.User).filter(models.User.id == target_uuid).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario objetivo no encontrado")
+    return target
+
 @app.get("/auth/me")
 async def read_users_me(request: Request):
     from database import SessionLocal
@@ -403,6 +427,8 @@ async def read_users_me(request: Request):
             "logo_url": getattr(current_user, 'logo_url', ""),
             "permissions": getattr(current_user, 'permissions', {}) or {},
             "onboarding_completed": bool(getattr(current_user, 'onboarding_completed', False)),
+            "status": getattr(current_user, 'status', 'Activo'),
+            "reviewer_notes": getattr(current_user, 'reviewer_notes', None),
         }
     finally:
         db.close()
@@ -420,6 +446,7 @@ class ProductCreateRequest(BaseModel):
     image_url: object | None = None
     collection_id: str | None = None
     variants: list = []
+    target_user_id: str | None = None
 
 @app.get("/products")
 async def get_products(request: Request, skip: int = Query(default=0, ge=0), limit: int = Query(default=200, ge=1)):
@@ -440,9 +467,84 @@ async def create_product_route(payload: ProductCreateRequest, request: Request):
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
-        product_in = schemas.ProductCreate(**payload.model_dump())
-        db_product = crud.create_product(db, product=product_in, owner_id=_tenant_id(user))
+        data = payload.model_dump()
+        target_user_id = data.pop("target_user_id", None)
+        effective_user = _resolve_target_user(db, user, target_user_id)
+        product_in = schemas.ProductCreate(**data)
+        db_product = crud.create_product(db, product=product_in, owner_id=_tenant_id(effective_user))
         return schemas.Product.model_validate(db_product).model_dump(mode="json")
+    finally:
+        db.close()
+
+@app.post("/products/bulk-upload")
+async def bulk_upload_products(
+    request: Request,
+    file: UploadFile = File(...),
+    target_user_id: str | None = Form(None),
+):
+    """Carga varios productos a la vez desde un Excel (.xlsx/.xls). Columnas
+    esperadas (insensible a mayúsculas/acentos): nombre*, precio*,
+    descripcion, categoria, sku. Filas inválidas se omiten y se reportan
+    en `errors` en vez de abortar toda la carga."""
+    import crud, schemas, pandas as pd, io
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        effective_user = _resolve_target_user(db, user, target_user_id)
+        tenant_id = _tenant_id(effective_user)
+
+        contents = await file.read()
+        try:
+            df = pd.read_excel(io.BytesIO(contents))
+        except Exception:
+            raise HTTPException(status_code=400, detail="No se pudo leer el archivo. Asegúrate de subir un .xlsx o .xls válido.")
+
+        # Normaliza encabezados: minusculas, sin espacios/acentos.
+        def norm(col: str) -> str:
+            col = str(col).strip().lower()
+            for a, b in [('á', 'a'), ('é', 'e'), ('í', 'i'), ('ó', 'o'), ('ú', 'u')]:
+                col = col.replace(a, b)
+            return col
+        df.columns = [norm(c) for c in df.columns]
+
+        col_map = {
+            'name': next((c for c in df.columns if c in ('nombre', 'name', 'producto')), None),
+            'price': next((c for c in df.columns if c in ('precio', 'price')), None),
+            'description': next((c for c in df.columns if c in ('descripcion', 'description')), None),
+            'category': next((c for c in df.columns if c in ('categoria', 'category')), None),
+            'sku': next((c for c in df.columns if c in ('sku', 'codigo', 'código')), None),
+        }
+        if not col_map['name'] or not col_map['price']:
+            raise HTTPException(status_code=400, detail="El Excel debe tener al menos las columnas 'nombre' y 'precio'.")
+
+        created = 0
+        errors: list[str] = []
+        for idx, row in df.iterrows():
+            row_num = int(idx) + 2  # +2: fila 1 es encabezado, idx es 0-based
+            try:
+                name = str(row[col_map['name']]).strip() if pd.notna(row[col_map['name']]) else ''
+                price_raw = row[col_map['price']]
+                if not name or pd.isna(price_raw):
+                    errors.append(f"Fila {row_num}: falta nombre o precio")
+                    continue
+                price = float(price_raw)
+                if price <= 0:
+                    errors.append(f"Fila {row_num}: el precio debe ser mayor a 0")
+                    continue
+                product_in = schemas.ProductCreate(
+                    name=name,
+                    price=price,
+                    description=(str(row[col_map['description']]).strip() if col_map['description'] and pd.notna(row[col_map['description']]) else None),
+                    category=(str(row[col_map['category']]).strip() if col_map['category'] and pd.notna(row[col_map['category']]) else None),
+                    sku=(str(row[col_map['sku']]).strip() if col_map['sku'] and pd.notna(row[col_map['sku']]) else None),
+                )
+                crud.create_product(db, product=product_in, owner_id=tenant_id)
+                created += 1
+            except Exception as e:
+                errors.append(f"Fila {row_num}: {str(e)}")
+
+        return {"created": created, "errors": errors}
     finally:
         db.close()
 
@@ -1324,6 +1426,7 @@ class UpdateProfileRequest(BaseModel):
     tax_regime: str | None = None
     legal_rep: str | None = None
     social_links: dict | None = None
+    target_user_id: str | None = None
 
 @app.put("/admin/update-profile")
 async def update_profile(payload: UpdateProfileRequest, request: Request):
@@ -1332,8 +1435,9 @@ async def update_profile(payload: UpdateProfileRequest, request: Request):
     from database import SessionLocal
     db = SessionLocal()
     try:
-        user = await _authenticate(request, db)
-        update_data = payload.model_dump(exclude_unset=True)
+        caller = await _authenticate(request, db)
+        user = _resolve_target_user(db, caller, payload.target_user_id)
+        update_data = payload.model_dump(exclude_unset=True, exclude={"target_user_id"})
         if update_data.get("shop_slug") and update_data["shop_slug"] != user.shop_slug:
             existing = crud.get_user_by_slug(db, slug=update_data["shop_slug"])
             if existing and existing.id != user.id:
@@ -1350,7 +1454,7 @@ async def update_profile(payload: UpdateProfileRequest, request: Request):
         if user.shop_slug:
             _shop_cache.pop(user.shop_slug, None)
         result: dict = {"ok": True}
-        if email_changed:
+        if email_changed and user.id == caller.id:
             # El token de sesion usa el email como identificador (sub); si cambia,
             # el token viejo deja de resolver a ningun usuario y la app fuerza un
             # logout automatico. Emitimos uno nuevo para que la sesion siga viva.
@@ -1359,12 +1463,16 @@ async def update_profile(payload: UpdateProfileRequest, request: Request):
     finally:
         db.close()
 
+class OnboardingCompleteRequest(BaseModel):
+    target_user_id: str | None = None
+
 @app.post("/onboarding/complete")
-async def complete_onboarding(request: Request):
+async def complete_onboarding(request: Request, payload: OnboardingCompleteRequest | None = None):
     from database import SessionLocal
     db = SessionLocal()
     try:
-        user = await _authenticate(request, db)
+        caller = await _authenticate(request, db)
+        user = _resolve_target_user(db, caller, payload.target_user_id if payload else None)
         user.onboarding_completed = True
         db.commit()
         return {"ok": True}
@@ -1474,6 +1582,7 @@ async def get_super_admin_companies(request: Request):
         companies = db.query(models.User).filter(
             models.User.role == "admin_tienda",
             models.User.owner_id.is_(None),
+            models.User.status != "Pendiente",
         ).all()
 
         result = []
@@ -1533,6 +1642,85 @@ async def toggle_suspend_company(company_id: str, request: Request):
         if company.shop_slug:
             _shop_cache.pop(company.shop_slug, None)
         return {"id": str(company.id), "status": company.status}
+    finally:
+        db.close()
+
+@app.get("/super-admin/registrations")
+async def get_super_admin_registrations(request: Request):
+    """Clientes recien registrados (email ya confirmado) que esperan a que
+    el equipo Bayup les configure y apruebe su tienda — ver modulo
+    "Registros" del super admin. Salen de aqui en cuanto status != Pendiente."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        _require_super_admin(user)
+
+        registrations = db.query(models.User).filter(
+            models.User.role == "admin_tienda",
+            models.User.owner_id.is_(None),
+            models.User.status == "Pendiente",
+        ).order_by(models.User.created_at.desc()).all()
+
+        return [{
+            "id": str(r.id),
+            "full_name": r.full_name,
+            "email": r.email,
+            "phone": r.phone,
+            "category": r.category,
+            "email_confirmed": bool(getattr(r, "email_confirmed", False)),
+            "reviewer_notes": r.reviewer_notes,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        } for r in registrations]
+    finally:
+        db.close()
+
+class RegistrationNotesRequest(BaseModel):
+    reviewer_notes: str | None = None
+
+@app.put("/super-admin/registrations/{user_id}/notes")
+async def update_registration_notes(user_id: str, payload: RegistrationNotesRequest, request: Request):
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        caller = await _authenticate(request, db)
+        _require_super_admin(caller)
+        try:
+            target_uuid = uuid_lib.UUID(user_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="user_id inválido")
+        target = db.query(models.User).filter(models.User.id == target_uuid).first()
+        if not target:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        target.reviewer_notes = payload.reviewer_notes
+        db.commit()
+        return {"ok": True}
+    finally:
+        db.close()
+
+@app.put("/super-admin/registrations/{user_id}/approve")
+async def approve_registration(user_id: str, request: Request):
+    """Marca al cliente como Activo — a partir de este momento aparece en
+    "Empresas" en vez de en "Registros". No toca onboarding_completed: el
+    wizard de /onboarding ya lo marca al publicar la tienda en su nombre."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        caller = await _authenticate(request, db)
+        _require_super_admin(caller)
+        try:
+            target_uuid = uuid_lib.UUID(user_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="user_id inválido")
+        target = db.query(models.User).filter(models.User.id == target_uuid).first()
+        if not target:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        target.status = "Activo"
+        db.commit()
+        return {"id": str(target.id), "status": target.status}
     finally:
         db.close()
 
@@ -2345,12 +2533,17 @@ def _serialize_shop_page(p):
 
 class ShopPageSaveRequest(BaseModel):
     page_key: str
-    schema_data: dict
+    # Vacio cuando la pagina viene de una plantilla tipo HTML (su contenido
+    # vive en WebTemplate.html_pages, referenciado via template_id, no en
+    # schema_data) — ver GET /public/stores/{store_id}/pages/{page_key}.
+    schema_data: dict = {}
     template_id: str | None = None
+    target_user_id: str | None = None
 
 class ShopPagePublishRequest(BaseModel):
     page_key: str
-    schema_data: dict
+    schema_data: dict = {}
+    target_user_id: str | None = None
 
 @app.get("/shop-pages/{page_key}")
 async def get_shop_page(page_key: str, request: Request):
@@ -2376,8 +2569,9 @@ async def save_shop_page(payload: ShopPageSaveRequest, request: Request):
     from database import SessionLocal
     db = SessionLocal()
     try:
-        user = await _authenticate(request, db)
-        tenant_id = _tenant_id(user)
+        caller = await _authenticate(request, db)
+        effective_user = _resolve_target_user(db, caller, payload.target_user_id)
+        tenant_id = _tenant_id(effective_user)
         page = db.query(models.ShopPage).filter(
             models.ShopPage.tenant_id == tenant_id,
             models.ShopPage.page_key == payload.page_key,
@@ -2419,8 +2613,9 @@ async def publish_shop_page(payload: ShopPagePublishRequest, request: Request):
     from database import SessionLocal
     db = SessionLocal()
     try:
-        user = await _authenticate(request, db)
-        tenant_id = _tenant_id(user)
+        caller = await _authenticate(request, db)
+        effective_user = _resolve_target_user(db, caller, payload.target_user_id)
+        tenant_id = _tenant_id(effective_user)
         page = db.query(models.ShopPage).filter(
             models.ShopPage.tenant_id == tenant_id,
             models.ShopPage.page_key == payload.page_key,
@@ -2461,7 +2656,21 @@ async def get_public_shop_page(request: Request, response: Response, store_id: s
         if not page:
             raise HTTPException(status_code=404, detail="Página no publicada")
         response.headers["Cache-Control"] = "public, max-age=120, stale-while-revalidate=600"
-        return {"page_key": page.page_key, "schema_data": page.schema_data}
+        result = {"page_key": page.page_key, "schema_data": page.schema_data}
+        # Plantillas tipo HTML no usan schema_data — su contenido vive en
+        # WebTemplate.html_pages, referenciado por template_id. Sin
+        # schema_data propio, buscamos ahí el HTML de esta página puntual.
+        if not page.schema_data and page.template_id:
+            try:
+                template_uuid = uuid_lib.UUID(page.template_id)
+            except ValueError:
+                template_uuid = None
+            template = db.query(models.WebTemplate).filter(models.WebTemplate.id == template_uuid).first() if template_uuid else None
+            if template and getattr(template, "template_type", None) == "html":
+                html_pages = getattr(template, "html_pages", None) or {}
+                if page.page_key in html_pages:
+                    result["html"] = html_pages[page.page_key]
+        return result
     finally:
         db.close()
 

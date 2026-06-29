@@ -304,6 +304,11 @@ function EditorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const templateId = searchParams.get('templateId');
+  // Si vinimos desde "Registros" del super admin, hay que conservar este
+  // parámetro al volver a /onboarding — si se pierde, el wizard publicaría
+  // sobre la cuenta del super-admin en vez de la del cliente pendiente.
+  const targetUserId = searchParams.get('targetUserId');
+  const backToOnboardingUrl = `/onboarding${targetUserId ? `?targetUserId=${targetUserId}` : ''}`;
   const { token, isAuthenticated, isLoading: authLoading } = useAuth();
   const { showToast } = useToast();
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -363,7 +368,15 @@ function EditorContent() {
       .then(res => res.ok ? res.json() : [])
       .then((list: any[]) => {
         const tpl = (list || []).find(t => t.id === templateId);
-        if (!tpl) { setLoading(false); return; }
+        if (!tpl) {
+          // Sin esto, una plantilla inactiva o inexistente dejaba esta
+          // página colgada en el spinner para siempre (loading=false pero
+          // draft=null cae igual en el guard de carga).
+          setLoading(false);
+          showToast('No se encontró esa plantilla o está inactiva', 'error');
+          router.push(backToOnboardingUrl);
+          return;
+        }
         setTemplateName(tpl.name);
         const overrideRaw = sessionStorage.getItem(`bayup_ob_schema_override_${templateId}`);
         const schema = JSON.parse(JSON.stringify(overrideRaw ? JSON.parse(overrideRaw) : tpl.schema_data));
@@ -767,7 +780,7 @@ function EditorContent() {
     if (logoPreview) sessionStorage.setItem('bayup_ob_logo_preview', logoPreview);
     if (logoUrl) sessionStorage.setItem('bayup_ob_logo_url', logoUrl);
     showToast('Cambios guardados en tu plantilla', 'success');
-    router.push('/onboarding');
+    router.push(backToOnboardingUrl);
   };
 
   // Sin nombre de tienda todavía no mostramos el de muestra de la plantilla
@@ -780,7 +793,7 @@ function EditorContent() {
       {/* TOP BAR */}
       <header className="h-[72px] flex items-center justify-between px-6 border-b border-gray-100 bg-white shrink-0">
         <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/onboarding')} className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+          <button onClick={() => router.push(backToOnboardingUrl)} className="h-10 w-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors">
             <ArrowLeft size={17} />
           </button>
           <div>

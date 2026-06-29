@@ -57,6 +57,9 @@ class User(Base):
     hashed_password = Column(String)
     role = Column(String, default="admin_tienda")
     status = Column(String, default="Activo")
+    # Nota del equipo Bayup para el cliente mientras su registro está
+    # "Pendiente" de aprobación (ver módulo "Registros" del super admin).
+    reviewer_notes = Column(String, nullable=True)
     is_global_staff = Column(Boolean, default=False)
     email_confirmed = Column(Boolean, default=False)
     shop_slug = Column(String, unique=True, index=True, nullable=True) # Pilar 2: Link de tienda

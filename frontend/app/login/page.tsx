@@ -89,11 +89,15 @@ export default function LoginPage() {
       const shopSlug = userData.shop_slug || "";
       const userLogo = userData.logo_url || "";
       
-      login(data.access_token, email, userRole, userPermissions, userPlan, isGlobalStaff, shopSlug, userData.full_name || "", userLogo, "", "", !!userData.onboarding_completed);
+      login(data.access_token, email, userRole, userPermissions, userPlan, isGlobalStaff, shopSlug, userData.full_name || "", userLogo, "", "", !!userData.onboarding_completed, userData.status || "Activo");
 
       let targetPath = '/dashboard';
       if (isGlobalStaff) targetPath = '/dashboard/super-admin';
       else if (userRole === 'afiliado') targetPath = '/afiliado/dashboard';
+      // Registro recién creado, esperando que el equipo Bayup le configure
+      // y apruebe su tienda (ver módulo "Registros" del super admin) — no
+      // puede entrar a onboarding/dashboard todavía.
+      else if (userData.status === 'Pendiente') targetPath = '/registro-pendiente';
       else if (!userData.onboarding_completed) targetPath = '/onboarding';
       
       setRedirectUrl(targetPath);

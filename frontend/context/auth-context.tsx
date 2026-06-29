@@ -18,7 +18,12 @@ interface AuthContextType {
   isGlobalStaff: boolean;
   onboardingCompleted: boolean;
   setOnboardingCompleted: (done: boolean) => void;
-  login: (token: string, email: string, role: string, permissions?: any, plan?: any, isGlobal?: boolean, shopSlug?: string, name?: string, logo?: string, nit?: string, address?: string, onboardingCompleted?: boolean) => void;
+  // "Pendiente" = registro recién creado, esperando que el equipo Bayup le
+  // configure y apruebe su tienda desde el módulo "Registros" del super
+  // admin (ver app/registro-pendiente/page.tsx). "Activo" = operando normal.
+  userStatus: string | null;
+  reviewerNotes: string | null;
+  login: (token: string, email: string, role: string, permissions?: any, plan?: any, isGlobal?: boolean, shopSlug?: string, name?: string, logo?: string, nit?: string, address?: string, onboardingCompleted?: boolean, status?: string) => void;
   updateUser: (data: { name?: string, slug?: string, logo?: string, nit?: string, address?: string }) => void;
   refreshToken: (newToken: string, newEmail?: string) => void;
   logout: () => void;
@@ -41,6 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [shopSlug, setShopSlug] = useState<string | null>(null);
   const [isGlobalStaff, setIsGlobalStaff] = useState<boolean>(false);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
+  const [userStatus, setUserStatus] = useState<string | null>(null);
+  const [reviewerNotes, setReviewerNotes] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
 
@@ -86,6 +93,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setOnboardingCompleted(!!data.onboarding_completed);
             localStorage.setItem('onboardingCompleted', String(!!data.onboarding_completed));
         }
+        if (data.status !== undefined) {
+            setUserStatus(data.status);
+            localStorage.setItem('userStatus', data.status || '');
+        }
+        if (data.reviewer_notes !== undefined) {
+            setReviewerNotes(data.reviewer_notes);
+            if (data.reviewer_notes) localStorage.setItem('reviewerNotes', data.reviewer_notes);
+            else localStorage.removeItem('reviewerNotes');
+        }
       }
       } catch (e: any) {
       // La cuenta fue eliminada/desactivada por un administrador: el backend
@@ -109,6 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setShopSlug(null);
         setIsGlobalStaff(false);
         setOnboardingCompleted(false);
+        setUserStatus(null);
+        setReviewerNotes(null);
         localStorage.clear();
         router.push('/login');
       }
@@ -136,14 +154,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const storedPlan = localStorage.getItem('userPlan');
           const storedIsGlobal = localStorage.getItem('isGlobalStaff');
           const storedOnboarding = localStorage.getItem('onboardingCompleted');
+          const storedStatus = localStorage.getItem('userStatus');
+          const storedReviewerNotes = localStorage.getItem('reviewerNotes');
 
           if (storedPerms) setUserPermissions(JSON.parse(storedPerms));
           if (storedPlan) setUserPlan(JSON.parse(storedPlan));
           if (storedIsGlobal) setIsGlobalStaff(storedIsGlobal === 'true');
           if (storedOnboarding) setOnboardingCompleted(storedOnboarding === 'true');
+          if (storedStatus) setUserStatus(storedStatus);
+          if (storedReviewerNotes) setReviewerNotes(storedReviewerNotes);
 
-          // Sincronización proactiva con el servidor (Fallo silencioso)
-          syncProfile(storedToken);
+          // Sincronización con el servidor — se espera (await) antes de
+          // terminar de cargar. Sin esto, `isLoading` pasaba a false antes
+          // de que llegara la respuesta de /auth/me, y cualquier guard que
+          // dependa de `userStatus` (ej. el de "Pendiente" en /onboarding)
+          // se evaluaba con el valor viejo guardado en localStorage.
+          await syncProfile(storedToken);
         }
       } catch (e) {
         // Error de carga silencioso
@@ -153,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };    loadStorage();
   }, [syncProfile]);
 
-  const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "", logo: string = "", nit: string = "", address: string = "", onboardingDone: boolean = false) => {
+  const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "", logo: string = "", nit: string = "", address: string = "", onboardingDone: boolean = false, status: string = "Activo") => {
     setToken(newToken);
     setUserEmail(email);
     setUserName(name);
@@ -166,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserNit(nit);
     setUserAddress(address);
     setOnboardingCompleted(onboardingDone);
+    setUserStatus(status);
 
     localStorage.setItem('token', newToken);
     localStorage.setItem('userEmail', email);
@@ -177,6 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('userNit', nit);
     localStorage.setItem('userAddress', address);
     localStorage.setItem('onboardingCompleted', onboardingDone ? 'true' : 'false');
+    localStorage.setItem('userStatus', status);
     if (plan) localStorage.setItem('userPlan', JSON.stringify(plan));
     // sessionStorage no se borra con localStorage.clear() — bandera segura para logout
     if (isGlobal) sessionStorage.setItem('isSuperAdminSession', 'true');
@@ -245,6 +273,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setShopSlug(null);
     setIsGlobalStaff(false);
     setOnboardingCompleted(false);
+    setUserStatus(null);
+    setReviewerNotes(null);
     sessionStorage.removeItem('isSuperAdminSession');
     localStorage.clear();
     // Hard redirect: evita que el useEffect de DashboardLayout (isAuthenticated → /login)
@@ -268,13 +298,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isGlobalStaff,
     onboardingCompleted,
     setOnboardingCompleted,
+    userStatus,
+    reviewerNotes,
     login,
     updateUser,
     refreshToken,
     logout,
     isAuthenticated,
     isLoading
-  }), [token, userEmail, userName, userRole, userLogo, userNit, userAddress, userPermissions, userPlan, shopSlug, isGlobalStaff, onboardingCompleted, login, updateUser, refreshToken, logout, isAuthenticated, isLoading]);
+  }), [token, userEmail, userName, userRole, userLogo, userNit, userAddress, userPermissions, userPlan, shopSlug, isGlobalStaff, onboardingCompleted, userStatus, reviewerNotes, login, updateUser, refreshToken, logout, isAuthenticated, isLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>

@@ -13,7 +13,7 @@ import { BaytAssistant } from '@/components/dashboard/BaytAssistant';
 import { SupportWidget } from '@/components/dashboard/SupportWidget';
 import {
   LayoutDashboard, FileText, Package, Store, Truck, Settings,
-  LogOut, Eye, ShieldCheck, Building2, Users, Wallet, Headset,
+  LogOut, Eye, ShieldCheck, Building2, UserPlus, Users, Wallet, Headset,
   Layout, BarChart3, Code, Activity,
   ChevronLeft, ChevronRight,
   UserCheck, Coins, HelpCircle, Lock, Menu, X, CreditCard
@@ -90,6 +90,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     userPlan,
     isGlobalStaff,
     onboardingCompleted,
+    userStatus,
     isAuthenticated,
     isLoading
   } = useAuth();
@@ -138,9 +139,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   // lo primero que ve es el asistente de plantilla + datos, no el panel.
   const isStaffAccount = isGlobalStaff || authRole?.toUpperCase() === 'SUPER_ADMIN';
   const needsOnboarding = !isStaffAccount && !onboardingCompleted && !isSuperAdminZone;
+  // Registro recién creado: esperando que el equipo Bayup le configure y
+  // apruebe su tienda (módulo "Registros" del super admin) — no puede ver
+  // ninguna pantalla del dashboard ni el wizard de onboarding todavía.
+  const isPendingApproval = !isStaffAccount && userStatus === 'Pendiente';
   useEffect(() => {
-      if (!isLoading && isAuthenticated && needsOnboarding) router.replace('/onboarding');
-  }, [isLoading, isAuthenticated, needsOnboarding, router]);
+      if (!isLoading && isAuthenticated && isPendingApproval) router.replace('/registro-pendiente');
+  }, [isLoading, isAuthenticated, isPendingApproval, router]);
+  useEffect(() => {
+      if (!isLoading && isAuthenticated && !isPendingApproval && needsOnboarding) router.replace('/onboarding');
+  }, [isLoading, isAuthenticated, isPendingApproval, needsOnboarding, router]);
 
   // Bloquea el editor visual (Studio) para vendedores normales; la galería de plantillas sí está permitida.
   const isStudioRoute = pathname?.startsWith('/dashboard/pages') || (pathname?.startsWith('/dashboard/my-store') && pathname !== '/dashboard/my-store/templates');
@@ -148,7 +156,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       if (!isLoading && isAuthenticated && !isStaffAccount && isStudioRoute) router.replace('/dashboard');
   }, [isLoading, isAuthenticated, isStaffAccount, isStudioRoute, router]);
 
-  if (isLoading || !isAuthenticated || needsOnboarding || (!isStaffAccount && isStudioRoute)) {
+  if (isLoading || !isAuthenticated || isPendingApproval || needsOnboarding || (!isStaffAccount && isStudioRoute)) {
       return (
         <div className="h-screen w-screen flex items-center justify-center bg-[#FAFAFA]">
             <div className="text-2xl font-bold tracking-[0.15em] text-[#004d4d] animate-pulse uppercase">BAYUP</div>
@@ -315,6 +323,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <>
               <MenuItem href="/dashboard/super-admin" label="Overview" icon={<LayoutDashboard size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin')} />
               {!isSidebarCollapsed && <p className="px-3 text-[8px] font-bold text-white/15 uppercase tracking-[0.3em] mt-4 mb-1.5">Gestión</p>}
+              <MenuItem href="/dashboard/super-admin/registros" label="Registros" icon={<UserPlus size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/registros')} />
               <MenuItem href="/dashboard/super-admin/empresas" label="Empresas" icon={<Building2 size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/empresas')} />
               <MenuItem href="/dashboard/super-admin/tesoreria" label="Tesorería" icon={<Wallet size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/tesoreria')} />
               <MenuItem href="/dashboard/super-admin/users" label="Usuarios" icon={<Users size={16} />} collapsed={isSidebarCollapsed} linkClass={getLinkClass('/dashboard/super-admin/users')} />

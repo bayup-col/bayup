@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useRef, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check, ChevronRight, ChevronLeft, Loader2, Image as ImageIcon,
-  Store, Package, Rocket, ShoppingBag, Smartphone, Sparkles, Activity, Edit3, LogOut, Eye, X
+  Store, Package, Rocket, ShoppingBag, Smartphone, Sparkles, Activity, Edit3, LogOut, Eye, X, Upload
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -39,11 +39,26 @@ interface WebTemplate {
   category: string;
   preview_url: string | null;
   schema_data: any;
+  template_type?: 'schema' | 'html';
+  html_pages?: string[];
 }
 
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-[#FAFAFA]"><Loader2 size={28} className="animate-spin text-petroleum" /></div>}>
+      <OnboardingContent />
+    </Suspense>
+  );
+}
+
+function OnboardingContent() {
   const router = useRouter();
-  const { token, isAuthenticated, isLoading, userName, userEmail, updateUser, refreshToken, setOnboardingCompleted, logout } = useAuth();
+  const searchParams = useSearchParams();
+  // Si viene de "Registros" del super admin, este wizard configura la
+  // tienda de ESE cliente en vez de la del usuario autenticado (que en ese
+  // caso es el propio super-admin). Ver backend `_resolve_target_user`.
+  const targetUserId = searchParams.get('targetUserId');
+  const { token, isAuthenticated, isLoading, userName, userEmail, userStatus, isGlobalStaff, updateUser, refreshToken, setOnboardingCompleted, logout } = useAuth();
   const { showToast } = useToast();
 
   const [step, setStep] = useState(() => {
@@ -97,12 +112,55 @@ export default function OnboardingPage() {
   const [productImageFile, setProductImageFile] = useState<File | null>(null);
   const [productImagePreview, setProductImagePreview] = useState<string | null>(null);
   const productImageInputRef = useRef<HTMLInputElement>(null);
+  const bulkProductsInputRef = useRef<HTMLInputElement>(null);
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const [bulkUploadResult, setBulkUploadResult] = useState<{ created: number; errors: string[] } | null>(null);
 
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+  // Carga masiva de productos desde un Excel — alternativa a llenar el
+  // formulario de "primer producto" uno por uno. Independiente del resto
+  // del wizard: se sube apenas se elige el archivo, no espera a "Publicar".
+  const handleBulkProductsUpload = async (file: File) => {
+    setIsBulkUploading(true);
+    setBulkUploadResult(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      if (targetUserId) fd.append('target_user_id', targetUserId);
+      const res = await fetch(`${apiBase}/products/bulk-upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'No se pudo procesar el archivo');
+      }
+      const data = await res.json();
+      setBulkUploadResult(data);
+      if (data.created > 0) showToast(`${data.created} producto${data.created !== 1 ? 's' : ''} cargado${data.created !== 1 ? 's' : ''} correctamente`, 'success');
+      if (data.errors?.length > 0 && data.created === 0) showToast('No se pudo cargar ningún producto — revisa el detalle', 'error');
+    } catch (e: any) {
+      showToast(e.message || 'No se pudo procesar el archivo', 'error');
+    } finally {
+      setIsBulkUploading(false);
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.replace('/login');
   }, [isLoading, isAuthenticated, router]);
+
+  // Registro recién creado: todavía no puede elegir/configurar su propia
+  // tienda — espera a que el equipo Bayup lo haga por él desde "Registros".
+  // No aplica cuando es un super-admin operando este wizard en nombre de
+  // OTRO usuario (targetUserId en la URL) — su propio status es "Activo".
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && !isGlobalStaff && userStatus === 'Pendiente') {
+      router.replace('/registro-pendiente');
+    }
+  }, [isLoading, isAuthenticated, isGlobalStaff, userStatus, router]);
 
   useEffect(() => {
     if (!token) return;
@@ -153,12 +211,17 @@ export default function OnboardingPage() {
 
   const openEditor = (tpl: WebTemplate) => {
     setTemplateId(tpl.id);
-    router.push(`/onboarding/editor?templateId=${tpl.id}`);
+    router.push(`/onboarding/editor?templateId=${tpl.id}${targetUserId ? `&targetUserId=${targetUserId}` : ''}`);
   };
 
   const openPreview = (tpl?: WebTemplate | null) => {
     const target = tpl || selectedTemplate;
     if (!target) return;
+    if (target.template_type === 'html') {
+      const firstPage = (target.html_pages && target.html_pages[0]) || 'home';
+      window.open(`${apiBase}/web-templates/${target.id}/preview/${firstPage}?token=${encodeURIComponent(token || '')}`, '_blank');
+      return;
+    }
     localStorage.setItem('bayup-studio-preview', JSON.stringify(schemaFor(target)));
     window.open('/studio-preview', '_blank');
   };
@@ -255,6 +318,7 @@ export default function OnboardingPage() {
           category,
           phone: phone.trim(),
           ...(finalLogoUrl ? { logo_url: finalLogoUrl } : {}),
+          ...(targetUserId ? { target_user_id: targetUserId } : {}),
         }),
       });
       if (!profileRes.ok) {
@@ -262,58 +326,82 @@ export default function OnboardingPage() {
         throw new Error(err.detail || 'No se pudo guardar la información de tu tienda');
       }
 
-      // 3. Instalar la plantilla elegida en Home, reemplazando el nombre/logo
-      // de muestra del diseño por los datos reales que el usuario acaba de
-      // ingresar. Sin esto, la tienda publicada sale con el texto/logo de
-      // fábrica de la plantilla en vez de la marca del comerciante.
-      const architecture = schemaFor(selectedTemplate) || {};
-      const brandedSection = (section: any) => {
-        if (!section?.elements) return section;
-        return {
-          ...section,
-          elements: section.elements.map((el: any) =>
-            (el.type === 'navbar' || el.type === 'footer-premium')
-              ? { ...el, props: { ...el.props, logoText: storeName.trim(), ...(finalLogoUrl ? { logoUrl: finalLogoUrl } : {}) } }
-              : el
-          ),
+      // 3. Instalar la plantilla elegida.
+      if (selectedTemplate.template_type === 'html') {
+        // Plantilla HTML: su contenido vive en WebTemplate.html_pages, no en
+        // schema_data — cada ShopPage solo guarda la referencia (template_id)
+        // y el backend resuelve el HTML real al servir la tienda publicada.
+        const pageKeys = selectedTemplate.html_pages && selectedTemplate.html_pages.length > 0 ? selectedTemplate.html_pages : ['home'];
+        const saveResults = await Promise.all(pageKeys.map(pageKey =>
+          fetch(`${apiBase}/shop-pages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ page_key: pageKey, schema_data: {}, template_id: selectedTemplate.id, ...(targetUserId ? { target_user_id: targetUserId } : {}) }),
+          })
+        ));
+        if (saveResults.some(r => !r.ok)) throw new Error('No se pudo instalar la plantilla');
+        const pubResults = await Promise.all(pageKeys.map(pageKey =>
+          fetch(`${apiBase}/shop-pages/publish`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ page_key: pageKey, schema_data: {}, ...(targetUserId ? { target_user_id: targetUserId } : {}) }),
+          })
+        ));
+        if (pubResults.some(r => !r.ok)) throw new Error('No se pudo publicar tu tienda');
+      } else {
+        // Plantilla schema: reemplaza el nombre/logo de muestra del diseño
+        // por los datos reales que el usuario acaba de ingresar. Sin esto,
+        // la tienda publicada sale con el texto/logo de fábrica de la
+        // plantilla en vez de la marca del comerciante.
+        const architecture = schemaFor(selectedTemplate) || {};
+        const brandedSection = (section: any) => {
+          if (!section?.elements) return section;
+          return {
+            ...section,
+            elements: section.elements.map((el: any) =>
+              (el.type === 'navbar' || el.type === 'footer-premium')
+                ? { ...el, props: { ...el.props, logoText: storeName.trim(), ...(finalLogoUrl ? { logoUrl: finalLogoUrl } : {}) } }
+                : el
+            ),
+          };
         };
-      };
 
-      const homeSchema = {
-        header: brandedSection(architecture.header || { elements: [], styles: {} }),
-        footer: brandedSection(architecture.footer || { elements: [], styles: {} }),
-        body: architecture.body || { elements: [], styles: {} },
-      };
-
-      const pageSchemas: Record<string, any> = { home: homeSchema };
-      for (const key of ['catalog', 'about', 'product'] as const) {
-        pageSchemas[key] = {
-          header: homeSchema.header,
-          footer: homeSchema.footer,
-          body: { elements: buildDefaultBodyElements(key), styles: {} },
+        const homeSchema = {
+          header: brandedSection(architecture.header || { elements: [], styles: {} }),
+          footer: brandedSection(architecture.footer || { elements: [], styles: {} }),
+          body: architecture.body || { elements: [], styles: {} },
         };
+
+        const pageSchemas: Record<string, any> = { home: homeSchema };
+        for (const key of ['catalog', 'about', 'product'] as const) {
+          pageSchemas[key] = {
+            header: homeSchema.header,
+            footer: homeSchema.footer,
+            body: { elements: buildDefaultBodyElements(key), styles: {} },
+          };
+        }
+
+        // Las 4 paginas (home/catalog/about/product) son independientes entre si,
+        // asi que se guardan en paralelo en vez de en cascada uno por uno.
+        const saveResults = await Promise.all(Object.entries(pageSchemas).map(([pageKey, schema]) =>
+          fetch(`${apiBase}/shop-pages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ page_key: pageKey, schema_data: schema, template_id: selectedTemplate.id, ...(targetUserId ? { target_user_id: targetUserId } : {}) }),
+          })
+        ));
+        if (saveResults.some(r => !r.ok)) throw new Error('No se pudo instalar la plantilla');
+
+        // 4. Publicar las 4 paginas de inmediato (tambien en paralelo)
+        const pubResults = await Promise.all(Object.entries(pageSchemas).map(([pageKey, schema]) =>
+          fetch(`${apiBase}/shop-pages/publish`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ page_key: pageKey, schema_data: schema, ...(targetUserId ? { target_user_id: targetUserId } : {}) }),
+          })
+        ));
+        if (pubResults.some(r => !r.ok)) throw new Error('No se pudo publicar tu tienda');
       }
-
-      // Las 4 paginas (home/catalog/about/product) son independientes entre si,
-      // asi que se guardan en paralelo en vez de en cascada uno por uno.
-      const saveResults = await Promise.all(Object.entries(pageSchemas).map(([pageKey, schema]) =>
-        fetch(`${apiBase}/shop-pages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ page_key: pageKey, schema_data: schema, template_id: selectedTemplate.id }),
-        })
-      ));
-      if (saveResults.some(r => !r.ok)) throw new Error('No se pudo instalar la plantilla');
-
-      // 4. Publicar las 4 paginas de inmediato (tambien en paralelo)
-      const pubResults = await Promise.all(Object.entries(pageSchemas).map(([pageKey, schema]) =>
-        fetch(`${apiBase}/shop-pages/publish`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ page_key: pageKey, schema_data: schema }),
-        })
-      ));
-      if (pubResults.some(r => !r.ok)) throw new Error('No se pudo publicar tu tienda');
 
       // 5. Primer producto
       let productImageUrl: string | null = null;
@@ -329,6 +417,7 @@ export default function OnboardingPage() {
           description: productDescription.trim() || undefined,
           category,
           image_url: productImageUrl ? [productImageUrl] : [],
+          ...(targetUserId ? { target_user_id: targetUserId } : {}),
         }),
       });
       if (!productRes.ok) throw new Error('No se pudo crear tu primer producto');
@@ -336,9 +425,25 @@ export default function OnboardingPage() {
       // 6. Marcar onboarding completado
       const completeRes = await fetch(`${apiBase}/onboarding/complete`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(targetUserId ? { target_user_id: targetUserId } : {}),
       });
       if (!completeRes.ok) throw new Error('No se pudo finalizar el proceso');
+
+      if (targetUserId) {
+        // Flujo "Registros": estamos configurando la tienda de OTRO cliente
+        // en su nombre — al terminar, lo aprobamos para que pase de
+        // "Registros" a "Empresas", y volvemos al módulo de Registros (no
+        // tocamos el perfil/onboarding del super-admin que está operando).
+        const approveRes = await fetch(`${apiBase}/super-admin/registrations/${targetUserId}/approve`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!approveRes.ok) throw new Error('La tienda se publicó pero no se pudo aprobar el registro');
+        showToast('Tienda configurada y cliente aprobado 🚀', 'success');
+        router.push('/dashboard/super-admin/registros');
+        return;
+      }
 
       updateUser({ name: storeName.trim(), slug: slug.trim(), logo: finalLogoUrl || undefined });
       setOnboardingCompleted(true);
@@ -432,6 +537,9 @@ export default function OnboardingPage() {
                       >
                         <div className="aspect-[4/3] bg-gray-50 relative overflow-hidden">
                           {tpl.preview_url && <img src={tpl.preview_url} alt={tpl.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />}
+                          {tpl.template_type === 'html' && (
+                            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-violet-500/90 text-white text-[10px] font-bold uppercase tracking-wide z-10">HTML</span>
+                          )}
                           {templateId === tpl.id && (
                             <div className="absolute top-3 right-3 h-7 w-7 bg-cyan rounded-full flex items-center justify-center text-[#0A1A1A] shadow-lg z-10">
                               <Check size={14} />
@@ -444,12 +552,14 @@ export default function OnboardingPage() {
                             >
                               <Eye size={14} /> Vista previa
                             </span>
-                            <span
-                              onClick={(e) => { e.stopPropagation(); openEditor(tpl); }}
-                              className="flex items-center gap-2 h-10 px-5 rounded-full bg-cyan text-[#0A1A1A] text-xs font-medium shadow-xl hover:scale-105 transition-transform"
-                            >
-                              <Edit3 size={14} /> Editar
-                            </span>
+                            {tpl.template_type !== 'html' && (
+                              <span
+                                onClick={(e) => { e.stopPropagation(); openEditor(tpl); }}
+                                className="flex items-center gap-2 h-10 px-5 rounded-full bg-cyan text-[#0A1A1A] text-xs font-medium shadow-xl hover:scale-105 transition-transform"
+                              >
+                                <Edit3 size={14} /> Editar
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="p-5 space-y-1">
@@ -571,6 +681,42 @@ export default function OnboardingPage() {
                   <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-1">Descripción (opcional)</label>
                   <textarea value={productDescription} onChange={e => setProductDescription(e.target.value)} rows={3} placeholder="Describe brevemente tu producto..."
                     className="w-full p-4 bg-gray-50/80 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm font-medium transition-all focus:bg-white resize-none" />
+                </div>
+
+                <div className="pt-4 border-t border-gray-100 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-px flex-1 bg-gray-100" />
+                    <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-gray-300">o</span>
+                    <div className="h-px flex-1 bg-gray-100" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">¿Tienes muchos productos? Súbelos todos de una vez</p>
+                    <p className="text-xs text-gray-400 font-light mt-1">Un Excel (.xlsx) con columnas: nombre, precio, descripción (opcional), categoría (opcional), sku (opcional).</p>
+                  </div>
+                  <input ref={bulkProductsInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (f) handleBulkProductsUpload(f);
+                    e.target.value = '';
+                  }} />
+                  <button
+                    onClick={() => bulkProductsInputRef.current?.click()}
+                    disabled={isBulkUploading}
+                    className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border border-dashed border-gray-200 text-sm font-medium text-gray-400 hover:border-cyan/40 hover:text-petroleum transition-all disabled:opacity-50"
+                  >
+                    {isBulkUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                    {isBulkUploading ? 'Procesando...' : 'Subir Excel con varios productos'}
+                  </button>
+                  {bulkUploadResult && (
+                    <div className={`p-4 rounded-2xl text-xs space-y-1.5 ${bulkUploadResult.created > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'}`}>
+                      <p className="font-medium">{bulkUploadResult.created} producto{bulkUploadResult.created !== 1 ? 's' : ''} cargado{bulkUploadResult.created !== 1 ? 's' : ''} correctamente.</p>
+                      {bulkUploadResult.errors.length > 0 && (
+                        <ul className="list-disc list-inside space-y-0.5 opacity-80">
+                          {bulkUploadResult.errors.slice(0, 5).map((err, i) => <li key={i}>{err}</li>)}
+                          {bulkUploadResult.errors.length > 5 && <li>y {bulkUploadResult.errors.length - 5} más...</li>}
+                        </ul>
+                      )}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}

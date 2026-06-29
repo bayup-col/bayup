@@ -5,9 +5,12 @@ const getApiBaseUrl = () => {
 
     if (typeof window !== 'undefined') {
         const hostname = window.location.hostname;
-        // Si es localhost o IP local, USAR SIEMPRE EL MOTOR LOCAL
+        // Si es localhost o IP local, usar el motor local — respeta
+        // NEXT_PUBLIC_API_URL si está definida (puede no ser :8000, p.ej. si
+        // ese puerto ya está ocupado por otro proceso en la máquina) y solo
+        // cae al :8000 de siempre si no hay nada configurado.
         if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('192.168.')) {
-            return 'http://localhost:8000';
+            return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         }
         // Cualquier otro dominio (producción, túneles de desarrollo, previews de Vercel):
         // usar la variable de entorno configurada, y solo si falta, el fallback de producción.
