@@ -1,6 +1,6 @@
 # backend/security.py
 from datetime import datetime, timedelta, timezone
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
@@ -23,10 +23,13 @@ if not SECRET_KEY:
         "y ponla en backend/.env (local) o en las env vars de Render (producción)."
     )
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 480 # 8 Horas
+ACCESS_TOKEN_EXPIRE_MINUTES = 60  # CRIT-004: reducido a 60 min
+REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 # --- Security Schemes ---
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+# auto_error=False: no lanza 401 automáticamente si falta el header Authorization,
+# permitiendo que get_current_user evalúe la cookie httpOnly como alternativa (CRIT-004).
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 # --- Password Hashing ---
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
@@ -59,18 +62,36 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+def create_refresh_token(subject: str) -> str:
+    """Genera un refresh token de larga duración (30 días). Almacenado en cookie httpOnly."""
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    data = {"sub": subject, "type": "refresh", "exp": expire}
+    return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
+
 # --- Current User Dependency ---
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    request: Request,
+    token: str | None = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
 ) -> models.User:
+    """Autentica desde cookie httpOnly OR header Authorization (CRIT-004, dual mode).
+    Prioridad: cookie bayup_access_token > Bearer token en Authorization header."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
+    # CRIT-004: leer cookie httpOnly primero; si no hay, usar Bearer del header
+    cookie_token = request.cookies.get("bayup_access_token")
+    actual_token = cookie_token or token
+    if not actual_token:
+        raise credentials_exception
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(actual_token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") == "refresh":
+            raise credentials_exception
         email = payload.get("sub")
     except JWTError:
         raise credentials_exception

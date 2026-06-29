@@ -2,14 +2,17 @@ from fastapi import Depends, FastAPI, HTTPException, status, Request, Response, 
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from jose import JWTError, jwt
+import logging
 import os
 import sys
 import time
 import requests as _requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
+import html as _html
 import threading
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -19,6 +22,14 @@ from slowapi.errors import RateLimitExceeded
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
+
+# --- LOGGING ESTRUCTURADO (BAJA-002) ---
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("bayup")
 
 load_dotenv()
 
@@ -39,27 +50,31 @@ if _sentry_dsn:
 # --- ARRANQUE SEGURO (SIN IMPORTACIONES CRÍTICAS ARRIBA) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Inicialización diferida para evitar Error 502 en Railway
-    def init_task():
-        try:
-            from database import engine
-            import models
-            models.Base.metadata.create_all(bind=engine)
-            print("✅ Motor Bayup: Infraestructura Sincronizada")
-        except Exception as e:
-            print(f"⚠️ Motor Bayup: Aviso en arranque: {e}")
-            
-    threading.Thread(target=init_task, daemon=True).start()
+    # Solo SQLite (desarrollo local): Alembic gestiona el esquema en producción
+    db_url = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
+    if db_url.startswith("sqlite"):
+        def init_sqlite():
+            try:
+                from database import engine
+                import models
+                models.Base.metadata.create_all(bind=engine)
+                logger.info("Motor Bayup: tablas SQLite sincronizadas")
+            except Exception as e:
+                logger.warning("Motor Bayup: Aviso SQLite: %s", e)
+        threading.Thread(target=init_sqlite, daemon=True).start()
     yield
 
 app = FastAPI(title="Bayup OS Platinum", lifespan=lifespan)
 
 # --- RATE LIMITING ---
 def _get_real_ip(request: Request) -> str:
-    """Lee la IP real del cliente desde X-Forwarded-For (Render inyecta este header)."""
+    """Lee la IP real del cliente desde X-Forwarded-For (Render inyecta este header).
+    Se usa la ÚLTIMA IP de la cadena porque es la añadida por el proxy confiable de Render,
+    no la primera que puede ser manipulada por el cliente (ALTA-001)."""
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
-        return forwarded.split(",")[0].strip()
+        ips = [ip.strip() for ip in forwarded.split(",")]
+        return ips[-1]
     return request.client.host or "127.0.0.1"
 
 limiter = Limiter(key_func=_get_real_ip)
@@ -82,9 +97,44 @@ def _cache_get(store: dict, key: str):
         return entry[0]
     return None
 
-def _cache_set(store: dict, key: str, value, ttl: int) -> None:
-    """Almacena value en store[key] con un TTL en segundos."""
+def _cache_set(store: dict, key: str, value, ttl: int, max_size: int = 500) -> None:
+    """Almacena value en store[key] con un TTL en segundos.
+    MED-007: evita crecimiento ilimitado eliminando las 100 entradas más antiguas
+    cuando se supera max_size."""
     store[key] = (value, time.time() + ttl)
+    if len(store) > max_size:
+        keys_to_delete = list(store.keys())[:100]
+        for k in keys_to_delete:
+            del store[k]
+
+# --- PREVIEW TOKENS DE CORTA VIDA (ALTA-004) ---
+# Evita exponer el JWT completo en la URL de preview (queda en logs de servidor).
+# {preview_token: (user_email, expires_at_timestamp)}
+import time as _time
+import secrets as _secrets
+_preview_tokens: dict[str, tuple[str, float]] = {}
+
+def _create_preview_token(user_email: str) -> str:
+    """Genera un token opaco de 5 minutos para acceso al preview sin JWT en URL."""
+    tok = _secrets.token_urlsafe(32)
+    _preview_tokens[tok] = (user_email, _time.time() + 300)
+    # Limpieza lazy de tokens expirados para evitar crecimiento ilimitado
+    now = _time.time()
+    expired = [k for k, (_, exp) in _preview_tokens.items() if exp < now]
+    for k in expired:
+        del _preview_tokens[k]
+    return tok
+
+def _validate_preview_token(token: str) -> str | None:
+    """Retorna el email del usuario si el preview token es válido, None si no."""
+    entry = _preview_tokens.get(token)
+    if not entry:
+        return None
+    email, expires_at = entry
+    if _time.time() > expires_at:
+        del _preview_tokens[token]
+        return None
+    return email
 
 # --- CORS ---
 # NOTA: si en el futuro las tiendas activan dominio propio (custom_domain en el modelo User),
@@ -101,11 +151,13 @@ ALLOWED_ORIGINS = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"https://bayup.*\.vercel\.app",
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    # ALTA-002: regex más específica para evitar que cualquier subdominio de vercel.app sea aceptado
+    allow_origin_regex=r"https://bayup-[a-z0-9]+-bayup-col\.vercel\.app",
+    allow_credentials=True,  # CRIT-004: requerido para enviar/recibir cookies httpOnly
+    # BAJA-001: métodos explícitos en lugar de wildcard
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
+    expose_headers=["Content-Length"],
 )
 
 # --- HEADERS DE SEGURIDAD HTTP ---
@@ -116,33 +168,37 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    # ALTA-003: Content-Security-Policy para mitigar XSS e inyección de contenido
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; "
+        "connect-src 'self' https:; frame-ancestors 'none';"
+    )
     return response
 
-def _trigger_email_confirmation(email: str, password: str) -> None:
-    """Llama a Supabase Auth para que envíe el email de confirmación al nuevo usuario.
-    Falla silenciosamente si las variables de entorno no están configuradas."""
-    supabase_url = os.getenv("SUPABASE_URL")
-    anon_key = os.getenv("SUPABASE_ANON_KEY")
-    if not supabase_url or not anon_key:
-        return
-    site_url = os.getenv("SITE_URL", "https://bayup.com.co")
+def _trigger_email_confirmation(email: str, name: str) -> None:
+    """Genera token propio y envía email de confirmación vía Resend. Falla silenciosamente."""
+    import secrets as _sec_conf, email_service as _es_conf
+    from database import SessionLocal as _SL_conf
+    import models as _m_conf
+    db_conf = _SL_conf()
     try:
-        import requests as _requests
-        _requests.post(
-            f"{supabase_url}/auth/v1/signup",
-            headers={"apikey": anon_key, "Content-Type": "application/json"},
-            json={
-                "email": email,
-                "password": password,
-                "options": {"emailRedirectTo": f"{site_url}/login?confirmed=1"},
-            },
-            timeout=8,
-        )
-    except Exception:
-        pass  # No bloquear el registro si Supabase Auth no responde
+        user = db_conf.query(_m_conf.User).filter(_m_conf.User.email == email).first()
+        if not user:
+            return
+        token = _sec_conf.token_urlsafe(32)
+        user.email_confirmation_token = token
+        user.email_confirmation_expires = datetime.now(timezone.utc) + timedelta(hours=24)
+        db_conf.commit()
+        _es_conf.send_email_confirmation(email, name, token)
+    except Exception as e:
+        logger.warning("Email confirmation send error: %s", e)
+    finally:
+        db_conf.close()
 
 class UserLoginRequest(BaseModel):
-    email: str
+    email: EmailStr
     password: str
 
 @app.get("/")
@@ -152,7 +208,8 @@ def read_root():
     return {"status": "Active", "version": "2.1 Platinum Production"}
 
 @app.get("/health")
-def health_check():
+@limiter.limit("30/minute")
+def health_check(request: Request):
     """Readiness real: confirma que la conexion a la base de datos funciona."""
     from sqlalchemy import text
     from database import SessionLocal
@@ -161,7 +218,8 @@ def health_check():
         db.execute(text("SELECT 1"))
         return {"status": "ok", "database": "connected"}
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Base de datos no disponible: {e}")
+        logger.error("Health check DB failed: %s", e)
+        raise HTTPException(status_code=503, detail="Base de datos no disponible")
     finally:
         db.close()
 
@@ -192,9 +250,9 @@ def login(request: Request, form_data: UserLoginRequest):
                 raise HTTPException(status_code=403, detail="Esta tienda ha sido suspendida. Contacta a soporte Bayup.")
 
         access_token = security.create_access_token(data={"sub": user.email})
-        
-        return {
-            "access_token": access_token, 
+
+        payload = {
+            "access_token": access_token,
             "token_type": "bearer",
             "user": {
                 "email": user.email,
@@ -213,11 +271,34 @@ def login(request: Request, form_data: UserLoginRequest):
                 "reviewer_notes": getattr(user, 'reviewer_notes', None),
             }
         }
+        # CRIT-004: emitir cookies httpOnly además del JSON para mayor seguridad
+        from security import create_refresh_token as _create_refresh_token
+        is_prod = os.getenv("APP_ENV", "production") == "production"
+        response = JSONResponse(content=payload)
+        response.set_cookie(
+            key="bayup_access_token",
+            value=access_token,
+            httponly=True,
+            secure=is_prod,
+            samesite="lax",
+            max_age=3600,  # 1 hora
+            path="/",
+        )
+        response.set_cookie(
+            key="bayup_refresh_token",
+            value=_create_refresh_token(user.email),
+            httponly=True,
+            secure=is_prod,
+            samesite="lax",
+            max_age=30 * 24 * 3600,  # 30 días
+            path="/auth/refresh",
+        )
+        return response
     finally:
         db.close()
 
 class RegisterRequest(BaseModel):
-    email: str
+    email: EmailStr
     password: str = Field(min_length=6)
     full_name: str = Field(min_length=1)
     # El frontend manda un id de plan ficticio (no es un UUID real); el plan
@@ -246,18 +327,111 @@ def register(request: Request, payload: RegisterRequest):
             status="Pendiente",
         )
         user = crud.create_user(db, user=user_in)
-        _trigger_email_confirmation(payload.email, payload.password)
-        try:
-            import email_service as _es
-            _es.send_welcome_email(user.email, user.full_name or payload.email.split("@")[0], confirmed=False)
-        except Exception:
-            pass
+        name = user.full_name or payload.email.split("@")[0]
+        threading.Thread(target=_trigger_email_confirmation, args=(user.email, name), daemon=True).start()
         return {"id": str(user.id), "email": user.email, "email_confirmation_sent": True}
     finally:
         db.close()
 
+@app.post("/auth/refresh")
+@limiter.limit("10/minute")
+async def refresh_token_endpoint(request: Request):
+    """Renueva el access token usando el refresh token de la cookie httpOnly (CRIT-004)."""
+    import security as sec_mod
+    from database import SessionLocal
+    import models
+    refresh_tok = request.cookies.get("bayup_refresh_token")
+    if not refresh_tok:
+        raise HTTPException(status_code=401, detail="No refresh token")
+    try:
+        payload = jwt.decode(refresh_tok, sec_mod.SECRET_KEY, algorithms=[sec_mod.ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Token inválido")
+        email = payload.get("sub")
+        if not email:
+            raise HTTPException(status_code=401, detail="Token inválido")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Refresh token expirado o inválido")
+    db = SessionLocal()
+    try:
+        user = db.query(models.User).filter(models.User.email == email).first()
+        if not user or user.status != "Activo":
+            raise HTTPException(status_code=401, detail="Usuario no encontrado o inactivo")
+        new_access_token = sec_mod.create_access_token({"sub": email})
+        is_prod = os.getenv("APP_ENV", "production") == "production"
+        response = JSONResponse(content={"access_token": new_access_token, "token_type": "bearer"})
+        response.set_cookie(
+            key="bayup_access_token",
+            value=new_access_token,
+            httponly=True,
+            secure=is_prod,
+            samesite="lax",
+            max_age=3600,
+            path="/",
+        )
+        return response
+    finally:
+        db.close()
+
+@app.post("/auth/logout")
+async def logout_endpoint(request: Request):
+    """Invalida las cookies de sesión. CRIT-004."""
+    response = JSONResponse(content={"ok": True})
+    response.delete_cookie("bayup_access_token", path="/")
+    response.delete_cookie("bayup_refresh_token", path="/auth/refresh")
+    return response
+
+@app.get("/auth/confirm-email")
+@limiter.limit("10/minute")
+async def confirm_email_endpoint(token: str = Query(...), request: Request = None):
+    """Valida el token de confirmación de email y activa la cuenta."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = db.query(models.User).filter(
+            models.User.email_confirmation_token == token
+        ).first()
+        if not user:
+            raise HTTPException(status_code=400, detail="Enlace de confirmación inválido.")
+        expires = user.email_confirmation_expires
+        if expires:
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if expires < datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="El enlace expiró. Regístrate de nuevo o solicita reenvío.")
+        user.email_confirmed = True
+        user.email_confirmation_token = None
+        user.email_confirmation_expires = None
+        db.commit()
+        return {"message": "Correo confirmado. Ya puedes iniciar sesión."}
+    finally:
+        db.close()
+
+class ResendConfirmationRequest(BaseModel):
+    email: EmailStr
+
+@app.post("/auth/resend-confirmation")
+@limiter.limit("3/minute")
+async def resend_email_confirmation(payload: ResendConfirmationRequest, request: Request):
+    """Reenvía el email de confirmación. Siempre responde 200 (no revela si el email existe)."""
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = db.query(models.User).filter(models.User.email == payload.email).first()
+        if user and not user.email_confirmed:
+            name = user.full_name or payload.email.split("@")[0]
+            threading.Thread(target=_trigger_email_confirmation, args=(user.email, name), daemon=True).start()
+    except Exception:
+        pass
+    finally:
+        db.close()
+    return {"message": "Si el correo existe y no está confirmado, recibirás un nuevo enlace."}
+
+
 class ForgotPasswordRequest(BaseModel):
-    email: str
+    email: EmailStr
 
 class ResetPasswordRequest(BaseModel):
     token: str
@@ -275,7 +449,7 @@ def forgot_password(request: Request, payload: ForgotPasswordRequest):
         if user:
             token = _secrets.token_urlsafe(32)
             user.password_reset_token = token
-            user.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
+            user.password_reset_expires = datetime.now(timezone.utc) + timedelta(hours=1)
             db.commit()
             email_service.send_password_reset(user.email, token)
         return {"ok": True, "message": "Si el correo existe, recibirás un enlace en los próximos minutos."}
@@ -294,11 +468,15 @@ def reset_password(request: Request, payload: ResetPasswordRequest):
         ).first()
         if not user or not user.password_reset_expires:
             raise HTTPException(status_code=400, detail="Token inválido o expirado")
-        if user.password_reset_expires < datetime.utcnow():
+        expires = user.password_reset_expires
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if expires < datetime.now(timezone.utc):
             raise HTTPException(status_code=400, detail="El enlace expiró. Solicita uno nuevo.")
         user.hashed_password = sec_mod.get_password_hash(payload.new_password)
         user.password_reset_token = None
         user.password_reset_expires = None
+        user.email_confirmed = True
         db.commit()
         return {"ok": True}
     finally:
@@ -346,6 +524,10 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
                 _es.send_welcome_email(user.email, full_name, confirmed=True)
             except Exception:
                 pass
+        # Google ya verificó el email — marcar como confirmado si no lo estaba
+        if not getattr(user, "email_confirmed", False):
+            user.email_confirmed = True
+            db.commit()
         if getattr(user, "status", "Activo") != "Activo":
             raise HTTPException(status_code=403, detail="Cuenta suspendida")
         jwt_token = sec_mod.create_access_token(data={"sub": user.email})
@@ -354,7 +536,9 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
             plan_obj = db.query(models.Plan).filter(models.Plan.id == user.plan_id).first()
             if plan_obj:
                 plan = {"name": plan_obj.name}
-        return {
+        from security import create_refresh_token as _create_refresh_token
+        is_prod = os.getenv("APP_ENV", "production") == "production"
+        payload = {
             "access_token": jwt_token,
             "token_type": "bearer",
             "user": {
@@ -370,6 +554,26 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
                 "onboarding_completed": bool(getattr(user, "onboarding_completed", False)),
             },
         }
+        response = JSONResponse(content=payload)
+        response.set_cookie(
+            key="bayup_access_token",
+            value=jwt_token,
+            httponly=True,
+            secure=is_prod,
+            samesite="lax",
+            max_age=3600,
+            path="/",
+        )
+        response.set_cookie(
+            key="bayup_refresh_token",
+            value=_create_refresh_token(user.email),
+            httponly=True,
+            secure=is_prod,
+            samesite="lax",
+            max_age=30 * 24 * 3600,
+            path="/auth/refresh",
+        )
+        return response
     finally:
         db.close()
 
@@ -384,10 +588,15 @@ def _get_bearer_token(request: Request) -> str:
 
 async def _authenticate(request: Request, db):
     """Reutiliza security.get_current_user pasando los valores explícitamente
-    (evita la resolución vía Depends, ya que estas rutas manejan su propia sesión)."""
+    (evita la resolución vía Depends, ya que estas rutas manejan su propia sesión).
+    CRIT-004: extrae el Bearer token de forma no-fatal; get_current_user evaluará
+    también la cookie httpOnly como alternativa."""
     import security
-    token = _get_bearer_token(request)
-    return await security.get_current_user(token=token, db=db)
+    auth_header = request.headers.get("Authorization", "")
+    token: str | None = None
+    if auth_header.lower().startswith("bearer ") and len(auth_header) > 7:
+        token = auth_header[7:].strip() or None
+    return await security.get_current_user(request=request, token=token, db=db)
 
 def _tenant_id(user):
     return user.owner_id or user.id
@@ -793,7 +1002,7 @@ class PublicOrderCreateRequest(BaseModel):
 @limiter.limit("10/minute")
 def create_public_order(request: Request, payload: PublicOrderCreateRequest):
     """Checkout publico del storefront (/shop/[slug]), sin autenticacion."""
-    import crud, schemas, uuid as uuid_lib
+    import crud, schemas, models as _m, uuid as uuid_lib
     from database import SessionLocal
     db = SessionLocal()
     try:
@@ -802,9 +1011,34 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
         except ValueError:
             raise HTTPException(status_code=400, detail="tenant_id inválido")
 
+        # CRIT-002: calcular precio desde la DB; ignorar price_at_purchase del cliente
+        validated_items: list = []
+        for item in payload.items:
+            try:
+                var_uuid = uuid_lib.UUID(item.product_variant_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="product_variant_id inválido")
+            variant = db.query(_m.ProductVariant).filter(
+                _m.ProductVariant.id == var_uuid,
+            ).first()
+            if not variant:
+                raise HTTPException(status_code=400, detail="Variante de producto no encontrada")
+            product = db.query(_m.Product).filter(
+                _m.Product.id == variant.product_id,
+                _m.Product.owner_id == tenant_uuid,
+            ).first()
+            if not product:
+                raise HTTPException(status_code=400, detail="Variante no pertenece a esta tienda")
+            db_price = variant.price if variant.price and variant.price > 0 else product.price
+            validated_items.append(schemas.OrderItemBase(
+                product_variant_id=var_uuid,
+                quantity=item.quantity,
+                price_at_purchase=db_price,  # precio de DB, no del cliente
+            ))
+
         order_in = schemas.OrderCreate(
             tenant_id=tenant_uuid,
-            total_price=payload.total_price,
+            total_price=0,  # crud recalcula el total desde DB en subtotal
             customer_name=payload.customer_name,
             customer_email=payload.customer_email,
             customer_phone=payload.customer_phone,
@@ -812,13 +1046,7 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
             shipping_address=payload.shipping_address,
             payment_method=payload.payment_method,
             source=payload.source,
-            items=[
-                schemas.OrderItemBase(
-                    product_variant_id=uuid_lib.UUID(item.product_variant_id),
-                    quantity=item.quantity,
-                    price_at_purchase=item.price_at_purchase,
-                ) for item in payload.items
-            ],
+            items=validated_items,
         )
         db_order = crud.create_order(db, order=order_in, customer_id=None, tenant_id=tenant_uuid)
         if payload.customer_email:
@@ -872,12 +1100,14 @@ async def get_admin_users(request: Request, skip: int = Query(default=0, ge=0), 
         db.close()
 
 @app.delete("/admin/users/{user_id}")
+@limiter.limit("30/minute")
 async def delete_admin_user(user_id: str, request: Request):
     import models, uuid as uuid_lib
     from database import SessionLocal
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
+        _require_admin_role(user)  # ALTA-008: solo admin puede eliminar clientes
         tenant_id = _tenant_id(user)
         try:
             target_uuid = uuid_lib.UUID(user_id)
@@ -1169,12 +1399,14 @@ class StaffCreateRequest(BaseModel):
     status: str = "Invitado"
 
 @app.post("/admin/staff")
+@limiter.limit("30/minute")
 async def create_admin_staff(payload: StaffCreateRequest, request: Request):
     import models, crud, schemas, security
     from database import SessionLocal
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
+        _require_admin_role(user)  # ALTA-008: solo admin puede crear miembros de staff
         tenant_id = _tenant_id(user)
         _ALLOWED_STAFF_ROLES = {role_id for role_id, _ in _BASE_ROLE_DEFS}
         if payload.role not in _ALLOWED_STAFF_ROLES:
@@ -1215,6 +1447,7 @@ async def update_admin_staff(payload: StaffUpdateRequest, request: Request):
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
+        _require_admin_role(user)
         tenant_id = _tenant_id(user)
         target = db.query(models.User).filter(
             models.User.email == payload.email,
@@ -1244,6 +1477,7 @@ async def delete_admin_staff(staff_id: str, request: Request):
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
+        _require_admin_role(user)
         tenant_id = _tenant_id(user)
         try:
             target_uuid = uuid_lib.UUID(staff_id)
@@ -1270,6 +1504,7 @@ async def get_admin_logs(request: Request):
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
+        _require_admin_role(user)  # ALTA-008: solo admin puede ver logs de actividad
         tenant_id = _tenant_id(user)
         logs = db.query(models.ActivityLog).filter(models.ActivityLog.tenant_id == tenant_id).order_by(models.ActivityLog.created_at.desc()).limit(100).all()
         actor_ids = {l.user_id for l in logs if l.user_id}
@@ -1319,6 +1554,7 @@ async def update_admin_role(role_name: str, payload: RoleUpdateRequest, request:
     db = SessionLocal()
     try:
         user = await _authenticate(request, db)
+        _require_admin_role(user)  # ALTA-008: solo admin puede modificar permisos de roles
         tenant_id = _tenant_id(user)
         role = db.query(models.CustomRole).filter(models.CustomRole.owner_id == tenant_id, models.CustomRole.name == role_name).first()
         if not role:
@@ -1456,9 +1692,22 @@ async def update_profile(payload: UpdateProfileRequest, request: Request):
         result: dict = {"ok": True}
         if email_changed and user.id == caller.id:
             # El token de sesion usa el email como identificador (sub); si cambia,
-            # el token viejo deja de resolver a ningun usuario y la app fuerza un
-            # logout automatico. Emitimos uno nuevo para que la sesion siga viva.
+            # el token viejo deja de resolver a ningun usuario. Emitimos nuevo
+            # access_token Y nuevo refresh_token cookie para mantener la sesion.
             result["access_token"] = security.create_access_token(data={"sub": user.email})
+            new_refresh = security.create_refresh_token(user.email)
+            is_prod = os.getenv("APP_ENV", "production") == "production"
+            response = JSONResponse(content=result)
+            response.set_cookie(
+                key="bayup_refresh_token",
+                value=new_refresh,
+                httponly=True,
+                secure=is_prod,
+                samesite="lax",
+                max_age=30 * 24 * 3600,
+                path="/auth/refresh",
+            )
+            return response
         return result
     finally:
         db.close()
@@ -1513,6 +1762,13 @@ def _require_super_admin(user) -> None:
     if not (getattr(user, "is_global_staff", False) or user.role == "super_admin"):
         raise HTTPException(status_code=403, detail="No autorizado")
 
+def _require_admin_role(user) -> None:
+    """ALTA-008: Verifica que el usuario autenticado tenga rol administrativo en su tienda.
+    Endpoints destructivos de /admin/* deben llamar esta función tras _authenticate."""
+    allowed_roles = {"admin_tienda", "ADMIN", "SUPER_ADMIN"}
+    if user.role not in allowed_roles and not getattr(user, "is_global_staff", False):
+        raise HTTPException(status_code=403, detail="Se requiere rol administrador")
+
 @app.get("/super-admin/stats")
 async def get_super_admin_stats(request: Request):
     import models
@@ -1537,9 +1793,9 @@ async def get_super_admin_stats(request: Request):
         total_revenue = db.query(func.coalesce(func.sum(models.Order.total_price), 0.0)).scalar() or 0.0
         total_commission = db.query(func.coalesce(func.sum(models.Order.commission_amount), 0.0)).scalar() or 0.0
 
-        now = datetime.utcnow()
-        today_start = datetime(now.year, now.month, now.day)
-        month_start = datetime(now.year, now.month, 1)
+        now = datetime.now(timezone.utc)
+        today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+        month_start = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
 
         commission_today = db.query(func.coalesce(func.sum(models.Order.commission_amount), 0.0)).filter(
             models.Order.created_at >= today_start
@@ -1579,23 +1835,52 @@ async def get_super_admin_companies(request: Request):
         user = await _authenticate(request, db)
         _require_super_admin(user)
 
+<<<<<<< HEAD
         companies = db.query(models.User).filter(
             models.User.role == "admin_tienda",
             models.User.owner_id.is_(None),
             models.User.status != "Pendiente",
         ).all()
 
+=======
+        # Un JOIN por tienda en vez de 4 queries N×1
+        order_stats = (
+            db.query(
+                models.Order.tenant_id,
+                func.coalesce(func.sum(models.Order.total_price), 0.0).label("total_sales"),
+                func.coalesce(func.sum(models.Order.commission_amount), 0.0).label("total_commission"),
+                func.count(models.Order.id).label("total_orders"),
+            )
+            .group_by(models.Order.tenant_id)
+            .subquery()
+        )
+        product_stats = (
+            db.query(
+                models.Product.owner_id,
+                func.count(models.Product.id).label("total_products"),
+            )
+            .group_by(models.Product.owner_id)
+            .subquery()
+        )
+        rows = (
+            db.query(
+                models.User,
+                func.coalesce(order_stats.c.total_sales, 0.0).label("total_sales"),
+                func.coalesce(order_stats.c.total_commission, 0.0).label("total_commission"),
+                func.coalesce(order_stats.c.total_orders, 0).label("total_orders"),
+                func.coalesce(product_stats.c.total_products, 0).label("total_products"),
+            )
+            .outerjoin(order_stats, models.User.id == order_stats.c.tenant_id)
+            .outerjoin(product_stats, models.User.id == product_stats.c.owner_id)
+            .filter(
+                models.User.role == "admin_tienda",
+                models.User.owner_id.is_(None),
+            )
+            .all()
+        )
+>>>>>>> 38d1b1c1c46be2a0cad5f77b50a26a5c03f06541
         result = []
-        for c in companies:
-            total_sales = db.query(func.coalesce(func.sum(models.Order.total_price), 0.0)).filter(
-                models.Order.tenant_id == c.id
-            ).scalar() or 0.0
-            total_commission = db.query(func.coalesce(func.sum(models.Order.commission_amount), 0.0)).filter(
-                models.Order.tenant_id == c.id
-            ).scalar() or 0.0
-            total_orders = db.query(models.Order).filter(models.Order.tenant_id == c.id).count()
-            total_products = db.query(models.Product).filter(models.Product.owner_id == c.id).count()
-
+        for c, total_sales, total_commission, total_orders, total_products in rows:
             result.append({
                 "id": str(c.id),
                 "full_name": c.full_name,
@@ -1607,10 +1892,10 @@ async def get_super_admin_companies(request: Request):
                 "shop_slug": c.shop_slug,
                 "plan": {"name": c.plan.name, "price": c.plan.monthly_fee} if c.plan else None,
                 "stats": {
-                    "total_sales": total_sales,
-                    "total_products": total_products,
-                    "total_orders": total_orders,
-                    "total_commission": total_commission,
+                    "total_sales": float(total_sales),
+                    "total_products": int(total_products),
+                    "total_orders": int(total_orders),
+                    "total_commission": float(total_commission),
                 },
             })
         return result
@@ -1725,6 +2010,7 @@ async def approve_registration(user_id: str, request: Request):
         db.close()
 
 @app.delete("/super-admin/companies/{company_id}")
+@limiter.limit("30/minute")
 async def delete_company_permanently(company_id: str, request: Request):
     """Elimina una tienda y TODOS sus datos asociados. No reversible."""
     import models, uuid as uuid_lib
@@ -1821,8 +2107,8 @@ async def delete_company_permanently(company_id: str, request: Request):
         db.close()
 
 def _last_n_months(n: int = 12):
-    from datetime import datetime
-    now = datetime.utcnow()
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
     year, month = now.year, now.month
     out = []
     for _ in range(n):
@@ -1835,6 +2121,7 @@ def _last_n_months(n: int = 12):
 _MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
 
 @app.get("/super-admin/treasury")
+@limiter.limit("30/minute")
 async def get_super_admin_treasury(request: Request):
     """Tesoreria global: ingresos/comision por mes, ranking de tiendas, ultimas transacciones."""
     import models
@@ -1916,7 +2203,7 @@ async def get_super_admin_reports(request: Request, period: str = "mes"):
         user = await _authenticate(request, db)
         _require_super_admin(user)
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         span_days = {"dia": 1, "semana": 7, "mes": 30, "año": 365}.get(period, 30)
         start = now - timedelta(days=span_days)
         prev_start = now - timedelta(days=span_days * 2)
@@ -1994,7 +2281,12 @@ async def get_super_admin_reports(request: Request, period: str = "mes"):
         db.close()
 
 @app.get("/super-admin/users")
-async def get_super_admin_users(request: Request):
+@limiter.limit("30/minute")
+async def get_super_admin_users(
+    request: Request,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=200),
+):
     """Lista global de personas en el ecosistema: staff, dueños de tienda, vendedores y clientes."""
     import models
     from database import SessionLocal
@@ -2003,8 +2295,14 @@ async def get_super_admin_users(request: Request):
         user = await _authenticate(request, db)
         _require_super_admin(user)
 
-        all_users = db.query(models.User).all()
-        tenants_by_id = {u.id: u for u in all_users if u.role == "admin_tienda" and u.owner_id is None}
+        # MED-001: cargar tenants por separado (dataset pequeño, necesario para lookups)
+        tenants_all = db.query(models.User).filter(
+            models.User.role == "admin_tienda",
+            models.User.owner_id.is_(None),
+        ).all()
+        tenants_by_id = {u.id: u for u in tenants_all}
+        # MED-001: paginar la consulta principal
+        all_users = db.query(models.User).offset(skip).limit(limit).all()
 
         result = []
         for u in all_users:
@@ -2060,11 +2358,12 @@ def _serialize_ticket(t, tenant=None):
     }
 
 def _find_ticket_by_short_id(db, models, short_id: str):
-    target = short_id.replace("TKT-", "").upper()
-    for t in db.query(models.SupportTicket).all():
-        if str(t.id)[:8].upper() == target:
-            return t
-    return None
+    """MED-002: usa CAST en lugar de cargar toda la tabla en memoria."""
+    from sqlalchemy import cast, String
+    target = short_id.replace("TKT-", "").lower()
+    return db.query(models.SupportTicket).filter(
+        cast(models.SupportTicket.id, String).like(f"{target}%")
+    ).first()
 
 @app.get("/super-admin/support/tickets")
 async def get_super_admin_tickets(request: Request):
@@ -2096,7 +2395,7 @@ async def reply_super_admin_ticket(ticket_id: str, payload: dict, request: Reque
         if not text:
             raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío")
         msgs = list(ticket.messages or [])
-        msgs.append({"sender": "soporte", "text": text, "time": datetime.utcnow().strftime("%H:%M")})
+        msgs.append({"sender": "soporte", "text": text, "time": datetime.now(timezone.utc).strftime("%H:%M")})
         ticket.messages = msgs
         if ticket.status == "Abierto":
             ticket.status = "En proceso"
@@ -2144,7 +2443,7 @@ async def create_support_ticket(payload: dict, request: Request):
             category=payload.get("category") or "General",
             priority=payload.get("priority") or "Media",
             status="Abierto",
-            messages=[{"sender": "usuario", "text": text, "time": datetime.utcnow().strftime("%H:%M")}] if text else [],
+            messages=[{"sender": "usuario", "text": text, "time": datetime.now(timezone.utc).strftime("%H:%M")}] if text else [],
         )
         db.add(ticket)
         db.commit()
@@ -2186,7 +2485,7 @@ async def reply_my_support_ticket(ticket_id: str, payload: dict, request: Reques
         if not text:
             raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío")
         msgs = list(ticket.messages or [])
-        msgs.append({"sender": "usuario", "text": text, "time": datetime.utcnow().strftime("%H:%M")})
+        msgs.append({"sender": "usuario", "text": text, "time": datetime.now(timezone.utc).strftime("%H:%M")})
         ticket.messages = msgs
         if ticket.status == "Resuelto":
             ticket.status = "Abierto"
@@ -2286,22 +2585,52 @@ async def get_super_admin_web_template(template_id: str, request: Request):
     finally:
         db.close()
 
-@app.get("/super-admin/web-templates/{template_id}/live-preview/{page_key}", response_class=HTMLResponse)
-async def live_preview_template_page(template_id: str, page_key: str, request: Request, token: str = Query(None)):
-    """Preview navegable de plantilla HTML con SDK de demostración y datos mock."""
-    import models, uuid as uuid_lib, security as sec_mod
+@app.post("/super-admin/web-templates/{template_id}/preview-token")
+async def generate_preview_token(template_id: str, request: Request):
+    """Genera un token opaco de corta vida (5 min) para acceder al live-preview
+    sin exponer el JWT completo en la URL (ALTA-004)."""
+    import models, uuid as uuid_lib
     from database import SessionLocal
-    from fastapi import Query as _Query
     db = SessionLocal()
     try:
-        if token:
-            try:
-                user = await sec_mod.get_current_user(token=token, db=db)
-            except Exception:
-                raise HTTPException(status_code=401, detail="Token inválido o expirado")
-        else:
-            user = await _authenticate(request, db)
+        user = await _authenticate(request, db)
         _require_super_admin(user)
+        # Verificar que la plantilla exista antes de emitir el token
+        try:
+            target_uuid = uuid_lib.UUID(template_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="template_id inválido")
+        template = db.query(models.WebTemplate).filter(models.WebTemplate.id == target_uuid).first()
+        if not template:
+            raise HTTPException(status_code=404, detail="Plantilla no encontrada")
+        preview_tok = _create_preview_token(user.email)
+        return {"preview_token": preview_tok, "expires_in": 300}
+    finally:
+        db.close()
+
+@app.get("/super-admin/web-templates/{template_id}/live-preview/{page_key}", response_class=HTMLResponse)
+async def live_preview_template_page(
+    template_id: str,
+    page_key: str,
+    request: Request,
+    preview_token: str = Query(None),   # token opaco de corta vida (ALTA-004)
+):
+    """Preview navegable de plantilla HTML con SDK de demostración y datos mock."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        if preview_token:
+            # ALTA-004: token opaco de corta vida — no expone JWT en URL ni en logs
+            email = _validate_preview_token(preview_token)
+            if not email:
+                raise HTTPException(status_code=401, detail="Preview token inválido o expirado")
+            user = db.query(models.User).filter(models.User.email == email).first()
+            _require_super_admin(user)
+        else:
+            # Autenticar vía cookie httpOnly o Authorization header
+            user = await _authenticate(request, db)
+            _require_super_admin(user)
         try:
             target_uuid = uuid_lib.UUID(template_id)
         except ValueError:
@@ -2314,7 +2643,7 @@ async def live_preview_template_page(template_id: str, page_key: str, request: R
         if not html:
             raise HTTPException(status_code=404, detail=f"Página '{page_key}' no encontrada")
         base_url = str(request.base_url).rstrip("/")
-        tok = token or ""
+        tok = preview_token or ""
         preview_sdk = _BAYUP_PREVIEW_SDK \
             .replace("__TPLID__", template_id) \
             .replace("__TOK__", tok) \
@@ -2478,19 +2807,13 @@ async def get_web_templates(request: Request, response: Response):
         db.close()
 
 @app.get("/web-templates/{template_id}/preview/{page_key}", response_class=HTMLResponse)
-async def public_preview_template_page(template_id: str, page_key: str, request: Request, token: str = Query(None)):
-    """Preview navegable de plantilla HTML para cualquier usuario autenticado."""
-    import models, uuid as uuid_lib, security as sec_mod
+async def public_preview_template_page(template_id: str, page_key: str, request: Request):
+    """Preview navegable de plantilla HTML — solo autenticación por cookie/header (sin JWT en URL)."""
+    import models, uuid as uuid_lib
     from database import SessionLocal
     db = SessionLocal()
     try:
-        if token:
-            try:
-                user = await sec_mod.get_current_user(token=token, db=db)
-            except Exception:
-                raise HTTPException(status_code=401, detail="Token inválido o expirado")
-        else:
-            user = await _authenticate(request, db)
+        user = await _authenticate(request, db)
         try:
             target_uuid = uuid_lib.UUID(template_id)
         except ValueError:
@@ -2506,13 +2829,15 @@ async def public_preview_template_page(template_id: str, page_key: str, request:
         if not html:
             raise HTTPException(status_code=404, detail=f"Página '{page_key}' no encontrada")
         base_url = str(request.base_url).rstrip("/")
-        tok = token or ""
+        # No se inyecta JWT en la URL — la navegación entre páginas usa cookie httpOnly
         preview_sdk = _BAYUP_PREVIEW_SDK \
             .replace("__TPLID__", template_id) \
-            .replace("__TOK__", tok) \
+            .replace("__TOK__", "") \
             .replace("__BASE__", base_url) \
             .replace("/super-admin/web-templates/", "/web-templates/") \
-            .replace("/live-preview/", "/preview/")
+            .replace("/live-preview/", "/preview/") \
+            .replace("+'?token='+encodeURIComponent(TOK)", "") \
+            .replace("if(extra)u+='&'+extra", "if(extra)u+=(u.indexOf('?')>=0?'&':'?')+extra")
         if "</head>" in html:
             html = html.replace("</head>", preview_sdk + "</head>", 1)
         else:
@@ -2695,6 +3020,7 @@ class CheckoutRequest(BaseModel):
     customer_phone: str = Field(min_length=7)
     items: list[CheckoutItemSchema] = Field(min_length=1)
     currency: str = Field(default="COP", max_length=3)
+    idempotency_key: str | None = Field(default=None, max_length=128)
 
 def _build_whatsapp_url(phone: str, store_name: str, items: list, total: float) -> str:
     """Genera enlace de WhatsApp con resumen del pedido como fallback de pago."""
@@ -2734,7 +3060,7 @@ async def public_checkout(slug: str, payload: CheckoutRequest, request: Request)
       - gateway_redirect_url: URL de redirección al gateway (null hasta configurar uno)
       - payment_id: para consultar el estado después
     """
-    import models
+    import models, uuid as _uuid_co
     from database import SessionLocal
     db = SessionLocal()
     try:
@@ -2745,8 +3071,47 @@ async def public_checkout(slug: str, payload: CheckoutRequest, request: Request)
         if not tenant:
             raise HTTPException(status_code=404, detail="Tienda no encontrada")
 
-        items_dict = [i.model_dump() for i in payload.items]
-        total = sum(i["unit_price"] * i["qty"] for i in items_dict)
+        # Idempotencia: evitar duplicados por doble-clic o retry del cliente
+        if payload.idempotency_key:
+            existing = db.query(models.Payment).filter(
+                models.Payment.tenant_id == tenant.id,
+                models.Payment.idempotency_key == payload.idempotency_key,
+            ).first()
+            if existing:
+                return {
+                    "payment_id":           str(existing.id),
+                    "status":               existing.status,
+                    "amount":               existing.amount,
+                    "currency":             existing.currency,
+                    "whatsapp_url":         existing.whatsapp_url,
+                    "gateway_redirect_url": existing.gateway_redirect_url,
+                }
+
+        # CRIT-002: calcular unit_price desde DB; ignorar el precio enviado por el cliente
+        items_dict = []
+        total = 0.0
+        for item in payload.items:
+            try:
+                product_uuid = _uuid_co.UUID(item.product_id)
+            except (ValueError, AttributeError):
+                raise HTTPException(status_code=400, detail=f"product_id inválido: {item.product_id}")
+            db_product = db.query(models.Product).filter(
+                models.Product.id == product_uuid,
+                models.Product.owner_id == tenant.id,
+                models.Product.status == "active",
+            ).first()
+            if not db_product:
+                raise HTTPException(status_code=400, detail=f"Producto no encontrado en esta tienda: {item.product_id}")
+            db_price = db_product.price  # precio real de DB, nunca del cliente
+            item_dict = {
+                "product_id": item.product_id,
+                "name": db_product.name,
+                "qty": item.qty,
+                "unit_price": db_price,
+                "currency": payload.currency,
+            }
+            items_dict.append(item_dict)
+            total += db_price * item.qty
 
         whatsapp_url = None
         if tenant.phone:
@@ -2766,6 +3131,7 @@ async def public_checkout(slug: str, payload: CheckoutRequest, request: Request)
             gateway=None,           # TODO: asignar cuando se configure el gateway
             gateway_redirect_url=None,  # TODO: generar URL del gateway aquí
             whatsapp_url=whatsapp_url,
+            idempotency_key=payload.idempotency_key,
         )
         db.add(payment)
         db.commit()
@@ -2789,8 +3155,13 @@ async def public_checkout(slug: str, payload: CheckoutRequest, request: Request)
 
 @app.get("/public/payment/{payment_id}")
 @limiter.limit("30/minute")
-async def get_payment_status(payment_id: str, request: Request):
-    """Consulta el estado de un pago. Usado por la tienda después del redirect del gateway."""
+async def get_payment_status(
+    payment_id: str,
+    request: Request,
+    slug: str = Query(None),
+):
+    """Consulta el estado de un pago. Usado por la tienda después del redirect del gateway.
+    Si se provee slug, valida que el pago pertenece a esa tienda (aislamiento tenant)."""
     import models, uuid as uuid_lib
     from database import SessionLocal
     db = SessionLocal()
@@ -2802,22 +3173,26 @@ async def get_payment_status(payment_id: str, request: Request):
         payment = db.query(models.Payment).filter(models.Payment.id == pid).first()
         if not payment:
             raise HTTPException(status_code=404, detail="Pago no encontrado")
-        return {"payment_id": str(payment.id), "status": payment.status, "amount": payment.amount}
+        if slug:
+            tenant = db.query(models.User).filter(models.User.shop_slug == slug).first()
+            if not tenant or payment.tenant_id != tenant.id:
+                raise HTTPException(status_code=404, detail="Pago no encontrado")
+            return {
+                "payment_id": str(payment.id),
+                "status":     payment.status,
+                "amount":     payment.amount,
+                "currency":   payment.currency,
+            }
+        # Sin slug: solo estado, sin datos financieros
+        return {"payment_id": str(payment.id), "status": payment.status}
     finally:
         db.close()
 
 @app.post("/public/payments/webhook")
 async def payment_webhook(request: Request):
-    """
-    Recibe notificaciones del gateway de pago.
-    TODO: implementar cuando se elija el proveedor:
-      1. Verificar firma/autenticidad del webhook
-      2. Actualizar payment.status según el evento
-      3. Si approved: crear Order en el sistema de pedidos
-    """
-    # Placeholder — responde 200 para no rechazar webhooks del gateway
-    body = await request.json()
-    print(f"[PAYMENT WEBHOOK] payload recibido: {body}")
+    # CRIT-003: Placeholder seguro hasta implementar gateway real.
+    # La verificación de firma HMAC se añadirá al integrar MercadoPago/PayU.
+    # NO loguear el payload — puede contener datos bancarios sensibles.
     return {"received": True}
 
 @app.get("/admin/payments")
@@ -3165,12 +3540,13 @@ _BAYUP_SDK = """
 """
 
 def _inject_sdk(html: str, slug: str, page_key: str, phone: str, api_url: str) -> str:
-    """Inyecta bayup.js y los data attributes necesarios en el <html> y <head>."""
+    """Inyecta bayup.js y los data attributes necesarios en el <html> y <head>.
+    ALTA-006: los parámetros se escapan con html.escape para prevenir XSS."""
     sdk_attrs = (
-        f' data-bayup-slug="{slug}"'
-        f' data-bayup-page="{page_key}"'
-        f' data-bayup-api="{api_url}"'
-        f' data-bayup-phone="{phone}"'
+        f' data-bayup-slug="{_html.escape(slug)}"'
+        f' data-bayup-page="{_html.escape(page_key)}"'
+        f' data-bayup-api="{_html.escape(api_url)}"'
+        f' data-bayup-phone="{_html.escape(phone)}"'
     )
     import re
     html = re.sub(r'<html([^>]*?)>', f'<html\\1{sdk_attrs}>', html, count=1, flags=re.IGNORECASE)
@@ -3273,7 +3649,7 @@ async def get_public_shop_info(request: Request, slug: str):
 async def get_public_shop_products(
     request: Request,
     slug: str,
-    limit: int = Query(default=100, ge=1),
+    limit: int = Query(default=100, ge=1, le=500),  # MED-003: límite máximo de 500
     skip: int = Query(default=0, ge=0),
 ):
     """Catálogo público de productos de una tienda."""

@@ -175,7 +175,8 @@ export const Canvas = ({
   }
   const renderElements = (section: SectionType) => {
     const data = pageData[section];
-    
+    if (!data?.elements) return null;
+
     // CASO ESPECIAL: CHECKOUT
     if (pageKey === "checkout" && section === "body") {
         const checkoutElement = data.elements.find((el: any) => el.type === "custom-block");

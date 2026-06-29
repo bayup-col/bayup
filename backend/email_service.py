@@ -1,5 +1,8 @@
+import logging
 import os
 import requests as _requests
+
+logger = logging.getLogger("bayup.email")
 
 _RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 _FROM = os.getenv("RESEND_FROM_EMAIL", "Bayup <noreply@bayup.com.co>")
@@ -24,7 +27,7 @@ def _btn(text: str, url: str) -> str:
 def _send(to: str, subject: str, content: str) -> bool:
     html = _BASE_STYLE.format(content=content)
     if not _RESEND_API_KEY:
-        print(f"[Email MOCK — sin RESEND_API_KEY] To: {to} | {subject}")
+        logger.warning("Email MOCK (sin RESEND_API_KEY) — To: %s | %s", to, subject)
         return False
     try:
         r = _requests.post(
@@ -34,10 +37,10 @@ def _send(to: str, subject: str, content: str) -> bool:
             timeout=10,
         )
         if not r.ok:
-            print(f"[Email ERROR] {r.status_code}: {r.text}")
+            logger.error("Email ERROR %s: %s", r.status_code, r.text)
         return r.ok
     except Exception as e:
-        print(f"[Email ERROR] {e}")
+        logger.error("Email ERROR: %s", e)
         return False
 
 def send_welcome_email(email: str, name: str, confirmed: bool = False) -> bool:
@@ -85,6 +88,15 @@ def send_affiliate_welcome(email: str, name: str) -> bool:
         <h2 style="color:#004d4d;margin:0 0 8px">¡Bienvenido al programa de afiliados!</h2>
         <p style="color:#555">Hola <strong>{name}</strong>, tu cuenta de afiliado está activa. Comparte tu enlace único y empieza a ganar comisiones.</p>
         {_btn("Ver mi panel de afiliado", f"{_SITE}/afiliado/dashboard")}
+    """)
+
+def send_email_confirmation(email: str, name: str, token: str) -> bool:
+    link = f"{_SITE}/confirm-email?token={token}"
+    return _send(email, "Confirma tu correo — Bayup", f"""
+        <h2 style="color:#004d4d;margin:0 0 8px">Confirma tu correo</h2>
+        <p style="color:#555">Hola <strong>{name}</strong>, haz clic en el botón para activar tu cuenta Bayup. El enlace es válido por <strong>24 horas</strong>.</p>
+        {_btn("Confirmar mi correo", link)}
+        <p style="color:#aaa;font-size:12px;margin-top:20px">Si no creaste esta cuenta, ignora este mensaje.</p>
     """)
 
 def send_email(to: str, subject: str, html: str) -> bool:

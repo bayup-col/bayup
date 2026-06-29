@@ -39,8 +39,12 @@ interface WebTemplate {
   category: string;
   preview_url: string | null;
   schema_data: any;
+<<<<<<< HEAD
   template_type?: 'schema' | 'html';
   html_pages?: string[];
+=======
+  template_type?: string;
+>>>>>>> 38d1b1c1c46be2a0cad5f77b50a26a5c03f06541
 }
 
 export default function OnboardingPage() {
@@ -218,8 +222,12 @@ function OnboardingContent() {
     const target = tpl || selectedTemplate;
     if (!target) return;
     if (target.template_type === 'html') {
+<<<<<<< HEAD
       const firstPage = (target.html_pages && target.html_pages[0]) || 'home';
       window.open(`${apiBase}/web-templates/${target.id}/preview/${firstPage}?token=${encodeURIComponent(token || '')}`, '_blank');
+=======
+      window.open(`${apiBase}/web-templates/${target.id}/preview/home`, '_blank');
+>>>>>>> 38d1b1c1c46be2a0cad5f77b50a26a5c03f06541
       return;
     }
     localStorage.setItem('bayup-studio-preview', JSON.stringify(schemaFor(target)));

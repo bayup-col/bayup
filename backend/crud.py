@@ -247,7 +247,9 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
         source=order.source,
         payment_method=order.payment_method,
         seller_name=order.seller_name,
-        status=initial_status
+        status=initial_status,
+        customer_city=getattr(order, 'customer_city', None),
+        shipping_address=getattr(order, 'shipping_address', None),
     )
     db.add(db_order)
     db.flush() # Generamos el ID de la orden sin hacer commit aún

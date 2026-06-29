@@ -99,6 +99,8 @@ class User(Base):
     
     password_reset_token = Column(String, nullable=True)
     password_reset_expires = Column(DateTime, nullable=True)
+    email_confirmation_token   = Column(String(255), nullable=True)
+    email_confirmation_expires = Column(DateTime, nullable=True)
 
     plan_id = Column(GUID(), ForeignKey("plans.id"))
     plan = relationship("Plan", back_populates="users", lazy="select")
@@ -469,6 +471,9 @@ class Payment(Base):
 
     # Fallback: enlace de WhatsApp generado al crear el pago
     whatsapp_url     = Column(String(1024), nullable=True)
+
+    # Clave de idempotencia: evita duplicados por doble-clic o retry del cliente
+    idempotency_key  = Column(String(128), nullable=True, index=True)
 
     created_at       = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at       = Column(DateTime, default=datetime.datetime.utcnow,

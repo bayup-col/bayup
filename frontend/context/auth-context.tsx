@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { userService } from '@/lib/api';
 
@@ -50,11 +50,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [reviewerNotes, setReviewerNotes] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
+  // Nonce para descartar respuestas de syncProfile obsoletas. Cada llamada a
+  // login() incrementa el nonce; cualquier syncProfile en vuelo con nonce viejo
+  // ignora sus resultados (evita race condition loadStorage vs login).
+  const profileEpochRef = useRef(0);
 
   // Función para cargar perfil desde el servidor y sincronizar
-  const syncProfile = useCallback(async (authToken: string) => {
+  const syncProfile = useCallback(async (authToken?: string | null) => {
+    const epoch = profileEpochRef.current;
     try {
       const data = await userService.getMe(authToken);
+      // Si login() se llamó mientras esta petición estaba en vuelo, descartamos
+      // los datos obsoletos para evitar sobrescribir isGlobalStaff.
+      if (profileEpochRef.current !== epoch) return;
       if (data) {
         if (data.logo_url) {
           setUserLogo(data.logo_url);
@@ -87,7 +95,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         if (data.is_global_staff !== undefined) {
             setIsGlobalStaff(data.is_global_staff);
-            localStorage.setItem('isGlobalStaff', String(data.is_global_staff));
+            // isGlobalStaff solo en memoria React — no en localStorage (dato privilegiado).
+            // Sí se restaura en sessionStorage para que logout() pueda redirigir a /bayup-family
+            // incluso si el staff abrió el dashboard en una pestaña nueva (sessionStorage es por-pestaña).
+            if (data.is_global_staff) sessionStorage.setItem('isSuperAdminSession', 'true');
         }
         if (data.onboarding_completed !== undefined) {
             setOnboardingCompleted(!!data.onboarding_completed);
@@ -137,11 +148,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       useEffect(() => {
       const loadStorage = async () => {
       try {
-        const storedToken = localStorage.getItem('token');
         const storedEmail = localStorage.getItem('userEmail');
 
-        if (storedToken && storedEmail) {
-          setToken(storedToken);
+        if (storedEmail) {
+          // Cargar datos no-sensibles inmediatamente (UI rápida)
           setUserEmail(storedEmail);
           setUserName(localStorage.getItem('userName'));
           setUserRole(localStorage.getItem('userRole'));
@@ -152,24 +162,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           const storedPerms = localStorage.getItem('userPermissions');
           const storedPlan = localStorage.getItem('userPlan');
-          const storedIsGlobal = localStorage.getItem('isGlobalStaff');
           const storedOnboarding = localStorage.getItem('onboardingCompleted');
           const storedStatus = localStorage.getItem('userStatus');
           const storedReviewerNotes = localStorage.getItem('reviewerNotes');
 
           if (storedPerms) setUserPermissions(JSON.parse(storedPerms));
           if (storedPlan) setUserPlan(JSON.parse(storedPlan));
-          if (storedIsGlobal) setIsGlobalStaff(storedIsGlobal === 'true');
           if (storedOnboarding) setOnboardingCompleted(storedOnboarding === 'true');
           if (storedStatus) setUserStatus(storedStatus);
           if (storedReviewerNotes) setReviewerNotes(storedReviewerNotes);
 
+<<<<<<< HEAD
           // Sincronización con el servidor — se espera (await) antes de
           // terminar de cargar. Sin esto, `isLoading` pasaba a false antes
           // de que llegara la respuesta de /auth/me, y cualquier guard que
           // dependa de `userStatus` (ej. el de "Pendiente" en /onboarding)
           // se evaluaba con el valor viejo guardado en localStorage.
           await syncProfile(storedToken);
+=======
+          // Restaurar sesión vía cookie httpOnly (token nunca viaja en localStorage)
+          try {
+            const isLocal = typeof window !== 'undefined' &&
+              (window.location.hostname === 'localhost' ||
+               window.location.hostname === '127.0.0.1' ||
+               window.location.hostname.includes('192.168.'));
+            const apiBase = isLocal
+              ? 'http://localhost:8000'
+              : (process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co');
+            const refreshRes = await fetch(`${apiBase}/auth/refresh`, {
+              method: 'POST',
+              credentials: 'include',
+            });
+            if (refreshRes.ok) {
+              const data = await refreshRes.json();
+              setToken(data.access_token); // solo en memoria, nunca en localStorage
+              syncProfile(data.access_token);
+            } else {
+              // Cookie caducada: limpiar estado local
+              localStorage.clear();
+              setUserEmail(null); setUserName(null); setUserRole(null);
+              setUserLogo(null); setUserNit(null); setUserAddress(null);
+              setUserPermissions(null); setUserPlan(null); setShopSlug(null);
+            }
+          } catch {
+            // Error de red transitorio: mantener datos de UI pero sin token activo
+          }
+>>>>>>> 38d1b1c1c46be2a0cad5f77b50a26a5c03f06541
         }
       } catch (e) {
         // Error de carga silencioso
@@ -179,7 +217,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };    loadStorage();
   }, [syncProfile]);
 
+<<<<<<< HEAD
   const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "", logo: string = "", nit: string = "", address: string = "", onboardingDone: boolean = false, status: string = "Activo") => {
+=======
+  const login = useCallback((newToken: string, email: string, role: string, permissions: any = {}, plan: any = null, isGlobal: boolean = false, slug: string = "", name: string = "", logo: string = "", nit: string = "", address: string = "", onboardingDone: boolean = false) => {
+    // Invalidar cualquier syncProfile en vuelo (ej. loadStorage con sesión anterior)
+    profileEpochRef.current += 1;
+>>>>>>> 38d1b1c1c46be2a0cad5f77b50a26a5c03f06541
     setToken(newToken);
     setUserEmail(email);
     setUserName(name);
@@ -194,12 +238,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setOnboardingCompleted(onboardingDone);
     setUserStatus(status);
 
-    localStorage.setItem('token', newToken);
     localStorage.setItem('userEmail', email);
     localStorage.setItem('userName', name);
     localStorage.setItem('userRole', role);
     localStorage.setItem('userPermissions', JSON.stringify(permissions));
-    localStorage.setItem('isGlobalStaff', isGlobal ? 'true' : 'false');
+    // isGlobalStaff se mantiene solo en memoria (React state) — no en localStorage.
     localStorage.setItem('shopSlug', safeSlug);
     localStorage.setItem('userNit', nit);
     localStorage.setItem('userAddress', address);
@@ -250,8 +293,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // resolver a ningun usuario y el backend emite uno nuevo en la misma
   // respuesta. Esto lo guarda sin forzar un logout/relogin completo.
   const refreshToken = useCallback((newToken: string, newEmail?: string) => {
-    setToken(newToken);
-    localStorage.setItem('token', newToken);
+    setToken(newToken); // solo en memoria
     if (newEmail) {
       setUserEmail(newEmail);
       localStorage.setItem('userEmail', newEmail);
@@ -259,8 +301,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    const wasStaff = sessionStorage.getItem('isSuperAdminSession') === 'true'
-                     || localStorage.getItem('isGlobalStaff') === 'true';
+    const wasStaff = sessionStorage.getItem('isSuperAdminSession') === 'true';
     setToken(null);
     setUserEmail(null);
     setUserName(null);
@@ -277,8 +318,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setReviewerNotes(null);
     sessionStorage.removeItem('isSuperAdminSession');
     localStorage.clear();
-    // Hard redirect: evita que el useEffect de DashboardLayout (isAuthenticated → /login)
-    // sobreescriba la navegación hacia /bayup-family con un router.replace posterior.
+    // Limpiar cookies httpOnly en el servidor (fire-and-forget, no bloqueante)
+    const apiBase = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+      ? 'http://localhost:8000'
+      : (process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co');
+    fetch(`${apiBase}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
+    // Hard redirect: evita race condition con DashboardLayout useEffect (isAuthenticated → /login)
     window.location.href = wasStaff ? '/bayup-family' : '/login';
   }, []);
 
