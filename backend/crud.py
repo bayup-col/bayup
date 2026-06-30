@@ -66,6 +66,7 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
     db_user = models.User(
         email=user.email,
         full_name=user.full_name,
+        nickname=user.full_name or user.email.split("@")[0],
         hashed_password=hashed_password,
         role=user.role or "admin_tienda",
         status=user.status or "Activo",

@@ -348,7 +348,12 @@ def register(request: Request, payload: RegisterRequest):
             full_name=payload.full_name,
             status="Pendiente",
         )
-        user = crud.create_user(db, user=user_in)
+        try:
+            user = crud.create_user(db, user=user_in)
+        except Exception as e:
+            db.rollback()
+            logger.error("register create_user failed: %s", e)
+            raise HTTPException(status_code=500, detail=f"Error al crear cuenta: {e}")
         name = user.full_name or payload.email.split("@")[0]
         threading.Thread(target=_trigger_email_confirmation, args=(user.email, name), daemon=True).start()
         return {"id": str(user.id), "email": user.email, "email_confirmation_sent": True}
