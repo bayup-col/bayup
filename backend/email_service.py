@@ -99,5 +99,61 @@ def send_email_confirmation(email: str, name: str, token: str) -> bool:
         <p style="color:#aaa;font-size:12px;margin-top:20px">Si no creaste esta cuenta, ignora este mensaje.</p>
     """)
 
+def send_new_sale_notification(
+    owner_email: str,
+    shop_name: str,
+    order_id: str,
+    customer_name: str,
+    customer_email: str,
+    customer_phone: str,
+    customer_city: str,
+    items: list,          # [{"name": str, "qty": int, "price": float}]
+    total: float,
+    payment_method: str,
+) -> bool:
+    short_id = str(order_id)[:8].upper()
+    rows = "".join(
+        f'<tr>'
+        f'<td style="padding:8px 12px;border-bottom:1px solid #eee">{it["name"]}</td>'
+        f'<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center">{it["qty"]}</td>'
+        f'<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right">${it["price"]:,.0f}</td>'
+        f'</tr>'
+        for it in items
+    )
+    phone_display = customer_phone or "—"
+    city_display  = customer_city  or "—"
+    email_display = customer_email or "—"
+    content = f"""
+        <h2 style="color:#004d4d;margin:0 0 4px">🛒 ¡Nueva venta en {shop_name}!</h2>
+        <p style="color:#888;font-size:13px;margin:0 0 24px">Pedido <strong>#{short_id}</strong> · Pago: {payment_method}</p>
+
+        <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+          <thead>
+            <tr style="background:#f5fafa">
+              <th style="padding:8px 12px;text-align:left;font-size:11px;color:#888;font-weight:600;text-transform:uppercase">Producto</th>
+              <th style="padding:8px 12px;text-align:center;font-size:11px;color:#888;font-weight:600;text-transform:uppercase">Cant.</th>
+              <th style="padding:8px 12px;text-align:right;font-size:11px;color:#888;font-weight:600;text-transform:uppercase">Precio</th>
+            </tr>
+          </thead>
+          <tbody>{rows}</tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2" style="padding:10px 12px;font-weight:700;color:#004d4d">Total</td>
+              <td style="padding:10px 12px;text-align:right;font-weight:900;font-size:16px;color:#004d4d">${total:,.0f}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div style="background:#f5fafa;border-radius:10px;padding:16px 20px;margin-bottom:24px">
+          <p style="margin:0 0 4px;font-size:13px;color:#555"><strong>Cliente:</strong> {customer_name}</p>
+          <p style="margin:0 0 4px;font-size:13px;color:#555"><strong>Correo:</strong> {email_display}</p>
+          <p style="margin:0 0 4px;font-size:13px;color:#555"><strong>Teléfono:</strong> {phone_display}</p>
+          <p style="margin:0;font-size:13px;color:#555"><strong>Ciudad:</strong> {city_display}</p>
+        </div>
+
+        {_btn("Ver pedido en mi dashboard", f"{_SITE}/dashboard/pedidos-web")}
+    """
+    return _send(owner_email, f"🛒 Nueva venta #{short_id} — {shop_name}", content)
+
 def send_email(to: str, subject: str, html: str) -> bool:
     return _send(to, subject, html)

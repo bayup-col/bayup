@@ -1123,9 +1123,12 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
             items=validated_items,
         )
         db_order = crud.create_order(db, order=order_in, customer_id=None, tenant_id=tenant_uuid)
+
+        import email_service as _es, threading
+
+        # 1. Confirmación al cliente
         if payload.customer_email:
             try:
-                import email_service as _es, threading
                 threading.Thread(
                     target=_es.send_order_confirmation,
                     args=(payload.customer_email, payload.customer_name, str(db_order.id)),
@@ -1133,6 +1136,37 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
                 ).start()
             except Exception:
                 pass
+
+        # 2. Notificación al dueño de la tienda
+        try:
+            tenant_user = db.query(_m.User).filter(_m.User.id == tenant_uuid).first()
+            if tenant_user and tenant_user.email:
+                items_info = []
+                for item in db_order.items:
+                    variant = db.query(_m.ProductVariant).filter(_m.ProductVariant.id == item.product_variant_id).first()
+                    product = db.query(_m.Product).filter(_m.Product.id == variant.product_id).first() if variant else None
+                    name = (product.name if product else "Producto") + (f" — {variant.name}" if variant and variant.name else "")
+                    items_info.append({"name": name, "qty": item.quantity, "price": float(item.price_at_purchase)})
+                shop_name = tenant_user.full_name or tenant_user.shop_slug or "Tu tienda"
+                threading.Thread(
+                    target=_es.send_new_sale_notification,
+                    kwargs=dict(
+                        owner_email=tenant_user.email,
+                        shop_name=shop_name,
+                        order_id=str(db_order.id),
+                        customer_name=payload.customer_name or "Cliente",
+                        customer_email=payload.customer_email or "",
+                        customer_phone=payload.customer_phone or "",
+                        customer_city=payload.customer_city or "",
+                        items=items_info,
+                        total=float(db_order.total_price),
+                        payment_method=payload.payment_method or "Online",
+                    ),
+                    daemon=True,
+                ).start()
+        except Exception as _notify_err:
+            logger.warning("No se pudo enviar notificación de venta al dueño: %s", _notify_err)
+
         return schemas.Order.model_validate(db_order).model_dump(mode="json")
     except ValueError:
         raise HTTPException(status_code=400, detail="product_variant_id inválido")
