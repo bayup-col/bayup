@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { CheckCircle2, XCircle, Loader2, Mail } from 'lucide-react';
 import Link from 'next/link';
 
@@ -12,7 +11,6 @@ function getApiBase() {
 }
 
 export default function ConfirmEmailPage() {
-    const router = useRouter();
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
     const [message, setMessage] = useState('');
     const [resendEmail, setResendEmail] = useState('');
@@ -32,7 +30,6 @@ export default function ConfirmEmailPage() {
                 if (res.ok) {
                     setStatus('success');
                     setMessage(data.message || '¡Correo confirmado! Ya puedes iniciar sesión.');
-                    setTimeout(() => router.push('/login'), 3000);
                 } else {
                     setStatus('error');
                     setMessage(data.detail || 'El enlace es inválido o ya expiró.');
@@ -42,7 +39,7 @@ export default function ConfirmEmailPage() {
                 setStatus('error');
                 setMessage('No se pudo conectar al servidor. Intenta de nuevo.');
             });
-    }, [router]);
+    }, []);
 
     const handleResend = async () => {
         if (!resendEmail) return;
@@ -72,8 +69,13 @@ export default function ConfirmEmailPage() {
                     <>
                         <CheckCircle2 size={48} className="text-emerald-500 mx-auto mb-4" />
                         <h2 className="text-2xl font-black text-[#004d4d]">¡Cuenta activada!</h2>
-                        <p className="text-gray-400 mt-2 text-sm">{message}</p>
-                        <p className="text-gray-300 mt-1 text-xs">Redirigiendo al login...</p>
+                        <p className="text-gray-400 mt-2 text-sm">Correo confirmado. Ya puedes iniciar sesión.</p>
+                        <Link
+                            href="/login"
+                            className="inline-block mt-6 px-8 py-3 bg-[#001A1A] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-80 transition-opacity"
+                        >
+                            Ir a mi tienda
+                        </Link>
                     </>
                 )}
                 {status === 'error' && (
