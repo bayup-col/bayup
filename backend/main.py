@@ -1126,12 +1126,32 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
 
         import email_service as _es, threading
 
+        # Construir items_info una sola vez para ambos correos
+        items_info = []
+        for _item in db_order.items:
+            _variant = db.query(_m.ProductVariant).filter(_m.ProductVariant.id == _item.product_variant_id).first()
+            _product = db.query(_m.Product).filter(_m.Product.id == _variant.product_id).first() if _variant else None
+            _iname = (_product.name if _product else "Producto") + (f" — {_variant.name}" if _variant and _variant.name else "")
+            items_info.append({"name": _iname, "qty": _item.quantity, "price": float(_item.price_at_purchase)})
+
         # 1. Confirmación al cliente
         if payload.customer_email:
             try:
+                tenant_user_for_name = db.query(_m.User).filter(_m.User.id == tenant_uuid).first()
+                _shop_name = (tenant_user_for_name.full_name or tenant_user_for_name.shop_slug or "Tu tienda") if tenant_user_for_name else "Tu tienda"
                 threading.Thread(
                     target=_es.send_order_confirmation,
-                    args=(payload.customer_email, payload.customer_name, str(db_order.id)),
+                    kwargs=dict(
+                        email=payload.customer_email,
+                        name=payload.customer_name or "Cliente",
+                        order_id=str(db_order.id),
+                        items=items_info,
+                        total=float(db_order.total_price),
+                        payment_method=payload.payment_method or "Online",
+                        customer_city=payload.customer_city or "",
+                        customer_phone=payload.customer_phone or "",
+                        shop_name=_shop_name,
+                    ),
                     daemon=True,
                 ).start()
             except Exception:
@@ -1141,12 +1161,6 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
         try:
             tenant_user = db.query(_m.User).filter(_m.User.id == tenant_uuid).first()
             if tenant_user and tenant_user.email:
-                items_info = []
-                for item in db_order.items:
-                    variant = db.query(_m.ProductVariant).filter(_m.ProductVariant.id == item.product_variant_id).first()
-                    product = db.query(_m.Product).filter(_m.Product.id == variant.product_id).first() if variant else None
-                    name = (product.name if product else "Producto") + (f" — {variant.name}" if variant and variant.name else "")
-                    items_info.append({"name": name, "qty": item.quantity, "price": float(item.price_at_purchase)})
                 shop_name = tenant_user.full_name or tenant_user.shop_slug or "Tu tienda"
                 threading.Thread(
                     target=_es.send_new_sale_notification,
