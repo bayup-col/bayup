@@ -47,9 +47,10 @@ export default function AuthCallback() {
                 login(
                     data.access_token, u.email, u.role, u.permissions, u.plan,
                     u.is_global_staff, u.shop_slug, u.full_name, u.logo_url, '', '',
-                    u.onboarding_completed,
+                    u.onboarding_completed, u.status || 'Activo',
                 );
                 if (u.is_global_staff) router.push('/dashboard/super-admin');
+                else if (u.status === 'Pendiente') router.push('/registro-pendiente');
                 else if (!u.onboarding_completed) router.push('/onboarding');
                 else router.push('/dashboard');
             } catch {

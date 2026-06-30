@@ -602,8 +602,8 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
         if not getattr(user, "email_confirmed", False):
             user.email_confirmed = True
             db.commit()
-        if getattr(user, "status", "Activo") != "Activo":
-            raise HTTPException(status_code=403, detail="Cuenta suspendida")
+        if getattr(user, "status", "Activo") == "Suspendido":
+            raise HTTPException(status_code=403, detail="Esta tienda ha sido suspendida. Contacta a soporte Bayup.")
         jwt_token = sec_mod.create_access_token(data={"sub": user.email})
         plan = None
         if user.plan_id:
@@ -626,6 +626,7 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
                 "permissions": getattr(user, "permissions", {}) or {},
                 "plan": plan,
                 "onboarding_completed": bool(getattr(user, "onboarding_completed", False)),
+                "status": getattr(user, "status", "Activo"),
             },
         }
         response = JSONResponse(content=response_data)
