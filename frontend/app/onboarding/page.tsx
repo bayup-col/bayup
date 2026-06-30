@@ -119,22 +119,7 @@ function OnboardingContent() {
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
 
   const downloadProductTemplate = () => {
-    const rows = [
-      ['nombre *', 'precio *', 'descripcion', 'categoria', 'sku', 'stock'],
-      ['Camiseta Premium', '50000', 'Algodón 100% talla M', 'Moda & Accesorios', 'CAM-001', '10'],
-      ['Pantalón Slim', '89900', '', 'Moda & Accesorios', 'PAN-002', '5'],
-      [],
-      ['👉 Borra las filas 2 y 3 (ejemplos) y agrega tus productos. Los campos con * son obligatorios.'],
-    ];
-    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
-    // BOM UTF-8 para que Excel abra tildes y ñ correctamente
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'plantilla-productos-bayup.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    window.location.href = '/api/product-template';
   };
 
   // Carga masiva de productos desde un Excel — alternativa a llenar el
