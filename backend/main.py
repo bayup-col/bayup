@@ -82,6 +82,15 @@ def _sync_postgres_schema() -> None:
         with engine.begin() as conn:
             for stmt in stmts:
                 conn.execute(_text(stmt))
+        # Garantizar que la cuenta raíz de Bayup siempre sea super admin,
+        # por si el registro inicial vía Google OAuth la creó sin ese rol.
+        BAYUP_ROOT_EMAILS = ["bayupcol@gmail.com", "admin@bayup.com"]
+        with engine.begin() as conn:
+            for root_email in BAYUP_ROOT_EMAILS:
+                conn.execute(_text(
+                    "UPDATE users SET is_global_staff = TRUE, role = 'SUPER_ADMIN', status = 'Activo' "
+                    "WHERE LOWER(email) = :email AND (is_global_staff IS NOT TRUE OR role != 'SUPER_ADMIN')"
+                ), {"email": root_email.lower()})
         logger.info("Bayup: sincronización de esquema PostgreSQL completada")
     except Exception as e:
         logger.warning("Bayup: aviso sincronización esquema: %s", e)

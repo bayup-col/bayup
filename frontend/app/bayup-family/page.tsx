@@ -22,7 +22,7 @@ export default function BayupFamilyLogin() {
     const handleGoogleLogin = async () => {
         setIsGoogleLoading(true);
         try {
-            await signInWithGoogle('/dashboard/super-admin');
+            await signInWithGoogle('/auth/callback');
         } catch (err: any) {
             showToast(err.message || "Error al iniciar con Google.", "error");
             setIsGoogleLoading(false);
