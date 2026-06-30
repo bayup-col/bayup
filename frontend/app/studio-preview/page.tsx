@@ -82,7 +82,7 @@ function PreviewContent() {
       if (templateId) {
         try {
           const token = localStorage.getItem("token");
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://api.bayup.com.co";
           const res = await fetch(`${apiBase}/super-admin/web-templates`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });

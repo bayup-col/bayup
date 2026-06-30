@@ -116,7 +116,7 @@ function OnboardingContent() {
   const [isBulkUploading, setIsBulkUploading] = useState(false);
   const [bulkUploadResult, setBulkUploadResult] = useState<{ created: number; errors: string[] } | null>(null);
 
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
 
   // Carga masiva de productos desde un Excel — alternativa a llenar el
   // formulario de "primer producto" uno por uno. Independiente del resto

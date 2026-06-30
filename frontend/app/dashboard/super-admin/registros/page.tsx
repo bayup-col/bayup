@@ -45,7 +45,7 @@ export default function RegistrosPage() {
   const [notesDraft, setNotesDraft] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
 
-  const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
 
   const load = useCallback(async () => {
     if (!token) return;

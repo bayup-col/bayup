@@ -311,7 +311,7 @@ function EditorContent() {
   const backToOnboardingUrl = `/onboarding${targetUserId ? `?targetUserId=${targetUserId}` : ''}`;
   const { token, isAuthenticated, isLoading: authLoading } = useAuth();
   const { showToast } = useToast();
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
 
   // Sin esto, si la sesión expiró o se borró el storage del navegador, esta
   // página se quedaba colgada en el spinner para siempre en vez de mandar a

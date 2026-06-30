@@ -133,7 +133,7 @@ export default function WebTemplatesPage() {
   // para HTML abre el live-preview real del backend en una pestaña nueva.
   const openTemplatePreview = useCallback((t: Template) => {
     if (t.template_type === 'html') {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const url = `${base}/super-admin/web-templates/${t.id}/live-preview/home?token=${encodeURIComponent(token || '')}`;
       window.open(url, '_blank');
       return;
@@ -147,7 +147,7 @@ export default function WebTemplatesPage() {
     if (!token || htmlPreviews[templateId]) return;
     setDrawerPreviewLoading(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${base}/super-admin/web-templates/${templateId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -204,7 +204,7 @@ export default function WebTemplatesPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${base}/super-admin/web-templates`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) { const d = await res.json(); setTemplates(Array.isArray(d) ? d : []); }
     } catch { }
@@ -227,7 +227,7 @@ export default function WebTemplatesPage() {
     if (!token) return;
     setConfirmAction(null);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${base}/super-admin/web-templates/${t.id}/toggle`, {
         method: 'PUT', headers: { Authorization: `Bearer ${token}` },
       });
@@ -244,7 +244,7 @@ export default function WebTemplatesPage() {
     if (!token) return;
     setConfirmAction(null);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${base}/super-admin/web-templates/${t.id}`, {
         method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
       });
@@ -265,7 +265,7 @@ export default function WebTemplatesPage() {
     if (!previewFile || !token) return null;
     const fd = new FormData();
     fd.append('file', previewFile);
-    const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
     try {
       const res = await fetch(`${base}/admin/upload-image`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
       if (!res.ok) return null;
@@ -282,7 +282,7 @@ export default function WebTemplatesPage() {
     }
     setCreating(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const previewUrl = await uploadPreviewImage();
       const tags = newForm.tags;
       const body: any = {
@@ -543,7 +543,7 @@ export default function WebTemplatesPage() {
                 {selected.template_type === 'html' && (
                   <button
                     onClick={() => {
-                      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
                       const url = `${base}/super-admin/web-templates/${selected.id}/live-preview/home?token=${encodeURIComponent(token || '')}`;
                       window.open(url, '_blank');
                     }}

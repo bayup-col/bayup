@@ -749,7 +749,7 @@ export default function NewProductPage() {
     if (!formData.name.trim()) return showToast('El nombre es obligatorio', 'error');
     setIsSubmitting(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const uploadPromises = media.map(async item => {
         if (!item.file) return null;
         const fd = new FormData(); fd.append('file', item.file);

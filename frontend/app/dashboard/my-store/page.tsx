@@ -33,7 +33,7 @@ export default function MyStoreHub() {
     useEffect(() => {
         const fetchTopTemplates = async () => {
             try {
-                const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://api.bayup.com.co";
                 const res = await fetch(`${apiBase}/web-templates`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -47,7 +47,7 @@ export default function MyStoreHub() {
         const checkActivePage = async () => {
             if (!token) return;
             try {
-                const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://api.bayup.com.co";
                 const res = await fetch(`${apiBase}/shop-pages/home`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

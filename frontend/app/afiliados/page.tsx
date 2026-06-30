@@ -67,7 +67,7 @@ function AffiliatesPage() {
     setError(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const response = await fetch(`${apiUrl}/auth/register-affiliate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

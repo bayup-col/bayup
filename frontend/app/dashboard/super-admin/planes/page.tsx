@@ -29,7 +29,7 @@ export default function PlanesPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${base}/super-admin/plans`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) { const d = await res.json(); setPlans(Array.isArray(d) ? d : []); }
     } catch {}
@@ -63,7 +63,7 @@ export default function PlanesPage() {
     if (!selected || !token) return;
     setIsSaving(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${base}/super-admin/plans/${selected.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },

@@ -35,7 +35,7 @@ export default function AuthCallback() {
             if (!access_token) { router.push('/login'); return; }
 
             try {
-                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
                 const res = await fetch(`${apiBase}/auth/google`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
