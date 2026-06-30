@@ -65,30 +65,92 @@ def _send(to: str, subject: str, content: str) -> bool:
         logger.error("Email ERROR: %s", e)
         return False
 
+def _simple_email_html(
+    icon: str,
+    title: str,
+    body_html: str,
+    cta_text: str,
+    cta_url: str,
+    footer_note: str = "",
+) -> str:
+    """Genera HTML completo para correos simples con el diseño negro/cyan de Bayup."""
+    return f"""<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:24px 16px;background:#f0f0f0;font-family:Arial,Helvetica,sans-serif">
+<div style="max-width:540px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0f0f0f">
+    <tr>
+      <td style="padding:18px 32px">
+        <span style="font-size:20px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#ffffff">Bay<span style="color:#00f2ff">UP.</span></span>
+      </td>
+    </tr>
+  </table>
+
+  <div style="padding:36px 32px 28px">
+
+    <div style="width:48px;height:48px;background:#0f0f0f;border-radius:12px;text-align:center;line-height:48px;font-size:22px;color:#00f2ff;margin-bottom:20px">{icon}</div>
+
+    <div style="font-size:20px;font-weight:800;color:#111827;letter-spacing:-0.3px;line-height:1.2;margin-bottom:12px">{title}</div>
+
+    <div style="font-size:14px;color:#4b5563;line-height:1.7;margin-bottom:28px">{body_html}</div>
+
+    <a href="{cta_url}" style="display:inline-block;background:#0f0f0f;color:#00f2ff;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;padding:14px 32px;border-radius:6px">{cta_text}</a>
+
+    {"<p style='margin-top:20px;font-size:12px;color:#9ca3af;line-height:1.6'>" + footer_note + "</p>" if footer_note else ""}
+  </div>
+
+  <div style="border-top:1px solid #f3f4f6;padding:14px 32px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">
+    &#169; 2026 Bayup &#8212; La plataforma de ventas inteligente
+  </div>
+
+</div>
+</body>
+</html>"""
+
+
 def send_welcome_email(email: str, name: str, confirmed: bool = False) -> bool:
     if confirmed:
-        body = f"""
-            <h2 style="color:#004d4d;margin:0 0 8px">¡Bienvenido, {name}!</h2>
-            <p style="color:#555">Tu cuenta en Bayup está activa. Entra al dashboard, configura tu tienda y empieza a vender.</p>
-            {_btn("Ir a mi Dashboard", f"{_SITE}/dashboard")}
-        """
+        html = _simple_email_html(
+            icon="&#127881;",
+            title=f"&#161;Bienvenido, {name}!",
+            body_html="Tu cuenta en Bayup est&#225; activa. Entra al dashboard, configura tu tienda y empieza a vender.",
+            cta_text="Ir a mi Dashboard",
+            cta_url=f"{_SITE}/dashboard",
+        )
+        return _send_raw(email, "¡Bienvenido a Bayup!", html)
     else:
-        body = f"""
-            <h2 style="color:#004d4d;margin:0 0 8px">¡Hola, {name}!</h2>
-            <p style="color:#555">Tu cuenta fue registrada en Bayup. <strong>Confirma tu correo electrónico</strong> usando el enlace que te acabamos de enviar para activar tu acceso al dashboard.</p>
-            <p style="color:#888;font-size:12px;margin-top:12px">Una vez confirmado, podrás configurar tu tienda y empezar a vender.</p>
-            {_btn("Ir al inicio de sesión", f"{_SITE}/login")}
-        """
-    return _send(email, "¡Bienvenido a Bayup!", body)
+        html = _simple_email_html(
+            icon="&#9993;",
+            title=f"&#161;Hola, {name}!",
+            body_html=(
+                "Tu cuenta fue registrada en Bayup. "
+                "<strong style='color:#111827'>Confirma tu correo electr&#243;nico</strong> "
+                "usando el enlace que te acabamos de enviar para activar tu acceso al dashboard."
+                "<br><br>"
+                "<span style='color:#9ca3af;font-size:13px'>Una vez confirmado, podr&#225;s configurar tu tienda y empezar a vender.</span>"
+            ),
+            cta_text="Ir al inicio de sesión",
+            cta_url=f"{_SITE}/login",
+        )
+        return _send_raw(email, "¡Bienvenido a Bayup! Confirma tu correo", html)
+
 
 def send_password_reset(email: str, token: str) -> bool:
     link = f"{_SITE}/reset-password?token={token}"
-    return _send(email, "Restablece tu contraseña — Bayup", f"""
-        <h2 style="color:#004d4d;margin:0 0 8px">Restablecer contraseña</h2>
-        <p style="color:#555">Recibimos una solicitud para restablecer la contraseña de tu cuenta. El enlace es válido por <strong>1 hora</strong>.</p>
-        {_btn("Crear nueva contraseña", link)}
-        <p style="color:#aaa;font-size:12px;margin-top:20px">Si no solicitaste esto, ignora este correo. Tu contraseña no cambiará.</p>
-    """)
+    html = _simple_email_html(
+        icon="&#128274;",
+        title="Restablecer contrase&#241;a",
+        body_html=(
+            "Recibimos una solicitud para restablecer la contrase&#241;a de tu cuenta. "
+            "El enlace es v&#225;lido por <strong style='color:#111827'>1 hora</strong>."
+        ),
+        cta_text="Crear nueva contraseña",
+        cta_url=link,
+        footer_note="Si no solicitaste esto, ignora este correo. Tu contrase&#241;a no cambiar&#225;.",
+    )
+    return _send_raw(email, "Restablece tu contraseña — Bayup", html)
 
 def send_order_confirmation(
     email: str,
@@ -238,27 +300,50 @@ def send_order_confirmation(
     return _send_raw(email, f"✓ Tu pedido #{short_id} está confirmado — {shop_name}", html)
 
 def send_staff_invitation(email: str, name: str, inviter: str) -> bool:
-    return _send(email, f"{inviter} te invitó a Bayup", f"""
-        <h2 style="color:#004d4d;margin:0 0 8px">¡Te invitaron a Bayup!</h2>
-        <p style="color:#555">Hola <strong>{name}</strong>, <strong>{inviter}</strong> te ha invitado a unirte como miembro del equipo en Bayup.</p>
-        {_btn("Iniciar sesión", f"{_SITE}/login")}
-    """)
+    html = _simple_email_html(
+        icon="&#128101;",
+        title="&#161;Te invitaron a Bayup!",
+        body_html=(
+            f"Hola <strong style='color:#111827'>{name}</strong>, "
+            f"<strong style='color:#111827'>{inviter}</strong> te ha invitado a unirte "
+            "como miembro del equipo en Bayup. Inicia sesi&#243;n para aceptar."
+        ),
+        cta_text="Iniciar sesión",
+        cta_url=f"{_SITE}/login",
+    )
+    return _send_raw(email, f"{inviter} te invitó a Bayup", html)
+
 
 def send_affiliate_welcome(email: str, name: str) -> bool:
-    return _send(email, "¡Ya eres afiliado Bayup!", f"""
-        <h2 style="color:#004d4d;margin:0 0 8px">¡Bienvenido al programa de afiliados!</h2>
-        <p style="color:#555">Hola <strong>{name}</strong>, tu cuenta de afiliado está activa. Comparte tu enlace único y empieza a ganar comisiones.</p>
-        {_btn("Ver mi panel de afiliado", f"{_SITE}/afiliado/dashboard")}
-    """)
+    html = _simple_email_html(
+        icon="&#128176;",
+        title="&#161;Ya eres afiliado Bayup!",
+        body_html=(
+            f"Hola <strong style='color:#111827'>{name}</strong>, "
+            "tu cuenta de afiliado est&#225; activa. "
+            "Comparte tu enlace &#250;nico y empieza a ganar comisiones por cada tienda que refieras."
+        ),
+        cta_text="Ver mi panel de afiliado",
+        cta_url=f"{_SITE}/afiliado/dashboard",
+    )
+    return _send_raw(email, "¡Ya eres afiliado Bayup!", html)
+
 
 def send_email_confirmation(email: str, name: str, token: str) -> bool:
     link = f"{_SITE}/confirm-email?token={token}"
-    return _send(email, "Confirma tu correo — Bayup", f"""
-        <h2 style="color:#004d4d;margin:0 0 8px">Confirma tu correo</h2>
-        <p style="color:#555">Hola <strong>{name}</strong>, haz clic en el botón para activar tu cuenta Bayup. El enlace es válido por <strong>24 horas</strong>.</p>
-        {_btn("Confirmar mi correo", link)}
-        <p style="color:#aaa;font-size:12px;margin-top:20px">Si no creaste esta cuenta, ignora este mensaje.</p>
-    """)
+    html = _simple_email_html(
+        icon="&#9993;",
+        title="Confirma tu correo",
+        body_html=(
+            f"Hola <strong style='color:#111827'>{name}</strong>, "
+            "haz clic en el bot&#243;n para activar tu cuenta Bayup. "
+            "El enlace es v&#225;lido por <strong style='color:#111827'>24 horas</strong>."
+        ),
+        cta_text="Confirmar mi correo",
+        cta_url=link,
+        footer_note="Si no creaste esta cuenta, ignora este mensaje.",
+    )
+    return _send_raw(email, "Confirma tu correo — Bayup", html)
 
 def send_new_sale_notification(
     owner_email: str,
