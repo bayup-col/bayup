@@ -164,7 +164,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       }
   }, [isLoading, isAuthenticated, isSuperAdminZone, isStaffAccount, router]);
 
-  if (isLoading || !isAuthenticated || isPendingApproval || needsOnboarding || (!isStaffAccount && isStudioRoute)) {
+  // Guard inverso: staff que llega a /dashboard (sin super-admin) se redirige a su zona.
+  useEffect(() => {
+      if (!isLoading && isAuthenticated && !isSuperAdminZone && isStaffAccount) {
+          router.replace('/dashboard/super-admin');
+      }
+  }, [isLoading, isAuthenticated, isSuperAdminZone, isStaffAccount, router]);
+
+  const isStaffMisrouted = isAuthenticated && !isSuperAdminZone && isStaffAccount;
+  if (isLoading || !isAuthenticated || isPendingApproval || needsOnboarding || (!isStaffAccount && isStudioRoute) || isStaffMisrouted) {
       return (
         <div className="h-screen w-screen flex items-center justify-center bg-[#FAFAFA]">
             <div className="text-2xl font-bold tracking-[0.15em] text-[#004d4d] animate-pulse uppercase">BAYUP</div>
