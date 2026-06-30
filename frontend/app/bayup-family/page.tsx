@@ -174,15 +174,21 @@ export default function BayupFamilyLogin() {
                         </div>
                     </div>
 
-                    <motion.button 
+                    <motion.button
                         whileHover={{ scale: 1.02, y: -2 }}
                         whileTap={{ scale: 0.98 }}
-                        type="submit" 
+                        type="submit"
                         disabled={isLoading}
                         className="w-full py-5 sm:py-7 bg-white text-[#001A1A] rounded-[2.5rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-[0_20px_40px_-10px_rgba(255,255,255,0.2)] hover:bg-[#00f2ff] transition-all flex items-center justify-center gap-4 disabled:opacity-50"
                     >
                         {isLoading ? <Loader2 className="animate-spin" /> : <>Autenticar Identidad <ArrowRight size={18} /></>}
                     </motion.button>
+
+                    <div className="text-center">
+                        <a href="/login" className="text-[9px] font-semibold tracking-[0.2em] text-white/20 hover:text-cyan/60 transition-colors uppercase">
+                            Olvidé mi contraseña → ir a login
+                        </a>
+                    </div>
                 </form>
 
                 <div className="space-y-4">
