@@ -59,7 +59,7 @@ const HtmlPreviewFrame = memo(function HtmlPreviewFrame({ src, h = 160 }: { src:
       <iframe
         src={src}
         title="preview"
-        sandbox="allow-scripts allow-same-origin"
+        sandbox="allow-scripts"
         style={{ width: 1280, height: Math.ceil(h / scale), transform: `scale(${scale})`, transformOrigin: 'top left', border: 'none', pointerEvents: 'none' }}
       />
     </div>
@@ -644,7 +644,7 @@ export default function WebTemplatesPage() {
                     <iframe
                       src={previewBlobUrl}
                       title="preview"
-                      sandbox="allow-scripts allow-same-origin"
+                      sandbox="allow-scripts"
                       className="absolute top-0 left-0 border-none pointer-events-none"
                       style={{ width: '1280px', height: '800px', transform: 'scale(0.31)', transformOrigin: 'top left' }}
                     />

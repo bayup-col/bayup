@@ -351,7 +351,7 @@ def login(request: Request, form_data: UserLoginRequest):
             secure=is_prod,
             samesite="lax",
             max_age=30 * 24 * 3600,  # 30 días
-            path="/auth/refresh",
+            path="/",
         )
         return response
     finally:
@@ -443,7 +443,7 @@ async def logout_endpoint(request: Request):
     """Invalida las cookies de sesión. CRIT-004."""
     response = JSONResponse(content={"ok": True})
     response.delete_cookie("bayup_access_token", path="/")
-    response.delete_cookie("bayup_refresh_token", path="/auth/refresh")
+    response.delete_cookie("bayup_refresh_token", path="/")
     return response
 
 @app.get("/auth/confirm-email")
@@ -636,7 +636,7 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
             secure=is_prod,
             samesite="lax",
             max_age=30 * 24 * 3600,
-            path="/auth/refresh",
+            path="/",
         )
         return response
     finally:
@@ -1770,7 +1770,7 @@ async def update_profile(payload: UpdateProfileRequest, request: Request):
                 secure=is_prod,
                 samesite="lax",
                 max_age=30 * 24 * 3600,
-                path="/auth/refresh",
+                path="/",
             )
             return response
         return result
