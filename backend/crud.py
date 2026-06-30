@@ -22,24 +22,27 @@ from sqlalchemy import text
 def get_user_by_email(db: Session, email: str) -> models.User | None:
     """Búsqueda proactiva del usuario incluyendo su plan para evitar fallos en el login."""
     try:
-        # Intentamos usar el ORM primero para obtener relaciones (Plan)
         user = db.query(models.User).filter(
             text("LOWER(email) = :email")
         ).params(email=email.lower().strip()).first()
-        
         if user:
             return user
-            
-        # Fallback: Si el ORM falla por esquema corrupto, intentamos SQL plano básico
+        return None
+    except Exception as e:
+        # La query ORM falló (esquema desincronizado u otro error DB).
+        # Es crítico hacer rollback antes de cualquier query siguiente en la
+        # misma sesión, o PostgreSQL rechazará todo con InFailedSqlTransaction.
+        db.rollback()
+        print(f"⚠️ ORM fallback en get_user_by_email ({email}): {e}")
+
+    # Fallback con SQL mínimo tras el rollback
+    try:
         result = db.execute(
             text("SELECT id, email, full_name, hashed_password, role, status, shop_slug, logo_url, plan_id, owner_id, is_global_staff FROM users WHERE LOWER(email) = :email"),
             {"email": email.lower().strip()}
         ).first()
-
         if not result:
             return None
-
-        # Creamos un usuario con datos mínimos para permitir el acceso
         return models.User(
             id=result.id,
             email=result.email,
@@ -53,8 +56,8 @@ def get_user_by_email(db: Session, email: str) -> models.User | None:
             owner_id=getattr(result, 'owner_id', None),
             is_global_staff=getattr(result, 'is_global_staff', False),
         )
-    except Exception as e:
-        print(f"⚠️ Crítico en Búsqueda de Usuario ({email}): {e}")
+    except Exception as e2:
+        print(f"⚠️ Fallback SQL también falló ({email}): {e2}")
         return None
 
 def get_user_by_slug(db: Session, slug: str) -> models.User | None:
