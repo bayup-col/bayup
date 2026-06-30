@@ -72,40 +72,96 @@ def _simple_email_html(
     cta_text: str,
     cta_url: str,
     footer_note: str = "",
+    validity_text: str = "",
 ) -> str:
     """Genera HTML completo para correos simples con el diseño negro/cyan de Bayup."""
+    validity_badge = ""
+    if validity_text:
+        validity_badge = f"""
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px">
+      <tr><td align="center">
+        <span style="display:inline-block;background:#eafafa;border:1px solid #99dede;border-radius:100px;padding:5px 16px;font-size:12px;color:#007878;font-weight:700;font-family:Arial,Helvetica,sans-serif">
+          &#x25cf;&nbsp;&nbsp;{validity_text}
+        </span>
+      </td></tr>
+    </table>"""
+
+    disclaimer_html = ""
+    if footer_note:
+        disclaimer_html = f"""
+    <tr><td style="padding:0 40px 28px;background:#f6fdfd">
+      <div style="height:1px;background:#c8e8e8;margin-bottom:20px"></div>
+      <p style="margin:0;font-size:12px;color:#7a9a9a;line-height:1.6;text-align:center;font-family:Arial,Helvetica,sans-serif">{footer_note}</p>
+    </td></tr>"""
+
     return f"""<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:24px 16px;background:#f0f0f0;font-family:Arial,Helvetica,sans-serif">
-<div style="max-width:540px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+<body style="margin:0;padding:24px 16px;background:#e8e8e8;font-family:Arial,Helvetica,sans-serif">
 
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0f0f0f">
-    <tr>
-      <td style="padding:18px 32px">
-        <span style="font-size:20px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#ffffff">Bay<span style="color:#00f2ff">UP.</span></span>
-      </td>
-    </tr>
-  </table>
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr><td align="center">
+<table width="580" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;width:100%;border-radius:4px;overflow:hidden">
 
-  <div style="padding:36px 32px 28px">
+  <!-- FRANJA DEGRADADA SUPERIOR -->
+  <tr><td height="3" style="background:linear-gradient(90deg,#007878 0%,#00f2ff 100%);font-size:0;line-height:0">&nbsp;</td></tr>
 
-    <div style="width:48px;height:48px;background:#0f0f0f;border-radius:12px;text-align:center;line-height:48px;font-size:22px;color:#00f2ff;margin-bottom:20px">{icon}</div>
+  <!-- HERO NEGRO -->
+  <tr><td style="background:#0f0f0f;padding:36px 40px 44px;text-align:center">
 
-    <div style="font-size:20px;font-weight:800;color:#111827;letter-spacing:-0.3px;line-height:1.2;margin-bottom:12px">{title}</div>
+    <div style="font-size:19px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#ffffff;margin-bottom:32px;font-family:Arial,Helvetica,sans-serif">
+      Bay<span style="color:#00f2ff">UP.</span>
+    </div>
 
-    <div style="font-size:14px;color:#4b5563;line-height:1.7;margin-bottom:28px">{body_html}</div>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td align="center" style="padding-bottom:26px">
+        <table cellpadding="0" cellspacing="0" border="0">
+          <tr><td width="94" height="94" align="center" valign="middle"
+              style="width:94px;height:94px;border-radius:50%;border:2px solid #007878;text-align:center;vertical-align:middle;font-size:34px;color:#00f2ff;background:#0a1a1a;font-family:Arial,Helvetica,sans-serif">
+            {icon}
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
 
-    <a href="{cta_url}" style="display:inline-block;background:#0f0f0f;color:#00f2ff;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;padding:14px 32px;border-radius:6px">{cta_text}</a>
+    <div style="font-size:26px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;line-height:1.2;font-family:Arial,Helvetica,sans-serif">
+      {title}
+    </div>
 
-    {"<p style='margin-top:20px;font-size:12px;color:#9ca3af;line-height:1.6'>" + footer_note + "</p>" if footer_note else ""}
-  </div>
+  </td></tr>
 
-  <div style="border-top:1px solid #f3f4f6;padding:14px 32px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">
-    &#169; 2026 Bayup &#8212; La plataforma de ventas inteligente
-  </div>
+  <!-- DIVISOR CON DEGRADADO -->
+  <tr><td height="1" style="background:linear-gradient(90deg,#007878,#00f2ff,#007878);font-size:0;line-height:0">&nbsp;</td></tr>
 
-</div>
+  <!-- CUERPO BLANCO-CYAN -->
+  <tr><td style="background:#f6fdfd;padding:32px 40px 28px">
+    <div style="font-size:15px;color:#3a4a4a;line-height:1.75;margin-bottom:24px;font-family:Arial,Helvetica,sans-serif">
+      {body_html}
+    </div>
+    {validity_badge}
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td align="center">
+        <a href="{cta_url}"
+           style="display:inline-block;background:linear-gradient(90deg,#007878 0%,#00f2ff 100%);color:#0a1414;text-decoration:none;font-size:12px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;padding:17px 44px;border-radius:6px;font-family:Arial,Helvetica,sans-serif">
+          {cta_text}
+        </a>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  {disclaimer_html}
+
+  <!-- PIE DE PÁGINA OSCURO -->
+  <tr><td style="background:#0a0a0a;padding:18px 40px;text-align:center;border-top:1px solid #111111">
+    <p style="margin:0;font-size:11px;letter-spacing:0.06em;color:#333333;font-family:Arial,Helvetica,sans-serif">
+      &#169; 2026 <span style="color:#007878">Bayup</span> &#8212; La plataforma de ventas inteligente
+    </p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+
 </body>
 </html>"""
 
@@ -115,7 +171,10 @@ def send_welcome_email(email: str, name: str, confirmed: bool = False) -> bool:
         html = _simple_email_html(
             icon="&#127881;",
             title=f"&#161;Bienvenido, {name}!",
-            body_html="Tu cuenta en Bayup est&#225; activa. Entra al dashboard, configura tu tienda y empieza a vender.",
+            body_html=(
+                "Tu cuenta en Bayup est&#225; activa. "
+                "Entra al dashboard, personaliza tu tienda y empieza a vender hoy mismo."
+            ),
             cta_text="Ir a mi Dashboard",
             cta_url=f"{_SITE}/dashboard",
         )
@@ -126,13 +185,12 @@ def send_welcome_email(email: str, name: str, confirmed: bool = False) -> bool:
             title=f"&#161;Hola, {name}!",
             body_html=(
                 "Tu cuenta fue registrada en Bayup. "
-                "<strong style='color:#111827'>Confirma tu correo electr&#243;nico</strong> "
+                "<strong style='color:#0f1f1f'>Confirma tu correo electr&#243;nico</strong> "
                 "usando el enlace que te acabamos de enviar para activar tu acceso al dashboard."
-                "<br><br>"
-                "<span style='color:#9ca3af;font-size:13px'>Una vez confirmado, podr&#225;s configurar tu tienda y empezar a vender.</span>"
             ),
-            cta_text="Ir al inicio de sesión",
+            cta_text="Ir al inicio de sesi&#243;n",
             cta_url=f"{_SITE}/login",
+            footer_note="Una vez confirmado podr&#225;s configurar tu tienda y empezar a vender.",
         )
         return _send_raw(email, "¡Bienvenido a Bayup! Confirma tu correo", html)
 
@@ -144,10 +202,11 @@ def send_password_reset(email: str, token: str) -> bool:
         title="Restablecer contrase&#241;a",
         body_html=(
             "Recibimos una solicitud para restablecer la contrase&#241;a de tu cuenta. "
-            "El enlace es v&#225;lido por <strong style='color:#111827'>1 hora</strong>."
+            "Haz clic en el bot&#243;n para crear una nueva contrase&#241;a y recuperar el acceso a tu tienda de forma segura."
         ),
-        cta_text="Crear nueva contraseña",
+        cta_text="Crear nueva contrase&#241;a",
         cta_url=link,
+        validity_text="V&#225;lido por 1 hora",
         footer_note="Si no solicitaste esto, ignora este correo. Tu contrase&#241;a no cambiar&#225;.",
     )
     return _send_raw(email, "Restablece tu contraseña — Bayup", html)
@@ -304,11 +363,11 @@ def send_staff_invitation(email: str, name: str, inviter: str) -> bool:
         icon="&#128101;",
         title="&#161;Te invitaron a Bayup!",
         body_html=(
-            f"Hola <strong style='color:#111827'>{name}</strong>, "
-            f"<strong style='color:#111827'>{inviter}</strong> te ha invitado a unirte "
-            "como miembro del equipo en Bayup. Inicia sesi&#243;n para aceptar."
+            f"Hola <strong style='color:#0f1f1f'>{name}</strong>, "
+            f"<strong style='color:#0f1f1f'>{inviter}</strong> te ha invitado a unirte "
+            "como miembro del equipo en Bayup. Inicia sesi&#243;n para aceptar y empezar a colaborar."
         ),
-        cta_text="Iniciar sesión",
+        cta_text="Iniciar sesi&#243;n",
         cta_url=f"{_SITE}/login",
     )
     return _send_raw(email, f"{inviter} te invitó a Bayup", html)
@@ -319,7 +378,7 @@ def send_affiliate_welcome(email: str, name: str) -> bool:
         icon="&#128176;",
         title="&#161;Ya eres afiliado Bayup!",
         body_html=(
-            f"Hola <strong style='color:#111827'>{name}</strong>, "
+            f"Hola <strong style='color:#0f1f1f'>{name}</strong>, "
             "tu cuenta de afiliado est&#225; activa. "
             "Comparte tu enlace &#250;nico y empieza a ganar comisiones por cada tienda que refieras."
         ),
@@ -335,13 +394,14 @@ def send_email_confirmation(email: str, name: str, token: str) -> bool:
         icon="&#9993;",
         title="Confirma tu correo",
         body_html=(
-            f"Hola <strong style='color:#111827'>{name}</strong>, "
-            "haz clic en el bot&#243;n para activar tu cuenta Bayup. "
-            "El enlace es v&#225;lido por <strong style='color:#111827'>24 horas</strong>."
+            f"Hola <strong style='color:#0f1f1f'>{name}</strong>, "
+            "un solo clic y tu cuenta quedar&#225; activa. "
+            "Podr&#225;s empezar a configurar tu tienda Bayup de inmediato."
         ),
         cta_text="Confirmar mi correo",
         cta_url=link,
-        footer_note="Si no creaste esta cuenta, ignora este mensaje.",
+        validity_text="V&#225;lido por 24 horas",
+        footer_note="Si no creaste esta cuenta, ignora este mensaje sin problema.",
     )
     return _send_raw(email, "Confirma tu correo — Bayup", html)
 
