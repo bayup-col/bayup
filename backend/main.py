@@ -48,9 +48,47 @@ if _sentry_dsn:
     )
 
 # --- ARRANQUE SEGURO (SIN IMPORTACIONES CRÍTICAS ARRIBA) ---
+def _sync_postgres_schema() -> None:
+    """Añade columnas faltantes en PostgreSQL usando IF NOT EXISTS.
+    Corre al arranque como mecanismo de seguridad independiente de Alembic.
+    Si Alembic ya aplicó las migraciones este bloque es un no-op (todas las
+    sentencias usan IF NOT EXISTS y no fallan si la columna ya existe)."""
+    try:
+        from database import engine
+        from sqlalchemy import text as _text
+        stmts = [
+            # users: columnas añadidas después del create_all inicial
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS reviewer_notes VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS country VARCHAR DEFAULT 'Colombia'",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS website VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS tax_regime VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS legal_rep VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS commission_is_fixed BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS commission_fixed_until TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_month_revenue DOUBLE PRECISION DEFAULT 0.0",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS loyalty_points INTEGER DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS total_spent DOUBLE PRECISION DEFAULT 0.0",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_purchase_date TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_purchase_summary VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS customer_type VARCHAR DEFAULT 'final'",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS acquisition_channel VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_confirmation_token VARCHAR(255)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_confirmation_expires TIMESTAMP",
+            # payments
+            "ALTER TABLE payments ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(128)",
+        ]
+        with engine.begin() as conn:
+            for stmt in stmts:
+                conn.execute(_text(stmt))
+        logger.info("Bayup: sincronización de esquema PostgreSQL completada")
+    except Exception as e:
+        logger.warning("Bayup: aviso sincronización esquema: %s", e)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Solo SQLite (desarrollo local): Alembic gestiona el esquema en producción
     db_url = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
     if db_url.startswith("sqlite"):
         def init_sqlite():
@@ -62,6 +100,9 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 logger.warning("Motor Bayup: Aviso SQLite: %s", e)
         threading.Thread(target=init_sqlite, daemon=True).start()
+    else:
+        # PostgreSQL: garantiza columnas faltantes al arranque independientemente de Alembic
+        threading.Thread(target=_sync_postgres_schema, daemon=True).start()
     yield
 
 app = FastAPI(title="Bayup OS Platinum", lifespan=lifespan)
