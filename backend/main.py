@@ -205,19 +205,16 @@ app.add_middleware(
 # Starlette no añade headers CORS a excepciones no controladas que se propagan
 # hasta ServerErrorMiddleware. Este handler garantiza que el origen vea el error
 # real en lugar de un CORS block genérico.
-from fastapi.responses import JSONResponse as _JSONResponse
-from fastapi.exception_handlers import http_exception_handler as _http_exc_handler
-from starlette.exceptions import HTTPException as _StarletteHTTPException
+import re as _re
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     origin = request.headers.get("origin", "")
     cors_origin = origin if origin in ALLOWED_ORIGINS else ""
-    import re as _re
     if not cors_origin and origin and _re.match(r"https://bayup-[a-z0-9]+-bayup-col\.vercel\.app", origin):
         cors_origin = origin
     logger.exception("Unhandled exception in %s %s", request.method, request.url.path)
-    resp = _JSONResponse(status_code=500, content={"detail": "Error interno del servidor"})
+    resp = JSONResponse(status_code=500, content={"detail": "Error interno del servidor"})
     if cors_origin:
         resp.headers["Access-Control-Allow-Origin"] = cors_origin
         resp.headers["Access-Control-Allow-Credentials"] = "true"
@@ -606,7 +603,7 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
                 plan = {"name": plan_obj.name}
         from security import create_refresh_token as _create_refresh_token
         is_prod = os.getenv("APP_ENV", "production") == "production"
-        payload = {
+        response_data = {
             "access_token": jwt_token,
             "token_type": "bearer",
             "user": {
@@ -622,7 +619,7 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
                 "onboarding_completed": bool(getattr(user, "onboarding_completed", False)),
             },
         }
-        response = JSONResponse(content=payload)
+        response = JSONResponse(content=response_data)
         response.set_cookie(
             key="bayup_access_token",
             value=jwt_token,
