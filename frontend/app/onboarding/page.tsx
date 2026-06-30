@@ -119,9 +119,9 @@ function OnboardingContent() {
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
 
   const downloadProductTemplate = async () => {
-    const ExcelJS = (await import('exceljs')).default;
+    const { Workbook } = await import('exceljs');
     const { saveAs } = await import('file-saver');
-    const wb = new ExcelJS.Workbook();
+    const wb = new Workbook();
     const ws = wb.addWorksheet('Productos');
 
     ws.columns = [
