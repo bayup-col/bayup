@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check, ChevronRight, ChevronLeft, Loader2, Image as ImageIcon,
-  Store, Package, Rocket, ShoppingBag, Smartphone, Sparkles, Activity, Edit3, LogOut, Eye, X, Upload
+  Store, Package, Rocket, ShoppingBag, Smartphone, Sparkles, Activity, Edit3, LogOut, Eye, X, Upload, Download
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -117,6 +117,53 @@ function OnboardingContent() {
   const [bulkUploadResult, setBulkUploadResult] = useState<{ created: number; errors: string[] } | null>(null);
 
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+
+  const downloadProductTemplate = async () => {
+    const ExcelJS = (await import('exceljs')).default;
+    const { saveAs } = await import('file-saver');
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Productos');
+
+    ws.columns = [
+      { header: 'nombre *', key: 'nombre', width: 30 },
+      { header: 'precio *', key: 'precio', width: 15 },
+      { header: 'descripcion', key: 'descripcion', width: 40 },
+      { header: 'categoria', key: 'categoria', width: 20 },
+      { header: 'sku', key: 'sku', width: 18 },
+      { header: 'stock', key: 'stock', width: 12 },
+    ];
+
+    // Estilo del encabezado
+    const headerRow = ws.getRow(1);
+    headerRow.eachCell(cell => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF004D4D' } };
+      cell.font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 11 };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = { bottom: { style: 'thin', color: { argb: 'FF00BFC8' } } };
+    });
+    headerRow.height = 22;
+
+    // Fila de ejemplo
+    ws.addRow({ nombre: 'Camiseta Premium', precio: 50000, descripcion: 'Algodón 100%, talla M', categoria: 'Moda & Accesorios', sku: 'CAM-001', stock: 10 });
+    ws.addRow({ nombre: 'Pantalón Slim', precio: 89900, descripcion: '', categoria: 'Moda & Accesorios', sku: 'PAN-002', stock: 5 });
+
+    const exampleRow1 = ws.getRow(2);
+    const exampleRow2 = ws.getRow(3);
+    [exampleRow1, exampleRow2].forEach(row => {
+      row.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0FAFA' } };
+        cell.font = { color: { argb: 'FF666666' }, italic: true, size: 10 };
+      });
+    });
+
+    // Nota instructiva en fila 5
+    ws.getRow(5).getCell(1).value = '👉 Borra las filas de ejemplo (2 y 3) y agrega tus productos desde la fila 2. Los campos con * son obligatorios.';
+    ws.getRow(5).getCell(1).font = { color: { argb: 'FF888888' }, size: 9 };
+    ws.mergeCells('A5:F5');
+
+    const buf = await wb.xlsx.writeBuffer();
+    saveAs(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'plantilla-productos-bayup.xlsx');
+  };
 
   // Carga masiva de productos desde un Excel — alternativa a llenar el
   // formulario de "primer producto" uno por uno. Independiente del resto
@@ -689,9 +736,19 @@ function OnboardingContent() {
                     <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-gray-300">o</span>
                     <div className="h-px flex-1 bg-gray-100" />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">¿Tienes muchos productos? Súbelos todos de una vez</p>
-                    <p className="text-xs text-gray-400 font-light mt-1">Un Excel (.xlsx) con columnas: nombre, precio, descripción (opcional), categoría (opcional), sku (opcional).</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">¿Tienes muchos productos? Súbelos todos de una vez</p>
+                      <p className="text-xs text-gray-400 font-light mt-1">Descarga la plantilla, llénala con tus productos y súbela aquí.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={downloadProductTemplate}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-cyan/30 text-[11px] font-semibold text-petroleum hover:bg-cyan/5 hover:border-cyan/60 transition-all"
+                    >
+                      <Download size={12} />
+                      Plantilla
+                    </button>
                   </div>
                   <input ref={bulkProductsInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={e => {
                     const f = e.target.files?.[0];
