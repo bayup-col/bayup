@@ -118,51 +118,23 @@ function OnboardingContent() {
 
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
 
-  const downloadProductTemplate = async () => {
-    const { Workbook } = await import('exceljs');
-    const { saveAs } = await import('file-saver');
-    const wb = new Workbook();
-    const ws = wb.addWorksheet('Productos');
-
-    ws.columns = [
-      { header: 'nombre *', key: 'nombre', width: 30 },
-      { header: 'precio *', key: 'precio', width: 15 },
-      { header: 'descripcion', key: 'descripcion', width: 40 },
-      { header: 'categoria', key: 'categoria', width: 20 },
-      { header: 'sku', key: 'sku', width: 18 },
-      { header: 'stock', key: 'stock', width: 12 },
+  const downloadProductTemplate = () => {
+    const rows = [
+      ['nombre *', 'precio *', 'descripcion', 'categoria', 'sku', 'stock'],
+      ['Camiseta Premium', '50000', 'Algodón 100% talla M', 'Moda & Accesorios', 'CAM-001', '10'],
+      ['Pantalón Slim', '89900', '', 'Moda & Accesorios', 'PAN-002', '5'],
+      [],
+      ['👉 Borra las filas 2 y 3 (ejemplos) y agrega tus productos. Los campos con * son obligatorios.'],
     ];
-
-    // Estilo del encabezado
-    const headerRow = ws.getRow(1);
-    headerRow.eachCell(cell => {
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF004D4D' } };
-      cell.font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 11 };
-      cell.alignment = { vertical: 'middle', horizontal: 'center' };
-      cell.border = { bottom: { style: 'thin', color: { argb: 'FF00BFC8' } } };
-    });
-    headerRow.height = 22;
-
-    // Fila de ejemplo
-    ws.addRow({ nombre: 'Camiseta Premium', precio: 50000, descripcion: 'Algodón 100%, talla M', categoria: 'Moda & Accesorios', sku: 'CAM-001', stock: 10 });
-    ws.addRow({ nombre: 'Pantalón Slim', precio: 89900, descripcion: '', categoria: 'Moda & Accesorios', sku: 'PAN-002', stock: 5 });
-
-    const exampleRow1 = ws.getRow(2);
-    const exampleRow2 = ws.getRow(3);
-    [exampleRow1, exampleRow2].forEach(row => {
-      row.eachCell(cell => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0FAFA' } };
-        cell.font = { color: { argb: 'FF666666' }, italic: true, size: 10 };
-      });
-    });
-
-    // Nota instructiva en fila 5
-    ws.getRow(5).getCell(1).value = '👉 Borra las filas de ejemplo (2 y 3) y agrega tus productos desde la fila 2. Los campos con * son obligatorios.';
-    ws.getRow(5).getCell(1).font = { color: { argb: 'FF888888' }, size: 9 };
-    ws.mergeCells('A5:F5');
-
-    const buf = await wb.xlsx.writeBuffer();
-    saveAs(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'plantilla-productos-bayup.xlsx');
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    // BOM UTF-8 para que Excel abra tildes y ñ correctamente
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla-productos-bayup.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // Carga masiva de productos desde un Excel — alternativa a llenar el
