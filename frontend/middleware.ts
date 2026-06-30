@@ -1,32 +1,40 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// MIDDLEWARE PURO BAYUP (Sin dependencias externas)
 export function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get("host") || "";
-  
-  // 1. Lista de dominios que NO son de clientes
-  const mainDomains = [
+
+  // Dominios exactos de la app principal — nunca son tiendas de clientes
+  const exactMainDomains = [
     "localhost:3000",
     "bayup.com",
     "www.bayup.com",
     "bayup.com.co",
     "www.bayup.com.co",
-    "tunnelmole.net",
-    "loca.lt"
   ];
 
-  // Cualquier URL de Vercel (producción, previews, despliegues individuales tipo
-  // bayup-xxxx-bayups-projects-xxxx.vercel.app) es de la app, nunca un dominio de tienda.
-  const isVercelUrl = hostname.endsWith(".vercel.app");
+  const isVercelUrl     = hostname.endsWith(".vercel.app");
+  const isLocalTunnel   = hostname.includes("tunnelmole.net") || hostname.includes("loca.lt");
+  const isMainDomain    = exactMainDomains.includes(hostname) || isLocalTunnel;
 
-  const isCustomDomain = !isVercelUrl && !mainDomains.some(d => hostname.includes(d));
+  // Subdominio de Bayup: mi-tienda.bayup.com.co → /shop/mi-tienda
+  // OJO: must NOT match los dominios exactos de arriba (ya cubiertos por isMainDomain)
+  const isBayupSubdomain = !isMainDomain && hostname.endsWith(".bayup.com.co");
 
-  // 2. Redirección de tiendas (Ej: pepito.bayup.com.co -> /shop/pepito)
-  if (isCustomDomain && !url.pathname.startsWith('/api') && !url.pathname.startsWith('/shop')) {
-    const slug = hostname.split('.')[0]; 
-    return NextResponse.rewrite(new URL(`/shop/${slug}${url.pathname}`, request.url));
+  // Dominio propio del cliente (futuro): www.mitienda.com
+  // Por ahora no tiene lógica DB — se implementa en Paso 2
+  const isCustomDomain = !isVercelUrl && !isMainDomain && !isBayupSubdomain;
+
+  if (isBayupSubdomain || isCustomDomain) {
+    const path = url.pathname;
+    // Evitar reescribir rutas internas
+    if (path.startsWith('/api') || path.startsWith('/shop') || path.startsWith('/_next')) {
+      return NextResponse.next();
+    }
+    // Extrae el slug del primer segmento del hostname: mi-tienda.bayup.com.co → mi-tienda
+    const slug = hostname.split('.')[0];
+    return NextResponse.rewrite(new URL(`/shop/${slug}${path}`, request.url));
   }
 
   return NextResponse.next();
