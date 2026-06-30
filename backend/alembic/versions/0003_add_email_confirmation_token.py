@@ -15,8 +15,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column("users", sa.Column("email_confirmation_token", sa.String(255), nullable=True))
-    op.add_column("users", sa.Column("email_confirmation_expires", sa.DateTime(), nullable=True))
+    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_confirmation_token VARCHAR(255)")
+    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_confirmation_expires TIMESTAMP")
 
 
 def downgrade() -> None:

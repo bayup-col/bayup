@@ -15,16 +15,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "payments",
-        sa.Column("idempotency_key", sa.String(length=128), nullable=True),
-    )
-    op.create_index(
-        "ix_payments_idempotency_key",
-        "payments",
-        ["idempotency_key"],
-        unique=False,
-    )
+    op.execute("ALTER TABLE payments ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(128)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_payments_idempotency_key ON payments (idempotency_key)")
 
 
 def downgrade() -> None:
