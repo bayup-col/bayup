@@ -119,10 +119,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // rechaza el token (401) porque el usuario ya no existe. A diferencia de
       // un fallo de red transitorio, esto debe cerrar la sesion de inmediato.
       if (e?.message === 'Could not validate credentials') {
-        // Solo cerrar sesión si este es aún el token activo.
-        // Si login() ya reemplazó el token (p.ej. tras Google OAuth), ignorar.
-        const currentToken = localStorage.getItem('token');
-        if (currentToken && currentToken !== authToken) return;
+        // Solo cerrar sesión si esta petición sigue vigente.
+        // Si login() ya reemplazó el token (p.ej. tras Google OAuth) mientras
+        // esta petición estaba en vuelo, profileEpochRef ya avanzó: ignorar.
+        if (profileEpochRef.current !== epoch) return;
         sessionStorage.setItem('bayup_logout_reason', 'account_removed');
         setToken(null);
         setUserEmail(null);
