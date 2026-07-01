@@ -44,20 +44,6 @@ interface MetricData {
     detailContent?: React.ReactNode;
 }
 
-// --- MOCK DATA ---
-const MOCK_ORDERS: PurchaseOrder[] = [
-    {
-        id: "PO-2026-001",
-        provider: { name: "Textiles del Norte", email: "ventas@norte.com", phone: "+57 300 111 2233" },
-        warehouse: "Bodega Central", status: 'sent',
-        items: [
-            { id: "p1", name: "Camisa Lino Blanca", sku: "SH-LIN-WH", qty: 100, cost: 45000, received: 0 },
-            { id: "p2", name: "Vestido Floral", sku: "DR-FLO-01", qty: 50, cost: 85000, received: 0 }
-        ],
-        total: 8750000, created_at: "2026-01-28", expected_at: "2026-02-05",
-        history: [{ date: "28 Ene", status: "Creada", user: "Admin", comment: "Stock inicial" }]
-    }
-];
 
 // --- COMPONENTES DE APOYO ---
 function AnimatedNumber({ value, type = 'simple' }: { value: number, type?: 'simple' | 'currency' | 'percent' }) {
@@ -179,8 +165,12 @@ export default function PurchaseOrdersPage() {
 
     useEffect(() => {
         const savedOrders = localStorage.getItem('bayup_purchase_orders');
-        if (savedOrders) setOrders(JSON.parse(savedOrders));
-        else setOrders(MOCK_ORDERS);
+        if (savedOrders) {
+            const parsed: PurchaseOrder[] = JSON.parse(savedOrders);
+            setOrders(parsed.filter(o => o.id !== 'PO-2026-001'));
+        } else {
+            setOrders([]);
+        }
 
         const savedSettings = localStorage.getItem('bayup_general_settings');
         if (savedSettings) setCompanyInfo(JSON.parse(savedSettings));

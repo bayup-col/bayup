@@ -75,15 +75,6 @@ const STATUS_MAP: Record<ExpenseStatus, { label: string; class: string }> = {
 
 const PAYMENT_METHODS = ['Transferencia', 'Efectivo', 'Tarjeta débito', 'Tarjeta crédito', 'PSE', 'Nequi / Daviplata', 'Cheque'];
 
-// ── SEED DATA ──────────────────────────────────────────────────────────────
-const SEED: Expense[] = [
-  { id: '1', description: 'Arriendo bodega', category: 'arriendo', type: 'fijo', amount: 1500000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-05`, status: 'pagado', payment_method: 'Transferencia', recurring: true, recurring_period: 'mensual', created_at: today() },
-  { id: '2', description: 'Nómina julio', category: 'nomina', type: 'fijo', amount: 3200000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-30`, status: 'pendiente', payment_method: 'Transferencia', recurring: true, recurring_period: 'mensual', created_at: today() },
-  { id: '3', description: 'Pauta Meta Ads', category: 'marketing', type: 'variable', amount: 450000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-15`, status: 'pagado', payment_method: 'Tarjeta crédito', recurring: false, created_at: today() },
-  { id: '4', description: 'Energía + agua', category: 'servicios', type: 'fijo', amount: 280000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-20`, status: 'pendiente', payment_method: 'PSE', recurring: true, recurring_period: 'mensual', created_at: today() },
-  { id: '5', description: 'Compra inventario camisetas', category: 'inventario', type: 'variable', amount: 2400000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-10`, status: 'pagado', payment_method: 'Transferencia', recurring: false, created_at: today() },
-  { id: '6', description: 'Dominio + hosting', category: 'tecnologia', type: 'fijo', amount: 120000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-01`, status: 'vencido', payment_method: 'Tarjeta crédito', recurring: true, recurring_period: 'mensual', created_at: today() },
-];
 
 // ── MINI TOOLTIP ───────────────────────────────────────────────────────────
 const ChartTip = ({ active, payload, label }: any) => {
@@ -304,7 +295,7 @@ export default function GastosPage() {
   const { showToast } = useToast();
   const dark = theme === 'dark';
 
-  const [expenses, setExpenses] = useState<Expense[]>(SEED);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [activeTab, setActiveTab] = useState<'resumen' | 'gastos' | 'ingresos' | 'rentabilidad'>('resumen');
