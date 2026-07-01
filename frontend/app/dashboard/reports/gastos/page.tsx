@@ -394,13 +394,13 @@ export default function GastosPage() {
       if (idx >= 0) { const next = [...prev]; next[idx] = exp; return next; }
       return [exp, ...prev];
     });
-    showToast({ type: 'success', message: editingExpense ? 'Gasto actualizado' : 'Gasto registrado correctamente' });
+    showToast(editingExpense ? 'Gasto actualizado' : 'Gasto registrado correctamente', 'success');
     setEditingExpense(null);
   };
 
   const handleDelete = (id: string) => {
     setExpenses(prev => prev.filter(e => e.id !== id));
-    showToast({ type: 'success', message: 'Gasto eliminado' });
+    showToast('Gasto eliminado', 'success');
   };
 
   const openEdit = (exp: Expense) => { setEditingExpense(exp); setIsModalOpen(true); };
