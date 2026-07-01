@@ -215,7 +215,7 @@ export const DesignerInspector = () => {
       formData.append('file', file);
 
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://api.bayup.com.co";
         const response = await fetch(`${apiBase}/admin/upload-image`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },

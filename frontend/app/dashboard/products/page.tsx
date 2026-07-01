@@ -259,7 +259,7 @@ export default function ProductsPage() {
     const formData = new FormData();
     formData.append('file', importFile);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${apiBase}/products/import-excel`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
       const data = await res.json();
       if (res.ok) {

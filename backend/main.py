@@ -48,9 +48,56 @@ if _sentry_dsn:
     )
 
 # --- ARRANQUE SEGURO (SIN IMPORTACIONES CRÍTICAS ARRIBA) ---
+def _sync_postgres_schema() -> None:
+    """Añade columnas faltantes en PostgreSQL usando IF NOT EXISTS.
+    Corre al arranque como mecanismo de seguridad independiente de Alembic.
+    Si Alembic ya aplicó las migraciones este bloque es un no-op (todas las
+    sentencias usan IF NOT EXISTS y no fallan si la columna ya existe)."""
+    try:
+        from database import engine
+        from sqlalchemy import text as _text
+        stmts = [
+            # users: columnas añadidas después del create_all inicial
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS reviewer_notes VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS country VARCHAR DEFAULT 'Colombia'",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS website VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS tax_regime VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS legal_rep VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS commission_is_fixed BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS commission_fixed_until TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_month_revenue DOUBLE PRECISION DEFAULT 0.0",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS loyalty_points INTEGER DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS total_spent DOUBLE PRECISION DEFAULT 0.0",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_purchase_date TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_purchase_summary VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS customer_type VARCHAR DEFAULT 'final'",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS acquisition_channel VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_confirmation_token VARCHAR(255)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_confirmation_expires TIMESTAMP",
+            # payments
+            "ALTER TABLE payments ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(128)",
+        ]
+        with engine.begin() as conn:
+            for stmt in stmts:
+                conn.execute(_text(stmt))
+        # Garantizar que la cuenta raíz de Bayup siempre sea super admin,
+        # por si el registro inicial vía Google OAuth la creó sin ese rol.
+        BAYUP_ROOT_EMAILS = ["bayupcol@gmail.com", "admin@bayup.com"]
+        with engine.begin() as conn:
+            for root_email in BAYUP_ROOT_EMAILS:
+                conn.execute(_text(
+                    "UPDATE users SET is_global_staff = TRUE, role = 'SUPER_ADMIN', status = 'Activo' "
+                    "WHERE LOWER(email) = :email AND (is_global_staff IS NOT TRUE OR role != 'SUPER_ADMIN')"
+                ), {"email": root_email.lower()})
+        logger.info("Bayup: sincronización de esquema PostgreSQL completada")
+    except Exception as e:
+        logger.warning("Bayup: aviso sincronización esquema: %s", e)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Solo SQLite (desarrollo local): Alembic gestiona el esquema en producción
     db_url = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
     if db_url.startswith("sqlite"):
         def init_sqlite():
@@ -62,6 +109,9 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 logger.warning("Motor Bayup: Aviso SQLite: %s", e)
         threading.Thread(target=init_sqlite, daemon=True).start()
+    else:
+        # PostgreSQL: garantiza columnas faltantes al arranque independientemente de Alembic
+        threading.Thread(target=_sync_postgres_schema, daemon=True).start()
     yield
 
 app = FastAPI(title="Bayup OS Platinum", lifespan=lifespan)
@@ -159,6 +209,25 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
     expose_headers=["Content-Length"],
 )
+
+# --- CORS EN ERRORES 500 ---
+# Starlette no añade headers CORS a excepciones no controladas que se propagan
+# hasta ServerErrorMiddleware. Este handler garantiza que el origen vea el error
+# real en lugar de un CORS block genérico.
+import re as _re
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    origin = request.headers.get("origin", "")
+    cors_origin = origin if origin in ALLOWED_ORIGINS else ""
+    if not cors_origin and origin and _re.match(r"https://bayup-[a-z0-9]+-bayup-col\.vercel\.app", origin):
+        cors_origin = origin
+    logger.exception("Unhandled exception in %s %s", request.method, request.url.path)
+    resp = JSONResponse(status_code=500, content={"detail": "Error interno del servidor"})
+    if cors_origin:
+        resp.headers["Access-Control-Allow-Origin"] = cors_origin
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+    return resp
 
 # --- HEADERS DE SEGURIDAD HTTP ---
 @app.middleware("http")
@@ -291,7 +360,7 @@ def login(request: Request, form_data: UserLoginRequest):
             secure=is_prod,
             samesite="lax",
             max_age=30 * 24 * 3600,  # 30 días
-            path="/auth/refresh",
+            path="/",
         )
         return response
     finally:
@@ -326,7 +395,12 @@ def register(request: Request, payload: RegisterRequest):
             full_name=payload.full_name,
             status="Pendiente",
         )
-        user = crud.create_user(db, user=user_in)
+        try:
+            user = crud.create_user(db, user=user_in)
+        except Exception as e:
+            db.rollback()
+            logger.error("register create_user failed: %s", e)
+            raise HTTPException(status_code=500, detail=f"Error al crear cuenta: {e}")
         name = user.full_name or payload.email.split("@")[0]
         threading.Thread(target=_trigger_email_confirmation, args=(user.email, name), daemon=True).start()
         return {"id": str(user.id), "email": user.email, "email_confirmation_sent": True}
@@ -378,7 +452,7 @@ async def logout_endpoint(request: Request):
     """Invalida las cookies de sesión. CRIT-004."""
     response = JSONResponse(content={"ok": True})
     response.delete_cookie("bayup_access_token", path="/")
-    response.delete_cookie("bayup_refresh_token", path="/auth/refresh")
+    response.delete_cookie("bayup_refresh_token", path="/")
     return response
 
 @app.get("/auth/confirm-email")
@@ -528,8 +602,8 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
         if not getattr(user, "email_confirmed", False):
             user.email_confirmed = True
             db.commit()
-        if getattr(user, "status", "Activo") != "Activo":
-            raise HTTPException(status_code=403, detail="Cuenta suspendida")
+        if getattr(user, "status", "Activo") == "Suspendido":
+            raise HTTPException(status_code=403, detail="Esta tienda ha sido suspendida. Contacta a soporte Bayup.")
         jwt_token = sec_mod.create_access_token(data={"sub": user.email})
         plan = None
         if user.plan_id:
@@ -538,7 +612,7 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
                 plan = {"name": plan_obj.name}
         from security import create_refresh_token as _create_refresh_token
         is_prod = os.getenv("APP_ENV", "production") == "production"
-        payload = {
+        response_data = {
             "access_token": jwt_token,
             "token_type": "bearer",
             "user": {
@@ -552,9 +626,10 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
                 "permissions": getattr(user, "permissions", {}) or {},
                 "plan": plan,
                 "onboarding_completed": bool(getattr(user, "onboarding_completed", False)),
+                "status": getattr(user, "status", "Activo"),
             },
         }
-        response = JSONResponse(content=payload)
+        response = JSONResponse(content=response_data)
         response.set_cookie(
             key="bayup_access_token",
             value=jwt_token,
@@ -571,7 +646,7 @@ async def auth_google(request: Request, payload: GoogleAuthRequest):
             secure=is_prod,
             samesite="lax",
             max_age=30 * 24 * 3600,
-            path="/auth/refresh",
+            path="/",
         )
         return response
     finally:
@@ -1049,16 +1124,64 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
             items=validated_items,
         )
         db_order = crud.create_order(db, order=order_in, customer_id=None, tenant_id=tenant_uuid)
+
+        import email_service as _es, threading
+
+        # Construir items_info una sola vez para ambos correos
+        items_info = []
+        for _item in db_order.items:
+            _variant = db.query(_m.ProductVariant).filter(_m.ProductVariant.id == _item.product_variant_id).first()
+            _product = db.query(_m.Product).filter(_m.Product.id == _variant.product_id).first() if _variant else None
+            _iname = (_product.name if _product else "Producto") + (f" — {_variant.name}" if _variant and _variant.name else "")
+            items_info.append({"name": _iname, "qty": _item.quantity, "price": float(_item.price_at_purchase)})
+
+        # 1. Confirmación al cliente
         if payload.customer_email:
             try:
-                import email_service as _es, threading
+                tenant_user_for_name = db.query(_m.User).filter(_m.User.id == tenant_uuid).first()
+                _shop_name = (tenant_user_for_name.full_name or tenant_user_for_name.shop_slug or "Tu tienda") if tenant_user_for_name else "Tu tienda"
                 threading.Thread(
                     target=_es.send_order_confirmation,
-                    args=(payload.customer_email, payload.customer_name, str(db_order.id)),
+                    kwargs=dict(
+                        email=payload.customer_email,
+                        name=payload.customer_name or "Cliente",
+                        order_id=str(db_order.id),
+                        items=items_info,
+                        total=float(db_order.total_price),
+                        payment_method=payload.payment_method or "Online",
+                        customer_city=payload.customer_city or "",
+                        customer_phone=payload.customer_phone or "",
+                        shop_name=_shop_name,
+                    ),
                     daemon=True,
                 ).start()
             except Exception:
                 pass
+
+        # 2. Notificación al dueño de la tienda
+        try:
+            tenant_user = db.query(_m.User).filter(_m.User.id == tenant_uuid).first()
+            if tenant_user and tenant_user.email:
+                shop_name = tenant_user.full_name or tenant_user.shop_slug or "Tu tienda"
+                threading.Thread(
+                    target=_es.send_new_sale_notification,
+                    kwargs=dict(
+                        owner_email=tenant_user.email,
+                        shop_name=shop_name,
+                        order_id=str(db_order.id),
+                        customer_name=payload.customer_name or "Cliente",
+                        customer_email=payload.customer_email or "",
+                        customer_phone=payload.customer_phone or "",
+                        customer_city=payload.customer_city or "",
+                        items=items_info,
+                        total=float(db_order.total_price),
+                        payment_method=payload.payment_method or "Online",
+                    ),
+                    daemon=True,
+                ).start()
+        except Exception as _notify_err:
+            logger.warning("No se pudo enviar notificación de venta al dueño: %s", _notify_err)
+
         return schemas.Order.model_validate(db_order).model_dump(mode="json")
     except ValueError:
         raise HTTPException(status_code=400, detail="product_variant_id inválido")
@@ -1705,7 +1828,7 @@ async def update_profile(payload: UpdateProfileRequest, request: Request):
                 secure=is_prod,
                 samesite="lax",
                 max_age=30 * 24 * 3600,
-                path="/auth/refresh",
+                path="/",
             )
             return response
         return result

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -131,7 +131,7 @@ function ShopContent() {
         setIsPlacingOrder(true);
 
         try {
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
             
             // BUSCAMOS EL VARIANT_ID CORRECTO
             // Para el Plan Básico, si no hay variantes seleccionadas, enviamos la primera disponible
@@ -196,7 +196,7 @@ function ShopContent() {
         const fetchShop = async () => {
             setLoading(true);
             try {
-                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
                 
                 // 1. Cargamos info base de la tienda
                 const res = await fetch(`${apiBase}/public/shop/${slug}`);

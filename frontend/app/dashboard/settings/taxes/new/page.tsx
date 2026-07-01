@@ -25,7 +25,7 @@ export default function NewTaxRatePage() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const response = await fetch(`${apiUrl}/taxes`, {
         method: 'POST',
         headers: {

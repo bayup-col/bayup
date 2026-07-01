@@ -36,7 +36,7 @@ export default function PagesDashboard() {
         const fetchState = async () => {
             if (!token) return;
             try {
-                const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://api.bayup.com.co";
                 const headers = { 'Authorization': `Bearer ${token}` };
 
                 const masterPages = [
@@ -89,7 +89,7 @@ export default function PagesDashboard() {
         }
         setSeedingKey(page.key);
         try {
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://api.bayup.com.co";
             const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 
             // Reutilizamos el header/footer ya instalado en Home para que la página nueva no se vea desconectada del resto

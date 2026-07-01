@@ -41,7 +41,7 @@ const MasterEditorInterface = () => {
     setIsPublishing(true);
     try {
       const templateId = searchParams.get("id");
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://api.bayup.com.co";
       
       // 1. Obtener la plantilla actual para no sobreescribir otras páginas
       const resGet = await fetch(`${apiBase}/super-admin/web-templates`, {

@@ -145,7 +145,7 @@ export const Canvas = ({
           setRealProducts(products || []);
         } else {
           // Si no hay token, intentamos carga pública para la previsualización
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://api.bayup.com.co";
           const res = await fetch(`${apiBase}/public/products`);
           if (res.ok) {
             const products = await res.json();

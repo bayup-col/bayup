@@ -31,7 +31,7 @@ export default function NewShippingOptionPage() {
         min_order_total: minOrderTotal !== null ? minOrderTotal : undefined, // Enviar como undefined si es nulo
       };
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const response = await fetch(`${apiUrl}/shipping`, {
         method: 'POST',
         headers: {

@@ -26,7 +26,7 @@ export default function TesoreriaPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${base}/super-admin/treasury`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const d = await res.json();

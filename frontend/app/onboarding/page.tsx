@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check, ChevronRight, ChevronLeft, Loader2, Image as ImageIcon,
-  Store, Package, Rocket, ShoppingBag, Smartphone, Sparkles, Activity, Edit3, LogOut, Eye, X, Upload
+  Store, Package, Rocket, ShoppingBag, Smartphone, Sparkles, Activity, Edit3, LogOut, Eye, X, Upload, Download
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -116,7 +116,11 @@ function OnboardingContent() {
   const [isBulkUploading, setIsBulkUploading] = useState(false);
   const [bulkUploadResult, setBulkUploadResult] = useState<{ created: number; errors: string[] } | null>(null);
 
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+
+  const downloadProductTemplate = () => {
+    window.location.href = '/api/product-template';
+  };
 
   // Carga masiva de productos desde un Excel — alternativa a llenar el
   // formulario de "primer producto" uno por uno. Independiente del resto
@@ -689,9 +693,19 @@ function OnboardingContent() {
                     <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-gray-300">o</span>
                     <div className="h-px flex-1 bg-gray-100" />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">¿Tienes muchos productos? Súbelos todos de una vez</p>
-                    <p className="text-xs text-gray-400 font-light mt-1">Un Excel (.xlsx) con columnas: nombre, precio, descripción (opcional), categoría (opcional), sku (opcional).</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">¿Tienes muchos productos? Súbelos todos de una vez</p>
+                      <p className="text-xs text-gray-400 font-light mt-1">Descarga la plantilla, llénala con tus productos y súbela aquí.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={downloadProductTemplate}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-cyan/30 text-[11px] font-semibold text-petroleum hover:bg-cyan/5 hover:border-cyan/60 transition-all"
+                    >
+                      <Download size={12} />
+                      Plantilla
+                    </button>
                   </div>
                   <input ref={bulkProductsInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={e => {
                     const f = e.target.files?.[0];

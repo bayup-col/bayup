@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -34,7 +34,7 @@ export default function UsersPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL||'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL||'https://api.bayup.com.co';
       const res  = await fetch(`${base}/super-admin/users`, { headers:{ Authorization:`Bearer ${token}` } });
       if (res.ok) { const d = await res.json(); setUsers(Array.isArray(d) ? d : []); }
     } catch {}

@@ -36,7 +36,7 @@ export default function SoportePage() {
     if (!token) return;
     setLoading(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${base}/super-admin/support/tickets`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) { const d = await res.json(); setTickets(Array.isArray(d) ? d : []); }
     } catch {}
@@ -64,7 +64,7 @@ export default function SoportePage() {
   const sendReply = async () => {
     if (!reply.trim() || !selected || !token) return;
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${base}/super-admin/support/tickets/${selected.id}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -87,7 +87,7 @@ export default function SoportePage() {
   const resolve = async () => {
     if (!selected || !token) return;
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${base}/super-admin/support/tickets/${selected.id}/resolve`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },

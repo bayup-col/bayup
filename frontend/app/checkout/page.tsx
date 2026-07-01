@@ -58,7 +58,7 @@ export default function CheckoutPage() {
   const handleWompiPayment = async () => {
     setIsProcessing(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const currentTotal = items.length > 0 ? total : 149000;
       
       // 1. Obtener configuración y firma desde nuestro Backend

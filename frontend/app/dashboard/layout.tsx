@@ -164,7 +164,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       }
   }, [isLoading, isAuthenticated, isSuperAdminZone, isStaffAccount, router]);
 
-  if (isLoading || !isAuthenticated || isPendingApproval || needsOnboarding || (!isStaffAccount && isStudioRoute)) {
+  // Guard inverso: staff que llega a /dashboard (sin super-admin) se redirige a su zona.
+  useEffect(() => {
+      if (!isLoading && isAuthenticated && !isSuperAdminZone && isStaffAccount) {
+          router.replace('/dashboard/super-admin');
+      }
+  }, [isLoading, isAuthenticated, isSuperAdminZone, isStaffAccount, router]);
+
+  const isStaffMisrouted = isAuthenticated && !isSuperAdminZone && isStaffAccount;
+  if (isLoading || !isAuthenticated || isPendingApproval || needsOnboarding || (!isStaffAccount && isStudioRoute) || isStaffMisrouted) {
       return (
         <div className="h-screen w-screen flex items-center justify-center bg-[#FAFAFA]">
             <div className="text-2xl font-bold tracking-[0.15em] text-[#004d4d] animate-pulse uppercase">BAYUP</div>
@@ -259,33 +267,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           )}
         </div>
 
-        {/* ── PLANTILLA DE TIENDA ── */}
-        {!isSuperAdminZone && !isGlobalStaff && (
-          <div className="px-3 mb-2 shrink-0">
-            {!isSidebarCollapsed ? (
-              <button
-                onClick={() => router.push('/dashboard/my-store/templates')}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-colors duration-150 group ${getLinkClass('/dashboard/my-store/templates')}`}
-              >
-                <div className="h-7 w-7 rounded-lg bg-[#004d4d] flex items-center justify-center shrink-0">
-                  <Layout size={13} className="text-[#00f2ff]" />
-                </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-[8px] font-semibold text-white/30 uppercase tracking-widest">Diseño</p>
-                  <p className="text-[11px] font-semibold truncate">Plantilla Web</p>
-                </div>
-              </button>
-            ) : (
-              <button
-                onClick={() => router.push('/dashboard/my-store/templates')}
-                className="w-full h-9 rounded-xl bg-[#004d4d]/40 hover:bg-[#004d4d]/70 flex items-center justify-center transition-colors duration-150"
-                title="Plantilla Web"
-              >
-                <Layout size={15} className="text-[#00f2ff]" />
-              </button>
-            )}
-          </div>
-        )}
+        {/* ── PLANTILLA DE TIENDA ── oculta temporalmente */}
 
         {/* ── TIENDA PILL (vista previa) ── */}
         {!isSuperAdminZone && !isGlobalStaff && authSlug && (

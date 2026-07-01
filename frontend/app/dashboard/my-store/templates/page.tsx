@@ -15,7 +15,7 @@ export default function TenantTemplatesGallery() {
 
     useEffect(() => {
         if (!token) return;
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
         Promise.all([
             fetch(`${apiBase}/web-templates`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
             fetch(`${apiBase}/shop-pages/home`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({})),
@@ -30,7 +30,7 @@ export default function TenantTemplatesGallery() {
         if (isSelecting || tpl.id === currentTemplateId) return;
         setIsSelecting(tpl.id);
         try {
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
             const res = await fetch(`${apiBase}/shop-pages`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -50,7 +50,7 @@ export default function TenantTemplatesGallery() {
     };
 
     const openPreview = (tplId: string) => {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
         window.open(`${apiBase}/web-templates/${tplId}/preview/home`, '_blank');
     };
 

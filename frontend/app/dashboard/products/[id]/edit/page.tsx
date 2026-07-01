@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -235,7 +235,7 @@ export default function EditProductPage() {
         if (!formData.name.trim()) return showToast("Nombre obligatorio", "error");
         setIsSubmitting(true);
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
             const uploadPromises = media.map(async (item) => {
                 if (item.file) {
                     const fd = new FormData(); fd.append('file', item.file);

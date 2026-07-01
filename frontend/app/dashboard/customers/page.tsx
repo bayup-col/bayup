@@ -98,7 +98,7 @@ function CustomerModal({ customer, onSave, onClose }: { customer?: Customer | nu
     if (!form.full_name || !form.email) { showToast('Nombre y email son obligatorios', 'error'); return; }
     setSaving(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${apiBase}/admin/users${customer ? `/${customer.id}` : ''}`, {
         method: customer ? 'PUT' : 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -380,7 +380,7 @@ export default function CustomersPage() {
   const fetchCustomers = useCallback(async () => {
     if (!token) return;
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${apiBase}/admin/users`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();

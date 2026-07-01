@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from "@/context/auth-context";
 import { InteractiveUP } from "@/components/landing/InteractiveUP";
 import { GlassyButton } from "@/components/landing/GlassyButton";
-import { Lock, Mail, Loader2, Ghost, User, Phone, ShieldCheck, LayoutGrid, ChevronDown, Check, Home, Eye, EyeOff, MailCheck } from "lucide-react";
+import { Lock, Mail, Loader2, Ghost, User, Phone, Building2, MapPin, Check, Home, Eye, EyeOff, MailCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -22,7 +22,6 @@ const FloatingParticlesBackground = dynamic(
 
 function RegisterForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { login } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -30,8 +29,9 @@ function RegisterForm() {
     lastName: '',
     email: '',
     phone: '',
-    affiliateCode: '',
-    planId: '',
+    companyName: '',
+    address: '',
+    planId: '1',
     password: '',
     confirmPassword: ''
   });
@@ -39,41 +39,19 @@ function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [plans] = useState<any[]>([
-    { id: '1', name: 'Básico', slug: 'básico' },
-    { id: '2', name: 'Pro Elite', slug: 'pro_elite' }
-  ]);
-  
-  const [isPlanOpen, setIsPlanOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
-  // Auto-selección de plan basada en URL
-  useEffect(() => {
-    const planParam = searchParams.get('plan');
-    if (planParam) {
-      const matchedPlan = plans.find(p => p.slug === planParam || p.id === planParam);
-      if (matchedPlan) {
-        setFormData(prev => ({ ...prev, planId: matchedPlan.id }));
-      }
-    }
-  }, [searchParams, plans]);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const selectPlan = (plan: any) => {
-    setFormData({ ...formData, planId: plan.id });
-    setIsPlanOpen(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSuccess) return;
-    if (!formData.firstName || !formData.email || !formData.planId || !formData.password || !formData.confirmPassword) {
+    if (!formData.firstName || !formData.email || !formData.password || !formData.confirmPassword) {
       setError("Por favor completa todos los campos obligatorios");
       return;
     }
@@ -94,15 +72,17 @@ function RegisterForm() {
       localStorage.clear(); 
       sessionStorage.clear();
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const response = await fetch(`${apiUrl}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: formData.email, 
-          password: formData.password, 
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
           full_name: `${formData.firstName} ${formData.lastName}`.trim(),
-          plan_id: formData.planId
+          plan_id: formData.planId,
+          company_name: formData.companyName || undefined,
+          address: formData.address || undefined,
         }),
       });
 
@@ -128,8 +108,6 @@ function RegisterForm() {
       setError(err.message || 'No se pudo continuar con Google.');
     }
   };
-
-  const selectedPlan = plans.find(p => p.id === formData.planId);
 
   if (emailSent) {
     return (
@@ -230,37 +208,17 @@ function RegisterForm() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4 transition-colors group-focus-within:text-cyan">Código de Afiliado</label>
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4 transition-colors group-focus-within:text-cyan">Nombre Empresa</label>
                 <div className="relative group">
-                  <ShieldCheck className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-cyan" />
-                  <input type="text" name="affiliateCode" placeholder="Opcional" className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white shadow-inner" value={formData.affiliateCode} onChange={handleChange} disabled={isSuccess || isLoading} />
+                  <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-cyan" />
+                  <input type="text" name="companyName" placeholder="Ej. Mi Tienda S.A.S." className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white shadow-inner" value={formData.companyName} onChange={handleChange} disabled={isSuccess || isLoading} />
                 </div>
               </div>
-              <div className="space-y-1.5 relative">
-                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4">Seleccionar Plan *</label>
-                <div className="relative">
-                  <button type="button" onClick={() => setIsPlanOpen(!isPlanOpen)} disabled={isSuccess || isLoading} className="w-full flex items-center justify-between pl-12 pr-5 py-3 bg-gray-50 border border-transparent hover:border-cyan/40 rounded-2xl outline-none transition-all shadow-inner group" >
-                    <LayoutGrid className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 group-hover:text-cyan transition-colors" />
-                    <span className={`text-sm font-medium ${selectedPlan ? 'text-black' : 'text-gray-400'}`}> {selectedPlan ? selectedPlan.name : 'Selecciona un motor'} </span>
-                    <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isPlanOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  <AnimatePresence>
-                    {isPlanOpen && (
-                      <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 5, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute top-full left-0 right-0 z-50 p-2 mt-1 bg-white/95 backdrop-blur-2xl border border-gray-100 rounded-3xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] overflow-hidden" >
-                        <div className="space-y-1">
-                          {plans.map((p) => (
-                            <button key={p.id} type="button" onClick={() => selectPlan(p)} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-medium transition-all ${formData.planId === p.id ? 'bg-[#0A1A1A] text-white' : 'hover:bg-cyan/5 text-gray-600'}`} >
-                              <span>{p.name}</span>
-                              {formData.planId === p.id && <Check className="w-3.5 h-3.5 text-cyan" />}
-                            </button>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-                <div className="flex justify-end mt-1 pr-2">
-                  <Link href="/planes" className="text-[10px] font-medium text-gray-400 hover:text-cyan uppercase tracking-[0.1em] underline underline-offset-2 transition-colors"> Ver planes </Link>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] ml-4 transition-colors group-focus-within:text-cyan">Dirección</label>
+                <div className="relative group">
+                  <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 transition-colors group-focus-within:text-cyan" />
+                  <input type="text" name="address" placeholder="Ej. Cra 10 #45-20, Bogotá" className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent focus:border-cyan/40 rounded-2xl outline-none text-sm text-black font-medium transition-all focus:bg-white shadow-inner" value={formData.address} onChange={handleChange} disabled={isSuccess || isLoading} />
                 </div>
               </div>
             </div>

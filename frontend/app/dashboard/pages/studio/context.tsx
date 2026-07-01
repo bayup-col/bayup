@@ -80,7 +80,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     const loadEverything = async () => {
       setIsLoading(true);
       const token = localStorage.getItem("token");
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://api.bayup.com.co";
 
       // 1. Cargar Perfil (para el Slug)
       if (token) {
@@ -169,7 +169,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://api.bayup.com.co";
       await fetch(`${apiBase}/shop-pages`, {
         method: "POST",
         headers: {
@@ -200,7 +200,7 @@ export const StudioProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://api.bayup.com.co";
       const res = await fetch(`${apiBase}/shop-pages/publish`, {
         method: "POST",
         headers: {

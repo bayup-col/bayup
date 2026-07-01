@@ -27,10 +27,14 @@ export const signInWithGoogle = async (redirectPath: string = "/dashboard") => {
     throw new Error("El inicio de sesión con Google aún no está configurado. Faltan las credenciales de Supabase.");
   }
 
+  // Limpiar sesión Supabase cacheada para que Google siempre muestre el selector de cuentas
+  await supabase.auth.signOut();
+
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: `${window.location.origin}${redirectPath}`,
+      queryParams: { prompt: "select_account" },
     },
   });
 

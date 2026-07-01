@@ -58,7 +58,7 @@ export default function EmpresasPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res  = await fetch(`${base}/super-admin/companies`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) { const d = await res.json(); setCompanies(Array.isArray(d) ? d : []); }
     } catch {}
@@ -93,7 +93,7 @@ export default function EmpresasPage() {
     if (!token || isToggling) return;
     setIsToggling(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${base}/super-admin/companies/${c.id}/suspend`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
@@ -116,7 +116,7 @@ export default function EmpresasPage() {
     if (!token || !deleteTarget || isDeleting) return;
     setIsDeleting(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const res = await fetch(`${base}/super-admin/companies/${deleteTarget.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
