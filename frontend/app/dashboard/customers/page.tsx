@@ -84,6 +84,7 @@ function CustomerModal({ customer, onSave, onClose }: { customer?: Customer | nu
   const { token } = useAuth();
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
   const [form, setForm] = useState({
     full_name: customer?.full_name || '',
     email:     customer?.email     || '',
@@ -97,7 +98,8 @@ function CustomerModal({ customer, onSave, onClose }: { customer?: Customer | nu
   const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
 
   const handleSubmit = async () => {
-    if (!form.full_name || !form.email) { showToast('Nombre y email son obligatorios', 'error'); return; }
+    setFormError('');
+    if (!form.full_name || !form.email) { setFormError('Nombre y email son obligatorios'); return; }
     setSaving(true);
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
@@ -119,9 +121,9 @@ function CustomerModal({ customer, onSave, onClose }: { customer?: Customer | nu
         onSave(); onClose();
       } else {
         const err = await res.json();
-        showToast(err.detail || 'Error al guardar', 'error');
+        setFormError(err.detail || 'Error al guardar');
       }
-    } catch { showToast('Error de conexión', 'error'); }
+    } catch { setFormError('Error de conexión. Intenta de nuevo.'); }
     finally { setSaving(false); }
   };
 
@@ -388,7 +390,7 @@ export default function CustomersPage() {
       const res = await fetch(`${apiBase}/admin/users`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
-        setCustomers(data.filter((u: any) => u.role === 'cliente'));
+        setCustomers(data);
       }
     } catch {}
     finally { setLoading(false); }
