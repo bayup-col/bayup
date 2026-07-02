@@ -16,7 +16,37 @@ const nextConfig = {
     },
     typescript: {
         ignoreBuildErrors: true,
-    }
+    },
+    webpack: (config, { isServer }) => {
+        if (!isServer) {
+            config.experiments = {
+                ...config.experiments,
+                layers: true,
+            };
+        }
+        return config;
+    },
+    async headers() {
+        return [
+            {
+                source: '/:path*',
+                headers: [
+                    {
+                        key: 'Content-Security-Policy',
+                        value: [
+                            "default-src 'self'",
+                            "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://framer.com https://*.framer.com https://*.framerusercontent.com",
+                            "connect-src 'self' https://api.bayup.com.co https://*.bayup.com.co https://framer.com https://*.framer.com https://*.framerusercontent.com https://*.sentry.io https://*.supabase.co wss://*.supabase.co http://localhost:8000 http://localhost:8001",
+                            "img-src 'self' data: blob: https://*.framerusercontent.com https://framer.com https://images.unsplash.com https://*.unsplash.com https://*.supabase.co http://localhost:8001",
+                            "style-src 'self' 'unsafe-inline'",
+                            "font-src 'self' data: https://fonts.gstatic.com",
+                            "frame-src 'self'",
+                        ].join('; '),
+                    },
+                ],
+            },
+        ];
+    },
 };
 
 const sentryConfig = withSentryConfig(nextConfig, {
@@ -26,7 +56,7 @@ const sentryConfig = withSentryConfig(nextConfig, {
     tunnelRoute: undefined,
 });
 
-// Re-aplicar explícitamente después del wrap de Sentry para que no los sobreescriba
+// Re-aplicar explícitamente después del wrap de Sentry
 sentryConfig.eslint = { ignoreDuringBuilds: true };
 sentryConfig.typescript = { ignoreBuildErrors: true };
 
