@@ -403,7 +403,23 @@ export default function ShippingPage() {
             className="h-10 w-10 flex items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-400 hover:text-[#004d4d] hover:border-[#004d4d]/30 transition-all shadow-sm">
             <RefreshCw size={14}/>
           </button>
-          <button className="h-10 flex items-center gap-2 px-4 rounded-2xl border border-gray-200 bg-white text-[10px] font-semibold text-gray-600 hover:border-[#004d4d]/30 transition-all shadow-sm">
+          <button
+            onClick={() => {
+              if (!shipments.length) { showToast('Sin envíos para exportar', 'info'); return; }
+              const headers = ['ID','Pedido','Cliente','Teléfono','Ciudad','Dirección','Operadora','Guía','Estado','Total','Items','Fecha'];
+              const rows = shipments.map(s => [
+                s.id, s.order_number, s.customer_name, s.customer_phone || '', s.customer_city || '',
+                s.customer_address || '', s.carrier || '', s.tracking_number || '',
+                STATUS[s.status]?.label || s.status, s.total_price, s.items_count,
+                s.created_at ? new Date(s.created_at).toLocaleDateString('es-CO') : ''
+              ]);
+              const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+              const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob); const a = document.createElement('a');
+              a.href = url; a.download = `envios_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+              URL.revokeObjectURL(url); showToast('Reporte descargado ✓', 'success');
+            }}
+            className="h-10 flex items-center gap-2 px-4 rounded-2xl border border-gray-200 bg-white text-[10px] font-semibold text-gray-600 hover:border-[#004d4d]/30 transition-all shadow-sm">
             <Download size={13}/> Exportar
           </button>
         </div>

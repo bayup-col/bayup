@@ -223,19 +223,22 @@ export default function DashboardPage() {
             icon: <TrendingUp size={15} />, iconBg: 'bg-rose-100 text-rose-500',
             bg: 'bg-rose-50 border border-rose-100', tag: 'Meta del mes', tagBg: 'bg-rose-100', tagColor: 'text-rose-600',
             title: '1. Meta del mes',
-            text: monthlyTotal > 0 ? `${goalPct}% completado. Ventas acumuladas: ${fmt(monthlyTotal)}.` : 'Sin ventas registradas este mes aún. ¡Activa tu primera venta!'
+            text: monthlyTotal > 0 ? `${goalPct}% completado. Ventas acumuladas: ${fmt(monthlyTotal)}.` : 'Sin ventas registradas este mes aún. ¡Activa tu primera venta!',
+            link: '/dashboard/invoicing',
         },
         {
             icon: <Zap size={15} />, iconBg: 'bg-amber-100 text-amber-500',
             bg: 'bg-amber-50 border border-amber-100', tag: 'Top ventas', tagBg: 'bg-amber-100', tagColor: 'text-amber-600',
             title: '2. Producto líder del mes',
-            text: topProduct ? `"${topProduct.name}" lidera con ${fmt(topProduct.total)} (${topProduct.units} uds).` : 'Registra ventas para ver tu producto estrella del mes.'
+            text: topProduct ? `"${topProduct.name}" lidera con ${fmt(topProduct.total)} (${topProduct.units} uds).` : 'Registra ventas para ver tu producto estrella del mes.',
+            link: '/dashboard/products',
         },
         {
             icon: <AlertCircle size={15} />, iconBg: 'bg-red-100 text-red-500',
             bg: 'bg-red-50 border border-red-100', tag: 'Alerta stock', tagBg: 'bg-red-100', tagColor: 'text-red-600',
             title: '3. Stock crítico',
-            text: realStats.low_stock > 0 ? `${realStats.low_stock} producto${realStats.low_stock > 1 ? 's' : ''} con stock crítico (≤5 uds). Reponlos para no perder ventas.` : 'Inventario en niveles óptimos. Todo bajo control.'
+            text: realStats.low_stock > 0 ? `${realStats.low_stock} producto${realStats.low_stock > 1 ? 's' : ''} con stock crítico (≤5 uds). Reponlos para no perder ventas.` : 'Inventario en niveles óptimos. Todo bajo control.',
+            link: '/dashboard/products',
         }
     ];
   }, [orders, realStats]);
@@ -691,7 +694,7 @@ export default function DashboardPage() {
                     </div>
 
                     {insights.map((ins, i) => (
-                        <div key={i} className="bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-4 flex flex-col gap-2 transition-colors duration-150 cursor-pointer">
+                        <div key={i} onClick={() => router.push(ins.link)} className="bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-4 flex flex-col gap-2 transition-colors duration-150 cursor-pointer">
                             <div className="flex items-center gap-3">
                                 <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${ins.iconBg}`}>{ins.icon}</div>
                                 <h5 className="font-semibold text-[13px] text-white leading-tight">{ins.title}</h5>

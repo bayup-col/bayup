@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/context/theme-context';
+import { useToast } from '@/context/toast-context';
 import { apiRequest } from '@/lib/api';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -157,6 +158,7 @@ function buildRealData(orders: any[]) {
 export default function WebAnalyticsPage() {
   const { token } = useAuth();
   const { theme } = useTheme();
+  const { showToast } = useToast();
   const dark = theme === 'dark';
 
   const [orders, setOrders] = useState<any[]>([]);
@@ -191,6 +193,39 @@ export default function WebAnalyticsPage() {
   const topTwoDaysPct = totalWeekRevenue > 0 ? Math.round((topTwoDaysRevenue / totalWeekRevenue) * 100) : 0;
   const peakDayName = sortedDays[0]?.day || '—';
   const secondDayName = sortedDays[1]?.day || '—';
+
+  const handleExport = () => {
+    if (!orders.length) { showToast('Sin datos para exportar', 'info'); return; }
+    const monthlySection = [
+      ['RESUMEN MENSUAL — ÚLTIMOS 6 MESES'],
+      ['Mes', 'Ingresos (COP)'],
+      ...realData.monthlyData.map(m => [m.mes, m.ventas]),
+    ];
+    const productSection = realData.topProducts.length > 0 ? [
+      [],
+      ['TOP PRODUCTOS'],
+      ['Producto', 'Unidades', 'Ingresos (COP)'],
+      ...realData.topProducts.map(p => [p.name, p.units, p.revenue]),
+    ] : [];
+    const orderSection = [
+      [],
+      ['DETALLE DE PEDIDOS'],
+      ['Fecha', 'Cliente', 'Total (COP)', 'Estado'],
+      ...orders.map(o => [
+        o.created_at ? new Date(o.created_at).toLocaleDateString('es-CO') : '',
+        o.customer_name || o.customer || '—',
+        o.total_price || 0,
+        o.status || '—',
+      ]),
+    ];
+    const header = [[`ESTADÍSTICAS BAYUP — Exportado el ${new Date().toLocaleDateString('es-CO')}`], []];
+    const all = [...header, ...monthlySection, ...productSection, ...orderSection];
+    const csv = all.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href = url; a.download = `estadisticas_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    URL.revokeObjectURL(url); showToast('Estadísticas descargadas ✓', 'success');
+  };
 
   const periodLabel = { '7d': 'Últimos 7 días', '30d': 'Últimos 30 días', '90d': 'Últimos 90 días' }[period];
 
@@ -244,7 +279,7 @@ export default function WebAnalyticsPage() {
               )}
             </AnimatePresence>
           </div>
-          <button className="h-10 flex items-center gap-2 px-4 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white text-[10px] font-semibold uppercase tracking-widest transition-all shadow-sm">
+          <button onClick={handleExport} className="h-10 flex items-center gap-2 px-4 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white text-[10px] font-semibold uppercase tracking-widest transition-all shadow-sm">
             <Download size={13}/> Exportar
           </button>
         </div>

@@ -307,6 +307,19 @@ export default function GastosPage() {
   const [periodMonth, setPeriodMonth] = useState(CURRENT_MONTH);
   const [periodYear, setPeriodYear] = useState(CURRENT_YEAR);
 
+  // Cargar gastos desde localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('bayup_gastos');
+      if (saved) { const parsed = JSON.parse(saved); if (Array.isArray(parsed)) setExpenses(parsed); }
+    } catch {}
+  }, []);
+
+  // Persistir gastos en localStorage al cambiar
+  useEffect(() => {
+    localStorage.setItem('bayup_gastos', JSON.stringify(expenses));
+  }, [expenses]);
+
   // Cargar órdenes reales
   useEffect(() => {
     if (!token) return;
@@ -396,6 +409,43 @@ export default function GastosPage() {
 
   const openEdit = (exp: Expense) => { setEditingExpense(exp); setIsModalOpen(true); };
 
+  const handleExportCSV = () => {
+    if (!filteredExpenses.length) { showToast('Sin gastos en este período para exportar', 'info'); return; }
+    const monthName = MONTHS[periodMonth];
+    const headers = ['Fecha venc.','Descripción','Categoría','Tipo','Monto (COP)','Estado','Método pago','Recurrente','Notas'];
+    const summaryRows = [
+      [`CONTROL DE GASTOS — ${monthName} ${periodYear}`],
+      [`Exportado el ${new Date().toLocaleDateString('es-CO')}`],
+      [],
+      [`RESUMEN`],
+      [`Total gastos`, totalExpenses],
+      [`Gastos pagados`, paidExpenses],
+      [`Por pagar`, pendingExpenses],
+      [`Ingresos del mes`, salesRevenue],
+      [`Utilidad neta`, netProfit],
+      [`Margen`, `${profitMargin.toFixed(1)}%`],
+      [],
+      [`DETALLE DE GASTOS`],
+      headers,
+      ...filteredExpenses.map(e => [
+        e.due_date,
+        e.description,
+        getCat(e.category).label,
+        e.type === 'fijo' ? 'Fijo' : 'Variable',
+        e.amount,
+        e.status,
+        e.payment_method,
+        e.recurring ? 'Sí' : 'No',
+        e.notes || '',
+      ]),
+    ];
+    const csv = summaryRows.map(r => (Array.isArray(r) ? r : [r]).map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href = url; a.download = `gastos_${monthName.toLowerCase()}_${periodYear}.csv`; a.click();
+    URL.revokeObjectURL(url); showToast('Reporte de gastos descargado ✓', 'success');
+  };
+
   const tabs = [
     { id: 'resumen',       label: 'Resumen' },
     { id: 'gastos',        label: 'Gastos' },
@@ -442,6 +492,10 @@ export default function GastosPage() {
               <ChevronDown size={12} className="-rotate-90 text-gray-400"/>
             </button>
           </div>
+          <button onClick={handleExportCSV}
+            className="h-10 flex items-center gap-2 px-4 rounded-2xl border border-gray-200 bg-white text-[10px] font-semibold text-gray-600 hover:border-[#004d4d]/30 transition-all shadow-sm">
+            <Download size={13}/> Exportar
+          </button>
           <button onClick={() => { setEditingExpense(null); setIsModalOpen(true); }}
             className="h-10 flex items-center gap-2 px-5 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm">
             <Plus size={14}/> Registrar gasto
