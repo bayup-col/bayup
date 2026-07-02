@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, X, Truck, Package, CheckCircle2, AlertCircle, MapPin,
   Clock, Download, RefreshCw, Plus, ChevronRight, ExternalLink,
   Phone, MessageCircle, ArrowUpRight, ArrowDownRight, Edit3,
   Loader2, Activity, Target, Zap, RotateCcw, Eye, Calendar,
-  Hash, User, DollarSign, ShoppingBag
+  Hash, User, DollarSign, ShoppingBag, FileSpreadsheet, ChevronDown
 } from 'lucide-react';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 import { apiRequest } from '@/lib/api';
@@ -298,6 +300,8 @@ export default function ShippingPage() {
   const [search,    setSearch]    = useState('');
   const [filterStatus, setFilterStatus] = useState<ShipStatus | 'todos'>('todos');
   const [drawerShipment, setDrawerShipment] = useState<Shipment | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   // ── CARGA: convierte órdenes en envíos ──
   const fetchShipments = useCallback(async () => {
@@ -403,26 +407,76 @@ export default function ShippingPage() {
             className="h-10 w-10 flex items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-400 hover:text-[#004d4d] hover:border-[#004d4d]/30 transition-all shadow-sm">
             <RefreshCw size={14}/>
           </button>
-          <button
-            onClick={() => {
-              const headers = ['ID','Pedido','Cliente','Teléfono','Ciudad','Dirección','Operadora','Guía','Estado','Total','Items','Fecha'];
-              const rows = shipments.map(s => [
-                s.id, s.order_number, s.customer_name, s.customer_phone || '', s.customer_city || '',
-                s.customer_address || '', s.carrier || '', s.tracking_number || '',
-                STATUS[s.status]?.label || s.status, s.total_price, s.items_count,
-                s.created_at ? new Date(s.created_at).toLocaleDateString('es-CO') : ''
-              ]);
-              const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-              const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url; a.download = `envios_${new Date().toISOString().slice(0,10)}.csv`;
-              document.body.appendChild(a); a.click(); document.body.removeChild(a);
-              URL.revokeObjectURL(url); showToast('Reporte descargado ✓', 'success');
-            }}
-            className="h-10 flex items-center gap-2 px-4 rounded-2xl border border-gray-200 bg-white text-[10px] font-semibold text-gray-600 hover:border-[#004d4d]/30 transition-all shadow-sm">
-            <Download size={13}/> Exportar
-          </button>
+          <div className="relative" ref={exportMenuRef}>
+            <button onClick={() => setShowExportMenu(v => !v)}
+              className="h-10 flex items-center gap-2 px-4 rounded-2xl border border-gray-200 bg-white text-[10px] font-semibold text-gray-600 hover:border-[#004d4d]/30 transition-all shadow-sm">
+              <Download size={13}/> Exportar <ChevronDown size={11} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`}/>
+            </button>
+            <AnimatePresence>
+              {showExportMenu && (
+                <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                  className="absolute right-0 top-12 z-50 w-52 rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden">
+                  <button onClick={async () => {
+                    const wb = new ExcelJS.Workbook(); wb.creator = 'Bayup';
+                    const ws = wb.addWorksheet('Envíos');
+                    ws.columns = [
+                      { key: 'pedido', width: 14 }, { key: 'cliente', width: 28 }, { key: 'telefono', width: 16 },
+                      { key: 'ciudad', width: 18 }, { key: 'operadora', width: 14 }, { key: 'guia', width: 20 },
+                      { key: 'estado', width: 16 }, { key: 'total', width: 16 }, { key: 'fecha', width: 14 },
+                    ];
+                    const hdr = ws.getRow(1);
+                    ['PEDIDO','CLIENTE','TELÉFONO','CIUDAD','OPERADORA','GUÍA','ESTADO','TOTAL','FECHA'].forEach((h, i) => {
+                      const cell = hdr.getCell(i + 1); cell.value = h;
+                      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '004D4D' } };
+                      cell.font = { color: { argb: 'FFFFFF' }, bold: true, size: 10, name: 'Arial' };
+                      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                      cell.border = { bottom: { style: 'thick', color: { argb: '00F2FF' } } };
+                    });
+                    hdr.height = 36;
+                    shipments.forEach((s, i) => {
+                      const row = ws.addRow({
+                        pedido: s.order_number, cliente: s.customer_name, telefono: s.customer_phone || '—',
+                        ciudad: s.customer_city || '—', operadora: s.carrier || '—', guia: s.tracking_number || '—',
+                        estado: STATUS[s.status]?.label || s.status, total: s.total_price,
+                        fecha: s.created_at ? new Date(s.created_at).toLocaleDateString('es-CO') : '—',
+                      });
+                      row.height = 26;
+                      row.getCell(8).numFmt = '"$"#,##0';
+                      row.getCell(8).font = { bold: true, color: { argb: '004D4D' }, name: 'Arial', size: 10 };
+                      if (i % 2 === 0) row.eachCell(c => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F7FAFA' } }; });
+                    });
+                    const buffer = await wb.xlsx.writeBuffer();
+                    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    saveAs(blob, `envios_${new Date().toISOString().slice(0,10)}.xlsx`);
+                    setShowExportMenu(false); showToast('Excel descargado ✓', 'success');
+                  }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-[#004d4d]/5 transition-colors text-left">
+                    <FileSpreadsheet size={14} className="text-[#004d4d]"/> Excel (.xlsx)
+                    <span className="ml-auto text-[9px] text-[#004d4d] font-bold uppercase tracking-wide">Recomendado</span>
+                  </button>
+                  <div className="h-px bg-gray-100 mx-3"/>
+                  <button onClick={() => {
+                    const headers = ['PEDIDO','CLIENTE','TELÉFONO','CIUDAD','OPERADORA','GUÍA','ESTADO','TOTAL','FECHA'];
+                    const rows = shipments.map(s => [
+                      s.order_number, s.customer_name, s.customer_phone || '', s.customer_city || '',
+                      s.carrier || '', s.tracking_number || '', STATUS[s.status]?.label || s.status,
+                      s.total_price, s.created_at ? new Date(s.created_at).toLocaleDateString('es-CO') : '',
+                    ]);
+                    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+                    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = `envios_${new Date().toISOString().slice(0,10)}.csv`;
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    URL.revokeObjectURL(url); setShowExportMenu(false); showToast('CSV descargado ✓', 'success');
+                  }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors text-left">
+                    <Download size={14} className="text-gray-400"/> CSV (.csv)
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 

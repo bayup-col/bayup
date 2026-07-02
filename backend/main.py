@@ -1248,6 +1248,80 @@ async def delete_admin_user(user_id: str, request: Request):
     finally:
         db.close()
 
+@app.post("/admin/users")
+async def create_admin_user(request: Request):
+    """Crea un nuevo cliente (role='cliente') para la tienda del usuario autenticado."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    import security as sec_mod
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        body = await request.json()
+        email = (body.get("email") or "").strip().lower()
+        full_name = (body.get("full_name") or "").strip()
+        if not email or not full_name:
+            raise HTTPException(status_code=422, detail="email y full_name son obligatorios")
+        existing = db.query(models.User).filter(models.User.email == email).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Ya existe un usuario con ese correo electrónico")
+        raw_pw = body.get("password") or str(uuid_lib.uuid4()).replace("-", "")[:14]
+        new_c = models.User(
+            id=uuid_lib.uuid4(),
+            email=email,
+            full_name=full_name,
+            nickname=body.get("nickname") or full_name.split()[0],
+            phone=body.get("phone") or None,
+            customer_city=body.get("city") or None,
+            status=body.get("status") or "Activo",
+            role="cliente",
+            owner_id=tenant_id,
+            customer_type=body.get("customer_type") or "final",
+            acquisition_channel=body.get("acquisition_channel") or "web",
+            email_confirmed=True,
+            hashed_password=sec_mod.get_password_hash(raw_pw),
+        )
+        db.add(new_c)
+        db.commit()
+        db.refresh(new_c)
+        return _serialize_customer(new_c)
+    finally:
+        db.close()
+
+@app.put("/admin/users/{user_id}")
+async def update_admin_user(user_id: str, request: Request):
+    """Actualiza los datos de un cliente de la tienda del usuario autenticado."""
+    import models, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        try:
+            target_uuid = uuid_lib.UUID(user_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="user_id inválido")
+        customer = db.query(models.User).filter(
+            models.User.id == target_uuid,
+            models.User.owner_id == tenant_id,
+        ).first()
+        if not customer:
+            raise HTTPException(status_code=404, detail="Cliente no encontrado")
+        body = await request.json()
+        if "full_name" in body and body["full_name"]: customer.full_name = body["full_name"].strip()
+        if "email" in body and body["email"]: customer.email = body["email"].strip().lower()
+        if "phone" in body: customer.phone = body["phone"] or None
+        if "city" in body: customer.customer_city = body["city"] or None
+        if "status" in body: customer.status = body["status"]
+        if "customer_type" in body: customer.customer_type = body["customer_type"]
+        if "acquisition_channel" in body: customer.acquisition_channel = body["acquisition_channel"]
+        db.commit()
+        db.refresh(customer)
+        return _serialize_customer(customer)
+    finally:
+        db.close()
+
 # ── ENVÍOS (tarifas) ──────────────────────────────────────────────────────
 class ShippingOptionRequest(BaseModel):
     name: str = Field(min_length=1)

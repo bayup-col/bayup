@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, UserPlus, Search, Download, TrendingUp, DollarSign, Heart,
@@ -8,8 +8,10 @@ import {
   ChevronDown, Globe, MessageCircle, Store, Filter, ArrowUpRight,
   ArrowDownRight, MoreHorizontal, Edit3, Trash2, Eye, Calendar,
   Activity, Target, Zap, CheckCircle2, AlertCircle, Clock, Hash,
-  UserCheck, RefreshCw, Send
+  UserCheck, RefreshCw, Send, FileSpreadsheet
 } from 'lucide-react';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
 
@@ -371,6 +373,8 @@ export default function CustomersPage() {
   const [filterStatus,  setFilterStatus]  = useState<'todos' | 'active' | 'blocked'>('todos');
   const [sortBy, setSortBy] = useState<'name' | 'spent' | 'date'>('name');
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   const [isModalOpen,   setIsModalOpen]   = useState(false);
   const [editCustomer,  setEditCustomer]  = useState<Customer | null>(null);
@@ -424,14 +428,34 @@ export default function CustomersPage() {
   }, [customers, search, filterType, filterChannel, filterStatus, sortBy]);
 
   // ── EXPORT ──
-  const handleExport = async () => {
-    if (!customers.length) { showToast('No hay clientes para exportar', 'info'); return; }
+  const handleExportExcel = async () => {
     try {
       showToast('Generando Excel…', 'info');
       const { exportCustomersToExcel } = await import('@/lib/customers-export');
       await exportCustomersToExcel(customers, 'Bayup_Clientes');
-      showToast('¡Base de datos exportada!', 'success');
+      setShowExportMenu(false);
+      showToast('Excel descargado ✓', 'success');
     } catch { showToast('Error al generar el archivo', 'error'); }
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['NOMBRE', 'EMAIL', 'TELÉFONO', 'CIUDAD', 'TIPO', 'CANAL', 'TOTAL INVERTIDO', 'ESTADO'];
+    const rows = customers.map(c => [
+      c.full_name, c.email, c.phone || '', c.city || '',
+      c.customer_type === 'mayorista' ? 'Mayorista' : 'Cliente Final',
+      c.acquisition_channel || '',
+      c.total_spent || 0,
+      c.status,
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `clientes_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setShowExportMenu(false);
+    showToast('CSV descargado ✓', 'success');
   };
 
   // ── TOP COMPRADORES ──
@@ -468,10 +492,29 @@ export default function CustomersPage() {
           <p className="text-sm mt-1 text-gray-400">Centro de mando de tu base de compradores</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleExport}
-            className="h-10 flex items-center gap-2 px-4 rounded-2xl border border-gray-200 bg-white text-[10px] font-semibold text-gray-600 hover:border-[#004d4d]/30 transition-all shadow-sm">
-            <Download size={13}/> Exportar base
-          </button>
+          <div className="relative" ref={exportMenuRef}>
+            <button onClick={() => setShowExportMenu(v => !v)}
+              className="h-10 flex items-center gap-2 px-4 rounded-2xl border border-gray-200 bg-white text-[10px] font-semibold text-gray-600 hover:border-[#004d4d]/30 transition-all shadow-sm">
+              <Download size={13}/> Exportar base <ChevronDown size={11} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`}/>
+            </button>
+            <AnimatePresence>
+              {showExportMenu && (
+                <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                  className="absolute right-0 top-12 z-50 w-52 rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden">
+                  <button onClick={handleExportExcel}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-[#004d4d]/5 transition-colors text-left">
+                    <FileSpreadsheet size={14} className="text-[#004d4d]"/> Excel (.xlsx)
+                    <span className="ml-auto text-[9px] text-[#004d4d] font-bold uppercase tracking-wide">Recomendado</span>
+                  </button>
+                  <div className="h-px bg-gray-100 mx-3"/>
+                  <button onClick={handleExportCSV}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors text-left">
+                    <Download size={14} className="text-gray-400"/> CSV (.csv)
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           <button onClick={() => { setEditCustomer(null); setIsModalOpen(true); }}
             className="h-10 flex items-center gap-2 px-5 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm">
             <Plus size={13}/> Nuevo cliente

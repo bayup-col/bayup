@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Search, Filter, Download, Package, AlertCircle, ShoppingBag, Layers,
   X, TrendingUp, Globe, MessageSquare, CheckCircle2, Truck, Clock,
   FilterX, Target, Zap, User, Smartphone, Activity, FileText,
   ChevronRight, Loader2, MapPin, CreditCard, Check, ArrowRight,
-  RefreshCw, Eye, MoreHorizontal, Inbox, BadgeCheck, XCircle,
+  RefreshCw, Eye, MoreHorizontal, Inbox, BadgeCheck, XCircle, FileSpreadsheet, ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "@/context/auth-context";
@@ -109,6 +109,8 @@ export default function OrdersPage() {
   const [activeTab,    setActiveTab]    = useState('all');
   const [drawerOrder,  setDrawerOrder]  = useState<any>(null);
   const [filterOpen,   setFilterOpen]   = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
   const [dateRange,    setDateRange]    = useState({ start: '', end: '' });
   const [srcFilter,    setSrcFilter]    = useState('Todos');
   const [updatingId,   setUpdatingId]   = useState<string | null>(null);
@@ -182,10 +184,32 @@ export default function OrdersPage() {
     finally   { setUpdatingId(null); }
   };
 
-  const handleExport = async () => {
+  const handleExportExcel = async () => {
     showToast('Generando Excel…', 'info');
     const { exportOrdersToExcel } = await import('@/lib/orders-export');
     exportOrdersToExcel(filtered, 'Pedidos_Web');
+    setShowExportMenu(false);
+    showToast('Excel descargado ✓', 'success');
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['ID','CLIENTE','EMAIL','TELÉFONO','CIUDAD','TOTAL','ESTADO','MÉTODO PAGO','FECHA'];
+    const rows = filtered.map((o: any) => [
+      o.order_number || o.id, o.customer_name || o.customer || '—',
+      o.customer_email || '', o.customer_phone || '',
+      o.shipping_address?.city || o.city || '',
+      o.total_price || 0, o.status || '',
+      o.payment_method || '', o.created_at ? new Date(o.created_at).toLocaleDateString('es-CO') : '',
+    ]);
+    const csv = [headers, ...rows].map(r => r.map((v: any) => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `pedidos_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setShowExportMenu(false);
+    showToast('CSV descargado ✓', 'success');
   };
 
   return (
@@ -297,10 +321,29 @@ export default function OrdersPage() {
             }`}>
             {filterOpen ? <FilterX size={12}/> : <Filter size={12}/>} Filtros
           </button>
-          <button onClick={handleExport}
-            className="h-9 flex items-center gap-1.5 px-3 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-white text-[9px] font-black uppercase tracking-wide transition-all">
-            <Download size={12}/> Exportar
-          </button>
+          <div className="relative" ref={exportMenuRef}>
+            <button onClick={() => setShowExportMenu(v => !v)}
+              className="h-9 flex items-center gap-1.5 px-3 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-white text-[9px] font-black uppercase tracking-wide transition-all">
+              <Download size={12}/> Exportar <ChevronDown size={10} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`}/>
+            </button>
+            <AnimatePresence>
+              {showExportMenu && (
+                <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                  className="absolute right-0 top-11 z-50 w-52 rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden">
+                  <button onClick={handleExportExcel}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-[#004d4d]/5 transition-colors text-left">
+                    <FileSpreadsheet size={14} className="text-[#004d4d]"/> Excel (.xlsx)
+                    <span className="ml-auto text-[9px] text-[#004d4d] font-bold uppercase tracking-wide">Recomendado</span>
+                  </button>
+                  <div className="h-px bg-gray-100 mx-3"/>
+                  <button onClick={handleExportCSV}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors text-left">
+                    <Download size={14} className="text-gray-400"/> CSV (.csv)
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Panel de filtros */}
