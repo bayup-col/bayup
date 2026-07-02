@@ -7,7 +7,8 @@ import {
   ShieldCheck, Zap, X, ChevronDown, ExternalLink, Save,
   Building2, Hash, User, FileText, Package, Sparkles,
   Activity, ShoppingBag, Smartphone, Check, AlertCircle,
-  Instagram, Facebook, Send, ArrowUpRight, Edit3, Eye
+  Instagram, Facebook, Send, ArrowUpRight, Edit3, Eye,
+  Wallet, CreditCard, Plus, Trash2, BadgeCheck
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -149,7 +150,12 @@ export default function GeneralSettings() {
 
   const [loading, setLoading]   = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'identidad' | 'contacto' | 'fiscal' | 'canales'>('identidad');
+  const [activeTab, setActiveTab] = useState<'identidad' | 'contacto' | 'fiscal' | 'canales' | 'pagos'>('identidad');
+
+  // Cuentas bancarias
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [newAccount, setNewAccount] = useState({ bank: '', account_type: 'Ahorros', account_number: '', holder_name: '', holder_id: '' });
+  const [addingAccount, setAddingAccount] = useState(false);
 
   // Datos de identidad
   const [identity, setIdentity] = useState({
@@ -218,6 +224,7 @@ export default function GeneralSettings() {
           legal_rep:  d.legal_rep  || '',
         });
         if (d.social_links) setSocial(prev => ({ ...prev, ...d.social_links }));
+        if (d.bank_accounts?.length) setBankAccounts(d.bank_accounts);
       })
       .catch(() => {
         const cached = localStorage.getItem('bayup_company_profile');
@@ -296,11 +303,33 @@ export default function GeneralSettings() {
     setScheduleOpen(false);
   };
 
+  const saveBankAccount = async () => {
+    if (!newAccount.bank || !newAccount.account_number || !newAccount.holder_name) return;
+    const updated = [...bankAccounts, { ...newAccount, id: Date.now().toString() }];
+    try {
+      await apiRequest('/admin/update-profile', { method: 'PUT', token, body: JSON.stringify({ bank_accounts: updated }) });
+      setBankAccounts(updated);
+      setNewAccount({ bank: '', account_type: 'Ahorros', account_number: '', holder_name: '', holder_id: '' });
+      setAddingAccount(false);
+      showToast('Cuenta bancaria guardada', 'success');
+    } catch { showToast('Error al guardar cuenta', 'error'); }
+  };
+
+  const removeAccount = async (id: string) => {
+    const updated = bankAccounts.filter(a => a.id !== id);
+    try {
+      await apiRequest('/admin/update-profile', { method: 'PUT', token, body: JSON.stringify({ bank_accounts: updated }) });
+      setBankAccounts(updated);
+      showToast('Cuenta eliminada', 'success');
+    } catch { showToast('Error al eliminar', 'error'); }
+  };
+
   const tabs = [
     { id: 'identidad', label: 'Identidad',  icon: <Store size={13}/> },
     { id: 'contacto',  label: 'Contacto',   icon: <Phone size={13}/> },
     { id: 'fiscal',    label: 'Fiscal',     icon: <ShieldCheck size={13}/> },
     { id: 'canales',   label: 'Redes',      icon: <Globe size={13}/> },
+    { id: 'pagos',     label: 'Pagos',      icon: <Wallet size={13}/> },
   ] as const;
 
   const validateEmail = (e: string) => !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
@@ -605,6 +634,113 @@ export default function GeneralSettings() {
               </motion.div>
             </div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* ══ TAB: PAGOS ══ */}
+      <AnimatePresence mode="wait">
+        {activeTab === 'pagos' && (
+          <motion.div key="pagos" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4 max-w-2xl">
+
+            {/* Info banner */}
+            <div className="flex items-start gap-3 p-4 bg-[#004d4d]/5 border border-[#004d4d]/15 rounded-2xl">
+              <BadgeCheck size={15} className="text-[#004d4d] mt-0.5 shrink-0"/>
+              <p className="text-[11px] text-[#004d4d]/80 leading-relaxed">
+                Bayup transfiere el valor neto de tus ventas web a la cuenta registrada aquí, cada <strong>martes y viernes</strong>.
+                Asegúrate de que los datos sean correctos antes de guardar.
+              </p>
+            </div>
+
+            {/* Cuentas existentes */}
+            {bankAccounts.length > 0 && (
+              <div className="space-y-3">
+                {bankAccounts.map((acc: any) => (
+                  <div key={acc.id} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+                    <div className="h-11 w-11 rounded-2xl bg-[#004d4d]/5 flex items-center justify-center shrink-0">
+                      <CreditCard size={18} className="text-[#004d4d]"/>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[13px] font-black text-gray-900">{acc.bank}</p>
+                        <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full uppercase">{acc.account_type}</span>
+                      </div>
+                      <p className="text-[11px] text-gray-500 mt-0.5">···· {String(acc.account_number).slice(-4)} · {acc.holder_name}</p>
+                      {acc.holder_id && <p className="text-[10px] text-gray-400">C.C. / NIT: {acc.holder_id}</p>}
+                    </div>
+                    <button onClick={() => removeAccount(acc.id)}
+                      className="h-8 w-8 rounded-xl bg-rose-50 hover:bg-rose-500 text-rose-400 hover:text-white flex items-center justify-center transition-all">
+                      <Trash2 size={13}/>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Formulario nueva cuenta */}
+            {addingAccount ? (
+              <div className="bg-white border border-[#004d4d]/20 rounded-2xl p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[11px] font-black text-gray-800 uppercase tracking-widest">Nueva cuenta bancaria</p>
+                  <button onClick={() => setAddingAccount(false)} className="h-7 w-7 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200">
+                    <X size={13}/>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Banco *">
+                    <Input value={newAccount.bank} onChange={(e: any) => setNewAccount(p => ({ ...p, bank: e.target.value }))}
+                      placeholder="Ej: Bancolombia, Davivienda…" icon={<Building2/>}/>
+                  </Field>
+                  <Field label="Tipo de cuenta">
+                    <select value={newAccount.account_type} onChange={e => setNewAccount(p => ({ ...p, account_type: e.target.value }))}
+                      className="w-full h-10 px-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:border-[#004d4d]/50">
+                      <option>Ahorros</option>
+                      <option>Corriente</option>
+                    </select>
+                  </Field>
+                  <Field label="Número de cuenta *">
+                    <Input value={newAccount.account_number} onChange={(e: any) => setNewAccount(p => ({ ...p, account_number: e.target.value }))}
+                      placeholder="0000000000" icon={<Hash/>}/>
+                  </Field>
+                  <Field label="Titular de la cuenta *">
+                    <Input value={newAccount.holder_name} onChange={(e: any) => setNewAccount(p => ({ ...p, holder_name: e.target.value }))}
+                      placeholder="Nombre completo" icon={<User/>}/>
+                  </Field>
+                  <Field label="Cédula / NIT del titular">
+                    <Input value={newAccount.holder_id} onChange={(e: any) => setNewAccount(p => ({ ...p, holder_id: e.target.value }))}
+                      placeholder="Número de identificación" icon={<Hash/>}/>
+                  </Field>
+                </div>
+
+                <div className="flex gap-3 pt-1">
+                  <button onClick={() => setAddingAccount(false)}
+                    className="flex-1 h-10 rounded-2xl border border-gray-200 text-[10px] font-bold text-gray-500 hover:bg-gray-50">
+                    Cancelar
+                  </button>
+                  <button onClick={saveBankAccount}
+                    disabled={!newAccount.bank || !newAccount.account_number || !newAccount.holder_name}
+                    className="flex-[2] h-10 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white text-[10px] font-black uppercase tracking-widest disabled:opacity-40 flex items-center justify-center gap-2 transition-all">
+                    <Check size={13}/> Guardar cuenta
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => setAddingAccount(true)}
+                className="w-full h-12 flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 hover:border-[#004d4d]/40 text-gray-400 hover:text-[#004d4d] text-[10px] font-bold uppercase tracking-widest transition-all">
+                <Plus size={14}/> Agregar cuenta bancaria
+              </button>
+            )}
+
+            {bankAccounts.length === 0 && !addingAccount && (
+              <div className="flex flex-col items-center py-8 text-center">
+                <div className="h-14 w-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
+                  <Wallet size={22} className="text-gray-300"/>
+                </div>
+                <p className="text-sm font-bold text-gray-400">Sin cuenta bancaria registrada</p>
+                <p className="text-[11px] text-gray-300 mt-1">Agrega tu cuenta para recibir los pagos de tus ventas</p>
+              </div>
+            )}
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

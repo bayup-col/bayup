@@ -118,6 +118,30 @@ class Product(ProductBase):
     variants: List[ProductVariant] = []
     model_config = ConfigDict(from_attributes=True)
 
+# --- Liquidation Schemas ---
+class LiquidationBase(BaseModel):
+    gross_amount: float = 0.0
+    bayup_commission: float = 0.0
+    prix_fee: float = 0.0
+    net_amount: float = 0.0
+    order_count: int = 0
+    period_start: Optional[datetime] = None
+    period_end: Optional[datetime] = None
+    status: str = "pending"
+    scheduled_date: Optional[datetime] = None
+    paid_date: Optional[datetime] = None
+    transfer_reference: Optional[str] = None
+    notes: Optional[str] = None
+
+class LiquidationCreate(LiquidationBase):
+    tenant_id: uuid.UUID
+
+class Liquidation(LiquidationBase):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
 # --- Order Schemas ---
 class OrderItemBase(BaseModel):
     product_variant_id: uuid.UUID

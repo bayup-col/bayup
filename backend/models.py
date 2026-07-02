@@ -194,6 +194,29 @@ class ProductAttribute(Base):
     options = Column(JSON)
     product_type = relationship("ProductType", back_populates="attributes")
 
+class Liquidation(Base):
+    """Registro de una liquidación / pago de ventas que Bayup le envía al cliente."""
+    __tablename__ = "liquidations"
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(GUID(), ForeignKey("users.id"), index=True, nullable=False)
+    # Montos
+    gross_amount    = Column(Float, default=0.0)   # Ventas brutas del período
+    bayup_commission= Column(Float, default=0.0)   # Comisión Bayup (3.5 %)
+    prix_fee        = Column(Float, default=0.0)   # Comisión Prix  (2.5 %)
+    net_amount      = Column(Float, default=0.0)   # Lo que recibe el cliente
+    order_count     = Column(Integer, default=0)   # Órdenes incluidas
+    # Período cubierto
+    period_start    = Column(DateTime, nullable=True)
+    period_end      = Column(DateTime, nullable=True)
+    # Estado: pending | scheduled | processing | paid | cancelled
+    status          = Column(String, default="pending", index=True)
+    scheduled_date  = Column(DateTime, nullable=True)  # Fecha estimada de pago
+    paid_date       = Column(DateTime, nullable=True)  # Fecha real de pago
+    transfer_reference = Column(String, nullable=True) # Referencia bancaria
+    notes           = Column(String, nullable=True)    # Notas internas
+    created_at      = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+    tenant          = relationship("User", foreign_keys=[tenant_id])
+
 class Expense(Base):
     __tablename__ = "expenses"
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)

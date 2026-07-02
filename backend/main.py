@@ -1,4 +1,5 @@
 from fastapi import Depends, FastAPI, HTTPException, status, Request, Response, UploadFile, File, Query, Form
+# Liquidación — registrar rutas al final del arranque
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -3911,3 +3912,8 @@ async def get_public_shop_products(
         ]
     finally:
         db.close()
+
+
+# ── Registrar rutas de Liquidación ───────────────────────────────────────
+from liquidation_endpoints import register_liquidation_routes
+register_liquidation_routes(app, _authenticate, _tenant_id, _require_super_admin)
