@@ -97,6 +97,7 @@ export default function DashboardPage() {
   const { token, userName, updateUser, shopSlug } = useAuth();
   const { theme } = useTheme();
   const { showToast } = useToast();
+  const router = useRouter();
   
   const [selectedMetric, setSelectedMetric] = useState<any>(null);
   const [isCustomReportModalOpen, setIsCustomReportModalOpen] = useState(false);

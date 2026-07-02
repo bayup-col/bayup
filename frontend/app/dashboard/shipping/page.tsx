@@ -414,8 +414,10 @@ export default function ShippingPage() {
               ]);
               const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
               const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-              const url = URL.createObjectURL(blob); const a = document.createElement('a');
-              a.href = url; a.download = `envios_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url; a.download = `envios_${new Date().toISOString().slice(0,10)}.csv`;
+              document.body.appendChild(a); a.click(); document.body.removeChild(a);
               URL.revokeObjectURL(url); showToast('Reporte descargado ✓', 'success');
             }}
             className="h-10 flex items-center gap-2 px-4 rounded-2xl border border-gray-200 bg-white text-[10px] font-semibold text-gray-600 hover:border-[#004d4d]/30 transition-all shadow-sm">

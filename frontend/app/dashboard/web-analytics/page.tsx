@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   TrendingUp, TrendingDown, Eye, Users, ShoppingCart, DollarSign, Monitor, Smartphone,
   Globe, Clock, MapPin, Search, Package, Star, ArrowUpRight, ArrowDownRight,
   Download, Calendar, ChevronDown, Activity, Target, Zap, BarChart3, RefreshCw,
-  User, Heart, ShoppingBag
+  User, Heart, ShoppingBag, FileSpreadsheet
 } from 'lucide-react';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/context/theme-context';
@@ -166,6 +168,8 @@ export default function WebAnalyticsPage() {
   const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d');
   const [isPeriodOpen, setIsPeriodOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'resumen' | 'trafico' | 'audiencia' | 'productos' | 'geografico'>('resumen');
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -194,7 +198,7 @@ export default function WebAnalyticsPage() {
   const peakDayName = sortedDays[0]?.day || '—';
   const secondDayName = sortedDays[1]?.day || '—';
 
-  const handleExport = () => {
+  const handleExportCSV = () => {
     const monthlySection = [
       ['RESUMEN MENSUAL — ÚLTIMOS 6 MESES'],
       ['Mes', 'Ingresos (COP)'],
@@ -221,9 +225,119 @@ export default function WebAnalyticsPage() {
     const all = [...header, ...monthlySection, ...productSection, ...orderSection];
     const csv = all.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob); const a = document.createElement('a');
-    a.href = url; a.download = `estadisticas_${new Date().toISOString().slice(0,10)}.csv`; a.click();
-    URL.revokeObjectURL(url); showToast('Estadísticas descargadas ✓', 'success');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `estadisticas_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setShowExportMenu(false);
+    showToast('CSV descargado ✓', 'success');
+  };
+
+  const handleExportExcel = async () => {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Bayup';
+    wb.created = new Date();
+
+    // ── Hoja 1: Resumen mensual ──
+    const ws1 = wb.addWorksheet('Resumen Mensual');
+    ws1.columns = [
+      { key: 'mes', width: 20 },
+      { key: 'ventas', width: 25 },
+    ];
+    const t1 = ws1.addRow(['ESTADÍSTICAS BAYUP — RESUMEN MENSUAL']);
+    t1.font = { bold: true, size: 13, color: { argb: 'FFFFFF' }, name: 'Arial' };
+    t1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '004D4D' } };
+    t1.height = 38; ws1.mergeCells('A1:B1');
+    t1.alignment = { vertical: 'middle', horizontal: 'center' };
+    ws1.addRow([]);
+    const h1 = ws1.addRow(['MES', 'INGRESOS (COP)']);
+    h1.eachCell(cell => {
+      cell.font = { bold: true, size: 10, name: 'Arial', color: { argb: '004D4D' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E6F2F2' } };
+      cell.border = { bottom: { style: 'medium', color: { argb: '00B2BD' } } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+    h1.height = 28;
+    realData.monthlyData.forEach((m, i) => {
+      const row = ws1.addRow([m.mes, m.ventas]);
+      row.height = 26;
+      row.getCell(2).numFmt = '"$"#,##0';
+      row.getCell(2).font = { bold: true, color: { argb: '004D4D' }, name: 'Arial', size: 10 };
+      if (i % 2 === 0) row.eachCell(c => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F7FAFA' } }; });
+    });
+
+    // ── Hoja 2: Top productos ──
+    if (realData.topProducts.length > 0) {
+      const ws2 = wb.addWorksheet('Top Productos');
+      ws2.columns = [
+        { key: 'name', width: 40 },
+        { key: 'units', width: 16 },
+        { key: 'revenue', width: 22 },
+      ];
+      const t2 = ws2.addRow(['TOP PRODUCTOS POR INGRESOS']);
+      t2.font = { bold: true, size: 13, color: { argb: 'FFFFFF' }, name: 'Arial' };
+      t2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '004D4D' } };
+      t2.height = 38; ws2.mergeCells('A1:C1');
+      t2.alignment = { vertical: 'middle', horizontal: 'center' };
+      ws2.addRow([]);
+      const h2 = ws2.addRow(['PRODUCTO', 'UNIDADES', 'INGRESOS (COP)']);
+      h2.eachCell(cell => {
+        cell.font = { bold: true, size: 10, name: 'Arial', color: { argb: '004D4D' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E6F2F2' } };
+        cell.border = { bottom: { style: 'medium', color: { argb: '00B2BD' } } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+      h2.height = 28;
+      realData.topProducts.forEach((p, i) => {
+        const row = ws2.addRow([p.name, p.units, p.revenue]);
+        row.height = 26;
+        row.getCell(3).numFmt = '"$"#,##0';
+        row.getCell(3).font = { bold: true, color: { argb: '004D4D' }, name: 'Arial', size: 10 };
+        if (i % 2 === 0) row.eachCell(c => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F7FAFA' } }; });
+      });
+    }
+
+    // ── Hoja 3: Detalle de pedidos ──
+    const ws3 = wb.addWorksheet('Pedidos');
+    ws3.columns = [
+      { key: 'fecha', width: 16 },
+      { key: 'cliente', width: 30 },
+      { key: 'total', width: 20 },
+      { key: 'estado', width: 16 },
+    ];
+    const t3 = ws3.addRow(['DETALLE DE PEDIDOS']);
+    t3.font = { bold: true, size: 13, color: { argb: 'FFFFFF' }, name: 'Arial' };
+    t3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '004D4D' } };
+    t3.height = 38; ws3.mergeCells('A1:D1');
+    t3.alignment = { vertical: 'middle', horizontal: 'center' };
+    ws3.addRow([]);
+    const h3 = ws3.addRow(['FECHA', 'CLIENTE', 'TOTAL (COP)', 'ESTADO']);
+    h3.eachCell(cell => {
+      cell.font = { bold: true, size: 10, name: 'Arial', color: { argb: '004D4D' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E6F2F2' } };
+      cell.border = { bottom: { style: 'medium', color: { argb: '00B2BD' } } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+    h3.height = 28;
+    orders.forEach((o, i) => {
+      const row = ws3.addRow({
+        fecha: o.created_at ? new Date(o.created_at).toLocaleDateString('es-CO') : '—',
+        cliente: o.customer_name || o.customer || '—',
+        total: o.total_price || 0,
+        estado: o.status || '—',
+      });
+      row.height = 26;
+      row.getCell(3).numFmt = '"$"#,##0';
+      row.getCell(3).font = { bold: true, color: { argb: '004D4D' }, name: 'Arial', size: 10 };
+      if (i % 2 === 0) row.eachCell(c => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F7FAFA' } }; });
+    });
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `estadisticas_bayup_${new Date().toISOString().slice(0,10)}.xlsx`);
+    setShowExportMenu(false);
+    showToast('Excel descargado ✓', 'success');
   };
 
   const periodLabel = { '7d': 'Últimos 7 días', '30d': 'Últimos 30 días', '90d': 'Últimos 90 días' }[period];
@@ -278,9 +392,29 @@ export default function WebAnalyticsPage() {
               )}
             </AnimatePresence>
           </div>
-          <button onClick={handleExport} className="h-10 flex items-center gap-2 px-4 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white text-[10px] font-semibold uppercase tracking-widest transition-all shadow-sm">
-            <Download size={13}/> Exportar
-          </button>
+          <div className="relative" ref={exportMenuRef}>
+            <button onClick={() => setShowExportMenu(v => !v)}
+              className="h-10 flex items-center gap-2 px-4 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white text-[10px] font-semibold uppercase tracking-widest transition-all shadow-sm">
+              <Download size={13}/> Exportar <ChevronDown size={11} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`}/>
+            </button>
+            <AnimatePresence>
+              {showExportMenu && (
+                <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                  className="absolute right-0 top-12 z-50 w-52 rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden">
+                  <button onClick={handleExportExcel}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-[#004d4d]/5 transition-colors text-left">
+                    <FileSpreadsheet size={14} className="text-[#004d4d]"/> Excel (.xlsx)
+                    <span className="ml-auto text-[9px] text-[#004d4d] font-bold uppercase tracking-wide">Recomendado</span>
+                  </button>
+                  <div className="h-px bg-gray-100 mx-3"/>
+                  <button onClick={handleExportCSV}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors text-left">
+                    <Download size={14} className="text-gray-400"/> CSV (.csv)
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
