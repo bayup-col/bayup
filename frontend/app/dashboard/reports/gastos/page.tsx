@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Trash2, Edit3, Search, X, ChevronDown, Download, TrendingUp, TrendingDown,
   DollarSign, ShoppingCart, Package, AlertCircle, CheckCircle2, Clock, CreditCard,
   BarChart3, PieChart, Zap, ArrowUpRight, ArrowDownRight, Filter, Calendar,
   Briefcase, Receipt, Target, Activity, RotateCcw, FileText, Loader2,
-  Building2, Wrench, Users, Wifi, ShieldCheck, Coffee, Truck, Star
+  Building2, Wrench, Users, Wifi, ShieldCheck, Coffee, Truck, Star, FileSpreadsheet
 } from 'lucide-react';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { useToast } from '@/context/toast-context';
 import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/context/theme-context';
@@ -75,15 +77,6 @@ const STATUS_MAP: Record<ExpenseStatus, { label: string; class: string }> = {
 
 const PAYMENT_METHODS = ['Transferencia', 'Efectivo', 'Tarjeta débito', 'Tarjeta crédito', 'PSE', 'Nequi / Daviplata', 'Cheque'];
 
-// ── SEED DATA ──────────────────────────────────────────────────────────────
-const SEED: Expense[] = [
-  { id: '1', description: 'Arriendo bodega', category: 'arriendo', type: 'fijo', amount: 1500000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-05`, status: 'pagado', payment_method: 'Transferencia', recurring: true, recurring_period: 'mensual', created_at: today() },
-  { id: '2', description: 'Nómina julio', category: 'nomina', type: 'fijo', amount: 3200000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-30`, status: 'pendiente', payment_method: 'Transferencia', recurring: true, recurring_period: 'mensual', created_at: today() },
-  { id: '3', description: 'Pauta Meta Ads', category: 'marketing', type: 'variable', amount: 450000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-15`, status: 'pagado', payment_method: 'Tarjeta crédito', recurring: false, created_at: today() },
-  { id: '4', description: 'Energía + agua', category: 'servicios', type: 'fijo', amount: 280000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-20`, status: 'pendiente', payment_method: 'PSE', recurring: true, recurring_period: 'mensual', created_at: today() },
-  { id: '5', description: 'Compra inventario camisetas', category: 'inventario', type: 'variable', amount: 2400000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-10`, status: 'pagado', payment_method: 'Transferencia', recurring: false, created_at: today() },
-  { id: '6', description: 'Dominio + hosting', category: 'tecnologia', type: 'fijo', amount: 120000, due_date: `${CURRENT_YEAR}-${String(CURRENT_MONTH+1).padStart(2,'0')}-01`, status: 'vencido', payment_method: 'Tarjeta crédito', recurring: true, recurring_period: 'mensual', created_at: today() },
-];
 
 // ── MINI TOOLTIP ───────────────────────────────────────────────────────────
 const ChartTip = ({ active, payload, label }: any) => {
@@ -304,7 +297,7 @@ export default function GastosPage() {
   const { showToast } = useToast();
   const dark = theme === 'dark';
 
-  const [expenses, setExpenses] = useState<Expense[]>(SEED);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [activeTab, setActiveTab] = useState<'resumen' | 'gastos' | 'ingresos' | 'rentabilidad'>('resumen');
@@ -315,6 +308,21 @@ export default function GastosPage() {
   const [filterStatus, setFilterStatus] = useState<ExpenseStatus | 'todas'>('todas');
   const [periodMonth, setPeriodMonth] = useState(CURRENT_MONTH);
   const [periodYear, setPeriodYear] = useState(CURRENT_YEAR);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  // Cargar gastos desde localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('bayup_gastos');
+      if (saved) { const parsed = JSON.parse(saved); if (Array.isArray(parsed)) setExpenses(parsed); }
+    } catch {}
+  }, []);
+
+  // Persistir gastos en localStorage al cambiar
+  useEffect(() => {
+    localStorage.setItem('bayup_gastos', JSON.stringify(expenses));
+  }, [expenses]);
 
   // Cargar órdenes reales
   useEffect(() => {
@@ -405,6 +413,134 @@ export default function GastosPage() {
 
   const openEdit = (exp: Expense) => { setEditingExpense(exp); setIsModalOpen(true); };
 
+  const handleExportCSV = () => {
+    const monthName = MONTHS[periodMonth];
+    const headers = ['Fecha venc.','Descripción','Categoría','Tipo','Monto (COP)','Estado','Método pago','Recurrente','Notas'];
+    const summaryRows = [
+      [`CONTROL DE GASTOS — ${monthName} ${periodYear}`],
+      [`Exportado el ${new Date().toLocaleDateString('es-CO')}`],
+      [],
+      [`RESUMEN`],
+      [`Total gastos`, totalExpenses],
+      [`Gastos pagados`, paidExpenses],
+      [`Por pagar`, pendingExpenses],
+      [`Ingresos del mes`, salesRevenue],
+      [`Utilidad neta`, netProfit],
+      [`Margen`, `${profitMargin.toFixed(1)}%`],
+      [],
+      [`DETALLE DE GASTOS`],
+      headers,
+      ...filteredExpenses.map(e => [
+        e.due_date,
+        e.description,
+        getCat(e.category).label,
+        e.type === 'fijo' ? 'Fijo' : 'Variable',
+        e.amount,
+        e.status,
+        e.payment_method,
+        e.recurring ? 'Sí' : 'No',
+        e.notes || '',
+      ]),
+    ];
+    const csv = summaryRows.map(r => (Array.isArray(r) ? r : [r]).map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `gastos_${monthName.toLowerCase()}_${periodYear}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setShowExportMenu(false);
+    showToast('CSV descargado ✓', 'success');
+  };
+
+  const handleExportExcel = async () => {
+    const monthName = new Date(periodYear, periodMonth).toLocaleString('es-CO', { month: 'long' });
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Bayup';
+    wb.created = new Date();
+
+    // ── Hoja 1: Resumen ──
+    const ws1 = wb.addWorksheet('Resumen');
+    ws1.columns = [
+      { key: 'label', width: 35 },
+      { key: 'value', width: 25 },
+    ];
+    const titleRow = ws1.addRow([`CONTROL DE GASTOS — ${monthName.toUpperCase()} ${periodYear}`]);
+    titleRow.font = { bold: true, size: 14, color: { argb: 'FFFFFF' }, name: 'Arial' };
+    titleRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '004D4D' } };
+    titleRow.height = 40;
+    ws1.mergeCells('A1:B1');
+    titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    ws1.addRow([]);
+    const summaryData = [
+      ['Total gastos del período', filteredExpenses.reduce((a, e) => a + e.amount, 0)],
+      ['Gastos pagados', filteredExpenses.filter(e => e.status === 'pagado').reduce((a, e) => a + e.amount, 0)],
+      ['Gastos pendientes', filteredExpenses.filter(e => e.status === 'pendiente').reduce((a, e) => a + e.amount, 0)],
+      ['Ingresos (pedidos del período)', salesRevenue],
+      ['Ganancia neta estimada', salesRevenue - filteredExpenses.reduce((a, e) => a + e.amount, 0)],
+      ['Total pedidos', totalOrders],
+    ];
+    summaryData.forEach(([label, value]) => {
+      const row = ws1.addRow([label, value]);
+      row.height = 28;
+      row.getCell(1).font = { name: 'Arial', size: 10, bold: true };
+      row.getCell(2).numFmt = '"$"#,##0';
+      row.getCell(2).font = { name: 'Arial', size: 10, bold: true, color: { argb: '004D4D' } };
+      row.getCell(2).alignment = { horizontal: 'right' };
+    });
+
+    // ── Hoja 2: Detalle de gastos ──
+    const ws2 = wb.addWorksheet('Detalle de Gastos');
+    ws2.columns = [
+      { header: 'FECHA', key: 'fecha', width: 14 },
+      { header: 'DESCRIPCIÓN', key: 'desc', width: 35 },
+      { header: 'CATEGORÍA', key: 'cat', width: 20 },
+      { header: 'TIPO', key: 'tipo', width: 12 },
+      { header: 'MONTO', key: 'monto', width: 18 },
+      { header: 'ESTADO', key: 'estado', width: 14 },
+      { header: 'MÉTODO PAGO', key: 'metodo', width: 18 },
+      { header: 'RECURRENTE', key: 'rec', width: 14 },
+      { header: 'NOTAS', key: 'notas', width: 30 },
+    ];
+    const hdr2 = ws2.getRow(1);
+    hdr2.height = 38;
+    hdr2.eachCell(cell => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '004D4D' } };
+      cell.font = { color: { argb: 'FFFFFF' }, bold: true, size: 10, name: 'Arial' };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = { bottom: { style: 'thick', color: { argb: '00F2FF' } } };
+    });
+    filteredExpenses.forEach((e, i) => {
+      const row = ws2.addRow({
+        fecha: e.due_date,
+        desc: e.description,
+        cat: getCat(e.category).label,
+        tipo: e.type === 'fijo' ? 'Fijo' : 'Variable',
+        monto: e.amount,
+        estado: e.status === 'pagado' ? 'Pagado' : e.status === 'pendiente' ? 'Pendiente' : 'Vencido',
+        metodo: e.payment_method || '—',
+        rec: e.recurring ? 'Sí' : 'No',
+        notas: e.notes || '',
+      });
+      row.height = 26;
+      row.getCell(5).numFmt = '"$"#,##0';
+      row.getCell(5).font = { bold: true, color: { argb: '004D4D' }, name: 'Arial', size: 10 };
+      if (i % 2 === 0) {
+        row.eachCell(cell => { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F7FAFA' } }; });
+      }
+      const estadoCell = row.getCell(6);
+      if (e.status === 'pagado') estadoCell.font = { color: { argb: '166534' }, bold: true, name: 'Arial', size: 10 };
+      else if (e.status === 'vencido') estadoCell.font = { color: { argb: 'B91C1C' }, bold: true, name: 'Arial', size: 10 };
+    });
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `gastos_${monthName.toLowerCase()}_${periodYear}.xlsx`);
+    setShowExportMenu(false);
+    showToast('Excel descargado ✓', 'success');
+  };
+
   const tabs = [
     { id: 'resumen',       label: 'Resumen' },
     { id: 'gastos',        label: 'Gastos' },
@@ -450,6 +586,29 @@ export default function GastosPage() {
             }} className="h-6 w-6 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
               <ChevronDown size={12} className="-rotate-90 text-gray-400"/>
             </button>
+          </div>
+          <div className="relative" ref={exportMenuRef}>
+            <button onClick={() => setShowExportMenu(v => !v)}
+              className="h-10 flex items-center gap-2 px-4 rounded-2xl border border-gray-200 bg-white text-[10px] font-semibold text-gray-600 hover:border-[#004d4d]/30 transition-all shadow-sm">
+              <Download size={13}/> Exportar <ChevronDown size={11} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`}/>
+            </button>
+            <AnimatePresence>
+              {showExportMenu && (
+                <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                  className="absolute right-0 top-12 z-50 w-48 rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden">
+                  <button onClick={handleExportExcel}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-[#004d4d]/5 transition-colors text-left">
+                    <FileSpreadsheet size={14} className="text-[#004d4d]"/> Excel (.xlsx)
+                    <span className="ml-auto text-[9px] text-[#004d4d] font-bold uppercase tracking-wide">Recomendado</span>
+                  </button>
+                  <div className="h-px bg-gray-100 mx-3"/>
+                  <button onClick={handleExportCSV}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors text-left">
+                    <Download size={14} className="text-gray-400"/> CSV (.csv)
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <button onClick={() => { setEditingExpense(null); setIsModalOpen(true); }}
             className="h-10 flex items-center gap-2 px-5 rounded-2xl bg-[#004d4d] hover:bg-[#003838] text-white text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm">

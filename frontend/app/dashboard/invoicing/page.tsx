@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/context/toast-context";
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,8 +11,10 @@ import {
   Zap, Download, ChevronDown, Package, ShoppingCart, CreditCard,
   MapPin, Activity, ArrowLeft, Loader2, ShieldCheck, Target,
   Globe, Wallet, Eye, X, Store, FileText, RefreshCw, Inbox,
-  Receipt, FilterX, Check
+  Receipt, FilterX, Check, FileSpreadsheet
 } from 'lucide-react';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { apiRequest } from '@/lib/api';
 
 // ── HELPERS ────────────────────────────────────────────────────────────────
@@ -112,6 +114,8 @@ export default function InvoicingPage() {
   const [dateRange,                setDateRange]                = useState({ start: '', end: '' });
   const [extraFilters,             setExtraFilters]             = useState({ source: 'Todos', payment: 'Todos' });
   const [isFilterOpen,             setIsFilterOpen]             = useState(false);
+  const [showExportMenu,           setShowExportMenu]           = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   // POS state
   const [customerInfo,             setCustomerInfo]             = useState({ name: '', email: '', phone: '', city: '', source: 'Tienda Física', type: 'final' });
@@ -222,6 +226,69 @@ export default function InvoicingPage() {
       inv.payment_method === (extraFilters.payment === 'Efectivo' ? 'cash' : 'transfer');
     return matchSearch && matchStart && matchEnd && matchSource && matchPayment;
   }), [history, historySearch, dateRange, extraFilters]);
+
+  // ── EXPORT ──
+  const handleExportExcel = async () => {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Bayup';
+    const ws = wb.addWorksheet('Facturación');
+    ws.columns = [
+      { key: 'num',     width: 14 },
+      { key: 'date',    width: 16 },
+      { key: 'cliente', width: 30 },
+      { key: 'email',   width: 28 },
+      { key: 'phone',   width: 16 },
+      { key: 'ciudad',  width: 16 },
+      { key: 'origen',  width: 16 },
+      { key: 'metodo',  width: 18 },
+      { key: 'total',   width: 20 },
+    ];
+    const hdr = ws.getRow(1);
+    ['# FACTURA','FECHA','CLIENTE','EMAIL','TELÉFONO','CIUDAD','ORIGEN','MÉTODO PAGO','TOTAL (COP)'].forEach((h, i) => {
+      const cell = hdr.getCell(i + 1);
+      cell.value = h;
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '004D4D' } };
+      cell.font = { color: { argb: 'FFFFFF' }, bold: true, size: 10, name: 'Arial' };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = { bottom: { style: 'thick', color: { argb: '00F2FF' } } };
+    });
+    hdr.height = 36;
+    filteredHistory.forEach((inv, i) => {
+      const row = ws.addRow({
+        num: inv.invoice_num, date: inv.date,
+        cliente: inv.customer, email: inv.customer_email || '—',
+        phone: inv.customer_phone || '—', ciudad: inv.customer_city || '—',
+        origen: inv.source, metodo: inv.payment_method, total: inv.total,
+      });
+      row.height = 26;
+      row.getCell(9).numFmt = '"$"#,##0';
+      row.getCell(9).font = { bold: true, color: { argb: '004D4D' }, name: 'Arial', size: 10 };
+      if (i % 2 === 0) row.eachCell(c => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F7FAFA' } }; });
+    });
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `facturacion_${new Date().toISOString().slice(0,10)}.xlsx`);
+    setShowExportMenu(false);
+    showToast('Excel descargado ✓', 'success');
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['# FACTURA','FECHA','CLIENTE','EMAIL','TELÉFONO','CIUDAD','ORIGEN','MÉTODO PAGO','TOTAL'];
+    const rows = filteredHistory.map(inv => [
+      inv.invoice_num, inv.date, inv.customer,
+      inv.customer_email || '', inv.customer_phone || '', inv.customer_city || '',
+      inv.source, inv.payment_method, inv.total,
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `facturacion_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setShowExportMenu(false);
+    showToast('CSV descargado ✓', 'success');
+  };
 
   // ── Filtered products ──
   const filteredProducts = useMemo(() => products.filter(p => {
@@ -378,16 +445,29 @@ export default function InvoicingPage() {
                   {isFilterOpen ? <FilterX size={12}/> : <Filter size={12}/>} Filtros
                 </button>
 
-                <button
-                  onClick={async () => {
-                    if (filteredHistory.length === 0) return showToast("Sin datos para exportar", "info");
-                    showToast("Generando auditoría…", "info");
-                    const { generateInvoicesAuditPDF } = await import('@/lib/report-generator');
-                    await generateInvoicesAuditPDF({ userName: companyData?.full_name || authEmail?.split('@')[0] || 'Usuario', invoices: filteredHistory, range: dateRange });
-                  }}
-                  className="h-9 flex items-center gap-1.5 px-3 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-white text-[9px] font-black uppercase tracking-wide transition-all">
-                  <Download size={12}/> Exportar
-                </button>
+                <div className="relative" ref={exportMenuRef}>
+                  <button onClick={() => setShowExportMenu(v => !v)}
+                    className="h-9 flex items-center gap-1.5 px-3 rounded-xl bg-[#004d4d] hover:bg-[#003838] text-white text-[9px] font-black uppercase tracking-wide transition-all">
+                    <Download size={12}/> Exportar <ChevronDown size={10} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`}/>
+                  </button>
+                  <AnimatePresence>
+                    {showExportMenu && (
+                      <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                        className="absolute right-0 top-11 z-50 w-52 rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden">
+                        <button onClick={handleExportExcel}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-[#004d4d]/5 transition-colors text-left">
+                          <FileSpreadsheet size={14} className="text-[#004d4d]"/> Excel (.xlsx)
+                          <span className="ml-auto text-[9px] text-[#004d4d] font-bold uppercase tracking-wide">Recomendado</span>
+                        </button>
+                        <div className="h-px bg-gray-100 mx-3"/>
+                        <button onClick={handleExportCSV}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors text-left">
+                          <Download size={14} className="text-gray-400"/> CSV (.csv)
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 <button onClick={loadData}
                   className="h-9 w-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:text-[#004d4d] transition-all">

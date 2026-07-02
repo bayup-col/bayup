@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo, useRef } from 'react';
 import {
   Plus, Search, Filter, Download, Package, AlertCircle, ShoppingBag,
   Layers, Edit3, Trash2, Info, ArrowUpRight, Eye, Zap, BarChart3, X,
   ImageIcon, TrendingUp, Globe, CheckCheck, Loader2, FilterX, Target,
   Sparkles, Bot, Rocket, LayoutGrid, Activity, ShieldCheck, CheckCircle2,
   DollarSign, ArrowDownRight, Box, Hash, Warehouse, RefreshCcw, History,
-  AlertTriangle, Minus, Tag, MoreHorizontal
+  AlertTriangle, Minus, Tag, MoreHorizontal, FileSpreadsheet, ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -153,6 +153,8 @@ export default function ProductsPage() {
   const [isDeletingProduct,      setIsDeletingProduct]      = useState(false);
 
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
   const [isGuideOpen,       setIsGuideOpen]        = useState(false);
   const [activeGuideTab,    setActiveGuideTab]      = useState('overview');
   const [filterConfig, setFilterConfig] = useState({ minPrice: '', maxPrice: '', minStock: '', selectedCategory: 'all' });
@@ -252,15 +254,33 @@ export default function ProductsPage() {
     finally { setIsCreatingCategory(false); }
   };
 
-  const handleExport = async () => {
-    if (products.length === 0) { showToast('No hay productos para exportar', 'info'); return; }
+  const handleExportExcel = async () => {
     try {
-      showToast('Generando exportación...', 'info');
+      showToast('Generando Excel…', 'info');
       const { exportProductsToExcel } = await import('@/lib/products-export');
       await exportProductsToExcel(products, 'Bayup_Tienda');
-      showToast('¡Catálogo exportado! 📊', 'success');
+      setShowExportMenu(false);
+      showToast('Excel descargado ✓', 'success');
     }
     catch { showToast('Error al generar el archivo', 'error'); }
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['NOMBRE','SKU','CATEGORÍA','PRECIO','PRECIO MAYORISTA','STOCK','ESTADO'];
+    const rows = products.map((p: any) => [
+      p.name, p.sku || '', p.category || '',
+      p.price || 0, p.wholesale_price || '',
+      p.stock ?? '', p.is_active ? 'Activo' : 'Inactivo',
+    ]);
+    const csv = [headers, ...rows].map(r => r.map((v: any) => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `productos_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setShowExportMenu(false);
+    showToast('CSV descargado ✓', 'success');
   };
 
   const handleDownloadTemplate = async () => {
@@ -534,10 +554,29 @@ export default function ProductsPage() {
               className={`h-10 flex items-center gap-2 px-4 rounded-2xl border text-[10px] font-semibold transition-all ${isFilterPanelOpen ? 'bg-[#004d4d] text-white border-[#004d4d]' : 'bg-white border-gray-200 text-gray-400 hover:border-[#004d4d]/30 shadow-sm'}`}>
               <Filter size={13}/> Filtros
             </button>
-            <button onClick={handleExport}
-              className="h-10 flex items-center gap-2 px-4 rounded-2xl bg-white border border-gray-200 text-[10px] font-semibold text-gray-600 hover:border-[#004d4d]/30 transition-all shadow-sm">
-              <Download size={13}/> Exportar
-            </button>
+            <div className="relative" ref={exportMenuRef}>
+              <button onClick={() => setShowExportMenu(v => !v)}
+                className="h-10 flex items-center gap-2 px-4 rounded-2xl bg-white border border-gray-200 text-[10px] font-semibold text-gray-600 hover:border-[#004d4d]/30 transition-all shadow-sm">
+                <Download size={13}/> Exportar <ChevronDown size={11} className={`transition-transform ${showExportMenu ? 'rotate-180' : ''}`}/>
+              </button>
+              <AnimatePresence>
+                {showExportMenu && (
+                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                    className="absolute right-0 top-12 z-50 w-52 rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden">
+                    <button onClick={handleExportExcel}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-[#004d4d]/5 transition-colors text-left">
+                      <FileSpreadsheet size={14} className="text-[#004d4d]"/> Excel (.xlsx)
+                      <span className="ml-auto text-[9px] text-[#004d4d] font-bold uppercase tracking-wide">Recomendado</span>
+                    </button>
+                    <div className="h-px bg-gray-100 mx-3"/>
+                    <button onClick={handleExportCSV}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors text-left">
+                      <Download size={14} className="text-gray-400"/> CSV (.csv)
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Panel filtros avanzados */}
@@ -931,7 +970,7 @@ export default function ProductsPage() {
             {[
               { label: 'Nuevo producto',   icon: <Plus size={11}/>,     action: handleNewProductClick },
               { label: 'Importar Excel',   icon: <Download size={11}/>, action: () => setIsImportModalOpen(true) },
-              { label: 'Exportar catálogo',icon: <Download size={11}/>, action: handleExport },
+              { label: 'Exportar catálogo',icon: <Download size={11}/>, action: handleExportExcel },
             ].map((a, i) => (
               <button key={i} onClick={a.action}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-[10px] font-semibold transition-all text-left">
