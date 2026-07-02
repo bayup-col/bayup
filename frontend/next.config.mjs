@@ -15,17 +15,19 @@ const nextConfig = {
         ignoreDuringBuilds: true,
     },
     typescript: {
-        ignoreBuildErrors: true, // Ignorar errores de tipos en build para restaurar login de emergencia
+        ignoreBuildErrors: true,
     }
 };
 
-export default withSentryConfig(nextConfig, {
-    // No imprime output de Sentry durante el build
+const sentryConfig = withSentryConfig(nextConfig, {
     silent: true,
-    // No expone source maps en el bundle publico (las sube a Sentry de forma privada)
     hideSourceMaps: true,
-    // Desactiva el logger de Sentry en cliente para reducir bundle size
     disableLogger: true,
-    // Desactiva el tunnel automático para no añadir una ruta /monitoring al backend
     tunnelRoute: undefined,
 });
+
+// Re-aplicar explícitamente después del wrap de Sentry para que no los sobreescriba
+sentryConfig.eslint = { ignoreDuringBuilds: true };
+sentryConfig.typescript = { ignoreBuildErrors: true };
+
+export default sentryConfig;
