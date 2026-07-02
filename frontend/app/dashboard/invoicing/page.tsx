@@ -119,7 +119,7 @@ export default function InvoicingPage() {
   const exportMenuRef = useRef<HTMLDivElement>(null);
 
   // POS state
-  const [customerInfo,             setCustomerInfo]             = useState({ name: '', email: '', phone: '', city: '', source: 'Tienda Física', type: 'final' });
+  const [customerInfo,             setCustomerInfo]             = useState({ name: '', email: '', phone: '', city: '', source: 'Tienda Física', type: 'final', seller: '' });
   const [posCustomerMode,          setPosCustomerMode]          = useState<'search' | 'create'>('create');
   const [customerSearch,           setCustomerSearch]           = useState('');
   const [isSourceDropdownOpen,     setIsSourceDropdownOpen]     = useState(false);
@@ -805,7 +805,7 @@ export default function InvoicingPage() {
                               });
                             }
                           });
-                          const res = [...merged.values()].filter(c =>
+                          const res = Array.from(merged.values()).filter(c =>
                             !q || c.name?.toLowerCase().includes(q) ||
                             c.phone?.includes(q) || c.email?.toLowerCase().includes(q)
                           );
@@ -817,7 +817,7 @@ export default function InvoicingPage() {
                           return res.map(c => (
                             <button key={c.email || c.name}
                               onClick={() => {
-                                setCustomerInfo({ name: c.name, email: c.email, phone: c.phone, city: c.city, source: c.source, type: c.type });
+                                setCustomerInfo({ name: c.name, email: c.email, phone: c.phone, city: c.city, source: c.source, type: c.type, seller: '' });
                                 setPosCustomerMode('create'); setCustomerSearch('');
                               }}
                               className="w-full flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl hover:border-[#004d4d]/20 transition-all text-left">
