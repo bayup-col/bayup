@@ -405,7 +405,6 @@ export default function ShippingPage() {
           </button>
           <button
             onClick={() => {
-              if (!shipments.length) { showToast('Sin envíos para exportar', 'info'); return; }
               const headers = ['ID','Pedido','Cliente','Teléfono','Ciudad','Dirección','Operadora','Guía','Estado','Total','Items','Fecha'];
               const rows = shipments.map(s => [
                 s.id, s.order_number, s.customer_name, s.customer_phone || '', s.customer_city || '',

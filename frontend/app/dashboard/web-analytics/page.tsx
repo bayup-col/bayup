@@ -195,7 +195,6 @@ export default function WebAnalyticsPage() {
   const secondDayName = sortedDays[1]?.day || '—';
 
   const handleExport = () => {
-    if (!orders.length) { showToast('Sin datos para exportar', 'info'); return; }
     const monthlySection = [
       ['RESUMEN MENSUAL — ÚLTIMOS 6 MESES'],
       ['Mes', 'Ingresos (COP)'],

@@ -410,7 +410,6 @@ export default function GastosPage() {
   const openEdit = (exp: Expense) => { setEditingExpense(exp); setIsModalOpen(true); };
 
   const handleExportCSV = () => {
-    if (!filteredExpenses.length) { showToast('Sin gastos en este período para exportar', 'info'); return; }
     const monthName = MONTHS[periodMonth];
     const headers = ['Fecha venc.','Descripción','Categoría','Tipo','Monto (COP)','Estado','Método pago','Recurrente','Notas'];
     const summaryRows = [
