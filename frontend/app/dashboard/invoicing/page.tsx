@@ -101,6 +101,7 @@ export default function InvoicingPage() {
   const { showToast } = useToast();
 
   // Core state
+  const [registeredCustomers,      setRegisteredCustomers]      = useState<any[]>([]);
   const [isPOSActive,              setIsPOSActive]              = useState(false);
   const [selectedInvoice,          setSelectedInvoice]          = useState<PastInvoice | null>(null);
   const [fullSelectedOrder,        setFullSelectedOrder]        = useState<any>(null);
@@ -149,11 +150,12 @@ export default function InvoicingPage() {
     if (!token) return;
     const isProduction = window.location.hostname.includes('railway.app') || window.location.hostname.includes('bayup.com');
 
-    const [pRes, userData, cRes, oRes] = await Promise.allSettled([
+    const [pRes, userData, cRes, oRes, custRes] = await Promise.allSettled([
       apiRequest<any[]>('/products', { token }),
       apiRequest<any>('/auth/me', { token }),
       isProduction ? Promise.resolve([]) : apiRequest<any[]>('/collections', { token }),
       apiRequest<any[]>('/orders', { token }),
+      apiRequest<any[]>('/admin/users', { token }),
     ]);
 
     if (userData.status === 'fulfilled' && userData.value) setCompanyData(userData.value);
@@ -180,6 +182,9 @@ export default function InvoicingPage() {
         total: o.total_price || 0
       })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setHistory(mapped);
+    }
+    if (custRes.status === 'fulfilled' && Array.isArray(custRes.value)) {
+      setRegisteredCustomers(custRes.value);
     }
   }, [token]);
 
@@ -783,31 +788,45 @@ export default function InvoicingPage() {
                       </div>
                       <div className="space-y-1.5 max-h-48 overflow-y-auto">
                         {(() => {
-                          const q   = customerSearch.toLowerCase();
-                          const map = new Map<string, any>();
-                          history.forEach(inv => { if (inv.customer && !map.has(inv.customer)) map.set(inv.customer, inv); });
-                          const res = [...map.values()].filter(inv =>
-                            !q || inv.customer?.toLowerCase().includes(q) ||
-                            inv.customer_phone?.includes(q) || inv.customer_email?.toLowerCase().includes(q)
+                          const q = customerSearch.toLowerCase();
+                          // Merge: registered customers first, then history-only entries
+                          const merged = new Map<string, { name: string; email: string; phone: string; city: string; source: string; type: string }>();
+                          registeredCustomers.forEach(c => {
+                            if (c.full_name) merged.set(c.email || c.full_name, {
+                              name: c.full_name, email: c.email || '', phone: c.phone || '',
+                              city: c.city || '', source: 'Base de clientes', type: c.customer_type || 'final',
+                            });
+                          });
+                          history.forEach(inv => {
+                            if (inv.customer && !merged.has(inv.customer_email || inv.customer)) {
+                              merged.set(inv.customer_email || inv.customer, {
+                                name: inv.customer, email: inv.customer_email || '', phone: inv.customer_phone || '',
+                                city: inv.customer_city || '', source: inv.source || 'Tienda Física', type: 'final',
+                              });
+                            }
+                          });
+                          const res = [...merged.values()].filter(c =>
+                            !q || c.name?.toLowerCase().includes(q) ||
+                            c.phone?.includes(q) || c.email?.toLowerCase().includes(q)
                           );
                           if (res.length === 0) return (
                             <div className="py-8 text-center text-[10px] font-medium text-gray-300">
                               {customerSearch ? 'Sin resultados' : 'Escribe para buscar…'}
                             </div>
                           );
-                          return res.map(inv => (
-                            <button key={inv.customer}
+                          return res.map(c => (
+                            <button key={c.email || c.name}
                               onClick={() => {
-                                setCustomerInfo({ name: inv.customer || '', email: inv.customer_email || '', phone: inv.customer_phone || '', city: inv.customer_city || '', source: inv.source || 'Tienda Física', type: 'final' });
+                                setCustomerInfo({ name: c.name, email: c.email, phone: c.phone, city: c.city, source: c.source, type: c.type });
                                 setPosCustomerMode('create'); setCustomerSearch('');
                               }}
                               className="w-full flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl hover:border-[#004d4d]/20 transition-all text-left">
                               <div className="h-8 w-8 rounded-lg bg-[#004d4d]/8 flex items-center justify-center shrink-0">
-                                <span className="text-[#004d4d] font-bold text-sm">{(inv.customer || '?').charAt(0).toUpperCase()}</span>
+                                <span className="text-[#004d4d] font-bold text-sm">{(c.name || '?').charAt(0).toUpperCase()}</span>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-[11px] font-bold text-gray-800 truncate">{inv.customer}</p>
-                                <p className="text-[9px] text-gray-400">{inv.customer_phone || inv.customer_email || '—'}</p>
+                                <p className="text-[11px] font-bold text-gray-800 truncate">{c.name}</p>
+                                <p className="text-[9px] text-gray-400">{c.phone || c.email || '—'}</p>
                               </div>
                             </button>
                           ));
