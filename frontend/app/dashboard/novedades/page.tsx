@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare, Bot, GitBranch, ShoppingBag, Users,
@@ -533,22 +534,27 @@ export default function NovedadesPage() {
         </div>
       </motion.div>
 
-      {/* IDEA MODAL */}
-      <AnimatePresence>
-        {showIdeaModal && <IdeaModal onClose={() => setShowIdeaModal(false)} />}
-      </AnimatePresence>
+      {typeof window !== 'undefined' && createPortal(
+        <>
+          {/* IDEA MODAL */}
+          <AnimatePresence>
+            {showIdeaModal && <IdeaModal onClose={() => setShowIdeaModal(false)} />}
+          </AnimatePresence>
 
-      {/* MODAL */}
-      <AnimatePresence>
-        {selectedFeature && (
-          <Modal
-            feature={selectedFeature}
-            onClose={() => setSelectedId(null)}
-            voted={!!votes[selectedFeature.id]}
-            onVote={() => toggleVote(selectedFeature.id)}
-          />
-        )}
-      </AnimatePresence>
+          {/* MODAL */}
+          <AnimatePresence>
+            {selectedFeature && (
+              <Modal
+                feature={selectedFeature}
+                onClose={() => setSelectedId(null)}
+                voted={!!votes[selectedFeature.id]}
+                onVote={() => toggleVote(selectedFeature.id)}
+              />
+            )}
+          </AnimatePresence>
+        </>,
+        document.body
+      )}
     </div>
   );
 }

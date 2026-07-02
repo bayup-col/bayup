@@ -28,7 +28,7 @@ interface Product {
 }
 interface InvoicingItem {
   id: string; name: string; variant_id?: string;
-  price: number; quantity: number; sku: string; image?: string;
+  price: number; quantity: number; sku: string; image?: string; maxStock: number;
 }
 interface PastInvoice {
   id: string; invoice_num: string; date: string; customer: string;
@@ -292,7 +292,7 @@ export default function InvoicingPage() {
 
   // ── Filtered products ──
   const filteredProducts = useMemo(() => products.filter(p => {
-    const totalStock = p.variants?.reduce((a: number, v: any) => a + (v.stock || 0), 0) || 0;
+    const totalStock = p.variants?.reduce((a: number, v: any) => a + (v.stock || 0), 0) ?? 0;
     if (totalStock <= 0) return false;
     const matchSearch = p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
                         (p.sku?.toLowerCase() || '').includes(productSearch.toLowerCase());
@@ -340,13 +340,21 @@ export default function InvoicingPage() {
     const mainImg = Array.isArray(product.image_url) && product.image_url.length > 0
       ? product.image_url[0]
       : (typeof product.image_url === 'string' ? product.image_url : null);
-    const primaryVariantId = selections.length > 0 ? selections[0].id : product.id;
+    // Si no hay selección explícita, usa la primera variante con stock
+    const firstVariantWithStock = product.variants?.find((v: any) => (v.stock || 0) > 0);
+    const primaryVariantId = selections.length > 0
+      ? selections[0].id
+      : (firstVariantWithStock?.id ?? product.variants?.[0]?.id ?? product.id);
+    const maxStock = selections.length > 0
+      ? Math.min(...selections.map(s => s.stock ?? 0))
+      : (firstVariantWithStock?.stock ?? product.variants?.reduce((a: number, v: any) => a + (v.stock || 0), 0) ?? 0);
     setInvoiceItems(prev => [...prev, {
       id: product.id,
       variant_id: primaryVariantId,
       name: selections.length === 0 ? product.name : `${product.name} (${variantDesc})`,
       price: finalPrice,
       quantity: 1,
+      maxStock,
       sku: selections.length > 0 ? selections.map(s => s.sku).join('-') : product.sku,
       image: selections.length > 0 ? (selections.find(s => s.image_url)?.image_url || mainImg) : mainImg
     }]);
@@ -372,14 +380,26 @@ export default function InvoicingPage() {
     if (invoiceItems.length === 0) return;
     setIsProcessing(true);
     try {
+      const subtotal = calculateSubtotal();
       const body = {
         customer_name: customerInfo.name || 'Cliente',
-        customer_email: customerInfo.email,
-        customer_phone: customerInfo.phone,
-        items: invoiceItems.map(i => ({ product_variant_id: i.variant_id, quantity: i.quantity })),
-        source: customerInfo.source,
-        payment_method: paymentMethod
+        customer_email: customerInfo.email || null,
+        customer_phone: customerInfo.phone || null,
+        customer_city: customerInfo.city || null,
+        customer_type: customerInfo.type || 'final',
+        seller_name: customerInfo.seller || null,
+        total_price: subtotal,
+        commission_amount: 0,
+        commission_rate_snapshot: 0,
+        payment_method: paymentMethod === 'cash' ? 'cash' : 'transfer',
+        source: customerInfo.source || 'pos',
+        items: invoiceItems.map(i => ({
+          product_variant_id: i.variant_id,
+          quantity: i.quantity,
+          price_at_purchase: i.price,
+        })),
       };
+      console.log('[Facturar] body enviado:', JSON.stringify(body, null, 2));
       const res = await apiRequest<any>('/orders', { method: 'POST', token, body: JSON.stringify(body) });
       if (res) {
         showToast("Venta exitosa 🚀", "success");
@@ -389,7 +409,9 @@ export default function InvoicingPage() {
           window.open(`https://wa.me/57${customerInfo.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Factura #${String(res.id).slice(-4).toUpperCase()} de ${companyData?.full_name}: $${calculateSubtotal().toLocaleString()}`)}`, '_blank');
         setInvoiceItems([]); setIsPOSActive(false); loadData();
       }
-    } catch {} finally { setIsProcessing(false); }
+    } catch (err: any) {
+      showToast(err?.message || 'Error al crear la factura', 'error');
+    } finally { setIsProcessing(false); }
   };
 
   // ── Input base style ──
@@ -931,8 +953,10 @@ export default function InvoicingPage() {
                               <p className="text-[7px] text-gray-400">SKU: {item.sku}</p>
                             </div>
                             <div className="flex flex-col items-center gap-0.5">
-                              <button onClick={() => { const n=[...invoiceItems]; n[i].quantity++; setInvoiceItems([...n]); }}
-                                className="h-4 w-6 rounded text-gray-400 hover:text-emerald-500 flex items-center justify-center text-xs font-bold border border-gray-100 bg-white">+</button>
+                              <button
+                                disabled={item.quantity >= item.maxStock}
+                                onClick={() => { const n=[...invoiceItems]; n[i].quantity++; setInvoiceItems([...n]); }}
+                                className="h-4 w-6 rounded text-gray-400 hover:text-emerald-500 flex items-center justify-center text-xs font-bold border border-gray-100 bg-white disabled:opacity-30 disabled:cursor-not-allowed">+</button>
                               <span className="text-[9px] font-black text-gray-900">{item.quantity}</span>
                               <button onClick={() => { const n=[...invoiceItems]; if(n[i].quantity>1)n[i].quantity--; else { setInvoiceItems(invoiceItems.filter((_,idx)=>idx!==i)); return; } setInvoiceItems([...n]); }}
                                 className="h-4 w-6 rounded text-gray-400 hover:text-rose-400 flex items-center justify-center text-xs font-bold border border-gray-100 bg-white">-</button>
@@ -1185,27 +1209,30 @@ export default function InvoicingPage() {
 
                   {/* Variantes */}
                   {selectedProductForVariant.variants && selectedProductForVariant.variants.length > 0 ? (
-                    <div className="space-y-4">
-                      {Array.from(new Set(selectedProductForVariant.variants.map(v => v.name))).map(attrName => (
-                        <div key={attrName} className="space-y-2">
-                          <label className="text-[9px] font-black text-[#004d4d] uppercase tracking-widest">{attrName}</label>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedProductForVariant.variants?.filter(v => v.name === attrName).map(v => (
-                              <button key={v.id}
-                                onClick={() => {
-                                  const ns = { ...selectedVariants, [attrName]: v };
-                                  setSelectedVariants(ns);
-                                  const base = customerInfo.type === 'mayorista' && (selectedProductForVariant.wholesale_price || 0) > 0 ? selectedProductForVariant.wholesale_price : selectedProductForVariant.price;
-                                  setTempPrice((base || 0) + Object.values(ns).reduce((a: number, s: any) => a + (s.price_adjustment || 0), 0));
-                                }}
-                                disabled={v.stock <= 0}
-                                className={`h-9 px-4 rounded-xl text-[10px] font-black border-2 transition-all ${selectedVariants[attrName]?.id === v.id ? 'bg-[#004d4d] border-[#004d4d] text-white shadow-md' : 'bg-white border-gray-200 text-gray-500 hover:border-[#004d4d]/30 disabled:opacity-30'}`}>
-                                {v.sku}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-[#004d4d] uppercase tracking-widest">Selecciona variante</label>
+                      <div className="flex flex-col gap-2">
+                        {selectedProductForVariant.variants.map(v => {
+                          const outOfStock = (v.stock ?? 0) <= 0;
+                          const isSelected = selectedVariants['variant']?.id === v.id;
+                          return (
+                            <button key={v.id}
+                              disabled={outOfStock}
+                              onClick={() => {
+                                const ns = { variant: v };
+                                setSelectedVariants(ns);
+                                const base = customerInfo.type === 'mayorista' && (selectedProductForVariant.wholesale_price || 0) > 0 ? selectedProductForVariant.wholesale_price : selectedProductForVariant.price;
+                                setTempPrice((base || 0) + (v.price_adjustment || 0));
+                              }}
+                              className={`flex items-center justify-between px-4 py-2.5 rounded-xl border-2 text-left transition-all ${isSelected ? 'bg-[#004d4d] border-[#004d4d] text-white' : outOfStock ? 'opacity-35 cursor-not-allowed bg-gray-50 border-gray-100 text-gray-400' : 'bg-white border-gray-200 text-gray-700 hover:border-[#004d4d]/40'}`}>
+                              <span className="text-[11px] font-black">{v.name || v.sku || 'Variante'}</span>
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : outOfStock ? 'bg-gray-200 text-gray-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                                {outOfStock ? 'Agotado' : `${v.stock} en stock`}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   ) : (
                     <div className="p-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200 space-y-3">

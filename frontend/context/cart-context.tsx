@@ -45,13 +45,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => {
       const existing = prev.find((i) => i.id === item.id && i.variant === item.variant);
       if (existing) {
-        showToast(`Cantidad actualizada: ${item.title}`, "success");
         return prev.map((i) => (i.id === item.id && i.variant === item.variant ? { ...i, quantity: i.quantity + 1 } : i));
       }
-      showToast(`${item.title} añadido al carrito`, "success");
       return [...prev, item];
     });
     setIsCartOpen(true);
+    setTimeout(() => {
+      const existing = items.find((i) => i.id === item.id && i.variant === item.variant);
+      if (existing) {
+        showToast(`Cantidad actualizada: ${item.title}`, "success");
+      } else {
+        showToast(`${item.title} añadido al carrito`, "success");
+      }
+    }, 0);
   };
 
   const removeItem = (id: string) => {

@@ -205,17 +205,36 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
         v = db.query(models.ProductVariant).filter(
             models.ProductVariant.id == item.product_variant_id
         ).with_for_update().first()
-        
+
+        # Fallback: si el ID no corresponde a una variante, puede ser el ID del producto (sin variantes)
+        product = None
         if not v:
-            db.rollback()
-            raise HTTPException(status_code=404, detail="Producto no encontrado")
-            
+            product = db.query(models.Product).filter(
+                models.Product.id == item.product_variant_id,
+                models.Product.owner_id == actual_tenant_id
+            ).first()
+            if not product:
+                db.rollback()
+                raise HTTPException(status_code=404, detail="Producto no encontrado")
+            # Crear variante real en DB para este producto sin variantes
+            v = models.ProductVariant(
+                id=uuid.uuid4(),
+                product_id=product.id,
+                name="Base",
+                sku=product.sku or "",
+                stock=9999,
+                price=product.price or 0,
+            )
+            db.add(v)
+            db.flush()
+
         # Validación Quirúrgica de Multitenancy: ¿Esta variante pertenece al comercio actual?
-        product = db.query(models.Product).filter(
-            models.Product.id == v.product_id,
-            models.Product.owner_id == actual_tenant_id
-        ).first()
-        
+        if not product:
+            product = db.query(models.Product).filter(
+                models.Product.id == v.product_id,
+                models.Product.owner_id == actual_tenant_id
+            ).first()
+
         if not product:
             db.rollback()
             raise HTTPException(status_code=403, detail="Acceso no autorizado al producto")
@@ -312,9 +331,10 @@ def create_order(db: Session, order: schemas.OrderCreate, customer_id: uuid.UUID
         db.add(db_shipment)
 
     # 6. Logs y Finanzas (Tesorería Bayup)
+    log_user_id = customer_id if customer_id else actual_tenant_id
     db_log = models.ActivityLog(
         id=uuid.uuid4(),
-        user_id=customer_id,
+        user_id=log_user_id,
         tenant_id=actual_tenant_id,
         action="Nueva Operación",
         detail=f"Ingreso por {order.source}: ${subtotal:,.0f}",

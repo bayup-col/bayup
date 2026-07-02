@@ -359,13 +359,16 @@ export const generateInvoicePDF = async (data: { company: any, order: any, custo
     doc.text(`Ciudad: ${customer.city || 'N/A'}`, 120, 81);
 
     // --- TABLA DE PRODUCTOS ---
-    const tableItems = order.items.map((item: any) => [
-        item.product_variant?.product?.name || item.product_name || "Producto",
-        item.product_variant?.sku || "N/A",
-        item.quantity,
-        `$ ${item.price_at_purchase.toLocaleString()}`,
-        `$ ${(item.price_at_purchase * item.quantity).toLocaleString()}`
-    ]);
+    const tableItems = order.items.map((item: any) => {
+        const price = item.price_at_purchase ?? item.price ?? 0;
+        return [
+            item.product_variant?.product?.name || item.product_name || "Producto",
+            item.product_variant?.sku || item.sku || "N/A",
+            item.quantity,
+            `$ ${price.toLocaleString()}`,
+            `$ ${(price * item.quantity).toLocaleString()}`
+        ];
+    });
 
     autoTable(doc, {
         startY: 95,

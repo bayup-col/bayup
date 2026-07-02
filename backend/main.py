@@ -756,6 +756,25 @@ async def get_products(request: Request, skip: int = Query(default=0, ge=0), lim
     finally:
         db.close()
 
+@app.get("/products/{product_id}")
+async def get_product(product_id: str, request: Request):
+    import crud, schemas, uuid as uuid_lib
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        tenant_id = _tenant_id(user)
+        try:
+            product_uuid = uuid_lib.UUID(product_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="product_id inválido")
+        product = crud.get_product(db, product_id=product_uuid, tenant_id=tenant_id)
+        if not product:
+            raise HTTPException(status_code=404, detail="Producto no encontrado")
+        return schemas.Product.model_validate(product).model_dump(mode="json")
+    finally:
+        db.close()
+
 @app.post("/products")
 async def create_product_route(payload: ProductCreateRequest, request: Request):
     import crud, schemas
@@ -1134,7 +1153,24 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
                 _m.ProductVariant.id == var_uuid,
             ).first()
             if not variant:
-                raise HTTPException(status_code=400, detail="Variante de producto no encontrada")
+                # Fallback: el ID puede ser de un Product sin variantes — crear variante "Base"
+                product = db.query(_m.Product).filter(
+                    _m.Product.id == var_uuid,
+                    _m.Product.owner_id == tenant_uuid,
+                ).first()
+                if not product:
+                    raise HTTPException(status_code=400, detail="Variante de producto no encontrada")
+                import uuid as _uuid_mod
+                variant = _m.ProductVariant(
+                    id=_uuid_mod.uuid4(),
+                    product_id=product.id,
+                    name="Base",
+                    sku=product.sku or "",
+                    stock=9999,
+                    price=product.price or 0,
+                )
+                db.add(variant)
+                db.flush()
             product = db.query(_m.Product).filter(
                 _m.Product.id == variant.product_id,
                 _m.Product.owner_id == tenant_uuid,
@@ -1143,7 +1179,7 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
                 raise HTTPException(status_code=400, detail="Variante no pertenece a esta tienda")
             db_price = variant.price if variant.price and variant.price > 0 else product.price
             validated_items.append(schemas.OrderItemBase(
-                product_variant_id=var_uuid,
+                product_variant_id=variant.id,
                 quantity=item.quantity,
                 price_at_purchase=db_price,  # precio de DB, no del cliente
             ))
