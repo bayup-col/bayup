@@ -139,6 +139,13 @@ export default function ProductsPage() {
   const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
   const [newCategoryData,        setNewCategoryData]        = useState({ name: '', description: '' });
   const [isCreatingCategory,     setIsCreatingCategory]     = useState(false);
+  const [newCatImgFile,          setNewCatImgFile]          = useState<File|null>(null);
+  const [newCatImgPreview,       setNewCatImgPreview]       = useState<string|null>(null);
+  const [editingCategory,        setEditingCategory]        = useState<any>(null);
+  const [editCatData,            setEditCatData]            = useState({ name: '', description: '' });
+  const [editCatImgFile,         setEditCatImgFile]         = useState<File|null>(null);
+  const [editCatImgPreview,      setEditCatImgPreview]      = useState<string|null>(null);
+  const [isSavingCategory,       setIsSavingCategory]       = useState(false);
   const [selectedCategory,       setSelectedCategory]       = useState<any>(null);
   const [categoryView,           setCategoryView]           = useState<'intel'|'list'>('intel');
   const [selectedProduct,        setSelectedProduct]        = useState<any>(null);
@@ -204,14 +211,42 @@ export default function ProductsPage() {
     finally { setIsDeletingProduct(false); }
   };
 
+  const handleSaveCategory = async () => {
+    if (!token || !editCatData.name.trim() || !editingCategory) return;
+    setIsSavingCategory(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+      let imageUrl: string | null = editingCategory.image_url || null;
+      if (editCatImgFile) {
+        const fd = new FormData(); fd.append('file', editCatImgFile);
+        const r = await fetch(`${apiUrl}/admin/upload-image`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+        if (r.ok) imageUrl = (await r.json()).url;
+      }
+      await apiRequest(`/collections/${editingCategory.id}`, { method: 'PUT', token, body: JSON.stringify({ title: editCatData.name, description: editCatData.description || undefined, image_url: imageUrl || undefined, status: 'active' }) });
+      showToast('Categoría actualizada ✨', 'success');
+      setEditingCategory(null);
+      setEditCatImgFile(null); setEditCatImgPreview(null);
+      fetchProducts();
+    } catch { showToast('Error al actualizar categoría', 'error'); }
+    finally { setIsSavingCategory(false); }
+  };
+
   const handleCreateCategory = async () => {
     if (!token || !newCategoryData.name.trim()) return;
     setIsCreatingCategory(true);
     try {
-      await apiRequest('/collections', { method: 'POST', token, body: JSON.stringify({ title: newCategoryData.name, description: newCategoryData.description, status: 'active' }) });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+      let imageUrl: string | null = null;
+      if (newCatImgFile) {
+        const fd = new FormData(); fd.append('file', newCatImgFile);
+        const r = await fetch(`${apiUrl}/admin/upload-image`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+        if (r.ok) imageUrl = (await r.json()).url;
+      }
+      await apiRequest('/collections', { method: 'POST', token, body: JSON.stringify({ title: newCategoryData.name, description: newCategoryData.description || undefined, image_url: imageUrl || undefined, status: 'active' }) });
       showToast('Categoría creada ✨', 'success');
       setIsNewCategoryModalOpen(false);
       setNewCategoryData({ name: '', description: '' });
+      setNewCatImgFile(null); setNewCatImgPreview(null);
       fetchProducts();
     } catch { showToast('Error al crear', 'error'); }
     finally { setIsCreatingCategory(false); }
@@ -289,7 +324,7 @@ export default function ProductsPage() {
     return products.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.variants?.some((v: any) => v.sku?.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchesTab = activeTab === 'all' || activeTab === 'categories' || p.status === activeTab;
+      const matchesTab = activeTab === 'all' || activeTab === 'categories' || activeTab === 'inventory' || p.status === activeTab;
       const matchesCategory = filterConfig.selectedCategory === 'all' || p.collection_id === filterConfig.selectedCategory;
       const matchesMinPrice = !filterConfig.minPrice || p.price >= Number(filterConfig.minPrice);
       const matchesMaxPrice = !filterConfig.maxPrice || p.price <= Number(filterConfig.maxPrice);
@@ -318,6 +353,59 @@ export default function ProductsPage() {
     if (!selectedCategory) return [];
     return products.filter(p => p.collection_id === selectedCategory.id);
   }, [products, selectedCategory]);
+
+  // ── INVENTORY STATE ──
+  const [invFilter,    setInvFilter]    = useState<'all'|'critical'|'ok'|'out'>('all');
+  const [invEdits,     setInvEdits]     = useState<Record<string, Record<string, number>>>({});  // {productId: {variantId: newStock}}
+  const [savingStock,  setSavingStock]  = useState<string|null>(null);
+
+  const handleStockChange = (productId: string, variantId: string, val: number) => {
+    setInvEdits(prev => ({ ...prev, [productId]: { ...(prev[productId] || {}), [variantId]: val } }));
+  };
+
+  const handleSaveStock = async (product: any) => {
+    const edits = invEdits[product.id];
+    if (!edits) return;
+    setSavingStock(product.id);
+    try {
+      const updatedVariants = product.variants.map((v: any) => ({
+        ...v, stock: edits[v.id] !== undefined ? edits[v.id] : v.stock,
+      }));
+      await apiRequest(`/products/${product.id}`, { method: 'PUT', body: JSON.stringify({ ...product, variants: updatedVariants }) });
+      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, variants: updatedVariants } : p));
+      setInvEdits(prev => { const n = { ...prev }; delete n[product.id]; return n; });
+      showToast('Stock actualizado', 'success');
+    } catch { showToast('Error al guardar', 'error'); }
+    finally { setSavingStock(null); }
+  };
+
+  const invStats = useMemo(() => {
+    const rows: { product: any; variant: any; stock: number }[] = [];
+    for (const p of products) {
+      if (!p.variants || p.variants.length === 0) {
+        rows.push({ product: p, variant: null, stock: 0 });
+      } else {
+        for (const v of p.variants) rows.push({ product: p, variant: v, stock: v.stock || 0 });
+      }
+    }
+    const out      = rows.filter(r => r.stock === 0).length;
+    const critical = rows.filter(r => r.stock > 0 && r.stock <= 5).length;
+    const ok       = rows.filter(r => r.stock > 5).length;
+    const totalUnitsAll = rows.reduce((a, r) => a + r.stock, 0);
+    const totalCostValue = products.reduce((a, p) => a + (p.cost || 0) * (p.variants?.reduce((s: number, v: any) => s + (v.stock || 0), 0) || 0), 0);
+    const totalSaleValue = products.reduce((a, p) => a + (p.price || 0) * (p.variants?.reduce((s: number, v: any) => s + (v.stock || 0), 0) || 0), 0);
+    return { rows, out, critical, ok, totalUnitsAll, totalCostValue, totalSaleValue };
+  }, [products]);
+
+  const invRows = useMemo(() => {
+    return invStats.rows.filter(r => {
+      const matchSearch = !searchTerm || r.product.name.toLowerCase().includes(searchTerm.toLowerCase()) || r.product.sku?.toLowerCase().includes(searchTerm.toLowerCase());
+      if (invFilter === 'out')      return matchSearch && r.stock === 0;
+      if (invFilter === 'critical') return matchSearch && r.stock > 0 && r.stock <= 5;
+      if (invFilter === 'ok')       return matchSearch && r.stock > 5;
+      return matchSearch;
+    });
+  }, [invStats.rows, invFilter, searchTerm]);
 
   // ── QUICK STATS (sidebar) ──
   const quickStats = useMemo(() => {
@@ -487,65 +575,129 @@ export default function ProductsPage() {
             {/* INVENTARIO */}
             {activeTab === 'inventory' && (
               <motion.div key="inventory" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
+
+                {/* KPIs */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
-                    { label: 'Unidades totales', value: quickStats.totalUnits.toLocaleString(), icon: <Package size={14}/>, accent: '#004d4d' },
-                    { label: 'Stock crítico',     value: `${kpis[2].value} refs`,                icon: <AlertTriangle size={14}/>, accent: '#ef4444' },
-                    { label: 'Valor catálogo',    value: fmt(quickStats.totalValue),             icon: <DollarSign size={14}/>,    accent: '#3b82f6' },
+                    { label: 'Unidades en bodega', value: invStats.totalUnitsAll.toLocaleString(),   icon: <Package size={13}/>,      accent: '#004d4d', sub: `${products.length} referencias` },
+                    { label: 'Sin stock',           value: invStats.out.toString(),                   icon: <AlertTriangle size={13}/>, accent: '#ef4444', sub: 'Agotados' },
+                    { label: 'Stock crítico',        value: invStats.critical.toString(),              icon: <AlertCircle size={13}/>,   accent: '#f59e0b', sub: '1–5 unidades' },
+                    { label: 'Valor a precio venta', value: fmt(invStats.totalSaleValue),             icon: <DollarSign size={13}/>,    accent: '#3b82f6', sub: `Costo: ${fmt(invStats.totalCostValue)}` },
                   ].map((s, i) => (
-                    <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${s.accent}18`, color: s.accent }}>{s.icon}</div>
-                      <div>
+                    <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                      <div className="flex items-center justify-between mb-2">
                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{s.label}</p>
-                        <p className="text-base font-black text-gray-900 mt-0.5">{s.value}</p>
+                        <div className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${s.accent}15`, color: s.accent }}>{s.icon}</div>
                       </div>
+                      <p className="text-xl font-black text-gray-900">{s.value}</p>
+                      <p className="text-[9px] text-gray-400 mt-0.5">{s.sub}</p>
                     </div>
                   ))}
                 </div>
+
+                {/* Filtros rápidos + tabla */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
-                    <Warehouse size={13} className="text-[#004d4d]"/>
-                    <span className="text-[11px] font-black uppercase tracking-widest text-gray-900">Existencias por producto</span>
+                  <div className="px-5 py-3 border-b border-gray-50 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Warehouse size={13} className="text-[#004d4d]"/>
+                      <span className="text-[11px] font-black uppercase tracking-widest text-gray-900">Gestión de stock</span>
+                      <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{invRows.length} refs</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {([
+                        { key: 'all',      label: 'Todos' },
+                        { key: 'out',      label: 'Agotado' },
+                        { key: 'critical', label: 'Crítico' },
+                        { key: 'ok',       label: 'OK' },
+                      ] as const).map(f => (
+                        <button key={f.key} onClick={() => setInvFilter(f.key)}
+                          className={`h-7 px-3 rounded-lg text-[9px] font-bold transition-all ${invFilter === f.key ? 'bg-[#004d4d] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                          {f.label}
+                          {f.key === 'out'      && invStats.out      > 0 && <span className="ml-1 bg-red-500 text-white rounded-full px-1">{invStats.out}</span>}
+                          {f.key === 'critical' && invStats.critical  > 0 && <span className="ml-1 bg-amber-500 text-white rounded-full px-1">{invStats.critical}</span>}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-gray-50">
-                        {['Producto','SKU','Stock','Estado','Precio','Ajustar'].map(h => (
-                          <th key={h} className="px-4 py-3 text-left text-[8px] font-bold tracking-widest uppercase text-gray-400">{h}</th>
+                      <tr className="border-b border-gray-50 bg-gray-50/40">
+                        {['Producto','Variante','SKU','Stock actual','Nuevo stock','Valor en bodega',''].map(h => (
+                          <th key={h} className="px-4 py-2.5 text-left text-[8px] font-bold tracking-widest uppercase text-gray-400">{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {loading ? (
-                        <tr><td colSpan={6} className="py-12 text-center"><Loader2 className="animate-spin mx-auto text-[#004d4d]" size={24}/></td></tr>
-                      ) : filteredProducts.length === 0 ? (
-                        <tr><td colSpan={6} className="py-12 text-center text-gray-300 text-[11px] font-bold">Sin productos</td></tr>
-                      ) : filteredProducts.map(p => {
-                        const stock = p.variants?.reduce((a: number, v: any) => a + (v.stock || 0), 0) || 0;
+                        <tr><td colSpan={7} className="py-12 text-center"><Loader2 className="animate-spin mx-auto text-[#004d4d]" size={24}/></td></tr>
+                      ) : invRows.length === 0 ? (
+                        <tr><td colSpan={7} className="py-12 text-center text-gray-300 text-[11px] font-bold">Sin referencias</td></tr>
+                      ) : invRows.map((row, idx) => {
+                        const { product: p, variant: v, stock } = row;
+                        const rowKey = v ? `${p.id}-${v.id}` : p.id;
+                        const editedStock = v
+                          ? invEdits[p.id]?.[v.id]
+                          : invEdits[p.id]?.['__novariant'];
+                        const displayStock = editedStock !== undefined ? editedStock : stock;
+                        const isDirty = editedStock !== undefined && editedStock !== stock;
+                        const stockColor = stock === 0 ? '#ef4444' : stock <= 5 ? '#f59e0b' : '#10b981';
+                        const stockValue = (p.price || 0) * stock;
+
                         return (
-                          <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
+                          <tr key={rowKey} className={`border-b border-gray-50 transition-colors ${isDirty ? 'bg-amber-50/40' : 'hover:bg-gray-50/50'}`}>
+                            {/* Producto — solo mostrar en la primera variante */}
                             <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <div className="h-8 w-8 rounded-xl bg-gray-50 overflow-hidden border border-gray-100 shrink-0 flex items-center justify-center">
-                                  {getProductImage(p) ? <img src={getProductImage(p)!} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={p.name} onError={(e) => (e.target as any).style.display='none'}/> : <ImageIcon size={12} className="text-gray-300"/>}
+                              {(idx === 0 || invRows[idx-1].product.id !== p.id) && (
+                                <div className="flex items-center gap-2">
+                                  <div className="h-8 w-8 rounded-xl bg-gray-50 overflow-hidden border border-gray-100 shrink-0 flex items-center justify-center">
+                                    {getProductImage(p) ? <img src={getProductImage(p)!} className="h-full w-full object-cover" alt={p.name} onError={(e) => (e.target as any).style.display='none'}/> : <ImageIcon size={12} className="text-gray-300"/>}
+                                  </div>
+                                  <p className="text-[11px] font-bold text-gray-800 truncate max-w-[130px]">{p.name}</p>
                                 </div>
-                                <p className="text-[11px] font-bold text-gray-800 truncate max-w-[140px]">{p.name}</p>
-                              </div>
+                              )}
                             </td>
-                            <td className="px-4 py-3 text-[10px] font-mono text-gray-400">{p.sku || '—'}</td>
-                            <td className="px-4 py-3 text-sm font-black" style={{ color: stock === 0 ? '#ef4444' : stock <= 5 ? '#f59e0b' : '#374151' }}>{stock}</td>
-                            <td className="px-4 py-3"><StockBadge stock={stock}/></td>
-                            <td className="px-4 py-3 text-[11px] font-bold text-[#004d4d]">{fmt(p.price || 0)}</td>
+                            <td className="px-4 py-3 text-[10px] font-medium text-gray-500">{v ? v.name : <span className="text-gray-300 italic">Sin variante</span>}</td>
+                            <td className="px-4 py-3 text-[10px] font-mono text-gray-400">{v?.sku || p.sku || '—'}</td>
                             <td className="px-4 py-3">
-                              <button onClick={() => router.push(`/dashboard/products/${p.id}/edit`)}
-                                className="h-7 w-7 flex items-center justify-center rounded-lg bg-gray-100 text-gray-400 hover:bg-[#004d4d] hover:text-white transition-all">
-                                <Edit3 size={11}/>
-                              </button>
+                              <span className="text-sm font-black tabular-nums" style={{ color: stockColor }}>{stock}</span>
+                              <span className="text-[9px] text-gray-400 ml-1">uds</span>
+                            </td>
+                            {/* Input editable */}
+                            <td className="px-4 py-3">
+                              <input
+                                type="number" min={0}
+                                value={displayStock}
+                                onChange={e => {
+                                  const varKey = v ? v.id : '__novariant';
+                                  handleStockChange(p.id, varKey, Number(e.target.value));
+                                }}
+                                className={`w-20 h-8 rounded-lg border text-center text-sm font-black outline-none transition-all ${isDirty ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-gray-200 bg-gray-50 text-gray-700 focus:border-[#004d4d]/40 focus:bg-white'}`}
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-[11px] font-bold text-gray-600">{stock > 0 ? fmt(stockValue) : <span className="text-gray-300">—</span>}</td>
+                            <td className="px-4 py-3">
+                              {isDirty && (
+                                <button onClick={() => handleSaveStock(p)} disabled={savingStock === p.id}
+                                  className="h-7 px-3 rounded-lg bg-[#004d4d] text-white text-[9px] font-black uppercase tracking-widest hover:bg-[#003838] transition-all flex items-center gap-1.5 disabled:opacity-60">
+                                  {savingStock === p.id ? <Loader2 size={10} className="animate-spin"/> : <CheckCheck size={10}/>}
+                                  Guardar
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );
                       })}
                     </tbody>
+                    {invRows.length > 0 && (
+                      <tfoot>
+                        <tr className="border-t border-gray-100 bg-gray-50/60">
+                          <td colSpan={5} className="px-4 py-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total en bodega</td>
+                          <td className="px-4 py-3 text-[11px] font-black text-[#004d4d]">{fmt(invStats.totalSaleValue)}</td>
+                          <td/>
+                        </tr>
+                      </tfoot>
+                    )}
                   </table>
                 </div>
               </motion.div>
@@ -559,20 +711,28 @@ export default function ProductsPage() {
                   const count = productCountByCategory.get(cat.id) || 0;
                   return (
                     <button key={cat.id} onClick={() => { setSelectedCategory(cat); setCategoryView('intel'); }}
-                      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 text-left hover:-translate-y-0.5 hover:shadow-md transition-all group">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="h-10 w-10 rounded-2xl bg-[#004d4d]/8 flex items-center justify-center text-[#004d4d] group-hover:bg-[#004d4d] group-hover:text-white transition-all">
-                          <Layers size={16}/>
-                        </div>
-                        <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{count} productos</span>
+                      className="bg-white rounded-2xl border border-gray-100 shadow-sm text-left hover:-translate-y-0.5 hover:shadow-md transition-all group overflow-hidden">
+                      {/* Imagen o degradado */}
+                      <div className="relative h-32 w-full overflow-hidden bg-gradient-to-br from-[#004d4d] to-[#00706e]">
+                        {cat.image_url ? (
+                          <img src={cat.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt={cat.title}/>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center opacity-20">
+                            <Layers size={40} className="text-white"/>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"/>
+                        <span className="absolute top-2.5 right-2.5 text-[9px] font-bold text-white bg-black/30 backdrop-blur-sm px-2 py-0.5 rounded-full">{count} productos</span>
                       </div>
-                      <h4 className="text-sm font-black text-gray-900 group-hover:text-[#004d4d] transition-colors">{cat.title}</h4>
-                      {cat.description && <p className="text-[10px] text-gray-400 mt-1 line-clamp-2">{cat.description}</p>}
-                      <div className="mt-4 flex items-center justify-between">
-                        <div className="h-1 flex-1 rounded-full bg-gray-100 overflow-hidden mr-3">
-                          <div className="h-full bg-gradient-to-r from-[#004d4d] to-[#00b2bd] rounded-full" style={{ width: `${Math.min((count / Math.max(products.length, 1)) * 100, 100)}%` }}/>
+                      <div className="p-4">
+                        <h4 className="text-sm font-black text-gray-900 group-hover:text-[#004d4d] transition-colors">{cat.title}</h4>
+                        {cat.description && <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-1">{cat.description}</p>}
+                        <div className="mt-3 flex items-center justify-between">
+                          <div className="h-1 flex-1 rounded-full bg-gray-100 overflow-hidden mr-3">
+                            <div className="h-full bg-gradient-to-r from-[#004d4d] to-[#00b2bd] rounded-full" style={{ width: `${Math.min((count / Math.max(products.length, 1)) * 100, 100)}%` }}/>
+                          </div>
+                          <ArrowUpRight size={13} className="text-[#004d4d] opacity-0 group-hover:opacity-100 transition-opacity shrink-0"/>
                         </div>
-                        <ArrowUpRight size={13} className="text-[#004d4d] opacity-0 group-hover:opacity-100 transition-opacity shrink-0"/>
                       </div>
                     </button>
                   );
@@ -839,67 +999,151 @@ export default function ProductsPage() {
       {/* ── MODAL DETALLE CATEGORÍA ── */}
       <AnimatePresence>
         {selectedCategory && (
-          <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 md:p-8">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedCategory(null)} className="absolute inset-0 bg-[#001a1a]/80 backdrop-blur-xl"/>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="relative bg-white w-full max-w-5xl h-[85vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row">
-              <div className="w-full md:w-72 bg-[#004d4d] p-8 text-white flex flex-col justify-between shrink-0">
-                <div className="space-y-6">
-                  <div className="h-14 w-14 rounded-2xl bg-white/10 flex items-center justify-center"><Layers size={24}/></div>
-                  <div>
-                    <p className="text-[9px] font-bold tracking-widest text-[#00f2ff]/50 uppercase">Categoría</p>
-                    <h3 className="text-2xl font-black mt-1">{selectedCategory.title}</h3>
-                    <p className="text-[#00f2ff]/60 text-xs mt-2">{selectedCategoryProducts.length} productos</p>
+          <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 md:p-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedCategory(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm"/>
+            <motion.div initial={{ opacity: 0, scale: 0.97, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}
+              className="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col">
+
+              {/* Header con imagen */}
+              <div className="relative h-52 shrink-0 bg-gradient-to-br from-[#004d4d] to-[#006660] overflow-hidden">
+                {selectedCategory.image_url && (
+                  <img src={selectedCategory.image_url} className="absolute inset-0 w-full h-full object-cover opacity-60" alt={selectedCategory.title}/>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"/>
+                <div className="absolute top-4 right-4 flex gap-2">
+                  <button onClick={() => { setEditingCategory(selectedCategory); setEditCatData({ name: selectedCategory.title, description: selectedCategory.description || '' }); setEditCatImgPreview(selectedCategory.image_url || null); }}
+                    className="h-9 px-3 rounded-xl bg-black/30 backdrop-blur-sm hover:bg-black/50 flex items-center gap-1.5 text-white text-[10px] font-bold transition-all">
+                    <Edit3 size={12}/> Editar
+                  </button>
+                  <button onClick={() => setSelectedCategory(null)}
+                    className="h-9 w-9 rounded-xl bg-black/30 backdrop-blur-sm hover:bg-black/50 flex items-center justify-center text-white transition-all">
+                    <X size={16}/>
+                  </button>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-6">
+                  <p className="text-[9px] font-bold tracking-[0.2em] text-white/50 uppercase mb-1">Categoría</p>
+                  <h3 className="text-2xl font-black text-white leading-tight">{selectedCategory.title}</h3>
+                  {selectedCategory.description && <p className="text-white/60 text-xs mt-1 line-clamp-1">{selectedCategory.description}</p>}
+                  <div className="flex items-center gap-3 mt-3">
+                    <span className="text-[10px] font-bold text-white/80 bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full border border-white/20">
+                      {selectedCategoryProducts.length} producto{selectedCategoryProducts.length !== 1 ? 's' : ''}
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/20 backdrop-blur-sm px-3 py-1 rounded-full border border-emerald-400/20">
+                      {selectedCategoryProducts.filter(p => p.status === 'active').length} activos
+                    </span>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <button onClick={() => setCategoryView(categoryView === 'intel' ? 'list' : 'intel')}
-                    className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase tracking-widest transition-all">
-                    {categoryView === 'intel' ? 'Ver productos' : 'Ver inteligencia'}
-                  </button>
-                  <button onClick={() => setSelectedCategory(null)} className="w-full py-3 bg-white text-[#004d4d] rounded-2xl font-bold text-[10px] uppercase tracking-widest">Cerrar</button>
-                </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-8 bg-gray-50">
+
+              {/* Tabs */}
+              <div className="flex border-b border-gray-100 px-6 shrink-0 bg-white">
+                {(['intel', 'list'] as const).map(tab => (
+                  <button key={tab} onClick={() => setCategoryView(tab)}
+                    className={`px-4 py-3.5 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all -mb-px ${categoryView === tab ? 'border-[#004d4d] text-[#004d4d]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
+                    {tab === 'intel' ? 'Resumen' : 'Productos'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Contenido */}
+              <div className="flex-1 overflow-y-auto bg-gray-50">
                 <AnimatePresence mode="wait">
                   {categoryView === 'list' ? (
-                    <motion.div key="list" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                      className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {selectedCategoryProducts.map(p => (
-                        <div key={p.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                          <div className="aspect-square bg-gray-50 flex items-center justify-center">
-                            {getProductImage(p) ? <img src={getProductImage(p)!} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={p.name}/> : <ImageIcon size={24} className="text-gray-200"/>}
-                          </div>
-                          <div className="p-3">
-                            <p className="text-[11px] font-bold text-gray-900 truncate">{p.name}</p>
-                            <p className="text-[10px] text-[#004d4d] font-black mt-0.5">{fmt(p.price || 0)}</p>
-                          </div>
+                    <motion.div key="list" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="p-6">
+                      {selectedCategoryProducts.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-gray-300">
+                          <Package size={40}/>
+                          <p className="text-sm font-bold mt-3 text-gray-400">Sin productos en esta categoría</p>
+                          <p className="text-xs text-gray-300 mt-1">Crea productos y asígnalos aquí</p>
                         </div>
-                      ))}
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                          {selectedCategoryProducts.map(p => (
+                            <div key={p.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:-translate-y-0.5 hover:shadow-md transition-all">
+                              <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
+                                {getProductImage(p)
+                                  ? <img src={getProductImage(p)!} loading="lazy" className="h-full w-full object-cover" alt={p.name}/>
+                                  : <ImageIcon size={20} className="text-gray-200"/>}
+                              </div>
+                              <div className="p-3">
+                                <p className="text-[11px] font-bold text-gray-900 truncate">{p.name}</p>
+                                <p className="text-[11px] text-[#004d4d] font-black mt-0.5">{fmt(p.price || 0)}</p>
+                                <span className={`mt-1.5 inline-block text-[8px] font-bold px-1.5 py-0.5 rounded-full ${p.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                                  {p.status === 'active' ? 'Activo' : 'Borrador'}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </motion.div>
                   ) : (
-                    <motion.div key="intel" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="space-y-4">
-                      <h4 className="text-xl font-black text-gray-900">Análisis de <span className="text-[#004d4d]">{selectedCategory.title}</span></h4>
-                      <div className="grid grid-cols-2 gap-4">
+                    <motion.div key="intel" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="p-6 space-y-4">
+                      {/* KPIs */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {[
-                          { label: 'Productos', value: selectedCategoryProducts.length },
-                          { label: 'Valor total', value: fmt(selectedCategoryProducts.reduce((a, p) => a + (p.price || 0), 0)) },
-                          { label: 'Con foto', value: selectedCategoryProducts.filter(p => getProductImage(p)).length },
-                          { label: 'Activos', value: selectedCategoryProducts.filter(p => p.status === 'active').length },
+                          { label: 'Total productos', value: selectedCategoryProducts.length, icon: <Package size={14}/>, color: '#004d4d' },
+                          { label: 'Valor inventario', value: fmt(selectedCategoryProducts.reduce((a, p) => a + (p.price || 0), 0)), icon: <DollarSign size={14}/>, color: '#059669' },
+                          { label: 'Con imagen', value: selectedCategoryProducts.filter(p => getProductImage(p)).length, icon: <ImageIcon size={14}/>, color: '#7c3aed' },
+                          { label: 'Activos', value: selectedCategoryProducts.filter(p => p.status === 'active').length, icon: <Activity size={14}/>, color: '#d97706' },
                         ].map((s, i) => (
-                          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
-                            <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold">{s.label}</p>
-                            <p className="text-xl font-black text-gray-900 mt-1">{s.value}</p>
+                          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                            <div className="h-8 w-8 rounded-xl flex items-center justify-center mb-3" style={{ background: `${s.color}15`, color: s.color }}>{s.icon}</div>
+                            <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{s.label}</p>
+                            <p className="text-xl font-black text-gray-900 mt-0.5 leading-none">{s.value}</p>
                           </div>
                         ))}
                       </div>
-                      <div className="bg-[#001a1a] rounded-2xl p-5 text-white">
-                        <div className="flex items-center gap-3 mb-3">
-                          <Bot size={16} className="text-[#00f2ff]"/>
-                          <p className="text-[9px] font-bold tracking-widest text-[#00f2ff] uppercase">Bayt AI</p>
+
+                      {/* Barra de completitud */}
+                      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-xs font-black text-gray-900">Salud de la categoría</p>
+                          <span className="text-[10px] font-bold text-[#004d4d]">
+                            {selectedCategoryProducts.length === 0 ? '—' : `${Math.round((selectedCategoryProducts.filter(p => getProductImage(p) && p.price > 0).length / selectedCategoryProducts.length) * 100)}%`}
+                          </span>
                         </div>
-                        <p className="text-sm text-white/70 italic leading-relaxed">"Esta categoría tiene buen potencial. Asegúrate de que todos los productos tengan imágenes y descripciones completas para maximizar la conversión."</p>
+                        <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                          <motion.div initial={{ width: 0 }} animate={{ width: selectedCategoryProducts.length === 0 ? '0%' : `${Math.round((selectedCategoryProducts.filter(p => getProductImage(p) && p.price > 0).length / selectedCategoryProducts.length) * 100)}%` }}
+                            transition={{ duration: 0.6, ease: 'easeOut' }}
+                            className="h-full bg-gradient-to-r from-[#004d4d] to-[#00b2bd] rounded-full"/>
+                        </div>
+                        <div className="flex gap-4 mt-3">
+                          {[
+                            { label: 'Con foto', ok: selectedCategoryProducts.filter(p => getProductImage(p)).length, total: selectedCategoryProducts.length },
+                            { label: 'Con precio', ok: selectedCategoryProducts.filter(p => p.price > 0).length, total: selectedCategoryProducts.length },
+                            { label: 'Activos', ok: selectedCategoryProducts.filter(p => p.status === 'active').length, total: selectedCategoryProducts.length },
+                          ].map((item, i) => (
+                            <div key={i} className="flex items-center gap-1.5">
+                              <div className={`h-1.5 w-1.5 rounded-full ${item.ok === item.total && item.total > 0 ? 'bg-emerald-400' : 'bg-amber-400'}`}/>
+                              <span className="text-[9px] text-gray-500 font-semibold">{item.label} ({item.ok}/{item.total})</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
+
+                      {/* Productos recientes */}
+                      {selectedCategoryProducts.length > 0 && (
+                        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                          <p className="text-xs font-black text-gray-900 mb-3">Productos recientes</p>
+                          <div className="space-y-2">
+                            {selectedCategoryProducts.slice(0, 4).map(p => (
+                              <div key={p.id} className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                                  {getProductImage(p) ? <img src={getProductImage(p)!} className="h-full w-full object-cover" alt={p.name}/> : <ImageIcon size={12} className="text-gray-300"/>}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[11px] font-bold text-gray-900 truncate">{p.name}</p>
+                                  <p className="text-[10px] text-gray-400">{fmt(p.price || 0)}</p>
+                                </div>
+                                <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full shrink-0 ${p.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                                  {p.status === 'active' ? 'Activo' : 'Borrador'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -992,6 +1236,55 @@ export default function ProductsPage() {
         )}
       </AnimatePresence>
 
+      {/* ── MODAL EDITAR CATEGORÍA ── */}
+      <AnimatePresence>
+        {editingCategory && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditingCategory(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm"/>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-sm bg-white rounded-[2rem] shadow-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-black text-gray-900">Editar categoría</h3>
+                <button onClick={() => setEditingCategory(null)} className="h-8 w-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400"><X size={14}/></button>
+              </div>
+              <label className="block cursor-pointer">
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Imagen (opcional)</span>
+                {editCatImgPreview ? (
+                  <div className="relative h-32 rounded-2xl overflow-hidden border border-gray-200">
+                    <img src={editCatImgPreview} className="w-full h-full object-cover"/>
+                    <button type="button" onPointerDown={e => e.preventDefault()} onClick={e => { e.preventDefault(); setEditCatImgFile(null); setEditCatImgPreview(null); }}
+                      className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-red-500"><X size={11}/></button>
+                  </div>
+                ) : (
+                  <div className="h-24 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1.5 text-gray-300 hover:border-[#004d4d]/30 transition-all">
+                    <ImageIcon size={22}/><span className="text-[9px] font-bold">Subir imagen</span>
+                  </div>
+                )}
+                <input type="file" accept="image/*" className="hidden" onChange={e => {
+                  const f = e.target.files?.[0]; if (!f) return;
+                  setEditCatImgFile(f); setEditCatImgPreview(URL.createObjectURL(f));
+                }}/>
+              </label>
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Nombre *</label>
+                <input value={editCatData.name} onChange={e => setEditCatData(d => ({ ...d, name: e.target.value }))}
+                  className="w-full h-10 px-4 rounded-xl border border-gray-200 text-sm font-semibold text-gray-800 outline-none focus:border-[#004d4d]/40"/>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Descripción (opcional)</label>
+                <textarea value={editCatData.description} onChange={e => setEditCatData(d => ({ ...d, description: e.target.value }))} rows={2}
+                  placeholder="Describe esta categoría…"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-700 outline-none focus:border-[#004d4d]/40 resize-none"/>
+              </div>
+              <button onClick={handleSaveCategory} disabled={isSavingCategory || !editCatData.name.trim()}
+                className="w-full h-10 rounded-2xl bg-[#004d4d] text-white text-[10px] font-bold uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2">
+                {isSavingCategory ? <><Loader2 size={12} className="animate-spin"/>Guardando…</> : 'Guardar cambios'}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* ── MODAL NUEVA CATEGORÍA ── */}
       <AnimatePresence>
         {isNewCategoryModalOpen && (
@@ -1002,11 +1295,34 @@ export default function ProductsPage() {
                 className="relative bg-white w-full max-w-md rounded-[2rem] shadow-2xl p-6" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-5">
                   <h3 className="text-lg font-black text-gray-900">Nueva categoría</h3>
-                  <button onClick={() => setIsNewCategoryModalOpen(false)} className="h-8 w-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400"><X size={14}/></button>
+                  <button onClick={() => { setIsNewCategoryModalOpen(false); setNewCatImgFile(null); setNewCatImgPreview(null); setNewCategoryData({ name: '', description: '' }); }} className="h-8 w-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400"><X size={14}/></button>
                 </div>
                 <div className="space-y-3">
+                  {/* Imagen opcional */}
+                  <label className="block cursor-pointer">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Imagen (opcional)</span>
+                    {newCatImgPreview ? (
+                      <div className="relative h-32 rounded-2xl overflow-hidden border border-gray-200">
+                        <img src={newCatImgPreview} className="w-full h-full object-cover"/>
+                        <button type="button" onPointerDown={e => e.preventDefault()} onClick={e => { e.preventDefault(); setNewCatImgFile(null); setNewCatImgPreview(null); }}
+                          className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-red-500">
+                          <X size={11}/>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="h-24 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1.5 text-gray-300 hover:border-[#004d4d]/30 transition-all">
+                        <ImageIcon size={22}/>
+                        <span className="text-[9px] font-bold">Subir imagen</span>
+                      </div>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" onChange={e => {
+                      const f = e.target.files?.[0]; if (!f) return;
+                      setNewCatImgFile(f); setNewCatImgPreview(URL.createObjectURL(f));
+                    }}/>
+                  </label>
+
                   <div className="space-y-1">
-                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Nombre</label>
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Nombre *</label>
                     <input value={newCategoryData.name} onChange={e => setNewCategoryData({ ...newCategoryData, name: e.target.value })}
                       placeholder="Ej: Accesorios Premium"
                       className="w-full h-10 px-4 rounded-xl border border-gray-200 text-sm font-semibold text-gray-800 outline-none focus:border-[#004d4d]/40"/>
@@ -1014,6 +1330,7 @@ export default function ProductsPage() {
                   <div className="space-y-1">
                     <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Descripción (opcional)</label>
                     <textarea value={newCategoryData.description} onChange={e => setNewCategoryData({ ...newCategoryData, description: e.target.value })} rows={2}
+                      placeholder="Describe esta categoría…"
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-700 outline-none focus:border-[#004d4d]/40 resize-none"/>
                   </div>
                   <button onClick={handleCreateCategory} disabled={isCreatingCategory || !newCategoryData.name.trim()}

@@ -35,20 +35,28 @@ def create_presigned_upload_url(file_type: str) -> dict | None:
         return None
 
 def upload_file_and_get_public_url(file_bytes: bytes, content_type: str, filename: str) -> str | None:
-    """Sube un archivo directo a Supabase Storage y devuelve su URL publica.
-    Requiere que el bucket este configurado como publico en el dashboard de Supabase."""
+    """Sube un archivo a Supabase Storage y devuelve su URL publica.
+    Si S3 no está configurado, guarda localmente y devuelve URL local."""
     bucket_name = os.getenv("S3_BUCKET_NAME")
     endpoint = os.getenv("SUPABASE_S3_ENDPOINT")
-    if not bucket_name or not endpoint:
-        return None
 
     extension = filename.rsplit(".", 1)[-1] if "." in filename else content_type.split("/")[-1]
-    object_name = f"uploads/{uuid.uuid4()}.{extension}"
+    object_name = f"{uuid.uuid4()}.{extension}"
+
+    # Fallback local cuando S3 no está configurado
+    if not bucket_name or not endpoint:
+        import pathlib
+        uploads_dir = pathlib.Path(__file__).parent / "uploads"
+        uploads_dir.mkdir(exist_ok=True)
+        dest = uploads_dir / object_name
+        dest.write_bytes(file_bytes)
+        base_url = os.getenv("API_BASE_URL", "http://localhost:8001")
+        return f"{base_url}/uploads/{object_name}"
 
     try:
         s3_client = get_s3_client()
-        s3_client.put_object(Bucket=bucket_name, Key=object_name, Body=file_bytes, ContentType=content_type)
+        s3_client.put_object(Bucket=bucket_name, Key=f"uploads/{object_name}", Body=file_bytes, ContentType=content_type)
         base_url = endpoint.replace("/storage/v1/s3", "")
-        return f"{base_url}/storage/v1/object/public/{bucket_name}/{object_name}"
+        return f"{base_url}/storage/v1/object/public/{bucket_name}/uploads/{object_name}"
     except ClientError:
         return None

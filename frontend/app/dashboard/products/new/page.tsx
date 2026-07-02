@@ -9,7 +9,8 @@ import {
   BarChart3, ArrowUpRight, X, Hash, ShoppingBag, Box, Layout, Eye,
   CheckCircle2, Clock, User, Smartphone, Star, ChevronDown, GripVertical,
   Bot, FileText, ShoppingCart, HelpCircle, Calculator, Loader2, Tag,
-  Info, ArrowLeft, Check
+  Info, ArrowLeft, Check, ListChecks,
+  Scissors, Cpu, Home, Wrench, Coffee, SlidersHorizontal, Ruler, Watch, Circle
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/context/toast-context';
@@ -157,6 +158,19 @@ const NICHO_GRUPOS = [
   },
 ] as const;
 
+const NICHO_ICON_MAP: Record<string, React.ReactNode> = {
+  moda:         <Scissors size={11}/>,
+  calzado:      <Ruler size={11}/>,
+  tech:         <Cpu size={11}/>,
+  accesorios:   <ShoppingBag size={11}/>,
+  gorras:       <Circle size={11}/>,
+  relojes:      <Watch size={11}/>,
+  muebles:      <Home size={11}/>,
+  repuestos:    <Wrench size={11}/>,
+  alimentos:    <Coffee size={11}/>,
+  custom_group: <SlidersHorizontal size={11}/>,
+};
+
 // Aplanar todos los atributos para búsqueda
 type AttrItem = {
   id: string; label: string; icon: string; isColor: boolean;
@@ -264,8 +278,8 @@ function VariantModal({
                       : tempVariantName || 'Configura las opciones'}
                 </h3>
                 {step === 'options' && selectedAttr && selectedAttr.id !== 'custom' && (
-                  <p className="text-[10px] text-[#00f2ff]/50 mt-0.5">
-                    {selectedAttr.icon} {selectedAttr.nichoLabel}
+                  <p className="text-[10px] text-[#00f2ff]/40 mt-0.5 uppercase tracking-widest font-bold">
+                    {selectedAttr.nichoLabel}
                   </p>
                 )}
               </div>
@@ -325,25 +339,26 @@ function VariantModal({
                       /* ── RESULTADOS BÚSQUEDA ── */
                       <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-1.5 pt-1">
                         {searchResults.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-10 text-center">
-                            <div className="text-4xl mb-3">🔍</div>
-                            <p className="text-sm font-bold text-gray-400">Sin resultados para "{searchQ}"</p>
+                          <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <div className="h-12 w-12 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                              </svg>
+                            </div>
+                            <p className="text-[11px] font-bold text-gray-400">Sin resultados para "{searchQ}"</p>
                             <button onClick={() => handleSelectAttr(ALL_ATTRS.find(a => a.id === 'custom')!)}
-                              className="mt-4 h-9 px-4 rounded-2xl bg-[#004d4d]/10 text-[#004d4d] text-[10px] font-black uppercase tracking-widest hover:bg-[#004d4d]/20 transition-all">
+                              className="mt-4 h-9 px-4 rounded-xl bg-[#004d4d] text-white text-[9px] font-black uppercase tracking-widest hover:bg-[#003838] transition-all">
                               Crear atributo personalizado
                             </button>
                           </div>
                         ) : (
                           searchResults.map(attr => (
                             <button key={attr.id} onClick={() => handleSelectAttr(attr)}
-                              className="w-full flex items-center gap-3 p-3 rounded-2xl border border-gray-100 bg-gray-50 hover:border-[#004d4d]/25 hover:bg-[#004d4d]/5 transition-all text-left group">
-                              <div className="h-9 w-9 rounded-xl bg-white shadow-sm flex items-center justify-center text-lg shrink-0">
-                                {attr.icon}
-                              </div>
+                              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-100 bg-white hover:border-[#004d4d]/20 hover:bg-[#004d4d]/3 transition-all text-left group">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <p className="text-[11px] font-black text-gray-900">{attr.label}</p>
-                                  <span className="text-[8px] font-bold text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded-full">
+                                  <p className="text-[11px] font-semibold text-gray-800">{attr.label}</p>
+                                  <span className="text-[8px] font-bold text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded-md">
                                     {attr.nichoLabel}
                                   </span>
                                 </div>
@@ -353,7 +368,7 @@ function VariantModal({
                                   </p>
                                 )}
                               </div>
-                              <ChevronRight size={14} className="text-gray-300 group-hover:text-[#004d4d] shrink-0"/>
+                              <ChevronRight size={12} className="text-gray-200 group-hover:text-[#004d4d]/50 shrink-0 transition-colors"/>
                             </button>
                           ))
                         )}
@@ -362,47 +377,49 @@ function VariantModal({
                       /* ── NAVEGACIÓN POR NICHO ── */
                       <>
                         {/* Sidebar nichos */}
-                        <div className="w-36 shrink-0 border-r border-gray-100 overflow-y-auto py-2 bg-gray-50/50">
+                        <div className="w-40 shrink-0 border-r border-gray-100 overflow-y-auto py-1 bg-white">
                           {nichoGrupos.map(g => (
                             <button key={g.id} onClick={() => setActiveNicho(g.id)}
-                              className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition-all ${
+                              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left transition-all ${
                                 activeNicho === g.id
-                                  ? 'bg-white border-r-2 border-[#004d4d] text-[#004d4d]'
-                                  : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
+                                  ? 'bg-[#004d4d]/5 text-[#004d4d] border-r-2 border-[#004d4d]'
+                                  : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'
                               }`}>
-                              <span className="text-base leading-none shrink-0">{g.icon}</span>
-                              <span className="text-[9px] font-black uppercase tracking-wide leading-tight">{g.label}</span>
+                              <span className={`h-6 w-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                                activeNicho === g.id ? 'bg-[#004d4d]/10 text-[#004d4d]' : 'bg-gray-100 text-gray-400'
+                              }`}>
+                                {NICHO_ICON_MAP[g.id]}
+                              </span>
+                              <span className="text-[9px] font-bold uppercase tracking-wide leading-tight">{g.label}</span>
                             </button>
                           ))}
                         </div>
 
                         {/* Atributos del nicho */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-                            {nichoGrupos.find(g => g.id === activeNicho)?.label} — elige el atributo
+                        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
+                          <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest mb-2 px-1">
+                            {nichoGrupos.find(g => g.id === activeNicho)?.label}
                           </p>
                           {(nichoGrupos.find(g => g.id === activeNicho)?.attrs ?? []).map((attr: any) => (
                             <button key={attr.id} onClick={() => handleSelectAttr(attr as AttrItem)}
-                              className="w-full flex items-center gap-3 p-3.5 rounded-2xl border-2 border-gray-100 bg-white hover:border-[#004d4d]/25 hover:shadow-sm transition-all text-left group">
-                              <div className="h-10 w-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
-                                {attr.icon}
-                              </div>
+                              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-100 bg-white hover:border-[#004d4d]/20 hover:bg-[#004d4d]/[0.02] transition-all text-left group">
                               <div className="flex-1 min-w-0">
-                                <p className="text-[11px] font-black text-gray-900">{attr.label}</p>
+                                <p className="text-[11px] font-semibold text-gray-800 group-hover:text-[#004d4d] transition-colors">{attr.label}</p>
                                 {attr.presets.length > 0 ? (
                                   <p className="text-[9px] text-gray-400 mt-0.5 truncate">
-                                    {attr.presets.slice(0, 4).join(', ')}{attr.presets.length > 4 ? `… +${attr.presets.length - 4}` : ''}
+                                    {attr.presets.slice(0, 4).join(' · ')}{attr.presets.length > 4 ? ` +${attr.presets.length - 4}` : ''}
                                   </p>
                                 ) : (
-                                  <p className="text-[9px] text-gray-400 mt-0.5">Nombre libre</p>
+                                  <p className="text-[9px] text-gray-300 mt-0.5 italic">Nombre libre</p>
                                 )}
                               </div>
-                              <div className={`h-6 px-2 rounded-full text-[8px] font-black uppercase flex items-center shrink-0 ${
-                                attr.presets.length > 0
-                                  ? 'bg-[#004d4d]/10 text-[#004d4d]'
-                                  : 'bg-gray-100 text-gray-400'
-                              }`}>
-                                {attr.presets.length > 0 ? `${attr.presets.length} opciones` : 'Custom'}
+                              <div className="flex items-center gap-2 shrink-0">
+                                {attr.presets.length > 0 && (
+                                  <span className="text-[8px] font-black text-gray-400 tabular-nums">
+                                    {attr.presets.length}
+                                  </span>
+                                )}
+                                <ChevronRight size={12} className="text-gray-200 group-hover:text-[#004d4d]/40 transition-colors"/>
                               </div>
                             </button>
                           ))}
@@ -462,6 +479,24 @@ function VariantModal({
                             </button>
                           );
                         })}
+
+                        {/* Selector de color personalizado — solo visible en atributos de color */}
+                        {isColorAttr && (
+                          <label className="relative flex items-center gap-1.5 h-7 px-2.5 rounded-xl border-2 border-dashed border-gray-300 bg-white text-[10px] font-bold text-gray-500 hover:border-[#004d4d]/40 hover:text-[#004d4d] transition-all cursor-pointer">
+                            <div className="h-3.5 w-3.5 rounded-full border border-gray-300 shrink-0 overflow-hidden" style={{ background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)' }}/>
+                            Personalizado
+                            <input type="color" defaultValue="#000000"
+                              onChange={e => {
+                                const hex = e.target.value;
+                                const name = `Color ${hex.toUpperCase()}`;
+                                setTempSubVariants((p: any[]) => [
+                                  ...p.filter(sv => sv.spec.trim() !== ''),
+                                  { id: genId(), spec: `${name}: ${hex}`, stock: useGlobal ? globalStock : 0 },
+                                ]);
+                              }}
+                              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"/>
+                          </label>
+                        )}
                       </div>
                     </div>
                   )}
@@ -631,6 +666,10 @@ export default function NewProductPage() {
   const [editingMasterName,     setEditingMasterName]     = useState<string|null>(null);
   const [isNewCategoryModalOpen,setIsNewCategoryModalOpen]= useState(false);
   const [newCategoryName,       setNewCategoryName]       = useState('');
+  const [newCategoryDesc,       setNewCategoryDesc]       = useState('');
+  const [newCategoryImgFile,    setNewCategoryImgFile]    = useState<File|null>(null);
+  const [newCategoryImgPreview, setNewCategoryImgPreview] = useState<string|null>(null);
+  const [isCreatingCategory,    setIsCreatingCategory]    = useState(false);
   const [selectedPreviewIndex,  setSelectedPreviewIndex]  = useState(0);
 
   const [fixedCosts, setFixedCosts] = useState({ payroll: 0, rent: 0, services: 0, others: 0 });
@@ -641,15 +680,17 @@ export default function NewProductPage() {
   const [formData, setFormData] = useState({
     name: '', description: '', price: 0, wholesale_price: 0, cost: 0,
     category: '', collection_id: null as string|null, sku: '',
-    status: 'active' as 'active'|'draft', add_gateway_fee: false
+    status: 'active' as 'active'|'draft', add_gateway_fee: false,
+    tags: [] as string[], warranty: '', features: '', important_info: ''
   });
+  const [tagInput, setTagInput] = useState('');
 
   const [variants, setVariants] = useState<any[]>([]);
   const [media,    setMedia]    = useState<{file?: File; preview: string; type: 'image'|'video'}[]>([]);
 
   // ── CONSTANTS ──
   const bayupRate = 0.035;
-  const wompiRate = 0.0285;
+  const prixRate = 0.025;
 
   // ── COMPUTED COMPLETENESS ──
   const completeness = Math.min(100, (
@@ -677,18 +718,18 @@ export default function NewProductPage() {
   const calculateProfit = (price: number) => {
     if (!price) return { net: 0, margin: 0, bayupFee: 0, wompiFee: 0 };
     const bayupFee = price * bayupRate;
-    const wompiFee = price * wompiRate;
+    const wompiFee = price * prixRate;
     const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
     const distributedFixed = totalFixed / (simulationUnits || 1);
-    const net = price - (formData.cost || 0) - distributedFixed - bayupFee - (formData.add_gateway_fee ? 0 : wompiFee);
-    return { net: Math.round(net), margin: price > 0 ? (net / price) * 100 : 0, bayupFee: Math.round(bayupFee), wompiFee: Math.round(formData.add_gateway_fee ? 0 : wompiFee) };
+    const net = price - (formData.cost || 0) - distributedFixed - bayupFee - wompiFee;
+    return { net: Math.round(net), margin: price > 0 ? (net / price) * 100 : 0, bayupFee: Math.round(bayupFee), wompiFee: Math.round(wompiFee) };
   };
 
   const recommendedRetail = () => {
     const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
     const costPerUnit = (formData.cost || 0) + (totalFixed / (simulationUnits || 1));
     const marginDecimal = simulationRetailMargin / 100;
-    const divisor = 1 - marginDecimal - bayupRate - (formData.add_gateway_fee ? 0 : wompiRate);
+    const divisor = 1 - marginDecimal - bayupRate - prixRate;
     if (divisor <= 0) return 0;
     return Math.ceil((costPerUnit / divisor) / 100) * 100;
   };
@@ -697,7 +738,7 @@ export default function NewProductPage() {
     const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
     const costPerUnit = (formData.cost || 0) + (totalFixed / (simulationUnits || 1));
     const marginDecimal = simulationWholesaleMargin / 100;
-    const divisor = 1 - marginDecimal - bayupRate - (formData.add_gateway_fee ? 0 : wompiRate);
+    const divisor = 1 - marginDecimal - bayupRate - prixRate;
     if (divisor <= 0) return 0;
     return Math.ceil((costPerUnit / divisor) / 100) * 100;
   };
@@ -726,22 +767,34 @@ export default function NewProductPage() {
   // ── HANDLERS ──
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return;
+    setIsCreatingCategory(true);
     try {
-      const res = await apiRequest<any>('/collections', { method: 'POST', token, body: JSON.stringify({ title: newCategoryName, description: 'Creada desde producto' }) });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
+      let imageUrl: string | null = null;
+      if (newCategoryImgFile) {
+        const fd = new FormData(); fd.append('file', newCategoryImgFile);
+        const r = await fetch(`${apiUrl}/admin/upload-image`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+        if (r.ok) imageUrl = (await r.json()).url;
+      }
+      const res = await apiRequest<any>('/collections', { method: 'POST', token, body: JSON.stringify({ title: newCategoryName, description: newCategoryDesc || undefined, image_url: imageUrl || undefined, status: 'active' }) });
       if (res) {
         setCategoriesList(p => [...p, res]);
-        setFormData({ ...formData, category: res.title, collection_id: res.id });
-        setIsNewCategoryModalOpen(false); setNewCategoryName(''); setIsCategoryOpen(false);
+        setFormData(f => ({ ...f, category: res.title, collection_id: res.id }));
+        setIsNewCategoryModalOpen(false);
+        setNewCategoryName(''); setNewCategoryDesc(''); setNewCategoryImgFile(null); setNewCategoryImgPreview(null);
+        setIsCategoryOpen(false);
         showToast('Categoría creada ✨', 'success');
       }
     } catch { showToast('Error al crear categoría', 'error'); }
+    finally { setIsCreatingCategory(false); }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (media.length >= 5) return showToast('Límite de 5 imágenes', 'info');
+    if (media.length >= 5) return showToast('Límite de 5 archivos', 'info');
     for (const file of files.slice(0, 5 - media.length)) {
-      setMedia(p => [...p, { file, preview: URL.createObjectURL(file), type: 'image' }]);
+      const type = file.type.startsWith('video/') ? 'video' : 'image';
+      setMedia(p => [...p, { file, preview: URL.createObjectURL(file), type }]);
     }
   };
 
@@ -749,15 +802,13 @@ export default function NewProductPage() {
     if (!formData.name.trim()) return showToast('El nombre es obligatorio', 'error');
     setIsSubmitting(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bayup.com.co';
       const uploadPromises = media.map(async item => {
         if (!item.file) return null;
         const fd = new FormData(); fd.append('file', item.file);
         try {
-          const res = await fetch(`${apiUrl}/admin/upload-image`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
-          if (res.ok) return (await res.json()).url;
+          const res = await apiRequest<{ url: string }>('/admin/upload-image', { method: 'POST', token, body: fd });
+          return res.url;
         } catch { return null; }
-        return null;
       });
       const uploadedUrls = (await Promise.all(uploadPromises)).filter((u): u is string => !!u);
       if (media.length > 0 && uploadedUrls.length === 0) { showToast('Error al subir imágenes', 'error'); setIsSubmitting(false); return; }
@@ -766,7 +817,10 @@ export default function NewProductPage() {
       window.dispatchEvent(new CustomEvent('bayup_product_update'));
       showToast('Producto creado ✨', 'success');
       router.push('/dashboard/products');
-    } catch { showToast('Error al guardar el producto', 'error'); }
+    } catch (err: any) {
+      console.error('handleSave error:', err);
+      showToast(err?.message || 'Error al guardar el producto', 'error');
+    }
     finally { setIsSubmitting(false); }
   };
 
@@ -934,10 +988,16 @@ export default function NewProductPage() {
                   <Reorder.Group axis="x" values={media} onReorder={setMedia} className="flex gap-3 flex-wrap">
                     {media.map((item, i) => (
                       <Reorder.Item key={item.preview} value={item} className="group relative h-24 w-24 rounded-2xl overflow-hidden border-2 border-white shadow-md cursor-grab shrink-0">
-                        <img src={item.preview} className="w-full h-full object-cover"/>
-                        <button onClick={() => setMedia(media.filter((_,idx) => idx !== i))}
-                          className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                          <Trash2 size={14}/>
+                        {item.type === 'video' ? (
+                          <video src={item.preview} className="w-full h-full object-cover pointer-events-none" autoPlay muted loop playsInline/>
+                        ) : (
+                          <img src={item.preview} className="w-full h-full object-cover pointer-events-none"/>
+                        )}
+                        <button
+                          onPointerDown={e => e.stopPropagation()}
+                          onClick={e => { e.stopPropagation(); setMedia(media.filter((_,idx) => idx !== i)); }}
+                          className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white hover:bg-red-500 z-10">
+                          <X size={12}/>
                         </button>
                         {i === 0 && <div className="absolute top-1.5 left-1.5 text-[7px] font-black bg-[#004d4d] text-white px-1.5 py-0.5 rounded-md">Principal</div>}
                       </Reorder.Item>
@@ -946,7 +1006,7 @@ export default function NewProductPage() {
                       <label className="h-24 w-24 rounded-2xl border-2 border-dashed border-[#004d4d]/20 bg-[#004d4d]/5 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-[#004d4d]/40 hover:bg-[#004d4d]/8 transition-all shrink-0">
                         <Plus size={18} className="text-[#004d4d]"/>
                         <span className="text-[8px] font-black text-[#004d4d] uppercase">Subir</span>
-                        <input type="file" className="hidden" multiple onChange={handleFileUpload}/>
+                        <input type="file" className="hidden" multiple accept="image/*,video/*" onChange={handleFileUpload}/>
                       </label>
                     )}
                   </Reorder.Group>
@@ -991,44 +1051,48 @@ export default function NewProductPage() {
 
                 {/* Métricas en tiempo real */}
                 <div className="grid grid-cols-2 gap-3">
-                  {/* Utilidad final */}
-                  <div className="bg-[#001a1a] rounded-2xl p-4 text-white relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5"><TrendingUp size={60}/></div>
-                    <p className="text-[8px] font-bold tracking-widest text-[#00f2ff]/50 uppercase mb-1">Utilidad por venta</p>
-                    <p className={`text-2xl font-black ${calculateProfit(formData.price).net < 0 ? 'text-rose-400' : 'text-[#00f2ff]'}`}>
-                      {fmtCOP(calculateProfit(formData.price).net)}
-                    </p>
-                    <p className="text-[9px] text-white/40 mt-1">Margen: {calculateProfit(formData.price).margin.toFixed(1)}%</p>
-                    <p className="text-[8px] text-white/30 mt-0.5">Bayup: -{fmtCOP(calculateProfit(formData.price).bayupFee)}</p>
-                  </div>
+                  {/* Utilidad precio mayorista */}
+                  {(() => {
+                    const pw = calculateProfit(formData.wholesale_price);
+                    const hasPrice = (formData.wholesale_price || 0) > 0;
+                    return (
+                      <div className="bg-white rounded-2xl p-4 border-2 border-gray-100 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-3 opacity-[0.04]"><TrendingUp size={56}/></div>
+                        <p className="text-[8px] font-bold tracking-widest text-gray-400 uppercase mb-1">Ganancia mayorista</p>
+                        <p className={`text-2xl font-black ${!hasPrice ? 'text-gray-200' : pw.net < 0 ? 'text-rose-500' : 'text-[#004d4d]'}`}>
+                          {hasPrice ? fmtCOP(pw.net) : '—'}
+                        </p>
+                        <p className={`text-[9px] mt-1 ${!hasPrice ? 'text-gray-200' : 'text-gray-400'}`}>
+                          Margen: {hasPrice ? `${pw.margin.toFixed(1)}%` : '—'}
+                        </p>
+                        <p className={`text-[8px] mt-0.5 ${!hasPrice ? 'text-gray-200' : 'text-gray-300'}`}>
+                          Bayup: -{hasPrice ? fmtCOP(pw.bayupFee) : '$0'}
+                        </p>
+                      </div>
+                    );
+                  })()}
 
-                  {/* ROI */}
-                  <div className="bg-[#004d4d]/8 rounded-2xl p-4 border-2 border-[#004d4d]/10">
-                    <p className="text-[8px] font-bold tracking-widest text-[#004d4d]/50 uppercase mb-1">ROI estimado</p>
-                    <p className="text-2xl font-black text-[#004d4d]">
-                      {(() => { const p = calculateProfit(formData.price); const cost = formData.cost || 1; return ((p.net / cost) * 100).toFixed(0); })()}%
-                    </p>
-                    <p className="text-[9px] text-[#004d4d]/50 mt-1">Mayorista: {fmtCOP(calculateProfit(formData.wholesale_price).net)}</p>
-                    <p className="text-[8px] text-[#004d4d]/40 mt-0.5">Margen may: {calculateProfit(formData.wholesale_price).margin.toFixed(1)}%</p>
-                  </div>
+                  {/* Utilidad precio de venta final */}
+                  {(() => {
+                    const pr = calculateProfit(formData.price);
+                    const hasPrice = (formData.price || 0) > 0;
+                    return (
+                      <div className="bg-[#001a1a] rounded-2xl p-4 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-3 opacity-5"><TrendingUp size={56}/></div>
+                        <p className="text-[8px] font-bold tracking-widest text-[#00f2ff]/50 uppercase mb-1">Ganancia precio final</p>
+                        <p className={`text-2xl font-black ${!hasPrice ? 'text-white/20' : pr.net < 0 ? 'text-rose-400' : 'text-[#00f2ff]'}`}>
+                          {hasPrice ? fmtCOP(pr.net) : '—'}
+                        </p>
+                        <p className={`text-[9px] mt-1 ${!hasPrice ? 'text-white/20' : 'text-white/40'}`}>
+                          Margen: {hasPrice ? `${pr.margin.toFixed(1)}%` : '—'}
+                        </p>
+                        <p className={`text-[8px] mt-0.5 ${!hasPrice ? 'text-white/10' : 'text-white/25'}`}>
+                          Bayup: -{hasPrice ? fmtCOP(pr.bayupFee) : '$0'}
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </div>
-
-                {/* Pasarela Wompi */}
-                <button onClick={() => setFormData({...formData, add_gateway_fee: !formData.add_gateway_fee})}
-                  className="w-full flex items-center justify-between p-4 bg-white border-2 border-gray-200 rounded-2xl hover:border-[#004d4d]/20 transition-all shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-9 w-9 rounded-xl flex items-center justify-center transition-all [&_svg]:w-4 [&_svg]:h-4 ${formData.add_gateway_fee ? 'bg-[#004d4d] text-white' : 'bg-gray-100 text-gray-400'}`}>
-                      <Zap/>
-                    </div>
-                    <div className="text-left">
-                      <p className="text-[10px] font-black text-gray-800 uppercase tracking-widest">Pasarela Wompi (2.85%)</p>
-                      <p className="text-[9px] text-gray-400">¿Quién asume el costo de la pasarela?</p>
-                    </div>
-                  </div>
-                  <span className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-full transition-all ${formData.add_gateway_fee ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {formData.add_gateway_fee ? 'Cliente' : 'Empresa'}
-                  </span>
-                </button>
 
                 {/* Asistente */}
                 <button onClick={() => setIsAssistantOpen(true)}
@@ -1129,6 +1193,132 @@ export default function NewProductPage() {
                   )}
                 </AnimatePresence>
 
+              {/* ── Etiquetas ───────────────────────────────────────── */}
+              <div className="mt-4 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-50">
+                  <div className="flex items-center gap-2">
+                    <div className="h-6 w-6 rounded-lg bg-violet-50 flex items-center justify-center">
+                      <Tag size={12} className="text-violet-500"/>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-800 uppercase tracking-widest">Etiquetas</p>
+                      <p className="text-[9px] text-gray-400">Agrupa productos con etiquetas para recomendarlos juntos al comprar</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="px-5 py-4 space-y-3">
+                  <div className="flex gap-2">
+                    <input
+                      value={tagInput}
+                      onChange={e => setTagInput(e.target.value)}
+                      onKeyDown={e => {
+                        if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
+                          e.preventDefault();
+                          const t = tagInput.trim().toLowerCase().replace(/,/g,'');
+                          if (t && !formData.tags.includes(t)) setFormData(f => ({...f, tags: [...f.tags, t]}));
+                          setTagInput('');
+                        }
+                      }}
+                      placeholder="Escribe una etiqueta y presiona Enter…"
+                      className="flex-1 h-9 rounded-xl border border-gray-200 px-3 text-[10px] text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-[#004d4d] focus:ring-1 focus:ring-[#004d4d]/20"
+                    />
+                    <button
+                      onClick={() => {
+                        const t = tagInput.trim().toLowerCase().replace(/,/g,'');
+                        if (t && !formData.tags.includes(t)) setFormData(f => ({...f, tags: [...f.tags, t]}));
+                        setTagInput('');
+                      }}
+                      className="h-9 px-3 rounded-xl bg-[#004d4d] text-white text-[9px] font-bold">
+                      +
+                    </button>
+                  </div>
+                  {formData.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {formData.tags.map(tag => (
+                        <span key={tag} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 text-[9px] font-bold">
+                          #{tag}
+                          <button onClick={() => setFormData(f => ({...f, tags: f.tags.filter(t => t !== tag)}))} className="hover:text-violet-900">
+                            <X size={9}/>
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Garantías ───────────────────────────────────────── */}
+              <div className="mt-4 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-50">
+                  <div className="flex items-center gap-2">
+                    <div className="h-6 w-6 rounded-lg bg-emerald-50 flex items-center justify-center">
+                      <ShieldCheck size={12} className="text-emerald-500"/>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-800 uppercase tracking-widest">Garantías</p>
+                      <p className="text-[9px] text-gray-400">Describe la garantía del producto</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="px-5 py-4">
+                  <textarea
+                    value={formData.warranty}
+                    onChange={e => setFormData(f => ({...f, warranty: e.target.value}))}
+                    rows={3}
+                    placeholder="Ej: 6 meses de garantía contra defectos de fabricación. El cliente debe presentar el comprobante de compra…"
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[10px] text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-[#004d4d] focus:ring-1 focus:ring-[#004d4d]/20 resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* ── Características ─────────────────────────────────── */}
+              <div className="mt-4 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-50">
+                  <div className="flex items-center gap-2">
+                    <div className="h-6 w-6 rounded-lg bg-sky-50 flex items-center justify-center">
+                      <ListChecks size={12} className="text-sky-500"/>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-800 uppercase tracking-widest">Características</p>
+                      <p className="text-[9px] text-gray-400">Especificaciones técnicas, materiales y detalles del producto</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="px-5 py-4">
+                  <textarea
+                    value={formData.features}
+                    onChange={e => setFormData(f => ({...f, features: e.target.value}))}
+                    rows={4}
+                    placeholder="Ej: Material: cuero 100% genuino&#10;Dimensiones: 30×20×10 cm&#10;Peso: 450g&#10;Cierre: cremallera YKK"
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[10px] text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-[#004d4d] focus:ring-1 focus:ring-[#004d4d]/20 resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* ── Información importante ──────────────────────────── */}
+              <div className="mt-4 mb-2 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-50">
+                  <div className="flex items-center gap-2">
+                    <div className="h-6 w-6 rounded-lg bg-amber-50 flex items-center justify-center">
+                      <Info size={12} className="text-amber-500"/>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-800 uppercase tracking-widest">Información importante</p>
+                      <p className="text-[9px] text-gray-400">Se mostrará en la página del producto como sección desplegable</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="px-5 py-4">
+                  <textarea
+                    value={formData.important_info}
+                    onChange={e => setFormData(f => ({...f, important_info: e.target.value}))}
+                    rows={4}
+                    placeholder="Ej: Cuidados: lavar a mano con agua fría&#10;No usar secadora&#10;Guardar en bolsa antihumedad"
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[10px] text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-[#004d4d] focus:ring-1 focus:ring-[#004d4d]/20 resize-none"
+                  />
+                </div>
+              </div>
+
               </motion.div>
             )}
           </AnimatePresence>
@@ -1166,31 +1356,35 @@ export default function NewProductPage() {
         <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 30% 30%, #004d4d20 0%, transparent 50%), radial-gradient(circle at 70% 70%, #00b2bd15 0%, transparent 50%)' }}/>
 
         {/* Tarjeta de preview simulando tienda */}
-        <div className="relative w-full max-w-[300px]">
+        <div className="relative w-full max-w-[439px]">
           {/* "Teléfono" */}
-          <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-gray-200/50">
-            {/* Header tienda */}
-            <div className="bg-[#004d4d] px-4 py-3 flex items-center gap-2">
-              <div className="h-7 w-7 bg-white rounded-lg flex items-center justify-center"><Box size={14} className="text-[#004d4d]"/></div>
+          <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-200/50 overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 120px)' }}>
+            {/* Header tienda — fijo arriba */}
+            <div className="bg-[#004d4d] px-5 py-4 flex items-center gap-3 shrink-0">
+              <div className="h-10 w-10 bg-white rounded-lg flex items-center justify-center"><Box size={18} className="text-[#004d4d]"/></div>
               <div>
-                <p className="text-white text-[10px] font-black uppercase tracking-widest">Mi Tienda</p>
-                <p className="text-[#00f2ff]/60 text-[8px] font-bold">Vista del cliente</p>
+                <p className="text-white text-xs font-black uppercase tracking-widest">Mi Tienda</p>
+                <p className="text-[#00f2ff]/60 text-[10px] font-bold">Vista del cliente</p>
               </div>
-              <div className="ml-auto flex gap-1">
-                <div className="h-1.5 w-1.5 rounded-full bg-white/30"/>
-                <div className="h-1.5 w-1.5 rounded-full bg-white/30"/>
-                <div className="h-1.5 w-1.5 rounded-full bg-white/30"/>
+              <div className="ml-auto flex gap-1.5">
+                <div className="h-2 w-2 rounded-full bg-white/30"/>
+                <div className="h-2 w-2 rounded-full bg-white/30"/>
+                <div className="h-2 w-2 rounded-full bg-white/30"/>
               </div>
             </div>
 
             {/* Imagen principal */}
-            <div className="relative bg-gray-50" style={{ height: 220 }}>
+            <div className="relative bg-gray-50 shrink-0" style={{ height: 322 }}>
               {media.length > 0 ? (
-                <img src={media[selectedPreviewIndex]?.preview} className="w-full h-full object-cover" alt="preview"/>
+                media[selectedPreviewIndex]?.type === 'video' ? (
+                  <video key={media[selectedPreviewIndex]?.preview} src={media[selectedPreviewIndex]?.preview} className="w-full h-full object-cover" autoPlay muted loop playsInline/>
+                ) : (
+                  <img src={media[selectedPreviewIndex]?.preview} className="w-full h-full object-cover" alt="preview"/>
+                )
               ) : (
                 <div className="h-full w-full flex flex-col items-center justify-center text-gray-200 gap-2">
-                  <ImageIcon size={32}/>
-                  <p className="text-[9px] font-bold text-gray-300">Sin imagen</p>
+                  <ImageIcon size={44}/>
+                  <p className="text-xs font-bold text-gray-300">Sin imagen</p>
                 </div>
               )}
               {/* Thumbnails */}
@@ -1203,87 +1397,98 @@ export default function NewProductPage() {
                 </div>
               )}
               {/* Badge estado */}
-              <div className="absolute top-2 right-2">
-                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${formData.status === 'active' ? 'bg-emerald-500 text-white' : 'bg-gray-400 text-white'}`}>
+              <div className="absolute top-3 right-3">
+                <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${formData.status === 'active' ? 'bg-emerald-500 text-white' : 'bg-gray-400 text-white'}`}>
                   {formData.status === 'active' ? 'Activo' : 'Borrador'}
                 </span>
               </div>
             </div>
 
-            {/* Info producto */}
-            <div className="p-4 space-y-3">
+            {/* Thumbnails dentro de la tarjeta — debajo de la imagen principal */}
+            {media.length > 1 && (
+              <div className="flex gap-2 px-4 py-3 border-b border-gray-100 justify-center bg-gray-50/60 shrink-0">
+                {media.map((item, i) => (
+                  <button key={i} onClick={() => setSelectedPreviewIndex(i)}
+                    className={`relative h-14 w-14 rounded-xl overflow-hidden border-2 transition-all ${i === selectedPreviewIndex ? 'border-[#004d4d] scale-110' : 'border-gray-200 opacity-60 hover:opacity-90'}`}>
+                    {item.type === 'video' ? (
+                      <>
+                        <video src={item.preview} className="h-full w-full object-cover pointer-events-none" muted playsInline/>
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                          <div className="w-4 h-4 rounded-full bg-white/80 flex items-center justify-center">
+                            <div className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[7px] border-l-gray-800 border-b-[4px] border-b-transparent ml-0.5"/>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <img src={item.preview} className="h-full w-full object-cover" alt=""/>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Info producto — scrollable */}
+            <div className="p-5 space-y-4 overflow-y-auto flex-1 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
               <div>
-                <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{formData.category || 'Categoría'}</p>
-                <h3 className="text-sm font-black text-gray-900 leading-snug mt-0.5">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{formData.category || 'Categoría'}</p>
+                <h3 className="text-base font-black text-gray-900 leading-snug mt-1">
                   {formData.name || <span className="text-gray-300">Nombre del producto</span>}
                 </h3>
               </div>
 
               <div className="flex items-center justify-between">
-                <p className="text-lg font-black text-[#004d4d]">
-                  {formData.price > 0 ? fmtCOP(formData.price) : <span className="text-gray-300 text-sm">$0</span>}
+                <p className="text-xl font-black text-[#004d4d]">
+                  {formData.price > 0 ? fmtCOP(formData.price) : <span className="text-gray-300 text-base">$0</span>}
                 </p>
                 {formData.price > 0 && calculateProfit(formData.price).margin > 0 && (
-                  <span className="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
                     {calculateProfit(formData.price).margin.toFixed(0)}% margen
                   </span>
                 )}
               </div>
 
               {formData.description && (
-                <p className="text-[9px] text-gray-400 leading-relaxed line-clamp-2">{formData.description}</p>
+                <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{formData.description}</p>
               )}
 
               {/* Variantes chips */}
               {variants.length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Variantes disponibles</p>
-                  <div className="flex flex-wrap gap-1">
+                <div className="space-y-2">
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Variantes disponibles</p>
+                  <div className="flex flex-wrap gap-1.5">
                     {variants.slice(0, 6).map((v, i) => {
                       const detail = v.name.includes('/') ? v.name.split('/')[1].trim() : v.name;
                       const hasColor = detail.includes(': #');
                       const colorHex = hasColor ? detail.split(': #')[1] : null;
                       const cleanDetail = hasColor ? detail.split(':')[0] : detail;
                       return (
-                        <span key={i} className="flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-lg text-[8px] font-bold text-gray-600">
-                          {hasColor && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: `#${colorHex}` }}/>}
+                        <span key={i} className="flex items-center gap-1 px-2.5 py-1 bg-gray-100 rounded-lg text-[10px] font-bold text-gray-600">
+                          {hasColor && <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: `#${colorHex}` }}/>}
                           {cleanDetail}
                         </span>
                       );
                     })}
-                    {variants.length > 6 && <span className="text-[8px] text-gray-400 font-bold">+{variants.length - 6}</span>}
+                    {variants.length > 6 && <span className="text-[10px] text-gray-400 font-bold">+{variants.length - 6}</span>}
                   </div>
                 </div>
               )}
 
               {/* Stock */}
               <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                <p className="text-[8px] text-gray-400 font-bold">Stock total</p>
-                <p className="text-[9px] font-black text-gray-700">{variants.reduce((a, v) => a + (v.stock || 0), 0)} uds</p>
+                <p className="text-[10px] text-gray-400 font-bold">Stock total</p>
+                <p className="text-xs font-black text-gray-700">{variants.reduce((a, v) => a + (v.stock || 0), 0)} uds</p>
               </div>
 
               {/* CTA */}
-              <button className="w-full h-9 rounded-xl bg-[#004d4d] text-white text-[9px] font-black uppercase tracking-widest">
+              <button className="w-full h-11 rounded-xl bg-[#004d4d] text-white text-xs font-black uppercase tracking-widest">
                 Agregar al carrito
               </button>
             </div>
           </div>
 
-          {/* Thumbnails seleccionables bajo el teléfono */}
-          {media.length > 1 && (
-            <div className="flex gap-2 mt-3 justify-center">
-              {media.map((item, i) => (
-                <button key={i} onClick={() => setSelectedPreviewIndex(i)}
-                  className={`h-10 w-10 rounded-xl overflow-hidden border-2 transition-all ${i === selectedPreviewIndex ? 'border-[#004d4d] scale-110' : 'border-transparent opacity-60'}`}>
-                  <img src={item.preview} className="h-full w-full object-cover" alt=""/>
-                </button>
-              ))}
-            </div>
-          )}
-
           {/* Tips */}
-          <div className="mt-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-3">
-            <p className="text-[8px] font-black text-[#004d4d] uppercase tracking-widest mb-1.5">💡 Tips para vender más</p>
+          <div className="mt-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-4">
+            <p className="text-[10px] font-black text-[#004d4d] uppercase tracking-widest mb-2">💡 Tips para vender más</p>
             <ul className="space-y-1">
               {[
                 !formData.name          && 'Agrega un nombre descriptivo',
@@ -1386,7 +1591,7 @@ export default function NewProductPage() {
                       {(() => {
                         const totalFixed = fixedCosts.payroll + fixedCosts.rent + fixedCosts.services + fixedCosts.others;
                         const price = formData.price || recommendedRetail() || 1;
-                        const gatewayFee = formData.add_gateway_fee ? 0 : price * wompiRate;
+                        const gatewayFee = price * prixRate;
                         const contribution = price - (formData.cost || 0) - price * bayupRate - gatewayFee;
                         if (contribution <= 0) return '—';
                         return Math.ceil(totalFixed / contribution);
@@ -1447,14 +1652,53 @@ export default function NewProductPage() {
               onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-black text-gray-900">Nueva categoría</h3>
-                <button onClick={() => setIsNewCategoryModalOpen(false)} className="h-8 w-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400"><X size={14}/></button>
+                <button onClick={() => { setIsNewCategoryModalOpen(false); setNewCategoryName(''); setNewCategoryDesc(''); setNewCategoryImgFile(null); setNewCategoryImgPreview(null); }} className="h-8 w-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400"><X size={14}/></button>
               </div>
-              <input value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)}
-                placeholder="Ej: Accesorios Premium, Colección Invierno…"
-                className={inputCls}/>
+
+              {/* Imagen opcional */}
+              <label className="block cursor-pointer">
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 block">Imagen (opcional)</span>
+                {newCategoryImgPreview ? (
+                  <div className="relative h-32 rounded-2xl overflow-hidden border border-gray-200">
+                    <img src={newCategoryImgPreview} className="w-full h-full object-cover"/>
+                    <button type="button" onPointerDown={e => e.preventDefault()} onClick={e => { e.preventDefault(); setNewCategoryImgFile(null); setNewCategoryImgPreview(null); }}
+                      className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-red-500">
+                      <X size={11}/>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="h-24 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1.5 text-gray-300 hover:border-[#004d4d]/30 hover:text-[#004d4d]/40 transition-all">
+                    <ImageIcon size={22}/>
+                    <span className="text-[9px] font-bold">Subir imagen</span>
+                  </div>
+                )}
+                <input type="file" accept="image/*" className="hidden" onChange={e => {
+                  const f = e.target.files?.[0]; if (!f) return;
+                  setNewCategoryImgFile(f); setNewCategoryImgPreview(URL.createObjectURL(f));
+                }}/>
+              </label>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Nombre *</label>
+                <input value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)}
+                  placeholder="Ej: Accesorios Premium, Colección Invierno…"
+                  className={inputCls}/>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Descripción (opcional)</label>
+                <textarea value={newCategoryDesc} onChange={e => setNewCategoryDesc(e.target.value)} rows={2}
+                  placeholder="Describe esta categoría…"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-700 outline-none focus:border-[#004d4d]/40 resize-none"/>
+              </div>
+
               <div className="flex gap-2">
-                <button onClick={() => setIsNewCategoryModalOpen(false)} className="flex-1 h-10 rounded-2xl text-[9px] font-bold text-gray-400">Cancelar</button>
-                <button onClick={handleCreateCategory} className="flex-[2] h-10 rounded-2xl bg-[#004d4d] text-white text-[9px] font-black uppercase tracking-widest">Crear categoría</button>
+                <button onClick={() => { setIsNewCategoryModalOpen(false); setNewCategoryName(''); setNewCategoryDesc(''); setNewCategoryImgFile(null); setNewCategoryImgPreview(null); }}
+                  className="flex-1 h-10 rounded-2xl text-[9px] font-bold text-gray-400">Cancelar</button>
+                <button onClick={handleCreateCategory} disabled={isCreatingCategory || !newCategoryName.trim()}
+                  className="flex-[2] h-10 rounded-2xl bg-[#004d4d] text-white text-[9px] font-black uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2">
+                  {isCreatingCategory ? <><Loader2 size={12} className="animate-spin"/>Creando…</> : 'Crear categoría'}
+                </button>
               </div>
             </motion.div>
           </div>

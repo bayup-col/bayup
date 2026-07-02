@@ -1,6 +1,7 @@
 from fastapi import Depends, FastAPI, HTTPException, status, Request, Response, UploadFile, File, Query, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 import logging
@@ -115,6 +116,12 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="Bayup OS Platinum", lifespan=lifespan)
+
+# Servir archivos subidos localmente (fallback cuando S3 no está configurado)
+import pathlib as _pathlib
+_uploads_dir = _pathlib.Path(__file__).parent / "uploads"
+_uploads_dir.mkdir(exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(_uploads_dir)), name="uploads")
 
 # --- RATE LIMITING ---
 def _get_real_ip(request: Request) -> str:
@@ -731,6 +738,10 @@ class ProductCreateRequest(BaseModel):
     collection_id: str | None = None
     variants: list = []
     target_user_id: str | None = None
+    tags: list | None = []
+    warranty: str | None = None
+    features: str | None = None
+    important_info: str | None = None
 
 @app.get("/products")
 async def get_products(request: Request, skip: int = Query(default=0, ge=0), limit: int = Query(default=200, ge=1)):
@@ -997,6 +1008,31 @@ async def create_collection_route(payload: CollectionCreateRequest, request: Req
         collection_in = schemas.CollectionCreate(**payload.model_dump())
         db_collection = crud.create_collection(db, collection=collection_in, owner_id=_tenant_id(user))
         return schemas.Collection.model_validate(db_collection).model_dump(mode="json")
+    finally:
+        db.close()
+
+@app.put("/collections/{collection_id}")
+async def update_collection_route(collection_id: str, payload: CollectionCreateRequest, request: Request):
+    import crud, schemas
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        col = db.query(models.Collection).filter(
+            models.Collection.id == collection_id,
+            models.Collection.owner_id == _tenant_id(user)
+        ).first()
+        if not col:
+            raise HTTPException(status_code=404, detail="Categoría no encontrada")
+        for field, value in payload.model_dump(exclude_unset=True).items():
+            if value is not None:
+                setattr(col, field if field != 'title' else 'title', value)
+        # map title field
+        col.title = payload.title
+        if payload.description is not None: col.description = payload.description
+        if payload.image_url is not None: col.image_url = payload.image_url
+        db.commit(); db.refresh(col)
+        return schemas.Collection.model_validate(col).model_dump(mode="json")
     finally:
         db.close()
 
@@ -1861,24 +1897,25 @@ async def upload_image(request: Request, file: UploadFile = File(...)):
     finally:
         db.close()
 
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="El archivo debe ser una imagen")
+    allowed_types = ("image/", "video/")
+    if not file.content_type or not any(file.content_type.startswith(t) for t in allowed_types):
+        raise HTTPException(status_code=400, detail="El archivo debe ser una imagen o video")
 
     contents = await file.read()
 
-    _IMG_MAGIC = [b'\xff\xd8\xff', b'\x89PNG\r\n\x1a\n', b'GIF87a', b'GIF89a', b'RIFF', b'WEBP']
-    if not any(contents[:8].startswith(sig) for sig in _IMG_MAGIC):
-        raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
+    is_video = file.content_type.startswith("video/")
+    max_size = 50 * 1024 * 1024 if is_video else 5 * 1024 * 1024
+    if len(contents) > max_size:
+        raise HTTPException(status_code=400, detail=f"El archivo supera el límite de {'50MB' if is_video else '5MB'}")
 
-    if len(contents) > 5 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="La imagen no puede superar 5MB")
+    if not is_video:
+        _IMG_MAGIC = [b'\xff\xd8\xff', b'\x89PNG\r\n\x1a\n', b'GIF87a', b'GIF89a', b'RIFF', b'WEBP']
+        if not any(contents[:8].startswith(sig) for sig in _IMG_MAGIC):
+            raise HTTPException(status_code=400, detail="El archivo no es una imagen válida")
 
-    url = s3_service.upload_file_and_get_public_url(contents, file.content_type, file.filename or "image")
+    url = s3_service.upload_file_and_get_public_url(contents, file.content_type, file.filename or "file")
     if not url:
-        raise HTTPException(
-            status_code=503,
-            detail="El almacenamiento de imágenes no está configurado (faltan SUPABASE_S3_ENDPOINT / S3_BUCKET_NAME).",
-        )
+        raise HTTPException(status_code=503, detail="Error al guardar el archivo")
     return {"url": url}
 
 def _require_super_admin(user) -> None:

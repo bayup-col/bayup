@@ -104,6 +104,10 @@ class ProductBase(BaseModel):
     add_gateway_fee: Optional[bool] = False
     image_url: Optional[Any] = None
     collection_id: Optional[uuid.UUID] = None
+    tags: Optional[List[str]] = []
+    warranty: Optional[str] = None
+    features: Optional[str] = None
+    important_info: Optional[str] = None
 
 class ProductCreate(ProductBase):
     variants: List[ProductVariantCreate] = []
