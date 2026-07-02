@@ -408,23 +408,27 @@ CREATE TABLE IF NOT EXISTS payroll_employees (
 );
 
 CREATE TABLE IF NOT EXISTS products (
-	id UUID NOT NULL, 
-	name VARCHAR, 
-	description VARCHAR, 
-	price FLOAT, 
-	wholesale_price FLOAT, 
-	cost FLOAT, 
-	category VARCHAR, 
-	sku VARCHAR, 
-	status VARCHAR, 
-	add_gateway_fee BOOLEAN, 
-	image_url JSON, 
-	owner_id UUID, 
-	product_type_id UUID, 
-	collection_id UUID, 
-	PRIMARY KEY (id), 
-	FOREIGN KEY(owner_id) REFERENCES users (id), 
-	FOREIGN KEY(product_type_id) REFERENCES product_types (id), 
+	id UUID NOT NULL,
+	name VARCHAR,
+	description VARCHAR,
+	price FLOAT,
+	wholesale_price FLOAT,
+	cost FLOAT,
+	category VARCHAR,
+	sku VARCHAR,
+	status VARCHAR,
+	add_gateway_fee BOOLEAN,
+	image_url JSON,
+	tags JSON,
+	warranty VARCHAR,
+	features JSON,
+	important_info VARCHAR,
+	owner_id UUID,
+	product_type_id UUID,
+	collection_id UUID,
+	PRIMARY KEY (id),
+	FOREIGN KEY(owner_id) REFERENCES users (id),
+	FOREIGN KEY(product_type_id) REFERENCES product_types (id),
 	FOREIGN KEY(collection_id) REFERENCES collections (id)
 );
 
@@ -737,6 +741,10 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS sku VARCHAR;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS status VARCHAR;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS add_gateway_fee BOOLEAN;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS image_url JSON;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS tags JSON;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS warranty VARCHAR;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS features JSON;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS important_info VARCHAR;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS owner_id UUID;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS product_type_id UUID;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS collection_id UUID;
