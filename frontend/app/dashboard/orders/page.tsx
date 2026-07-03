@@ -631,7 +631,7 @@ export default function OrdersPage() {
                     className="w-full h-12 rounded-2xl bg-gradient-to-r from-[#004d4d] to-[#00706e] hover:from-[#003838] hover:to-[#005856] text-white font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50">
                     {updatingId === drawerOrder.id
                       ? <Loader2 size={14} className="animate-spin"/>
-                      : <><BadgeCheck size={15}/> Aceptar y facturar</>}
+                      : <><BadgeCheck size={15}/> Confirmar pedido</>}
                   </button>
                 )}
 
@@ -643,7 +643,7 @@ export default function OrdersPage() {
                     className="w-full h-12 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50">
                     {updatingId === drawerOrder.id
                       ? <Loader2 size={14} className="animate-spin"/>
-                      : <><Truck size={15}/> Completar → Envíos</>}
+                      : <><Truck size={15}/> Marcar como completado</>}
                   </button>
                 )}
 

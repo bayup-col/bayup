@@ -113,7 +113,7 @@ export default function InvoicingPage() {
   const [history,                  setHistory]                  = useState<PastInvoice[]>([]);
   const [historySearch,            setHistorySearch]            = useState('');
   const [dateRange,                setDateRange]                = useState({ start: '', end: '' });
-  const [extraFilters,             setExtraFilters]             = useState({ source: 'Todos', payment: 'Todos' });
+  const [extraFilters,             setExtraFilters]             = useState({ source: 'pos', payment: 'Todos' });
   const [isFilterOpen,             setIsFilterOpen]             = useState(false);
   const [showExportMenu,           setShowExportMenu]           = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
