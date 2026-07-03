@@ -721,6 +721,20 @@ async def read_users_me(request: Request):
             "onboarding_completed": bool(getattr(current_user, 'onboarding_completed', False)),
             "status": getattr(current_user, 'status', 'Activo'),
             "reviewer_notes": getattr(current_user, 'reviewer_notes', None),
+            # Campos de Config Tienda (identidad, contacto, fiscal, redes, pagos)
+            "category":      getattr(current_user, 'category', "Moda & Accesorios") or "Moda & Accesorios",
+            "story":         getattr(current_user, 'story', "") or "",
+            "phone":         getattr(current_user, 'phone', "") or "",
+            "address":       getattr(current_user, 'address', "") or "",
+            "customer_city": getattr(current_user, 'customer_city', "") or "",
+            "country":       getattr(current_user, 'country', "Colombia") or "Colombia",
+            "hours":         getattr(current_user, 'hours', "") or "",
+            "website":       getattr(current_user, 'website', "") or "",
+            "nit":           getattr(current_user, 'nit', "") or "",
+            "tax_regime":    getattr(current_user, 'tax_regime', "Simplificado") or "Simplificado",
+            "legal_rep":     getattr(current_user, 'legal_rep', "") or "",
+            "social_links":  getattr(current_user, 'social_links', {}) or {},
+            "bank_accounts": getattr(current_user, 'bank_accounts', []) or [],
         }
     finally:
         db.close()
