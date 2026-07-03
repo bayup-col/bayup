@@ -212,10 +212,13 @@ class ShipmentBase(BaseModel):
     order_id: uuid.UUID
     recipient_name: str
     recipient_phone: Optional[str] = None
-    destination_address: str
-    status: str = "pending_packing"
+    destination_address: Optional[str] = None
+    status: str = "pendiente"
     carrier: Optional[str] = None
     tracking_number: Optional[str] = None
+    notes: Optional[str] = None
+    history: Optional[list] = []
+    estimated_delivery: Optional[datetime] = None
 
 class ShipmentCreate(ShipmentBase):
     pass
@@ -223,6 +226,7 @@ class ShipmentCreate(ShipmentBase):
 class Shipment(ShipmentBase):
     id: uuid.UUID
     tenant_id: uuid.UUID
+    created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 

@@ -58,14 +58,6 @@ const STATUS: Record<ShipStatus, { label: string; color: string; bg: string; bor
 const PIPELINE: ShipStatus[] = ['pendiente', 'guia_generada', 'en_transito', 'en_reparto', 'entregado'];
 const CARRIERS = ['Servientrega', 'Coordinadora', 'Envia', 'Deprisa', 'Fedex', 'DHL', 'TCC', 'Interrapidísimo', 'Otro'];
 
-// ── MAPA ESTADOS PEDIDOS → ENVÍOS ─────────────────────────────────────────
-function mapOrderStatus(orderStatus: string): ShipStatus {
-  if (orderStatus === 'pending')    return 'pendiente';
-  if (orderStatus === 'processing') return 'en_transito';
-  if (orderStatus === 'completed')  return 'entregado';
-  if (orderStatus === 'cancelled')  return 'incidencia';
-  return 'pendiente';
-}
 
 // ── KPI CARD ───────────────────────────────────────────────────────────────
 function KpiCard({ label, value, sub, icon, trend, trendUp, accent = '#004d4d' }: any) {
@@ -151,7 +143,7 @@ function ShipmentTimeline({ shipment }: { shipment: Shipment }) {
 function ShipmentDrawer({ shipment, onClose, onUpdateStatus }: {
   shipment: Shipment;
   onClose: () => void;
-  onUpdateStatus: (id: string, status: ShipStatus, note?: string) => void;
+  onUpdateStatus: (id: string, status: ShipStatus, carrier: string, tracking: string, note?: string) => void;
 }) {
   const [newStatus, setNewStatus] = useState<ShipStatus>(shipment.status);
   const [carrier,   setCarrier]   = useState(shipment.carrier || '');
@@ -166,7 +158,7 @@ function ShipmentDrawer({ shipment, onClose, onUpdateStatus }: {
 
   const handleSave = async () => {
     setSaving(true);
-    await onUpdateStatus(shipment.order_id, newStatus, note || undefined);
+    await onUpdateStatus(shipment.id, newStatus, carrier, tracking, note || undefined);
     setSaving(false);
     onClose();
   };
@@ -308,51 +300,27 @@ export default function ShippingPage() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
 
-  // ── CARGA: convierte órdenes en envíos ──
+  // ── CARGA DIRECTA DESDE /shipments ──
   const fetchShipments = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
-      const data = await apiRequest<any[]>('/orders', { token });
-      if (data) {
-        const mapped: Shipment[] = data.map(o => ({
-          id:               o.id,
-          order_id:         o.id,
-          order_number:     o.order_number || o.id.slice(0, 8).toUpperCase(),
-          tracking_number:  o.tracking_number || 'PENDIENTE',
-          carrier:          o.carrier || '',
-          status:           o.shipping_status || mapOrderStatus(o.status),
-          customer_name:    o.customer_name || 'Cliente',
-          customer_phone:   o.customer_phone || '',
-          customer_city:    o.shipping_city || o.customer_city || '',
-          customer_address: o.shipping_address || '',
-          total_price:      o.total_price || 0,
-          items_count:      (o.items || o.order_items || []).length,
-          created_at:       o.created_at,
-          updated_at:       o.updated_at || o.created_at,
-          estimated_delivery: o.estimated_delivery,
-          notes:            o.shipping_notes || '',
-        }));
-        setShipments(mapped);
-      }
+      const data = await apiRequest<Shipment[]>('/shipments', { token });
+      if (data) setShipments(data);
     } catch { showToast('Error al cargar envíos', 'error'); }
     finally { setLoading(false); }
   }, [token, showToast]);
 
   useEffect(() => { fetchShipments(); }, [fetchShipments]);
 
-  // ── ACTUALIZAR ESTADO ──
-  const handleUpdateStatus = async (orderId: string, newStatus: ShipStatus, note?: string) => {
-    const orderStatus =
-      newStatus === 'entregado'   ? 'completed'  :
-      newStatus === 'incidencia'  ? 'cancelled'  :
-      newStatus === 'pendiente'   ? 'pending'    : 'processing';
+  // ── ACTUALIZAR ENVÍO ──
+  const handleUpdateStatus = async (shipmentId: string, newStatus: ShipStatus, carrier: string, tracking: string, note?: string) => {
     try {
-      await apiRequest(`/orders/${orderId}`, {
+      await apiRequest(`/shipments/${shipmentId}`, {
         method: 'PUT', token,
-        body: JSON.stringify({ status: orderStatus, shipping_status: newStatus, shipping_notes: note }),
+        body: JSON.stringify({ status: newStatus, carrier, tracking_number: tracking, notes: note }),
       });
-      showToast('Estado actualizado ✓', 'success');
+      showToast('Envío actualizado ✓', 'success');
       fetchShipments();
     } catch { showToast('Error al actualizar', 'error'); }
   };
