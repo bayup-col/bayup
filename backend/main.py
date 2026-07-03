@@ -945,6 +945,11 @@ async def create_order_route(payload: OrderCreateRequest, request: Request):
         tenant_id = _tenant_id(user)
         order_in = schemas.OrderCreate(tenant_id=tenant_id, **payload.model_dump())
         db_order = crud.create_order(db, order=order_in, customer_id=user.id, tenant_id=tenant_id)
+        total_fmt = f"${db_order.total_price:,.0f}".replace(",", ".")
+        _push_notification(db, tenant_id,
+            "💰 Nuevo pedido creado",
+            f"Pedido #{str(db_order.id)[:8].upper()} por {total_fmt}",
+            "success")
         return schemas.Order.model_validate(db_order).model_dump(mode="json")
     finally:
         db.close()
@@ -974,11 +979,33 @@ async def update_order_route(order_id: str, payload: OrderUpdateRequest, request
         ).first()
         if not db_order:
             raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        prev_status = db_order.status
         db_order.status = payload.status
         db.commit()
+        if payload.status != prev_status:
+            if payload.status == "completed":
+                _push_notification(db, tenant_id,
+                    "✅ Pedido completado",
+                    f"Pedido #{order_id[:8].upper()} marcado como completado",
+                    "success")
+            elif payload.status == "cancelled":
+                _push_notification(db, tenant_id,
+                    "❌ Pedido cancelado",
+                    f"Pedido #{order_id[:8].upper()} fue cancelado",
+                    "alert")
         return {"id": str(db_order.id), "status": db_order.status}
     finally:
         db.close()
+
+def _push_notification(db, tenant_id, title: str, message: str, type_: str = "info"):
+    """Crea una notificación en BD para el tenant. No lanza excepciones."""
+    import models as _m
+    try:
+        notif = _m.Notification(tenant_id=tenant_id, title=title, message=message, type=type_)
+        db.add(notif)
+        db.commit()
+    except Exception as _e:
+        logger.warning("No se pudo crear notificación: %s", _e)
 
 @app.get("/notifications")
 async def get_notifications(request: Request):
@@ -997,6 +1024,54 @@ async def get_notifications(request: Request):
                 "created_at": n.created_at.isoformat() if n.created_at else None,
             } for n in notifications
         ]
+    finally:
+        db.close()
+
+@app.put("/notifications/read-all")
+async def mark_all_notifications_read(request: Request):
+    import models
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        db.query(models.Notification).filter(
+            models.Notification.tenant_id == _tenant_id(user),
+            models.Notification.is_read == False
+        ).update({"is_read": True})
+        db.commit()
+        return {"success": True}
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+@app.put("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str, request: Request):
+    import models
+    import uuid as _uuid
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = await _authenticate(request, db)
+        try:
+            nid = _uuid.UUID(notification_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="ID de notificación inválido")
+        notification = db.query(models.Notification).filter(
+            models.Notification.id == nid,
+            models.Notification.tenant_id == _tenant_id(user)
+        ).first()
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notificación no encontrada")
+        notification.is_read = True
+        db.commit()
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -1254,6 +1329,12 @@ def create_public_order(request: Request, payload: PublicOrderCreateRequest):
                 ).start()
         except Exception as _notify_err:
             logger.warning("No se pudo enviar notificación de venta al dueño: %s", _notify_err)
+
+        total_fmt = f"${db_order.total_price:,.0f}".replace(",", ".")
+        _push_notification(db, tenant_uuid,
+            "🛒 Nueva venta en tienda",
+            f"{payload.customer_name or 'Cliente'} compró por {total_fmt}",
+            "success")
 
         return schemas.Order.model_validate(db_order).model_dump(mode="json")
     except ValueError:
